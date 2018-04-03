@@ -3,11 +3,14 @@ import requests
 import subprocess
 import pandas as pd
 import time
-# okay, next step is to store a whole bunch. And then compute the differentials.
-# probably want to do a time-based loop. And set it up so I can easily pickle the files
-# the next part I'll presuppose the existance of the pickled data frames, so get it all ready
-# for that. I've decided on control charts and PCA as the initial steps.
-# maybe look into the cloudlab bootscript thing. Or just check that the thing is even worthwhile (e.g. enough ram)
+
+'''
+USAGE: python pull_from_prom.py
+
+This program pulls from an exposed prometheus pod (at 127.0.0.1:9090) every 5 seconds, computes the differential traffic matrix, and stores it in a pickle file for access to later.
+
+While this sounds very simple, immature tooling in the microservice space causes it to take a little work (e.g to get the required data from prometheus, need to curl it on a regular basis, parse the output, lookup the service that pod IP's correspond to, etc.(
+'''
 
 services = [
         'carts',
@@ -83,8 +86,6 @@ def main():
         print "Should sleep for ", time_to_sleep, " seconds"
         if time_to_sleep > 0:
             time.sleep(time_to_sleep)
-
-    ## TODO make sure to update the key values with time stamps
 
 def pull_from_prometheus():
     r = requests.get('http://127.0.0.1:9090/')
