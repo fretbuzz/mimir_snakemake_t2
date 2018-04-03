@@ -57,13 +57,13 @@ def simulate_incoming_data():
     elapsed_time = []
     print times
     elapsed_time.append(times[0]) ## TODO: find a better solution that this
-    for time in times[1:]:
+    for time_index in range(1,len(times)-1):
+        time = times[time_index]
         elapsed_time.append(time)
         df_sent_so_far = df_sent[ df_sent['time'].isin(elapsed_time)]
         df_rec_so_far = df_rec[ df_rec['time'].isin(elapsed_time)]
         #df_sent_so_far = df_sent
         #df_rec_so_far = df_rec
-
 
         #print df_sent_so_far
         #print df_rec_so_far
@@ -72,6 +72,10 @@ def simulate_incoming_data():
         print "\nDisplaying sent traffic matrix data..."
         sent_stats = control_charts(df_sent_so_far, True)
         print sent_stats
+        # now let's check if it will trigger an alarm
+        print "SUP", df_sent
+        next_sent_traffic_matrix = df_sent[ df_sent['time'].isin([times[time_index+1]]) ]
+        next_value_trigger_control_charts(next_sent_traffic_matrix, sent_stats)
         print "Finished displaying sent traffix matrix data..."
 
         #print "Here is the recieved traffic matrixes"
@@ -79,6 +83,9 @@ def simulate_incoming_data():
         print "\nDisplaying recieved traffic matrix data..."
         rec_stats = control_charts(df_rec_so_far, False)
         print rec_stats
+        # now let's check if it will trigger an alarm
+        next_rec_traffic_matrix = df_rec[df_rec['time'].isin([times[time_index+1]])]
+        next_value_trigger_control_charts(next_rec_traffic_matrix, rec_stats)
         print "Finished displaying rec traffix matrix data..."
 
 # this is the function to implement control channels
@@ -90,7 +97,7 @@ def control_charts(df, is_send):
     for index_service in services:
         for column_service in services:
             # NOTE: this is where I'd condition on time values, if I wanted to do
-            # like a moving average or something
+            # like a moving average or something (well might be earlier actually)
             relevant_traffic_values = df.loc[index_service, column_service]
             #print relevant_traffic_values, type(relevant_traffic_values)
             if relevant_traffic_values.mean() != 0:
@@ -98,6 +105,8 @@ def control_charts(df, is_send):
                     print "\n", index_service, " SENT TO ", column_service
                 else:
                     print "\n", index_service, " RECEIVE FROM ", column_service
+                # this is where I could do something fancier than just mean and stddev
+                # I could do this by being fancy with data_stats (perhaps cleverly unpacking later on)
                 print relevant_traffic_values.describe()
                 print "Mean: ", relevant_traffic_values.mean()
                 print "Stddev: ", relevant_traffic_values.std()
@@ -110,6 +119,22 @@ def get_times(df):
         times.append(x)
     times = sorted(list(set(times)))
     return times
+
+# this function uses the statistics that are in data_stats to
+# see if the next value for a service pair causes 
+# an alarm via control chart anomaly detection
+def next_value_trigger_control_charts(df, data_stats):
+    ## iterate through values of data_stats
+    ## get value from traffic matrix
+    ## if outside of bounds, print something in capital letters
+    for entry in data_stats:
+        print entry
+        print df
+        print df.loc[ entry[0], entry[1] ]
+        next_val = df.loc[ entry[0], entry[1] ]
+        mean, stddev = entry[2], entry[3]
+        if abs(next_val - mean) > (2 * stddev):
+            print "THIS IS THE POOR MAN'S EQUIVALENT OF AN ALARM!!", entry
 
 if __name__=="__main__":
     main()
