@@ -29,7 +29,6 @@ kubectl apply -f install/kubernetes/istio.yaml
 '''
 
 def main():
-    '''
     # no point checking, just trying stopping + deleteing
     print "Stopping minikube..."
     try:
@@ -48,13 +47,14 @@ def main():
 
     # then start minikube
     print "Starting minikube..."
-    out = subprocess.check_output(["minikube", "start", "--memory=6144"])
+    out = subprocess.check_output(["minikube", "start", "--memory=6144", "--cpus=3"])
     print out
     print "Starting minikube completed"
 
 
     # TODO check if istio already exists (or not, doesn't really matter)
     print "Cloning Istio..."
+#    ps = subprocess.Popen(("curl", "-L", "https://git.io/getIstio"), stdout=subprocess.PIPE)
     ps = subprocess.Popen(("curl", "-L", "https://git.io/getLatestIstio"), stdout=subprocess.PIPE)
     output = subprocess.check_output(("sh", "-"), stdin=ps.stdout)
     ps.wait()
@@ -64,13 +64,15 @@ def main():
 
     # then install instio
     print "Starting to install Istio"
-    out = subprocess.check_output(["kubectl","apply", "-f", "./istio-0.6.0/install/kubernetes/istio.yaml"])
+    # get istio folder
+    istio_folder = get_istio_folder()
+    out = subprocess.check_output(["kubectl","apply", "-f", istio_folder + "/install/kubernetes/istio.yaml"])
     print out
     print "Completed installing Istio"
     
     # then deploy application
     print "Starting to deploy sock shop..."
-    out = subprocess.check_output(["Bash", "start_with_istio.sh"])
+    out = subprocess.check_output(["Bash", "start_with_istio.sh", istio_folder])
     print out
     print "Completed installing sock shop..."
     
@@ -89,7 +91,7 @@ def main():
 
     # Install prometheus plug-in so we can get the metrics
     print "Installing prometheus..."
-    out = subprocess.check_output(["kubectl", "apply", "-f", "istio-0.6.0/install/kubernetes/addons/prometheus.yaml"])
+    out = subprocess.check_output(["kubectl", "apply", "-f", istio_folder + "/install/kubernetes/addons/prometheus.yaml"])
     print "Prometheus installation complete"
     
     # wait for prometheus container to start
@@ -113,16 +115,17 @@ def main():
         print "Prometheus pod is ready: ", pods_ready_p
         time.sleep(10)
     print "Prometheus pods are ready!"
-    # Activate the custom metrics that we will use
+
+    ## Activate the custom metrics that we will use
     print "Installing custom metrics..."
     out = ""
     try:
-        out = subprocess.check_output(["./istio-0.6.0/bin/istioctl", "create", "-f", "new_telemetry.yaml"])
+        out = subprocess.check_output([istio_folder + "/bin/istioctl", "create", "-f", "new_telemetry.yaml"])
     except:
         print "new_telemetry already exists"
     print out
     try:
-        out = subprocess.check_output(["./istio-0.6.0/bin/istioctl", "create", "-f", "tcp_telemetry_orig_orig.yaml"])
+        out = subprocess.check_output([istio_folder + "/bin/istioctl", "create", "-f", "tcp_telemetry_orig_orig.yaml"])
     except:
         print "tcp_telemetry_orig_orig already exists"
     print out
@@ -133,7 +136,7 @@ def main():
     out = subprocess.check_output(["Kubectl", "apply", "-f", "./manifests_tcp_take_2"])
     print out
     print "Completed modifying service port names"
-    '''
+    
     # expose prometheus
     print "Exposing prometheus..."
     #try:
@@ -157,12 +160,21 @@ def main():
 
     # verify that prometheus is active 
     print "Verifying that prometheus is active..."
-    r = requests.get('http://127.0.0.1:9090/')
-    print r.status_code
-    if r.status_code == 200:
-        print "Prometheus is active and accessible!"
-    else:
-        print "Prometheus is not accessible!"
+    r = None
+    while not r:
+        try:
+            r = requests.get('http://127.0.0.1:9090/')
+        except:
+            r = None
+        if r:
+            print r.status_code
+            if r.status_code == 200:
+                print "Prometheus is active and accessible!"
+            else:
+                print "Prometheus is not accessible!"
+        else:
+            print "Couldn't access prometheus endpoint!"
+        time.sleep(10)
     print "Completed verifying that prometheus is active"
 
     # verify that all containers are active
@@ -188,20 +200,25 @@ def main():
         # sometimes generating some traffic makes the pods get into shape
         if time_waited % 24 == 0:
             # first get minikube ip
-            minikube_ip = subprocess.check_output(["minikube", "ip"])
-            out = subprocess.check_output(["docker", "run", "--rm", "weaveworksdemos/load-test", "-d", "5", "-h", minikube+":32001", "-c", "2", "-r", "60"])
+            minikube = subprocess.check_output(["minikube", "ip"])
+            try:
+                out = subprocess.check_output(["docker", "run", "--rm", "weaveworksdemos/load-test", "-d", "5", "-h", minikube+":32001", "-c", "2", "-r", "60"])
+            except:
+                print "cannot even run locust yet..."
     print "Application pods are ready!"
 
-    '''
     # start experimental recording script
     ##### TODO 
 
+
     # start experiment 
-    ##### TODO
+    ##### TODO: Generate more realistic traffic
+#    minikube_ip = subprocess.check_output(["minikube", "ip"])
+#    out = subprocess.check_output(["docker", "run", "--rm", "weaveworksdemos/load-test", "-h", minikube+":32001", "-c", "2", "-r", "60"])
+    ##### TODO: Perform data exfiltration
 
     # did it work without crashing
     ##### TODO
-    '''
 
 # kc_out is the result from a "kubectl get" command
 # desired_chunks is a list of the non-zero chunks in each
@@ -242,6 +259,12 @@ def check_if_pods_ready(statuses):
             if not is_ready:
                 are_pods_ready = False
     return are_pods_ready
+
+def get_istio_folder():
+    out = subprocess.check_output(["ls"])
+    for line in out.split('\n'):
+        if "istio-" in line:
+            return line
 
 if __name__=="__main__":
            main()

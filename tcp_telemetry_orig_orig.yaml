@@ -10,7 +10,7 @@ spec:
   dimensions:
     source_service: source.service | "unknown"
     source_version: source.labels["version"] | "unknown"
-    connection_id: connection.id | "unknown"
+#    connection_id: connection.id | "unknown"
 #    source_port: source.port 
     source_ip: source.ip 
     destination_service: destination.service | "unknown"
@@ -32,7 +32,7 @@ spec:
   dimensions:
     source_service: source.service | "unknown"
     source_version: source.labels["version"] | "unknown"
-    connection_id: connection.id | "unknown"
+#    connection_id: connection.id | "unknown"
 #    source_port: source.port
     source_ip: source.ip
     destination_service: destination.service | "unknown"
