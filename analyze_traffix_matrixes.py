@@ -42,18 +42,37 @@ def main():
     df_sent = pd.read_pickle('./experimental_data/cumul_sent_matrix.pickle')
     df_rec = pd.read_pickle('./experimental_data/cumul_received_matrix.pickle')
 
-    print "Here is the sent traffic matrixes"
-    print df_sent
+    #print "Here is the sent traffic matrixes"
+    #print df_sent
+    print "\nDisplaying sent traffic matrix data..."
+    control_channel(df_sent, True)
+    print "Finished displaying sent traffix matrix data..."
+
+    #print "Here is the recieved traffic matrixes"
+    #print df_rec
+    print "\nDisplaying recieved traffic matrix data..."
+    control_channel(df_rec, False)
+    print "Finished displaying rec traffix matrix data..."
+
+
+# this is the function to implement control channels
+# i.e. compute mean and standard deviation for each pod-pair
+# Note: direction is 1 if it is the "send matrix", else zero
+def control_channel(df, is_send):
     for index_service in services:
         for column_service in services:
             # NOTE: this is where I'd condition on time values, if I wanted to do
             # like a moving average or something
-            relevant_traffic_values = df_sent.loc[index_service, column_service]
-            print relevant_traffic_values
-
-    print "Here is the recieved traffic matrixes"
-    print df_rec
+            relevant_traffic_values = df.loc[index_service, column_service]
+            #print relevant_traffic_values
+            if relevant_traffic_values.mean() != 0:
+                if is_send:
+                    print "\n", index_service, " SENT TO ", column_service
+                else:
+                    print "\n", index_service, " RECEIVE FROM ", column_service
+                print relevant_traffic_values.describe()
+                print "Mean: ", relevant_traffic_values.mean()
+                print "Stddev: ", relevant_traffic_values.std()
 
 if __name__=="__main__":
     main()
-
