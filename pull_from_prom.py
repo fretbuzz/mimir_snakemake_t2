@@ -28,6 +28,7 @@ services = [
 ]
 
 def main():
+    print "starting to pull data"
     cumul_received_matrix = pd.DataFrame() # an empty pandas dataframe
     cumul_sent_matrix = pd.DataFrame() # an empty pandas dataframe
     #while True:
@@ -61,23 +62,21 @@ def pull_from_prometheus():
     #print r.headers['content-type']
 
     services.append("127.0.0.1") #it's always there, so I guess we should treat it like a normal thing
+    services.append("172.17.0.1") # this is also always theree
 
     prometheus_recieved_bytes = requests.get('http://localhost:9090/api/v1/query?query=istio_mongo_received_bytes')
     #print r.text
     ip_to_service = get_ip_to_service_mapping()
+    print "About to parse recieved data!"
     parsed_recieved_data = parse_prometheus_response(prometheus_recieved_bytes, ip_to_service)
     recieved_matrix = construct_matrix(parsed_recieved_data)
 
-
     prometheus_sent_bytes = requests.get('http://localhost:9090/api/v1/query?query=istio_mongo_sent_bytes')
-    print prometheus_sent_bytes.json()
-    print "\n\n\n"
-    print prometheus_sent_bytes.json()['data']['result']#['metric']
-    print "\n\n\n"
-
+    #print r.text
     ip_to_service = get_ip_to_service_mapping()
+    print "About to parse sent data!"
     parsed_sent_data = parse_prometheus_response(prometheus_sent_bytes, ip_to_service)
-    sent_matrix = construct_matrix(prometheus_sent_bytes)
+    sent_matrix = construct_matrix(parsed_sent_data)
 
     return recieved_matrix, sent_matrix
 
@@ -129,6 +128,14 @@ def construct_matrix(data):
         df.set_value(datum[0],datum[1],datum[2])
         if datum[0] == "172.17.0.1":
             print datum
+        does_it_make_since = False
+        for service in services:
+            if service in datum[0]:
+                does_it_make_since = True
+        if not does_it_make_since:
+            print "Here is anomalous data!:"
+            print datum
+            print datum[0]
     print df
     return df
 

@@ -81,6 +81,7 @@ def main(restart_kube):
         print "Completed installing sock shop..."
 
     istio_folder = get_istio_folder()
+    minikube = subprocess.check_output(["minikube", "ip"])
     # wait until istio pods are started 
     print "Checking if Istio pods are ready..."
     pods_ready_p = False
@@ -205,7 +206,7 @@ def main(restart_kube):
         # sometimes generating some traffic makes the pods get into shape
         if time_waited % 24 == 0:
             # first get minikube ip
-            minikube = subprocess.check_output(["minikube", "ip"])
+            minikube = subprocess.check_output(["minikube", "ip"]).rstrip()
             try:
                 out = subprocess.check_output(["docker", "run", "--rm", "weaveworksdemos/load-test", "-d", "5", "-h", minikube+":32001", "-c", "2", "-r", "60"])
             except:
@@ -218,8 +219,8 @@ def main(restart_kube):
 
     # start experiment 
     ##### TODO: Generate more realistic traffic
-#    minikube_ip = subprocess.check_output(["minikube", "ip"])
-#    out = subprocess.check_output(["docker", "run", "--rm", "weaveworksdemos/load-test", "-h", minikube+":32001", "-c", "2", "-r", "60"])
+    minikube = subprocess.check_output(["minikube", "ip"]).rstrip()
+    out = subprocess.check_output(["docker", "run", "--rm", "weaveworksdemos/load-test", "-h", minikube+":32001", "-c", "2", "-r", "60"])
     ##### TODO: Perform data exfiltration
 
     # did it work without crashing
@@ -273,6 +274,7 @@ def get_istio_folder():
 
 if __name__=="__main__":
     restart_kube = "n"
+    print sys.argv[1]
     if len(sys.argv) > 0:
-        restart_kube = sys.argv[0]       
+        restart_kube = sys.argv[1]       
     main(restart_kube)
