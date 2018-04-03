@@ -33,29 +33,45 @@ def main():
     print "starting to pull data"
     cumul_received_matrix = pd.DataFrame() # an empty pandas dataframe
     cumul_sent_matrix = pd.DataFrame() # an empty pandas dataframe
+    last_recieved_matrix = pd.DataFrame()
+    last_sent_matrix = pd.DataFrame()
     while True:
         start_time = time.time()
         recieved_matrix, sent_matrix = pull_from_prometheus()
         print "recieved matrix: "
-        print recieved_matrix
-        cumul_received_matrix.append(recieved_matrix)
-        cumul_received_matrix.to_pickle("cumul_received_matrix.pickle")
+        
+        # we want the differential matrixes, not just the aggregates
+        if not last_recieved_matrix.empty:
+            differential_recieved_matrix = recieved_matrix - last_recieved_matrix
+            last_recieved_matrix = recieved_matrix.copy()
+            print differential_recieved_matrix
+            cumul_received_matrix.append(differential_recieved_matrix)
+            cumul_received_matrix.to_pickle("cumul_received_matrix.pickle")
+        else: 
+            last_recieved_matrix = recieved_matrix.copy()
+            print "First recieved_matrix pulled (so cannot compute differential yet):"
+            print last_recieved_matrix
+
         print "sent matrix: "
-        print sent_matrix
-        cumul_sent_matrix.append(recieved_matrix)
-        cumul_sent_matrix.to_pickle("cumul_sent_matrix.pickle")
+        if not last_sent_matrix.empty:
+            print "last sent matrix is not empty"
+            differential_sent_matrix = sent_matrix - last_sent_matrix
+            last_sent_matrix = sent_matrix.copy()
+            print differential_sent_matrix
+            cumul_sent_matrix.append(differential_sent_matrix)
+            cumul_sent_matrix.to_pickle("cumul_sent_matrix.pickle")
+        else:
+            print "last sent matrix is empty"
+            last_sent_matrix = sent_matrix
+            print "First sent matrix pulled (so cannot compute differential yet):"
+            print last_sent_matrix
         print "Run time: ", time.time() - start_time
         time_to_sleep = 5 - (time.time() - start_time)
         print "Should sleep for ", time_to_sleep, " seconds"
         if time_to_sleep > 0:
             time.sleep(time_to_sleep)
 
-    ### Note: I also need to compute the differentials between the matrixes, since they are monotonically increasing
-    # if cumul_received_matrix:
-    # ## append
-    # else assign
-    # same with sent
-    ## make sure to update the key values with time stamps
+    ## TODO make sure to update the key values with time stamps
 
 def pull_from_prometheus():
     r = requests.get('http://127.0.0.1:9090/')
