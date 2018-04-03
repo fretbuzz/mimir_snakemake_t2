@@ -24,30 +24,34 @@ services = [
         'shipping',
         'user',
         'user-db',
-        'load-test'
+        'load-test',
+        '127.0.0.1', #it's always there, so I guess we should treat it like a normal thing
+        '172.17.0.1' # also this one too
 ]
 
 def main():
     print "starting to pull data"
     cumul_received_matrix = pd.DataFrame() # an empty pandas dataframe
     cumul_sent_matrix = pd.DataFrame() # an empty pandas dataframe
-    #while True:
-    start_time = time.time()
-    recieved_matrix, sent_matrix = pull_from_prometheus()
-    print "recieved matrix: "
-    print recieved_matrix
-    print "sent matrix: "
-    print sent_matrix
-    print "Run time: ", time.time() - start_time
+    while True:
+        start_time = time.time()
+        recieved_matrix, sent_matrix = pull_from_prometheus()
+        print "recieved matrix: "
+        print recieved_matrix
+        print "sent matrix: "
+        print sent_matrix
+        print "Run time: ", time.time() - start_time
+        time_to_sleep = 5 - (time.time() - start_time)
+        print "Should sleep for ", time_to_sleep, " seconds"
+        if time_to_sleep > 0:
+            time.sleep(time_to_sleep)
+
     ### Note: I also need to compute the differentials between the matrixes, since they are monotonically increasing
     # if cumul_received_matrix:
     # ## append
     # else assign
     # same with sent
     ## make sure to update the key values with time stamps
-    # time_to_sleep = time.time() - start_time - 5
-    # if time_to_sleep > 0:
-    # time.sleep(
 
 def pull_from_prometheus():
     r = requests.get('http://127.0.0.1:9090/')
@@ -61,28 +65,27 @@ def pull_from_prometheus():
         print "There is a problem with Prometheus!"
     #print r.headers['content-type']
 
-    services.append("127.0.0.1") #it's always there, so I guess we should treat it like a normal thing
-    services.append("172.17.0.1") # this is also always theree
-
     prometheus_recieved_bytes = requests.get('http://localhost:9090/api/v1/query?query=istio_mongo_received_bytes')
     #print r.text
     ip_to_service = get_ip_to_service_mapping()
     print "About to parse recieved data!"
     parsed_recieved_data = parse_prometheus_response(prometheus_recieved_bytes, ip_to_service)
-    recieved_matrix = construct_matrix(parsed_recieved_data)
+    recieved_matrix = pd.DataFrame(np.zeros((len(services), len(services))),index=services,columns=services)
+    construct_matrix(parsed_recieved_data, recieved_matrix)
 
     prometheus_sent_bytes = requests.get('http://localhost:9090/api/v1/query?query=istio_mongo_sent_bytes')
     #print r.text
     ip_to_service = get_ip_to_service_mapping()
     print "About to parse sent data!"
     parsed_sent_data = parse_prometheus_response(prometheus_sent_bytes, ip_to_service)
-    sent_matrix = construct_matrix(parsed_sent_data)
+    sent_matrix = pd.DataFrame(np.zeros((len(services), len(services))),index=services,columns=services)
+    construct_matrix(parsed_sent_data, sent_matrix)
 
     return recieved_matrix, sent_matrix
 
 def get_ip_to_service_mapping():
     out = subprocess.check_output(["kubectl", "get", "po", "-o", "wide","--all-namespaces"])
-    print out
+    #print out
     g = out.split('\n')
     ip_to_service = {}
     for line in g:
@@ -101,7 +104,7 @@ def get_ip_to_service_mapping():
             if service in pod:
                 pod = service
         ip_to_service[IP.strip()] = pod
-    print ip_to_service
+    #print ip_to_service
     return ip_to_service
 
 def parse_prometheus_response(prometheus_response, ip_to_service):
@@ -117,13 +120,12 @@ def parse_prometheus_response(prometheus_response, ip_to_service):
                 dst_service = service
         data.append( [source_service, dst_service,  thing['value'][1]] )
         print "FROM ", source_service, " TO ", dst_service, " : ", thing['value'][1], "\n"
-    print data
+    #print data
     return data
 
 
 # going to construct the matrix in accordance with the order found in the services list
-def construct_matrix(data):
-    df = pd.DataFrame(np.zeros((len(services), len(services))),index=services,columns=services)
+def construct_matrix(data, df):
     for datum in data: 
         df.set_value(datum[0],datum[1],datum[2])
         if datum[0] == "172.17.0.1":
