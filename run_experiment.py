@@ -1,7 +1,11 @@
+'''
+USAGE: python run_experiment.py [y/n restart kubernetes cluster]
+
+'''
 import subprocess
 import time
 import requests
-
+import sys
 '''
 1. Start minikube
 minikube start --memory=6144
@@ -28,54 +32,55 @@ kubectl apply -f install/kubernetes/istio.yaml
    docker run --rm weaveworksdemos/load-test -d 5 -h 192.168.99.113:32001 -c 2 -r 60
 '''
 
-def main():
-    # no point checking, just trying stopping + deleteing
-    print "Stopping minikube..."
-    try:
-        out = subprocess.check_output(["minikube", "stop"])
+def main(restart_kube):
+    if restart_kube == "y":
+        # no point checking, just trying stopping + deleteing
+        print "Stopping minikube..."
+        try:
+            out = subprocess.check_output(["minikube", "stop"])
+            print out
+        except:
+            print "Minikube was not running"
+        print "Stopping minikube completed"
+        print "Deleteing minikube..."
+        try:
+            out = subprocess.check_output(["minikube", "delete"])
+            print out
+        except:
+            print "No minikube image to delete"
+        print "Deleteing minikube completed"
+
+        # then start minikube
+        print "Starting minikube..."
+        out = subprocess.check_output(["minikube", "start", "--memory=6144", "--cpus=3"])
         print out
-    except:
-        print "Minikube was not running"
-    print "Stopping minikube completed"
-    print "Deleteing minikube..."
-    try:
-        out = subprocess.check_output(["minikube", "delete"])
+        print "Starting minikube completed"
+
+
+        # TODO check if istio already exists (or not, doesn't really matter)
+        print "Cloning Istio..."
+        #ps = subprocess.Popen(("curl", "-L", "https://git.io/getIstio"), stdout=subprocess.PIPE)
+        ps = subprocess.Popen(("curl", "-L", "https://git.io/getLatestIstio"), stdout=subprocess.PIPE)
+        output = subprocess.check_output(("sh", "-"), stdin=ps.stdout)
+        ps.wait()
+        print output
+        print "Completed cloning Istio"
+
+        # then install instio
+        print "Starting to install Istio"
+        # get istio folder
+        istio_folder = get_istio_folder()
+        out = subprocess.check_output(["kubectl","apply", "-f", istio_folder + "/install/kubernetes/istio.yaml"])
         print out
-    except:
-        print "No minikube image to delete"
-    print "Deleteing minikube completed"
+        print "Completed installing Istio"
+    
+        # then deploy application
+        print "Starting to deploy sock shop..."
+        out = subprocess.check_output(["Bash", "start_with_istio.sh", istio_folder])
+        print out
+        print "Completed installing sock shop..."
 
-    # then start minikube
-    print "Starting minikube..."
-    out = subprocess.check_output(["minikube", "start", "--memory=6144", "--cpus=3"])
-    print out
-    print "Starting minikube completed"
-
-
-    # TODO check if istio already exists (or not, doesn't really matter)
-    print "Cloning Istio..."
-#    ps = subprocess.Popen(("curl", "-L", "https://git.io/getIstio"), stdout=subprocess.PIPE)
-    ps = subprocess.Popen(("curl", "-L", "https://git.io/getLatestIstio"), stdout=subprocess.PIPE)
-    output = subprocess.check_output(("sh", "-"), stdin=ps.stdout)
-    ps.wait()
-    print output
-    print "Completed cloning Istio"
-
-
-    # then install instio
-    print "Starting to install Istio"
-    # get istio folder
     istio_folder = get_istio_folder()
-    out = subprocess.check_output(["kubectl","apply", "-f", istio_folder + "/install/kubernetes/istio.yaml"])
-    print out
-    print "Completed installing Istio"
-    
-    # then deploy application
-    print "Starting to deploy sock shop..."
-    out = subprocess.check_output(["Bash", "start_with_istio.sh", istio_folder])
-    print out
-    print "Completed installing sock shop..."
-    
     # wait until istio pods are started 
     print "Checking if Istio pods are ready..."
     pods_ready_p = False
@@ -267,4 +272,7 @@ def get_istio_folder():
             return line
 
 if __name__=="__main__":
-           main()
+    restart_kube = "n"
+    if len(sys.argv) > 0:
+        restart_kube = sys.argv[0]       
+    main(restart_kube)
