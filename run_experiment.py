@@ -1,6 +1,6 @@
 '''
 USAGE: python run_experiment.py [y/n restart kubernetes cluster]
-
+note: need to start docker daemon beforehand
 '''
 import subprocess
 import time
