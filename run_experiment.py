@@ -6,6 +6,9 @@ import subprocess
 import time
 import requests
 import sys
+
+## TODO: This file should really be split into start minikube/istio and start application
+## and then move starting the experiment into an entirely new file
 '''
 1. Start minikube
 minikube start --memory=6144
