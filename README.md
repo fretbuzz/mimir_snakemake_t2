@@ -6,5 +6,6 @@ Steps to use:
 2. git clone weave's sock shop
 3. go to the sock shop directory
 4. clone the munnin directory
-5. python run_experiment.py
-6. Hopefully some traffic matrixes will pop up
+5. mkdir ./experimental_data/
+6. python run_experiment.py
+7. Hopefully some traffic matrixes will pop up
