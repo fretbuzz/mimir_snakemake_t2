@@ -53,18 +53,31 @@ def simulate_incoming_data():
 
 
     ## TODO: I need to split the traffic matrixes by time
+    times = get_times(df_sent)
+    elapsed_time = []
+    print times
+    elapsed_time.append(times[0]) ## TODO: find a better solution that this
+    for time in times[1:]:
+        elapsed_time.append(time)
+        df_sent_so_far = df_sent[ df_sent['time'].isin(elapsed_time)]
+        df_rec_so_far = df_rec[ df_rec['time'].isin(elapsed_time)]
+        #df_sent_so_far = df_sent
+        #df_rec_so_far = df_rec
 
-    #print "Here is the sent traffic matrixes"
-    #print df_sent
-    print "\nDisplaying sent traffic matrix data..."
-    control_charts(df_sent, True)
-    print "Finished displaying sent traffix matrix data..."
 
-    #print "Here is the recieved traffic matrixes"
-    #print df_rec
-    print "\nDisplaying recieved traffic matrix data..."
-    control_charts(df_rec, False)
-    print "Finished displaying rec traffix matrix data..."
+        #print df_sent_so_far
+        #print df_rec_so_far
+        #print "Here is the sent traffic matrixes"
+        #print df_sent
+        print "\nDisplaying sent traffic matrix data..."
+        control_charts(df_sent_so_far, True)
+        print "Finished displaying sent traffix matrix data..."
+
+        #print "Here is the recieved traffic matrixes"
+        #print df_rec
+        print "\nDisplaying recieved traffic matrix data..."
+        control_charts(df_rec_so_far, False)
+        print "Finished displaying rec traffix matrix data..."
 
 # this is the function to implement control channels
 # i.e. compute mean and standard deviation for each pod-pair
@@ -75,7 +88,7 @@ def control_charts(df, is_send):
             # NOTE: this is where I'd condition on time values, if I wanted to do
             # like a moving average or something
             relevant_traffic_values = df.loc[index_service, column_service]
-            #print relevant_traffic_values
+            #print relevant_traffic_values, type(relevant_traffic_values)
             if relevant_traffic_values.mean() != 0:
                 if is_send:
                     print "\n", index_service, " SENT TO ", column_service
@@ -84,6 +97,13 @@ def control_charts(df, is_send):
                 print relevant_traffic_values.describe()
                 print "Mean: ", relevant_traffic_values.mean()
                 print "Stddev: ", relevant_traffic_values.std()
+
+def get_times(df):
+    times = []
+    for x in df.loc[:, 'time']:
+        times.append(x)
+    times = sorted(list(set(times)))
+    return times
 
 if __name__=="__main__":
     main()
