@@ -45,20 +45,19 @@ def main():
     #print "Here is the sent traffic matrixes"
     #print df_sent
     print "\nDisplaying sent traffic matrix data..."
-    control_channel(df_sent, True)
+    control_charts(df_sent, True)
     print "Finished displaying sent traffix matrix data..."
 
     #print "Here is the recieved traffic matrixes"
     #print df_rec
     print "\nDisplaying recieved traffic matrix data..."
-    control_channel(df_rec, False)
+    control_charts(df_rec, False)
     print "Finished displaying rec traffix matrix data..."
-
 
 # this is the function to implement control channels
 # i.e. compute mean and standard deviation for each pod-pair
 # Note: direction is 1 if it is the "send matrix", else zero
-def control_channel(df, is_send):
+def control_charts(df, is_send):
     for index_service in services:
         for column_service in services:
             # NOTE: this is where I'd condition on time values, if I wanted to do
