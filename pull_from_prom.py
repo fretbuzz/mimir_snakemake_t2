@@ -45,7 +45,11 @@ def main():
             differential_recieved_matrix = recieved_matrix - last_recieved_matrix
             last_recieved_matrix = recieved_matrix.copy()
             print differential_recieved_matrix
-            cumul_received_matrix.append(differential_recieved_matrix)
+            #cumul_received_matrix.append(differential_recieved_matrix)
+            #print cumul_received_matrix
+            # let's try this
+            cumul_received_matrix = pd.concat([cumul_received_matrix, differential_recieved_matrix])
+            #print cumul_received_matrix
             cumul_received_matrix.to_pickle("./experimental_data/cumul_received_matrix.pickle")
         else: 
             last_recieved_matrix = recieved_matrix.copy()
@@ -58,7 +62,9 @@ def main():
             differential_sent_matrix = sent_matrix - last_sent_matrix
             last_sent_matrix = sent_matrix.copy()
             print differential_sent_matrix
-            cumul_sent_matrix.append(differential_sent_matrix)
+            #cumul_sent_matrix.append(differential_sent_matrix)
+            #print cumul_sent_matrix
+            cumul_sent_matrix = pd.concat([cumul_sent_matrix, differential_recieved_matrix])
             cumul_sent_matrix.to_pickle("./experimental_data/cumul_sent_matrix.pickle")
         else:
             print "last sent matrix is empty"
