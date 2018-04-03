@@ -184,8 +184,6 @@ def main(restart_kube):
     print "Completed verifying that prometheus is active"
 
     # verify that all containers are active
-    ##### TODO
-    ##### Note: If being picky, then try generating traffic
     print "Checking if application pods are ready..."
     pods_ready_p = False
     time_waited = 0
@@ -221,6 +219,7 @@ def main(restart_kube):
     ##### TODO: Generate more realistic traffic
     minikube = subprocess.check_output(["minikube", "ip"]).rstrip()
     out = subprocess.check_output(["docker", "run", "--rm", "weaveworksdemos/load-test", "-h", minikube+":32001", "-c", "2", "-r", "60"])
+    
     ##### TODO: Perform data exfiltration
 
     # did it work without crashing

@@ -32,7 +32,7 @@ services = [
         '172.17.0.1' # also this one too
 ]
 
-def main():
+def main(actively_detect):
     print "starting to pull data"
     cumul_received_matrix = pd.DataFrame() # an empty pandas dataframe
     cumul_sent_matrix = pd.DataFrame() # an empty pandas dataframe
@@ -76,6 +76,11 @@ def main():
             print cumul_sent_matrix
             #cumul_sent_matrix = pd.concat([cumul_sent_matrix, differential_recieved_matrix])
             cumul_sent_matrix.to_pickle("./experimental_data/cumul_sent_matrix.pickle")
+        
+            # if we are actively trying to detect the data exfiltration, then we should 
+            # send the matrices to the analyzing function right away
+            if actively_detect:
+                print "Should analyze the matrices here"
         else:
             print "last sent matrix is empty"
             last_sent_matrix = sent_matrix
@@ -176,4 +181,9 @@ def construct_matrix(data, df):
     return df
 
 if __name__=="__main__":
-               main()
+   actively_detect = False
+   print sys.argv[1]
+   if len(sys.argv) > 0:
+       if sys.argv[1] == "y":
+           actively_detect = True
+    main(actively_detect)
