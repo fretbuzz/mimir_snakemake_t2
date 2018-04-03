@@ -70,19 +70,23 @@ def simulate_incoming_data():
         #print "Here is the sent traffic matrixes"
         #print df_sent
         print "\nDisplaying sent traffic matrix data..."
-        control_charts(df_sent_so_far, True)
+        sent_stats = control_charts(df_sent_so_far, True)
+        print sent_stats
         print "Finished displaying sent traffix matrix data..."
 
         #print "Here is the recieved traffic matrixes"
         #print df_rec
         print "\nDisplaying recieved traffic matrix data..."
-        control_charts(df_rec_so_far, False)
+        rec_stats = control_charts(df_rec_so_far, False)
+        print rec_stats
         print "Finished displaying rec traffix matrix data..."
 
 # this is the function to implement control channels
 # i.e. compute mean and standard deviation for each pod-pair
 # Note: direction is 1 if it is the "send matrix", else zero
 def control_charts(df, is_send):
+    ## going to return data in the form [src_svc, dest_svc, mean, stddev]
+    data_stats = []
     for index_service in services:
         for column_service in services:
             # NOTE: this is where I'd condition on time values, if I wanted to do
@@ -97,6 +101,8 @@ def control_charts(df, is_send):
                 print relevant_traffic_values.describe()
                 print "Mean: ", relevant_traffic_values.mean()
                 print "Stddev: ", relevant_traffic_values.std()
+                data_stats.append([index_service, column_service, relevant_traffic_values.mean(), relevant_traffic_values.std()])
+    return data_stats
 
 def get_times(df):
     times = []
