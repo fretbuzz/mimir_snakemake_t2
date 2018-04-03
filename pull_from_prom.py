@@ -46,7 +46,7 @@ def main():
             last_recieved_matrix = recieved_matrix.copy()
             print differential_recieved_matrix
             cumul_received_matrix.append(differential_recieved_matrix)
-            cumul_received_matrix.to_pickle("cumul_received_matrix.pickle")
+            cumul_received_matrix.to_pickle("./experimental_data/cumul_received_matrix.pickle")
         else: 
             last_recieved_matrix = recieved_matrix.copy()
             print "First recieved_matrix pulled (so cannot compute differential yet):"
@@ -59,7 +59,7 @@ def main():
             last_sent_matrix = sent_matrix.copy()
             print differential_sent_matrix
             cumul_sent_matrix.append(differential_sent_matrix)
-            cumul_sent_matrix.to_pickle("cumul_sent_matrix.pickle")
+            cumul_sent_matrix.to_pickle("./experimental_data/cumul_sent_matrix.pickle")
         else:
             print "last sent matrix is empty"
             last_sent_matrix = sent_matrix
