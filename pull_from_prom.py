@@ -35,10 +35,12 @@ def main():
     cumul_sent_matrix = pd.DataFrame() # an empty pandas dataframe
     last_recieved_matrix = pd.DataFrame()
     last_sent_matrix = pd.DataFrame()
-    keys=[]
+    #pull_times=[]
     absolute_start_time = time.time()
     while True:
         start_time = time.time()
+        #if not last_recieved_matrix.empty:
+        #    pull_times.append(start_time - absolute_start_time)
         recieved_matrix, sent_matrix = pull_from_prometheus()
         print "recieved matrix: "
         
@@ -46,6 +48,7 @@ def main():
         if not last_recieved_matrix.empty:
             differential_recieved_matrix = recieved_matrix - last_recieved_matrix
             last_recieved_matrix = recieved_matrix.copy()
+            differential_recieved_matrix['time'] = start_time - absolute_start_time
             print differential_recieved_matrix
             # append function returns copy
             cumul_received_matrix = cumul_received_matrix.append(differential_recieved_matrix)
@@ -64,6 +67,7 @@ def main():
             print "last sent matrix is not empty"
             differential_sent_matrix = sent_matrix - last_sent_matrix
             last_sent_matrix = sent_matrix.copy()
+            differential_sent_matrix['time'] = start_time - absolute_start_time
             print differential_sent_matrix
             cumul_sent_matrix = cumul_sent_matrix.append(differential_sent_matrix)
             print cumul_sent_matrix
