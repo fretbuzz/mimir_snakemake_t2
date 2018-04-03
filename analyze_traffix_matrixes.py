@@ -3,22 +3,20 @@ import pandas as pd
 import numpy as np
 
 # TODO: see if the send-recieved pairs match up as we'd expect them to
-# assume that I have the pickled data frames
-# unpickle the frames
-# find the differentials
-# make the time column an index (maybe don't need to do this)
-# first statistic that I want: control chart. 
+# first statistic that I want: control chart. (need to write e2e tests, but other than that maybe fine?)
 # second statistic that I want: PCA
 
-## Couple of things to talk about with the control charts. Right now it is just calculating
-## the total statistics for the whole thing. But ideally, it'd be calculating them as it goes...
-## maybe make the pickle-read function optional? Then I could call this from my pull_from_prom
-## and get the relevant stats as we go...
-## This might make more sense: right a function that "walks" through the traffic matrixes
-## at each time step and then calculate the values. So have a special function that unpickles
-## and goes through the matrixes and then calls the function that pull_from_prom would 
-## hypothetically use
-
+# TODO: visualization + e2e tests + PCA
+# plus maybe like multivariate linear regression?
+# let's be more specific, what kinda visualization??
+# well for now probably just a control chart? should probably be a 
+# package that will do most of the work. Of course, I'm going to have
+# a ton of charts...
+# testing should probably be unit actually and could use PyUnit
+# PCA should wait until I have fixed these other things, as otherwise I could
+# be digging myself into a really deep hole
+# TODO: right now I am still working on a service-to-service granularity
+# perhaps I need to move to a level of abstraction beyond that
 
 services = [
         'carts',
@@ -51,8 +49,6 @@ def simulate_incoming_data():
     df_sent = pd.read_pickle('./experimental_data/cumul_sent_matrix.pickle')
     df_rec = pd.read_pickle('./experimental_data/cumul_received_matrix.pickle')
 
-
-    ## TODO: I need to split the traffic matrixes by time
     times = get_times(df_sent)
     elapsed_time = []
     print times
