@@ -8,14 +8,17 @@ import numpy as np
 # find the differentials
 # make the time column an index (maybe don't need to do this)
 # first statistic that I want: control chart. 
-#   How to get this: 
-#       (1) need to select relevant entries for each pod pair
-#           need to condition on values OTHER than time
-#           what values to select? need to select rows that match particular vlaues
-#               then select some of the resulting columns
-#       (2) for now just use .describe() to see a bunch of stats, can customize in a little while
-# second statistic that I want:
-#   PCA
+# second statistic that I want: PCA
+
+## Couple of things to talk about with the control charts. Right now it is just calculating
+## the total statistics for the whole thing. But ideally, it'd be calculating them as it goes...
+## maybe make the pickle-read function optional? Then I could call this from my pull_from_prom
+## and get the relevant stats as we go...
+## This might make more sense: right a function that "walks" through the traffic matrixes
+## at each time step and then calculate the values. So have a special function that unpickles
+## and goes through the matrixes and then calls the function that pull_from_prom would 
+## hypothetically use
+
 
 services = [
         'carts',
@@ -38,9 +41,18 @@ services = [
 ]
 
 def main():
+    simulate_incoming_data()
+
+# This function reads pickle files corresponding to the send/received traffic matrices
+# and then iterates through them by the time stamps, letting us pretend that the data
+# is coming from an actively running system
+def simulate_incoming_data():
     print "hello world"
     df_sent = pd.read_pickle('./experimental_data/cumul_sent_matrix.pickle')
     df_rec = pd.read_pickle('./experimental_data/cumul_received_matrix.pickle')
+
+
+    ## TODO: I need to split the traffic matrixes by time
 
     #print "Here is the sent traffic matrixes"
     #print df_sent
