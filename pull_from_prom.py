@@ -38,8 +38,12 @@ def main():
         recieved_matrix, sent_matrix = pull_from_prometheus()
         print "recieved matrix: "
         print recieved_matrix
+        cumul_received_matrix.append(recieved_matrix)
+        cumul_received_matrix.to_pickle("cumul_received_matrix.pickle")
         print "sent matrix: "
         print sent_matrix
+        cumul_sent_matrix.append(recieved_matrix)
+        cumul_sent_matrix.to_pickle("cumul_sent_matrix.pickle")
         print "Run time: ", time.time() - start_time
         time_to_sleep = 5 - (time.time() - start_time)
         print "Should sleep for ", time_to_sleep, " seconds"
