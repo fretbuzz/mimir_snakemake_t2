@@ -4,6 +4,10 @@ from locust import HttpLocust, TaskSet, task
 #from random import randint, choice
 import random
 import string
+import pickle
+
+
+users = []
 
 def gen_random():
     username = ''
@@ -54,6 +58,8 @@ class PopulateDatabase(TaskSet):
         ccv = get_random_num(3)
         creditCardObject = {"longNum": "string", "expires": "string", "ccv": "string", "userID": userID}
         self.client.post("/cards", json=creditCardObject)
+        users.append(username)
+        pickle.dump( users, open( "users.pickle", "wb" ) )
 
 class loadDB(HttpLocust):
     print "Can I see this??" # yes, yes I can
