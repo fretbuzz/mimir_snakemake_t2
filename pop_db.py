@@ -4,7 +4,7 @@ from locust import HttpLocust, TaskSet, task
 #from random import randint, choice
 import random
 import string
-import pickle
+import cPickle as pickle
 
 
 users = []
