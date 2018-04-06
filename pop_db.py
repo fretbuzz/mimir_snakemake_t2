@@ -39,30 +39,34 @@ class PopulateDatabase(TaskSet):
         print "about to populate this database!"
         # first register
         username = gen_random()
-        print "username: ", username
+        #print "username: ", username
         # let's make it the same just to simplify things
         password = username
-        print "password: ", password
+        #print "password: ", password
         # just to keep things simple....
         email = username + "@gmail.com"
-        print "email: ", email
+        #print "email: ", email
         # now create the object that we will pass for registration
         registerObject = {"username": username, "password":password,"email":email}
-        userID = self.client.post("/register", json=registerObject)
+        print registerObject
+        userID = self.client.post("/register", json=registerObject).text
         # tested to here! first part is working!
-        ''' Let's test only the above part for now
+        #''' Let's test only the above part for now
         print "userID: ", userID
         # then login
-        login(username, password)
+        #login(username, password)
+        base64string = base64.encodestring('%s:%s' % (username, password)).replace('\n', '')
+        self.client.get("/login", headers={"Authorization":"Basic %s" % base64string})
         # then register a credit card
         cc_num =  get_random_num(16)
         expir_date = "11/2020" # let's give everything the same expir_date b/c why not?
         ccv = get_random_num(3)
         creditCardObject = {"longNum": "string", "expires": "string", "ccv": "string", "userID": userID}
-        self.client.post("/cards", json=creditCardObject)
+        print creditCardObject
+        cc_req = self.client.post("/cards", json=creditCardObject)
+        print cc_req
         users.append(username)
-        pickle.dump( users, open( "users.pickle", "wb" ) )
-        '''
+
 class loadDB(HttpLocust):
     print "Can I see this??" # yes, yes I can
     task_set = PopulateDatabase
