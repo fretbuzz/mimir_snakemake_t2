@@ -51,7 +51,7 @@ class BackgroundTraffic(TaskSet):
             time.sleep(randint(min_wait,max_wait) / 1000.0) # going to wait a bit between events
             # NOTE: this borrows code from weave's load-test repo
             self.client.delete("/cart")
-            item_num = randint(1,4)
+            item_num = 1 # randint(1,4) # can't be more than 100 and they have something that is 99.99
             self.client.post("/cart", json={"id": item_id, "quantity": item_num})
             time.sleep(randint(min_wait,max_wait) / 1000.0) # going to wait a bit between events
             self.client.get("/basket.html")
