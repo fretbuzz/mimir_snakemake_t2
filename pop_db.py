@@ -49,6 +49,8 @@ class PopulateDatabase(TaskSet):
         # now create the object that we will pass for registration
         registerObject = {"username": username, "password":password,"email":email}
         userID = self.client.post("/register", json=registerObject)
+        # tested to here! first part is working!
+        ''' Let's test only the above part for now
         print "userID: ", userID
         # then login
         login(username, password)
@@ -60,7 +62,7 @@ class PopulateDatabase(TaskSet):
         self.client.post("/cards", json=creditCardObject)
         users.append(username)
         pickle.dump( users, open( "users.pickle", "wb" ) )
-
+        '''
 class loadDB(HttpLocust):
     print "Can I see this??" # yes, yes I can
     task_set = PopulateDatabase
