@@ -20,15 +20,16 @@ class BackgroundTraffic(TaskSet):
     # and then they are going to buy something with some probability
     @task
     def browse(self):
-
-        #login before browsing with some probability
+        min_wait = 2000
+        max_wait = 4000
+        # login before browsing with some probability
         login_p = randint(0,10)
         # let's arbitrarily say that 50% of visitors log in
         if login_p >= 5:
             # so let's randomly choose some already-registered user
             user = choice(users)
             # NOTE: this borrows code from weave's load-test repo
-            base64string = base64.encodestring('%s:%s' % (user, password)).replace('\n', '')
+            base64string = base64.encodestring('%s:%s' % (user, user)).replace('\n', '')
             self.client.get("/login", headers={"Authorization":"Basic %s" % base64string})
             time.sleep(randint(min_wait,max_wait) / 1000.0) # going to wait a bit between events            
 
