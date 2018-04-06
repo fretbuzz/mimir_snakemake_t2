@@ -33,7 +33,6 @@ class PopulateDatabase(TaskSet):
         self.client.get("/login", headers={"Authorization":"Basic %s" % base64string})
 
     # first register a user than register a credit card for that user (after login)
-    # TODO randomize certain fields and then stick a big ol' loop on there
     @task
     def populate_data(self):
         print "about to populate this database!"
@@ -68,7 +67,16 @@ class PopulateDatabase(TaskSet):
         print creditCardObject
         cc_req = self.client.post("/cards", json=creditCardObject)
         print cc_req
+ 
+        # in order to buy stuff, also need to have an address on file
+        # in the interests of simplicity, I am simply going to use the same address for everyone
+        # NOTE: this was one of the address records that came already-present in the sock shop
+        addressObject = {"street":"Whitelees Road","number":"246","country":"United Kingdom","city":"Glasgow","postcode":"G67 3DL","id":userID}
+        cAddr = self.client.post("http://192.168.99.106:32001/addresses", json=addressObject)
+        print "Response from posting address: ", cAddr.text, " done"
+
         users.append(username)
+        pickle.dump( users, open( "users.pickle", "wb" ) )
 
 class loadDB(HttpLocust):
     print "Can I see this??" # yes, yes I can
