@@ -1,8 +1,8 @@
 import base64
 
 from locust import HttpLocust, TaskSet, task
-#from random import randint, choice
-import random
+from random import randint, choice
+#import random
 import string
 import cPickle as pickle
 import time
@@ -22,7 +22,7 @@ class BackgroundTraffic(TaskSet):
     def browse(self):
 
         #login before browsing with some probability
-        login_p = random.randint(0,10)
+        login_p = randint(0,10)
         # let's arbitrarily say that 50% of visitors log in
         if login_p >= 5:
             # so let's randomly choose some already-registered user
@@ -33,7 +33,7 @@ class BackgroundTraffic(TaskSet):
             time.sleep(randint(min_wait,max_wait) / 1000.0) # going to wait a bit between events            
 
         # browse through the socks for a certain number of times
-        num_browsing = random.randint(1,21)
+        num_browsing = randint(1,21)
         # NOTE: this borrows  code from weave's load-test repo 
         catalogue = self.client.get("/catalogue").json()
         for i in range(0, num_browsing):
@@ -55,7 +55,7 @@ class BackgroundTraffic(TaskSet):
             time.sleep(randint(min_wait,max_wait) / 1000.0) # going to wait a bit between events
             self.client.get("/basket.html")
             self.client.post("/orders")
-     
+        
 class GenBackgroundTraffic(HttpLocust):
     print "Can I see this??" # yes, yes I can
     task_set = BackgroundTraffic
