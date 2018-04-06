@@ -11,12 +11,24 @@ import numpy as np
 # let's be more specific, what kinda visualization??
 # well for now probably just a control chart? should probably be a 
 # package that will do most of the work. Of course, I'm going to have
-# a ton of charts...
+# a ton of charts... looks like pyspc is the way to go
 # testing should probably be unit actually and could use PyUnit
 # PCA should wait until I have fixed these other things, as otherwise I could
 # be digging myself into a really deep hole
 # TODO: right now I am still working on a service-to-service granularity
 # perhaps I need to move to a level of abstraction beyond that
+# aggregate into the "3-level-enterprise-app" abstraction
+# it is actually called the "three-tier architecture"
+
+# 1. 3-tier architecture
+# 2. control charts
+# 3. a couple of test cases, just to make sure everything isn't completely wrong
+# 4. PCA
+# 5. Integrate meaningful traffic data
+# 6. investigate the send-recieve pair thing
+# 7. re-organize run_experiment.py and it's related stuff
+# 8. have the prometheus calling function specify a time-stamp
+# 9. 
 
 services = [
         'carts',
