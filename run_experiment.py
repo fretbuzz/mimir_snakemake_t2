@@ -221,10 +221,11 @@ def main(restart_kube, setup_sock):
         # okay, now it is time to register a bunch of users
         minikube = subprocess.check_output(["minikube", "ip"]).rstrip()
         # note for now, I'm going to make 1000 customeres (i.e. 3000 / 3 = 1000), but this might need to be adjusted later
-        # I think 3000 will take about 10 minutes
-        out = subprocess.check_output(["locust", "-f", "pop_db.py", "--host=http://"+minikube+":32001", "--no-web", "-c", "1", "-r", "1", "-n", "3000"])
+        # make c larger if it takes too long (I think 1000 users takes about 5 min currently)
+        out = subprocess.check_output(["locust", "-f", "pop_db.py", "--host=http://"+minikube+":32001", "--no-web", "-c", "15", "-r", "1", "-n", "4000"])
         #print out
-
+        ###### TODO: verift that the above thing worked via a call to the customers api
+    
     # start experimental recording script
     ##### TODO 
 
