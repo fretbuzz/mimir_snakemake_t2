@@ -225,20 +225,30 @@ def main(restart_kube, setup_sock):
         out = subprocess.check_output(["locust", "-f", "pop_db.py", "--host=http://"+minikube+":32001", "--no-web", "-c", "15", "-r", "1", "-n", "4000"])
         #print out
         ###### TODO: verift that the above thing worked via a call to the customers api
-    
-    # start experimental recording script
+
+    ## okay, this is where the experiment is actualy going to be implemented (the rest is all setup)
+    # First, start the background traffic
+    ##### TODO
+
+    # Second, start experimental recording script
     ##### TODO 
 
+    # Third, wait some period of time and then start the data exfiltration
+    #### TODO
 
+    # Fourth, wait for some period of time and then stop the experiment
+    #### TODO
+
+    # Fifth, call the function that analyzes the traffic matrices
+    # (It should output potential times that the exfiltration may have occured)
+    #### TODO
+
+    ''' This is old and should be deleted at some point
     # start experiment 
     ##### TODO: Generate more realistic traffic
     minikube = subprocess.check_output(["minikube", "ip"]).rstrip()
     out = subprocess.check_output(["docker", "run", "--rm", "weaveworksdemos/load-test", "-h", minikube+":32001", "-c", "2", "-r", "60"])
-    
-    ##### TODO: Perform data exfiltration
-
-    # did it work without crashing
-    ##### TODO
+    '''
 
 # kc_out is the result from a "kubectl get" command
 # desired_chunks is a list of the non-zero chunks in each
