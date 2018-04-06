@@ -44,12 +44,15 @@ class PopulateDatabase(TaskSet):
         password = username
         #print "password: ", password
         # just to keep things simple....
+        firstname = username + "ZZ" 
+        lastname = username + "QQ"
         email = username + "@gmail.com"
         #print "email: ", email
         # now create the object that we will pass for registration
-        registerObject = {"username": username, "password":password,"email":email}
+        registerObject = {"username": username, "password": password, firstname: "HowdyG", "lastName": lastname,"email":email}
         print registerObject
-        userID = self.client.post("/register", json=registerObject).text
+        userID = self.client.post("/register", json = registerObject).text
+        #userID = self.client.post("/register", json=registerObject).text
         # tested to here! first part is working!
         #''' Let's test only the above part for now
         print "userID: ", userID
