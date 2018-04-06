@@ -6,6 +6,7 @@ import subprocess
 import time
 import requests
 import sys
+import os
 
 ## TODO: This file should really be split into start minikube/istio and start application
 ## and then move starting the experiment into an entirely new file
@@ -229,13 +230,21 @@ def main(restart_kube, setup_sock):
     ## okay, this is where the experiment is actualy going to be implemented (the rest is all setup)
     # First, start the background traffic
     ##### TODO
-
+    # I think this does it- need to verify though
+    devnull = open(os.devnull, 'wb')  # disposing of stdout manualy
+    pid_background = subprocess.Popen(["locust", "-f", "background_traffic.py", "--host=http://192.168.99.106:32001", "--no-web", "-c", "12", "-r", "1"], stdout=devnull, stderr=devnull).pid
+    print pid_background ## TODO: kill automatically at the end
+    
     # Second, start experimental recording script
-    ##### TODO 
+    ##### TODO-- call pull_from_prom
 
     # Third, wait some period of time and then start the data exfiltration
     #### TODO
-
+    ## Let's go with waiting 90 seconds?
+    print "Ready to exfiltrate!"
+    #time.sleep(90) ## TODO: should actually use elapsed time to determine how long to sleep
+    #subprocess.check_output(["locust", "-f", "exfil_data.py", "--host=http://192.168.99.106:32001", "--no-web", "-c", "1", "-r", "1", "-n", "3"])
+    
     # Fourth, wait for some period of time and then stop the experiment
     #### TODO
 
