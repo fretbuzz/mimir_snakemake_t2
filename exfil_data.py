@@ -5,7 +5,7 @@ from locust import HttpLocust, TaskSet, task
 import random
 import string
 import cPickle as pickle
-
+import time
 
 class ExfilData(TaskSet):
     
@@ -21,13 +21,21 @@ class ExfilData(TaskSet):
     # be important)
     @task
     def take_data(self):
+        print "Starting..."
         customers = self.client.get("/customers")
-        cards = self.client.get("/cards")
-        addresses = self.client.get("/addresses")
         print "customers: ", customers.text
+        cards = self.client.get("/cards")
         print "cards: ", cards.text
+        addresses = self.client.get("/addresses")
         print "addresses: ", addresses.text
+        #time.sleep(4)
+        #print "Is anyone there??"
+        #print "customers: ", customers.text
+        #print "cards: ", cards.text
+        #print "addresses: ", addresses.text
 
-class loadDB(HttpLocust):
+class ExfilData(HttpLocust):
     print "About to exfiltrate some data"
+    min_wait = 0
+    max_wait = 0
     task_set = ExfilData
