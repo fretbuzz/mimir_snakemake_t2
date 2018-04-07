@@ -6,13 +6,19 @@ The transition to Microsevice Architectures bring new challenges and opportuniti
 
  ## Tech/framework used
 
-<b>Built with</b>
-Kubernetes orchestrator
-Istio for metrics collection
-Prometheus for metrics aggregation
-Weave's Sock Shop as a sample application
-Locust for background traffic simulation and data exfiltration simulation
-Python's Pandas for Traffic Matrix Analysis
+<b>Built with:</b>
+
+* Kubernetes orchestrator
+
+* Istio for metrics collection
+
+* Prometheus for metrics aggregation
+
+* Weave's Sock Shop as a sample application
+
+* Locust for background traffic simulation and data exfiltration simulation
+
+* Python's Pandas for Traffic Matrix Analysis
 
 ## Features
 What makes your project stand out?
