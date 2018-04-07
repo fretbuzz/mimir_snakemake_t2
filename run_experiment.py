@@ -231,8 +231,9 @@ def main(restart_kube, setup_sock):
     # First, start the background traffic
     ##### TODO
     # I think this does it- need to verify though
+    minikube = subprocess.check_output(["minikube", "ip"]).rstrip()
     devnull = open(os.devnull, 'wb')  # disposing of stdout manualy
-    pid_background = subprocess.Popen(["locust", "-f", "background_traffic.py", "--host=http://192.168.99.106:32001", "--no-web", "-c", "12", "-r", "1"], stdout=devnull, stderr=devnull).pid
+    pid_background = subprocess.Popen(["locust", "-f", "background_traffic.py", "--host=http://"+minikube+":32001", "--no-web", "-c", "12", "-r", "1"], stdout=devnull, stderr=devnull).pid
     print pid_background ## TODO: kill automatically at the end
     
     # Second, start experimental recording script

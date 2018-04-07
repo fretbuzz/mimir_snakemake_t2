@@ -72,7 +72,7 @@ class PopulateDatabase(TaskSet):
         # in the interests of simplicity, I am simply going to use the same address for everyone
         # NOTE: this was one of the address records that came already-present in the sock shop
         addressObject = {"street":"Whitelees Road","number":"246","country":"United Kingdom","city":"Glasgow","postcode":"G67 3DL","id":userID}
-        cAddr = self.client.post("http://192.168.99.106:32001/addresses", json=addressObject)
+        cAddr = self.client.post("/addresses", json=addressObject)
         print "Response from posting address: ", cAddr.text, " done"
 
         users.append(username)
