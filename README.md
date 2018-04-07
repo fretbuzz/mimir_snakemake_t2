@@ -16,7 +16,7 @@ Steps to use:
 Munnin is an experimetnal apparatus designed to test the potential for anomaly-based data exfiltration detection in enterprise applications with a microservice architecture. It automates setting up the test microservice (currently weave's Sock Shop), generates background traffic, performs 'data exfiltration' (kinda), creates traffic matrices, and analyzes these traffic matrices to detect the aforementioned data exfiltration
 
 ## Motivation
-A short description of the motivation behind the creation and maintenance of the project. This should explain **why** the project exists.
+The transition to Microsevice Architectures bring new challenges and opportunities to detecting data exfiltration. Current data exfiltration methods use keyword-based methods that don't work on encrypted traffic, necessitating the use of anomaly-based methods. Anomaly-based methods, however, don't work well in tradtional enterprise (e.g. 3-tier) application because of the lack of network-level visibility. The increased visibility (and granularity of that visibility) for microservice applications makes anomaly-based data exfiltration methods a possibility.
 
 ## Build status
 Build status of continus integration i.e. travis, appveyor etc. Ex. - 
