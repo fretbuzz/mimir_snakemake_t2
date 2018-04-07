@@ -38,20 +38,33 @@ def main(actively_detect, watch_time):
     cumul_received_matrix = pd.DataFrame() # an empty pandas dataframe
     cumul_sent_matrix = pd.DataFrame() # an empty pandas dataframe
     last_recieved_matrix = pd.DataFrame()
+    #print last_recieved_matrix
     last_sent_matrix = pd.DataFrame()
     #pull_times=[]
     absolute_start_time = time.time()
     while int(time.time() - absolute_start_time) < watch_time:
         start_time = time.time()
-        #print "elapsed time: ", start_time - absolute_start_time, int(start_time - absolute_start_time) < watch_time, watch_time
-        #print (start_time - absolute_start_time) > watch_time, start_time, absolute_start_time, watch_time
-        #if not last_recieved_matrix.empty:
-        #    pull_times.append(start_time - absolute_start_time)
         recieved_matrix, sent_matrix = pull_from_prometheus()
-        print "recieved matrix: "
         
+        print "recieved matrix: "
+        #print last_recieved_matrix
+        differential_recieved_matrix = calc_differential_matrix(last_recieved_matrix, recieved_matrix, start_time, absolute_start_time)
+        if differential_recieved_matrix:
+            cumul_received_matrix = cumul_received_matrix.append(differential_recieved_matrix)
+            cumul_received_matrix.to_pickle("./experimental_data/cumul_received_matrix.pickle")
+        
+        print "sent matrix: "
+        differential_sent_matrix = calc_differential_matrix(last_sent_matrix, sent_matrix, start_time, absolute_start_time)
+        if differential_sent_matrix:
+            cumul_sent_matrix = cumul_sent_matrix.append(differential_sent_matrix)
+            cumul_sent_matrix.to_pickle("./experimental_data/cumul_sent_matrix.pickle")
+            if actively_detect:
+                print "Should analyze the matrices here"
+        
+        '''
         # we want the differential matrixes, not just the aggregates
-        if not last_recieved_matrix.empty:
+        if not last_recieved_matrix.empty
+            #calc_differential_matrix(last_matrix, current_matrix, start_time, absolute_start_time
             differential_recieved_matrix = recieved_matrix - last_recieved_matrix
             last_recieved_matrix = recieved_matrix.copy()
             differential_recieved_matrix['time'] = start_time - absolute_start_time
@@ -89,11 +102,27 @@ def main(actively_detect, watch_time):
             last_sent_matrix = sent_matrix
             print "First sent matrix pulled (so cannot compute differential yet):"
             print last_sent_matrix
+        '''
         print "Run time: ", time.time() - start_time
         time_to_sleep = 5 - (time.time() - start_time)
         print "Should sleep for ", time_to_sleep, " seconds"
         if time_to_sleep > 0:
             time.sleep(time_to_sleep)
+
+
+### TODO: Finish this fiunction and use it to replace that mess of code above
+def calc_differential_matrix(last_matrix, current_matrix, start_time, absolute_start_time):
+    if not last_matrix.empty:
+        differential_matrix = current_matrix - current_matrix
+        last_matrix = current_matrix.copy()
+        differential_matrix['time'] = start_time - absolute_start_time
+        print differential_recieved_matrix
+    else:
+        differential_matrix = None
+        last_matrix = current_matrix.copy()
+        print "First recieved_matrix pulled (so cannot compute differential yet):"
+        print differential_matrix
+    return differential_matrix
 
 def pull_from_prometheus():
     r = requests.get('http://127.0.0.1:9090/')
@@ -161,7 +190,7 @@ def parse_prometheus_response(prometheus_response, ip_to_service):
             if service in thing['metric']['destination_service']:
                 dst_service = service
         data.append( [source_service, dst_service,  thing['value'][1]] )
-        print "FROM ", source_service, " TO ", dst_service, " : ", thing['value'][1], "\n"
+        #print "FROM ", source_service, " TO ", dst_service, " : ", thing['value'][1], "\n"
     #print data
     return data
 
@@ -170,8 +199,8 @@ def parse_prometheus_response(prometheus_response, ip_to_service):
 def construct_matrix(data, df):
     for datum in data: 
         df.set_value(datum[0],datum[1],datum[2])
-        if datum[0] == "172.17.0.1":
-            print datum
+        #if datum[0] == "172.17.0.1":
+        #   print datum
         does_it_make_since = False
         for service in services:
             if service in datum[0]:
@@ -180,7 +209,7 @@ def construct_matrix(data, df):
             print "Here is anomalous data!:"
             print datum
             print datum[0]
-    print df
+    #print df
     return df
 
 if __name__=="__main__":
