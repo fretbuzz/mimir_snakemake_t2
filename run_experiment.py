@@ -7,6 +7,7 @@ import time
 import requests
 import sys
 import os
+import signal
 
 ## TODO: This file should really be split into start minikube/istio and start application
 ## and then move starting the experiment into an entirely new file
@@ -233,9 +234,11 @@ def main(restart_kube, setup_sock):
     # I think this does it- need to verify though
     minikube = subprocess.check_output(["minikube", "ip"]).rstrip()
     devnull = open(os.devnull, 'wb')  # disposing of stdout manualy
-    pid_background = subprocess.Popen(["locust", "-f", "background_traffic.py", "--host=http://"+minikube+":32001", "--no-web", "-c", "12", "-r", "1"], stdout=devnull, stderr=devnull).pid
-    print pid_background ## TODO: kill automatically at the end
-    
+    proc = subprocess.Popen(["locust", "-f", "background_traffic.py", "--host=http://"+minikube+":32001", "--no-web", "-c", "12", "-r", "1"], stdout=devnull, stderr=devnull, preexec_fn=os.setsid)
+    #print pid_background ## TODO: kill automatically at the end
+    print os.getpgid(proc.pid)
+    #os.killpg(os.getpgid(proc.pid), signal.SIGTERM) # should kill it
+
     # Second, start experimental recording script
     ##### TODO-- call pull_from_prom
 
@@ -248,10 +251,15 @@ def main(restart_kube, setup_sock):
     
     # Fourth, wait for some period of time and then stop the experiment
     #### TODO
+    time.sleep(10)
+    # this stops the background process
+    os.killpg(os.getpgid(proc.pid), signal.SIGTERM) # should kill it
+
 
     # Fifth, call the function that analyzes the traffic matrices
     # (It should output potential times that the exfiltration may have occured)
     #### TODO
+
 
     ''' This is old and should be deleted at some point
     # start experiment 
