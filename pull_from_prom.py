@@ -3,9 +3,10 @@ import requests
 import subprocess
 import pandas as pd
 import time
+import sys
 
 '''
-USAGE: python pull_from_prom.py
+USAGE: python pull_from_prom.py [y/n actively detect] [# in seconds to record]
 
 This program pulls from an exposed prometheus pod (at 127.0.0.1:9090) every 5 seconds, computes the differential traffic matrix, and stores it in a pickle file for access to later.
 
@@ -32,7 +33,7 @@ services = [
         '172.17.0.1' # also this one too
 ]
 
-def main(actively_detect):
+def main(actively_detect, watch_time):
     print "starting to pull data"
     cumul_received_matrix = pd.DataFrame() # an empty pandas dataframe
     cumul_sent_matrix = pd.DataFrame() # an empty pandas dataframe
@@ -40,8 +41,10 @@ def main(actively_detect):
     last_sent_matrix = pd.DataFrame()
     #pull_times=[]
     absolute_start_time = time.time()
-    while True:
+    while int(time.time() - absolute_start_time) < watch_time:
         start_time = time.time()
+        #print "elapsed time: ", start_time - absolute_start_time, int(start_time - absolute_start_time) < watch_time, watch_time
+        #print (start_time - absolute_start_time) > watch_time, start_time, absolute_start_time, watch_time
         #if not last_recieved_matrix.empty:
         #    pull_times.append(start_time - absolute_start_time)
         recieved_matrix, sent_matrix = pull_from_prometheus()
@@ -181,9 +184,14 @@ def construct_matrix(data, df):
     return df
 
 if __name__=="__main__":
-   actively_detect = False
-   print sys.argv[1]
-   if len(sys.argv) > 0:
-       if sys.argv[1] == "y":
+    actively_detect = False
+    watch_time = float("inf")
+    #print sys.argv[1]
+    if len(sys.argv) > 1:
+        if sys.argv[1] == "y":
            actively_detect = True
-    main(actively_detect)
+           print "actively detect: ", actively_detect
+        if len(sys.argv) > 2:
+            watch_time = int(sys.argv[2])
+            print "watch time: ", watch_time
+    main(actively_detect, watch_time)
