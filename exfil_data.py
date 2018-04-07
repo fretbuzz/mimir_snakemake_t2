@@ -22,12 +22,17 @@ class ExfilData(TaskSet):
     @task
     def take_data(self):
         print "Starting..."
+        # does this do anything....
         customers = self.client.get("/customers")
         print "customers: ", customers.text
         cards = self.client.get("/cards")
         print "cards: ", cards.text
+        #### TODO : find a way to get addresses included here
+        pickle.dump( [customers, cards], open( "./experimental_data/exfil_data_sock.pickle", "wb" ) )
         addresses = self.client.get("/addresses")
         print "addresses: ", addresses.text
+        #pickle.dump( [customers, cards, addresses], open( "exfil_data_sock.pickle", "wb" ) )
+        print "Pickle dumped..."
         #time.sleep(4)
         #print "Is anyone there??"
         #print "customers: ", customers.text

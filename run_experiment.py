@@ -250,8 +250,9 @@ def main(restart_kube, setup_sock):
     sleep_time = desired_exfil_time - (time.time() - start_time)
     if sleep_time > 0:
         time.sleep(sleep_time )
-    subprocess.check_output(["locust", "-f", "exfil_data.py", "--host=http://"+minikube+":32001", "--no-web", "-c", "1", "-r", "1", "-n", "3"])
-    
+    subprocess.check_output(["locust", "-f", "./exfil_data.py", "--host=http://"+minikube+":32001", "--no-web", "-c", "1", "-r", "1", "-n", "3"])
+    print "Data exfiltrated"
+
     # Fourth, wait for some period of time and then stop the experiment
     # NOTE: going to leave sock shop and everything up, only stopping the experimental
     # stuff, not the stuff that the experiment is run on
