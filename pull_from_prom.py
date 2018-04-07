@@ -48,14 +48,14 @@ def main(actively_detect, watch_time):
         
         print "recieved matrix: "
         #print last_recieved_matrix
-        differential_recieved_matrix = calc_differential_matrix(last_recieved_matrix, recieved_matrix, start_time, absolute_start_time)
-        if differential_recieved_matrix:
+        differential_recieved_matrix, last_recieved_matrix = calc_differential_matrix(last_recieved_matrix, recieved_matrix, start_time, absolute_start_time)
+        if not differential_recieved_matrix.empty:
             cumul_received_matrix = cumul_received_matrix.append(differential_recieved_matrix)
             cumul_received_matrix.to_pickle("./experimental_data/cumul_received_matrix.pickle")
         
         print "sent matrix: "
-        differential_sent_matrix = calc_differential_matrix(last_sent_matrix, sent_matrix, start_time, absolute_start_time)
-        if differential_sent_matrix:
+        differential_sent_matrix, last_sent_matrix = calc_differential_matrix(last_sent_matrix, sent_matrix, start_time, absolute_start_time)
+        if not differential_sent_matrix.empty:
             cumul_sent_matrix = cumul_sent_matrix.append(differential_sent_matrix)
             cumul_sent_matrix.to_pickle("./experimental_data/cumul_sent_matrix.pickle")
             if actively_detect:
@@ -116,13 +116,13 @@ def calc_differential_matrix(last_matrix, current_matrix, start_time, absolute_s
         differential_matrix = current_matrix - current_matrix
         last_matrix = current_matrix.copy()
         differential_matrix['time'] = start_time - absolute_start_time
-        print differential_recieved_matrix
+        print differential_matrix
     else:
-        differential_matrix = None
+        differential_matrix = pd.DataFrame()
         last_matrix = current_matrix.copy()
         print "First recieved_matrix pulled (so cannot compute differential yet):"
         print differential_matrix
-    return differential_matrix
+    return differential_matrix, last_matrix
 
 def pull_from_prometheus():
     r = requests.get('http://127.0.0.1:9090/')
