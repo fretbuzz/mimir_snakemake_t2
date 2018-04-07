@@ -213,7 +213,8 @@ def main(restart_kube, setup_sock):
     start_time = time.time()
 
     # Second, start experimental recording script
-    ##### TODO-- call pull_from_prom
+    # the plus one is so that what it pulls includes the last frame (b/c always a little over the current sec)
+    subprocess.Popen(["python", "pull_from_prom.py", "n", str( desired_stop_time + 1)])
 
     # Third, wait some period of time and then start the data exfiltration
     print "Ready to exfiltrate!"
@@ -236,13 +237,6 @@ def main(restart_kube, setup_sock):
     # (It should output potential times that the exfiltration may have occured)
     #### TODO
 
-
-    ''' This is old and should be deleted at some point
-    # start experiment 
-    ##### TODO: Generate more realistic traffic
-    minikube = subprocess.check_output(["minikube", "ip"]).rstrip()
-    out = subprocess.check_output(["docker", "run", "--rm", "weaveworksdemos/load-test", "-h", minikube+":32001", "-c", "2", "-r", "60"])
-    '''
 
 # kc_out is the result from a "kubectl get" command
 # desired_chunks is a list of the non-zero chunks in each
