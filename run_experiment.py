@@ -9,36 +9,6 @@ import sys
 import os
 import signal
 
-## TODO: This file should really be split into start minikube/istio and start application
-## and then move starting the experiment into an entirely new file
-'''
-1. Start minikube
-minikube start --memory=6144
-2. Install istio
-kubectl apply -f install/kubernetes/istio.yaml
- 3. Deploy application 
- Bash start_with_istio.sh
- 3.5 Wait until istio pods are started 
- kubectl get po,svc,deploy --all-namespaces
-  4. Install prometheus plug-in so we can get the metrics
-  kubectl apply -f install/kubernetes/addons/prometheus.yaml
-  4.5 Wait for prometheus container to start
-  kubectl get po,svc,deploy --all-namespaces
-  5. 'Activate' the custom metrics that we'll use
-  istioctl create -f new_telemetry.yaml
-  istioctl create -f tcp_telemetry_orig_orig.yaml
-  5.5 deploy manifests_tcp_take_2 (to modify services that aren't friendly w/ metrics collection)
-  Kubectl apply -f ./manifests_tcp_take_2
-  6. Expose prometheus 
-  kubectl -n istio-system port-forward $(kubectl -n istio-system get pod -l app=prometheus -o jsonpath='{.items[0].metadata.name}') 9090:9090 &
-   7. Check that prometheus is active via the following url
-   http://127.0.0.1:9090
-   8. Generate some traffic (note ip might be different, check minikube ip)
-   docker run --rm weaveworksdemos/load-test -d 5 -h 192.168.99.113:32001 -c 2 -r 60
-
-The above list of commands is no longer comprehensive. See "Notes" for the current set.
-'''
-
 def main(restart_kube, setup_sock):
     if restart_kube == "y":
         # no point checking, just trying stopping + deleteing
