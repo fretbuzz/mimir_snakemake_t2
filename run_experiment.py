@@ -229,8 +229,10 @@ def main(restart_kube, setup_sock):
         ###### TODO: verift that the above thing worked via a call to the customers api
 
     ## okay, this is where the experiment is actualy going to be implemented (the rest is all setup)
+    desired_exfil_time = 10 # NOTE: choosing 10 seconds purely for testing purposes (real would be longer)
+    desired_stop_time = 20 # Choosing 20 secods purely for testing purposes (real would be longer)
+
     # First, start the background traffic
-    ##### TODO
     # I think this does it- need to verify though
     minikube = subprocess.check_output(["minikube", "ip"]).rstrip()
     devnull = open(os.devnull, 'wb')  # disposing of stdout manualy
@@ -238,23 +240,26 @@ def main(restart_kube, setup_sock):
     #print pid_background ## TODO: kill automatically at the end
     print os.getpgid(proc.pid)
     #os.killpg(os.getpgid(proc.pid), signal.SIGTERM) # should kill it
+    start_time = time.time()
 
     # Second, start experimental recording script
     ##### TODO-- call pull_from_prom
 
     # Third, wait some period of time and then start the data exfiltration
-    #### TODO
-    ## Let's go with waiting 90 seconds?
     print "Ready to exfiltrate!"
-    #time.sleep(90) ## TODO: should actually use elapsed time to determine how long to sleep
-    #subprocess.check_output(["locust", "-f", "exfil_data.py", "--host=http://192.168.99.106:32001", "--no-web", "-c", "1", "-r", "1", "-n", "3"])
+    sleep_time = desired_exfil_time - (time.time() - start_time)
+    if sleep_time > 0:
+        time.sleep(sleep_time )
+    subprocess.check_output(["locust", "-f", "exfil_data.py", "--host=http://"+minikube+":32001", "--no-web", "-c", "1", "-r", "1", "-n", "3"])
     
     # Fourth, wait for some period of time and then stop the experiment
-    #### TODO
-    time.sleep(10)
-    # this stops the background process
+    # NOTE: going to leave sock shop and everything up, only stopping the experimental
+    # stuff, not the stuff that the experiment is run on
+    wait_time = desired_stop_time - (time.time() - start_time)
+    if wait_time > 0:
+        time.sleep(wait_time) 
+    # this stops the background traffic process
     os.killpg(os.getpgid(proc.pid), signal.SIGTERM) # should kill it
-
 
     # Fifth, call the function that analyzes the traffic matrices
     # (It should output potential times that the exfiltration may have occured)
