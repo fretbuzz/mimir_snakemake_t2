@@ -95,7 +95,7 @@ def pull_from_prometheus():
     prometheus_sent_bytes = requests.get('http://localhost:9090/api/v1/query?query=istio_mongo_sent_bytes')
     ip_to_service = get_ip_to_service_mapping()
 
-    return process_prometheus_pull(prometheus_recieved_bytes, prometheus_sent_bytes, ip_to_service)
+    return process_prometheus_pull(prometheus_recieved_bytes.json(), prometheus_sent_bytes.json(), ip_to_service)
 
 # note: this function exists mostly because it is a good testing point
 def process_prometheus_pull(prometheus_recieved_bytes, prometheus_sent_bytes, ip_to_service):
@@ -137,7 +137,7 @@ def get_ip_to_service_mapping():
 
 def parse_prometheus_response(prometheus_response, ip_to_service):
     data = []
-    for thing in prometheus_response.json()['data']['result']:
+    for thing in prometheus_response['data']['result']:
         try:
             source_service = ip_to_service[thing['metric']['source_ip'].encode('ascii','ignore')]
         except KeyError:

@@ -72,7 +72,12 @@ class TestPullFromPromMethods(unittest.TestCase):
             first_recieved_matrix, first_sent_matrix = process_prometheus_pull(first_rec_json, first_sent_json, ip_to_service)
             sec_recieved_matrix, sec_sent_matrix = process_prometheus_pull(second_rec_json, second_sent_json, ip_to_service)
 
-            print first_recieved_matrix
+            ## OKAY, we have all the matrixes, now let's compare them with what they 'should' be!
+            ## Let's just spot test them for now, at some point maybe we can make it more complete
+            self.assertEqual(first_recieved_matrix.get_value('carts', 'carts-db'), 33958468)
+            self.assertEqual(first_recieved_matrix.get_value('orders', 'carts'), 2731256)
+            self.assertEqual(first_recieved_matrix.get_value('front-end', 'catalogue'), 1601785)
+            #print first_recieved_matrix
 
             self.assertEqual('FOO', 'FOO')
 
