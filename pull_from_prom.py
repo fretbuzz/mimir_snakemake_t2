@@ -61,48 +61,6 @@ def main(actively_detect, watch_time):
             if actively_detect:
                 print "Should analyze the matrices here"
         
-        '''
-        # we want the differential matrixes, not just the aggregates
-        if not last_recieved_matrix.empty
-            #calc_differential_matrix(last_matrix, current_matrix, start_time, absolute_start_time
-            differential_recieved_matrix = recieved_matrix - last_recieved_matrix
-            last_recieved_matrix = recieved_matrix.copy()
-            differential_recieved_matrix['time'] = start_time - absolute_start_time
-            print differential_recieved_matrix
-            # append function returns copy
-            cumul_received_matrix = cumul_received_matrix.append(differential_recieved_matrix)
-            print cumul_received_matrix
-            # let's try this
-            #cumul_received_matrix = pd.concat([cumul_received_matrix, differential_recieved_matrix])
-            #print cumul_received_matrix
-            cumul_received_matrix.to_pickle("./experimental_data/cumul_received_matrix.pickle")
-        else: 
-            last_recieved_matrix = recieved_matrix.copy()
-            print "First recieved_matrix pulled (so cannot compute differential yet):"
-            print last_recieved_matrix
-
-        print "sent matrix: "
-        if not last_sent_matrix.empty:
-            print "last sent matrix is not empty"
-            differential_sent_matrix = sent_matrix - last_sent_matrix
-            last_sent_matrix = sent_matrix.copy()
-            differential_sent_matrix['time'] = start_time - absolute_start_time
-            print differential_sent_matrix
-            cumul_sent_matrix = cumul_sent_matrix.append(differential_sent_matrix)
-            print cumul_sent_matrix
-            #cumul_sent_matrix = pd.concat([cumul_sent_matrix, differential_recieved_matrix])
-            cumul_sent_matrix.to_pickle("./experimental_data/cumul_sent_matrix.pickle")
-        
-            # if we are actively trying to detect the data exfiltration, then we should 
-            # send the matrices to the analyzing function right away
-            if actively_detect:
-                print "Should analyze the matrices here"
-        else:
-            print "last sent matrix is empty"
-            last_sent_matrix = sent_matrix
-            print "First sent matrix pulled (so cannot compute differential yet):"
-            print last_sent_matrix
-        '''
         print "Run time: ", time.time() - start_time
         time_to_sleep = 5 - (time.time() - start_time)
         print "Should sleep for ", time_to_sleep, " seconds"
@@ -110,10 +68,9 @@ def main(actively_detect, watch_time):
             time.sleep(time_to_sleep)
 
 
-### TODO: Finish this fiunction and use it to replace that mess of code above
 def calc_differential_matrix(last_matrix, current_matrix, start_time, absolute_start_time):
     if not last_matrix.empty:
-        differential_matrix = current_matrix - current_matrix
+        differential_matrix = current_matrix - last_matrix
         last_matrix = current_matrix.copy()
         differential_matrix['time'] = start_time - absolute_start_time
         print differential_matrix
