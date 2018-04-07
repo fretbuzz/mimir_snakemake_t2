@@ -14,20 +14,20 @@ While this sounds very simple, immature tooling in the microservice space causes
 '''
 
 services = [
-        'carts',
         'carts-db',
-        'catalogue',
+        'carts',
         'catalogue-db',
+        'catalogue',
         'front-end',
-        'orders',
         'orders-db',
+        'orders',
         'payment',
         'queue-master',
         'rabbitmq',
         'session-db',
         'shipping',
-        'user',
         'user-db',
+        'user',
         'load-test',
         '127.0.0.1', #it's always there, so I guess we should treat it like a normal thing
         '172.17.0.1' # also this one too
@@ -131,6 +131,7 @@ def get_ip_to_service_mapping():
         for service in services:
             if service in pod:
                 pod = service
+                break
         ip_to_service[IP.strip()] = pod
     #print ip_to_service
     return ip_to_service
