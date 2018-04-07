@@ -38,9 +38,7 @@ def main(actively_detect, watch_time):
     cumul_received_matrix = pd.DataFrame() # an empty pandas dataframe
     cumul_sent_matrix = pd.DataFrame() # an empty pandas dataframe
     last_recieved_matrix = pd.DataFrame()
-    #print last_recieved_matrix
     last_sent_matrix = pd.DataFrame()
-    #pull_times=[]
     absolute_start_time = time.time()
     while int(time.time() - absolute_start_time) < watch_time:
         start_time = time.time()
@@ -94,16 +92,18 @@ def pull_from_prometheus():
     #print r.headers['content-type']
 
     prometheus_recieved_bytes = requests.get('http://localhost:9090/api/v1/query?query=istio_mongo_received_bytes')
-    #print r.text
+    prometheus_sent_bytes = requests.get('http://localhost:9090/api/v1/query?query=istio_mongo_sent_bytes')
     ip_to_service = get_ip_to_service_mapping()
+
+    return process_prometheus_pull(prometheus_recieved_bytes, prometheus_sent_bytes, ip_to_service)
+
+# note: this function exists mostly because it is a good testing point
+def process_prometheus_pull(prometheus_recieved_bytes, prometheus_sent_bytes, ip_to_service):
     print "About to parse recieved data!"
     parsed_recieved_data = parse_prometheus_response(prometheus_recieved_bytes, ip_to_service)
     recieved_matrix = pd.DataFrame(np.zeros((len(services), len(services))),index=services,columns=services)
     construct_matrix(parsed_recieved_data, recieved_matrix)
 
-    prometheus_sent_bytes = requests.get('http://localhost:9090/api/v1/query?query=istio_mongo_sent_bytes')
-    #print r.text
-    ip_to_service = get_ip_to_service_mapping()
     print "About to parse sent data!"
     parsed_sent_data = parse_prometheus_response(prometheus_sent_bytes, ip_to_service)
     sent_matrix = pd.DataFrame(np.zeros((len(services), len(services))),index=services,columns=services)
