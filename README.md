@@ -1,39 +1,18 @@
-# munnin
-Experimental Apparatus for Testing Anomaly-based Data Exfiltration Detection in Microservice Architectures
-
-Steps to use:
-1. Install minikube/kubernetes
-2. git clone weave's sock shop
-3. go to the sock shop directory
-4. clone the munnin directory
-5. mkdir ./experimental_data/
-6. python run_experiment.py
-7. Hopefully some traffic matrixes will pop up
-
---- New and Improved Readme In Progress Below ----
-
 ## Munnin
 Munnin is an experimetnal apparatus designed to test the potential for anomaly-based data exfiltration detection in enterprise applications with a microservice architecture. It automates setting up the test microservice (currently weave's Sock Shop), generates background traffic, performs 'data exfiltration' (kinda), creates traffic matrices, and analyzes these traffic matrices to detect the aforementioned data exfiltration
 
 ## Motivation
 The transition to Microsevice Architectures bring new challenges and opportunities to detecting data exfiltration. Current data exfiltration methods use keyword-based methods that don't work on encrypted traffic, necessitating the use of anomaly-based methods. Anomaly-based methods, however, don't work well in tradtional enterprise (e.g. 3-tier) application because of the lack of network-level visibility. The increased visibility (and granularity of that visibility) for microservice applications makes anomaly-based data exfiltration methods a possibility.
 
-## Build status
-Build status of continus integration i.e. travis, appveyor etc. Ex. - 
-
-[![Build Status](https://travis-ci.org/akashnimare/foco.svg?branch=master)](https://travis-ci.org/akashnimare/foco)
-[![Windows Build Status](https://ci.appveyor.com/api/projects/status/github/akashnimare/foco?branch=master&svg=true)](https://ci.appveyor.com/project/akashnimare/foco/branch/master)
-
-## Code style
-If you're using any code style like xo, standard etc. That will help others while contributing to your project. Ex. -
-
-[![js-standard-style](https://img.shields.io/badge/code%20style-standard-brightgreen.svg?style=flat)](https://github.com/feross/standard)
- 
-## Tech/framework used
-Ex. -
+ ## Tech/framework used
 
 <b>Built with</b>
-- [Electron](https://electron.atom.io)
+Kubernetes orchestrator
+Istio for metrics collection
+Prometheus for metrics aggregation
+Weave's Sock Shop as a sample application
+Locust for background traffic simulation and data exfiltration simulation
+Python's Pandas for Traffic Matrix Analysis
 
 ## Features
 What makes your project stand out?
@@ -43,6 +22,16 @@ Show what the library does as concisely as possible, developers should be able t
 
 ## Installation
 Provide step by step series of examples and explanations about how to get a development env running.
+
+TODO: Update
+Steps to use:
+1. Install minikube/kubernetes
+2. git clone weave's sock shop
+3. go to the sock shop directory
+4. clone the munnin directory
+5. mkdir ./experimental_data/
+6. python run_experiment.py
+7. Hopefully some traffic matrixes will pop up
 
 ## API Reference
 
