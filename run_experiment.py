@@ -207,7 +207,6 @@ def main(restart_kube, setup_sock):
     minikube = subprocess.check_output(["minikube", "ip"]).rstrip()
     devnull = open(os.devnull, 'wb')  # disposing of stdout manualy
     proc = subprocess.Popen(["locust", "-f", "background_traffic.py", "--host=http://"+minikube+":32001", "--no-web", "-c", "12", "-r", "1"], stdout=devnull, stderr=devnull, preexec_fn=os.setsid)
-    #print pid_background ## TODO: kill automatically at the end
     print os.getpgid(proc.pid)
     #os.killpg(os.getpgid(proc.pid), signal.SIGTERM) # should kill it
     start_time = time.time()
@@ -235,8 +234,15 @@ def main(restart_kube, setup_sock):
 
     # Fifth, call the function that analyzes the traffic matrices
     # (It should output potential times that the exfiltration may have occured)
-    #### TODO
+    # (which it does not do yet)
+    out = subprocess.check_output(["python", "analyze_traffix_matrixes.py"])
+    print out
 
+    # Sixth, what is the FP / FN / TP / TN ??
+    #### TODO (prob need to write a function for this + need to fix analyze_traffic_matrixes)
+
+    
+    print "Experiment complete!!"
 
 # kc_out is the result from a "kubectl get" command
 # desired_chunks is a list of the non-zero chunks in each
