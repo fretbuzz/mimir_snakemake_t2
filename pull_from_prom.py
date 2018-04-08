@@ -154,6 +154,7 @@ def parse_prometheus_response(prometheus_response, ip_to_service):
         for service in services:
             if service in thing['metric']['destination_service']:
                 dst_service = service
+                break
         data.append( [source_service, dst_service,  thing['value'][1]] )
         #print "FROM ", source_service, " TO ", dst_service, " : ", thing['value'][1], "\n"
     #print data
