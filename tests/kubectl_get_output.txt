@@ -1,15 +1,28 @@
-NAME                            READY     STATUS    RESTARTS   AGE       IP            NODE
-carts-774687c-z5vz2             2/2       Running   1          7h        172.17.0.5    minikube
-carts-db-6dcb54dd4-88jdl        2/2       Running   1          7h        172.17.0.3    minikube
-catalogue-b89d78d69-whws4       2/2       Running   1          7h        172.17.0.12   minikube
-catalogue-db-5d958cfdb4-r6x7j   2/2       Running   1          7h        172.17.0.6    minikube
-front-end-67756d994f-8ctrg      2/2       Running   2          7h        172.17.0.15   minikube
-orders-75f5c9cdb4-4224q         2/2       Running   1          7h        172.17.0.14   minikube
-orders-db-666d64bcb8-v5b8s      2/2       Running   1          7h        172.17.0.11   minikube
-payment-7447c95bb9-547fq        2/2       Running   1          7h        172.17.0.16   minikube
-queue-master-5bf4865b6f-7zl82   2/2       Running   1          7h        172.17.0.4    minikube
-rabbitmq-58c74ddb-t95pt         3/3       Running   83         7h        172.17.0.8    minikube
-session-db-757db8797b-2ttf9     2/2       Running   1          7h        172.17.0.7    minikube
-shipping-775f4f4d4-7jbm8        2/2       Running   1          7h        172.17.0.9    minikube
-user-6bd4b89bb4-g76g2           2/2       Running   1          7h        172.17.0.13   minikube
-user-db-8657ffc5f8-7t74m        2/2       Running   1          7h        172.17.0.2    minikube
+NAMESPACE      NAME                                    READY     STATUS             RESTARTS   AGE       IP               NODE
+default        carts-774687c-z5vz2                     2/2       Running            1          9h        172.17.0.5       minikube
+default        carts-db-6dcb54dd4-88jdl                2/2       Running            1          9h        172.17.0.3       minikube
+default        catalogue-b89d78d69-whws4               2/2       Running            1          9h        172.17.0.12      minikube
+default        catalogue-db-5d958cfdb4-r6x7j           2/2       Running            1          9h        172.17.0.6       minikube
+default        front-end-67756d994f-8ctrg              2/2       Running            5          9h        172.17.0.15      minikube
+default        orders-75f5c9cdb4-4224q                 2/2       Running            1          9h        172.17.0.14      minikube
+default        orders-db-666d64bcb8-v5b8s              2/2       Running            1          9h        172.17.0.11      minikube
+default        payment-7447c95bb9-547fq                2/2       Running            1          9h        172.17.0.16      minikube
+default        queue-master-5bf4865b6f-7zl82           2/2       Running            1          9h        172.17.0.4       minikube
+default        rabbitmq-58c74ddb-t95pt                 2/3       CrashLoopBackOff   88         9h        172.17.0.8       minikube
+default        session-db-757db8797b-2ttf9             2/2       Running            1          9h        172.17.0.7       minikube
+default        shipping-775f4f4d4-7jbm8                2/2       Running            1          9h        172.17.0.9       minikube
+default        user-6bd4b89bb4-g76g2                   2/2       Running            1          9h        172.17.0.13      minikube
+default        user-db-8657ffc5f8-7t74m                2/2       Running            1          9h        172.17.0.2       minikube
+istio-system   istio-ca-86f55cc46f-wvtnc               1/1       Running            0          9h        172.17.0.24      minikube
+istio-system   istio-ingress-5bb556fcbf-b8b8q          1/1       Running            2          9h        172.17.0.25      minikube
+istio-system   istio-mixer-86f5df6997-5srkr            3/3       Running            0          9h        172.17.0.19      minikube
+istio-system   istio-pilot-67d6ddbdf6-cl6pm            2/2       Running            0          9h        172.17.0.23      minikube
+istio-system   prometheus-cf8456855-4x4gw              1/1       Running            0          9h        172.17.0.26      minikube
+kube-system    heapster-srjxt                          1/1       Running            0          9h        172.17.0.20      minikube
+kube-system    influxdb-grafana-rzqtl                  2/2       Running            0          9h        172.17.0.21      minikube
+kube-system    kube-addon-manager-minikube             1/1       Running            0          9h        192.168.99.108   minikube
+kube-system    kube-dns-54cccfbdf8-57cxw               3/3       Running            0          9h        172.17.0.22      minikube
+kube-system    kubernetes-dashboard-77d8b98585-ppjv6   1/1       Running            0          9h        172.17.0.18      minikube
+kube-system    storage-provisioner                     1/1       Running            0          9h        192.168.99.108   minikube
+loadtest       load-test-f8bff8f76-9ccr5               2/2       Running            1          9h        172.17.0.10      minikube
+loadtest       load-test-f8bff8f76-hdbf5               2/2       Running            1          9h        172.17.0.17      minikube

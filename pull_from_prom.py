@@ -114,7 +114,13 @@ def process_prometheus_pull(prometheus_recieved_bytes, prometheus_sent_bytes, ip
 def get_ip_to_service_mapping():
     out = subprocess.check_output(["kubectl", "get", "po", "-o", "wide","--all-namespaces"])
     #print out
+    return parse_ip_to_service_mapping(out)
+
+# note: this function exists because it is easy to test
+def parse_ip_to_service_mapping(kubectl_get_output):
+    out = kubectl_get_output
     g = out.split('\n')
+    #print g
     ip_to_service = {}
     for line in g:
         k = line.split("   ")
@@ -132,7 +138,8 @@ def get_ip_to_service_mapping():
             if service in pod:
                 pod = service
                 break
-        ip_to_service[IP.strip()] = pod
+        ip_to_service[IP.strip()] = pod.rstrip().lstrip()
+        #print "ip", IP, "pod", pod
     #print ip_to_service
     return ip_to_service
 

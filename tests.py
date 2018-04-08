@@ -48,6 +48,8 @@ class TestStringMethods(unittest.TestCase):
 # I don't got all day to write tests, so we are only going
 # to check some of the bigger functionality
 class TestPullFromPromMethods(unittest.TestCase):
+    maxDiff = None
+    
     @classmethod
     def setUpClass(cls):
         # first read in the stored prometheus data from the files
@@ -72,6 +74,58 @@ class TestPullFromPromMethods(unittest.TestCase):
         
         cls.first_recieved_matrix, cls.first_sent_matrix = process_prometheus_pull(first_rec_json, first_sent_json, ip_to_service)
         cls.sec_recieved_matrix, cls.sec_sent_matrix = process_prometheus_pull(second_rec_json, second_sent_json, ip_to_service)
+
+
+    def test_ip_to_service_map(self):
+        #print "testing ip to service functionality..."
+        kubectl_get_out = open("./tests/kubectl_get_output.txt", "r").read()
+        #print kubectl_get_out
+        mapping = parse_ip_to_service_mapping(kubectl_get_out)
+        #print mapping
+        #print "done printing mapping..."
+        #for ip,serv in mapping.iteritems():
+        #    print ip, serv
+        #print "correct mapping..."
+        correct_mapping = {'172.17.0.5' : 'carts',
+                '172.17.0.3': 'carts-db',
+                '172.17.0.12': 'catalogue',
+                '172.17.0.6': 'catalogue-db',
+                '172.17.0.15': 'front-end',
+                '172.17.0.14': 'orders',
+                '172.17.0.11': 'orders-db',
+                '172.17.0.16': 'payment',
+                '172.17.0.4': 'queue-master',
+                '172.17.0.8': 'rabbitmq',
+                '172.17.0.7': 'session-db',
+                '172.17.0.9': 'shipping',
+                '172.17.0.13': 'user',
+                '172.17.0.2': 'user-db',
+                '172.17.0.24': 'istio-ca-86f55cc46f-wvtnc',
+                '172.17.0.25': 'istio-ingress-5bb556fcbf-b8b8q',
+                '172.17.0.19': 'istio-mixer-86f5df6997-5srkr',
+                '172.17.0.23': 'istio-pilot-67d6ddbdf6-cl6pm',
+                '172.17.0.26': 'prometheus-cf8456855-4x4gw',
+                '172.17.0.20': 'heapster-srjxt',
+                '172.17.0.21': 'influxdb-grafana-rzqtl',
+                '192.168.99.108': 'kube-addon-manager-minikube',
+                '172.17.0.22' : 'kube-dns-54cccfbdf8-57cxw',
+                '172.17.0.18' : 'kubernetes-dashboard-77d8b98585-ppjv6',
+                '192.168.99.108' : 'storage-provisioner', 
+                '172.17.0.10' : 'load-test',
+                '172.17.0.17': 'load-test',
+                'hello world': 'load-test',
+                'IP': 'NAME'} 
+        #print correct_mapping
+        #print "Here are the mappings..."
+        #for ip,serv in correct_mapping.iteritems():
+        #    print "extracted: ", ip, mapping[ip]
+        #    print "correct:   ", ip,serv
+        #print "mappings are complete..."
+        #print correct_mapping
+        #print mapping
+        #for ip,serv in mapping.iteritems():
+
+        self.assertDictEqual(mapping, correct_mapping)
 
     def test_process_prometheus_pull(self):        
         ## OKAY, we have all the matrixes, now let's compare them with what they 'should' be!
