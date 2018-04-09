@@ -57,13 +57,14 @@ def restart_minikube():
     print out
     print "Completed installing Istio"
 
+
+def setup_sock_shop():
     # then deploy application
     print "Starting to deploy sock shop..."
     out = subprocess.check_output(["Bash", "start_with_istio.sh", istio_folder])
     print out
     print "Completed installing sock shop..."
 
-def setup_sock_shop():
     istio_folder = get_istio_folder()
     minikube = subprocess.check_output(["minikube", "ip"])
     # wait until istio pods are started
