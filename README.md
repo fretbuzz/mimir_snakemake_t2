@@ -38,6 +38,7 @@ Steps to use:
 4. clone the munnin directory
 5. mkdir ./experimental_data/
 6. Make sure that you have python 2.7 with anaconda installed (b/c pandas)
+7. install Locust (to simulate users and what not). It's easy to do this with 'pip install locustio'
 7. python run_experiment.py
 8. Some traffic matrixes will be stored in ./experimental_data in pickled form and some graphs should pop up, maybe some more stuff will happen when we get around to adding it :) 
 
