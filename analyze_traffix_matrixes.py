@@ -1,7 +1,13 @@
 import pickle
 import pandas as pd
 import numpy as np
+import sys
+'''
+USAGE: python analyze_traffic_matrixes.py [recieved_matrix_location] [sent_matrix_location]
 
+## Note: if the rec/sent matrix locations aren't given, will use defaults
+
+'''
 # TODO: see if the send-recieved pairs match up as we'd expect them to
 # first statistic that I want: control chart. (need to write e2e tests, but other than that maybe fine?)
 # second statistic that I want: PCA
@@ -50,16 +56,16 @@ services = [
         '172.17.0.1' # also this one too
 ]
 
-def main():
-    simulate_incoming_data()
+def main(rec_matrix_location, send_matrix_location):
+    simulate_incoming_data(rec_matrix_location, send_matrix_location)
 
 # This function reads pickle files corresponding to the send/received traffic matrices
 # and then iterates through them by the time stamps, letting us pretend that the data
 # is coming from an actively running system
-def simulate_incoming_data():
+def simulate_incoming_data(rec_matrix_location, send_matrix_location):
     print "hello world"
-    df_sent = pd.read_pickle('./experimental_data/cumul_sent_matrix.pickle')
-    df_rec = pd.read_pickle('./experimental_data/cumul_received_matrix.pickle')
+    df_sent = pd.read_pickle(send_matrix_location)
+    df_rec = pd.read_pickle(rec_matrix_location)
     print "df_sent:", df_sent
     print "df_rec:", df_rec
 
@@ -147,4 +153,9 @@ def next_value_trigger_control_charts(df, data_stats):
             print "THIS IS THE POOR MAN'S EQUIVALENT OF AN ALARM!!", entry
 
 if __name__=="__main__":
-    main()
+    rec_matrix_location = './experimental_data/cumul_received_matrix.pickle'
+    send_matrix_location = './experimental_data/cumul_sent_matrix.pickle'
+    if len(sys.argv) > 2:
+        rec_matrix_location = sys.argv[1]
+        send_matrix_location = sys.argv[2]
+    main(rec_matrix_location, send_matrix_location)
