@@ -115,19 +115,19 @@ def control_charts(df, is_send):
             relevant_traffic_values = df.loc[index_service, column_service]
             #print relevant_traffic_values, type(relevant_traffic_values)
             if relevant_traffic_values.mean() != 0:
-                '''
-                if is_send:
-                    print "\n", index_service, " SENT TO ", column_service
-                else:
-                    print "\n", index_service, " RECEIVE FROM ", column_service
-                # this is where I could do something fancier than just mean and stddev
-                # I could do this by being fancy with data_stats (perhaps cleverly unpacking later on)
-                #print relevant_traffic_values.describe()
-                print "Mean: ", relevant_traffic_values.mean()
-                print "Stddev: ", relevant_traffic_values.std()
-                '''
+                #print_control_charts_process(relevant_traffic_values, is_send, index_service, column_service)
                 data_stats[index_service, column_service] = [relevant_traffic_values.mean(), relevant_traffic_values.std()]
     return data_stats
+
+# might want to expand to a more generalized printing function at some stage
+def print_control_charts_process(relevant_traffic_values, is_send, index_service, column_service):
+    if is_send:
+        print "\n", index_service, " SENT TO ", column_service
+    else:
+        print "\n", index_service, " RECEIVE FROM ", column_service
+    #print relevant_traffic_values.describe()
+    print "Mean: ", relevant_traffic_values.mean()
+    print "Stddev: ", relevant_traffic_values.std()
 
 def get_times(df):
     times = []
@@ -140,8 +140,6 @@ def get_times(df):
 # see if the next value for a service pair causes 
 # an alarm via control chart anomaly detection
 def next_value_trigger_control_charts(next_df, data_stats):
-    #print "entered next_value_trigger_control_charts"
-    #print df, data_stats
     ## iterate through values of data_stats
     ## get value from traffic matrix
     ## if outside of bounds, print something in capital letters
