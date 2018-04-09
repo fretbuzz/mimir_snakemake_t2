@@ -68,6 +68,10 @@ def simulate_incoming_data(rec_matrix_location, send_matrix_location):
         next_df_sent = df_sent[ df_sent['time'].isin([times[time]]) ]
         next_value_trigger_control_charts(next_df_sent, df_sent_control_stats[time])
     
+    generate_graphs(df_sent_control_stats, times)
+
+# this function just generates graphs
+def generate_graphs(df_sent_control_stats, times):
     # might want to make a function to generate graph-able arrays or something
     f_to_u = []
     for time_slice in df_sent_control_stats:
@@ -84,8 +88,35 @@ def simulate_incoming_data(rec_matrix_location, send_matrix_location):
     plt.title('front-end service to user service')
     plt.xlabel('seconds from start of experiment')
     plt.ylabel('bytes')
+
+    svc_pair_to_control_charts = generate_service_pair_arrays(df_sent_control_stats, times)
+
+    plt.subplot(212)
+    plt.plot(times, svc_pair_to_control_charts['front-end', 'user'])
+    plt.xticks(times, times)
+    plt.title('front-end service to user service (but better)')
+    plt.xlabel('seconds from start of experiment')
+    plt.ylabel('bytes')
     plt.show()
-    
+
+
+# result is {['src', 'dst'] : [list of values at the time intervals]}
+# at the moment, it is going to deal soley with the control_chart_stats stuff
+def generate_service_pair_arrays(stats, times):
+    svc_to_vals = {}
+    for sending_svc in services:
+        for dst_svc in services:
+            svc_to_vals[sending_svc, dst_svc] = []
+    #print stats
+    #print svc_to_vals
+    for time_slice in stats:
+        for svc_dst_pair, vals in time_slice.iteritems():
+            #print svc_dst_pair, vals
+            svc_to_vals[svc_dst_pair[0], svc_dst_pair[1]].append(vals)
+    #print "I hope this worked!!!!"
+    #print svc_to_vals
+    return svc_to_vals
+
 # DF(with lots of times) -> [DF(time A), DF(time A and B), DF(time A,B,C), etc.]
 def generate_time_slice_dfs(df):
     times = get_times(df)
@@ -109,8 +140,6 @@ def control_charts(df, is_send):
     data_stats = {} #[]
     for index_service in services:
         for column_service in services:
-            # NOTE: this is where I'd condition on time values, if I wanted to do
-            # like a moving average or something (well might be earlier actually)
             relevant_traffic_values = df.loc[index_service, column_service]
             #print relevant_traffic_values, type(relevant_traffic_values)
             #if relevant_traffic_values.mean() != 0:
