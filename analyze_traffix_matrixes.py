@@ -117,6 +117,7 @@ def control_charts(df, is_send):
             relevant_traffic_values = df.loc[index_service, column_service]
             #print relevant_traffic_values, type(relevant_traffic_values)
             if relevant_traffic_values.mean() != 0:
+                '''
                 if is_send:
                     print "\n", index_service, " SENT TO ", column_service
                 else:
@@ -126,6 +127,7 @@ def control_charts(df, is_send):
                 #print relevant_traffic_values.describe()
                 print "Mean: ", relevant_traffic_values.mean()
                 print "Stddev: ", relevant_traffic_values.std()
+                '''
                 data_stats[index_service, column_service] = [relevant_traffic_values.mean(), relevant_traffic_values.std()]
     return data_stats
 

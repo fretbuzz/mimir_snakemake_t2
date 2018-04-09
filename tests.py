@@ -215,11 +215,23 @@ class TestAnalyzeMatrices(unittest.TestCase):
         rec_control_charts = control_charts(self.df_rec, False)
         # recall the output is in the form 
         # {[sending_svc, recieving_service]: [mean, standard_deviation]}
-        print sent_control_charts, "\n"
-        print rec_control_charts
-        print rec_control_charts['172.17.0.1', 'catalogue']
+        #print sent_control_charts, "\n"
+        #print rec_control_charts
+        #print rec_control_charts['172.17.0.1', 'catalogue']
         ## placeholder VV for now:W
-        self.assertEqual(rec_control_charts['172.17.0.1', 'catalogue'], [380.0, 65.81793068761733])
+        self.assertAlmostEqual(rec_control_charts['172.17.0.1', 'catalogue'][0], 399.0, places=8)
+        self.assertAlmostEqual(rec_control_charts['172.17.0.1', 'catalogue'][1], 65.81793069, places=8)
+        # the below raises errors b/c all zeroes
+        #print rec_control_charts['payment', 'catalogue-db']
+        #self.assertAlmostEqual(rec_control_charts['payment', 'catalogue-db'][0], 0, places=7)
+        #self.assertAlmostEqual(rec_control_charts['payment', 'catalogue-db'][1], 0, places=7)
+        self.assertAlmostEqual(rec_control_charts['front-end', 'orders'][0], 8671.5, places=6)
+        self.assertAlmostEqual(rec_control_charts['front-end', 'orders'][1], 2203.726163, places=6)
+        self.assertAlmostEqual(rec_control_charts['carts', 'carts-db'][0], 104814.75, places=5)
+        self.assertAlmostEqual(rec_control_charts['carts', 'carts-db'][1], 73655.44176, places=5)
+        self.assertAlmostEqual(rec_control_charts['catalogue', 'catalogue-db'][0], 23060.25, places=6)
+        self.assertAlmostEqual(rec_control_charts['catalogue', 'catalogue-db'][1], 3655.819413, places=6)
+
 
 
 if __name__ == "__main__":
