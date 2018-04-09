@@ -60,6 +60,8 @@ def simulate_incoming_data():
     print "hello world"
     df_sent = pd.read_pickle('./experimental_data/cumul_sent_matrix.pickle')
     df_rec = pd.read_pickle('./experimental_data/cumul_received_matrix.pickle')
+    print "df_sent:", df_sent
+    print "df_rec:", df_rec
 
     times = get_times(df_sent)
     elapsed_time = []
