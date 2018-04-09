@@ -79,7 +79,8 @@ def generate_graphs(svc_pair_to_values, times):
     plt.subplot(211)
     avg_line, = plt.plot(times, [item[0] for item in svc_pair_to_values['front-end', 'user']], label='mean')
     stddev_line, = plt.plot(times, [item[1] for item in svc_pair_to_values['front-end', 'user']], label='stddev')
-    plt.xticks(times, times)
+    graph_ready_times = [int(i) for i in times] # floats are hard to read
+    plt.xticks(times, graph_ready_times)
     plt.title('front-end service to user service')
     plt.xlabel('seconds from start of experiment')
     plt.ylabel('bytes')
