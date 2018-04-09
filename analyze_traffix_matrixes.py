@@ -2,6 +2,7 @@ import pickle
 import pandas as pd
 import numpy as np
 import sys
+import matplotlib.pyplot as plt
 '''
 USAGE: python analyze_traffic_matrixes.py [recieved_matrix_location] [sent_matrix_location]
 
@@ -59,6 +60,17 @@ def simulate_incoming_data(rec_matrix_location, send_matrix_location):
     for time in range(1,len(times)-1):
         next_df_sent = df_sent[ df_sent['time'].isin([times[time]]) ]
         next_value_trigger_control_charts(next_df_sent, df_sent_control_stats[time])
+    
+    # might want to make a function to generate graph-able arrays or something
+    f_to_u = []
+    for time_slice in df_sent_control_stats:
+        print "f to u", time_slice['front-end', 'user']
+        f_to_u.append(time_slice['front-end', 'user'])
+        print "u to f", time_slice['user', 'front-end']
+    print f_to_u
+    plt.plot(f_to_u)
+    plt.ylabel('bytes')
+    plt.show()
 
 # DF(with lots of times) -> [DF(time A), DF(time A and B), DF(time A,B,C), etc.]
 def generate_time_slice_dfs(df):
@@ -87,9 +99,9 @@ def control_charts(df, is_send):
             # like a moving average or something (well might be earlier actually)
             relevant_traffic_values = df.loc[index_service, column_service]
             #print relevant_traffic_values, type(relevant_traffic_values)
-            if relevant_traffic_values.mean() != 0:
+            #if relevant_traffic_values.mean() != 0:
                 #print_control_charts_process(relevant_traffic_values, is_send, index_service, column_service)
-                data_stats[index_service, column_service] = [relevant_traffic_values.mean(), relevant_traffic_values.std()]
+            data_stats[index_service, column_service] = [relevant_traffic_values.mean(), relevant_traffic_values.std()]
     return data_stats
 
 # might want to expand to a more generalized printing function at some stage
