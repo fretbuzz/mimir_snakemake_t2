@@ -66,8 +66,8 @@ def simulate_incoming_data(rec_matrix_location, send_matrix_location):
     print "hello world"
     df_sent = pd.read_pickle(send_matrix_location)
     df_rec = pd.read_pickle(rec_matrix_location)
-    print "df_sent:", df_sent
-    print "df_rec:", df_rec
+    #print "df_sent:", df_sent
+    #print "df_rec:", df_rec
 
     times = get_times(df_sent)
     elapsed_time = []

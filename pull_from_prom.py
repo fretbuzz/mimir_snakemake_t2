@@ -44,14 +44,14 @@ def main(actively_detect, watch_time):
         start_time = time.time()
         recieved_matrix, sent_matrix = pull_from_prometheus()
         
-        print "recieved matrix: "
+        #print "recieved matrix: "
         #print last_recieved_matrix
         differential_recieved_matrix, last_recieved_matrix = calc_differential_matrix(last_recieved_matrix, recieved_matrix, start_time, absolute_start_time)
         if not differential_recieved_matrix.empty:
             cumul_received_matrix = cumul_received_matrix.append(differential_recieved_matrix)
             cumul_received_matrix.to_pickle("./experimental_data/cumul_received_matrix.pickle")
         
-        print "sent matrix: "
+        #print "sent matrix: "
         differential_sent_matrix, last_sent_matrix = calc_differential_matrix(last_sent_matrix, sent_matrix, start_time, absolute_start_time)
         if not differential_sent_matrix.empty:
             cumul_sent_matrix = cumul_sent_matrix.append(differential_sent_matrix)
@@ -75,7 +75,7 @@ def calc_differential_matrix(last_matrix, current_matrix, start_time, absolute_s
     else:
         differential_matrix = pd.DataFrame()
         new_last_matrix = current_matrix.copy()
-        print "First recieved_matrix pulled (so cannot compute differential yet):"
+        #print "First recieved_matrix pulled (so cannot compute differential yet):"
         #print differential_matrix
     return differential_matrix, new_last_matrix
 
@@ -99,12 +99,12 @@ def pull_from_prometheus():
 
 # note: this function exists mostly because it is a good testing point
 def process_prometheus_pull(prometheus_recieved_bytes, prometheus_sent_bytes, ip_to_service):
-    print "About to parse recieved data!"
+    #print "About to parse recieved data!"
     parsed_recieved_data = parse_prometheus_response(prometheus_recieved_bytes, ip_to_service)
     recieved_matrix = pd.DataFrame(np.zeros((len(services), len(services))),index=services,columns=services)
     construct_matrix(parsed_recieved_data, recieved_matrix)
 
-    print "About to parse sent data!"
+    #print "About to parse sent data!"
     parsed_sent_data = parse_prometheus_response(prometheus_sent_bytes, ip_to_service)
     sent_matrix = pd.DataFrame(np.zeros((len(services), len(services))),index=services,columns=services)
     construct_matrix(parsed_sent_data, sent_matrix)
