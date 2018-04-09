@@ -91,7 +91,7 @@ def simulate_incoming_data(rec_matrix_location, send_matrix_location):
         # now let's check if it will trigger an alarm
         print "SUP", df_sent
         next_sent_traffic_matrix = df_sent[ df_sent['time'].isin([times[time_index+1]]) ]
-        next_value_trigger_control_charts(next_sent_traffic_matrix, sent_stats)
+        #next_value_trigger_control_charts(next_sent_traffic_matrix, sent_stats)
         print "Finished displaying sent traffix matrix data..."
 
         #print "Here is the recieved traffic matrixes"
@@ -101,15 +101,15 @@ def simulate_incoming_data(rec_matrix_location, send_matrix_location):
         print rec_stats
         # now let's check if it will trigger an alarm
         next_rec_traffic_matrix = df_rec[df_rec['time'].isin([times[time_index+1]])]
-        next_value_trigger_control_charts(next_rec_traffic_matrix, rec_stats)
+        #next_value_trigger_control_charts(next_rec_traffic_matrix, rec_stats)
         print "Finished displaying rec traffix matrix data..."
 
 # this is the function to implement control channels
 # i.e. compute mean and standard deviation for each pod-pair
-# Note: direction is 1 if it is the "send matrix", else zero
+# Note: is_send is 1 if it is the "send matrix", else zero
 def control_charts(df, is_send):
     ## going to return data in the form [src_svc, dest_svc, mean, stddev]
-    data_stats = []
+    data_stats = {} #[]
     for index_service in services:
         for column_service in services:
             # NOTE: this is where I'd condition on time values, if I wanted to do
@@ -123,10 +123,10 @@ def control_charts(df, is_send):
                     print "\n", index_service, " RECEIVE FROM ", column_service
                 # this is where I could do something fancier than just mean and stddev
                 # I could do this by being fancy with data_stats (perhaps cleverly unpacking later on)
-                print relevant_traffic_values.describe()
+                #print relevant_traffic_values.describe()
                 print "Mean: ", relevant_traffic_values.mean()
                 print "Stddev: ", relevant_traffic_values.std()
-                data_stats.append([index_service, column_service, relevant_traffic_values.mean(), relevant_traffic_values.std()])
+                data_stats[index_service, column_service] = [relevant_traffic_values.mean(), relevant_traffic_values.std()]
     return data_stats
 
 def get_times(df):
