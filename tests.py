@@ -201,6 +201,9 @@ class TestPullFromPromMethods(unittest.TestCase):
         self.assertTrue(self.first_recieved_matrix.equals(new_last_mat))
 
 class TestAnalyzeMatrices(unittest.TestCase):
+    # I could test generate_time_slices but visualy seems to be a fine way to check ATM
+    # so that is not a high priority. ATM I don't think there is really anything else
+    # to check...
 
     @classmethod
     def setUpClass(cls):
