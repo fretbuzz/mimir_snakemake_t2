@@ -157,7 +157,46 @@ class TestPullFromPromMethods(unittest.TestCase):
 
     
     def test_calc_differential_matrix(self):
-        self.assertEqual('FOO', 'FOO')
+        differential_matrix, new_last_matrix = calc_differential_matrix(self.first_recieved_matrix, self.sec_recieved_matrix, 5, 0)
+        
+        #print "first recieved", self.first_recieved_matrix
+        #print "second received", self.sec_recieved_matrix
+        #print "differential", differential_matrix
+        #print "done printing stuff...."
+        #print "carts to carts-db", self.first_recieved_matrix.get_value('carts', 'carts-db')
+        
+        # First check that the actual differential matrix is fine
+        self.assertEqual(differential_matrix.get_value('carts', 'carts-db'), 416451597)
+        self.assertEqual(differential_matrix.get_value('orders', 'carts'), 35543392)
+        self.assertEqual(differential_matrix.get_value('front-end', 'catalogue'), 20654432)
+        # front-end -> user :   46098420.0- 4240428 = 41857992
+        self.assertEqual(differential_matrix.get_value('front-end', 'user'), 41857992)
+        # user <- orders : 113523156.0  - 8086627 = 105436529 
+        self.assertEqual(differential_matrix.get_value('orders', 'user'), 105436529)
+        # user <- 172.17.0.1 : 1342350.0 - 113886 = 1228464
+        self.assertEqual(differential_matrix.get_value('172.17.0.1', 'user'), 1228464)
+        # user-db <- user: 271391253.0 - 21225215 = 250166038
+        self.assertEqual(differential_matrix.get_value('user', 'user-db'), 250166038)
+        # shipping <- orders: 39151365.0  - 2840860 =
+        self.assertEqual(differential_matrix.get_value('orders', 'shipping'), 36310505)
+        # shipping <- 172.17.0.1: 1336225.0  - 118537 = 1217688
+        self.assertEqual(differential_matrix.get_value('172.17.0.1', 'shipping'), 1217688)
+        # session-db <- front-end : 93909662.0  - 7397588 = 86512074
+        self.assertEqual(differential_matrix.get_value('front-end', 'session-db'), 86512074)
+        # payment <- orders: 77145695.0  - 5491056 = 71654639
+        self.assertEqual(differential_matrix.get_value('orders', 'payment'), 71654639)
+
+        # Then check that new_last_matrix is a distinct copy of current_matrix
+        # print id(self.sec_recieved_matrix), id(new_last_matrix)
+        self.assertFalse(self.sec_recieved_matrix is new_last_matrix)
+        # But they should be equal 
+        self.assertTrue(self.sec_recieved_matrix.equals(new_last_matrix))
+
+        # finally, check that it handles the an empty last_matrix fine
+        dif_mat, new_last_mat = calc_differential_matrix(pd.DataFrame(), self.first_recieved_matrix, 10, 0)
+        #print dif_mat, new_last_mat, self.first_recieved_matrix
+        self.assertTrue(dif_mat.empty)
+        self.assertTrue(self.first_recieved_matrix.equals(new_last_mat))
 
 if __name__ == "__main__":
     unittest.main()

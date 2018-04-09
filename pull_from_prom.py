@@ -69,15 +69,15 @@ def main(actively_detect, watch_time):
 def calc_differential_matrix(last_matrix, current_matrix, start_time, absolute_start_time):
     if not last_matrix.empty:
         differential_matrix = current_matrix - last_matrix
-        last_matrix = current_matrix.copy()
+        new_last_matrix = current_matrix.copy()
         differential_matrix['time'] = start_time - absolute_start_time
-        print differential_matrix
+        #print differential_matrix
     else:
         differential_matrix = pd.DataFrame()
-        last_matrix = current_matrix.copy()
+        new_last_matrix = current_matrix.copy()
         print "First recieved_matrix pulled (so cannot compute differential yet):"
-        print differential_matrix
-    return differential_matrix, last_matrix
+        #print differential_matrix
+    return differential_matrix, new_last_matrix
 
 def pull_from_prometheus():
     r = requests.get('http://127.0.0.1:9090/')
