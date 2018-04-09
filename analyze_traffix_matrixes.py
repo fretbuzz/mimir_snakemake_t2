@@ -2,19 +2,19 @@ import pickle
 import pandas as pd
 import numpy as np
 import sys
-from Tkinter import *
+#from Tkinter import *
 import matplotlib
-matplotlib.use('TkAgg')
+#matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
-from matplotlib.backend_bases import key_press_handler
-from matplotlib.figure import Figure
+#from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
+#from matplotlib.backend_bases import key_press_handler
+#from matplotlib.figure import Figure
 
 '''
 USAGE: python analyze_traffic_matrixes.py [recieved_matrix_location] [sent_matrix_location]
 
 ## Note: if the rec/sent matrix locations aren't given, will use defaults
-
+## Other note: the import order above is important if I end up deciding to use Tkinter
 '''
 
 services = [
@@ -77,25 +77,15 @@ def simulate_incoming_data(rec_matrix_location, send_matrix_location):
     print f_to_u
     print times
     
+    plt.figure(1)
+    plt.subplot(211)
     plt.plot(times, f_to_u)
     plt.xticks(times, times)
     plt.title('front-end service to user service')
     plt.xlabel('seconds from start of experiment')
     plt.ylabel('bytes')
-    #plt.show()
+    plt.show()
     
-    #root = Tk()
-    #root.wm_title("Embedding in TK")
-    root = Tk()
-    text = Text(root)
-    text.pack(side="right")
-    text.insert(END, "HOWDY")
-    text_two = Text(root)
-    text_two.pack(side="left")
-    text_two.insert(END, "HELLO")
-    #Button(root, text="Quit", command=root.destroy()).pack()
-    root.mainloop()
-
 # DF(with lots of times) -> [DF(time A), DF(time A and B), DF(time A,B,C), etc.]
 def generate_time_slice_dfs(df):
     times = get_times(df)
