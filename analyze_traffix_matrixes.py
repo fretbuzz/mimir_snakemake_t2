@@ -2,7 +2,14 @@ import pickle
 import pandas as pd
 import numpy as np
 import sys
+from Tkinter import *
+import matplotlib
+matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
+from matplotlib.backend_bases import key_press_handler
+from matplotlib.figure import Figure
+
 '''
 USAGE: python analyze_traffic_matrixes.py [recieved_matrix_location] [sent_matrix_location]
 
@@ -68,9 +75,26 @@ def simulate_incoming_data(rec_matrix_location, send_matrix_location):
         f_to_u.append(time_slice['front-end', 'user'])
         print "u to f", time_slice['user', 'front-end']
     print f_to_u
-    plt.plot(f_to_u)
+    print times
+    
+    plt.plot(times, f_to_u)
+    plt.xticks(times, times)
+    plt.title('front-end service to user service')
+    plt.xlabel('seconds from start of experiment')
     plt.ylabel('bytes')
-    plt.show()
+    #plt.show()
+    
+    #root = Tk()
+    #root.wm_title("Embedding in TK")
+    root = Tk()
+    text = Text(root)
+    text.pack(side="right")
+    text.insert(END, "HOWDY")
+    text_two = Text(root)
+    text_two.pack(side="left")
+    text_two.insert(END, "HELLO")
+    #Button(root, text="Quit", command=root.destroy()).pack()
+    root.mainloop()
 
 # DF(with lots of times) -> [DF(time A), DF(time A and B), DF(time A,B,C), etc.]
 def generate_time_slice_dfs(df):
