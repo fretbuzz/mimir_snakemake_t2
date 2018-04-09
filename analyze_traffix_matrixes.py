@@ -83,38 +83,16 @@ def simulate_incoming_data(rec_matrix_location, send_matrix_location):
 def generate_time_slice_dfs(df):
     times = get_times(df)
     elapsed_time = []
-    print times
+    #print times
     time_slices = []
-    #elapsed_time.append(times[0]) ## TODO: find a better solution that this
     for time_index in range(0,len(times)):
-        print "starting loop...."
         time = times[time_index]
         elapsed_time.append(time)
         df_so_far = df[ df['time'].isin(elapsed_time)]
-
-        #sent_stats = control_charts(df_sent_so_far, True)
-        print elapsed_time, time_index, len(times)
-        #print sent_stats
-        print df_so_far
-        '''
-        # now let's check if it will trigger an alarm
-        #print "SUP", df_sent
-        next_sent_traffic_matrix = df_sent[ df_sent['time'].isin([times[time_index+1]]) ]
-        #next_value_trigger_control_charts(next_sent_traffic_matrix, sent_stats)
-        print "Finished displaying sent traffix matrix data..."
-        #print "Here is the recieved traffic matrixes"
-        #print df_rec
-        #print "\nDisplaying recieved traffic matrix data..."
-        rec_stats = control_charts(df_rec_so_far, False)
-        #print rec_stats
-        # now let's check if it will trigger an alarm
-        next_rec_traffic_matrix = df_rec[df_rec['time'].isin([times[time_index+1]])]
-        #next_value_trigger_control_charts(next_rec_traffic_matrix, rec_stats)
-        #print "Finished displaying rec traffix matrix data..."
-        '''
         time_slices.append(df_so_far)
-        #time = times[time_index]
-        #elapsed_time.append(time)
+        #print elapsed_time, time_index, len(times)
+        #print df_so_far
+        #next_sent_traffic_matrix = df_sent[ df_sent['time'].isin([times[time_index+1]]) ]
     return time_slices
 
 # this is the function to implement control channels
