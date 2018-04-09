@@ -55,10 +55,10 @@ def simulate_incoming_data(rec_matrix_location, send_matrix_location):
     df_rec_control_stats = []
     for df in df_sent_time_slices:
         df_sent_control_stats.append(control_charts(df, True))
-        print df
+        #print df
     for df in df_rec_time_slices:
         df_rec_control_stats.append(control_charts(df, False))
-    print df_sent_control_stats
+    #print df_sent_control_stats
     
     # check when control charts would give a warning
     # just going to use sent for now, could use reciever later
@@ -68,37 +68,23 @@ def simulate_incoming_data(rec_matrix_location, send_matrix_location):
         next_df_sent = df_sent[ df_sent['time'].isin([times[time]]) ]
         next_value_trigger_control_charts(next_df_sent, df_sent_control_stats[time])
     
-    generate_graphs(df_sent_control_stats, times)
+    svc_pair_to_sent_control_charts = generate_service_pair_arrays(df_sent_control_stats, times)
+    print svc_pair_to_sent_control_charts['front-end', 'user']
+    generate_graphs(svc_pair_to_sent_control_charts, times)
 
 # this function just generates graphs
-def generate_graphs(df_sent_control_stats, times):
-    # might want to make a function to generate graph-able arrays or something
-    f_to_u = []
-    for time_slice in df_sent_control_stats:
-        print "f to u", time_slice['front-end', 'user']
-        f_to_u.append(time_slice['front-end', 'user'])
-        print "u to f", time_slice['user', 'front-end']
-    print f_to_u
-    print times
-    
-    plt.figure(1)
+# assumes the form {['src', 'dst']: [list of time-ordered values]
+def generate_graphs(svc_pair_to_values, times):
+
     plt.subplot(211)
-    plt.plot(times, f_to_u)
+    avg_line, = plt.plot(times, [item[0] for item in svc_pair_to_values['front-end', 'user']], label='mean')
+    stddev_line, = plt.plot(times, [item[1] for item in svc_pair_to_values['front-end', 'user']], label='stddev')
     plt.xticks(times, times)
     plt.title('front-end service to user service')
     plt.xlabel('seconds from start of experiment')
     plt.ylabel('bytes')
-
-    svc_pair_to_control_charts = generate_service_pair_arrays(df_sent_control_stats, times)
-
-    plt.subplot(212)
-    plt.plot(times, svc_pair_to_control_charts['front-end', 'user'])
-    plt.xticks(times, times)
-    plt.title('front-end service to user service (but better)')
-    plt.xlabel('seconds from start of experiment')
-    plt.ylabel('bytes')
+    plt.legend(handles=[avg_line, stddev_line])
     plt.show()
-
 
 # result is {['src', 'dst'] : [list of values at the time intervals]}
 # at the moment, it is going to deal soley with the control_chart_stats stuff
