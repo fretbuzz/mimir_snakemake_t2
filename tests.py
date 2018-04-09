@@ -198,5 +198,11 @@ class TestPullFromPromMethods(unittest.TestCase):
         self.assertTrue(dif_mat.empty)
         self.assertTrue(self.first_recieved_matrix.equals(new_last_mat))
 
+class TestAnalyzeMatrices(unittest.TestCase):
+
+    def test_upper(self):
+        self.assertEqual('foo'.upper(), 'FOO')
+
+
 if __name__ == "__main__":
     unittest.main()
