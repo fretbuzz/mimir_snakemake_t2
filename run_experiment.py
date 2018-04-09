@@ -8,6 +8,7 @@ import requests
 import sys
 import os
 import signal
+import parameters
 
 def main(restart_kube, setup_sock):
     if restart_kube == "y":
@@ -206,8 +207,6 @@ def setup_sock_shop():
 
 def run_experiment():
     ## okay, this is where the experiment is actualy going to be implemented (the rest is all setup)
-    desired_exfil_time = 10 # NOTE: choosing 10 seconds purely for testing purposes (real would be longer)
-    desired_stop_time = 20 # Choosing 20 secods purely for testing purposes (real would be longer)
 
     # First, start the background traffic
     # I think this does it- need to verify though
@@ -220,11 +219,11 @@ def run_experiment():
 
     # Second, start experimental recording script
     # the plus one is so that what it pulls includes the last frame (b/c always a little over the current sec)
-    subprocess.Popen(["python", "pull_from_prom.py", "n", str( desired_stop_time + 1)])
+    subprocess.Popen(["python", "pull_from_prom.py", "n", str( parameters.desired_stop_time + 1)])
 
     # Third, wait some period of time and then start the data exfiltration
     print "Ready to exfiltrate!"
-    sleep_time = desired_exfil_time - (time.time() - start_time)
+    sleep_time = parameters.desired_exfil_time - (time.time() - start_time)
     if sleep_time > 0:
         time.sleep(sleep_time )
     subprocess.check_output(["locust", "-f", "./exfil_data.py", "--host=http://"+minikube+":32001", "--no-web", "-c", "1", "-r", "1", "-n", "3"])
@@ -233,7 +232,7 @@ def run_experiment():
     # Fourth, wait for some period of time and then stop the experiment
     # NOTE: going to leave sock shop and everything up, only stopping the experimental
     # stuff, not the stuff that the experiment is run on
-    wait_time = desired_stop_time - (time.time() - start_time)
+    wait_time = parameters.desired_stop_time - (time.time() - start_time)
     if wait_time > 0:
         time.sleep(wait_time) 
     # this stops the background traffic process
