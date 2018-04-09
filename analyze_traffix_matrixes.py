@@ -74,8 +74,9 @@ def simulate_incoming_data(rec_matrix_location, send_matrix_location):
     print times
     elapsed_time.append(times[0]) ## TODO: find a better solution that this
     for time_index in range(1,len(times)-1):
-        time = times[time_index]
-        elapsed_time.append(time)
+        #time = times[time_index]
+        #elapsed_time.append(time)
+        print "starting loop...."
         df_sent_so_far = df_sent[ df_sent['time'].isin(elapsed_time)]
         df_rec_so_far = df_rec[ df_rec['time'].isin(elapsed_time)]
         #df_sent_so_far = df_sent
@@ -85,30 +86,35 @@ def simulate_incoming_data(rec_matrix_location, send_matrix_location):
         #print df_rec_so_far
         #print "Here is the sent traffic matrixes"
         #print df_sent
-        print "\nDisplaying sent traffic matrix data..."
+        #print "\nDisplaying sent traffic matrix data..."
         sent_stats = control_charts(df_sent_so_far, True)
+        print elapsed_time
         print sent_stats
+        print df_sent_so_far
         # now let's check if it will trigger an alarm
-        print "SUP", df_sent
+        #print "SUP", df_sent
         next_sent_traffic_matrix = df_sent[ df_sent['time'].isin([times[time_index+1]]) ]
         #next_value_trigger_control_charts(next_sent_traffic_matrix, sent_stats)
         print "Finished displaying sent traffix matrix data..."
 
         #print "Here is the recieved traffic matrixes"
         #print df_rec
-        print "\nDisplaying recieved traffic matrix data..."
+        #print "\nDisplaying recieved traffic matrix data..."
         rec_stats = control_charts(df_rec_so_far, False)
-        print rec_stats
+        #print rec_stats
         # now let's check if it will trigger an alarm
         next_rec_traffic_matrix = df_rec[df_rec['time'].isin([times[time_index+1]])]
         #next_value_trigger_control_charts(next_rec_traffic_matrix, rec_stats)
-        print "Finished displaying rec traffix matrix data..."
+        #print "Finished displaying rec traffix matrix data..."
+
+        time = times[time_index]
+        elapsed_time.append(time)
 
 # this is the function to implement control channels
 # i.e. compute mean and standard deviation for each pod-pair
 # Note: is_send is 1 if it is the "send matrix", else zero
 def control_charts(df, is_send):
-    ## going to return data in the form [src_svc, dest_svc, mean, stddev]
+    ## going to return data in the form {[src_svc, dest_svc]: [mean, stddev]}
     data_stats = {} #[]
     for index_service in services:
         for column_service in services:
