@@ -88,6 +88,7 @@ class TestPullFromPromMethods(unittest.TestCase):
         # note: I know this is correct b/c I did it manually...
         correct_mapping = {'172.17.0.5' : 'carts',
                 '172.17.0.3': 'carts-db',
+                '172.17.0.5': 'carts',
                 '172.17.0.12': 'catalogue',
                 '172.17.0.6': 'catalogue-db',
                 '172.17.0.15': 'front-end',
@@ -208,15 +209,17 @@ class TestAnalyzeMatrices(unittest.TestCase):
 
     # I guess the first thing to test is control_charts
     def test_control_charts(self):
-        print self.df_sent
-        print self.df_rec
+        #print self.df_sent
+        #print self.df_rec
         sent_control_charts = control_charts(self.df_sent, True)
         rec_control_charts = control_charts(self.df_rec, False)
         # recall the output is in the form 
-        # [sending_svc, recieving_service, mean, standard_deviation]
-        print sent_control_charts
+        # {[sending_svc, recieving_service]: [mean, standard_deviation]}
+        print sent_control_charts, "\n"
         print rec_control_charts
-        self.assertEqual('foo'.upper(), 'FOO')
+        print rec_control_charts['172.17.0.1', 'catalogue']
+        ## placeholder VV for now:W
+        self.assertEqual(rec_control_charts['172.17.0.1', 'catalogue'], [380.0, 65.81793068761733])
 
 
 if __name__ == "__main__":
