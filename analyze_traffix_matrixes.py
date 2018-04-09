@@ -86,9 +86,8 @@ def generate_time_slice_dfs(df):
     print times
     time_slices = []
     #elapsed_time.append(times[0]) ## TODO: find a better solution that this
-    for time_index in range(1,len(times) -1):
+    for time_index in range(0,len(times)):
         print "starting loop...."
-        time_slices.append(df_so_far)
         time = times[time_index]
         elapsed_time.append(time)
         df_so_far = df[ df['time'].isin(elapsed_time)]
@@ -113,7 +112,7 @@ def generate_time_slice_dfs(df):
         #next_value_trigger_control_charts(next_rec_traffic_matrix, rec_stats)
         #print "Finished displaying rec traffix matrix data..."
         '''
-        #time_slices.append(df_so_far)
+        time_slices.append(df_so_far)
         #time = times[time_index]
         #elapsed_time.append(time)
     return time_slices
