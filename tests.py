@@ -1,6 +1,7 @@
 import unittest
 import json
 from pull_from_prom import *
+from analyze_traffix_matrixes import *
 
 '''
 def mathTestSuite():
@@ -200,7 +201,21 @@ class TestPullFromPromMethods(unittest.TestCase):
 
 class TestAnalyzeMatrices(unittest.TestCase):
 
-    def test_upper(self):
+    @classmethod
+    def setUpClass(cls):
+        cls.df_sent = pd.read_pickle('./tests/cumul_sent_matrix.pickle')
+        cls.df_rec = pd.read_pickle('./tests/cumul_received_matrix.pickle')
+
+    # I guess the first thing to test is control_charts
+    def test_control_charts(self):
+        print self.df_sent
+        print self.df_rec
+        sent_control_charts = control_charts(self.df_sent, True)
+        rec_control_charts = control_charts(self.df_rec, False)
+        # recall the output is in the form 
+        # [sending_svc, recieving_service, mean, standard_deviation]
+        print sent_control_charts
+        print rec_control_charts
         self.assertEqual('foo'.upper(), 'FOO')
 
 
