@@ -78,6 +78,14 @@ def simulate_incoming_data(rec_matrix_location, send_matrix_location):
     for df in df_rec_time_slices:
         df_rec_control_stats.append(control_charts(df, False))
     print df_sent_control_stats
+    
+    # check when control charts would give a warning
+    # just going to use sent for now, could use reciever later
+    times = get_times(df_sent)
+    # starts at 1, b/c everyting has time stddev 0 at time 0, so everything would trigger a warning
+    for time in range(1,len(times)-1):
+        next_df_sent = df_sent[ df_sent['time'].isin([times[time]]) ]
+        next_value_trigger_control_charts(next_df_sent, df_sent_control_stats[time])
 
 # DF(with lots of times) -> [DF(time A), DF(time A and B), DF(time A,B,C), etc.]
 def generate_time_slice_dfs(df):
@@ -92,7 +100,6 @@ def generate_time_slice_dfs(df):
         time_slices.append(df_so_far)
         #print elapsed_time, time_index, len(times)
         #print df_so_far
-        #next_sent_traffic_matrix = df_sent[ df_sent['time'].isin([times[time_index+1]]) ]
     return time_slices
 
 # this is the function to implement control channels
@@ -132,16 +139,16 @@ def get_times(df):
 # this function uses the statistics that are in data_stats to
 # see if the next value for a service pair causes 
 # an alarm via control chart anomaly detection
-def next_value_trigger_control_charts(df, data_stats):
+def next_value_trigger_control_charts(next_df, data_stats):
+    #print "entered next_value_trigger_control_charts"
+    #print df, data_stats
     ## iterate through values of data_stats
     ## get value from traffic matrix
     ## if outside of bounds, print something in capital letters
-    for entry in data_stats:
-        print entry
-        print df
-        print df.loc[ entry[0], entry[1] ]
-        next_val = df.loc[ entry[0], entry[1] ]
-        mean, stddev = entry[2], entry[3]
+    for src_dst, mean_stddev in data_stats.iteritems():
+        #print "src_dst value: ", src_dst, "mean_stddev value: ", mean_stddev
+        next_val = next_df.loc[ src_dst[0], src_dst[1] ]
+        mean, stddev = mean_stddev[0], mean_stddev[1]
         if abs(next_val - mean) > (2 * stddev):
             print "THIS IS THE POOR MAN'S EQUIVALENT OF AN ALARM!!", entry
 
