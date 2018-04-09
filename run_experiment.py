@@ -199,9 +199,9 @@ def setup_sock_shop():
 
     # okay, now it is time to register a bunch of users
     minikube = subprocess.check_output(["minikube", "ip"]).rstrip()
-    # note for now, I'm going to make 1000 customeres (i.e. 3000 / 3 = 1000), but this might need to be adjusted later
     # make c larger if it takes too long (I think 1000 users takes about 5 min currently)
-    out = subprocess.check_output(["locust", "-f", "pop_db.py", "--host=http://"+minikube+":32001", "--no-web", "-c", "15", "-r", "1", "-n", "4000"])
+    num_customer_records = parameters.number_customer_records * 4 # b/c 4 calls per record
+    out = subprocess.check_output(["locust", "-f", "pop_db.py", "--host=http://"+minikube+":32001", "--no-web", "-c", "15", "-r", "1", "-n", num_customer_records])
     #print out
     ###### TODO: verift that the above thing worked via a call to the customers api
 
@@ -212,9 +212,8 @@ def run_experiment():
     # I think this does it- need to verify though
     minikube = subprocess.check_output(["minikube", "ip"]).rstrip()
     devnull = open(os.devnull, 'wb')  # disposing of stdout manualy
-    proc = subprocess.Popen(["locust", "-f", "background_traffic.py", "--host=http://"+minikube+":32001", "--no-web", "-c", "12", "-r", "1"], stdout=devnull, stderr=devnull, preexec_fn=os.setsid)
+    proc = subprocess.Popen(["locust", "-f", "background_traffic.py", "--host=http://"+minikube+":32001", "--no-web", "-c", parameters.num_background_locusts, "-r", parameters.rate_spawn_background_locusts], stdout=devnull, stderr=devnull, preexec_fn=os.setsid)
     print os.getpgid(proc.pid)
-    #os.killpg(os.getpgid(proc.pid), signal.SIGTERM) # should kill it
     start_time = time.time()
 
     # Second, start experimental recording script
