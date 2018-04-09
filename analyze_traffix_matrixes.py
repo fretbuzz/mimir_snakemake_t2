@@ -162,7 +162,7 @@ def next_value_trigger_control_charts(next_df, data_stats):
         next_val = next_df.loc[ src_dst[0], src_dst[1] ]
         mean, stddev = mean_stddev[0], mean_stddev[1]
         if abs(next_val - mean) > (2 * stddev):
-            print "THIS IS THE POOR MAN'S EQUIVALENT OF AN ALARM!!", entry
+            print "THIS IS THE POOR MAN'S EQUIVALENT OF AN ALARM!!", src_dst, mean_stddev
 
 if __name__=="__main__":
     rec_matrix_location = './experimental_data/cumul_received_matrix.pickle'
