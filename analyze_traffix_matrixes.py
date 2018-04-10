@@ -95,6 +95,7 @@ def generate_graphs(sent_data_for_display, times):
     if len(parameters.display_sent_svc_pair) > 2:
         columns = 2
 
+    plt.figure(figsize=(8, 7.5))
     for i in range(0, len(parameters.display_sent_svc_pair)):
         plt.subplot(rows,columns,i+1)
 
@@ -118,6 +119,7 @@ def generate_graphs(sent_data_for_display, times):
         # some of the lines are obvious just by looking at it, so let's not show those
         #plt.legend(handles=[avg_line, control_chart_two_above, control_chart_two_below, control_chart_above, control_chart_below,  raw_line])
         plt.legend(handles=[avg_line, raw_line])
+    plt.subplots_adjust(hspace=.3) # too close by default
     plt.show()
 
 # df -> {[src_svc, dst_svc] : [list of values in order of time]} 

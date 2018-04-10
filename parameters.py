@@ -36,7 +36,7 @@ rec_matrix_location = "cumul_recieved_matrix_no_exfil.pickle"
 ## this is a list of the SENT svc_pair graphs that are displyed
 ## Note: this list should be 1,2, or 4 items long
 ## anything else and it won't work
-display_sent_svc_pair = [ ['front-end', 'user' ]]
+display_sent_svc_pair = [ ['front-end', 'user' ], ['front-end', 'orders' ]]
 
 ##this is a list of the RECEIVED svc_pair graphs that are displyed
 #### TODO
