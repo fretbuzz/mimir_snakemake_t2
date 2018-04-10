@@ -88,20 +88,34 @@ def generate_graphs(sent_data_for_display, times):
 
     svc_pair_to_control_charts = sent_data_for_display['control-charts'] 
     svc_pair_to_raw = sent_data_for_display['raw']
-    plt.subplot(211)
+
+    if len(parameters.display_sent_svc_pair) == 1:
+        plt.subplot(1,1,1)
+    elif len(parameters.display_sent_svc_pair) == 2:
+        plt.subplot(2,1,1)
+    elif len(parameters.display_sent_svc_pair) == 4:
+        plt.subplot(2,2,1)
+    else:
+        print "that size of parameters.display_sent_svc_pair is not supported"
+
     avg_line, = plt.plot(times, [item[0] for item in svc_pair_to_control_charts['front-end', 'user']], label='mean')
-    control_chart_above, = plt.plot(times, [item[0] + item[1] for item in svc_pair_to_control_charts['front-end', 'user']], label='mean + 1 * stddev')
-    control_chart_below, = plt.plot(times, [item[0] - item[1] for item in svc_pair_to_control_charts['front-end', 'user']], label='mean - 1 * stddev')
-    control_chart_two_above, = plt.plot(times, [item[0] + 2*item[1] for item in svc_pair_to_control_charts['front-end', 'user']], label='mean + 2 * stddev')
-    control_chart_two_below, = plt.plot(times, [item[0] - 2*item[1] for item in svc_pair_to_control_charts['front-end', 'user']], label='mean - 2 * stddev')
-    
+    avg_plus_one_stddev = [item[0] + item[1] for item in svc_pair_to_control_charts['front-end', 'user']]
+    control_chart_above, = plt.plot(times, avg_plus_one_stddev, label='mean + 1 * stddev')
+    avg_minus_one_stddev = [item[0] - item[1] for item in svc_pair_to_control_charts['front-end', 'user']]
+    control_chart_below, = plt.plot(times, avg_minus_one_stddev, label='mean - 1 * stddev')
+    avg_plus_two_stddev = [item[0] + 2 * item[1] for item in svc_pair_to_control_charts['front-end', 'user']]
+    control_chart_two_above, = plt.plot(times, avg_plus_two_stddev, label='mean + 2 * stddev')
+    avg_minus_two_stddev = [item[0] - 2 * item[1] for item in svc_pair_to_control_charts['front-end', 'user']]
+    control_chart_two_below, = plt.plot(times, avg_minus_two_stddev, label='mean - 2 * stddev')    
     raw_line, = plt.plot(times, svc_pair_to_raw['front-end', 'user'], label='sent bytes')
     graph_ready_times = [int(i) for i in times] # floats are hard to read
     plt.xticks(times, graph_ready_times)
-    plt.title('front-end service to user service')
+    plt.title('front-end service SENT TO user service')
     plt.xlabel('seconds from start of experiment')
     plt.ylabel('bytes')
-    plt.legend(handles=[avg_line, control_chart_two_above, control_chart_two_below, control_chart_above, control_chart_below,  raw_line])
+    # some of the lines are obvious just by looking at it, so let's not show those
+    #plt.legend(handles=[avg_line, control_chart_two_above, control_chart_two_below, control_chart_above, control_chart_below,  raw_line])
+    plt.legend(handles=[avg_line, raw_line])
     plt.show()
 
 # df -> {[src_svc, dst_svc] : [list of values in order of time]} 

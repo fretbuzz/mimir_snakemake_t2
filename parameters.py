@@ -33,5 +33,13 @@ sent_matrix_location = "cumul_sent_matrix_no_exfil.pickle"
 # note: './experimental_data/' will be pre-pended to this
 rec_matrix_location = "cumul_recieved_matrix_no_exfil.pickle"
 
+## this is a list of the SENT svc_pair graphs that are displyed
+## Note: this list should be 1,2, or 4 items long
+## anything else and it won't work
+display_sent_svc_pair = [ ['front-end', 'user' ]]
+
+##this is a list of the RECEIVED svc_pair graphs that are displyed
+#### TODO
+
 #### TODO: How much data to exfiltrate? Or is that already handled
 #### by the loading-the-database parameter (cause it steals all of it)a
