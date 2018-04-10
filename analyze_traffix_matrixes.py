@@ -89,11 +89,16 @@ def generate_graphs(sent_data_for_display, times):
     svc_pair_to_control_charts = sent_data_for_display['control-charts'] 
     svc_pair_to_raw = sent_data_for_display['raw']
 
-    rows,columns = 1,1
     if len(parameters.display_sent_svc_pair) > 1:
         rows = 2
+        columns = 1
+        plt.figure(figsize=(8, 7.5))
     if len(parameters.display_sent_svc_pair) > 2:
         columns = 2
+        rows = 1
+        plt.figure(figsize=(12, 7.5))
+    else:
+        plt.figure(figsize=(5, 4))
 
     plt.figure(figsize=(8, 7.5))
     for i in range(0, len(parameters.display_sent_svc_pair)):
