@@ -76,6 +76,8 @@ def simulate_incoming_data(rec_matrix_location, send_matrix_location):
     print svc_pair_to_sent_control_charts['front-end', 'user']
     generate_graphs(svc_pair_to_sent_control_charts, times)
 
+    print traffic_matrix_to_svc_pair_list(df_sent)
+
 # this function just generates graphs
 # assumes the form {['src', 'dst']: [list of time-ordered values]
 def generate_graphs(svc_pair_to_values, times):
@@ -90,6 +92,14 @@ def generate_graphs(svc_pair_to_values, times):
     plt.ylabel('bytes')
     plt.legend(handles=[avg_line, stddev_line])
     plt.show()
+
+# df -> {[src_svc, dst_svc] : [list of values in order of time]} 
+def traffic_matrix_to_svc_pair_list(df):
+    svcs_to_val_list = {}
+    for src_svc in services:
+        for dst_svc in services:
+            svcs_to_val_list[src_svc, dst_svc] = df.loc[src_svc, dst_svc].tolist()
+    return svcs_to_val_list
 
 # result is {['src', 'dst'] : [list of values at the time intervals]}
 # at the moment, it is going to deal soley with the control_chart_stats stuff
@@ -134,7 +144,6 @@ def control_charts(df, is_send):
             relevant_traffic_values = df.loc[index_service, column_service]
             #print relevant_traffic_values, type(relevant_traffic_values)
             #if relevant_traffic_values.mean() != 0:
-                #print_control_charts_process(relevant_traffic_values, is_send, index_service, column_service)
             data_stats[index_service, column_service] = [relevant_traffic_values.mean(), relevant_traffic_values.std()]
     return data_stats
 
