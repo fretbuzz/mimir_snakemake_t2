@@ -90,13 +90,18 @@ def generate_graphs(sent_data_for_display, times):
     svc_pair_to_raw = sent_data_for_display['raw']
     plt.subplot(211)
     avg_line, = plt.plot(times, [item[0] for item in svc_pair_to_control_charts['front-end', 'user']], label='mean')
-    stddev_line, = plt.plot(times, [item[1] for item in svc_pair_to_control_charts['front-end', 'user']], label='stddev')
+    control_chart_above, = plt.plot(times, [item[0] + item[1] for item in svc_pair_to_control_charts['front-end', 'user']], label='mean + 1 * stddev')
+    control_chart_below, = plt.plot(times, [item[0] - item[1] for item in svc_pair_to_control_charts['front-end', 'user']], label='mean - 1 * stddev')
+    control_chart_two_above, = plt.plot(times, [item[0] + 2*item[1] for item in svc_pair_to_control_charts['front-end', 'user']], label='mean + 2 * stddev')
+    control_chart_two_below, = plt.plot(times, [item[0] - 2*item[1] for item in svc_pair_to_control_charts['front-end', 'user']], label='mean - 2 * stddev')
+    
+    raw_line, = plt.plot(times, svc_pair_to_raw['front-end', 'user'], label='sent bytes')
     graph_ready_times = [int(i) for i in times] # floats are hard to read
     plt.xticks(times, graph_ready_times)
     plt.title('front-end service to user service')
     plt.xlabel('seconds from start of experiment')
     plt.ylabel('bytes')
-    plt.legend(handles=[avg_line, stddev_line])
+    plt.legend(handles=[avg_line, control_chart_two_above, control_chart_two_below, control_chart_above, control_chart_below,  raw_line])
     plt.show()
 
 # df -> {[src_svc, dst_svc] : [list of values in order of time]} 
