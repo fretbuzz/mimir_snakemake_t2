@@ -266,14 +266,17 @@ def detect_pca_anom(pca_explained_vars):
     first_component_explained_var_cusum = 0
     slices_so_far = 0
     for explained_var in pca_explained_vars:
+        #print explained_var
         if explained_var[0] != 0:
             slices_so_far = slices_so_far + 1
-            print first_component_explained_var_cusum, explained_var[0]
             first_component_explained_var_cusum = first_component_explained_var_cusum + explained_var[0]
-            cur_anom_score = explained_var[0] / ( (1/slices_so_far) * first_component_explained_var_cusum)
+            #print "slices so far:", slices_so_far, "cusum: ", first_component_explained_var_cusum,"explained var: ", explained_var[0]
+            denom = (1/float(slices_so_far)) * first_component_explained_var_cusum
+            #print "denom", denom
+            cur_anom_score = explained_var[0] / denom
             anom_scores.append( cur_anom_score ) 
         else:
-            print "welp, it's zero :("
+            #print "welp, it's zero :("
             anom_scores.append('invalid')
     return anom_scores
 
