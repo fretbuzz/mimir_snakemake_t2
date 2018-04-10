@@ -80,7 +80,9 @@ def simulate_incoming_data(rec_matrix_location, send_matrix_location):
 
     # okay, we are going to try PCA-based analysis here
     print "about to try PCA anom detection!"
-    pca_anom_detect(df_sent, times)
+    pca_explained_vars = pca_anom_detect(df_sent, times)
+    pca_anom_scores = detect_pca_anom(pca_explained_vars) # see function def for why I think this is nonsense
+    print pca_anom_scores
 
     svc_pair_to_sent_control_charts = generate_service_pair_arrays(df_sent_control_stats, times)
     svc_pair_to_sent_bytes = traffic_matrix_to_svc_pair_list(df_sent)
@@ -242,6 +244,7 @@ def next_value_trigger_control_charts(next_df, data_stats, time):
 # Network Traffic Anomaly Detection', even though I am 90%
 # sure that their method is nonsensical
 def pca_anom_detect(df, times):
+    explained_variances = []
     print df
     # arbitrarily choosing 5 for now, will investigate in more detail later
     n_components = 5
@@ -252,8 +255,27 @@ def pca_anom_detect(df, times):
         pca.fit(current_df)
         #pca_compon = pd.DataFrame(pca.transform(df), columns=['PCA%i' % i for i in range(n_components)], index=df.index)
         #print "pca components", pca_compon
-        print "pca explained var", pca.explained_variance_
-    #return
+        #print "pca explained var", pca.explained_variance_
+        explained_variances.append(pca.explained_variance_)
+    return explained_variances
+
+# following the method in the same work as in the above function
+# still think it is nonsense, but let's see how it does
+def detect_pca_anom(pca_explained_vars):
+    anom_scores = []
+    first_component_explained_var_cusum = 0
+    slices_so_far = 0
+    for explained_var in pca_explained_vars:
+        if explained_var[0] != 0:
+            slices_so_far = slices_so_far + 1
+            print first_component_explained_var_cusum, explained_var[0]
+            first_component_explained_var_cusum = first_component_explained_var_cusum + explained_var[0]
+            cur_anom_score = explained_var[0] / ( (1/slices_so_far) * first_component_explained_var_cusum)
+            anom_scores.append( cur_anom_score ) 
+        else:
+            print "welp, it's zero :("
+            anom_scores.append('invalid')
+    return anom_scores
 
 if __name__=="__main__":
     rec_matrix_location = './experimental_data/' + parameters.rec_matrix_location
