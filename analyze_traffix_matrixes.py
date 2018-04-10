@@ -73,18 +73,24 @@ def simulate_incoming_data(rec_matrix_location, send_matrix_location):
     print control_charts_warning
 
     svc_pair_to_sent_control_charts = generate_service_pair_arrays(df_sent_control_stats, times)
+    svc_pair_to_sent_bytes = traffic_matrix_to_svc_pair_list(df_sent)
     print svc_pair_to_sent_control_charts['front-end', 'user']
-    generate_graphs(svc_pair_to_sent_control_charts, times)
+    sent_data_for_display = {'raw':svc_pair_to_sent_bytes, 'control-charts':svc_pair_to_sent_control_charts}
+    generate_graphs(sent_data_for_display, times)
 
-    print traffic_matrix_to_svc_pair_list(df_sent)
 
 # this function just generates graphs
+# sent_data_for_display is a dictionary of data about the sent traffic matrixc
+# currently the indexes are: 'control-charts' and 'raw'. Each of these is a dicitonary
+# of the below form
 # assumes the form {['src', 'dst']: [list of time-ordered values]
-def generate_graphs(svc_pair_to_values, times):
+def generate_graphs(sent_data_for_display, times):
 
+    svc_pair_to_control_charts = sent_data_for_display['control-charts'] 
+    svc_pair_to_raw = sent_data_for_display['raw']
     plt.subplot(211)
-    avg_line, = plt.plot(times, [item[0] for item in svc_pair_to_values['front-end', 'user']], label='mean')
-    stddev_line, = plt.plot(times, [item[1] for item in svc_pair_to_values['front-end', 'user']], label='stddev')
+    avg_line, = plt.plot(times, [item[0] for item in svc_pair_to_control_charts['front-end', 'user']], label='mean')
+    stddev_line, = plt.plot(times, [item[1] for item in svc_pair_to_control_charts['front-end', 'user']], label='stddev')
     graph_ready_times = [int(i) for i in times] # floats are hard to read
     plt.xticks(times, graph_ready_times)
     plt.title('front-end service to user service')
