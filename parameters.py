@@ -12,6 +12,7 @@ rate_spawn_background_locusts = "1" # /sec
 
 # this is how long the experiment goes before data is startng to be
 # exfiltrated (could be randomized later on??)
+# note: make this number negative of you want exfiltration to NEVER happen
 desired_exfil_time = 60
 
 # this is the total length of the experiment
