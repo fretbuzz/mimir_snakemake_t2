@@ -64,10 +64,14 @@ def simulate_incoming_data(rec_matrix_location, send_matrix_location):
     # just going to use sent for now, could use reciever later
     times = get_times(df_sent)
     # starts at 1, b/c everyting has time stddev 0 at time 0, so everything would trigger a warning
+    control_charts_warning = []
     for time in range(1,len(times)-1):
         next_df_sent = df_sent[ df_sent['time'].isin([times[time]]) ]
-        next_value_trigger_control_charts(next_df_sent, df_sent_control_stats[time])
-    
+        warnings = next_value_trigger_control_charts(next_df_sent, df_sent_control_stats[time], times[time])
+        control_charts_warning.append(warnings)
+    print "these are the warnings from the control charts: "
+    print control_charts_warning
+
     svc_pair_to_sent_control_charts = generate_service_pair_arrays(df_sent_control_stats, times)
     print svc_pair_to_sent_control_charts['front-end', 'user']
     generate_graphs(svc_pair_to_sent_control_charts, times)
@@ -154,7 +158,8 @@ def get_times(df):
 # this function uses the statistics that are in data_stats to
 # see if the next value for a service pair causes 
 # an alarm via control chart anomaly detection
-def next_value_trigger_control_charts(next_df, data_stats):
+def next_value_trigger_control_charts(next_df, data_stats, time):
+    warnings_triggered = []
     ## iterate through values of data_stats
     ## get value from traffic matrix
     ## if outside of bounds, print something in capital letters
@@ -163,7 +168,9 @@ def next_value_trigger_control_charts(next_df, data_stats):
         next_val = next_df.loc[ src_dst[0], src_dst[1] ]
         mean, stddev = mean_stddev[0], mean_stddev[1]
         if abs(next_val - mean) > (2 * stddev):
-            print "THIS IS THE POOR MAN'S EQUIVALENT OF AN ALARM!!", src_dst, mean_stddev
+            #print "THIS IS THE POOR MAN'S EQUIVALENT OF AN ALARM!!", src_dst, mean_stddev
+            warnings_triggered.append([src_dst, mean_stddev, time])
+    return warnings_triggered
 
 if __name__=="__main__":
     rec_matrix_location = './experimental_data/cumul_received_matrix.pickle'
