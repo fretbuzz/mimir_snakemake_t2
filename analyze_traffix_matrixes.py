@@ -242,14 +242,16 @@ def next_value_trigger_control_charts(next_df, data_stats, time):
 # Network Traffic Anomaly Detection', even though I am 90%
 # sure that their method is nonsensical
 def pca_anom_detect(df, times):
+    print df
     # arbitrarily choosing 5 for now, will investigate in more detail later
     n_components = 5
     for time in times:
-        current_df = df[ df['time'].isin(time)]
+        #print time
+        current_df = df[ df['time'].isin([time])]
         pca = PCA(n_components=n_components)
         pca.fit(current_df)
-        pca_compon = pd.DataFrame(pca.transform(df), columns=['PCA%i' % i for i in range(n_components)], index=df.index)
-        print "pca components", pca_compon
+        #pca_compon = pd.DataFrame(pca.transform(df), columns=['PCA%i' % i for i in range(n_components)], index=df.index)
+        #print "pca components", pca_compon
         print "pca explained var", pca.explained_variance_
     #return
 
