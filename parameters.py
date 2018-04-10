@@ -13,13 +13,25 @@ rate_spawn_background_locusts = "1" # /sec
 # this is how long the experiment goes before data is startng to be
 # exfiltrated (could be randomized later on??)
 # note: make this number negative of you want exfiltration to NEVER happen
-desired_exfil_time = 60
+desired_exfil_time = -10 #60
 
 # this is the total length of the experiment
 # so the experiment keeps running for 
 # desired_stop_time - desired_exfil_time
 # after data exfiltration has taken place
-desired_stop_time = 100
+desired_stop_time = 60 #100
+
+# this is the name of the pickle file where the recieved
+# traffic matrixes will be kept
+# note: this should always end in .pickle
+# note: './experimental_data/' will be pre-pended to this
+sent_matrix_location = "cumul_sent_matrix_no_exfil.pickle"
+
+# this is the name of the pickle file where the sent
+# traffic matrixes wil be kept
+# note: this should always end in .pickle
+# note: './experimental_data/' will be pre-pended to this
+rec_matrix_location = "cumul_recieved_matrix_no_exfil.pickle"
 
 #### TODO: How much data to exfiltrate? Or is that already handled
 #### by the loading-the-database parameter (cause it steals all of it)a

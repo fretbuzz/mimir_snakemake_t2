@@ -232,15 +232,18 @@ def run_experiment():
     # NOTE: going to leave sock shop and everything up, only stopping the experimental
     # stuff, not the stuff that the experiment is run on
     wait_time = parameters.desired_stop_time - (time.time() - start_time)
+    print "wait time is: ", wait_time
     if wait_time > 0:
-        time.sleep(wait_time) 
+        time.sleep(wait_time)
+    print "just stopped waiting!"
     # this stops the background traffic process
     os.killpg(os.getpgid(proc.pid), signal.SIGTERM) # should kill it
 
     # Fifth, call the function that analyzes the traffic matrices
     # (It should output potential times that the exfiltration may have occured)
     # (which it does not do yet)
-    out = subprocess.check_output(["python", "analyze_traffix_matrixes.py"])
+    print "About to analyze traffic matrices...."
+    out = subprocess.check_output(["python", "analyze_traffix_matrixes.py", './experimental_data/' + parameters.rec_matrix_location, './experimental_data/' + parameters.sent_matrix_location])
     print out
 
     # Sixth, what is the FP / FN / TP / TN ??

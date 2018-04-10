@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 #from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
 #from matplotlib.backend_bases import key_press_handler
 #from matplotlib.figure import Figure
-
+import parameters
 '''
 USAGE: python analyze_traffic_matrixes.py [recieved_matrix_location] [sent_matrix_location]
 
@@ -47,8 +47,8 @@ def simulate_incoming_data(rec_matrix_location, send_matrix_location):
     print "hello world"
     df_sent = pd.read_pickle(send_matrix_location)
     df_rec = pd.read_pickle(rec_matrix_location)
-    #print "df_sent:", df_sent
-    #print "df_rec:", df_rec
+    print "df_sent:", df_sent
+    print "df_rec:", df_rec
     df_sent_time_slices = generate_time_slice_dfs(df_sent)
     df_rec_time_slices = generate_time_slice_dfs(df_rec)
     df_sent_control_stats = []
@@ -173,8 +173,8 @@ def next_value_trigger_control_charts(next_df, data_stats, time):
     return warnings_triggered
 
 if __name__=="__main__":
-    rec_matrix_location = './experimental_data/cumul_received_matrix.pickle'
-    send_matrix_location = './experimental_data/cumul_sent_matrix.pickle'
+    rec_matrix_location = './experimental_data/' + parameters.rec_matrix_location
+    send_matrix_location = './experimental_data/' + parameters.sent_matrix_location
     if len(sys.argv) > 2:
         rec_matrix_location = sys.argv[1]
         send_matrix_location = sys.argv[2]
