@@ -64,19 +64,30 @@ def simulate_incoming_data(rec_matrix_location, send_matrix_location):
     # just going to use sent for now, could use reciever later
     times = get_times(df_sent)
     # starts at 1, b/c everyting has time stddev 0 at time 0, so everything would trigger a warning
-    control_charts_warning = []
+    control_charts_warning_sent = []
+    control_charts_warning_rec = []
     for time in range(1,len(times)-1):
-        next_df_sent = df_sent[ df_sent['time'].isin([times[time]]) ]
-        warnings = next_value_trigger_control_charts(next_df_sent, df_sent_control_stats[time], times[time])
-        control_charts_warning.append(warnings)
-    print "these are the warnings from the control charts: "
-    print control_charts_warning
+        next_df_sent = df_sent[ df_sent['time'].isin([times[time]])]
+        next_df_rec = df_rec[ df_rec['time'].isin([times[time]])]
+        warnings_sent = next_value_trigger_control_charts(next_df_sent, df_sent_control_stats[time], times[time])
+        warnings_rec = next_value_trigger_control_charts(next_df_rec, df_rec_control_stats[time], times[time])
+        control_charts_warning_sent.append(warnings_sent)
+        control_charts_warning_rec.append(warnings_rec)
+    print "these are the warnings from the control charts: (for data that is sent): "
+    print control_charts_warning_sent
 
     svc_pair_to_sent_control_charts = generate_service_pair_arrays(df_sent_control_stats, times)
     svc_pair_to_sent_bytes = traffic_matrix_to_svc_pair_list(df_sent)
     print svc_pair_to_sent_control_charts['front-end', 'user']
-    sent_data_for_display = {'raw':svc_pair_to_sent_bytes, 'control-charts':svc_pair_to_sent_control_charts}
-    generate_graphs(sent_data_for_display, times)
+    sent_data_for_display = {'raw': svc_pair_to_sent_bytes, 'control-charts':svc_pair_to_sent_control_charts}
+    generate_graphs(sent_data_for_display, times, parameters.display_sent_svc_pair, True)
+
+    svc_pair_to_rec_control_charts = generate_service_pair_arrays(df_rec_control_stats, times)
+    svc_pair_to_rec_bytes = traffic_matrix_to_svc_pair_list(df_rec)
+    #print svc_pair_to_rec_control_charts['front-end', 'user']
+    rec_data_for_display = {'raw': svc_pair_to_rec_bytes, 'control-charts':svc_pair_to_rec_control_charts}
+    generate_graphs(rec_data_for_display, times, parameters.display_rec_svc_pair, False)
+
 
 
 # this function just generates graphs
@@ -84,20 +95,19 @@ def simulate_incoming_data(rec_matrix_location, send_matrix_location):
 # currently the indexes are: 'control-charts' and 'raw'. Each of these is a dicitonary
 # of the below form
 # assumes the form {['src', 'dst']: [list of time-ordered values]
-def generate_graphs(sent_data_for_display, times):
+def generate_graphs(data_for_display, times, src_pairs_to_display, is_sent):
 
-    svc_pair_to_control_charts = sent_data_for_display['control-charts'] 
-    svc_pair_to_raw = sent_data_for_display['raw']
+    svc_pair_to_control_charts = data_for_display['control-charts'] 
+    svc_pair_to_raw = data_for_display['raw']
 
-
-    if len(parameters.display_sent_svc_pair) == 1:
+    if len(src_pairs_to_display) == 1:
         columns,rows = 1,1
         plt.figure(figsize=(5, 4))
-    elif len(parameters.display_sent_svc_pair) == 2:
+    elif len(src_pairs_to_display) == 2:
         rows = 2
         columns = 1
         plt.figure(figsize=(8, 7.5))
-    elif len(parameters.display_sent_svc_pair) == 4:
+    elif len(src_pairs_to_display) == 4:
         columns = 2
         rows = 2
         plt.figure(figsize=(12, 7.5))
@@ -107,8 +117,8 @@ def generate_graphs(sent_data_for_display, times):
     for i in range(0, len(parameters.display_sent_svc_pair)):
         plt.subplot(rows,columns,i+1)
 
-        cur_src_svc = parameters.display_sent_svc_pair[i][0]
-        cur_dst_svc = parameters.display_sent_svc_pair[i][1]
+        cur_src_svc = src_pairs_to_display[i][0]
+        cur_dst_svc = src_pairs_to_display[i][1]
         avg_line, = plt.plot(times, [item[0] for item in svc_pair_to_control_charts[cur_src_svc, cur_dst_svc]], label='mean')
         avg_plus_one_stddev = [item[0] + item[1] for item in svc_pair_to_control_charts[cur_src_svc, cur_dst_svc]]
         control_chart_above, = plt.plot(times, avg_plus_one_stddev, label='mean + 1 * stddev')
@@ -121,7 +131,10 @@ def generate_graphs(sent_data_for_display, times):
         raw_line, = plt.plot(times, svc_pair_to_raw['front-end', 'user'], label='sent bytes')
         graph_ready_times = [int(i) for i in times] # floats are hard to read
         plt.xticks(times, graph_ready_times)
-        plt.title(cur_src_svc + ' SENT TO ' + cur_dst_svc)
+        if is_sent:
+            plt.title(cur_src_svc + ' SENT TO ' + cur_dst_svc)
+        else:
+            plt.title(cur_src_svc + ' RECIEVED FROM ' + cur_dst_svc)
         plt.xlabel('seconds from start of experiment')
         plt.ylabel('bytes')
         # some of the lines are obvious just by looking at it, so let's not show those

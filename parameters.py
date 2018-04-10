@@ -39,7 +39,7 @@ rec_matrix_location = "cumul_recieved_matrix_no_exfil.pickle"
 display_sent_svc_pair = [ ['front-end', 'user' ], ['front-end', 'orders' ], ['user', 'user-db'], ['front-end', 'carts']]
 
 ##this is a list of the RECEIVED svc_pair graphs that are displyed
-#### TODO
+display_rec_svc_pair = [ ['front-end', 'user' ], ['front-end', 'orders' ], ['user', 'user-db'], ['front-end', 'carts']]
 
 #### TODO: How much data to exfiltrate? Or is that already handled
 #### by the loading-the-database parameter (cause it steals all of it)a
