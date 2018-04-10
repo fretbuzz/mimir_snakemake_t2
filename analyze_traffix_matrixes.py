@@ -80,7 +80,7 @@ def simulate_incoming_data(rec_matrix_location, send_matrix_location):
 
     # okay, we are going to try PCA-based analysis here
     print "about to try PCA anom detection!"
-    pca_anom_detect(df_sent)
+    pca_anom_detect(df_sent, times)
 
     svc_pair_to_sent_control_charts = generate_service_pair_arrays(df_sent_control_stats, times)
     svc_pair_to_sent_bytes = traffic_matrix_to_svc_pair_list(df_sent)
@@ -239,17 +239,19 @@ def next_value_trigger_control_charts(next_df, data_stats, time):
 
 # this function will determine how well PCA can fit the data
 # okay, I'm going to follow the method from Ding's 'PCA-based
-# Network Traffic Anomaly Detection', even though I think it may
-# or may not be nonsense
-def pca_anom_detect(df):
+# Network Traffic Anomaly Detection', even though I am 90%
+# sure that their method is nonsensical
+def pca_anom_detect(df, times):
     # arbitrarily choosing 5 for now, will investigate in more detail later
     n_components = 5
-    pca = PCA(n_components=n_components)
-    pca.fit(df)
-    pca_compon = pd.DataFrame(pca.transform(df), columns=['PCA%i' % i for i in range(n_components)], index=df.index)
-    print "pca components", pca_compon
-    print "pca explained var", pca.explained_variance_
-    return
+    for time in times:
+        current_df = df[ df['time'].isin(time)]
+        pca = PCA(n_components=n_components)
+        pca.fit(current_df)
+        pca_compon = pd.DataFrame(pca.transform(df), columns=['PCA%i' % i for i in range(n_components)], index=df.index)
+        print "pca components", pca_compon
+        print "pca explained var", pca.explained_variance_
+    #return
 
 if __name__=="__main__":
     rec_matrix_location = './experimental_data/' + parameters.rec_matrix_location
