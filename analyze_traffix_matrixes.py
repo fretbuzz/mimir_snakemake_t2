@@ -89,18 +89,21 @@ def generate_graphs(sent_data_for_display, times):
     svc_pair_to_control_charts = sent_data_for_display['control-charts'] 
     svc_pair_to_raw = sent_data_for_display['raw']
 
-    if len(parameters.display_sent_svc_pair) > 1:
+
+    if len(parameters.display_sent_svc_pair) == 1:
+        columns,rows = 1,1
+        plt.figure(figsize=(5, 4))
+    elif len(parameters.display_sent_svc_pair) == 2:
         rows = 2
         columns = 1
         plt.figure(figsize=(8, 7.5))
-    if len(parameters.display_sent_svc_pair) > 2:
+    elif len(parameters.display_sent_svc_pair) == 4:
         columns = 2
-        rows = 1
+        rows = 2
         plt.figure(figsize=(12, 7.5))
     else:
-        plt.figure(figsize=(5, 4))
+        print "about to crash because invalid size of list of objects to graph"    
 
-    plt.figure(figsize=(8, 7.5))
     for i in range(0, len(parameters.display_sent_svc_pair)):
         plt.subplot(rows,columns,i+1)
 
@@ -118,7 +121,7 @@ def generate_graphs(sent_data_for_display, times):
         raw_line, = plt.plot(times, svc_pair_to_raw['front-end', 'user'], label='sent bytes')
         graph_ready_times = [int(i) for i in times] # floats are hard to read
         plt.xticks(times, graph_ready_times)
-        plt.title('front-end service SENT TO user service')
+        plt.title(cur_src_svc + ' SENT TO ' + cur_dst_svc)
         plt.xlabel('seconds from start of experiment')
         plt.ylabel('bytes')
         # some of the lines are obvious just by looking at it, so let's not show those
