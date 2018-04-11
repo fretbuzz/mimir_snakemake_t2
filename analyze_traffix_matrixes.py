@@ -142,10 +142,10 @@ def generate_graphs(data_for_display, times, src_pairs_to_display, is_sent):
         graph_ready_times = [int(i) for i in times] # floats are hard to read
         plt.xticks(times, graph_ready_times)
         if is_sent:
-            plt.title(cur_src_svc + ' SENT TO ' + cur_dst_svc)
+            plt.title(cur_dst_svc + ' SENT TO ' + cur_src_svc) # not a typo, see Github issue #12
         else:
-            plt.title(cur_src_svc + ' RECIEVED FROM ' + cur_dst_svc)
-        plt.xlabel('seconds from start of experiment')
+            plt.title(cur_dst_svc + ' RECIEVED FROM ' + cur_src_svc) # ^^
+        plt.xlabel('seconds from start of experiment') 
         plt.ylabel('bytes')
         # some of the lines are obvious just by looking at it, so let's not show those
         #plt.legend(handles=[avg_line, control_chart_two_above, control_chart_two_below, control_chart_above, control_chart_below,  raw_line])
