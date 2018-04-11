@@ -2,6 +2,7 @@
 USAGE: python run_experiment.py [y/n restart kubernetes cluster] [y/n setup sock shop application]
 note: need to start docker daemon beforehand
 '''
+
 import subprocess
 import time
 import requests
@@ -54,7 +55,18 @@ def restart_minikube():
     print "Starting to install Istio"
     # get istio folder
     istio_folder = get_istio_folder()
-    out = subprocess.check_output(["kubectl","apply", "-f", istio_folder + "/install/kubernetes/istio.yaml"])
+    print istio_folder
+    out = ""
+    #try:
+    # I am going to do kinda a lazy fix here. If this gives additional problems see Github issue #29i
+    try:
+        out = subprocess.check_output(["kubectl","apply", "-f", istio_folder + "/install/kubernetes/istio.yaml"])
+    except:
+        print "That istio race condition is happening. Need to try install istio a second time!"
+        time.sleep(60)
+        out = subprocess.check_output(["kubectl","apply", "-f", istio_folder + "/install/kubernetes/istio.yaml"])
+        ## that file doesn't actually exist
+        #out = subprocess.check_output(["kubectl", "apply", "-f", istio_folder + "/install/kubernetes/istio-customresources.yaml"])
     print out
     print "Completed installing Istio"
 
@@ -62,6 +74,7 @@ def restart_minikube():
 def setup_sock_shop():
     # then deploy application
     print "Starting to deploy sock shop..."
+    istio_folder = get_istio_folder()
     out = subprocess.check_output(["Bash", "start_with_istio.sh", istio_folder])
     print out
     print "Completed installing sock shop..."
@@ -200,8 +213,8 @@ def setup_sock_shop():
     # okay, now it is time to register a bunch of users
     minikube = subprocess.check_output(["minikube", "ip"]).rstrip()
     # make c larger if it takes too long (I think 1000 users takes about 5 min currently)
-    num_customer_records = parameters.number_customer_records * 4 # b/c 4 calls per record
-    out = subprocess.check_output(["locust", "-f", "pop_db.py", "--host=http://"+minikube+":32001", "--no-web", "-c", "15", "-r", "1", "-n", num_customer_records])
+    #num_customer_records = parameters.number_customer_records * 4 # b/c 4 calls per record
+    out = subprocess.check_output(["locust", "-f", "pop_db.py", "--host=http://"+minikube+":32001", "--no-web", "-c", "15", "-r", "1", "-n", parameters.number_customer_records])
     #print out
     ###### TODO: verift that the above thing worked via a call to the customers api
 

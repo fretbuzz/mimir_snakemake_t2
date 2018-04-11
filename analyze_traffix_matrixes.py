@@ -127,6 +127,8 @@ def generate_graphs(data_for_display, times, src_pairs_to_display, is_sent):
 
         cur_src_svc = src_pairs_to_display[i][0]
         cur_dst_svc = src_pairs_to_display[i][1]
+        print cur_src_svc, cur_dst_svc, svc_pair_to_control_charts[cur_src_svc, cur_dst_svc]
+        print cur_src_svc, cur_dst_svc, svc_pair_to_raw[cur_src_svc, cur_dst_svc]
         avg_line, = plt.plot(times, [item[0] for item in svc_pair_to_control_charts[cur_src_svc, cur_dst_svc]], label='mean')
         avg_plus_one_stddev = [item[0] + item[1] for item in svc_pair_to_control_charts[cur_src_svc, cur_dst_svc]]
         control_chart_above, = plt.plot(times, avg_plus_one_stddev, label='mean + 1 * stddev')
@@ -136,7 +138,7 @@ def generate_graphs(data_for_display, times, src_pairs_to_display, is_sent):
         control_chart_two_above, = plt.plot(times, avg_plus_two_stddev, label='mean + 2 * stddev')
         avg_minus_two_stddev = [item[0] - 2 * item[1] for item in svc_pair_to_control_charts[cur_src_svc, cur_dst_svc]]
         control_chart_two_below, = plt.plot(times, avg_minus_two_stddev, label='mean - 2 * stddev')    
-        raw_line, = plt.plot(times, svc_pair_to_raw['front-end', 'user'], label='sent bytes')
+        raw_line, = plt.plot(times, svc_pair_to_raw[cur_src_svc, cur_dst_svc], label='sent bytes')
         graph_ready_times = [int(i) for i in times] # floats are hard to read
         plt.xticks(times, graph_ready_times)
         if is_sent:
