@@ -217,7 +217,7 @@ def setup_sock_shop():
     #num_customer_records = parameters.number_customer_records * 4 # b/c 4 calls per record
     out = subprocess.check_output(["locust", "-f", "pop_db.py", "--host=http://"+minikube+":32001", "--no-web", "-c", "15", "-r", "1", "-n", parameters.number_full_customer_records])
     out = subprocess.check_output(["locust", "-f", "pop_db_reg_and_andr.py", "--host=http://"+minikube+":32001", "--no-web", "-c", "15", "-r", "1", "-n", parameters.number_half_customer_records])
-    out = subprocess.check_output(["locust", "-f", "pop_db_reg.py", "--host=http://"+minikube+":32001", "--no-web", "-c", "15", "-r", "1", "-n", parameters.number_quarer_customer_records])
+    out = subprocess.check_output(["locust", "-f", "pop_db_reg.py", "--host=http://"+minikube+":32001", "--no-web", "-c", "15", "-r", "1", "-n", parameters.number_quarter_customer_records])
     #print out
     ###### TODO: verift that the above thing worked via a call to the customers api
 
