@@ -42,5 +42,9 @@ display_sent_svc_pair = [ ['front-end', 'user' ], ['front-end', 'orders' ], ['us
 ##this is a list of the RECEIVED svc_pair graphs that are displyed
 display_rec_svc_pair = [ ['front-end', 'user' ], ['front-end', 'orders' ], ['user', 'user-db'], ['front-end', 'carts']]
 
+## amt of data to exfiltrate (in one 5 sec segment)
+## note: this is given in byes
+amt_to_exfil = 260000
+
 #### TODO: How much data to exfiltrate? Or is that already handled
 #### by the loading-the-database parameter (cause it steals all of it)a
