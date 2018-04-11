@@ -2,6 +2,7 @@
 USAGE: python run_experiment.py [y/n restart kubernetes cluster] [y/n setup sock shop application]
 note: need to start docker daemon beforehand
 '''
+
 import subprocess
 import time
 import requests
