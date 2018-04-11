@@ -1,6 +1,7 @@
 # this is the number of customer records that the sock shop's 
 # database is loaded with during the setup phase
-number_customer_records = 1000
+# note: multiply this number by number of desired records by 4
+number_customer_records = "4000"
 
 # number of background traffic locusts (i.e. generate the background
 # traffic)
