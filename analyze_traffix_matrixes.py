@@ -96,6 +96,7 @@ def simulate_incoming_data(rec_matrix_location, send_matrix_location):
     rec_data_for_display = {'raw': svc_pair_to_rec_bytes, 'control-charts':svc_pair_to_rec_control_charts}
     generate_graphs(rec_data_for_display, times, parameters.display_rec_svc_pair, False)
 
+    plt.show()
 
 
 # this function just generates graphs
@@ -151,7 +152,7 @@ def generate_graphs(data_for_display, times, src_pairs_to_display, is_sent):
         #plt.legend(handles=[avg_line, control_chart_two_above, control_chart_two_below, control_chart_above, control_chart_below,  raw_line])
         plt.legend(handles=[avg_line, raw_line])
     plt.subplots_adjust(hspace=.3) # too close by default
-    plt.show()
+    #plt.show()
 
 # df -> {[src_svc, dst_svc] : [list of values in order of time]} 
 def traffic_matrix_to_svc_pair_list(df):
