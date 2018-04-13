@@ -24,11 +24,6 @@ num_background_locusts = "12"
 # rate of spawning of background traffic locusts
 rate_spawn_background_locusts = "1" # /sec
 
-# this is how long the experiment goes before data is startng to be
-# exfiltrated (could be randomized later on??)
-# note: make this number negative of you want exfiltration to NEVER happen
-desired_exfil_time = 90 #60
-
 # this is the total length of the experiment
 # so the experiment keeps running for 
 # desired_stop_time - desired_exfil_time
@@ -55,13 +50,10 @@ display_sent_svc_pair = [ ['front-end', 'user' ], ['front-end', 'orders' ], ['us
 ##this is a list of the RECEIVED svc_pair graphs that are displyed
 display_rec_svc_pair = [ ['front-end', 'user' ], ['front-end', 'orders' ], ['user', 'user-db'], ['front-end', 'carts']]
 
-## amt of data to exfiltrate (in one 5 sec segment)
-## note: this is given in byes
-## note: this should probably be close to some linear combo of the big API calls (see exfil_data_V2)
-amt_to_exfil = 100000
-
 ## The 'next-gen' in data exfiltration.
-## keys are times, values are the bytes to exfiltrate
+## keys are times, values are the bytes to exfiltrate (in one 5 sec segment)
+## note: the bytes should probably be close to some linear combo of the big API calls (see exfil_data_V2)
+## note: leave empty if you want never
 exfils = {40 : 50000, 90 : 100000}
 
 #### TODO: How much data to exfiltrate? Or is that already handled
