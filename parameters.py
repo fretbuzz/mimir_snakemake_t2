@@ -6,15 +6,15 @@
 # CC information (so that they can be used to buy things in background
 # simulation)
 # note: multiply this number by number of desired records by 4
-number_full_customer_records = "664"
+number_full_customer_records = "620"
 
 # these users will be registered and given an address
 # note: multiply the number of desired records by 3
-number_half_customer_records = "999"
+number_half_customer_records = "900"
 
 # these users will just be registed
 # note: multiple the number of desired records by 1 (not a type)
-number_quarter_customer_records = "1500"
+number_quarter_customer_records = "1000"
 
 # number of background traffic locusts (i.e. generate the background
 # traffic)
@@ -57,7 +57,8 @@ display_rec_svc_pair = [ ['front-end', 'user' ], ['front-end', 'orders' ], ['use
 
 ## amt of data to exfiltrate (in one 5 sec segment)
 ## note: this is given in byes
-amt_to_exfil = 40000
+## note: this should probably be close to some linear combo of the big API calls (see exfil_data_V2)
+amt_to_exfil = 50000
 
 #### TODO: How much data to exfiltrate? Or is that already handled
 #### by the loading-the-database parameter (cause it steals all of it)a

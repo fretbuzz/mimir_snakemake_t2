@@ -10,6 +10,7 @@ import sys
 import os
 import signal
 import parameters
+from exfil_data_v2 import how_much_data
 
 def main(restart_kube, setup_sock):
     if restart_kube == "y":
@@ -223,26 +224,36 @@ def setup_sock_shop():
 
 def run_experiment():
     ## okay, this is where the experiment is actualy going to be implemented (the rest is all setup)
+    synch_with_prom()
+    ## 0th step: determine how much data each of the data exfiltration calls gets so we can plan the exfiltration
+    ## step accordingly
+    minikube = subprocess.check_output(["minikube", "ip"]).rstrip()
+    amt_custs, amt_addr, amt_cards = how_much_data("http://"+minikube+":32001")
+    print amt_custs, amt_addr, amt_cards
+    time.sleep(5) # want to make sure that we're not going to mess with the recorded traffic vals
 
     # First, start the background traffic
     # I think this does it- need to verify though
-    minikube = subprocess.check_output(["minikube", "ip"]).rstrip()
     devnull = open(os.devnull, 'wb')  # disposing of stdout manualy
     proc = subprocess.Popen(["locust", "-f", "background_traffic.py", "--host=http://"+minikube+":32001", "--no-web", "-c", parameters.num_background_locusts, "-r", parameters.rate_spawn_background_locusts], stdout=devnull, stderr=devnull, preexec_fn=os.setsid)
     print os.getpgid(proc.pid)
-    start_time = time.time()
+    #start_time = time.time() # I think it needs to be down below so the graphs make more sense
 
-    # Second, start experimental recording script
+    # Second, sync with prometheus scraping (see function below for explanation) and then start experimental recording script
+    
     # the plus one is so that what it pulls includes the last frame (b/c always a little over the current sec)
     subprocess.Popen(["python", "pull_from_prom.py", "n", str( parameters.desired_stop_time + 1)])
+    start_time = time.time()
 
     # Third, wait some period of time and then start the data exfiltration
     print "Ready to exfiltrate!"
     sleep_time = parameters.desired_exfil_time - (time.time() - start_time)
     if sleep_time > 0:
         time.sleep(sleep_time )
-        subprocess.check_output(["locust", "-f", "./exfil_data.py", "--host=http://"+minikube+":32001", "--no-web", "-c", "1", "-r", "1", "-n", "3"])
-        print "Data exfiltrated"
+        # going to use the updated version instead
+        #subprocess.check_output(["locust", "-f", "./exfil_data.py", "--host=http://"+minikube+":32001", "--no-web", "-c", "1", "-r", "1", "-n", "3"])
+        out = subprocess.check_output(["python", "exfil_data_v2.py", "http://"+minikube+":32001", str(amt_custs), str(amt_addr), str(amt_cards)])
+        print "Data exfiltrated", out
 
     # Fourth, wait for some period of time and then stop the experiment
     # NOTE: going to leave sock shop and everything up, only stopping the experimental
@@ -313,6 +324,43 @@ def get_istio_folder():
     for line in out.split('\n'):
         if "istio-" in line:
             return line
+
+# prometheus scrapes from mixer every 5 seconds
+# we want to exfiltrate data right after
+# that pull, to maximize our chances of doing
+# it all within a single 5 sec time interval
+def synch_with_prom():
+    # first, we are going to pull from prometheus to extract the server's internal timestamp
+    prometheus_response = requests.get('http://localhost:9090/api/v1/query?query=istio_mongo_received_bytes')
+    #for thing in prometheus_response.json()['data']['result']:
+    #    print thing['value'][0], thing['value'][1]
+    time_stamp = float(prometheus_response.json()['data']['result'][1]['value'][0])
+    print "server time: ", time_stamp
+
+    # second, we are going to get a five second size of the server's values, so we can see when it scrapes
+    prometheus_range = requests.get('http://localhost:9090/api/v1/query_range?query=istio_mongo_sent_bytes&start=' + str( time_stamp - 25) + '&end=' + str(time_stamp) + '&step=1s')
+    one_metric =  prometheus_range.json()['data']['result'][1]
+    #print one_metric
+    #print one_metric[u'values'], type(one_metric[u'values'])
+    #print list(reversed(one_metric[u'values']))
+    vals_in_reverse_time = list(reversed(one_metric[u'values']))
+    #print vals_in_reverse_time
+    current_val = vals_in_reverse_time[0][1]
+    #print current_val
+    time_since_change = 0
+    for i in range(0, len(vals_in_reverse_time)):
+        #print vals_in_reverse_time[i][0], vals_in_reverse_time[i][1], i
+        if vals_in_reverse_time[i][1] != current_val:
+            time_since_change = i
+            break
+    #print time_since_change
+
+    # third, we are going to sleep for the (number of seconds until next prom scrape)
+    time_to_sync = 5 - time_since_change
+    if time_to_sync > 5 or time_to_sync < 0:
+        print "SOMETHING WENT HORRIBLY WRONG IN SYNC FUNCTION"
+    print "time to sync: ", time_to_sync
+    time.sleep(time_to_sync)
 
 if __name__=="__main__":
     restart_kube = "n"
