@@ -12,12 +12,15 @@ import signal
 import parameters
 from exfil_data_v2 import how_much_data
 
-def main(restart_kube, setup_sock):
+def main(restart_kube, setup_sock, multiple_experiments):
     if restart_kube == "y":
         restart_minikube()
     if setup_sock == "y":
         setup_sock_shop()
-    run_experiment()
+    if multiple_experiments == "n":
+      run_experiment()
+    else:
+        print "run multiple experiments here"
 
 def restart_minikube():
     # no point checking, just trying stopping + deleteing
@@ -386,6 +389,7 @@ def synch_with_prom():
 if __name__=="__main__":
     restart_kube = "n"
     setup_sock = "n"
+    multiple_experiments = "n"
 #    print sys.argv[1]
     if len(sys.argv) > 1:
         print "triggered"
@@ -395,4 +399,7 @@ if __name__=="__main__":
         print "triggered num two"
         print sys.argv
         setup_sock = sys.argv[2] 
-    main(restart_kube, setup_sock)
+    if len(sys.argv) > 3:
+        print "triggered num three"
+        multiple_experiments = sys.argv[3]
+    main(restart_kube, setup_sock, multiple_experiments)

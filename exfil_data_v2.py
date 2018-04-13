@@ -4,16 +4,11 @@ import requests
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from requests_futures.sessions import FuturesSession
-import parameters
 
 '''
 USAGE: python exfil_data_v2.py [addr of sock shop]
 note: 
 '''
-## so it looks like the next step is to have this function be able to run
-## different sized exfiltrations at different times (prob given a dictionary)
-## easy enough but need to make sure that it is passed the time when it is called
-## in the main script
 
 # amt is the amt to exfiltrate within one 5 sec period.
 def exfiltrate_data():
