@@ -224,7 +224,6 @@ def setup_sock_shop():
 
 def run_experiment():
     ## okay, this is where the experiment is actualy going to be implemented (the rest is all setup)
-    synch_with_prom()
     ## 0th step: determine how much data each of the data exfiltration calls gets so we can plan the exfiltration
     ## step accordingly
     minikube = subprocess.check_output(["minikube", "ip"]).rstrip()
@@ -233,7 +232,7 @@ def run_experiment():
     time.sleep(5) # want to make sure that we're not going to mess with the recorded traffic vals
 
     # First, start the background traffic
-    # I think this does it- need to verify though
+    synch_with_prom()
     devnull = open(os.devnull, 'wb')  # disposing of stdout manualy
     proc = subprocess.Popen(["locust", "-f", "background_traffic.py", "--host=http://"+minikube+":32001", "--no-web", "-c", parameters.num_background_locusts, "-r", parameters.rate_spawn_background_locusts], stdout=devnull, stderr=devnull, preexec_fn=os.setsid)
     print os.getpgid(proc.pid)
@@ -246,16 +245,29 @@ def run_experiment():
     start_time = time.time()
 
     # Third, wait some period of time and then start the data exfiltration
-    #### TOOD: make it take a dictionary so we can do multiple exfiltrations in a single exp
+    # this has been modified to support multiple exfiltrations during a single time period
     print "Ready to exfiltrate!"
-    #exfil_times_left = cutoff = [time for time in parameters.exfils.iterkeys() if int(time) >= 70] 
-    sleep_time = parameters.desired_exfil_time - (time.time() - start_time)
-    if sleep_time > 0:
-        time.sleep(sleep_time )
-        # going to use the updated version instead
-        #subprocess.check_output(["locust", "-f", "./exfil_data.py", "--host=http://"+minikube+":32001", "--no-web", "-c", "1", "-r", "1", "-n", "3"])
-        out = subprocess.check_output(["python", "exfil_data_v2.py", "http://"+minikube+":32001", str(parameters.amt_to_exfil), str(amt_custs), str(amt_addr), str(amt_cards)])
-        print "Data exfiltrated", out
+    exfil_times_left = [c_time for c_time in parameters.exfils.iterkeys()]
+    print "exfil_times_left", exfil_times_left
+    while exfil_times_left:
+        cur_time = time.time() - start_time
+        for i in exfil_times_left:
+            print i, cur_time, i<cur_time
+            if i < cur_time:
+                exfil_times_left.remove(i)
+        exfil_times_left.sort()
+        print "exfil_times_left", exfil_times_left, "cur time: ", cur_time
+        if not exfil_times_left:
+            break
+        next_exfil = int(exfil_times_left[0])
+        sleep_time = next_exfil - time.time()
+        print "next exfil at: ", next_exfil, "will sleep for: ", sleep_time
+        if sleep_time > 0:
+            time.sleep(sleep_time)
+            # going to use the updated version instead
+            out = subprocess.check_output(["python", "exfil_data_v2.py", "http://"+minikube+":32001", str(parameters.exfils[next_exfil]), str(amt_custs), str(amt_addr), str(amt_cards)])
+            print "Data exfiltrated", out
+    print "all data exfiltration complete"
 
     # Fourth, wait for some period of time and then stop the experiment
     # NOTE: going to leave sock shop and everything up, only stopping the experimental
