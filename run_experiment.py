@@ -246,13 +246,15 @@ def run_experiment():
     start_time = time.time()
 
     # Third, wait some period of time and then start the data exfiltration
+    #### TOOD: make it take a dictionary so we can do multiple exfiltrations in a single exp
     print "Ready to exfiltrate!"
+    #exfil_times_left = cutoff = [time for time in parameters.exfils.iterkeys() if int(time) >= 70] 
     sleep_time = parameters.desired_exfil_time - (time.time() - start_time)
     if sleep_time > 0:
         time.sleep(sleep_time )
         # going to use the updated version instead
         #subprocess.check_output(["locust", "-f", "./exfil_data.py", "--host=http://"+minikube+":32001", "--no-web", "-c", "1", "-r", "1", "-n", "3"])
-        out = subprocess.check_output(["python", "exfil_data_v2.py", "http://"+minikube+":32001", str(amt_custs), str(amt_addr), str(amt_cards)])
+        out = subprocess.check_output(["python", "exfil_data_v2.py", "http://"+minikube+":32001", str(parameters.amt_to_exfil), str(amt_custs), str(amt_addr), str(amt_cards)])
         print "Data exfiltrated", out
 
     # Fourth, wait for some period of time and then stop the experiment

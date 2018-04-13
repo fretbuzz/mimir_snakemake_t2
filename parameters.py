@@ -58,7 +58,7 @@ display_rec_svc_pair = [ ['front-end', 'user' ], ['front-end', 'orders' ], ['use
 ## amt of data to exfiltrate (in one 5 sec segment)
 ## note: this is given in byes
 ## note: this should probably be close to some linear combo of the big API calls (see exfil_data_V2)
-amt_to_exfil = 50000
+amt_to_exfil = 100000
 
 #### TODO: How much data to exfiltrate? Or is that already handled
 #### by the loading-the-database parameter (cause it steals all of it)a

