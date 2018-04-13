@@ -72,7 +72,9 @@ def restart_minikube():
     print "Completed installing Istio"
 
 
-def setup_sock_shop():
+def setup_sock_shop(number_full_customer_records = parameters.number_full_customer_records,
+        number_half_customer_records = parameters.number_half_customer_records,
+        number_quarter_customer_records = parameters.number_quarter_customer_records):
     # then deploy application
     print "Starting to deploy sock shop..."
     istio_folder = get_istio_folder()
@@ -215,14 +217,19 @@ def setup_sock_shop():
     # note: we need to register users to a bunch of different 'levels', see GitHub issue #25 for why
     minikube = subprocess.check_output(["minikube", "ip"]).rstrip()
     # make c larger if it takes too long (I think 1000 users takes about 5 min currently)
-    #num_customer_records = parameters.number_customer_records * 4 # b/c 4 calls per record
-    out = subprocess.check_output(["locust", "-f", "pop_db.py", "--host=http://"+minikube+":32001", "--no-web", "-c", "15", "-r", "1", "-n", parameters.number_full_customer_records])
-    out = subprocess.check_output(["locust", "-f", "pop_db_reg_and_andr.py", "--host=http://"+minikube+":32001", "--no-web", "-c", "15", "-r", "1", "-n", parameters.number_half_customer_records])
-    out = subprocess.check_output(["locust", "-f", "pop_db_reg.py", "--host=http://"+minikube+":32001", "--no-web", "-c", "15", "-r", "1", "-n", parameters.number_quarter_customer_records])
+    out = subprocess.check_output(["locust", "-f", "pop_db.py", "--host=http://"+minikube+":32001", "--no-web", "-c", "15", "-r", "1", "-n", number_full_customer_records])
+    out = subprocess.check_output(["locust", "-f", "pop_db_reg_and_andr.py", "--host=http://"+minikube+":32001", "--no-web", "-c", "15", "-r", "1", "-n", number_half_customer_records])
+    out = subprocess.check_output(["locust", "-f", "pop_db_reg.py", "--host=http://"+minikube+":32001", "--no-web", "-c", "15", "-r", "1", "-n", number_quarter_customer_records])
     #print out
-    ###### TODO: verift that the above thing worked via a call to the customers api
 
-def run_experiment():
+
+def run_experiment(num_background_locusts = parameters.num_background_locusts, 
+        rate_spawn_background_locusts = parameters.rate_spawn_background_locusts,
+        desired_stop_time = parameters.desired_stop_time,
+        exfils = parameters.exfils,
+        rec_matrix_location = parameters.rec_matrix_location,
+        sent_matrix_location = parameters.sent_matrix_location):
+    
     ## okay, this is where the experiment is actualy going to be implemented (the rest is all setup)
     ## 0th step: determine how much data each of the data exfiltration calls gets so we can plan the exfiltration
     ## step accordingly
@@ -234,20 +241,20 @@ def run_experiment():
     # First, start the background traffic
     synch_with_prom()
     devnull = open(os.devnull, 'wb')  # disposing of stdout manualy
-    proc = subprocess.Popen(["locust", "-f", "background_traffic.py", "--host=http://"+minikube+":32001", "--no-web", "-c", parameters.num_background_locusts, "-r", parameters.rate_spawn_background_locusts], stdout=devnull, stderr=devnull, preexec_fn=os.setsid)
+    proc = subprocess.Popen(["locust", "-f", "background_traffic.py", "--host=http://"+minikube+":32001", "--no-web", "-c", num_background_locusts, "-r", rate_spawn_background_locusts], stdout=devnull, stderr=devnull, preexec_fn=os.setsid)
     print os.getpgid(proc.pid)
     #start_time = time.time() # I think it needs to be down below so the graphs make more sense
 
     # Second, sync with prometheus scraping (see function below for explanation) and then start experimental recording script
     
     # the plus one is so that what it pulls includes the last frame (b/c always a little over the current sec)
-    subprocess.Popen(["python", "pull_from_prom.py", "n", str( parameters.desired_stop_time + 1)])
+    subprocess.Popen(["python", "pull_from_prom.py", "n", str( desired_stop_time + 1)])
     start_time = time.time()
 
     # Third, wait some period of time and then start the data exfiltration
     # this has been modified to support multiple exfiltrations during a single time period
     print "Ready to exfiltrate!"
-    exfil_times_left = [c_time for c_time in parameters.exfils.iterkeys()]
+    exfil_times_left = [c_time for c_time in exfils.iterkeys()]
     print "exfil_times_left", exfil_times_left
     while exfil_times_left:
         cur_time = time.time() - start_time
@@ -260,19 +267,19 @@ def run_experiment():
         if not exfil_times_left:
             break
         next_exfil = int(exfil_times_left[0])
-        sleep_time = next_exfil - time.time()
+        sleep_time = next_exfil - (time.time() - start_time)
         print "next exfil at: ", next_exfil, "will sleep for: ", sleep_time
         if sleep_time > 0:
             time.sleep(sleep_time)
             # going to use the updated version instead
-            out = subprocess.check_output(["python", "exfil_data_v2.py", "http://"+minikube+":32001", str(parameters.exfils[next_exfil]), str(amt_custs), str(amt_addr), str(amt_cards)])
+            out = subprocess.check_output(["python", "exfil_data_v2.py", "http://"+minikube+":32001", str(exfils[next_exfil]), str(amt_custs), str(amt_addr), str(amt_cards)])
             print "Data exfiltrated", out
     print "all data exfiltration complete"
 
     # Fourth, wait for some period of time and then stop the experiment
     # NOTE: going to leave sock shop and everything up, only stopping the experimental
     # stuff, not the stuff that the experiment is run on
-    wait_time = parameters.desired_stop_time - (time.time() - start_time)
+    wait_time = desired_stop_time - (time.time() - start_time)
     print "wait time is: ", wait_time
     if wait_time > 0:
         time.sleep(wait_time)
@@ -284,7 +291,7 @@ def run_experiment():
     # (It should output potential times that the exfiltration may have occured)
     # (which it does not do yet)
     print "About to analyze traffic matrices...."
-    out = subprocess.check_output(["python", "analyze_traffix_matrixes.py", './experimental_data/' + parameters.rec_matrix_location, './experimental_data/' + parameters.sent_matrix_location])
+    out = subprocess.check_output(["python", "analyze_traffix_matrixes.py", './experimental_data/' + rec_matrix_location, './experimental_data/' + sent_matrix_location])
     print out
 
     # Sixth, what is the FP / FN / TP / TN ??
