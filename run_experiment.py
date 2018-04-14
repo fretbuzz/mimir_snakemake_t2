@@ -10,7 +10,10 @@ import sys
 import os
 import signal
 import parameters
+import meta_parameters
+import errno
 from exfil_data_v2 import how_much_data
+from analyze_traffix_matrixes import simulate_incoming_data 
 
 def main(restart_kube, setup_sock, multiple_experiments):
     if restart_kube == "y":
@@ -18,9 +21,28 @@ def main(restart_kube, setup_sock, multiple_experiments):
     if setup_sock == "y":
         setup_sock_shop()
     if multiple_experiments == "n":
-      run_experiment()
+        run_experiment()
     else:
-        print "run multiple experiments here"
+        run_series_of_experiments()
+
+def run_series_of_experiments():
+    ## first step, make relevant directory
+    experimental_directory = './experimental_data/' + meta_parameters.experiment_name
+    try:
+        os.makedirs(experimental_directory)
+    except:
+        print "this experiment name is already taken and/or race condition"
+        sys.exit("this experiment name is already taken and/or race condition, try again")
+
+    ## second, want a loop through the exfils values (pre and post incremnet)
+    run_experiment(num_background_locusts = meta_parameters.num_background_locusts,
+            rate_spawn_background_locusts = meta_parameters.rate_spawn_background_locusts,
+            desired_stop_time = meta_parameters.desired_stop_time,
+            exfils = meta_parameters.exfils,
+            rec_matrix_location = experimental_directory + 'rec_matrix.pickle',
+            sent_matrix_location = experimental_directory + 'sent_matrix.pickle')
+
+    ## third, inside that, want a loop for repeat_experiments
 
 def restart_minikube():
     # no point checking, just trying stopping + deleteing
@@ -293,7 +315,11 @@ def run_experiment(num_background_locusts = parameters.num_background_locusts,
     # (It should output potential times that the exfiltration may have occured)
     # (which it does not do yet)
     print "About to analyze traffic matrices...."
-    out = subprocess.check_output(["python", "analyze_traffix_matrixes.py", rec_matrix_location, sent_matrix_location])
+    out = simulate_incoming_data(rec_matrix_location = rec_matrix_location, send_matrix_location = sent_matrix_location, 
+                            display_sent_svc_pair = parameters.display_sent_svc_pair, 
+                            display_rec_svc_pair  = parameters.display_rec_svc_pair )
+    # don't actually need to start a new process for analysis purposes
+    #subprocess.check_output(["python", "analyze_traffix_matrixes.py", rec_matrix_location, sent_matrix_location])
     print out
 
     # Sixth, what is the FP / FN / TP / TN ??

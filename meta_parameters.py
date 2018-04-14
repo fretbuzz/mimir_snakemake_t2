@@ -102,4 +102,4 @@ rec_matrix_location = "cumul_recieved_matrix_total_bytes_exfil_at_90.pickle"
 display_sent_svc_pair = [ ['front-end', 'user' ], ['front-end', 'orders' ], ['user', 'user-db'], ['front-end', 'carts']]
 
 ##this is a list of the RECEIVED svc_pair graphs that are displyed
-display_rec_svc_pair = [ ['front-end', 'user' ], ['front-end', 'orders' ], ['user', 'user-db'], ['front-end', 'carts']]a
+display_rec_svc_pair = [ ['front-end', 'user' ], ['front-end', 'orders' ], ['user', 'user-db'], ['front-end', 'carts']]

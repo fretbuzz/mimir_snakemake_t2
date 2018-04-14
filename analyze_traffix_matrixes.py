@@ -45,8 +45,10 @@ def main(rec_matrix_location, send_matrix_location):
 # This function reads pickle files corresponding to the send/received traffic matrices
 # and then iterates through them by the time stamps, letting us pretend that the data
 # is coming from an actively running system
-def simulate_incoming_data(rec_matrix_location, send_matrix_location, display_sent_svc_pair = parameters.display_sent_svc_pair,
-    display_rec_svc_pair  = parameters.display_rec_svc_pair ):
+def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parameters.rec_matrix_location, 
+        send_matrix_location = './experimental_data/' + parameters.sent_matrix_location, 
+        display_sent_svc_pair = parameters.display_sent_svc_pair,
+        display_rec_svc_pair  = parameters.display_rec_svc_pair ):
     
     print "hello world"
     df_sent = pd.read_pickle(send_matrix_location)
