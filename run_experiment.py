@@ -230,8 +230,8 @@ def run_experiment(num_background_locusts = parameters.num_background_locusts,
         rate_spawn_background_locusts = parameters.rate_spawn_background_locusts,
         desired_stop_time = parameters.desired_stop_time,
         exfils = parameters.exfils,
-        rec_matrix_location = parameters.rec_matrix_location,
-        sent_matrix_location = parameters.sent_matrix_location):
+        rec_matrix_location = './experimental_data/' + parameters.rec_matrix_location,
+        sent_matrix_location = './experimental_data/' + parameters.sent_matrix_location):
     
     ## okay, this is where the experiment is actualy going to be implemented (the rest is all setup)
     ## 0th step: determine how much data each of the data exfiltration calls gets so we can plan the exfiltration
@@ -248,10 +248,9 @@ def run_experiment(num_background_locusts = parameters.num_background_locusts,
     print os.getpgid(proc.pid)
     #start_time = time.time() # I think it needs to be down below so the graphs make more sense
 
-    # Second, sync with prometheus scraping (see function below for explanation) and then start experimental recording script
-    
+    # Second, sync with prometheus scraping (see function below for explanation) and then start experimental recording script  
     # the plus one is so that what it pulls includes the last frame (b/c always a little over the current sec)
-    subprocess.Popen(["python", "pull_from_prom.py", "n", str( desired_stop_time + 1)])
+    subprocess.Popen(["python", "pull_from_prom.py", "n", str( desired_stop_time + 1), rec_matrix_location, sent_matrix_location ])
     start_time = time.time()
 
     # Third, wait some period of time and then start the data exfiltration
@@ -294,7 +293,7 @@ def run_experiment(num_background_locusts = parameters.num_background_locusts,
     # (It should output potential times that the exfiltration may have occured)
     # (which it does not do yet)
     print "About to analyze traffic matrices...."
-    out = subprocess.check_output(["python", "analyze_traffix_matrixes.py", './experimental_data/' + rec_matrix_location, './experimental_data/' + sent_matrix_location])
+    out = subprocess.check_output(["python", "analyze_traffix_matrixes.py", rec_matrix_location, sent_matrix_location])
     print out
 
     # Sixth, what is the FP / FN / TP / TN ??

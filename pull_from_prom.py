@@ -7,7 +7,7 @@ import sys
 import parameters
 
 '''
-USAGE: python pull_from_prom.py [y/n actively detect] [# in seconds to record]
+USAGE: python pull_from_prom.py [y/n actively detect] [# in seconds to record] [rec_mat loc] [sent_mat loc]
 
 This program pulls from an exposed prometheus pod (at 127.0.0.1:9090) every 5 seconds, computes the differential traffic matrix, and stores it in a pickle file for access to later.
 
@@ -184,6 +184,8 @@ def construct_matrix(data, df):
 if __name__=="__main__":
     actively_detect = False
     watch_time = float("inf")
+    rec_matrix_location = "./experimental_data/" + parameters.rec_matrix_location
+    sent_matrix_location = "./experimental_data/" + parameters.sent_matrix_location
     #print sys.argv[1]
     if len(sys.argv) > 1:
         if sys.argv[1] == "y":
@@ -192,4 +194,7 @@ if __name__=="__main__":
         if len(sys.argv) > 2:
             watch_time = int(sys.argv[2])
             print "watch time: ", watch_time
-    main(actively_detect, watch_time)
+    if len(sys.argv) > 4:
+        rec_matrix_location = sys.argv[3]
+        sent_matrix_location = sys.argv[4]
+    main(actively_detect, watch_time, rec_matrix_location, sent_matrix_location)
