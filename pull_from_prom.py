@@ -34,7 +34,9 @@ services = [
         '172.17.0.1' # also this one too
 ]
 
-def main(actively_detect, watch_time):
+def main(actively_detect, watch_time, rec_matrix_location = parameters.rec_matrix_location,
+    sent_matrix_location = parameters.sent_matrix_location ):
+
     print "starting to pull data"
     cumul_received_matrix = pd.DataFrame() # an empty pandas dataframe
     cumul_sent_matrix = pd.DataFrame() # an empty pandas dataframe
@@ -50,13 +52,13 @@ def main(actively_detect, watch_time):
         differential_recieved_matrix, last_recieved_matrix = calc_differential_matrix(last_recieved_matrix, recieved_matrix, start_time, absolute_start_time)
         if not differential_recieved_matrix.empty:
             cumul_received_matrix = cumul_received_matrix.append(differential_recieved_matrix)
-            cumul_received_matrix.to_pickle("./experimental_data/" + parameters.rec_matrix_location)
+            cumul_received_matrix.to_pickle("./experimental_data/" + rec_matrix_location)
         
         #print "sent matrix: "
         differential_sent_matrix, last_sent_matrix = calc_differential_matrix(last_sent_matrix, sent_matrix, start_time, absolute_start_time)
         if not differential_sent_matrix.empty:
             cumul_sent_matrix = cumul_sent_matrix.append(differential_sent_matrix)
-            cumul_sent_matrix.to_pickle("./experimental_data/" + parameters.sent_matrix_location)
+            cumul_sent_matrix.to_pickle("./experimental_data/" + sent_matrix_location)
             if actively_detect:
                 print "Should analyze the matrices here"
         
