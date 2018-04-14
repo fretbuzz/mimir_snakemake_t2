@@ -16,6 +16,9 @@ number_half_customer_records = "900"
 # note: multiple the number of desired records by 1 (not a type)
 number_quarter_customer_records = "1000"
 
+# should graphs be displayed after every experiment
+display_graphs = True
+
 # number of background traffic locusts (i.e. generate the background
 # traffic)
 # Note: must be a string
@@ -41,6 +44,9 @@ sent_matrix_location = "cumul_sent_matrix_total_bytes_exfil_at_90.pickle"
 # note: this should always end in .pickle
 # note: './experimental_data/' will be pre-pended to this
 rec_matrix_location = "cumul_recieved_matrix_total_bytes_exfil_at_90.pickle"
+
+# this is the name of the stored graphs
+graph_names = "exfil_at_90.pickle"
 
 ## this is a list of the SENT svc_pair graphs that are displyed
 ## Note: this list should be 1,2, or 4 items long

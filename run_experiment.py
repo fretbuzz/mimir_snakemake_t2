@@ -34,15 +34,31 @@ def run_series_of_experiments():
         print "this experiment name is already taken and/or race condition"
         sys.exit("this experiment name is already taken and/or race condition, try again")
 
-    ## second, want a loop through the exfils values (pre and post incremnet)
-    run_experiment(num_background_locusts = meta_parameters.num_background_locusts,
-            rate_spawn_background_locusts = meta_parameters.rate_spawn_background_locusts,
-            desired_stop_time = meta_parameters.desired_stop_time,
-            exfils = meta_parameters.exfils,
-            rec_matrix_location = experimental_directory + 'rec_matrix.pickle',
-            sent_matrix_location = experimental_directory + 'sent_matrix.pickle')
+    exfils = meta_parameters.exfils
 
-    ## third, inside that, want a loop for repeat_experiments
+    ## second, want a loop through the exfils values (pre and post incremnet)
+    for current_increment in range(0, meta_parameters.number_increments):
+
+        for rep in range(0, meta_parameters.repeat_experiments):
+            
+            print "current rep: ", rep
+            rec_matrx_loc = experimental_directory + '/rec_matrix_increm_' + str(current_increment) + '_rep_' + str(rep) +'.pickle' 
+            sent_matrix_loc = experimental_directory + '/sent_matrix_increm_' + str(current_increment) + '_rep_' + str(rep) +'.pickle'
+            graph_name = meta_parameters.experiment_name + "_increm_" + str(current_increment) + '_rep_' + str(rep)
+            run_experiment(num_background_locusts = meta_parameters.num_background_locusts,
+                rate_spawn_background_locusts = meta_parameters.rate_spawn_background_locusts,
+                desired_stop_time = meta_parameters.desired_stop_time,
+                exfils = exfils,
+                rec_matrix_location = rec_matrx_loc,
+                sent_matrix_location = sent_matrix_loc,
+                display_sent_svc_pair = meta_parameters.display_sent_svc_pair, 
+                display_rec_svc_pair  = meta_parameters.display_rec_svc_pair,
+                display_graphs_p = meta_parameters.display_graphs,
+                names_graphs = experimental_directory + '/' + graph_name)
+        
+        # performs the increments on the data exfiltration dictionary
+        for key,val in exfils.iteritems():
+            exfils[key] = val +  meta_parameters.exfil_increments[key]
 
 def restart_minikube():
     # no point checking, just trying stopping + deleteing
@@ -253,7 +269,11 @@ def run_experiment(num_background_locusts = parameters.num_background_locusts,
         desired_stop_time = parameters.desired_stop_time,
         exfils = parameters.exfils,
         rec_matrix_location = './experimental_data/' + parameters.rec_matrix_location,
-        sent_matrix_location = './experimental_data/' + parameters.sent_matrix_location):
+        sent_matrix_location = './experimental_data/' + parameters.sent_matrix_location,
+        display_sent_svc_pair = parameters.display_sent_svc_pair, 
+        display_rec_svc_pair  = parameters.display_rec_svc_pair,
+        display_graphs_p = parameters.display_graphs,
+        names_graphs = './experimental_data/' + parameters.graph_names):
     
     ## okay, this is where the experiment is actualy going to be implemented (the rest is all setup)
     ## 0th step: determine how much data each of the data exfiltration calls gets so we can plan the exfiltration
@@ -315,9 +335,12 @@ def run_experiment(num_background_locusts = parameters.num_background_locusts,
     # (It should output potential times that the exfiltration may have occured)
     # (which it does not do yet)
     print "About to analyze traffic matrices...."
+    print "Should traffic graphs be displayed: ",display_graphs_p 
     out = simulate_incoming_data(rec_matrix_location = rec_matrix_location, send_matrix_location = sent_matrix_location, 
-                            display_sent_svc_pair = parameters.display_sent_svc_pair, 
-                            display_rec_svc_pair  = parameters.display_rec_svc_pair )
+                            display_sent_svc_pair = display_sent_svc_pair, 
+                            display_rec_svc_pair  = display_rec_svc_pair,
+                            display_graphs = display_graphs_p,
+                            graph_names = names_graphs)
     # don't actually need to start a new process for analysis purposes
     #subprocess.check_output(["python", "analyze_traffix_matrixes.py", rec_matrix_location, sent_matrix_location])
     print out

@@ -67,7 +67,7 @@ exfil_increments = {40: 25000, 90: 25000}
 ## number of increments
 ## will run once using the 'exfils' values and then 
 ## will run the number of times given here, each with the increment applied
-number_increments = 10
+number_increments = 3
 
 ## number of repeat experiments
 ## this is the number of times to run each experiment
@@ -82,20 +82,6 @@ repeat_experiments = 2
 ## a lot of them.
 experiment_name = "test_1"
 
-''' TODO: these parameters should be removed at some point
-# this is the name of the pickle file where the recieved
-# traffic matrixes will be kept
-# note: this should always end in .pickle
-# note: './experimental_data/' will be pre-pended to this
-sent_matrix_location = "cumul_sent_matrix_total_bytes_exfil_at_90.pickle"
-
-# this is the name of the pickle file where the sent
-# traffic matrixes wil be kept
-# note: this should always end in .pickle
-# note: './experimental_data/' will be pre-pended to this
-rec_matrix_location = "cumul_recieved_matrix_total_bytes_exfil_at_90.pickle"
-'''
-
 ## this is a list of the SENT svc_pair graphs that are displayed/saved
 ## Note: this list should be 1,2, or 4 items long
 ## anything else and it won't work
@@ -103,3 +89,6 @@ display_sent_svc_pair = [ ['front-end', 'user' ], ['front-end', 'orders' ], ['us
 
 ##this is a list of the RECEIVED svc_pair graphs that are displyed
 display_rec_svc_pair = [ ['front-end', 'user' ], ['front-end', 'orders' ], ['user', 'user-db'], ['front-end', 'carts']]
+
+# should graphs be displayed after every experiment
+display_graphs = False
