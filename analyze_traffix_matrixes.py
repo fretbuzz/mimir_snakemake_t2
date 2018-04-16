@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 #from matplotlib.figure import Figure
 import parameters
 from sklearn.decomposition import PCA
-
+import scipy
 '''
 USAGE: python analyze_traffic_matrixes.py [recieved_matrix_location] [sent_matrix_location]
 
@@ -290,6 +290,47 @@ def detect_pca_anom(pca_explained_vars):
             #print "welp, it's zero :("
             anom_scores.append('invalid')
     return anom_scores
+
+
+def eigenvector_based_detector(old_u, current_tm, window_size, crit_bound, old_z_first_mom, old_z_sec_mom):
+    # first, find the principle eigenvector of the traffic matrix
+    eigenvals, unit_eigenvect = np.linalg.eig(current_tm)   
+    # principle eigenvector has largest associated eigenvalue
+    largest_eigenval_index = np.argmax(eigenvals)
+    princip_eigenvect = unit_eigenvect[largest_eigenval_index]
+
+    # second, obtain "typical pattern" of activity vector from old_u
+    # this is the principal left singular vector
+    u,s,vh = np.linalg.svd(current_tm)
+    largest_signular_val_index = np.argmax(u)
+    princip_left_singular_vect = u[largest_signular_val_index]
+
+    # third, compute z(t), the dissimilarity between the principal left
+    # singular vector and the principal eigenvector
+    z = 1 - princip_left_singular_vect * princip_eigenvect # numpy auto transposes
+    # note: is 1 if orthogonal, is 0 if identical
+
+    # now compare z(t) with a threshold, using section 5.3
+    # approximate the MLE algorithm for the vMF distribution
+    beta = 0.005  ## TODO: determine via theory what this should be
+    z_first_moment = (1 - beta) * old_z_first_mom + beta * z
+    z_sec_moment = (1 - beta) * old_z_sec_mom + beta * (z ** 2)
+    n = ((2 * z_first_moment ** 2) / (z_sec_moment - z_first_moment ** 2)) + 1
+    sigma = (z_sec_moment - z_first_moment ** 2) / (2 * z_first_moment)
+    # find the specific threshold value
+    z_thresh = scipy.optimize.fsolve(vMF_thresh_func, 0, args=(n, sigma, crit_bound))
+    #do the actual comparison
+    if z > z_thresh:
+        return 1 # 1 is to signify an alert
+    else:
+        return 0 # 0 is to signify that there is no alert
+
+def vMF_pdf_func(z, n, sigma):
+    denom = (2* sigma) ** ((n-1)/2) * scipy.special.gamma((n-1)/2)
+    return (np.exp((-1 * z) / (2 * sigma)) * z ** (((n-1)/2)-1)) / denom
+
+def vMF_thresh_func(zth, n, sigma, crit_bound):
+    return scipy.integrate.quad(vMF_pdf_func, zth, np.inf, args=(n,sigma)) - crit_bound
 
 if __name__=="__main__":
     rec_matrix_location = './experimental_data/' + parameters.rec_matrix_location
