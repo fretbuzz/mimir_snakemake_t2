@@ -235,6 +235,7 @@ def setup_sock_shop():
 #   Uses locustio to run a dynamic number of background clients based on 24 time steps
 # Args:
 #   time: total time for test. Will be subdivided into 24 smaller chunks to represent 1 hour each
+#   max_clients: Arg provided by user in parameters.py. Represents maximum number of simultaneous clients
 def generate_background_traffic(run_time, max_clients):
 
     if (time <= 0):
@@ -246,10 +247,14 @@ def generate_background_traffic(run_time, max_clients):
 
         client_count = str(int(round(15.6*CLIENT_RATIO[i]*max_clients)))
 
-        proc = subprocess.Popen(["locust", "-f", "background_traffic.py", "--host=http://"+minikube+":32001", "--no-web", "-c", 
+        try:
+            proc = subprocess.Popen(["locust", "-f", "background_traffic.py", "--host=http://"+minikube+":32001", "--no-web", "-c", 
                                     client_count, "-r", parameters.rate_spawn_background_locusts], 
                                     stdout=devnull, stderr=devnull, preexec_fn=os.setsid)
+        except subprocess.CalledProcessError as e:
+            raise RuntimeError("command '{}' return with error (code {}): {}".format(e.cmd, e.returncode, e.output))
 
+        print("Time: " + str(i) + ". Now running with " + client_count + "simultaneous clients")
         print os.getpgid(proc.pid)
 
         #Run some number of background clients for 1/24th of the total test time
@@ -261,13 +266,13 @@ def generate_background_traffic(run_time, max_clients):
 def run_experiment():
     ## okay, this is where the experiment is actualy going to be implemented (the rest is all setup)
 
-    # First, start the background traffic
-    # I think this does it- need to verify though
     minikube = subprocess.check_output(["minikube", "ip"]).rstrip()
     devnull = open(os.devnull, 'wb')  # disposing of stdout manualy
-    max_client_count = parameters.num_background_locusts
 
+    # First, start the background traffic, spawning variable number of clients during test in a separate thread
+    max_client_count = parameters.num_background_locusts
     generate_background_traffic(parameters.desired_stop_time, max_client_count)
+
     start_time = time.time()
 
     # Second, start experimental recording script
