@@ -10,6 +10,13 @@ import sys
 import os
 import signal
 import parameters
+import threading
+
+#Locust contemporary client count.  Calculated from the function f(x) = 1/25*(-1/2*sin(pi*x/12) + 1.1), 
+#   where x goes from 0 to 23 and x represents the hour of the day
+CLIENT_RATIO = [0.0440, 0.0388, 0.0340, 0.0299, 0.0267, 0.0247, 0.0240, 0.0247, 0.0267, 0.0299, 0.0340,
+  0.0388, 0.0440, 0.0492, 0.0540, 0.0581, 0.0613, 0.0633, 0.0640, 0.0633, 0.0613, 0.0581, 0.0540, 0.0492]
+
 
 def main(restart_kube, setup_sock):
     if restart_kube == "y":
@@ -27,13 +34,13 @@ def restart_minikube():
     except:
         print "Minikube was not running"
     print "Stopping minikube completed"
-    print "Deleteing minikube..."
+    print "Deleting minikube..."
     try:
         out = subprocess.check_output(["minikube", "delete"])
         print out
     except:
         print "No minikube image to delete"
-    print "Deleteing minikube completed"
+    print "Deleting minikube completed"
 
     # then start minikube
     print "Starting minikube..."
@@ -206,7 +213,8 @@ def setup_sock_shop():
             # first get minikube ip
             minikube = subprocess.check_output(["minikube", "ip"]).rstrip()
             try:
-                out = subprocess.check_output(["docker", "run", "--rm", "weaveworksdemos/load-test", "-d", "5", "-h", minikube+":32001", "-c", "2", "-r", "60"])
+                out = subprocess.check_output(["docker", "run", "--rm", "weaveworksdemos/load-test", "-d", "5", "-h", 
+                                                minikube+":32001", "-c", "2", "-r", "60"])
             except:
                 print "cannot even run locust yet..."
     print "Application pods are ready!"
@@ -216,11 +224,39 @@ def setup_sock_shop():
     # make c larger if it takes too long (I think 1000 users takes about 5 min currently)
     #num_customer_records = parameters.number_customer_records * 4 # b/c 4 calls per record
     try:
-        out = subprocess.check_output(["locust", "-f", "pop_db.py", "--host=http://"+minikube+":32001", "--no-web", "-c", "15", "-r", "1", "-n", parameters.number_customer_records])
+        out = subprocess.check_output(["locust", "-f", "pop_db.py", "--host=http://"+minikube+":32001", "--no-web", 
+                                        "-c", "15", "-r", "1", "-n", parameters.number_customer_records])
     except subprocess.CalledProcessError as e:
         raise RuntimeError("command '{}' return with error (code {}): {}".format(e.cmd, e.returncode, e.output))
     #print out
     ###### TODO: verift that the above thing worked via a call to the customers api
+
+# Func: generate_background_traffic
+#   Uses locustio to run a dynamic number of background clients based on 24 time steps
+# Args:
+#   time: total time for test. Will be subdivided into 24 smaller chunks to represent 1 hour each
+def generate_background_traffic(run_time, max_clients):
+
+    if (time <= 0):
+        raise RuntimeError("Invalid testing time provided!")
+
+    #24 = hours in a day, we're working with 1 hour granularity
+    timestep = run_time / 24.0
+    for i in xrange(24):
+
+        client_count = str(int(round(15.6*CLIENT_RATIO[i]*max_clients)))
+
+        proc = subprocess.Popen(["locust", "-f", "background_traffic.py", "--host=http://"+minikube+":32001", "--no-web", "-c", 
+                                    client_count, "-r", parameters.rate_spawn_background_locusts], 
+                                    stdout=devnull, stderr=devnull, preexec_fn=os.setsid)
+
+        print os.getpgid(proc.pid)
+
+        #Run some number of background clients for 1/24th of the total test time
+        time.sleep(timestep)
+        # this stops the background traffic process
+        os.killpg(os.getpgid(proc.pid), signal.SIGTERM) # should kill it
+
 
 def run_experiment():
     ## okay, this is where the experiment is actualy going to be implemented (the rest is all setup)
@@ -229,8 +265,9 @@ def run_experiment():
     # I think this does it- need to verify though
     minikube = subprocess.check_output(["minikube", "ip"]).rstrip()
     devnull = open(os.devnull, 'wb')  # disposing of stdout manualy
-    proc = subprocess.Popen(["locust", "-f", "background_traffic.py", "--host=http://"+minikube+":32001", "--no-web", "-c", parameters.num_background_locusts, "-r", parameters.rate_spawn_background_locusts], stdout=devnull, stderr=devnull, preexec_fn=os.setsid)
-    print os.getpgid(proc.pid)
+    max_client_count = parameters.num_background_locusts
+
+    generate_background_traffic(parameters.desired_stop_time, max_client_count)
     start_time = time.time()
 
     # Second, start experimental recording script
@@ -242,7 +279,8 @@ def run_experiment():
     sleep_time = parameters.desired_exfil_time - (time.time() - start_time)
     if sleep_time > 0:
         time.sleep(sleep_time )
-        subprocess.check_output(["locust", "-f", "./exfil_data.py", "--host=http://"+minikube+":32001", "--no-web", "-c", "1", "-r", "1", "-n", "3"])
+        subprocess.check_output(["locust", "-f", "./exfil_data.py", "--host=http://"+minikube+":32001", 
+                                    "--no-web", "-c", "1", "-r", "1", "-n", "3"])
         print "Data exfiltrated"
 
     # Fourth, wait for some period of time and then stop the experiment
@@ -253,14 +291,13 @@ def run_experiment():
     if wait_time > 0:
         time.sleep(wait_time)
     print "just stopped waiting!"
-    # this stops the background traffic process
-    os.killpg(os.getpgid(proc.pid), signal.SIGTERM) # should kill it
 
     # Fifth, call the function that analyzes the traffic matrices
     # (It should output potential times that the exfiltration may have occured)
     # (which it does not do yet)
     print "About to analyze traffic matrices...."
-    out = subprocess.check_output(["python", "analyze_traffix_matrixes.py", './experimental_data/' + parameters.rec_matrix_location, './experimental_data/' + parameters.sent_matrix_location])
+    out = subprocess.check_output(["python", "analyze_traffix_matrixes.py", './experimental_data/' + parameters.rec_matrix_location, 
+                                    './experimental_data/' + parameters.sent_matrix_location])
     print out
 
     # Sixth, what is the FP / FN / TP / TN ??
