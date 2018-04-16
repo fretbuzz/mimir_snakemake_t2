@@ -37,7 +37,7 @@ def restart_minikube():
 
     # then start minikube
     print "Starting minikube..."
-    out = subprocess.check_output(["minikube", "start", "--memory=6144", "--cpus=3"])
+    out = subprocess.check_output(["minikube", "start", "--memory=4096"])
     print out
     print "Starting minikube completed"
 
@@ -174,6 +174,7 @@ def setup_sock_shop():
         if r:
             print r.status_code
             if r.status_code == 200:
+                #This is clogging my output
                 print "Prometheus is active and accessible!"
             else:
                 print "Prometheus is not accessible!"
@@ -214,7 +215,10 @@ def setup_sock_shop():
     minikube = subprocess.check_output(["minikube", "ip"]).rstrip()
     # make c larger if it takes too long (I think 1000 users takes about 5 min currently)
     #num_customer_records = parameters.number_customer_records * 4 # b/c 4 calls per record
-    out = subprocess.check_output(["locust", "-f", "pop_db.py", "--host=http://"+minikube+":32001", "--no-web", "-c", "15", "-r", "1", "-n", parameters.number_customer_records])
+    try:
+        out = subprocess.check_output(["locust", "-f", "pop_db.py", "--host=http://"+minikube+":32001", "--no-web", "-c", "15", "-r", "1", "-n", parameters.number_customer_records])
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError("command '{}' return with error (code {}): {}".format(e.cmd, e.returncode, e.output))
     #print out
     ###### TODO: verift that the above thing worked via a call to the customers api
 
