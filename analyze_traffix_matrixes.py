@@ -45,7 +45,13 @@ def main(rec_matrix_location, send_matrix_location):
 # This function reads pickle files corresponding to the send/received traffic matrices
 # and then iterates through them by the time stamps, letting us pretend that the data
 # is coming from an actively running system
-def simulate_incoming_data(rec_matrix_location, send_matrix_location):
+def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parameters.rec_matrix_location, 
+        send_matrix_location = './experimental_data/' + parameters.sent_matrix_location, 
+        display_sent_svc_pair = parameters.display_sent_svc_pair,
+        display_rec_svc_pair  =  parameters.display_rec_svc_pair,
+        graph_names = './experimental_data/' + parameters.graph_names,
+        display_graphs = False):
+    
     print "hello world"
     df_sent = pd.read_pickle(send_matrix_location)
     df_rec = pd.read_pickle(rec_matrix_location)
@@ -88,15 +94,16 @@ def simulate_incoming_data(rec_matrix_location, send_matrix_location):
     svc_pair_to_sent_bytes = traffic_matrix_to_svc_pair_list(df_sent)
     print svc_pair_to_sent_control_charts['front-end', 'user']
     sent_data_for_display = {'raw': svc_pair_to_sent_bytes, 'control-charts':svc_pair_to_sent_control_charts}
-    generate_graphs(sent_data_for_display, times, parameters.display_sent_svc_pair, True)
+    generate_graphs(sent_data_for_display, times, display_sent_svc_pair, True, graph_names + "_sent_graphs")
 
     svc_pair_to_rec_control_charts = generate_service_pair_arrays(df_rec_control_stats, times)
     svc_pair_to_rec_bytes = traffic_matrix_to_svc_pair_list(df_rec)
     #print svc_pair_to_rec_control_charts['front-end', 'user']
     rec_data_for_display = {'raw': svc_pair_to_rec_bytes, 'control-charts':svc_pair_to_rec_control_charts}
-    generate_graphs(rec_data_for_display, times, parameters.display_rec_svc_pair, False)
+    generate_graphs(rec_data_for_display, times, display_rec_svc_pair, False, graph_names + "_rec_graphs")
 
-    plt.show()
+    if display_graphs:
+        plt.show()
 
 
 # this function just generates graphs
@@ -104,7 +111,7 @@ def simulate_incoming_data(rec_matrix_location, send_matrix_location):
 # currently the indexes are: 'control-charts' and 'raw'. Each of these is a dicitonary
 # of the below form
 # assumes the form {['src', 'dst']: [list of time-ordered values]
-def generate_graphs(data_for_display, times, src_pairs_to_display, is_sent):
+def generate_graphs(data_for_display, times, src_pairs_to_display, is_sent, graph_names):
 
     svc_pair_to_control_charts = data_for_display['control-charts'] 
     svc_pair_to_raw = data_for_display['raw']
@@ -123,7 +130,7 @@ def generate_graphs(data_for_display, times, src_pairs_to_display, is_sent):
     else:
         print "about to crash because invalid size of list of objects to graph"    
 
-    for i in range(0, len(parameters.display_sent_svc_pair)):
+    for i in range(0, len(src_pairs_to_display)):
         plt.subplot(rows,columns,i+1)
 
         cur_src_svc = src_pairs_to_display[i][0]
@@ -153,6 +160,7 @@ def generate_graphs(data_for_display, times, src_pairs_to_display, is_sent):
         plt.legend(handles=[avg_line, raw_line])
     plt.subplots_adjust(hspace=.3) # too close by default
     #plt.show()
+    plt.savefig(graph_names + '.png', bbox_inches='tight')
 
 # df -> {[src_svc, dst_svc] : [list of values in order of time]} 
 def traffic_matrix_to_svc_pair_list(df):

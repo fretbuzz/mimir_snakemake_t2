@@ -7,7 +7,7 @@ import sys
 import parameters
 
 '''
-USAGE: python pull_from_prom.py [y/n actively detect] [# in seconds to record]
+USAGE: python pull_from_prom.py [y/n actively detect] [# in seconds to record] [rec_mat loc] [sent_mat loc]
 
 This program pulls from an exposed prometheus pod (at 127.0.0.1:9090) every 5 seconds, computes the differential traffic matrix, and stores it in a pickle file for access to later.
 
@@ -34,7 +34,9 @@ services = [
         '172.17.0.1' # also this one too
 ]
 
-def main(actively_detect, watch_time):
+def main(actively_detect, watch_time, rec_matrix_location = "./experimental_data/" + parameters.rec_matrix_location,
+    sent_matrix_location = "./experimental_data/" + parameters.sent_matrix_location ):
+
     print "starting to pull data"
     cumul_received_matrix = pd.DataFrame() # an empty pandas dataframe
     cumul_sent_matrix = pd.DataFrame() # an empty pandas dataframe
@@ -50,13 +52,13 @@ def main(actively_detect, watch_time):
         differential_recieved_matrix, last_recieved_matrix = calc_differential_matrix(last_recieved_matrix, recieved_matrix, start_time, absolute_start_time)
         if not differential_recieved_matrix.empty:
             cumul_received_matrix = cumul_received_matrix.append(differential_recieved_matrix)
-            cumul_received_matrix.to_pickle("./experimental_data/" + parameters.rec_matrix_location)
+            cumul_received_matrix.to_pickle(rec_matrix_location)
         
         #print "sent matrix: "
         differential_sent_matrix, last_sent_matrix = calc_differential_matrix(last_sent_matrix, sent_matrix, start_time, absolute_start_time)
         if not differential_sent_matrix.empty:
             cumul_sent_matrix = cumul_sent_matrix.append(differential_sent_matrix)
-            cumul_sent_matrix.to_pickle("./experimental_data/" + parameters.sent_matrix_location)
+            cumul_sent_matrix.to_pickle(sent_matrix_location)
             if actively_detect:
                 print "Should analyze the matrices here"
         
@@ -182,6 +184,8 @@ def construct_matrix(data, df):
 if __name__=="__main__":
     actively_detect = False
     watch_time = float("inf")
+    rec_matrix_location = "./experimental_data/" + parameters.rec_matrix_location
+    sent_matrix_location = "./experimental_data/" + parameters.sent_matrix_location
     #print sys.argv[1]
     if len(sys.argv) > 1:
         if sys.argv[1] == "y":
@@ -190,4 +194,7 @@ if __name__=="__main__":
         if len(sys.argv) > 2:
             watch_time = int(sys.argv[2])
             print "watch time: ", watch_time
-    main(actively_detect, watch_time)
+    if len(sys.argv) > 4:
+        rec_matrix_location = sys.argv[3]
+        sent_matrix_location = sys.argv[4]
+    main(actively_detect, watch_time, rec_matrix_location, sent_matrix_location)
