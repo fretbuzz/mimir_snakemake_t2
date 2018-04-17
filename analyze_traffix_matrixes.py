@@ -291,7 +291,64 @@ def detect_pca_anom(pca_explained_vars):
             anom_scores.append('invalid')
     return anom_scores
 
+# following method in Lakhina's "Diagnosing
+# Network-Wide Traffic Anomalies" (sigcomm '04)
+def diagnose_anom_pca(old_dfs, cur_df, n_components):
+    # first, convert dfs representation
+    # to match the paper's representation
+    # (rows = time slices of features, columns = time series
+    # of a particular feature)
+    mod_old_dfs = old_dfs.set_index(['time'], append = True )
+    print mod_old_dfs
+    converted_dfs = mod_old_dfs.unstack(level = 0)
+    print converted dfs
+    mod_cur_df = cur_df.set_index(['time'], append = True)
+    converted_cur_df = mod_cur_df.unstack(level = 0)
+    print converted_cur_df
 
+    # second, zero-mean the dfs (for each column)
+    # note, not needed, fit_transform does this below
+    #for column in converted_dfs:
+    #    converted_dfs[column] = converted_dfs[column] - converted_dfs[column].mean()
+    #converted_cur_df = converted_cur_df - converted_cur_df.mean()
+    #print converted_dfs
+    #print converted_cur_df
+    
+    # third, use PCA to determine old_dfs principal axis
+    pca = PCA(n_components=n_components)
+    converted_dfs_along_principal_components = pca.fit_transform(converted_dfs)
+    print converted_dfs_along_principal_components
+    #### TODO: is this a unit vector? it needs to be
+    #### TODO: does PCA use StandardScaler (hence obviating the need for #2)
+
+    # fourth, map data to principal axis
+    # note: not needed,  handeled by fit_transform above
+
+    # fifth, split data into two types of projections:
+    # (1) normal, (2) anomalous, via threshold
+    anom_thresh = -1
+    cur_index = 0
+    for index, row in converted_dfs_along_principal_components.iterrows():
+        row_mean = row.mean()
+        row_stddev = row.std()
+        if (row > row_mean + 3 * row_stddev) or (row < row_mean + 3 * row_stddev):
+            anom_thresh = cur_index
+        cur_index = cur_index + 1
+    if anom_thresh < 0:
+        print "SOMETHING WENT WRONG"
+
+    # sixth, project cur_df onto both projections
+    # I could theoretically, get fancy with skikit-learn, but
+    # it is probably better just to form the matrixes described
+    # in the paper and carry out the designated computations
+    
+    # seventh, compute threshold for the  squared prediction 
+    # error (SPE) via the Q-statistic
+
+    # eighth, compare SPE to threshold to determine if anomaly occurs
+
+# following method given in Ide's "Eigenspace-based Anomaly Detection in
+# Computer Systems"
 def eigenvector_based_detector(old_u, current_tm, window_size, crit_bound, old_z_first_mom, old_z_sec_mom):
     # first, find the principle eigenvector of the traffic matrix
     eigenvals, unit_eigenvect = np.linalg.eig(current_tm)   
