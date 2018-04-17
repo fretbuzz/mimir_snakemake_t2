@@ -237,6 +237,8 @@ def setup_sock_shop():
 #   time: total time for test. Will be subdivided into 24 smaller chunks to represent 1 hour each
 #   max_clients: Arg provided by user in parameters.py. Represents maximum number of simultaneous clients
 def generate_background_traffic(run_time, max_clients):
+    minikube = subprocess.check_output(["minikube", "ip"]).rstrip()
+    devnull = open(os.devnull, 'wb')  # disposing of stdout manualy
 
     if (time <= 0):
         raise RuntimeError("Invalid testing time provided!")
@@ -254,8 +256,7 @@ def generate_background_traffic(run_time, max_clients):
         except subprocess.CalledProcessError as e:
             raise RuntimeError("command '{}' return with error (code {}): {}".format(e.cmd, e.returncode, e.output))
 
-        print("Time: " + str(i) + ". Now running with " + client_count + "simultaneous clients")
-        print os.getpgid(proc.pid)
+        print("Time: " + str(i) + ". Now running with " + client_count + " simultaneous clients")
 
         #Run some number of background clients for 1/24th of the total test time
         time.sleep(timestep)
@@ -270,7 +271,7 @@ def run_experiment():
     devnull = open(os.devnull, 'wb')  # disposing of stdout manualy
 
     # First, start the background traffic, spawning variable number of clients during test in a separate thread
-    max_client_count = parameters.num_background_locusts
+    max_client_count = int(parameters.num_background_locusts)
     generate_background_traffic(parameters.desired_stop_time, max_client_count)
 
     start_time = time.time()
