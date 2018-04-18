@@ -18,8 +18,21 @@ from analyze_traffix_matrixes import simulate_incoming_data
 
 #Locust contemporary client count.  Calculated from the function f(x) = 1/25*(-1/2*sin(pi*x/12) + 1.1), 
 #   where x goes from 0 to 23 and x represents the hour of the day
-CLIENT_RATIO = [0.0440, 0.0388, 0.0340, 0.0299, 0.0267, 0.0247, 0.0240, 0.0247, 0.0267, 0.0299, 0.0340,
+CLIENT_RATIO_NORMAL = [0.0440, 0.0388, 0.0340, 0.0299, 0.0267, 0.0247, 0.0240, 0.0247, 0.0267, 0.0299, 0.0340,
   0.0388, 0.0440, 0.0492, 0.0540, 0.0581, 0.0613, 0.0633, 0.0640, 0.0633, 0.0613, 0.0581, 0.0540, 0.0492]
+
+#Based off of the normal traffic ratio but with random spikes added in #TODO: Base this off real traffic
+CLIENT_RATIO_BURSTY = [0.0391, 0.0305, 0.0400, 0.0278, 0.0248, 0.0230, 0.0223, 0.0230, 0.0248, 0.0465, 0.0316, 
+    0.0361, 0.0410, 0.0458, 0.0503, 0.0532, 0.0552, 0.0571, 0.0577, 0.0571, 0.0543, 0.0634, 0.0484, 0.0458]
+
+#Steady growth during the day. #TODO: Base this off real traffic
+CLIENT_RATIO_VIRAL = [0.0278, 0.0246, 0.0215, 0.0189, 0.0169, 0.0156, 0.0152, 0.0158, 0.0171, 0.0190, 0.0215, 
+0.0247, 0.0285, 0.0329, 0.0380, 0.0437, 0.0500, 0.0570, 0.0640, 0.0716, 0.0798, 0.0887, 0.0982, 0.107]
+
+#Similar to normal traffic but hits an early peak and stays there. Based on Akamai data
+CLIENT_RATIO_CYBER = [0.0328, 0.0255, 0.0178, 0.0142, 0.0119, 0.0112, 0.0144, 0.0224, 0.0363, 0.0428, 0.0503, 
+0.0574, 0.0571, 0.0568, 0.0543, 0.0532, 0.0514, 0.0514, 0.0518, 0.0522, 0.0571, 0.0609, 0.0589, 0.0564]
+
 
 def main(restart_kube, setup_sock, multiple_experiments):
     if restart_kube == "y":
@@ -280,18 +293,32 @@ def setup_sock_shop(number_full_customer_records = parameters.number_full_custom
 # Args:
 #   time: total time for test. Will be subdivided into 24 smaller chunks to represent 1 hour each
 #   max_clients: Arg provided by user in parameters.py. Represents maximum number of simultaneous clients
-def generate_background_traffic(run_time, max_clients):
+def generate_background_traffic(run_time, max_clients, traffic_type):
     minikube = subprocess.check_output(["minikube", "ip"]).rstrip()
     devnull = open(os.devnull, 'wb')  # disposing of stdout manualy
 
+    client_ratio = []
+
+    if (traffic_type == "normal"):
+        client_ratio = CLIENT_RATIO_NORMAL
+    elif (traffic_type == "bursty"):
+        client_ratio = CLIENT_RATIO_BURSTY
+    elif (traffic_type == "viral") :
+        client_ratio = CLIENT_RATIO_VIRAL
+    elif (traffic_type == "cybermonday"):
+        client_ratio = CLIENT_RATIO_CYBER
+    else:
+        raise RuntimeError("Invalid traffic parameter provided!")
     if (time <= 0):
         raise RuntimeError("Invalid testing time provided!")
+
+    normalizer = 1/max(client_ratio)
 
     #24 = hours in a day, we're working with 1 hour granularity
     timestep = run_time / 24.0
     for i in xrange(24):
 
-        client_count = str(int(round(15.6*CLIENT_RATIO[i]*max_clients)))
+        client_count = str(int(round(normalizer*client_ratio[i]*max_clients)))
 
         try:
             proc = subprocess.Popen(["locust", "-f", "background_traffic.py", "--host=http://"+minikube+":32001", "--no-web", "-c", 
@@ -331,7 +358,7 @@ def run_experiment(num_background_locusts = parameters.num_background_locusts,
 
     # First, start the background traffic, spawning variable number of clients during test in a separate thread
     max_client_count = int(parameters.num_background_locusts)
-    thread.start_new_thread(generate_background_traffic, (parameters.desired_stop_time, max_client_count))
+    thread.start_new_thread(generate_background_traffic, (parameters.desired_stop_time, max_client_count, parameters.traffic_type))
 
     start_time = time.time()
 

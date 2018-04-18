@@ -12,7 +12,7 @@ number_full_customer_records = "620"
 # note: multiply the number of desired records by 3
 number_half_customer_records = "900"
 
-# these users will just be registed
+# these users will just be registered
 # note: multiple the number of desired records by 1 (not a type)
 number_quarter_customer_records = "1000"
 
@@ -64,3 +64,13 @@ exfils = {40 : 50000, 90 : 100000}
 
 #### TODO: How much data to exfiltrate? Or is that already handled
 #### by the loading-the-database parameter (cause it steals all of it)a
+
+# Traffic type
+# Options:
+#	normal: Follows standard sinusoidal pattern similar to what's illustrated at: 
+#					https://www.wired.com/2010/10/netflix-instant-accounts-for-20-percent-of-peak-u-s-bandwith-use/
+#	bursty: Follows standard sinusoidal pattern like normal, but with massive spikes at intervals
+#	viral: Exponential growth
+#	cybermonday: Follows pattern of traffic as shown by Akamai's illustration here: 
+#					https://blogs.akamai.com/2012/11/cyber-monday-breaks-new-traffic-records.html
+traffic_type = "normal"
