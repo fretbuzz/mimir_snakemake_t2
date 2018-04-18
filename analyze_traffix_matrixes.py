@@ -81,17 +81,20 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
     for time in range(1,len(times)-1):
         next_df_sent = df_sent[ df_sent['time'].isin([times[time]])]
         next_df_rec = df_rec[ df_rec['time'].isin([times[time]])]
-        warnings_sent,warning_times = next_value_trigger_control_charts(next_df_sent, df_sent_control_stats[time], times[time])
-        warnings_rec,warning_times = next_value_trigger_control_charts(next_df_rec, df_rec_control_stats[time], times[time])
+        warnings_sent,warning_times_sent = next_value_trigger_control_charts(next_df_sent, df_sent_control_stats[time], times[time])
+        warnings_rec,warning_times_rec = next_value_trigger_control_charts(next_df_rec, df_rec_control_stats[time], times[time])
         control_charts_warning_sent.append(warnings_sent)
         control_charts_warning_rec.append(warnings_rec)
     print "these are the warnings from the control charts: (for data that is sent): "
     print control_charts_warning_sent
     # combine the two sets of warning times (delete duplicates)
-    ## INSERT IT HERE
+    all_control_chart_warning_times = list(set(warning_times_sent + warning_times_rec))
+    print all_control_chart_warning_times
     # then calc TP/TN/FP/FN
-    #perfomance_results = calc_tp_fp_etc("control charts", exfils, control_chart_warning_times, exp_time, start_analyze_time)
-    # experiment_results.update(performance_results)
+    performance_results = calc_tp_fp_etc("control charts", exfils, all_control_chart_warning_times, 
+                                        exp_time, start_analyze_time)
+    experiment_results.update(performance_results)
+    #print experiment_results
 
     # okay, we are going to try PCA-based analysis here
     print "about to try PCA anom detection!"
@@ -114,7 +117,8 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
     if display_graphs:
         plt.show()
 
-    # return performance_results
+    # return experiment results, all ready for aggregation
+    return experiment_results
 
 # this function just generates graphs
 # sent_data_for_display is a dictionary of data about the sent traffic matrixc
@@ -254,7 +258,7 @@ def next_value_trigger_control_charts(next_df, data_stats, time):
     ## if outside of bounds, print something in capital letters
     for src_dst, mean_stddev in data_stats.iteritems():
         #print "src_dst value: ", src_dst, "mean_stddev value: ", mean_stddev
-        next_val = next_df.loc[ src_dst[0], src_dst[1`] ]
+        next_val = next_df.loc[ src_dst[0], src_dst[1] ]
         mean, stddev = mean_stddev[0], mean_stddev[1]
         if abs(next_val - mean) > (2 * stddev):
             #print "THIS IS THE POOR MAN'S EQUIVALENT OF AN ALARM!!", src_dst, mean_stddev
@@ -303,18 +307,21 @@ def detect_pca_anom(pca_explained_vars):
             anom_scores.append('invalid')
     return anom_scores
 
-# TODO: only detect stuff after start_analyze_time
+# TODO: test!!
 def calc_tp_fp_etc(algo_name, exfils, warning_times, exp_time, start_analyze_time):
     attack_times = exfils.keys()
+    print attack_times, warning_times
     total_attacks = len(attack_times)
     true_attacks_found = 0
+    warning_times_after_strt_analyze = [time for time in warning_times if time >= start_analyze_time]
     for attack_time in attack_times:
-        if attack_time in warning_times:
+        if attack_time in warning_times_after_strt_analyze:
             true_attacks_found = attacks_found + 1
     true_attacks_missed = total_attacks - true_attacks_found
-    false_attacks_found = len(warning_times) - true_attacks_found
-    total_negatives = (exp_time/5) - total_attacks
+    false_attacks_found = len(warning_times_after_strt_analyze) - true_attacks_found
+    total_negatives = ((exp_time-start_analyze_time)/5) - total_attacks
     true_negatives_found = total_negatives - false_attacks_found
+    print "TPs", true_attacks_found, "FPs", false_attacks_found
     return {algo_name: {"TPR": (true_attacks_found)/total_attacks, 
                         "FPR" : (false_attacks_found) / true_negatives_found, 
                         "FNR" : (true_attacks_missed) / (true_attacks_found + true_attacks_missed),
@@ -330,7 +337,7 @@ def diagnose_anom_pca(old_dfs, cur_df, n_components):
     mod_old_dfs = old_dfs.set_index(['time'], append = True )
     print mod_old_dfs
     converted_dfs = mod_old_dfs.unstack(level = 0)
-    print converted dfs
+    print converted_dfs
     mod_cur_df = cur_df.set_index(['time'], append = True)
     converted_cur_df = mod_cur_df.unstack(level = 0)
     print converted_cur_df
