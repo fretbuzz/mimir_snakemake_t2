@@ -77,8 +77,8 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
     for time in range(1,len(times)-1):
         next_df_sent = df_sent[ df_sent['time'].isin([times[time]])]
         next_df_rec = df_rec[ df_rec['time'].isin([times[time]])]
-        warnings_sent = next_value_trigger_control_charts(next_df_sent, df_sent_control_stats[time], times[time])
-        warnings_rec = next_value_trigger_control_charts(next_df_rec, df_rec_control_stats[time], times[time])
+        warnings_sent,warning_times = next_value_trigger_control_charts(next_df_sent, df_sent_control_stats[time], times[time])
+        warnings_rec,warning_times = next_value_trigger_control_charts(next_df_rec, df_rec_control_stats[time], times[time])
         control_charts_warning_sent.append(warnings_sent)
         control_charts_warning_rec.append(warnings_rec)
     print "these are the warnings from the control charts: (for data that is sent): "
@@ -238,17 +238,19 @@ def get_times(df):
 # an alarm via control chart anomaly detection
 def next_value_trigger_control_charts(next_df, data_stats, time):
     warnings_triggered = []
+    warning_times = []
     ## iterate through values of data_stats
     ## get value from traffic matrix
     ## if outside of bounds, print something in capital letters
     for src_dst, mean_stddev in data_stats.iteritems():
         #print "src_dst value: ", src_dst, "mean_stddev value: ", mean_stddev
-        next_val = next_df.loc[ src_dst[0], src_dst[1] ]
+        next_val = next_df.loc[ src_dst[0], src_dst[1`] ]
         mean, stddev = mean_stddev[0], mean_stddev[1]
         if abs(next_val - mean) > (2 * stddev):
             #print "THIS IS THE POOR MAN'S EQUIVALENT OF AN ALARM!!", src_dst, mean_stddev
-            warnings_triggered.append([src_dst, mean_stddev, time])
-    return warnings_triggered
+            warnings_triggered.append([src_dst[0], src_dst[1], time, mean_stddev])
+            warning_times.append(time)
+    return warnings_triggered, warning_times
 
 # this function will determine how well PCA can fit the data
 # okay, I'm going to follow the method from Ding's 'PCA-based
@@ -290,6 +292,22 @@ def detect_pca_anom(pca_explained_vars):
             #print "welp, it's zero :("
             anom_scores.append('invalid')
     return anom_scores
+
+def calc_tp_fp_etc(algo_name, exfils, warning_times, exp_time):
+    attack_times = exfils.keys()
+    total_attacks = len(attack_times)
+    true_attacks_found = 0
+    for attack_time in attack_times:
+        if attack_time in warning_times:
+            true_attacks_found = attacks_found + 1
+    true_attacks_missed = total_attacks - true_attacks_found
+    false_attacks_found = len(warning_times) - true_attacks_found
+    total_negatives = (exp_time/5) - total_attacks
+    true_negatives_found = total_negatives - false_attacks_found
+    return {algo_name: {"TPR": (true_attacks_found)/total_attacks, 
+                        "FPR" : (false_attacks_found) / true_negatives_found, 
+                        "FNR" : (true_attacks_missed) / (true_attacks_found + true_attacks_missed),
+                        "TNR" : true_negatives_found / total_negatives}}
 
 # following method in Lakhina's "Diagnosing
 # Network-Wide Traffic Anomalies" (sigcomm '04)
@@ -341,7 +359,7 @@ def diagnose_anom_pca(old_dfs, cur_df, n_components):
     # I could theoretically, get fancy with skikit-learn, but
     # it is probably better just to form the matrixes described
     # in the paper and carry out the designated computations
-    
+        
     # seventh, compute threshold for the  squared prediction 
     # error (SPE) via the Q-statistic
 

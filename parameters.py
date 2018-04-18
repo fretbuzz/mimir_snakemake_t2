@@ -63,4 +63,4 @@ display_rec_svc_pair = [ ['front-end', 'user' ], ['front-end', 'orders' ], ['use
 exfils = {40 : 50000, 90 : 100000}
 
 #### TODO: How much data to exfiltrate? Or is that already handled
-#### by the loading-the-database parameter (cause it steals all of it)a
+#### by the loading-the-database parameter (cause it steals all of it)
