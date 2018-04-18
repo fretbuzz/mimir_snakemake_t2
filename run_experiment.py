@@ -14,6 +14,7 @@ import meta_parameters
 import errno
 from exfil_data_v2 import how_much_data
 from analyze_traffix_matrixes import simulate_incoming_data 
+import pickle
 
 def main(restart_kube, setup_sock, multiple_experiments):
     if restart_kube == "y":
@@ -36,6 +37,7 @@ def run_series_of_experiments():
 
     exfils = meta_parameters.exfils
 
+    all_experimental_results = {}
     ## second, want a loop through the exfils values (pre and post incremnet)
     for current_increment in range(0, meta_parameters.number_increments):
 
@@ -45,7 +47,7 @@ def run_series_of_experiments():
             rec_matrx_loc = experimental_directory + '/rec_matrix_increm_' + str(current_increment) + '_rep_' + str(rep) +'.pickle' 
             sent_matrix_loc = experimental_directory + '/sent_matrix_increm_' + str(current_increment) + '_rep_' + str(rep) +'.pickle'
             graph_name = meta_parameters.experiment_name + "_increm_" + str(current_increment) + '_rep_' + str(rep)
-            run_experiment(num_background_locusts = meta_parameters.num_background_locusts,
+            exp_results = run_experiment(num_background_locusts = meta_parameters.num_background_locusts,
                 rate_spawn_background_locusts = meta_parameters.rate_spawn_background_locusts,
                 desired_stop_time = meta_parameters.desired_stop_time,
                 exfils = exfils,
@@ -59,9 +61,16 @@ def run_series_of_experiments():
                 exp_time = meta_parameters.desired_stop_time,
                 start_analyze_time = meta_parameters.start_analyze_time)
         
+            # will eventually be passed to the graphing function
+            all_experimental_results[(rep, current_increment)] = exp_results
+
         # performs the increments on the data exfiltration dictionary
         for key,val in exfils.iteritems():
             exfils[key] = val +  meta_parameters.exfil_increments[key]
+    
+    ## TODO: graph all_experimental_results (but let's get this value to contain something meaningful first)
+    
+    print all_experimental_results
 
 def restart_minikube():
     # no point checking, just trying stopping + deleteing
@@ -342,7 +351,7 @@ def run_experiment(num_background_locusts = parameters.num_background_locusts,
     # (which it does not do yet)
     print "About to analyze traffic matrices...."
     print "Should traffic graphs be displayed: ",display_graphs_p 
-    out = simulate_incoming_data(rec_matrix_location = rec_matrix_location, send_matrix_location = sent_matrix_location, 
+    exp_results = simulate_incoming_data(rec_matrix_location = rec_matrix_location, send_matrix_location = sent_matrix_location, 
                             display_sent_svc_pair = display_sent_svc_pair, 
                             display_rec_svc_pair  = display_rec_svc_pair,
                             display_graphs = display_graphs_p,
@@ -352,13 +361,14 @@ def run_experiment(num_background_locusts = parameters.num_background_locusts,
                             start_analyze_time = start_analyze_time)
     # don't actually need to start a new process for analysis purposes
     #subprocess.check_output(["python", "analyze_traffix_matrixes.py", rec_matrix_location, sent_matrix_location])
-    print out
+    #print out
 
     # Sixth, what is the FP / FN / TP / TN ??
     #### TODO (prob need to write a function for this + need to fix analyze_traffic_matrixes)
-
-    
+    ## implemented in above function
+ 
     print "Experiment complete!!"
+    return exp_results
 
 # kc_out is the result from a "kubectl get" command
 # desired_chunks is a list of the non-zero chunks in each

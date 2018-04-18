@@ -78,6 +78,8 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
     # starts at 1, b/c everyting has time stddev 0 at time 0, so everything would trigger a warning
     control_charts_warning_sent = []
     control_charts_warning_rec = []
+    control_charts_warning_times_sent = []
+    control_charts_warning_times_rec = []
     for time in range(1,len(times)-1):
         next_df_sent = df_sent[ df_sent['time'].isin([times[time]])]
         next_df_rec = df_rec[ df_rec['time'].isin([times[time]])]
@@ -85,10 +87,12 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
         warnings_rec,warning_times_rec = next_value_trigger_control_charts(next_df_rec, df_rec_control_stats[time], times[time])
         control_charts_warning_sent.append(warnings_sent)
         control_charts_warning_rec.append(warnings_rec)
+        control_charts_warning_times_sent += warning_times_sent
+        control_charts_warning_times_rec += warning_times_rec
     print "these are the warnings from the control charts: (for data that is sent): "
-    print control_charts_warning_sent
+    print control_charts_warning_sent,"just times:", warning_times_sent
     # combine the two sets of warning times (delete duplicates)
-    all_control_chart_warning_times = list(set(warning_times_sent + warning_times_rec))
+    all_control_chart_warning_times = list(set(control_charts_warning_times_sent + control_charts_warning_times_rec))
     print all_control_chart_warning_times
     # then calc TP/TN/FP/FN
     performance_results = calc_tp_fp_etc("control charts", exfils, all_control_chart_warning_times, 
@@ -264,6 +268,7 @@ def next_value_trigger_control_charts(next_df, data_stats, time):
             #print "THIS IS THE POOR MAN'S EQUIVALENT OF AN ALARM!!", src_dst, mean_stddev
             warnings_triggered.append([src_dst[0], src_dst[1], time, mean_stddev])
             warning_times.append(time)
+        #print "current warning times: ", warning_times
     return warnings_triggered, warning_times
 
 # this function will determine how well PCA can fit the data
