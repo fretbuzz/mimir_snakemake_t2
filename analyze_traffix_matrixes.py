@@ -50,8 +50,12 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
         display_sent_svc_pair = parameters.display_sent_svc_pair,
         display_rec_svc_pair  =  parameters.display_rec_svc_pair,
         graph_names = './experimental_data/' + parameters.graph_names,
-        display_graphs = False):
-    
+        display_graphs = False,
+        exfils = parameters.exfils,
+        exp_time = parameters.desired_stop_time,
+        start_analyze_time = parameters.start_analyze_time):
+ 
+    experiment_results = {} # this is going to contain all the algo's performance metrics
     print "hello world"
     df_sent = pd.read_pickle(send_matrix_location)
     df_rec = pd.read_pickle(rec_matrix_location)
@@ -83,6 +87,11 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
         control_charts_warning_rec.append(warnings_rec)
     print "these are the warnings from the control charts: (for data that is sent): "
     print control_charts_warning_sent
+    # combine the two sets of warning times (delete duplicates)
+    ## INSERT IT HERE
+    # then calc TP/TN/FP/FN
+    #perfomance_results = calc_tp_fp_etc("control charts", exfils, control_chart_warning_times, exp_time, start_analyze_time)
+    # experiment_results.update(performance_results)
 
     # okay, we are going to try PCA-based analysis here
     print "about to try PCA anom detection!"
@@ -105,6 +114,7 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
     if display_graphs:
         plt.show()
 
+    # return performance_results
 
 # this function just generates graphs
 # sent_data_for_display is a dictionary of data about the sent traffic matrixc
@@ -293,7 +303,8 @@ def detect_pca_anom(pca_explained_vars):
             anom_scores.append('invalid')
     return anom_scores
 
-def calc_tp_fp_etc(algo_name, exfils, warning_times, exp_time):
+# TODO: only detect stuff after start_analyze_time
+def calc_tp_fp_etc(algo_name, exfils, warning_times, exp_time, start_analyze_time):
     attack_times = exfils.keys()
     total_attacks = len(attack_times)
     true_attacks_found = 0

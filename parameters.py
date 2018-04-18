@@ -62,5 +62,8 @@ display_rec_svc_pair = [ ['front-end', 'user' ], ['front-end', 'orders' ], ['use
 ## note: leave empty if you want never
 exfils = {40 : 50000, 90 : 100000}
 
+# how long into experiment before analyze?
+start_analyze_time = 5
+
 #### TODO: How much data to exfiltrate? Or is that already handled
 #### by the loading-the-database parameter (cause it steals all of it)

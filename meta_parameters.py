@@ -92,3 +92,6 @@ display_rec_svc_pair = [ ['front-end', 'user' ], ['front-end', 'orders' ], ['use
 
 # should graphs be displayed after every experiment
 display_graphs = False
+
+# how long into experiment before analyze?
+start_analyze_time = 5

@@ -54,7 +54,10 @@ def run_series_of_experiments():
                 display_sent_svc_pair = meta_parameters.display_sent_svc_pair, 
                 display_rec_svc_pair  = meta_parameters.display_rec_svc_pair,
                 display_graphs_p = meta_parameters.display_graphs,
-                names_graphs = experimental_directory + '/' + graph_name)
+                names_graphs = experimental_directory + '/' + graph_name,
+                exfils = meta_parameters.exfils,
+                exp_time = meta_parameters.desired_stop_time,
+                start_analyze_time = meta_parameters.start_analyze_time)
         
         # performs the increments on the data exfiltration dictionary
         for key,val in exfils.iteritems():
@@ -273,7 +276,10 @@ def run_experiment(num_background_locusts = parameters.num_background_locusts,
         display_sent_svc_pair = parameters.display_sent_svc_pair, 
         display_rec_svc_pair  = parameters.display_rec_svc_pair,
         display_graphs_p = parameters.display_graphs,
-        names_graphs = './experimental_data/' + parameters.graph_names):
+        names_graphs = './experimental_data/' + parameters.graph_names,
+        exfils = parameters.exfils,
+        exp_time = parameters.desired_stop_time,
+        start_analyze_time = parameters.start_analyze_time):
     
     ## okay, this is where the experiment is actualy going to be implemented (the rest is all setup)
     ## 0th step: determine how much data each of the data exfiltration calls gets so we can plan the exfiltration
@@ -340,7 +346,10 @@ def run_experiment(num_background_locusts = parameters.num_background_locusts,
                             display_sent_svc_pair = display_sent_svc_pair, 
                             display_rec_svc_pair  = display_rec_svc_pair,
                             display_graphs = display_graphs_p,
-                            graph_names = names_graphs)
+                            graph_names = names_graphs,
+                            exfils = exfils,
+                            exp_time = exp_time,
+                            start_analyze_time = start_analyze_time)
     # don't actually need to start a new process for analysis purposes
     #subprocess.check_output(["python", "analyze_traffix_matrixes.py", rec_matrix_location, sent_matrix_location])
     print out
