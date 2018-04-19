@@ -245,7 +245,7 @@ class TestAnalyzeMatrices(unittest.TestCase):
 
         self.assertEqual(results[algo_name]['TPR'], float(1)/2)
         self.assertEqual(results[algo_name]['TNR'], float(25)/(8 + 25))
-        self.assertEqual(results[algo_name]['FPR'], 8.0/(8 + 25))
+        self.assertEqual(results[algo_name]['FPR'], 8.0/(8 + 1))
         self.assertEqual(results[algo_name]['FNR'], 1.0/(25 + 1))
 
 

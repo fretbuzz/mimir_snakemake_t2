@@ -356,7 +356,6 @@ def detect_pca_anom(pca_explained_vars):
             anom_scores.append('invalid')
     return anom_scores
 
-# TODO: test!!
 def calc_tp_fp_etc(algo_name, exfils, warning_times, exp_time, start_analyze_time):
     print "calc_tp_fp_etc: ", algo_name, exfils, warning_times, exp_time, start_analyze_time
     attack_times = exfils.keys()
@@ -372,8 +371,8 @@ def calc_tp_fp_etc(algo_name, exfils, warning_times, exp_time, start_analyze_tim
     total_negatives = ((exp_time-start_analyze_time)/5.0) - total_attacks
     true_negatives_found = total_negatives - false_attacks_found
     print "TPs", true_attacks_found, "FPs", false_attacks_found, "Total negs", total_negatives, "TNs",  true_negatives_found
-    return {algo_name: {"TPR":  (float(true_attacks_found) /total_attacks),
-                        "FPR" : float(false_attacks_found) / (false_attacks_found + true_negatives_found), 
+    return {algo_name: {"TPR":  (float(true_attacks_found) / (true_attacks_found + true_attacks_missed)),
+                        "FPR" : float(false_attacks_found) / (false_attacks_found + true_attacks_found), 
                         "FNR" : float(true_attacks_missed) / (true_negatives_found + true_attacks_missed),
                         "TNR" : float(true_negatives_found) / total_negatives}}
 
