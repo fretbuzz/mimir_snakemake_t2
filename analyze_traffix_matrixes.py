@@ -188,6 +188,23 @@ def traffic_matrix_to_svc_pair_list(df):
             svcs_to_val_list[src_svc, dst_svc] = df.loc[src_svc, dst_svc].tolist()
     return svcs_to_val_list
 
+def three_tier_time_aggreg(dfs):
+    aggreg_dfs = pd.DataFrame()
+
+    times = get_times(dfs)
+    df_time_slices = []
+    for time_index in range(0,len(times)):
+        time = times[time_index]
+        current_df = dfs[ dfs['time'].isin([time])]
+        df_time_slices.append(current_df)
+
+    for df in df_time_slices:
+        #print "df", df
+        aggreg_df = aggregate_into_three_tier(df)
+        aggreg_df['time'] = df['time'][0] # should all be the same anyway
+        aggreg_dfs = aggreg_dfs.append(aggreg_df)
+    return aggreg_dfs
+
 # df -> (3x3)df
 # this modifies the data so it matches what it would look like in the
 # case of a traditional 3-tier web application
@@ -197,11 +214,14 @@ def aggregate_into_three_tier(df):
             'application':[0, 0, 0], 'data':[0,0,0]}
     three_tier_df = pd.DataFrame(data)
     three_tier_df = three_tier_df.set_index('tier')
-    print three_tier_df
-    for service in services:
-        if 'front-end' in services:
+    #print three_tier_df
+    not_core_svc = ['load-test', '127.0.0.1', '172.17.0.1']
+    core_svc = [svc for svc in services if svc not in not_core_svc]
+    for service in core_svc:
+        #print three_tier_df
+        if 'front-end' in service:
             ## it's presentation tier
-            for dest_service in services:
+            for dest_service in core_svc:
                 if 'front-end' in dest_service:
                     pass # will not show up in aggregate
                 elif 'db' in dest_service:
@@ -213,7 +233,7 @@ def aggregate_into_three_tier(df):
                             + df.loc[service, dest_service])
         elif 'db' in service:
             ## it's data tier
-            for dest_service in services:
+            for dest_service in core_svc:
                 if 'front-end' in dest_service:
                     three_tier_df.set_value('data', 'presentation',  
                             three_tier_df.loc['data', 'presentation'] + df.loc[service, dest_service])
@@ -224,7 +244,7 @@ def aggregate_into_three_tier(df):
                             three_tier_df.loc['data', 'application'] + df.loc[service, dest_service])
         else:
             ## it's application tier
-            for dest_service in services:
+            for dest_service in core_svc:
                 if 'front-end' in dest_service:
                     three_tier_df.set_value('application', 'presentation',  
                             three_tier_df.loc['application', 'presentation'] + df.loc[service, dest_service])
