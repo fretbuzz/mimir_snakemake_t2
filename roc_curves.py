@@ -11,12 +11,26 @@ algo = 'control charts'
 def roc_charts(all_experimental_results):
     tpr = []
     fpr = []
+    tpr_fpr = []
     plt.figure(1)
     #print "exp results:",all_experimental_results
     for exp in all_experimental_results.values():
         #print exp[algo]  
-        tpr.append( exp[algo]['TPR'] )
-        fpr.append( exp[algo]['FPR'] )
+        tpr_fpr.append( (exp[algo]['TPR'], exp[algo]['FPR'])  )
+        #tpr.append( exp[algo]['TPR'] )
+        #fpr.append( exp[algo]['FPR'] )
+
+    fpr = list(set([fpr[1] for fpr in tpr_fpr]))
+
+    print tpr_fpr
+    for rate in fpr:
+        tpr_total = 0
+        total_rates = 0
+        for item in tpr_fpr:
+            if item[1] == rate:
+                tpr_total += item[0]
+                total_rates += 1
+        tpr.append(float(tpr_total) / total_rates)
 
     print "tpr", tpr
     print "fpr", fpr
