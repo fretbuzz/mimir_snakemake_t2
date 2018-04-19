@@ -57,19 +57,19 @@ def run_series_of_experiments():
                 display_rec_svc_pair  = meta_parameters.display_rec_svc_pair,
                 display_graphs_p = meta_parameters.display_graphs,
                 names_graphs = experimental_directory + '/' + graph_name,
-                exfils = meta_parameters.exfils,
                 exp_time = meta_parameters.desired_stop_time,
                 start_analyze_time = meta_parameters.start_analyze_time)
         
             # will eventually be passed to the graphing function
-            all_experimental_results[(rep, current_increment)] = exp_results
+            # NOTE: we are assuming that all the exfils in an exp are the same size
+            all_experimental_results[(rep, exfils.values()[0])] = exp_results
 
         # performs the increments on the data exfiltration dictionary
         for key,val in exfils.iteritems():
             exfils[key] = val +  meta_parameters.exfil_increments[key]
-    
+
     ## TODO: graph all_experimental_results (but let's get this value to contain something meaningful first)
-    
+    pickle.dump( all_experimental_results, open( experimental_directory + '/all_experimental_results.pickle', "wb" ) )
     print all_experimental_results
 
 def restart_minikube():
@@ -286,7 +286,6 @@ def run_experiment(num_background_locusts = parameters.num_background_locusts,
         display_rec_svc_pair  = parameters.display_rec_svc_pair,
         display_graphs_p = parameters.display_graphs,
         names_graphs = './experimental_data/' + parameters.graph_names,
-        exfils = parameters.exfils,
         exp_time = parameters.desired_stop_time,
         start_analyze_time = parameters.start_analyze_time):
     

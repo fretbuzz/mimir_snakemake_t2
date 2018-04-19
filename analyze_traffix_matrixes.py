@@ -188,6 +188,50 @@ def traffic_matrix_to_svc_pair_list(df):
             svcs_to_val_list[src_svc, dst_svc] = df.loc[src_svc, dst_svc].tolist()
     return svcs_to_val_list
 
+# df -> (3x3)df
+# this modifies the data so it matches what it would look like in the
+# case of a traditional 3-tier web application
+def aggregate_into_three_tier(df):
+    data = {'tier': ['presentation', 'application', 'data'], 'presentation': [0,0,0], 
+            'application':[0, 0, 0], 'data':[0,0,0]}
+    three_tier_df = pd.dataframe(data)
+    three_tier_df.set_index('tier')
+    for service in services:
+        if 'front-end' in services:
+            ## it's presentation tier
+            for dest_service in services:
+                if 'front-end' in dest_service:
+                    pass # will not show up in aggregate
+                elif 'db' in dest_service:
+                    three_tier_df.set_value('presentation', 'data', 
+                            three_tier_df.loc('presentation', 'data') + df.loc(service, dest_service))
+                else: # this will be application tier
+                    three_tier_df.set_value('presentation', 'application',  
+                            three_tier_df.loc('presentation', 'application') + df.loc(service, dest_service))
+        elif 'db' in service:
+            ## it's data tier
+            for dest_service in services:
+                if 'front-end' in dest_service:
+                    three_tier_df.set_value('data', 'presentation',  
+                            three_tier_df.loc('data', 'presentation') + df.loc(service, dest_service))
+                elif 'db' in dest_service:
+                    pass
+                else:
+                    three_tier_df.set_value('data', 'application',  
+                            three_tier_df.loc('data', 'application') + df.loc(service, dest_service))
+        else:
+            ## it's application tier
+            for dest_service in services:
+                if 'front-end' in dest_service:
+                    three_tier_df.set_value('application', 'presentation',  
+                            three_tier_df.loc('application', 'presentation') + df.loc(service, dest_service))
+                elif 'db' in dest_service:
+                    three_tier_df.set_value('application', 'data',
+                            three_tier_df.loc('application', 'data') + df.loc(service, dest_service))
+                else:
+                    pass
+    return three_tier_df
+
 # result is {['src', 'dst'] : [list of values at the time intervals]}
 # at the moment, it is going to deal soley with the control_chart_stats stuff
 def generate_service_pair_arrays(stats, times):
@@ -320,7 +364,7 @@ def calc_tp_fp_etc(algo_name, exfils, warning_times, exp_time, start_analyze_tim
     true_attacks_found = 0
     warning_times_after_strt_analyze = [time for time in warning_times if time >= start_analyze_time]
     for attack_time in attack_times:
-        if attack_time in warning_times_after_strt_analyze:
+        if attack_time in [int(time) for time in warning_times_after_strt_analyze]:
             true_attacks_found = attacks_found + 1
     true_attacks_missed = total_attacks - true_attacks_found
     false_attacks_found = len(warning_times_after_strt_analyze) - true_attacks_found
