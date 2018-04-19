@@ -248,6 +248,11 @@ class TestAnalyzeMatrices(unittest.TestCase):
         self.assertEqual(results[algo_name]['FPR'], 8.0/(8 + 1))
         self.assertEqual(results[algo_name]['FNR'], 1.0/(25 + 1))
 
+    def test_three_tier_integration(self):
+        df_sent_time_slices = generate_time_slice_dfs(self.df_sent)
+        df_aggreg = aggregate_into_three_tier(df_sent_time_slices[0])
+        print df_aggreg
+        
 
 if __name__ == "__main__":
     unittest.main()

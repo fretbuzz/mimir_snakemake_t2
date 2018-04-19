@@ -191,11 +191,13 @@ def traffic_matrix_to_svc_pair_list(df):
 # df -> (3x3)df
 # this modifies the data so it matches what it would look like in the
 # case of a traditional 3-tier web application
+# problem: this only works on a single time-slice
 def aggregate_into_three_tier(df):
     data = {'tier': ['presentation', 'application', 'data'], 'presentation': [0,0,0], 
             'application':[0, 0, 0], 'data':[0,0,0]}
-    three_tier_df = pd.dataframe(data)
-    three_tier_df.set_index('tier')
+    three_tier_df = pd.DataFrame(data)
+    three_tier_df = three_tier_df.set_index('tier')
+    print three_tier_df
     for service in services:
         if 'front-end' in services:
             ## it's presentation tier
@@ -204,30 +206,31 @@ def aggregate_into_three_tier(df):
                     pass # will not show up in aggregate
                 elif 'db' in dest_service:
                     three_tier_df.set_value('presentation', 'data', 
-                            three_tier_df.loc('presentation', 'data') + df.loc(service, dest_service))
+                            three_tier_df.loc['presentation', 'data'] + df.loc[service, dest_service])
                 else: # this will be application tier
                     three_tier_df.set_value('presentation', 'application',  
-                            three_tier_df.loc('presentation', 'application') + df.loc(service, dest_service))
+                            three_tier_df.loc['presentation', 'application'] 
+                            + df.loc[service, dest_service])
         elif 'db' in service:
             ## it's data tier
             for dest_service in services:
                 if 'front-end' in dest_service:
                     three_tier_df.set_value('data', 'presentation',  
-                            three_tier_df.loc('data', 'presentation') + df.loc(service, dest_service))
+                            three_tier_df.loc['data', 'presentation'] + df.loc[service, dest_service])
                 elif 'db' in dest_service:
                     pass
                 else:
                     three_tier_df.set_value('data', 'application',  
-                            three_tier_df.loc('data', 'application') + df.loc(service, dest_service))
+                            three_tier_df.loc['data', 'application'] + df.loc[service, dest_service])
         else:
             ## it's application tier
             for dest_service in services:
                 if 'front-end' in dest_service:
                     three_tier_df.set_value('application', 'presentation',  
-                            three_tier_df.loc('application', 'presentation') + df.loc(service, dest_service))
+                            three_tier_df.loc['application', 'presentation'] + df.loc[service, dest_service])
                 elif 'db' in dest_service:
                     three_tier_df.set_value('application', 'data',
-                            three_tier_df.loc('application', 'data') + df.loc(service, dest_service))
+                            three_tier_df.loc['application', 'data'] + df.loc[service, dest_service])
                 else:
                     pass
     return three_tier_df
@@ -426,10 +429,19 @@ def diagnose_anom_pca(old_dfs, cur_df, n_components):
     # I could theoretically, get fancy with skikit-learn, but
     # it is probably better just to form the matrixes described
     # in the paper and carry out the designated computations
-    
+    # SO, take each principal component, and make it a row in the 
+    # corresponding matrix
+    P = np.array(pca.components_[0]) # this one has got to not be anomolous
+    for i in range(1, anom_thresh):
+        P = vstack(P, pca.components_[i])
+    C = P * np.transpose(P)
+    y_circum = C * mod_cur_df
+    y_tilda = (1 - C) * mod_cur_df
 
     # seventh, compute threshold for the  squared prediction 
     # error (SPE) via the Q-statistic
+    #phi_1 = ?
+    #h_naught = 1 - ? 
 
     # eighth, compare SPE to threshold to determine if anomaly occurs
 
