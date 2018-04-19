@@ -468,37 +468,51 @@ def diagnose_anom_pca(old_dfs, cur_df, n_components):
 # following method given in Ide's "Eigenspace-based Anomaly Detection in
 # Computer Systems"
 def eigenvector_based_detector(old_u, current_tm, window_size, crit_bound, old_z_first_mom, old_z_sec_mom):
+    #### TODO: change to using TruncatedSVD (b/c finding eig of singular matrix is kinda complicated)
     # first, find the principle eigenvector of the traffic matrix
+    print "shape: ", current_tm.shape, current_tm
     eigenvals, unit_eigenvect = np.linalg.eig(current_tm)   
     # principle eigenvector has largest associated eigenvalue
     largest_eigenval_index = np.argmax(eigenvals)
     princip_eigenvect = unit_eigenvect[largest_eigenval_index]
+    print "pprincip_eigenvect", princip_eigenvect
+    print "eigenvects", unit_eigenvect, eigenvals
 
     # second, obtain "typical pattern" of activity vector from old_u
     # this is the principal left singular vector
-    u,s,vh = np.linalg.svd(current_tm)
-    largest_signular_val_index = np.argmax(u)
-    princip_left_singular_vect = u[largest_signular_val_index]
+    print "size", np.shape(old_u), len(np.shape(old_u)), old_u
+    if len(np.shape(old_u)) > 1:
+        u,s,vh = np.linalg.svd(old_u)
+        largest_signular_val_index = np.argmax(u)
+        princip_left_singular_vect = u[largest_signular_val_index]
 
-    # third, compute z(t), the dissimilarity between the principal left
-    # singular vector and the principal eigenvector
-    z = 1 - princip_left_singular_vect * princip_eigenvect # numpy auto transposes
-    # note: is 1 if orthogonal, is 0 if identical
+        # third, compute z(t), the dissimilarity between the principal left
+        # singular vector and the principal eigenvector
+        z = 1 - princip_left_singular_vect * princip_eigenvect # numpy auto transposes
+        # note: is 1 if orthogonal, is 0 if identical
 
-    # now compare z(t) with a threshold, using section 5.3
-    # approximate the MLE algorithm for the vMF distribution
-    beta = 0.005  ## TODO: determine via theory what this should be
-    z_first_moment = (1 - beta) * old_z_first_mom + beta * z
-    z_sec_moment = (1 - beta) * old_z_sec_mom + beta * (z ** 2)
-    n = ((2 * z_first_moment ** 2) / (z_sec_moment - z_first_moment ** 2)) + 1
-    sigma = (z_sec_moment - z_first_moment ** 2) / (2 * z_first_moment)
-    # find the specific threshold value
-    z_thresh = scipy.optimize.fsolve(vMF_thresh_func, 0, args=(n, sigma, crit_bound))
-    #do the actual comparison
-    if z > z_thresh:
-        return 1 # 1 is to signify an alert
+        # now compare z(t) with a threshold, using section 5.3
+        # approximate the MLE algorithm for the vMF distribution
+        beta = 0.005  ## TODO: determine via theory what this should be
+        z_first_moment = (1 - beta) * old_z_first_mom + beta * z
+        z_sec_moment = (1 - beta) * old_z_sec_mom + beta * (z ** 2)
+        n = ((2 * z_first_moment ** 2) / (z_sec_moment - z_first_moment ** 2)) + 1
+        sigma = (z_sec_moment - z_first_moment ** 2) / (2 * z_first_moment)
+        # find the specific threshold value
+        z_thresh = scipy.optimize.fsolve(vMF_thresh_func, 0, args=(n, sigma, crit_bound))
+        #do the actual comparison, but first modify u
+        if old_u.shape[1] >= window_size:
+            np.delete(old_u, 0, 0)# get rid of old column (outside of window)
+        old_u = np.hstack((old_u,princip_eigenvect))
+        print np.size(old_u)
+        if z > z_thresh:
+            return 1, old_u, z_first_moment, z_sec_moment  # 1 = an alert
+        else:
+            return 0, old_u, z_first_moment, z_sec_moment  # 0 = no alert
     else:
-        return 0 # 0 is to signify that there is no alert
+        #old_u = princip_eigenvect
+        old_u = np.hstack((old_u,princip_eigenvect))
+        return 0, old_u, 0, 0  # 0 = no alert
 
 def vMF_pdf_func(z, n, sigma):
     denom = (2* sigma) ** ((n-1)/2) * scipy.special.gamma((n-1)/2)

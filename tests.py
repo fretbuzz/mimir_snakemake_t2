@@ -266,5 +266,16 @@ class TestAnalyzeMatrices(unittest.TestCase):
         three_tier_rec = three_tier_time_aggreg(self.df_rec)
         print three_tier_rec
 
+    def test_eigenspace__based_detection(self):
+        times = get_times(self.df_sent)
+        old_u = np.array([])
+        z_first_moment = 0
+        z_sec_moment = 0
+        for time_index in range(0,len(times)):
+            time = times[time_index]
+            current_df = self.df_sent[ self.df_sent['time'].isin([time])]
+            alarm_p, old_u, z_first_moment, z_sec_moment = eigenvector_based_detector(old_u, current_df.drop(['time'], axis=1), 5, 0.03, z_first_moment, z_sec_moment)
+            print alarm_p
+
 if __name__ == "__main__":
     unittest.main()
