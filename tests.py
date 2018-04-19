@@ -235,6 +235,18 @@ class TestAnalyzeMatrices(unittest.TestCase):
         self.assertAlmostEqual(rec_control_charts['catalogue', 'catalogue-db'][0], 23060.25, places=6)
         self.assertAlmostEqual(rec_control_charts['catalogue', 'catalogue-db'][1], 3655.819413, places=6)
 
+    def test_calc_tp_fp_etc(self):
+        algo_name = 'control charts' 
+        exfils = {40: 0, 90: 0} 
+        warning_times = [120.09988307952881, 145.11183190345764, 155.11658310890198, 90.0744960308075, 135.107980966568, 115.09545803070068, 165.1260359287262, 130.1061270236969, 65.05122900009155] 
+        exp_time = 180 
+        start_analyze_time = 5
+        results = calc_tp_fp_etc(algo_name, exfils, warning_times, exp_time, start_analyze_time)
+
+        self.assertEqual(results[algo_name]['TPR'], float(1)/2)
+        self.assertEqual(results[algo_name]['TNR'], float(25)/(8 + 25))
+        self.assertEqual(results[algo_name]['FPR'], 8.0/(8 + 25))
+        self.assertEqual(results[algo_name]['FNR'], 1.0/(25 + 1))
 
 
 if __name__ == "__main__":
