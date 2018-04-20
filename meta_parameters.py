@@ -46,7 +46,7 @@ rate_spawn_background_locusts = "1" # /sec
 # so the experiment keeps running for 
 # desired_stop_time - desired_exfil_time
 # after data exfiltration has taken place
-desired_stop_time = 180
+desired_stop_time = 360
 
 ### END fine section
 
@@ -58,11 +58,11 @@ desired_stop_time = 180
 ## keys are times, values are the bytes to exfiltrate (in one 5 sec segment)
 ## note: the bytes should probably be close to some linear combo of the big API calls (see exfil_data_V2)
 ## note: leave empty if you want never
-exfils = {40 : 0, 90 : 0}
+exfils = {80 : 0, 180 : 0}
 
 ## this value specifies the increment(/decrement) for each of the exfils
 ## keys are times, values are increments, in bytes
-exfil_increments = {40: 25000, 90: 25000}
+exfil_increments = {80: 25000, 180: 25000}
 
 ## number of increments
 ## will run once using the 'exfils' values and then 
@@ -80,7 +80,7 @@ repeat_experiments = 3
 ## store all the files and graphs there, and maybe even a file
 ## that explains what each file is, b/c there is going to be 
 ## a lot of them.
-experiment_name = "test_2"
+experiment_name = "test_5_long"
 
 ## this is a list of the SENT svc_pair graphs that are displayed/saved
 ## Note: this list should be 1,2, or 4 items long

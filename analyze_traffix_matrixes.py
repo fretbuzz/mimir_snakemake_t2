@@ -469,6 +469,9 @@ def diagnose_anom_pca(old_dfs, cur_df, n_components):
 # Computer Systems"
 def eigenvector_based_detector(old_u, current_tm, window_size, crit_bound, old_z_first_mom, old_z_sec_mom):
     #### TODO: change to using TruncatedSVD (b/c finding eig of singular matrix is kinda complicated)
+    #### also, need to remove the uselss columns / rows from the TM (probably in the main loop above, tho)
+    #### FURTHER TODO: I am pretty sure that the attack actually executes 5 seconds after we think it does
+    #### b/c we start the attack right AFTER a measuremnt piont, so it doesn't show up until 5 seconds later
     # first, find the principle eigenvector of the traffic matrix
     print "shape: ", current_tm.shape, current_tm
     eigenvals, unit_eigenvect = np.linalg.eig(current_tm)   
