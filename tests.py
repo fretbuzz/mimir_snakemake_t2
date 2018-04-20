@@ -2,6 +2,7 @@ import unittest
 import json
 from pull_from_prom import *
 from analyze_traffix_matrixes import *
+import analyze_traffix_matrixes
 
 '''
 def mathTestSuite():
@@ -209,15 +210,16 @@ class TestAnalyzeMatrices(unittest.TestCase):
     def setUpClass(cls):
         cls.df_sent = pd.read_pickle('./tests/cumul_sent_matrix.pickle')
         cls.df_rec = pd.read_pickle('./tests/cumul_received_matrix.pickle')
-    ''' This is out of commision until it encorporates EWMA
+    
     # I guess the first thing to test is control_charts
     def test_control_charts(self):
+        '''
         #print self.df_sent
         #print self.df_rec
         sent_control_charts = control_charts(self.df_sent, True)
         rec_control_charts = control_charts(self.df_rec, False)
         # recall the output is in the form 
-        # {[sending_svc, recieving_service]: [mean, standard_deviation]}
+        # {[sending_svc, recieving_service]: [ewma_mean, ewma_standard_deviation]}
         #print sent_control_charts, "\n"
         #print rec_control_charts
         #print rec_control_charts['172.17.0.1', 'catalogue']
@@ -234,7 +236,24 @@ class TestAnalyzeMatrices(unittest.TestCase):
         self.assertAlmostEqual(rec_control_charts['carts', 'carts-db'][1], 73655.44176, places=5)
         self.assertAlmostEqual(rec_control_charts['catalogue', 'catalogue-db'][0], 23060.25, places=6)
         self.assertAlmostEqual(rec_control_charts['catalogue', 'catalogue-db'][1], 3655.819413, places=6)
-    '''
+        '''
+        # updates to test EWMAs
+
+        df_sent_slices = analyze_traffix_matrixes.generate_time_slice_dfs(self.df_sent)
+        df_sent_control_stats = []
+        prev_step_ewmas = empty_ewmas(analyze_traffix_matrixes.services, df_sent_slices[0])
+        for df in df_sent_slices:
+            prev_step_ewmas = control_charts(df, True,  prev_step_ewmas, 0.2, analyze_traffix_matrixes.services)
+            df_sent_control_stats.append(prev_step_ewmas)
+
+        self.assertAlmostEqual(df_sent_control_stats[-1]['front-end', 'orders'][0], 19549.152, places=6)
+        self.assertAlmostEqual(df_sent_control_stats[-1]['front-end', 'orders'][1], 2320.717711, places=6)
+
+        self.assertAlmostEqual(df_sent_control_stats[-1]['carts', 'carts-db'][0], 175882.224, places=5)
+        self.assertAlmostEqual(df_sent_control_stats[-1]['carts', 'carts-db'][1], 32595.44353, places=5)
+
+        self.assertAlmostEqual(df_sent_control_stats[-1]['catalogue', 'catalogue-db'][0], 142685.936, places=6)
+        self.assertAlmostEqual(df_sent_control_stats[-1]['catalogue', 'catalogue-db'][1], 9646.882507, places=6)
 
     def test_calc_tp_fp_etc(self):
         algo_name = 'control charts' 

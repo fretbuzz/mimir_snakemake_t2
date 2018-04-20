@@ -77,13 +77,13 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
     df_rec_time_slices = generate_time_slice_dfs(df_rec)
     df_sent_control_stats = []
     df_rec_control_stats = []
-    prev_step_ewmas = empty_ewmas(services)
+    prev_step_ewmas = empty_ewmas(services, df_sent_time_slices[0])
     lambda_ewma = 0.2 # TODO don't arbitrarily pick lambda
     for df in df_sent_time_slices:
         prev_step_ewmas = control_charts(df, True,  prev_step_ewmas, lambda_ewma, services)
         df_sent_control_stats.append(prev_step_ewmas)
         #print df
-    prev_step_ewmas = empty_ewmas(services)
+    prev_step_ewmas = empty_ewmas(services, df_rec_time_slices[0])
     for df in df_rec_time_slices:
         prev_step_ewmas = control_charts(df, False,  prev_step_ewmas, lambda_ewma, services)
         df_rec_control_stats.append(prev_step_ewmas)
@@ -97,11 +97,11 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
     three_tier_services = ['presentation', 'application', 'data']
     df_three_tier_sent_control_stats = []
     df_three_tier_rec_control_stats = []
-    prev_step_ewmas = empty_ewmas(three_tier_services)
+    prev_step_ewmas = empty_ewmas(three_tier_services, df_three_tier_sent_slices[0])
     for df in df_three_tier_sent_slices:
         prev_step_ewmas = control_charts(df, True,  prev_step_ewmas, lambda_ewma, three_tier_services)
         df_three_tier_sent_control_stats.append(prev_step_ewmas)
-    prev_step_ewmas = empty_ewmas(three_tier_services)
+    prev_step_ewmas = empty_ewmas(three_tier_services, df_three_tier_rec_slices[0])
     for df in df_three_tier_rec_slices:
         prev_step_ewmas = control_charts(df, False,  prev_step_ewmas, lambda_ewma, three_tier_services)
         df_three_tier_rec_control_stats.append(prev_step_ewmas)
@@ -367,7 +367,7 @@ def generate_time_slice_dfs(df):
         #print df_so_far
     return time_slices
 
-#### TODO : modify this to use EWMA per #32
+#### TODO : test this (b/c it's been modified to use EWMA)
 # this is the function to implement control channels
 # i.e. compute mean and standard deviation for each pod-pair
 # Note: is_send is 1 if it is the "send matrix", else zero
@@ -385,6 +385,7 @@ def control_charts(df, is_send, old_ewmas, lambda_ewma, df_services):
             #print old_ewmas[index_service, column_service] 
             new_ewma = old_ewmas[index_service, column_service][0] * (1 - lambda_ewma) + lambda_ewma * \
                     df.loc[df['time'] == time].loc[index_service, column_service]
+            #print index_service, column_service, new_ewma
             new_ewma_var = sqrt( ((lambda_ewma) / (2 - lambda_ewma)) * (relevant_traffic_values.std()**2))
             data_stats[index_service, column_service] = [new_ewma, new_ewma_var ]
     return data_stats
@@ -613,11 +614,11 @@ def vMF_pdf_func(z, n, sigma):
 def vMF_thresh_func(zth, n, sigma, crit_bound):
     return scipy.integrate.quad(vMF_pdf_func, zth, np.inf, args=(n,sigma)) - crit_bound
 
-def empty_ewmas(svcs):
+def empty_ewmas(svcs, df):
     data_stats = {}
     for index_service in svcs:
         for column_service in svcs:
-            data_stats[index_service, column_service] = [0,0]
+            data_stats[index_service, column_service] = [df.loc[index_service, column_service], 0]
     return data_stats
 
 if __name__=="__main__":
