@@ -131,6 +131,10 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
 
     if display_graphs:
         plt.show()
+    
+    # user sent to front end is particulary important to me b/c that's where data exfiltration
+    # happens
+    generate_graphs(sent_data_for_display, times, [['front-end', 'user' ]], True, graph_names + "_user_sent_front_graphs")
 
     # return experiment results, all ready for aggregation
     return experiment_results
@@ -147,7 +151,7 @@ def generate_graphs(data_for_display, times, src_pairs_to_display, is_sent, grap
 
     if len(src_pairs_to_display) == 1:
         columns,rows = 1,1
-        plt.figure(figsize=(5, 4))
+        plt.figure(figsize=(32, 20))
     elif len(src_pairs_to_display) == 2:
         rows = 2
         columns = 1
@@ -311,6 +315,11 @@ def control_charts(df, is_send):
             #print relevant_traffic_values, type(relevant_traffic_values)
             #if relevant_traffic_values.mean() != 0:
             data_stats[index_service, column_service] = [relevant_traffic_values.mean(), relevant_traffic_values.std()]
+            # so here is the implementation plan for EWMA
+            # Y(T) can be calculated via the equation (NEED TO ADD PARAM for lambda and old val)
+            # S^2(ewma) can be calced from equation be using the above code to find stddev
+            # then modify returned params and go into the calling loop to ensure they are recycled correctly
+            # might want to break this into another function so I can test it, or maybe not
     return data_stats
 
 # might want to expand to a more generalized printing function at some stage

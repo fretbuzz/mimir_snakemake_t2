@@ -3,6 +3,9 @@ import pickle
 
 algo = 'control charts'
 
+#### TODO: these are NOT proper ROC curves!!!
+#### proper ROC curves would FIX the exfiltration rate
+#### and just vary the parameters of the algorithm!!
 # all_experimental_results is of the following form
 # [(rep, exfil_amt)] = exp_results
 # exp_results is in the form of
@@ -20,7 +23,7 @@ def roc_charts(all_experimental_results):
         #tpr.append( exp[algo]['TPR'] )
         #fpr.append( exp[algo]['FPR'] )
 
-    fpr = list(set([fpr[1] for fpr in tpr_fpr]))
+    fpr = sorted(list(set([fpr[1] for fpr in tpr_fpr])))
 
     print tpr_fpr
     for rate in fpr:
@@ -54,7 +57,7 @@ def tp_vs_exfil_rate(all_experimental_results):
         #exfil_rate.append( exp_settings[1] )
         tpr_exfil.append( (exp_results[algo]['TPR'], exp_settings[1])  )
 
-    exfil_rate = list(set([exfil[1] for exfil in tpr_exfil]))
+    exfil_rate = sorted(list(set([exfil[1] for exfil in tpr_exfil])))
     print exfil_rate 
 
     for rate in exfil_rate:
