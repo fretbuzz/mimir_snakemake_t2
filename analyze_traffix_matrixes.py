@@ -173,14 +173,14 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
     pca_anom_scores = detect_pca_anom(pca_explained_vars) 
     '''
 
-    svc_pair_to_sent_control_charts = generate_service_pair_arrays(df_sent_control_stats, times)
-    svc_pair_to_sent_bytes = traffic_matrix_to_svc_pair_list(df_sent)
+    svc_pair_to_sent_control_charts = generate_service_pair_arrays(df_sent_control_stats, times, services)
+    svc_pair_to_sent_bytes = traffic_matrix_to_svc_pair_list(df_sent, services)
     print svc_pair_to_sent_control_charts['front-end', 'user']
     sent_data_for_display = {'raw': svc_pair_to_sent_bytes, 'control-charts':svc_pair_to_sent_control_charts}
     generate_graphs(sent_data_for_display, times, display_sent_svc_pair, True, graph_names + "_sent_graphs")
 
-    svc_pair_to_rec_control_charts = generate_service_pair_arrays(df_rec_control_stats, times)
-    svc_pair_to_rec_bytes = traffic_matrix_to_svc_pair_list(df_rec)
+    svc_pair_to_rec_control_charts = generate_service_pair_arrays(df_rec_control_stats, times, services)
+    svc_pair_to_rec_bytes = traffic_matrix_to_svc_pair_list(df_rec, services)
     #print svc_pair_to_rec_control_charts['front-end', 'user']
     rec_data_for_display = {'raw': svc_pair_to_rec_bytes, 'control-charts':svc_pair_to_rec_control_charts}
     generate_graphs(rec_data_for_display, times, display_rec_svc_pair, False, graph_names + "_rec_graphs")
@@ -191,6 +191,15 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
     # user sent to front end is particulary important to me b/c that's where data exfiltration
     # happens
     generate_graphs(sent_data_for_display, times, [['front-end', 'user' ]], True, graph_names + "_user_sent_front_graphs")
+
+
+    # let's make some graphs for the 3-tier aggregates (so I can tell what is going on)
+    three_tier_svc_pair_to_sent_control_charts = generate_service_pair_arrays(df_three_tier_sent_control_stats, times, three_tier_services)
+    three_tier_svc_pair_to_sent_bytes = traffic_matrix_to_svc_pair_list(df_three_tier_sent, three_tier_services)
+    three_tier_sent_data_for_display = {'raw': three_tier_svc_pair_to_sent_bytes, 'control-charts': three_tier_svc_pair_to_sent_control_charts}
+    generate_graphs(three_tier_sent_data_for_display, times, [['application', 'data']], True, graph_names + "_three_tier_sent_ad")
+    generate_graphs(three_tier_sent_data_for_display, times, [['presentation', 'application']], True, graph_names + "_three_tier_sent_pa")
+    generate_graphs(three_tier_sent_data_for_display, times, [['presentation', 'data']], True, graph_names + "_three_tier_sent_pd")
 
     # return experiment results, all ready for aggregation
     return experiment_results
@@ -252,10 +261,10 @@ def generate_graphs(data_for_display, times, src_pairs_to_display, is_sent, grap
     plt.savefig(graph_names + '.png', bbox_inches='tight')
 
 # df -> {[src_svc, dst_svc] : [list of values in order of time]} 
-def traffic_matrix_to_svc_pair_list(df):
+def traffic_matrix_to_svc_pair_list(df, svc):
     svcs_to_val_list = {}
-    for src_svc in services:
-        for dst_svc in services:
+    for src_svc in svc:
+        for dst_svc in svc:
             svcs_to_val_list[src_svc, dst_svc] = df.loc[src_svc, dst_svc].tolist()
     return svcs_to_val_list
 
@@ -328,10 +337,10 @@ def aggregate_into_three_tier(df):
 
 # result is {['src', 'dst'] : [list of values at the time intervals]}
 # at the moment, it is going to deal soley with the control_chart_stats stuff
-def generate_service_pair_arrays(stats, times):
+def generate_service_pair_arrays(stats, times, svcs):
     svc_to_vals = {}
-    for sending_svc in services:
-        for dst_svc in services:
+    for sending_svc in svcs:
+        for dst_svc in svcs:
             svc_to_vals[sending_svc, dst_svc] = []
     #print stats
     #print svc_to_vals
