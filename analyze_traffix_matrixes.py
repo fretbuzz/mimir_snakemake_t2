@@ -48,7 +48,7 @@ services_to_ignore = [
     ]
 
 def main(rec_matrix_location, send_matrix_location):
-    simulate_incoming_data(rec_matrix_location, send_matrix_location)
+    return simulate_incoming_data(rec_matrix_location, send_matrix_location)
 
 # This function reads pickle files corresponding to the send/received traffic matrices
 # and then iterates through them by the time stamps, letting us pretend that the data
@@ -77,11 +77,13 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
     df_rec_time_slices = generate_time_slice_dfs(df_rec)
     df_sent_control_stats = []
     df_rec_control_stats = []
+    prev_step_ewmas = empty_ewmas(services)
     lambda_ewma = 0.2 # TODO don't arbitrarily pick lambda
     for df in df_sent_time_slices:
         prev_step_ewmas = control_charts(df, True,  prev_step_ewmas, lambda_ewma, services)
         df_sent_control_stats.append(prev_step_ewmas)
         #print df
+    prev_step_ewmas = empty_ewmas(services)
     for df in df_rec_time_slices:
         prev_step_ewmas = control_charts(df, False,  prev_step_ewmas, lambda_ewma, services)
         df_rec_control_stats.append(prev_step_ewmas)
@@ -95,9 +97,11 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
     three_tier_services = ['presentation', 'application', 'data']
     df_three_tier_sent_control_stats = []
     df_three_tier_rec_control_stats = []
+    prev_step_ewmas = empty_ewmas(three_tier_services)
     for df in df_three_tier_sent_slices:
         prev_step_ewmas = control_charts(df, True,  prev_step_ewmas, lambda_ewma, three_tier_services)
         df_three_tier_sent_control_stats.append(prev_step_ewmas)
+    prev_step_ewmas = empty_ewmas(three_tier_services)
     for df in df_three_tier_rec_slices:
         prev_step_ewmas = control_charts(df, False,  prev_step_ewmas, lambda_ewma, three_tier_services)
         df_three_tier_rec_control_stats.append(prev_step_ewmas)
@@ -157,7 +161,7 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
         three_tier_control_charts_warning_times_rec += warning_times_rec
     print "these are the warnings from the 3-tier control charts: (for data that is sent): "
     print three_tier_control_charts_warning_sent,"just times:", three_tier_control_charts_warning_times_sent
-    three_tier_all_control_chart_warning_times = list(set(three_tier_control_charts_warning_sent+three_tier_control_charts_warning_rec))
+    three_tier_all_control_chart_warning_times = list(set(three_tier_control_charts_warning_times_sent+three_tier_control_charts_warning_times_rec))
     three_tier_performance_results = calc_tp_fp_etc("3-tier control charts", exfils, three_tier_all_control_chart_warning_times,
             exp_time, start_analyze_time)
     experiment_results.update(three_tier_performance_results)
@@ -369,7 +373,8 @@ def control_charts(df, is_send, old_ewmas, lambda_ewma, df_services):
             #if relevant_traffic_values.mean() != 0:
             #data_stats[index_service, column_service] = [relevant_traffic_values.mean(), relevant_traffic_values.std()]
             # so here is the implementation plan for EWMA
-            new_ewma = old_ewmass[index_service, column_service] * (1 - lambda_ewma) + lambda_ewma * \
+            #print old_ewmas[index_service, column_service] 
+            new_ewma = old_ewmas[index_service, column_service][0] * (1 - lambda_ewma) + lambda_ewma * \
                     df.loc[df['time'] == time].loc[index_service, column_service]
             new_ewma_var = sqrt( ((lambda_ewma) / (2 - lambda_ewma)) * (relevant_traffic_values.std()**2))
             data_stats[index_service, column_service] = [new_ewma, new_ewma_var ]
@@ -598,6 +603,13 @@ def vMF_pdf_func(z, n, sigma):
 
 def vMF_thresh_func(zth, n, sigma, crit_bound):
     return scipy.integrate.quad(vMF_pdf_func, zth, np.inf, args=(n,sigma)) - crit_bound
+
+def empty_ewmas(svcs):
+    data_stats = {}
+    for index_service in svcs:
+        for column_service in svcs:
+            data_stats[index_service, column_service] = [0,0]
+    return data_stats
 
 if __name__=="__main__":
     rec_matrix_location = './experimental_data/' + parameters.rec_matrix_location
