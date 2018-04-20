@@ -10,11 +10,29 @@ import sys
 import os
 import signal
 import parameters
+import thread
 import meta_parameters
 import errno
 from exfil_data_v2 import how_much_data
 from analyze_traffix_matrixes import simulate_incoming_data 
 import pickle
+
+#Locust contemporary client count.  Calculated from the function f(x) = 1/25*(-1/2*sin(pi*x/12) + 1.1), 
+#   where x goes from 0 to 23 and x represents the hour of the day
+CLIENT_RATIO_NORMAL = [0.0440, 0.0388, 0.0340, 0.0299, 0.0267, 0.0247, 0.0240, 0.0247, 0.0267, 0.0299, 0.0340,
+  0.0388, 0.0440, 0.0492, 0.0540, 0.0581, 0.0613, 0.0633, 0.0640, 0.0633, 0.0613, 0.0581, 0.0540, 0.0492]
+
+#Based off of the normal traffic ratio but with random spikes added in #TODO: Base this off real traffic
+CLIENT_RATIO_BURSTY = [0.0391, 0.0305, 0.0400, 0.0278, 0.0248, 0.0230, 0.0223, 0.0230, 0.0248, 0.0465, 0.0316, 
+    0.0361, 0.0410, 0.0458, 0.0503, 0.0532, 0.0552, 0.0571, 0.0577, 0.0571, 0.0543, 0.0634, 0.0484, 0.0458]
+
+#Steady growth during the day. #TODO: Base this off real traffic
+CLIENT_RATIO_VIRAL = [0.0278, 0.0246, 0.0215, 0.0189, 0.0169, 0.0156, 0.0152, 0.0158, 0.0171, 0.0190, 0.0215, 
+0.0247, 0.0285, 0.0329, 0.0380, 0.0437, 0.0500, 0.0570, 0.0640, 0.0716, 0.0798, 0.0887, 0.0982, 0.107]
+
+#Similar to normal traffic but hits an early peak and stays there. Based on Akamai data
+CLIENT_RATIO_CYBER = [0.0328, 0.0255, 0.0178, 0.0142, 0.0119, 0.0112, 0.0144, 0.0224, 0.0363, 0.0428, 0.0503, 
+0.0574, 0.0571, 0.0568, 0.0543, 0.0532, 0.0514, 0.0514, 0.0518, 0.0522, 0.0571, 0.0609, 0.0589, 0.0564]
 
 def main(restart_kube, setup_sock, multiple_experiments, only_data_analysis):
     if restart_kube == "y":
@@ -61,7 +79,8 @@ def run_series_of_experiments(only_data_analysis):
                 names_graphs = experimental_directory + '/' + graph_name,
                 exp_time = meta_parameters.desired_stop_time,
                 start_analyze_time = meta_parameters.start_analyze_time,
-                only_data_analysis = only_data_analysis)
+                only_data_analysis = only_data_analysis,
+                traffic_type = meta_parameters.traffic_type)
         
             # will eventually be passed to the graphing function
             # NOTE: we are assuming that all the exfils in an exp are the same size
@@ -84,17 +103,17 @@ def restart_minikube():
     except:
         print "Minikube was not running"
     print "Stopping minikube completed"
-    print "Deleteing minikube..."
+    print "Deleting minikube..."
     try:
         out = subprocess.check_output(["minikube", "delete"])
         print out
     except:
         print "No minikube image to delete"
-    print "Deleteing minikube completed"
+    print "Deleting minikube completed"
 
     # then start minikube
     print "Starting minikube..."
-    out = subprocess.check_output(["minikube", "start", "--memory=6144", "--cpus=3"])
+    out = subprocess.check_output(["minikube", "start", "--memory=8192", "--cpus=3"])
     print out
     print "Starting minikube completed"
 
@@ -134,7 +153,11 @@ def setup_sock_shop(number_full_customer_records = parameters.number_full_custom
     # then deploy application
     print "Starting to deploy sock shop..."
     istio_folder = get_istio_folder()
-    out = subprocess.check_output(["Bash", "start_with_istio.sh", istio_folder])
+    try:
+        out = subprocess.check_output(["bash", "start_with_istio.sh", istio_folder])
+    except Exception as e:
+        print("Failed to start with istio! " + e.message)
+        return
     print out
     print "Completed installing sock shop..."
 
@@ -197,7 +220,7 @@ def setup_sock_shop(number_full_customer_records = parameters.number_full_custom
 
     # Deploy manifests_tcp_take_2 (to switch the service ports)
     print "Modifying service port names..."
-    out = subprocess.check_output(["Kubectl", "apply", "-f", "./manifests_tcp_take_2"])
+    out = subprocess.check_output(["kubectl", "apply", "-f", "./manifests_tcp_take_2"])
     print out
     print "Completed modifying service port names"
 
@@ -233,6 +256,7 @@ def setup_sock_shop(number_full_customer_records = parameters.number_full_custom
         if r:
             print r.status_code
             if r.status_code == 200:
+                #This is clogging my output
                 print "Prometheus is active and accessible!"
             else:
                 print "Prometheus is not accessible!"
@@ -264,7 +288,8 @@ def setup_sock_shop(number_full_customer_records = parameters.number_full_custom
             # first get minikube ip
             minikube = subprocess.check_output(["minikube", "ip"]).rstrip()
             try:
-                out = subprocess.check_output(["docker", "run", "--rm", "weaveworksdemos/load-test", "-d", "5", "-h", minikube+":32001", "-c", "2", "-r", "60"])
+                out = subprocess.check_output(["docker", "run", "--rm", "weaveworksdemos/load-test", "-d", "5", "-h", 
+                                                minikube+":32001", "-c", "2", "-r", "60"])
             except:
                 print "cannot even run locust yet..."
     print "Application pods are ready!"
@@ -278,6 +303,51 @@ def setup_sock_shop(number_full_customer_records = parameters.number_full_custom
     out = subprocess.check_output(["locust", "-f", "pop_db_reg.py", "--host=http://"+minikube+":32001", "--no-web", "-c", "15", "-r", "1", "-n", number_quarter_customer_records])
     #print out
 
+# Func: generate_background_traffic
+#   Uses locustio to run a dynamic number of background clients based on 24 time steps
+# Args:
+#   time: total time for test. Will be subdivided into 24 smaller chunks to represent 1 hour each
+#   max_clients: Arg provided by user in parameters.py. Represents maximum number of simultaneous clients
+def generate_background_traffic(run_time, max_clients, traffic_type):
+    minikube = subprocess.check_output(["minikube", "ip"]).rstrip()
+    devnull = open(os.devnull, 'wb')  # disposing of stdout manualy
+
+    client_ratio = []
+
+    if (traffic_type == "normal"):
+        client_ratio = CLIENT_RATIO_NORMAL
+    elif (traffic_type == "bursty"):
+        client_ratio = CLIENT_RATIO_BURSTY
+    elif (traffic_type == "viral") :
+        client_ratio = CLIENT_RATIO_VIRAL
+    elif (traffic_type == "cybermonday"):
+        client_ratio = CLIENT_RATIO_CYBER
+    else:
+        raise RuntimeError("Invalid traffic parameter provided!")
+    if (time <= 0):
+        raise RuntimeError("Invalid testing time provided!")
+
+    normalizer = 1/max(client_ratio)
+
+    #24 = hours in a day, we're working with 1 hour granularity
+    timestep = run_time / 24.0
+    for i in xrange(24):
+
+        client_count = str(int(round(normalizer*client_ratio[i]*max_clients)))
+
+        try:
+            proc = subprocess.Popen(["locust", "-f", "background_traffic.py", "--host=http://"+minikube+":32001", "--no-web", "-c", 
+                                    client_count, "-r", parameters.rate_spawn_background_locusts], 
+                                    stdout=devnull, stderr=devnull, preexec_fn=os.setsid)
+        except subprocess.CalledProcessError as e:
+            raise RuntimeError("command '{}' return with error (code {}): {}".format(e.cmd, e.returncode, e.output))
+
+        print("Time: " + str(i) + ". Now running with " + client_count + " simultaneous clients")
+
+        #Run some number of background clients for 1/24th of the total test time
+        time.sleep(timestep)
+        # this stops the background traffic process
+        os.killpg(os.getpgid(proc.pid), signal.SIGTERM) # should kill it
 
 def run_experiment(num_background_locusts = parameters.num_background_locusts, 
         rate_spawn_background_locusts = parameters.rate_spawn_background_locusts,
@@ -291,7 +361,8 @@ def run_experiment(num_background_locusts = parameters.num_background_locusts,
         names_graphs = './experimental_data/' + parameters.graph_names,
         exp_time = parameters.desired_stop_time,
         start_analyze_time = parameters.start_analyze_time,
-        only_data_analysis = "n"):
+        only_data_analysis = "n",
+        traffic_type = parameters.traffic_type):
     
     if only_data_analysis == "n":
         ## okay, this is where the experiment is actualy going to be implemented (the rest is all setup)
@@ -302,15 +373,14 @@ def run_experiment(num_background_locusts = parameters.num_background_locusts,
         print amt_custs, amt_addr, amt_cards
         time.sleep(5) # want to make sure that we're not going to mess with the recorded traffic vals
 
-        # First, start the background traffic
-        synch_with_prom()
-        devnull = open(os.devnull, 'wb')  # disposing of stdout manualy
-        proc = subprocess.Popen(["locust", "-f", "background_traffic.py", "--host=http://"+minikube+":32001", "--no-web", "-c", num_background_locusts, "-r", rate_spawn_background_locusts], stdout=devnull, stderr=devnull, preexec_fn=os.setsid)
-        print os.getpgid(proc.pid)
-        #start_time = time.time() # I think it needs to be down below so the graphs make more sense
+        
+        # First, start the background traffic, spawning variable number of clients during test in a separate thread
+        max_client_count = int(num_background_locusts)
+        thread.start_new_thread(generate_background_traffic, (desired_stop_time, max_client_count, traffic_type))
 
         # Second, sync with prometheus scraping (see function below for explanation) and then start experimental recording script  
         # the plus one is so that what it pulls includes the last frame (b/c always a little over the current sec)
+        synch_with_prom()
         subprocess.Popen(["python", "pull_from_prom.py", "n", str( desired_stop_time + 1), rec_matrix_location, sent_matrix_location ])
         start_time = time.time()
 
@@ -347,8 +417,6 @@ def run_experiment(num_background_locusts = parameters.num_background_locusts,
         if wait_time > 0:
             time.sleep(wait_time)
         print "just stopped waiting!"
-        # this stops the background traffic process
-        os.killpg(os.getpgid(proc.pid), signal.SIGTERM) # should kill it
 
     # Fifth, call the function that analyzes the traffic matrices
     # (It should output potential times that the exfiltration may have occured)

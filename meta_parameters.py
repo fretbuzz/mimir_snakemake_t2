@@ -82,7 +82,7 @@ repeat_experiments = 3
 ## store all the files and graphs there, and maybe even a file
 ## that explains what each file is, b/c there is going to be 
 ## a lot of them.
-experiment_name = "test_6_long"
+experiment_name = "test_7_long"
 
 ## this is a list of the SENT svc_pair graphs that are displayed/saved
 ## Note: this list should be 1,2, or 4 items long
@@ -97,3 +97,13 @@ display_graphs = False
 
 # how long into experiment before analyze?
 start_analyze_time = 30
+
+# Traffic type
+# Options:
+#       normal: Follows standard sinusoidal pattern similar to what's illustrated at:
+#                                       https://www.wired.com/2010/10/netflix-instant-accounts-for-20-percent-of-peak-u-s-bandwith-use/
+#       bursty: Follows standard sinusoidal pattern like normal, but with massive spikes at intervals
+#       viral: Exponential growth
+#       cybermonday: Follows pattern of traffic as shown by Akamai's illustration here:
+#                                       https://blogs.akamai.com/2012/11/cyber-monday-breaks-new-traffic-records.html
+traffic_type = "normal"
