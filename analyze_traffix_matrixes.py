@@ -298,6 +298,7 @@ def generate_time_slice_dfs(df):
         #print df_so_far
     return time_slices
 
+#### TODO : modify this to use EWMA per #32
 # this is the function to implement control channels
 # i.e. compute mean and standard deviation for each pod-pair
 # Note: is_send is 1 if it is the "send matrix", else zero
