@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import parameters
 from sklearn.decomposition import PCA
 import scipy
+from math import sqrt
 '''
 USAGE: python analyze_traffic_matrixes.py [recieved_matrix_location] [sent_matrix_location]
 
@@ -76,13 +77,31 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
     df_rec_time_slices = generate_time_slice_dfs(df_rec)
     df_sent_control_stats = []
     df_rec_control_stats = []
+    lambda_ewma = 0.2 # TODO don't arbitrarily pick lambda
     for df in df_sent_time_slices:
-        df_sent_control_stats.append(control_charts(df, True))
+        prev_step_ewmas = control_charts(df, True,  prev_step_ewmas, lambda_ewma, services)
+        df_sent_control_stats.append(prev_step_ewmas)
         #print df
     for df in df_rec_time_slices:
-        df_rec_control_stats.append(control_charts(df, False))
+        prev_step_ewmas = control_charts(df, False,  prev_step_ewmas, lambda_ewma, services)
+        df_rec_control_stats.append(prev_step_ewmas)
     #print df_sent_control_stats
     
+    # aggregate the matrixes into what we would see in a corresponding 3-tier arch
+    df_three_tier_sent = three_tier_time_aggreg(df_sent)
+    df_three_tier_rec = three_tier_time_aggreg(df_rec)
+    df_three_tier_sent_slices = generate_time_slice_dfs(df_three_tier_sent) 
+    df_three_tier_rec_slices = generate_time_slice_dfs(df_three_tier_rec)
+    three_tier_services = ['presentation', 'application', 'data']
+    df_three_tier_sent_control_stats = []
+    df_three_tier_rec_control_stats = []
+    for df in df_three_tier_sent_slices:
+        prev_step_ewmas = control_charts(df, True,  prev_step_ewmas, lambda_ewma, three_tier_services)
+        df_three_tier_sent_control_stats.append(prev_step_ewmas)
+    for df in df_three_tier_rec_slices:
+        prev_step_ewmas = control_charts(df, False,  prev_step_ewmas, lambda_ewma, three_tier_services)
+        df_three_tier_rec_control_stats.append(prev_step_ewmas)
+
     # check when control charts would give a warning
     # just going to use sent for now, could use reciever later
     times = get_times(df_sent)
@@ -94,28 +113,61 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
     for time in range(1,len(times)-1):
         next_df_sent = df_sent[ df_sent['time'].isin([times[time]])]
         next_df_rec = df_rec[ df_rec['time'].isin([times[time]])]
-        warnings_sent,warning_times_sent = next_value_trigger_control_charts(next_df_sent, df_sent_control_stats[time], times[time])
-        warnings_rec,warning_times_rec = next_value_trigger_control_charts(next_df_rec, df_rec_control_stats[time], times[time])
+        # TODO: pick a coefficient for the EWMA stddev that isn't arbitrary
+        ewma_stddev_coef = 2
+        warnings_sent,warning_times_sent = next_value_trigger_control_charts(next_df_sent, 
+                df_sent_control_stats[time], times[time], ewma_stddev_coef)
+        warnings_rec,warning_times_rec = next_value_trigger_control_charts(next_df_rec, 
+                df_rec_control_stats[time], times[time], ewma_stddev_coef)
         control_charts_warning_sent.append(warnings_sent)
         control_charts_warning_rec.append(warnings_rec)
         control_charts_warning_times_sent += warning_times_sent
         control_charts_warning_times_rec += warning_times_rec
     print "these are the warnings from the control charts: (for data that is sent): "
     print control_charts_warning_sent,"just times:", warning_times_sent
+    
     # combine the two sets of warning times (delete duplicates)
     all_control_chart_warning_times = list(set(control_charts_warning_times_sent + control_charts_warning_times_rec))
     print all_control_chart_warning_times
+    
     # then calc TP/TN/FP/FN
     performance_results = calc_tp_fp_etc("control charts", exfils, all_control_chart_warning_times, 
                                         exp_time, start_analyze_time)
     experiment_results.update(performance_results)
     #print experiment_results
 
+    ### TODO test this
+    # now let's do the control charts test for the three-tier aggregation too
+    three_tier_control_charts_warning_sent = []
+    three_tier_control_charts_warning_rec = []
+    three_tier_control_charts_warning_times_sent = []
+    three_tier_control_charts_warning_times_rec = []
+    for time in range(1,len(times)-1):
+        next_df_sent = df_three_tier_sent[ df_three_tier_sent['time'].isin([times[time]])]
+        next_df_rec = df_three_tier_sent[ df_three_tier_sent['time'].isin([times[time]])] 
+        # TODO: pick a coefficient for the EWMA stddev that isn't arbitrary
+        ewma_stddev_coef = 2
+        warnings_sent,warning_times_sent = next_value_trigger_control_charts(next_df_sent,
+                df_three_tier_sent_control_stats[time], times[time], ewma_stddev_coef)
+        warnings_rec,warning_times_rec = next_value_trigger_control_charts(next_df_rec,
+                df_three_tier_rec_control_stats[time], times[time], ewma_stddev_coef)
+        three_tier_control_charts_warning_sent.append(warnings_sent)
+        three_tier_control_charts_warning_rec.append(warnings_rec)
+        three_tier_control_charts_warning_times_sent += warning_times_sent
+        three_tier_control_charts_warning_times_rec += warning_times_rec
+    print "these are the warnings from the 3-tier control charts: (for data that is sent): "
+    print three_tier_control_charts_warning_sent,"just times:", three_tier_control_charts_warning_times_sent
+    three_tier_all_control_chart_warning_times = list(set(three_tier_control_charts_warning_sent+three_tier_control_charts_warning_rec))
+    three_tier_performance_results = calc_tp_fp_etc("3-tier control charts", exfils, three_tier_all_control_chart_warning_times,
+            exp_time, start_analyze_time)
+    experiment_results.update(three_tier_performance_results)
+
+    '''  # see function def for why I think this is nonsense print pca_anom_scores
     # okay, we are going to try PCA-based analysis here
     print "about to try PCA anom detection!"
     pca_explained_vars = pca_anom_detect(df_sent, times)
-    pca_anom_scores = detect_pca_anom(pca_explained_vars) # see function def for why I think this is nonsense
-    print pca_anom_scores
+    pca_anom_scores = detect_pca_anom(pca_explained_vars) 
+    '''
 
     svc_pair_to_sent_control_charts = generate_service_pair_arrays(df_sent_control_stats, times)
     svc_pair_to_sent_bytes = traffic_matrix_to_svc_pair_list(df_sent)
@@ -306,20 +358,21 @@ def generate_time_slice_dfs(df):
 # this is the function to implement control channels
 # i.e. compute mean and standard deviation for each pod-pair
 # Note: is_send is 1 if it is the "send matrix", else zero
-def control_charts(df, is_send):
-    ## going to return data in the form {[src_svc, dest_svc]: [mean, stddev]}
+def control_charts(df, is_send, old_ewmas, lambda_ewma, df_services):
+    ## going to return data in the form {[src_svc, dest_svc]: [ewma, ewma_stddev]}
     data_stats = {} #[]
-    for index_service in services:
-        for column_service in services:
+    time = df.loc[:,'time'].max()
+    for index_service in df_services:
+        for column_service in df_services:
             relevant_traffic_values = df.loc[index_service, column_service]
             #print relevant_traffic_values, type(relevant_traffic_values)
             #if relevant_traffic_values.mean() != 0:
-            data_stats[index_service, column_service] = [relevant_traffic_values.mean(), relevant_traffic_values.std()]
+            #data_stats[index_service, column_service] = [relevant_traffic_values.mean(), relevant_traffic_values.std()]
             # so here is the implementation plan for EWMA
-            # Y(T) can be calculated via the equation (NEED TO ADD PARAM for lambda and old val)
-            # S^2(ewma) can be calced from equation be using the above code to find stddev
-            # then modify returned params and go into the calling loop to ensure they are recycled correctly
-            # might want to break this into another function so I can test it, or maybe not
+            new_ewma = old_ewmass[index_service, column_service] * (1 - lambda_ewma) + lambda_ewma * \
+                    df.loc[df['time'] == time].loc[index_service, column_service]
+            new_ewma_var = sqrt( ((lambda_ewma) / (2 - lambda_ewma)) * (relevant_traffic_values.std()**2))
+            data_stats[index_service, column_service] = [new_ewma, new_ewma_var ]
     return data_stats
 
 # might want to expand to a more generalized printing function at some stage
@@ -342,7 +395,7 @@ def get_times(df):
 # this function uses the statistics that are in data_stats to
 # see if the next value for a service pair causes 
 # an alarm via control chart anomaly detection
-def next_value_trigger_control_charts(next_df, data_stats, time):
+def next_value_trigger_control_charts(next_df, data_stats, time, stddev_coef):
     warnings_triggered = []
     warning_times = []
     ## iterate through values of data_stats
@@ -352,7 +405,7 @@ def next_value_trigger_control_charts(next_df, data_stats, time):
         #print "src_dst value: ", src_dst, "mean_stddev value: ", mean_stddev
         next_val = next_df.loc[ src_dst[0], src_dst[1] ]
         mean, stddev = mean_stddev[0], mean_stddev[1]
-        if abs(next_val - mean) > (2 * stddev):
+        if abs(next_val - mean) > (stddev_coef * stddev):
             #print "THIS IS THE POOR MAN'S EQUIVALENT OF AN ALARM!!", src_dst, mean_stddev
             warnings_triggered.append([src_dst[0], src_dst[1], time, mean_stddev])
             warning_times.append(time)

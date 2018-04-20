@@ -64,12 +64,12 @@ exfils = {80 : 0, 180 : 0}
 
 ## this value specifies the increment(/decrement) for each of the exfils
 ## keys are times, values are increments, in bytes
-exfil_increments = {80: 25000, 180: 25000}
+exfil_increments = {80: 12500, 180: 12500}
 
 ## number of increments
 ## will run once using the 'exfils' values and then 
 ## will run the number of times given here, each with the increment applied
-number_increments = 6
+number_increments = 8
 
 ## number of repeat experiments
 ## this is the number of times to run each experiment
@@ -82,7 +82,7 @@ repeat_experiments = 3
 ## store all the files and graphs there, and maybe even a file
 ## that explains what each file is, b/c there is going to be 
 ## a lot of them.
-experiment_name = "test_5_long"
+experiment_name = "test_6_long"
 
 ## this is a list of the SENT svc_pair graphs that are displayed/saved
 ## Note: this list should be 1,2, or 4 items long
