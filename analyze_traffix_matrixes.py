@@ -33,11 +33,18 @@ services = [
         'session-db',
         'shipping',
         'user',
-        'user-db',
-        'load-test',
-        '127.0.0.1', #it's always there, so I guess we should treat it like a normal thing
-        '172.17.0.1' # also this one too
+        'user-db'#,
+        #'load-test',
+        #'127.0.0.1', #it's always there, so I guess we should treat it like a normal thing
+        #'172.17.0.1' # also this one too
 ]
+
+# these services are NOT actually part of the microservice, so they should be ignored
+services_to_ignore = [
+    'load-test',
+    '127.0.0.1', #it's always there, so I guess we should treat it like a normal thing
+    '172.17.0.1' # also this one too
+    ]
 
 def main(rec_matrix_location, send_matrix_location):
     simulate_incoming_data(rec_matrix_location, send_matrix_location)
@@ -57,8 +64,12 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
  
     experiment_results = {} # this is going to contain all the algo's performance metrics
     print "hello world"
+    print "rec_matrix_loc", rec_matrix_location
+    print "sent_matrix_loc", send_matrix_location
     df_sent = pd.read_pickle(send_matrix_location)
     df_rec = pd.read_pickle(rec_matrix_location)
+    df_sent = df_sent.drop(services_to_ignore).drop(services_to_ignore, axis=1)
+    df_rec = df_rec.drop(services_to_ignore).drop(services_to_ignore, axis=1)
     print "df_sent:", df_sent
     print "df_rec:", df_rec
     df_sent_time_slices = generate_time_slice_dfs(df_sent)
