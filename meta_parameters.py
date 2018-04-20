@@ -58,6 +58,8 @@ desired_stop_time = 360
 ## keys are times, values are the bytes to exfiltrate (in one 5 sec segment)
 ## note: the bytes should probably be close to some linear combo of the big API calls (see exfil_data_V2)
 ## note: leave empty if you want never
+## note: will show up in detection system 5 seconds after the given time, b/c exfiltration starts at the given
+## time, so it won't be recorded by prometheus until 5 seconds later
 exfils = {80 : 0, 180 : 0}
 
 ## this value specifies the increment(/decrement) for each of the exfils

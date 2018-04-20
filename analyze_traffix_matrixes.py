@@ -387,7 +387,8 @@ def calc_tp_fp_etc(algo_name, exfils, warning_times, exp_time, start_analyze_tim
     true_attacks_found = 0
     warning_times_after_strt_analyze = [time for time in warning_times if time >= start_analyze_time]
     for attack_time in attack_times:
-        if attack_time in [int(time) for time in warning_times_after_strt_analyze]:
+        # need to add 5 b/c exfil starts at the attack_time, so it is recorded 5 sec later by Prometheus
+        if (attack_time+5) in [int(time) for time in warning_times_after_strt_analyze]:
             true_attacks_found = true_attacks_found + 1
     true_attacks_missed = total_attacks - true_attacks_found
     false_attacks_found = len(warning_times_after_strt_analyze) - true_attacks_found
