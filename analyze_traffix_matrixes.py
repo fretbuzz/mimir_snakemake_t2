@@ -484,9 +484,16 @@ def calc_tp_fp_etc(algo_name, exfils, warning_times, exp_time, start_analyze_tim
     total_negatives = ((exp_time-start_analyze_time)/5.0) - total_attacks
     true_negatives_found = total_negatives - false_attacks_found
     print "TPs", true_attacks_found, "FPs", false_attacks_found, "Total negs", total_negatives, "TNs",  true_negatives_found
+
+    ### TODO: better solution
+    if (true_negatives_found + true_attacks_missed) == 0:
+        fnr = 0
+    else:
+        fnr = float(true_attacks_missed) / (true_negatives_found + true_attacks_missed)
+
     return {algo_name: {"TPR":  (float(true_attacks_found) / (true_attacks_found + true_attacks_missed)),
                         "FPR" : float(false_attacks_found) / (false_attacks_found + true_attacks_found), 
-                        "FNR" : float(true_attacks_missed) / (true_negatives_found + true_attacks_missed),
+                        "FNR" : fnr,
                         "TNR" : float(true_negatives_found) / total_negatives}}
 
 # following method in Lakhina's "Diagnosing

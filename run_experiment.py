@@ -63,7 +63,7 @@ def run_series_of_experiments(only_data_analysis):
 
         for rep in range(0, meta_parameters.repeat_experiments):
             
-            print "current rep: ", rep
+            print "current rep: ", rep, "increment", current_increment
             rec_matrx_loc = experimental_directory + '/rec_matrix_increm_' + str(current_increment) + '_rep_' + str(rep) +'.pickle' 
             sent_matrix_loc = experimental_directory + '/sent_matrix_increm_' + str(current_increment) + '_rep_' + str(rep) +'.pickle'
             graph_name = meta_parameters.experiment_name + "_increm_" + str(current_increment) + '_rep_' + str(rep)
