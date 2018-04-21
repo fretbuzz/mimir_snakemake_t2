@@ -568,20 +568,20 @@ def diagnose_anom_pca(old_dfs, cur_df, n_components):
 # Computer Systems"
 def eigenvector_based_detector(old_u, current_tm, window_size, crit_bound, old_z_first_mom, old_z_sec_mom):
     # first, find the principle eigenvector of the traffic matrix
-    print "shape: ", current_tm.shape, current_tm
+    #print "shape: ", current_tm.shape, current_tm
     #eigenvals, unit_eigenvect = np.linalg.eig(current_tm)   
     eigenvals, unit_eigenvect = scipy.sparse.linalg.eigs(current_tm.as_matrix(), k=10, which="LM")
     
     # principle eigenvector has largest associated eigenvalue
     largest_eigenval_index = np.argmax(eigenvals)
     princip_eigenvect = unit_eigenvect[largest_eigenval_index]
-    print "pprincip_eigenvect", princip_eigenvect
-    print "eigenvects", unit_eigenvect
-    print "eigenvals", eigenvals
+    #print "pprincip_eigenvect", princip_eigenvect
+    #print "eigenvects", unit_eigenvect
+    #print "eigenvals", eigenvals
 
     # second, obtain "typical pattern" of activity vector from old_u
     # this is the principal left singular vector
-    print "size", np.shape(old_u), len(np.shape(old_u)), old_u
+    #print "size", np.shape(old_u), len(np.shape(old_u)), old_u
     if len(np.shape(old_u)) > 1:
         u,s,vh = np.linalg.svd(old_u)
         largest_signular_val_index = np.argmax(s)
@@ -589,27 +589,42 @@ def eigenvector_based_detector(old_u, current_tm, window_size, crit_bound, old_z
 
         # third, compute z(t), the dissimilarity between the principal left
         # singular vector and the principal eigenvector
-        z = 1 - princip_left_singular_vect * princip_eigenvect # numpy auto transposes
+        z = 1 - princip_left_singular_vect[np.newaxis] * np.transpose(np.asmatrix(princip_eigenvect)) # numpy auto transposes <- no it doesn't!!
+        #print "z:", z
+        z = np.absolute(z).tolist()[0][0]
+        #print "z:", z
         # note: is 1 if orthogonal, is 0 if identical
 
         # now compare z(t) with a threshold, using section 5.3
         # approximate the MLE algorithm for the vMF distribution
         beta = 0.005  ## TODO: determine via theory what this should be
-        print "old z_first_moment", old_z_first_mom
+        #print "old z_first_moment", old_z_first_mom
+        # helps the system 'get up to speed'
+        if old_z_first_mom == 0:
+            old_z_first_mom = z+0.1
+        if old_z_sec_mom == 0:
+            old_z_sec_mom = z **2
         z_first_moment = (1 - beta) * old_z_first_mom + beta * z
-        print "new z_first_moment", z_first_moment
+        #print "new z_first_moment", z_first_moment
         z_sec_moment = (1 - beta) * old_z_sec_mom + beta * (z ** 2)
-        print "z_sec_moment", z_sec_moment
+        #print "z_sec_moment", z_sec_moment
         n = ((2 * z_first_moment ** 2) / (z_sec_moment - z_first_moment ** 2)) + 1
         sigma = (z_sec_moment - z_first_moment ** 2) / (2 * z_first_moment)
         # find the specific threshold value
-        print "ARGS","n", n, "sigma", sigma,"crit bound", crit_bound
+        #print "ARGS","n", n, "sigma", sigma,"crit bound", crit_bound
         z_thresh = scipy.optimize.fsolve(vMF_thresh_func, 0, args=(n, sigma, crit_bound))
+        z_thresh = z_thresh[0]
+        #print "z_thresh is", z_thresh 
+        
         #do the actual comparison, but first modify u
         if old_u.shape[1] >= window_size:
             np.delete(old_u, 0, 0)# get rid of old column (outside of window)
-        old_u = np.hstack((old_u,princip_eigenvect))
-        print np.size(old_u)
+        #print "old_u size", np.shape(old_u)
+        #print "princip_eigenvect size", np.shape(np.transpose(princip_eigenvect[np.newaxis]))
+        #old_u = np.stack([old_u,princip_eigenvect], axis=1)
+        old_u = np.concatenate((old_u, np.transpose(princip_eigenvect[np.newaxis])), axis=1)
+        #print np.size(old_u)
+        print "z", z, "z_thresh", z_thresh
         if z > z_thresh:
             return 1, old_u, z_first_moment, z_sec_moment  # 1 = an alert
         else:
@@ -623,11 +638,14 @@ def eigenvector_based_detector(old_u, current_tm, window_size, crit_bound, old_z
         return 0, old_u, 0, 0  # 0 = no alert
 
 def vMF_pdf_func(z, n, sigma):
+    if z < 0 or sigma < 0:
+        return 1000000 # this ensures that fsolve won't get negative 
     denom = (2* sigma) ** ((n-1)/2) * scipy.special.gamma((n-1)/2)
     return (np.exp((-1 * z) / (2 * sigma)) * z ** (((n-1)/2)-1)) / denom
 
 def vMF_thresh_func(zth, n, sigma, crit_bound):
-    unadjusted_bound =  scipy.integrate.quad(vMF_pdf_func, zth, np.inf, args=(n,sigma)) 
+    unadjusted_bound, err  =  scipy.integrate.quad(vMF_pdf_func, zth, np.inf, args=(n,sigma)) 
+    #print "unadjusetd bound", unadjusted_bound
     return unadjusted_bound- crit_bound
 
 def empty_ewmas(svcs, df):

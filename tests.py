@@ -296,9 +296,9 @@ class TestAnalyzeMatrices(unittest.TestCase):
         for time_index in range(0,len(times)):
             time = times[time_index]
             current_df = df_sent_mod[ df_sent_mod['time'].isin([time])]
-            alarm_p, old_u, z_first_moment, z_sec_moment = eigenvector_based_detector(old_u, current_df.drop(['time'], axis=1), 5, 0.03, z_first_moment, z_sec_moment)
+            alarm_p, old_u, z_first_moment, z_sec_moment = eigenvector_based_detector(old_u, current_df.drop(['time'], axis=1), 5, 3, z_first_moment, z_sec_moment)
             print "z first moment", z_first_moment, "z second moment", z_sec_moment
-            print alarm_p
+            print alarm_p#, old_u, z_first_moment, z_sec_moment
     #'''
 
 if __name__ == "__main__":
