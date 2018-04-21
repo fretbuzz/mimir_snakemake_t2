@@ -597,13 +597,14 @@ def eigenvector_based_detector(old_u, current_tm, window_size, crit_bound, old_z
 
         # now compare z(t) with a threshold, using section 5.3
         # approximate the MLE algorithm for the vMF distribution
-        beta = 0.005  ## TODO: determine via theory what this should be
+        beta = 0.05  ## TODO: determine via theory what this should be
         #print "old z_first_moment", old_z_first_mom
         # helps the system 'get up to speed'
-        if old_z_first_mom == 0:
-            old_z_first_mom = z+0.1
-        if old_z_sec_mom == 0:
-            old_z_sec_mom = z **2
+        # nevermind, it just takes time to get up to speed
+        #if old_z_first_mom == 0:
+        #    old_z_first_mom = z+0.1
+        #if old_z_sec_mom == 0:
+        #    old_z_sec_mom = z **2
         z_first_moment = (1 - beta) * old_z_first_mom + beta * z
         #print "new z_first_moment", z_first_moment
         z_sec_moment = (1 - beta) * old_z_sec_mom + beta * (z ** 2)
@@ -613,8 +614,9 @@ def eigenvector_based_detector(old_u, current_tm, window_size, crit_bound, old_z
         # find the specific threshold value
         #print "ARGS","n", n, "sigma", sigma,"crit bound", crit_bound
         z_thresh = scipy.optimize.fsolve(vMF_thresh_func, 0, args=(n, sigma, crit_bound))
+        print "z_thresh is", z_thresh
         z_thresh = z_thresh[0]
-        #print "z_thresh is", z_thresh 
+        print "z_thresh is", z_thresh 
         
         #do the actual comparison, but first modify u
         if old_u.shape[1] >= window_size:
@@ -638,7 +640,7 @@ def eigenvector_based_detector(old_u, current_tm, window_size, crit_bound, old_z
         return 0, old_u, 0, 0  # 0 = no alert
 
 def vMF_pdf_func(z, n, sigma):
-    if z < 0 or sigma < 0:
+    if z < 0:
         return 1000000 # this ensures that fsolve won't get negative 
     denom = (2* sigma) ** ((n-1)/2) * scipy.special.gamma((n-1)/2)
     return (np.exp((-1 * z) / (2 * sigma)) * z ** (((n-1)/2)-1)) / denom
