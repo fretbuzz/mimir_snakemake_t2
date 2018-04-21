@@ -285,18 +285,21 @@ class TestAnalyzeMatrices(unittest.TestCase):
         self.assertEqual( three_sent_tiers.loc[three_sent_tiers['time'] == times[3]].loc['presentation', 'application'],  265575)
         self.assertEqual( three_sent_tiers.loc[three_sent_tiers['time'] == times[3]].loc['application', 'data'],  354522)
     
-    ''' out of commision ATM b/c output is annoying me
+    #''' out of commision ATM b/c output is annoying me
     def test_eigenspace__based_detection(self):
         times = get_times(self.df_sent)
+        svc_to_drop = ['load-test', '127.0.0.1', '172.17.0.1']
+        df_sent_mod = self.df_sent.drop(svc_to_drop).drop(svc_to_drop, axis=1)
         old_u = np.array([])
         z_first_moment = 0
         z_sec_moment = 0
         for time_index in range(0,len(times)):
             time = times[time_index]
-            current_df = self.df_sent[ self.df_sent['time'].isin([time])]
+            current_df = df_sent_mod[ df_sent_mod['time'].isin([time])]
             alarm_p, old_u, z_first_moment, z_sec_moment = eigenvector_based_detector(old_u, current_df.drop(['time'], axis=1), 5, 0.03, z_first_moment, z_sec_moment)
+            print "z first moment", z_first_moment, "z second moment", z_sec_moment
             print alarm_p
-    '''
+    #'''
 
 if __name__ == "__main__":
     unittest.main()

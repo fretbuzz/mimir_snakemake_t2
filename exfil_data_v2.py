@@ -34,20 +34,28 @@ def exfiltrate_data():
     base64string = base64.encodestring('%s:%s' % ('user', 'password')).replace('\n', '')
     login = requests.get(addr + "/login", headers={"Authorization":"Basic %s" % base64string})
     while amt_exfil < int(amt):
-        exfil_data_fut = session.get(addr + "/customers/azc", cookies=login.cookies)
-        exfil_data_fut_1 = session.get(addr + "/customers/frc", cookies=login.cookies)
-        exfil_data_fut_2 = session.get(addr + "/customers/vpp", cookies=login.cookies)
-        exfil_data_fut_3 = session.get(addr + "/customers/add", cookies=login.cookies)
-        exfil_data_fut_4 = session.get(addr + "/customers/rep", cookies=login.cookies)
-        exfil_data = exfil_data_fut.result()
-        exfil_data_1 = exfil_data_fut_1.result()
-        exfil_data_2 = exfil_data_fut_2.result()
-        exfil_data_3 = exfil_data_fut_3.result()
-        exfil_data_4 = exfil_data_fut_4.result()
+        if int(amt) - amt_exfil >= 2000:
+            exfil_data_fut = session.get(addr + "/customers/azc", cookies=login.cookies)
+            exfil_data_fut_1 = session.get(addr + "/customers/frc", cookies=login.cookies)
+            exfil_data_fut_2 = session.get(addr + "/customers/vpp", cookies=login.cookies)
+            exfil_data_fut_3 = session.get(addr + "/customers/add", cookies=login.cookies)
+            exfil_data_fut_4 = session.get(addr + "/customers/rep", cookies=login.cookies)
+            exfil_data = exfil_data_fut.result()
+            exfil_data_1 = exfil_data_fut_1.result()
+            exfil_data_2 = exfil_data_fut_2.result()
+            exfil_data_3 = exfil_data_fut_3.result()
+            exfil_data_4 = exfil_data_fut_4.result()
+            amt_exfil = amt_exfil + len(exfil_data.content) + len(exfil_data_1.content) + len(exfil_data_2.content)
+            amt_exfil = amt_exfil + len(exfil_data_3.content) + len(exfil_data_4.content)
+        else:
+            exfil_data_fut = session.get(addr + "/customers/azc", cookies=login.cookies)
+            exfil_data_fut_1 = session.get(addr + "/customers/frc", cookies=login.cookies)
+            exfil_data = exfil_data_fut.result()
+            exfil_data_1 = exfil_data_fut_1.result()
+            amt_exfil = amt_exfil + len(exfil_data.content) + len(exfil_data_1.content)
+
         #print exfil_data.text
-        amt_exfil = amt_exfil + len(exfil_data.content) + len(exfil_data_1.content) + len(exfil_data_2.content)
-        amt_exfil = amt_exfil + len(exfil_data_3.content) + len(exfil_data_4.content)
-        #print len(exfil_data.content), amt_exfil
+        print len(exfil_data.content), amt_exfil
     print "that took: ", time.time() - cur_time, " seconds" 
 
 # how much data is extracted via each call API call?

@@ -48,32 +48,42 @@ def roc_charts(all_experimental_results):
 def tp_vs_exfil_rate(all_experimental_results):
     print all_experimental_results
     tpr = []
+    fpr = []
     exfil_rate = []
     tpr_exfil = []
+    fpr_exfil = []
     plt.figure(2)
     for exp_settings, exp_results in all_experimental_results.iteritems():
         #print exp_settings, exp_results[algo]
         #tpr.append(exp_results[algo]['TPR'])
         #exfil_rate.append( exp_settings[1] )
         tpr_exfil.append( (exp_results[algo]['TPR'], exp_settings[1])  )
+        fpr_exfil.append( (exp_results[algo]['FPR'], exp_settings[1])  )
 
     exfil_rate = sorted(list(set([exfil[1] for exfil in tpr_exfil])))
     print exfil_rate 
 
     for rate in exfil_rate:
         tpr_total = 0
+        fpr_total = 0
         total_rates = 0
+        total_fpr_rates = 0
         for item in tpr_exfil:
             if item[1] == rate:
                 tpr_total += item[0]
                 total_rates += 1
+        for item in fpr_exfil:
+            if item[1] == rate:
+                fpr_total += item[0]
+                total_fpr_rates += 1
         tpr.append(float(tpr_total) / total_rates)
-
-    tp_line = plt.plot(exfil_rate, tpr)
+        fpr.append(float(fpr_total) / total_fpr_rates)
+    tp_line = plt.plot(exfil_rate, tpr, label = "tpr")
+    fp_line = plt.plot(exfil_rate, fpr, label = "fpr")
     print "tpr", tpr
     print "exfil rate", exfil_rate
-    plt.xlabel('exfil rate')
-    plt.ylabel('tpr')
+    plt.xlabel('amount exfiltrated in 5 sec period')
+    plt.ylabel('rate')
     plt.show()
 
 def load_exp(all_exp_results_loc):

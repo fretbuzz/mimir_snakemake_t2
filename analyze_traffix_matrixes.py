@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import parameters
 from sklearn.decomposition import PCA
 import scipy
+#import scipy.sparse.linalg.eigs
 from math import sqrt
 '''
 USAGE: python analyze_traffic_matrixes.py [recieved_matrix_location] [sent_matrix_location]
@@ -118,7 +119,7 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
         next_df_sent = df_sent[ df_sent['time'].isin([times[time]])]
         next_df_rec = df_rec[ df_rec['time'].isin([times[time]])]
         # TODO: pick a coefficient for the EWMA stddev that isn't arbitrary
-        ewma_stddev_coef = 2
+        ewma_stddev_coef = 3
         warnings_sent,warning_times_sent = next_value_trigger_control_charts(next_df_sent, 
                 df_sent_control_stats[time], times[time], ewma_stddev_coef)
         warnings_rec,warning_times_rec = next_value_trigger_control_charts(next_df_rec, 
@@ -150,7 +151,7 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
         next_df_sent = df_three_tier_sent[ df_three_tier_sent['time'].isin([times[time]])]
         next_df_rec = df_three_tier_sent[ df_three_tier_sent['time'].isin([times[time]])] 
         # TODO: pick a coefficient for the EWMA stddev that isn't arbitrary
-        ewma_stddev_coef = 2
+        ewma_stddev_coef = 3
         warnings_sent,warning_times_sent = next_value_trigger_control_charts(next_df_sent,
                 df_three_tier_sent_control_stats[time], times[time], ewma_stddev_coef)
         warnings_rec,warning_times_rec = next_value_trigger_control_charts(next_df_rec,
@@ -240,9 +241,9 @@ def generate_graphs(data_for_display, times, src_pairs_to_display, is_sent, grap
         control_chart_above, = plt.plot(times, avg_plus_one_stddev, label='mean + 1 * stddev')
         avg_minus_one_stddev = [item[0] - item[1] for item in svc_pair_to_control_charts[cur_src_svc, cur_dst_svc]]
         control_chart_below, = plt.plot(times, avg_minus_one_stddev, label='mean - 1 * stddev')
-        avg_plus_two_stddev = [item[0] + 2 * item[1] for item in svc_pair_to_control_charts[cur_src_svc, cur_dst_svc]]
+        avg_plus_two_stddev = [item[0] + 3 * item[1] for item in svc_pair_to_control_charts[cur_src_svc, cur_dst_svc]]
         control_chart_two_above, = plt.plot(times, avg_plus_two_stddev, label='mean + 2 * stddev')
-        avg_minus_two_stddev = [item[0] - 2 * item[1] for item in svc_pair_to_control_charts[cur_src_svc, cur_dst_svc]]
+        avg_minus_two_stddev = [item[0] - 3 * item[1] for item in svc_pair_to_control_charts[cur_src_svc, cur_dst_svc]]
         control_chart_two_below, = plt.plot(times, avg_minus_two_stddev, label='mean - 2 * stddev')    
         raw_line, = plt.plot(times, svc_pair_to_raw[cur_src_svc, cur_dst_svc], label='sent bytes')
         graph_ready_times = [int(i) for i in times] # floats are hard to read
@@ -420,7 +421,8 @@ def next_value_trigger_control_charts(next_df, data_stats, time, stddev_coef):
         #print "src_dst value: ", src_dst, "mean_stddev value: ", mean_stddev
         next_val = next_df.loc[ src_dst[0], src_dst[1] ]
         mean, stddev = mean_stddev[0], mean_stddev[1]
-        if abs(next_val - mean) > (stddev_coef * stddev):
+        ## NOTE: I am only checking for LARGER than (rather than also smaller) b/c attacker can only add traffic
+        if (next_val - mean) > (stddev_coef * stddev):
             #print "THIS IS THE POOR MAN'S EQUIVALENT OF AN ALARM!!", src_dst, mean_stddev
             warnings_triggered.append([src_dst[0], src_dst[1], time, mean_stddev])
             warning_times.append(time)
@@ -565,25 +567,24 @@ def diagnose_anom_pca(old_dfs, cur_df, n_components):
 # following method given in Ide's "Eigenspace-based Anomaly Detection in
 # Computer Systems"
 def eigenvector_based_detector(old_u, current_tm, window_size, crit_bound, old_z_first_mom, old_z_sec_mom):
-    #### TODO: change to using TruncatedSVD (b/c finding eig of singular matrix is kinda complicated)
-    #### also, need to remove the uselss columns / rows from the TM (probably in the main loop above, tho)
-    #### FURTHER TODO: I am pretty sure that the attack actually executes 5 seconds after we think it does
-    #### b/c we start the attack right AFTER a measuremnt piont, so it doesn't show up until 5 seconds later
     # first, find the principle eigenvector of the traffic matrix
     print "shape: ", current_tm.shape, current_tm
-    eigenvals, unit_eigenvect = np.linalg.eig(current_tm)   
+    #eigenvals, unit_eigenvect = np.linalg.eig(current_tm)   
+    eigenvals, unit_eigenvect = scipy.sparse.linalg.eigs(current_tm.as_matrix(), k=10, which="LM")
+    
     # principle eigenvector has largest associated eigenvalue
     largest_eigenval_index = np.argmax(eigenvals)
     princip_eigenvect = unit_eigenvect[largest_eigenval_index]
     print "pprincip_eigenvect", princip_eigenvect
-    print "eigenvects", unit_eigenvect, eigenvals
+    print "eigenvects", unit_eigenvect
+    print "eigenvals", eigenvals
 
     # second, obtain "typical pattern" of activity vector from old_u
     # this is the principal left singular vector
     print "size", np.shape(old_u), len(np.shape(old_u)), old_u
     if len(np.shape(old_u)) > 1:
         u,s,vh = np.linalg.svd(old_u)
-        largest_signular_val_index = np.argmax(u)
+        largest_signular_val_index = np.argmax(s)
         princip_left_singular_vect = u[largest_signular_val_index]
 
         # third, compute z(t), the dissimilarity between the principal left
@@ -594,11 +595,15 @@ def eigenvector_based_detector(old_u, current_tm, window_size, crit_bound, old_z
         # now compare z(t) with a threshold, using section 5.3
         # approximate the MLE algorithm for the vMF distribution
         beta = 0.005  ## TODO: determine via theory what this should be
+        print "old z_first_moment", old_z_first_mom
         z_first_moment = (1 - beta) * old_z_first_mom + beta * z
+        print "new z_first_moment", z_first_moment
         z_sec_moment = (1 - beta) * old_z_sec_mom + beta * (z ** 2)
+        print "z_sec_moment", z_sec_moment
         n = ((2 * z_first_moment ** 2) / (z_sec_moment - z_first_moment ** 2)) + 1
         sigma = (z_sec_moment - z_first_moment ** 2) / (2 * z_first_moment)
         # find the specific threshold value
+        print "ARGS","n", n, "sigma", sigma,"crit bound", crit_bound
         z_thresh = scipy.optimize.fsolve(vMF_thresh_func, 0, args=(n, sigma, crit_bound))
         #do the actual comparison, but first modify u
         if old_u.shape[1] >= window_size:
@@ -611,7 +616,10 @@ def eigenvector_based_detector(old_u, current_tm, window_size, crit_bound, old_z
             return 0, old_u, z_first_moment, z_sec_moment  # 0 = no alert
     else:
         #old_u = princip_eigenvect
-        old_u = np.hstack((old_u,princip_eigenvect))
+        if np.shape(old_u)[0] == 0:
+            old_u = princip_eigenvect
+        else:
+            old_u = np.stack([old_u,princip_eigenvect],axis=1)
         return 0, old_u, 0, 0  # 0 = no alert
 
 def vMF_pdf_func(z, n, sigma):
@@ -619,7 +627,8 @@ def vMF_pdf_func(z, n, sigma):
     return (np.exp((-1 * z) / (2 * sigma)) * z ** (((n-1)/2)-1)) / denom
 
 def vMF_thresh_func(zth, n, sigma, crit_bound):
-    return scipy.integrate.quad(vMF_pdf_func, zth, np.inf, args=(n,sigma)) - crit_bound
+    unadjusted_bound =  scipy.integrate.quad(vMF_pdf_func, zth, np.inf, args=(n,sigma)) 
+    return unadjusted_bound- crit_bound
 
 def empty_ewmas(svcs, df):
     data_stats = {}

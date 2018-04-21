@@ -346,7 +346,7 @@ def generate_background_traffic(run_time, max_clients, traffic_type):
 
         #Run some number of background clients for 1/24th of the total test time
         time.sleep(timestep)
-        # this stops the background traffic process
+        # this stops the background traffic process 
         os.killpg(os.getpgid(proc.pid), signal.SIGTERM) # should kill it
 
 def run_experiment(num_background_locusts = parameters.num_background_locusts, 
