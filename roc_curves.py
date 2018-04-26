@@ -234,6 +234,24 @@ def graph_roc( results_dict, roc_pickle_path ):
     plt.xlabel('critical percentage value')
     plt.ylabel('rate')
     
+    ### the above results make no sense (how does decreasing the thresh not have a stronger effect on 
+    ### the FPR). The only conclusion that makes sense is that the algo is taking too long too reach 'steady
+    ### state' with the current discount factor. Therefore alls the values seem very strange to the algo, so it keeps
+    ### saying that an alert should be triggered.
+    ### I am going to need to go w/ an unreasonably high discount factor (i.e. beta) b/c of the longer run_time
+    ### note the second moment is just the variance (of z in this case). maybe I should modify the function
+    ### to calc the var off of the collected data... I don't understand the math in that paper, and I am not
+    ### going to pretend that I do. Just stick to modifying the parameters
+
+    ### TODO: (1) per the above discussion, the beta value needs to be examined. First, get a graph of that going. 
+    ### might want to use the code above as a starting point.
+    ### (2) then the window size needs to be examined. Get a graph of that going. Try messing with the values and whatnot. See
+    ### what happens. PCA is off the table as for the poster. 
+    ### (3) Rerun analyze_traffic_matrix with the improved parameters (both w/ old data and new data)
+    ### even if they do not really work, hey, it's something.
+    ### (4) create graphs for poster
+    ### (1) - (3) NEEDS to be done on Friday. (4) can wait until saturdy.
+    
     plt.show()
         
 
