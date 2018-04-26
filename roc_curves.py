@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import pickle
-from analyze_traffix_matrixes import join_dfs
+from analyze_traffix_matrixes import join_dfs, eigenspace_detection_loop, calc_tp_fp_etc
+import numpy as np
 
 #algo = 'control charts'
 #algo = '3-tier control charts'
@@ -117,11 +118,19 @@ def tp_vs_exfil_rate(all_experimental_results, algo_name, algo):
 ### note: pickle_files should be a list of pickle files that I want to run this on
 ### here is some calling code:
 ###         python -c "from roc_curves import actual_roc; actual_roc()"
-def actual_roc():
+# parameter is if should perform the calculation right now (alternative would be to read from dict)
+# calc_p is an integer
+def actual_roc( ):
+    # this function is just for tuning some parameters manually.
+    # so I am just going to hardcode stuff b/c ATM I am not planning on
+    # repurposing this for any additional work
     pickle_path = './experimental_data/test_15_long_small_incr/'
     pickle_files = [('rec_matrix_increm_5_rep_0.pickle', 'sent_matrix_increm_5_rep_0.pickle'),
                     ('rec_matrix_increm_5_rep_1.pickle', 'sent_matrix_increm_5_rep_1.pickle'),
                     ('rec_matrix_increm_5_rep_2.pickle', 'sent_matrix_increm_5_rep_2.pickle')]
+    exfils = {80 : 0, 180 : 0}
+    exp_time = 360
+    start_analyze_time = 30
 
     relevant_tms = []
     for pf in pickle_files:
@@ -131,7 +140,102 @@ def actual_roc():
     joint_dfs = []
     for df_rec_sent in relevant_tms:
         joint_dfs.append( join_dfs(df_rec_sent[1], df_rec_sent[0]) )
-    return joint_dfs
+    
+    # now we have a list of the joint dfs. Lets loop through the params we have
+    # available for the eigen-space based detection system
+    experiment_results = {}
+    i = 0
+    for joint_df in joint_dfs:
+        # let's try looping over a parameter!
+        win_sz = 5
+        beta_val = 0.05
+        for crit_perc in np.arange(0,1, 0.005):
+            print "critical percentage:", crit_perc
+            eigenspace_warning_times = eigenspace_detection_loop(joint_df, critical_percent=crit_perc,
+                    window_size= win_sz, beta = beta_val )
+            eigenspace_performance_results = calc_tp_fp_etc(("eigenspace", i, crit_perc, win_sz, beta_val), exfils, eigenspace_warning_times, exp_time, start_analyze_time)
+            #print eigenspace_performance_results
+            experiment_results.update(eigenspace_performance_results)
+            #print experiment_results 
+
+        crit_perc = 0.01 # choosing arbitrarily for now
+        for win_size in range(0,10):
+            eigenspace_warning_times = eigenspace_detection_loop(joint_df, critical_percent=crit_perc,
+                    window_size= win_size, beta = beta_val )
+            eigenspace_performance_results = calc_tp_fp_etc(("eigenspace", i, crit_perc, win_size, beta_val), exfils, eigenspace_warning_times, exp_time, start_analyze_time)
+            #print eigenspace_performance_results
+            experiment_results.update(eigenspace_performance_results)
+            #print experiment_results 
+
+        for beta_value in np.arange(0, 1, 0.01):
+            eigenspace_warning_times = eigenspace_detection_loop(joint_df, critical_percent=crit_perc,
+                    window_size= win_sz, beta = beta_value )
+            eigenspace_performance_results = calc_tp_fp_etc(("eigenspace", i, crit_perc, win_sz, beta_value), exfils, eigenspace_warning_times, exp_time, start_analyze_time)
+            #print eigenspace_performance_results                                                
+            experiment_results.update(eigenspace_performance_results)                                                            
+            #print experiment_results 
+        
+        i += 1
+    
+    pickle.dump(experiment_results, 
+            open( pickle_path + 'eigenspace_roc_increm_5.pickle', "wb" ) )
+ 
+    return experiment_results
+
+# example of how to call:
+#   python -c "from roc_curves import graph_roc; graph_roc(None, './experimental_data/test_15_long_small_incr/eigenspace_roc_increm_5.pickle' )"
+#  results_dict; is either passed from results of actual_roc() or is just None 
+# if results_dict is real, then can just pass an empty string for roc_pickle_path
+def graph_roc( results_dict, roc_pickle_path ):
+    if not results_dict:
+        results_dict = pickle.load( open( roc_pickle_path, "rb" ) )
+    
+    print results_dict
+
+    # I am currently setting it up to take a gander at how varying crit_pert affects results
+    # y-axis -> rate ; x-axis -> value of crit_pert
+    # then I'd want to stick the values into the maplotlib graph generator function 
+    crit_pert_to_rate = {} # val is (rate, contributers), where contributer is how many enteries contributed
+    for key, val in results_dict.iteritems():
+        print 'key', key, 'val', val
+        if key[0] == "eigenspace" and key[3] == 5 and key[4] == 0.05:
+            print "this value is under consideration"
+            if key[2] in crit_pert_to_rate:
+                print "this value already exists!"
+                old_tpr = crit_pert_to_rate[key[2]][0][0]
+                old_fpr = crit_pert_to_rate[key[2]][0][1]
+                old_contrib = crit_pert_to_rate[key[2]][1]
+                new_tpr = (old_tpr * old_contrib + val['TPR']) / (old_contrib + 1)
+                new_fpr = (old_fpr * old_contrib + val['FPR']) / (old_contrib + 1)
+                crit_pert_to_rate[key[2]] = ((new_tpr, new_fpr), old_contrib + 1)
+            else:
+                print "this value does not already exist; I am going to add it"
+                crit_pert_to_rate[key[2]] = ((val['TPR'], val['FPR']), 1)
+    
+    print 'Mapping', crit_pert_to_rate
+    crit_percents = []
+    tpr = []
+    fpr = []
+    for key in sorted(crit_pert_to_rate):
+        crit_percents.append(key)
+        tpr.append(crit_pert_to_rate[key][0][0])
+        fpr.append(crit_pert_to_rate[key][0][1])
+            
+        # print "%s: %s" % (key, mydict[key])
+
+    #crit_percents = [crit_percent for crit_percent in crit_pert_to_rate.keys()]
+    #tpr = [rates[0][0] for rates  in crit_pert_to_rate.values()]
+    #fpr = [rates[0][1] for rates  in crit_pert_to_rate.values()]
+    tp_line, = plt.plot(crit_percents, tpr, label = "TP Rate")
+    fp_line, = plt.plot(crit_percents, fpr, label = "FP Rate")
+    plt.legend(handles=[ tp_line, fp_line])
+    
+    plt.title("kinda roc")
+    plt.xlabel('critical percentage value')
+    plt.ylabel('rate')
+    
+    plt.show()
+        
 
 def load_exp(all_exp_results_loc):
     all_experimental_results = pickle.load( open( all_exp_results_loc, "rb" ) )
@@ -145,7 +249,7 @@ def load_exp(all_exp_results_loc):
     tt_tpr, tt_fpr, tt_exfil_rate = tp_vs_exfil_rate(all_experimental_results, "3-tier Architecture", '3-tier control charts')
 
     plt.figure(3)
-    #print ms_trp
+    #print me_trp
     ms_tp_line_eig, = plt.plot(ms_exfil_rate_eig, ms_tpr_eig, label = "MS eig")
     tt_tp_line_eig, = plt.plot(tt_exfil_rate_eig, tt_tpr_eig, label = "3T eig")
     ms_tp_line, = plt.plot(ms_exfil_rate, ms_tpr, label = "Microservice")

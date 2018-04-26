@@ -91,10 +91,11 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
         prev_step_ewmas = control_charts(df, False,  prev_step_ewmas, lambda_ewma, services_to_monitor)
         df_rec_control_stats.append(prev_step_ewmas)
     #print df_sent_control_stats
-    
+    '''
     # aggregate the matrixes into what we would see in a corresponding 3-tier arch
     df_three_tier_sent = three_tier_time_aggreg(df_sent)
     df_three_tier_rec = three_tier_time_aggreg(df_rec)
+    '''
     df_three_tier_sent_slices = generate_time_slice_dfs(df_three_tier_sent) 
     df_three_tier_rec_slices = generate_time_slice_dfs(df_three_tier_rec)
     three_tier_services = ['presentation', 'application', 'data']
@@ -221,18 +222,6 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
     '''
     joint_df = join_dfs(df_sent, df_rec)
     print joint_df
-    ### okay, so this is where the ROC generation function will need to be.
-    ### it will essentially be a loop around this piece of code
-    ### and it will change the critical_percentage (/maybe the window)
-    ### ((b/c changing the window will help it converge faster)
-    ### change the name based off of the params (don't mess w/ tuples b/c it'll introduce breaking 
-    ### changes w/ the other program) 
-    ### there's another magic numb in that func, so extract that too
-    ### try varing all three. This code is pretty fast, so just loop it a couple hundred times with
-    ### the various parameters
-    ### I am fairly certain that internal param is killing the performance
-    ### also TODO, setup the run_experiment so that it overwrites old entries if we get them
-    ### but saves them if we don't
     eigenspace_warning_times = eigenspace_detection_loop(joint_df, critical_percent=0.0003, 
         window_size=5, beta = 0.05 )
 
@@ -241,9 +230,13 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
     experiment_results.update(eigenspace_performance_results)
     
 
-    ### TODO: do the same thing above but with the 3-tier aggregation
-    ### this is just a placeholder that I will use for now
-    tt_eigenspace_performance_results = calc_tp_fp_etc("tt_eigenspace", exfils, [], exp_time, start_analyze_time)
+    #### TODO: get this working. the problem is in join_dfs. see comment inside for details
+    #tt_joint_df = join_dfs(df_three_tier_sent, df_three_tier_rec)
+    #print tt_joint_df
+    #tt_eigenspace_warning_times = eigenspace_detection_loop(tt_joint_df, critical_percent=0.0003, 
+    #                window_size=5, beta = 0.05 )
+    tt_eigenspace_performance_results = calc_tp_fp_etc("tt_eigenspace", exfils, [], 
+            exp_time, start_analyze_time)
     experiment_results.update(tt_eigenspace_performance_results)
 
     # return experiment results, all ready for aggregation
@@ -263,11 +256,19 @@ def join_dfs(df_sent, df_rec):
     for name,grp in time_groups:
         #print name
         current_time = grp['time']
+        #print grp
         current_df_sent =  pd.concat([grp.drop(['time'], axis=1).T, current_time], axis=1)
+        #print current_df_sent
         joint_df = pd.concat([joint_df, current_df_sent])
+        #print joint_df
     # need to remove and then add back in the time column
     time_column = joint_df['time']
+    #print "joint", joint_df
+    #print "rec", df_rec.drop(['time'], axis=1)
+    #### TODO: find of what is wrong with the line below. It doesn't work properly for the three-tier architecture
+    #### (I already checked the rest of the func and it was fine)
     joint_df = joint_df.drop(['time'], axis=1).add(df_rec.drop(['time'], axis=1))
+    #print "joint", joint_df, "times",  time_column
     joint_df = pd.concat([joint_df, time_column], axis = 1)
     #print "joint df", joint_df
     return joint_df
@@ -737,6 +738,8 @@ def eigenvector_based_detector(old_u, current_tm, window_size, crit_bound, old_z
 def vMF_pdf_func(z, n, sigma):
     if z < 0:
         return 1000000 # this ensures that fsolve won't get negative 
+    if n < 3:
+        return 1000000
     denom = (2* sigma) ** ((n-1)/2) * scipy.special.gamma((n-1)/2)
     return (np.exp((-1 * z) / (2 * sigma)) * z ** (((n-1)/2)-1)) / denom
 
