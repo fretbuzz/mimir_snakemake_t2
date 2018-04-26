@@ -76,17 +76,19 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
     print "df_rec:", df_rec
     df_sent_time_slices = generate_time_slice_dfs(df_sent)
     df_rec_time_slices = generate_time_slice_dfs(df_rec)
+    '''
     df_sent_control_stats = []
     df_rec_control_stats = []
     prev_step_ewmas = empty_ewmas(services, df_sent_time_slices[0])
     lambda_ewma = 0.2 # TODO don't arbitrarily pick lambda
+    services_to_monitor = ['front-end', 'user'] # services
     for df in df_sent_time_slices:
-        prev_step_ewmas = control_charts(df, True,  prev_step_ewmas, lambda_ewma, services)
+        prev_step_ewmas = control_charts(df, True,  prev_step_ewmas, lambda_ewma, services_to_monitor)
         df_sent_control_stats.append(prev_step_ewmas)
         #print df
     prev_step_ewmas = empty_ewmas(services, df_rec_time_slices[0])
     for df in df_rec_time_slices:
-        prev_step_ewmas = control_charts(df, False,  prev_step_ewmas, lambda_ewma, services)
+        prev_step_ewmas = control_charts(df, False,  prev_step_ewmas, lambda_ewma, services_to_monitor)
         df_rec_control_stats.append(prev_step_ewmas)
     #print df_sent_control_stats
     
@@ -96,15 +98,16 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
     df_three_tier_sent_slices = generate_time_slice_dfs(df_three_tier_sent) 
     df_three_tier_rec_slices = generate_time_slice_dfs(df_three_tier_rec)
     three_tier_services = ['presentation', 'application', 'data']
+    three_tier_to_monitor = ['application', 'data'] # three_tier_services
     df_three_tier_sent_control_stats = []
     df_three_tier_rec_control_stats = []
     prev_step_ewmas = empty_ewmas(three_tier_services, df_three_tier_sent_slices[0])
     for df in df_three_tier_sent_slices:
-        prev_step_ewmas = control_charts(df, True,  prev_step_ewmas, lambda_ewma, three_tier_services)
+        prev_step_ewmas = control_charts(df, True,  prev_step_ewmas, lambda_ewma, three_tier_to_monitor)
         df_three_tier_sent_control_stats.append(prev_step_ewmas)
     prev_step_ewmas = empty_ewmas(three_tier_services, df_three_tier_rec_slices[0])
     for df in df_three_tier_rec_slices:
-        prev_step_ewmas = control_charts(df, False,  prev_step_ewmas, lambda_ewma, three_tier_services)
+        prev_step_ewmas = control_charts(df, False,  prev_step_ewmas, lambda_ewma, three_tier_to_monitor)
         df_three_tier_rec_control_stats.append(prev_step_ewmas)
 
     # check when control charts would give a warning
@@ -124,24 +127,26 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
                 df_sent_control_stats[time], times[time], ewma_stddev_coef)
         warnings_rec,warning_times_rec = next_value_trigger_control_charts(next_df_rec, 
                 df_rec_control_stats[time], times[time], ewma_stddev_coef)
+        print "Microsvc sent and rec warnings during loop", warnings_sent, warnings_rec
         control_charts_warning_sent.append(warnings_sent)
         control_charts_warning_rec.append(warnings_rec)
         control_charts_warning_times_sent += warning_times_sent
         control_charts_warning_times_rec += warning_times_rec
     print "these are the warnings from the control charts: (for data that is sent): "
-    print control_charts_warning_sent,"just times:", warning_times_sent
+    print control_charts_warning_sent,"just times:"#, warning_times_sent
     
     # combine the two sets of warning times (delete duplicates)
-    all_control_chart_warning_times = list(set(control_charts_warning_times_sent + control_charts_warning_times_rec))
+    all_control_chart_warning_times = sorted(list(set(control_charts_warning_times_sent + control_charts_warning_times_rec)))
     print all_control_chart_warning_times
     
     # then calc TP/TN/FP/FN
     performance_results = calc_tp_fp_etc("control charts", exfils, all_control_chart_warning_times, 
                                         exp_time, start_analyze_time)
     experiment_results.update(performance_results)
-    #print experiment_results
+    print "the results are:"
+    print performance_results
 
-    ### TODO test this
+    ### TODO test this ## Update: I think it is fine.
     # now let's do the control charts test for the three-tier aggregation too
     three_tier_control_charts_warning_sent = []
     three_tier_control_charts_warning_rec = []
@@ -149,42 +154,46 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
     three_tier_control_charts_warning_times_rec = []
     for time in range(1,len(times)-1):
         next_df_sent = df_three_tier_sent[ df_three_tier_sent['time'].isin([times[time]])]
-        next_df_rec = df_three_tier_sent[ df_three_tier_sent['time'].isin([times[time]])] 
+        next_df_rec = df_three_tier_rec[ df_three_tier_rec['time'].isin([times[time]])] 
         # TODO: pick a coefficient for the EWMA stddev that isn't arbitrary
         ewma_stddev_coef = 3
         warnings_sent,warning_times_sent = next_value_trigger_control_charts(next_df_sent,
                 df_three_tier_sent_control_stats[time], times[time], ewma_stddev_coef)
         warnings_rec,warning_times_rec = next_value_trigger_control_charts(next_df_rec,
                 df_three_tier_rec_control_stats[time], times[time], ewma_stddev_coef)
+        print "sent and rec warnings during loop", warnings_sent, warnings_rec
         three_tier_control_charts_warning_sent.append(warnings_sent)
         three_tier_control_charts_warning_rec.append(warnings_rec)
         three_tier_control_charts_warning_times_sent += warning_times_sent
         three_tier_control_charts_warning_times_rec += warning_times_rec
     print "these are the warnings from the 3-tier control charts: (for data that is sent): "
-    print three_tier_control_charts_warning_sent,"just times:", three_tier_control_charts_warning_times_sent
-    three_tier_all_control_chart_warning_times = list(set(three_tier_control_charts_warning_times_sent+three_tier_control_charts_warning_times_rec))
+    #print three_tier_control_charts_warning_sent,"just times:", three_tier_control_charts_warning_times_sent
+    three_tier_all_control_chart_warning_times = sorted(list(set(three_tier_control_charts_warning_times_sent+three_tier_control_charts_warning_times_rec)))
+    print "three_tier_control_charts_warning_times", three_tier_all_control_chart_warning_times
     three_tier_performance_results = calc_tp_fp_etc("3-tier control charts", exfils, three_tier_all_control_chart_warning_times,
             exp_time, start_analyze_time)
     experiment_results.update(three_tier_performance_results)
 
     '''  # see function def for why I think this is nonsense print pca_anom_scores
     # okay, we are going to try PCA-based analysis here
-    print "about to try PCA anom detection!"
-    pca_explained_vars = pca_anom_detect(df_sent, times)
-    pca_anom_scores = detect_pca_anom(pca_explained_vars) 
+    #print "about to try PCA anom detection!"
+    #pca_explained_vars = pca_anom_detect(df_sent, times)
+    #pca_anom_scores = detect_pca_anom(pca_explained_vars) 
     '''
 
     svc_pair_to_sent_control_charts = generate_service_pair_arrays(df_sent_control_stats, times, services)
     svc_pair_to_sent_bytes = traffic_matrix_to_svc_pair_list(df_sent, services)
     print svc_pair_to_sent_control_charts['front-end', 'user']
     sent_data_for_display = {'raw': svc_pair_to_sent_bytes, 'control-charts':svc_pair_to_sent_control_charts}
-    generate_graphs(sent_data_for_display, times, display_sent_svc_pair, True, graph_names + "_sent_graphs")
-
+    #generate_graphs(sent_data_for_display, times, display_sent_svc_pair, True, graph_names + "_sent_graphs")
+    #### TODO ^^ put back in
+    
     svc_pair_to_rec_control_charts = generate_service_pair_arrays(df_rec_control_stats, times, services)
     svc_pair_to_rec_bytes = traffic_matrix_to_svc_pair_list(df_rec, services)
     #print svc_pair_to_rec_control_charts['front-end', 'user']
     rec_data_for_display = {'raw': svc_pair_to_rec_bytes, 'control-charts':svc_pair_to_rec_control_charts}
-    generate_graphs(rec_data_for_display, times, display_rec_svc_pair, False, graph_names + "_rec_graphs")
+    #generate_graphs(rec_data_for_display, times, display_rec_svc_pair, False, graph_names + "_rec_graphs")
+    #### TODO ^^ put back in
 
     if display_graphs:
         plt.show()
@@ -192,18 +201,98 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
     # user sent to front end is particulary important to me b/c that's where data exfiltration
     # happens
     generate_graphs(sent_data_for_display, times, [['front-end', 'user' ]], True, graph_names + "_user_sent_front_graphs")
-
+    generate_graphs(rec_data_for_display, times, [['front-end', 'user' ]], False, graph_names + "_user_rec_front_graphs")
 
     # let's make some graphs for the 3-tier aggregates (so I can tell what is going on)
     three_tier_svc_pair_to_sent_control_charts = generate_service_pair_arrays(df_three_tier_sent_control_stats, times, three_tier_services)
     three_tier_svc_pair_to_sent_bytes = traffic_matrix_to_svc_pair_list(df_three_tier_sent, three_tier_services)
     three_tier_sent_data_for_display = {'raw': three_tier_svc_pair_to_sent_bytes, 'control-charts': three_tier_svc_pair_to_sent_control_charts}
     generate_graphs(three_tier_sent_data_for_display, times, [['application', 'data']], True, graph_names + "_three_tier_sent_ad")
-    generate_graphs(three_tier_sent_data_for_display, times, [['presentation', 'application']], True, graph_names + "_three_tier_sent_pa")
-    generate_graphs(three_tier_sent_data_for_display, times, [['presentation', 'data']], True, graph_names + "_three_tier_sent_pd")
+    #generate_graphs(three_tier_sent_data_for_display, times, [['presentation', 'application']], True, graph_names + "_three_tier_sent_pa")
+    #generate_graphs(three_tier_sent_data_for_display, times, [['presentation', 'data']], True, graph_names + "_three_tier_sent_pd")
+    # we need to do it for everything b/c there is a bizarre number of alerts
+    three_tier_svc_pair_to_rec_control_charts = generate_service_pair_arrays(df_three_tier_rec_control_stats, times, three_tier_services)
+    three_tier_svc_pair_to_rec_bytes = traffic_matrix_to_svc_pair_list(df_three_tier_rec, three_tier_services)
+    three_tier_rec_data_for_display = {'raw': three_tier_svc_pair_to_rec_bytes, 'control-charts': three_tier_svc_pair_to_rec_control_charts}
+    generate_graphs(three_tier_rec_data_for_display, times, [['application', 'data']], True, graph_names + "_three_tier_rec_ad")
+    #generate_graphs(three_tier_rec_data_for_display, times, [['presentation', 'application']], True, graph_names + "_three_tier_rec_pa")
+    #generate_graphs(three_tier_rec_data_for_display, times, [['presentation', 'data']], True, graph_names + "_three_tier_rec_pd")
+
+    '''
+    joint_df = join_dfs(df_sent, df_rec)
+    print joint_df
+    ### okay, so this is where the ROC generation function will need to be.
+    ### it will essentially be a loop around this piece of code
+    ### and it will change the critical_percentage (/maybe the window)
+    ### ((b/c changing the window will help it converge faster)
+    ### change the name based off of the params (don't mess w/ tuples b/c it'll introduce breaking 
+    ### changes w/ the other program) 
+    ### there's another magic numb in that func, so extract that too
+    ### try varing all three. This code is pretty fast, so just loop it a couple hundred times with
+    ### the various parameters
+    ### I am fairly certain that internal param is killing the performance
+    ### also TODO, setup the run_experiment so that it overwrites old entries if we get them
+    ### but saves them if we don't
+    eigenspace_warning_times = eigenspace_detection_loop(joint_df, critical_percent=0.0003, 
+        window_size=5, beta = 0.05 )
+
+    print eigenspace_warning_times
+    eigenspace_performance_results = calc_tp_fp_etc("eigenspace", exfils, eigenspace_warning_times, exp_time, start_analyze_time)
+    experiment_results.update(eigenspace_performance_results)
+    
+
+    ### TODO: do the same thing above but with the 3-tier aggregation
+    ### this is just a placeholder that I will use for now
+    tt_eigenspace_performance_results = calc_tp_fp_etc("tt_eigenspace", exfils, [], exp_time, start_analyze_time)
+    experiment_results.update(tt_eigenspace_performance_results)
 
     # return experiment results, all ready for aggregation
     return experiment_results
+
+# reverses df_sent and then combines them
+# (this is harder than it initially sounds)
+def join_dfs(df_sent, df_rec):
+    times = get_times(df_sent)
+    #joint_df = df_rec.add(df_sent)
+    # I am transposing df_sent b/c directionality is determined in relation to the destination pod
+    # so the destination pod SENDS data in df_sent, so it is really the sender
+    # note that destination pod is defined per the TCP handshake, not per individual packets
+    #print df_sent
+    time_groups = df_sent.groupby(['time'])
+    joint_df = pd.DataFrame()
+    for name,grp in time_groups:
+        #print name
+        current_time = grp['time']
+        current_df_sent =  pd.concat([grp.drop(['time'], axis=1).T, current_time], axis=1)
+        joint_df = pd.concat([joint_df, current_df_sent])
+    # need to remove and then add back in the time column
+    time_column = joint_df['time']
+    joint_df = joint_df.drop(['time'], axis=1).add(df_rec.drop(['time'], axis=1))
+    joint_df = pd.concat([joint_df, time_column], axis = 1)
+    #print "joint df", joint_df
+    return joint_df
+
+# this fuction runs the loop for the eignspace-detection method (over time)
+# returns a list of times
+def eigenspace_detection_loop(joint_df, critical_percent, window_size, beta):
+    times = get_times(joint_df)
+    old_u = np.array([])
+    z_first_moment = 0 
+    z_sec_moment = 0 
+    eigenspace_warning_times = []
+    for time_index in range(0,len(times)):
+        time = times[time_index]
+        current_df = joint_df[ joint_df['time'].isin([time])]
+        #print current_df
+        #### TODO make the critical percentage + window not arbitrary
+        alarm_p, old_u, z_first_moment, z_sec_moment = eigenvector_based_detector(old_u, 
+                current_df.drop(['time'], axis=1), window_size, critical_percent, z_first_moment, z_sec_moment, beta)
+        print "z first moment", z_first_moment, "z second moment", z_sec_moment
+        print alarm_p#, old_u, z_first_moment, z_sec_moment
+        print type(alarm_p)
+        if alarm_p:
+            eigenspace_warning_times.append(time)
+    return eigenspace_warning_times
 
 # this function just generates graphs
 # sent_data_for_display is a dictionary of data about the sent traffic matrixc
@@ -236,6 +325,7 @@ def generate_graphs(data_for_display, times, src_pairs_to_display, is_sent, grap
         cur_dst_svc = src_pairs_to_display[i][1]
         print cur_src_svc, cur_dst_svc, svc_pair_to_control_charts[cur_src_svc, cur_dst_svc]
         print cur_src_svc, cur_dst_svc, svc_pair_to_raw[cur_src_svc, cur_dst_svc]
+        print [item[0] for item in svc_pair_to_control_charts[cur_src_svc, cur_dst_svc]]
         avg_line, = plt.plot(times, [item[0] for item in svc_pair_to_control_charts[cur_src_svc, cur_dst_svc]], label='mean')
         avg_plus_one_stddev = [item[0] + item[1] for item in svc_pair_to_control_charts[cur_src_svc, cur_dst_svc]]
         control_chart_above, = plt.plot(times, avg_plus_one_stddev, label='mean + 1 * stddev')
@@ -368,7 +458,6 @@ def generate_time_slice_dfs(df):
         #print df_so_far
     return time_slices
 
-#### TODO : test this (b/c it's been modified to use EWMA)
 # this is the function to implement control channels
 # i.e. compute mean and standard deviation for each pod-pair
 # Note: is_send is 1 if it is the "send matrix", else zero
@@ -414,9 +503,6 @@ def get_times(df):
 def next_value_trigger_control_charts(next_df, data_stats, time, stddev_coef):
     warnings_triggered = []
     warning_times = []
-    ## iterate through values of data_stats
-    ## get value from traffic matrix
-    ## if outside of bounds, print something in capital letters
     for src_dst, mean_stddev in data_stats.iteritems():
         #print "src_dst value: ", src_dst, "mean_stddev value: ", mean_stddev
         next_val = next_df.loc[ src_dst[0], src_dst[1] ]
@@ -424,7 +510,7 @@ def next_value_trigger_control_charts(next_df, data_stats, time, stddev_coef):
         ## NOTE: I am only checking for LARGER than (rather than also smaller) b/c attacker can only add traffic
         if (next_val - mean) > (stddev_coef * stddev):
             #print "THIS IS THE POOR MAN'S EQUIVALENT OF AN ALARM!!", src_dst, mean_stddev
-            warnings_triggered.append([src_dst[0], src_dst[1], time, mean_stddev])
+            warnings_triggered.append([src_dst[0], src_dst[1], time, mean_stddev, next_val])
             warning_times.append(time)
         #print "current warning times: ", warning_times
     return warnings_triggered, warning_times
@@ -492,11 +578,20 @@ def calc_tp_fp_etc(algo_name, exfils, warning_times, exp_time, start_analyze_tim
         fnr = 0
     else:
         fnr = float(true_attacks_missed) / (true_negatives_found + true_attacks_missed)
+    if (false_attacks_found + true_attacks_found) == 0:
+        fpr = 0
+    else:
+        fpr = float(false_attacks_found) / (false_attacks_found + true_attacks_found)
 
+    if (true_attacks_found +  false_attacks_found) == 0:
+        prec = 0
+    else:
+        prec = float(true_attacks_found) / (true_attacks_found +  false_attacks_found)
     return {algo_name: {"TPR":  (float(true_attacks_found) / (true_attacks_found + true_attacks_missed)),
-                        "FPR" : float(false_attacks_found) / (false_attacks_found + true_attacks_found), 
+                        "FPR" : fpr, 
                         "FNR" : fnr,
-                        "TNR" : float(true_negatives_found) / total_negatives}}
+                        "TNR" : float(true_negatives_found) / total_negatives,
+                        "Precision": prec }}
 
 # following method in Lakhina's "Diagnosing
 # Network-Wide Traffic Anomalies" (sigcomm '04)
@@ -566,7 +661,7 @@ def diagnose_anom_pca(old_dfs, cur_df, n_components):
 
 # following method given in Ide's "Eigenspace-based Anomaly Detection in
 # Computer Systems"
-def eigenvector_based_detector(old_u, current_tm, window_size, crit_bound, old_z_first_mom, old_z_sec_mom):
+def eigenvector_based_detector(old_u, current_tm, window_size, crit_bound, old_z_first_mom, old_z_sec_mom, beta = 0.05):
     # first, find the principle eigenvector of the traffic matrix
     #print "shape: ", current_tm.shape, current_tm
     #eigenvals, unit_eigenvect = np.linalg.eig(current_tm)   
@@ -597,7 +692,7 @@ def eigenvector_based_detector(old_u, current_tm, window_size, crit_bound, old_z
 
         # now compare z(t) with a threshold, using section 5.3
         # approximate the MLE algorithm for the vMF distribution
-        beta = 0.05  ## TODO: determine via theory what this should be
+        # beta = 0.05  ## TODO: determine via theory what this should be
         #print "old z_first_moment", old_z_first_mom
         # helps the system 'get up to speed'
         # nevermind, it just takes time to get up to speed

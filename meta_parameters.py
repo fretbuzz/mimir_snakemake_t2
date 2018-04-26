@@ -69,7 +69,7 @@ exfil_increments = {80: 5000, 180: 5000}
 ## number of increments
 ## will run once using the 'exfils' values and then 
 ## will run the number of times given here, each with the increment applied
-number_increments = 8
+number_increments = 7
 
 ## number of repeat experiments
 ## this is the number of times to run each experiment
