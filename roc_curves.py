@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import pickle
+from analyze_traffix_matrixes import join_dfs
 
 #algo = 'control charts'
 #algo = '3-tier control charts'
@@ -111,6 +112,26 @@ def tp_vs_exfil_rate(all_experimental_results, algo_name, algo):
 
     return tpr, fpr, exfil_rate
     ## f1-score = 2 * (precision * TPR) / (Precision + TPR)
+
+
+### note: pickle_files should be a list of pickle files that I want to run this on
+### here is some calling code:
+###         python -c "from roc_curves import actual_roc; actual_roc()"
+def actual_roc():
+    pickle_path = './experimental_data/test_15_long_small_incr/'
+    pickle_files = [('rec_matrix_increm_5_rep_0.pickle', 'sent_matrix_increm_5_rep_0.pickle'),
+                    ('rec_matrix_increm_5_rep_1.pickle', 'sent_matrix_increm_5_rep_1.pickle'),
+                    ('rec_matrix_increm_5_rep_2.pickle', 'sent_matrix_increm_5_rep_2.pickle')]
+
+    relevant_tms = []
+    for pf in pickle_files:
+        relevant_tms.append( (pickle.load( open( pickle_path + pf[0], "rb" )), 
+                            pickle.load( open( pickle_path + pf[1], "rb" )))  )
+    
+    joint_dfs = []
+    for df_rec_sent in relevant_tms:
+        joint_dfs.append( join_dfs(df_rec_sent[1], df_rec_sent[0]) )
+    return joint_dfs
 
 def load_exp(all_exp_results_loc):
     all_experimental_results = pickle.load( open( all_exp_results_loc, "rb" ) )
