@@ -75,42 +75,32 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
     print "df_sent:", df_sent
     print "df_rec:", df_rec
 
-    # this is for non-selective (on MS)
-    naive_control_charts_warning_times_sent = control_charts_loop(df_sent, True, lambda_ewma=0.2, ewma_stddev_coef=3,
-                                                            services_to_monitor=services)
-    naive_control_charts_warning_times_rec = control_charts_loop(df_rec, False, lambda_ewma=0.2, ewma_stddev_coef=3,
-                                                           services_to_monitor=services)
-    # print "sent control chart warning times", control_charts_warning_times_sent
-    # combine the two sets of warning times (delete duplicates)
-    naive_all_control_chart_warning_times = sorted(
-        list(set(naive_control_charts_warning_times_sent + naive_control_charts_warning_times_rec)))
-    print "all the control chart warning times", naive_all_control_chart_warning_times
+    ### note: I need enough analysis that I can generate ROC curves...
+    ### (2) this loop will specify ewma_stddev (let's say steps by .5 from 0 to 5 ?) (that is only 10)
+    ### (3) modify the results dictionary to have the key be a dictionary?
+    ### with keys name, lambda, and stddev_coef
 
-    # then calc TP/TN/FP/FN
+    # this is for non-selective (on MS)
+    #for ewma_stddev_coef in a.range(0,5,0.5):
+    naive_all_control_chart_warning_times = control_charts_on_directional_dfs(df_sent, df_rec, services,
+                                                                              lambda_val=0.2, stddev_coef=3)
+    print "all the control chart warning times", naive_all_control_chart_warning_times
     naive_performance_results = calc_tp_fp_etc("naive MS control charts", exfils, naive_all_control_chart_warning_times,
                                          exp_time, start_analyze_time)
     experiment_results.update(naive_performance_results)
+
     print "the naive MS results are:"
     print naive_performance_results
 
 
     # this is for selective (on MS)
     selective_ewma_services = ['front-end', 'user']
-    control_charts_warning_times_sent = control_charts_loop(df_sent, True, lambda_ewma = 0.2, ewma_stddev_coef=3,
-                                                       services_to_monitor = selective_ewma_services)
-    control_charts_warning_times_rec = control_charts_loop(df_rec, False, lambda_ewma = 0.2, ewma_stddev_coef=3,
-                                                      services_to_monitor = selective_ewma_services)
-    #print "sent control chart warning times", control_charts_warning_times_sent
-    # combine the two sets of warning times (delete duplicates)
-    all_control_chart_warning_times = sorted(list(set(control_charts_warning_times_sent + control_charts_warning_times_rec)))
-    print "all the control chart warning times", all_control_chart_warning_times
-    
+    all_control_chart_warning_times = control_charts_on_directional_dfs(df_sent, df_rec, selective_ewma_services,
+                                                                              lambda_val=0.2, stddev_coef=3)
     # then calc TP/TN/FP/FN
     performance_results = calc_tp_fp_etc("selective MS control charts", exfils, all_control_chart_warning_times,
-                                        exp_time, start_analyze_time)
+                                         exp_time, start_analyze_time)
     experiment_results.update(performance_results)
-    print "the selective MS results are:"
-    print performance_results
 
 
     # this is for 3-tier
@@ -120,22 +110,12 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
     df_tt_rec = three_tier_time_aggreg(df_rec)
 
     three_tier_services = ['presentation', 'application', 'data']
-    tt_control_charts_warning_times_sent = control_charts_loop(df_tt_sent, True, lambda_ewma=0.2, ewma_stddev_coef=3,
-                                                            services_to_monitor=three_tier_services)
-    tt_control_charts_warning_times_rec = control_charts_loop(df_tt_rec, False, lambda_ewma=0.2, ewma_stddev_coef=3,
-                                                           services_to_monitor=three_tier_services)
-    # print "sent control chart warning times", control_charts_warning_times_sent
-    # combine the two sets of warning times (delete duplicates)
-    tt_all_control_chart_warning_times = sorted(
-        list(set(tt_control_charts_warning_times_sent + tt_control_charts_warning_times_rec)))
-    print "all the control chart warning times", tt_all_control_chart_warning_times
-
-    # then calc TP/TN/FP/FN
-    tt_performance_results = calc_tp_fp_etc("3-tier control charts", exfils, tt_all_control_chart_warning_times,
-                                         exp_time, start_analyze_time)
+    tt_all_control_chart_warning_times = control_charts_on_directional_dfs(df_tt_sent, df_tt_rec, three_tier_services,
+                                                                              lambda_val=0.2, stddev_coef=3)
+    tt_performance_results = calc_tp_fp_etc("naive 3-tier control charts", exfils, tt_all_control_chart_warning_times,
+                                            exp_time, start_analyze_time)
     experiment_results.update(tt_performance_results)
-    print "the naive -Tier results are:"
-    print tt_performance_results
+
 
     '''
 
@@ -207,9 +187,25 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
     
     return experiment_results
 
+# this function exists so that I don't have to keep calling stuff
+# twice b/c I don't combine the matrixes
+def control_charts_on_directional_dfs(df_sent, df_rec, services_to_check, lambda_val, stddev_coef):
+    control_charts_warning_times_sent = control_charts_loop(df_sent, True, lambda_ewma=lambda_val,
+                                                            ewma_stddev_coef=stddev_coef,
+                                                            services_to_monitor=services_to_check)
+    control_charts_warning_times_rec = control_charts_loop(df_rec, False, lambda_ewma=lambda_val,
+                                                           ewma_stddev_coef=stddev_coef,
+                                                           services_to_monitor=services_to_check)
+
+    # print "sent control chart warning times", control_charts_warning_times_sent
+    # combine the two sets of warning times (delete duplicates)
+    all_control_chart_warning_times = sorted(
+        list(set(control_charts_warning_times_sent + control_charts_warning_times_rec)))
+    print "all the control chart warning times", all_control_chart_warning_times
+
+    return all_control_chart_warning_times
+
 # control_charts = ewma
-# TODO don't arbitrarily pick lambda
-# TODO: pick a coefficient for the EWMA stddev that isn't arbitrary
 # services_to_monitor is wierd b/c python has mutuable default arguments
 # returns a list of warning times
 def control_charts_loop(dfs, is_sent, lambda_ewma = 0.2, ewma_stddev_coef = 3, services_to_monitor = None):
