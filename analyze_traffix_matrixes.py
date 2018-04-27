@@ -165,6 +165,7 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
     three_tier_svc_pair_to_sent_control_charts = generate_service_pair_arrays(df_three_tier_sent_control_stats, times, three_tier_services)
     three_tier_svc_pair_to_sent_bytes = traffic_matrix_to_svc_pair_list(df_three_tier_sent, three_tier_services)
     three_tier_sent_data_for_display = {'raw': three_tier_svc_pair_to_sent_bytes, 'control-charts': three_tier_svc_pair_to_sent_control_charts}
+    
     generate_graphs(three_tier_sent_data_for_display, times, [['application', 'data']], True, graph_names + "_three_tier_sent_ad")
     #generate_graphs(three_tier_sent_data_for_display, times, [['presentation', 'application']], True, graph_names + "_three_tier_sent_pa")
     #generate_graphs(three_tier_sent_data_for_display, times, [['presentation', 'data']], True, graph_names + "_three_tier_sent_pd")
@@ -203,7 +204,6 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
 
     # return experiment results, all ready for aggregation
     print "the results dictionary is", experiment_results
-
     
     return experiment_results
 
