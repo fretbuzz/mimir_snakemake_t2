@@ -75,32 +75,34 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
     print "df_sent:", df_sent
     print "df_rec:", df_rec
 
-    ### note: I need enough analysis that I can generate ROC curves...
-    ### (2) this loop will specify ewma_stddev (let's say steps by .5 from 0 to 5 ?) (that is only 10)
-    ### (3) modify the results dictionary to have the key be a dictionary?
-    ### with keys name, lambda, and stddev_coef
-
     # this is for non-selective (on MS)
-    #for ewma_stddev_coef in a.range(0,5,0.5):
-    naive_all_control_chart_warning_times = control_charts_on_directional_dfs(df_sent, df_rec, services,
-                                                                              lambda_val=0.2, stddev_coef=3)
-    print "all the control chart warning times", naive_all_control_chart_warning_times
-    naive_performance_results = calc_tp_fp_etc("naive MS control charts", exfils, naive_all_control_chart_warning_times,
-                                         exp_time, start_analyze_time)
-    experiment_results.update(naive_performance_results)
+    for ewma_stddev_coef in np.arange(0, 5, 0.5):
+        for lambda_values in np.arange(0, 1, 0.2):
+            naive_all_control_chart_warning_times = control_charts_on_directional_dfs(df_sent, df_rec, services,
+                                                                                      lambda_val=lambda_values,
+                                                                                      stddev_coef=ewma_stddev_coef)
+            print "all the control chart warning times", naive_all_control_chart_warning_times
+            # format: (name, lambda value, stddev coef value)
+            naive_performance_results = calc_tp_fp_etc(("naive MS control charts", lambda_values, ewma_stddev_coef), exfils,
+                                                   naive_all_control_chart_warning_times,exp_time, start_analyze_time)
+            experiment_results.update(naive_performance_results)
 
-    print "the naive MS results are:"
-    print naive_performance_results
+            print "the naive MS results are:"
+            print naive_performance_results
 
 
     # this is for selective (on MS)
-    selective_ewma_services = ['front-end', 'user']
-    all_control_chart_warning_times = control_charts_on_directional_dfs(df_sent, df_rec, selective_ewma_services,
-                                                                              lambda_val=0.2, stddev_coef=3)
-    # then calc TP/TN/FP/FN
-    performance_results = calc_tp_fp_etc("selective MS control charts", exfils, all_control_chart_warning_times,
-                                         exp_time, start_analyze_time)
-    experiment_results.update(performance_results)
+    print "ENTERING SELECTIVE TERRITORY"
+    for ewma_stddev_coef in np.arange(0,5,0.5):
+        for lambda_values in np.arange(0, 1, 0.2):
+            selective_ewma_services = ['front-end', 'user']
+            all_control_chart_warning_times = control_charts_on_directional_dfs(df_sent, df_rec, selective_ewma_services,
+                                                                              lambda_val=lambda_values,
+                                                                                stddev_coef=ewma_stddev_coef)
+            # then calc TP/TN/FP/FN
+            performance_results = calc_tp_fp_etc(("selective MS control charts", lambda_values, ewma_stddev_coef),
+                                                 exfils, all_control_chart_warning_times,exp_time, start_analyze_time)
+            experiment_results.update(performance_results)
 
 
     # this is for 3-tier
@@ -109,12 +111,15 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
     df_tt_sent = three_tier_time_aggreg(df_sent)
     df_tt_rec = three_tier_time_aggreg(df_rec)
 
-    three_tier_services = ['presentation', 'application', 'data']
-    tt_all_control_chart_warning_times = control_charts_on_directional_dfs(df_tt_sent, df_tt_rec, three_tier_services,
-                                                                              lambda_val=0.2, stddev_coef=3)
-    tt_performance_results = calc_tp_fp_etc("naive 3-tier control charts", exfils, tt_all_control_chart_warning_times,
-                                            exp_time, start_analyze_time)
-    experiment_results.update(tt_performance_results)
+    for ewma_stddev_coef in np.arange(0,5,0.5):
+        for lambda_values in np.arange(0, 1, 0.2):
+            three_tier_services = ['presentation', 'application', 'data']
+            tt_all_control_chart_warning_times = control_charts_on_directional_dfs(df_tt_sent, df_tt_rec, three_tier_services,
+                                                                                    lambda_val=lambda_values,
+                                                                                   stddev_coef=ewma_stddev_coef)
+            tt_performance_results = calc_tp_fp_etc(("naive 3-tier control charts", lambda_values, ewma_stddev_coef),
+                                                    exfils, tt_all_control_chart_warning_times, exp_time, start_analyze_time)
+            experiment_results.update(tt_performance_results)
 
 
     '''
