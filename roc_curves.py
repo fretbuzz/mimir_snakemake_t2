@@ -148,7 +148,7 @@ def actual_roc( ):
     for joint_df in joint_dfs:
         # let's try looping over a parameter!
         win_sz = 5
-        beta_val = 0.05
+        beta_val = 0.215
         for crit_perc in np.arange(0,1, 0.005):
             print "critical percentage:", crit_perc
             eigenspace_warning_times = eigenspace_detection_loop(joint_df, critical_percent=crit_perc,
@@ -179,7 +179,7 @@ def actual_roc( ):
     
     pickle.dump(experiment_results, 
             open( pickle_path + 'eigenspace_roc_increm_5.pickle', "wb" ) )
- 
+
     return experiment_results
 
 # example of how to call:
@@ -198,7 +198,7 @@ def graph_roc( results_dict, roc_pickle_path ):
     crit_pert_to_rate = {} # val is (rate, contributers), where contributer is how many enteries contributed
     for key, val in results_dict.iteritems():
         print 'key', key, 'val', val
-        if key[0] == "eigenspace" and key[3] == 5 and key[4] == 0.05:
+        if key[0] == "eigenspace" and key[3] == 5 and key[4] == 0.215:
             print "this value is under consideration"
             if key[2] in crit_pert_to_rate:
                 print "this value already exists!"
@@ -223,6 +223,7 @@ def graph_roc( results_dict, roc_pickle_path ):
             
         # print "%s: %s" % (key, mydict[key])
 
+    plt.figure(1)
     #crit_percents = [crit_percent for crit_percent in crit_pert_to_rate.keys()]
     #tpr = [rates[0][0] for rates  in crit_pert_to_rate.values()]
     #fpr = [rates[0][1] for rates  in crit_pert_to_rate.values()]
@@ -251,7 +252,95 @@ def graph_roc( results_dict, roc_pickle_path ):
     ### even if they do not really work, hey, it's something.
     ### (4) create graphs for poster
     ### (1) - (3) NEEDS to be done on Friday. (4) can wait until saturdy.
-    
+
+    # I am currently setting it up to take a gander at how varying crit_pert affects results
+    # y-axis -> rate ; x-axis -> value of crit_pert
+    # then I'd want to stick the values into the maplotlib graph generator function
+    beta_to_rate = {} # val is (rate, contributers), where contributer is how many enteries contributed
+    for key, val in results_dict.iteritems():
+        #print 'key', key, 'val', val
+        if key[0] == "eigenspace" and key[3] == 5 and key[2] == 0.01:
+            print "this value is under consideration"
+            print key, val
+            if key[4] in beta_to_rate:
+                print "this value already exists!"
+                old_tpr = beta_to_rate[key[4]][0][0]
+                old_fpr = beta_to_rate[key[4]][0][1]
+                old_contrib = beta_to_rate[key[4]][1]
+                new_tpr = (old_tpr * old_contrib + val['TPR']) / (old_contrib + 1)
+                new_fpr = (old_fpr * old_contrib + val['FPR']) / (old_contrib + 1)
+                beta_to_rate[key[4]] = ((new_tpr, new_fpr), old_contrib + 1)
+            else:
+                print "this value does not already exist; I am going to add it"
+                beta_to_rate[key[4]] = ((val['TPR'], val['FPR']), 1)
+
+    print 'Mapping', beta_to_rate
+    crit_percents = []
+    tpr = []
+    fpr = []
+    for key in sorted(beta_to_rate):
+        crit_percents.append(key)
+        tpr.append(beta_to_rate[key][0][0])
+        fpr.append(beta_to_rate[key][0][1])
+        # print "%s: %s" % (key, mydict[key])
+    #crit_percents = [crit_percent for crit_percent in crit_pert_to_rate.keys()]
+    #tpr = [rates[0][0] for rates  in crit_pert_to_rate.values()]
+    #fpr = [rates[0][1] for rates  in crit_pert_to_rate.values()]
+    plt.figure(2)
+    print "tpr beta", tpr
+    print "fpr beta", fpr
+    tp_line, = plt.plot(crit_percents, tpr, label = "TP Rate")
+    fp_line, = plt.plot(crit_percents, fpr, label = "FP Rate")
+    plt.legend(handles=[ tp_line, fp_line])
+    plt.title("kinda roc")
+
+    plt.xlabel('beta value')
+    plt.ylabel('rate')
+
+    # now I shall do the same thing again w/ the window size
+    window_to_rate = {}  # val is (rate, contributers), where contributer is how many enteries contributed
+    for key, val in results_dict.iteritems():
+        # print 'key', key, 'val', val
+        if key[0] == "eigenspace" and key[4] == 0.215 and key[2] == 0.01:
+            print "this value is under consideration"
+            print key, val
+            if key[3] in beta_to_rate:
+                print "this value already exists!"
+                old_tpr = window_to_rate[key[3]][0][0]
+                old_fpr = window_to_rate[key[3]][0][1]
+                old_contrib = beta_to_rate[key[3]][1]
+                new_tpr = (old_tpr * old_contrib + val['TPR']) / (old_contrib + 1)
+                new_fpr = (old_fpr * old_contrib + val['FPR']) / (old_contrib + 1)
+                window_to_rate[key[3]] = ((new_tpr, new_fpr), old_contrib + 1)
+            else:
+                print "this value does not already exist; I am going to add it"
+                window_to_rate[key[3]] = ((val['TPR'], val['FPR']), 1)
+
+    print 'Mapping', beta_to_rate
+    crit_percents = []
+    tpr = []
+    fpr = []
+    for key in sorted(beta_to_rate):
+        crit_percents.append(key)
+        tpr.append(window_to_rate[key][0][0])
+        fpr.append(window_to_rate[key][0][1])
+        # print "%s: %s" % (key, mydict[key])
+    # crit_percents = [crit_percent for crit_percent in crit_pert_to_rate.keys()]
+    # tpr = [rates[0][0] for rates  in crit_pert_to_rate.values()]
+    # fpr = [rates[0][1] for rates  in crit_pert_to_rate.values()]
+    plt.figure(3)
+    print "tpr beta", tpr
+    print "fpr beta", fpr
+    tp_line, = plt.plot(crit_percents, tpr, label="TP Rate")
+    fp_line, = plt.plot(crit_percents, fpr, label="FP Rate")
+    plt.legend(handles=[tp_line, fp_line])
+    plt.title("kinda roc")
+
+    plt.xlabel('window size')
+    plt.ylabel('rate')
+
+
+
     plt.show()
         
 

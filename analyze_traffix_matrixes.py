@@ -74,112 +74,69 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
     df_rec = df_rec.drop(services_to_ignore).drop(services_to_ignore, axis=1)
     print "df_sent:", df_sent
     print "df_rec:", df_rec
-    df_sent_time_slices = generate_time_slice_dfs(df_sent)
-    df_rec_time_slices = generate_time_slice_dfs(df_rec)
-    '''
-    df_sent_control_stats = []
-    df_rec_control_stats = []
-    prev_step_ewmas = empty_ewmas(services, df_sent_time_slices[0])
-    lambda_ewma = 0.2 # TODO don't arbitrarily pick lambda
-    services_to_monitor = ['front-end', 'user'] # services
-    for df in df_sent_time_slices:
-        prev_step_ewmas = control_charts(df, True,  prev_step_ewmas, lambda_ewma, services_to_monitor)
-        df_sent_control_stats.append(prev_step_ewmas)
-        #print df
-    prev_step_ewmas = empty_ewmas(services, df_rec_time_slices[0])
-    for df in df_rec_time_slices:
-        prev_step_ewmas = control_charts(df, False,  prev_step_ewmas, lambda_ewma, services_to_monitor)
-        df_rec_control_stats.append(prev_step_ewmas)
-    #print df_sent_control_stats
-    '''
-    # aggregate the matrixes into what we would see in a corresponding 3-tier arch
-    df_three_tier_sent = three_tier_time_aggreg(df_sent)
-    df_three_tier_rec = three_tier_time_aggreg(df_rec)
-    '''
-    df_three_tier_sent_slices = generate_time_slice_dfs(df_three_tier_sent) 
-    df_three_tier_rec_slices = generate_time_slice_dfs(df_three_tier_rec)
-    three_tier_services = ['presentation', 'application', 'data']
-    three_tier_to_monitor = ['application', 'data'] # three_tier_services
-    df_three_tier_sent_control_stats = []
-    df_three_tier_rec_control_stats = []
-    prev_step_ewmas = empty_ewmas(three_tier_services, df_three_tier_sent_slices[0])
-    for df in df_three_tier_sent_slices:
-        prev_step_ewmas = control_charts(df, True,  prev_step_ewmas, lambda_ewma, three_tier_to_monitor)
-        df_three_tier_sent_control_stats.append(prev_step_ewmas)
-    prev_step_ewmas = empty_ewmas(three_tier_services, df_three_tier_rec_slices[0])
-    for df in df_three_tier_rec_slices:
-        prev_step_ewmas = control_charts(df, False,  prev_step_ewmas, lambda_ewma, three_tier_to_monitor)
-        df_three_tier_rec_control_stats.append(prev_step_ewmas)
 
-    # check when control charts would give a warning
-    # just going to use sent for now, could use reciever later
-    times = get_times(df_sent)
-    # starts at 1, b/c everyting has time stddev 0 at time 0, so everything would trigger a warning
-    control_charts_warning_sent = []
-    control_charts_warning_rec = []
-    control_charts_warning_times_sent = []
-    control_charts_warning_times_rec = []
-    for time in range(1,len(times)-1):
-        next_df_sent = df_sent[ df_sent['time'].isin([times[time]])]
-        next_df_rec = df_rec[ df_rec['time'].isin([times[time]])]
-        # TODO: pick a coefficient for the EWMA stddev that isn't arbitrary
-        ewma_stddev_coef = 3
-        warnings_sent,warning_times_sent = next_value_trigger_control_charts(next_df_sent, 
-                df_sent_control_stats[time], times[time], ewma_stddev_coef)
-        warnings_rec,warning_times_rec = next_value_trigger_control_charts(next_df_rec, 
-                df_rec_control_stats[time], times[time], ewma_stddev_coef)
-        print "Microsvc sent and rec warnings during loop", warnings_sent, warnings_rec
-        control_charts_warning_sent.append(warnings_sent)
-        control_charts_warning_rec.append(warnings_rec)
-        control_charts_warning_times_sent += warning_times_sent
-        control_charts_warning_times_rec += warning_times_rec
-    print "these are the warnings from the control charts: (for data that is sent): "
-    print control_charts_warning_sent,"just times:"#, warning_times_sent
-    
+    # this is for non-selective (on MS)
+    naive_control_charts_warning_times_sent = control_charts_loop(df_sent, True, lambda_ewma=0.2, ewma_stddev_coef=3,
+                                                            services_to_monitor=services)
+    naive_control_charts_warning_times_rec = control_charts_loop(df_rec, False, lambda_ewma=0.2, ewma_stddev_coef=3,
+                                                           services_to_monitor=services)
+    # print "sent control chart warning times", control_charts_warning_times_sent
+    # combine the two sets of warning times (delete duplicates)
+    naive_all_control_chart_warning_times = sorted(
+        list(set(naive_control_charts_warning_times_sent + naive_control_charts_warning_times_rec)))
+    print "all the control chart warning times", naive_all_control_chart_warning_times
+
+    # then calc TP/TN/FP/FN
+    naive_performance_results = calc_tp_fp_etc("naive MS control charts", exfils, naive_all_control_chart_warning_times,
+                                         exp_time, start_analyze_time)
+    experiment_results.update(naive_performance_results)
+    print "the naive MS results are:"
+    print naive_performance_results
+
+
+    # this is for selective (on MS)
+    selective_ewma_services = ['front-end', 'user']
+    control_charts_warning_times_sent = control_charts_loop(df_sent, True, lambda_ewma = 0.2, ewma_stddev_coef=3,
+                                                       services_to_monitor = selective_ewma_services)
+    control_charts_warning_times_rec = control_charts_loop(df_rec, False, lambda_ewma = 0.2, ewma_stddev_coef=3,
+                                                      services_to_monitor = selective_ewma_services)
+    #print "sent control chart warning times", control_charts_warning_times_sent
     # combine the two sets of warning times (delete duplicates)
     all_control_chart_warning_times = sorted(list(set(control_charts_warning_times_sent + control_charts_warning_times_rec)))
-    print all_control_chart_warning_times
+    print "all the control chart warning times", all_control_chart_warning_times
     
     # then calc TP/TN/FP/FN
-    performance_results = calc_tp_fp_etc("control charts", exfils, all_control_chart_warning_times, 
+    performance_results = calc_tp_fp_etc("selective MS control charts", exfils, all_control_chart_warning_times,
                                         exp_time, start_analyze_time)
     experiment_results.update(performance_results)
-    print "the results are:"
+    print "the selective MS results are:"
     print performance_results
 
-    ### TODO test this ## Update: I think it is fine.
-    # now let's do the control charts test for the three-tier aggregation too
-    three_tier_control_charts_warning_sent = []
-    three_tier_control_charts_warning_rec = []
-    three_tier_control_charts_warning_times_sent = []
-    three_tier_control_charts_warning_times_rec = []
-    for time in range(1,len(times)-1):
-        next_df_sent = df_three_tier_sent[ df_three_tier_sent['time'].isin([times[time]])]
-        next_df_rec = df_three_tier_rec[ df_three_tier_rec['time'].isin([times[time]])] 
-        # TODO: pick a coefficient for the EWMA stddev that isn't arbitrary
-        ewma_stddev_coef = 3
-        warnings_sent,warning_times_sent = next_value_trigger_control_charts(next_df_sent,
-                df_three_tier_sent_control_stats[time], times[time], ewma_stddev_coef)
-        warnings_rec,warning_times_rec = next_value_trigger_control_charts(next_df_rec,
-                df_three_tier_rec_control_stats[time], times[time], ewma_stddev_coef)
-        print "sent and rec warnings during loop", warnings_sent, warnings_rec
-        three_tier_control_charts_warning_sent.append(warnings_sent)
-        three_tier_control_charts_warning_rec.append(warnings_rec)
-        three_tier_control_charts_warning_times_sent += warning_times_sent
-        three_tier_control_charts_warning_times_rec += warning_times_rec
-    print "these are the warnings from the 3-tier control charts: (for data that is sent): "
-    #print three_tier_control_charts_warning_sent,"just times:", three_tier_control_charts_warning_times_sent
-    three_tier_all_control_chart_warning_times = sorted(list(set(three_tier_control_charts_warning_times_sent+three_tier_control_charts_warning_times_rec)))
-    print "three_tier_control_charts_warning_times", three_tier_all_control_chart_warning_times
-    three_tier_performance_results = calc_tp_fp_etc("3-tier control charts", exfils, three_tier_all_control_chart_warning_times,
-            exp_time, start_analyze_time)
-    experiment_results.update(three_tier_performance_results)
 
-    '''  # see function def for why I think this is nonsense print pca_anom_scores
-    # okay, we are going to try PCA-based analysis here
-    #print "about to try PCA anom detection!"
-    #pca_explained_vars = pca_anom_detect(df_sent, times)
-    #pca_anom_scores = detect_pca_anom(pca_explained_vars) 
+    # this is for 3-tier
+    print "ENTERING 3-TIER TERRITORY"
+    # aggregate the matrixes into what we would see in a corresponding 3-tier arch
+    df_tt_sent = three_tier_time_aggreg(df_sent)
+    df_tt_rec = three_tier_time_aggreg(df_rec)
+
+    three_tier_services = ['presentation', 'application', 'data']
+    tt_control_charts_warning_times_sent = control_charts_loop(df_tt_sent, True, lambda_ewma=0.2, ewma_stddev_coef=3,
+                                                            services_to_monitor=three_tier_services)
+    tt_control_charts_warning_times_rec = control_charts_loop(df_tt_rec, False, lambda_ewma=0.2, ewma_stddev_coef=3,
+                                                           services_to_monitor=three_tier_services)
+    # print "sent control chart warning times", control_charts_warning_times_sent
+    # combine the two sets of warning times (delete duplicates)
+    tt_all_control_chart_warning_times = sorted(
+        list(set(tt_control_charts_warning_times_sent + tt_control_charts_warning_times_rec)))
+    print "all the control chart warning times", tt_all_control_chart_warning_times
+
+    # then calc TP/TN/FP/FN
+    tt_performance_results = calc_tp_fp_etc("3-tier control charts", exfils, tt_all_control_chart_warning_times,
+                                         exp_time, start_analyze_time)
+    experiment_results.update(tt_performance_results)
+    print "the naive -Tier results are:"
+    print tt_performance_results
+
     '''
 
     svc_pair_to_sent_control_charts = generate_service_pair_arrays(df_sent_control_stats, times, services)
@@ -220,6 +177,10 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
     #generate_graphs(three_tier_rec_data_for_display, times, [['presentation', 'data']], True, graph_names + "_three_tier_rec_pd")
 
     '''
+
+
+    ''' # per the discussion, this is not longer very important
+        # will probably leave out in perpetuity
     joint_df = join_dfs(df_sent, df_rec)
     print joint_df
     eigenspace_warning_times = eigenspace_detection_loop(joint_df, critical_percent=0.0003, 
@@ -238,9 +199,49 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
     tt_eigenspace_performance_results = calc_tp_fp_etc("tt_eigenspace", exfils, [], 
             exp_time, start_analyze_time)
     experiment_results.update(tt_eigenspace_performance_results)
+    '''
 
     # return experiment results, all ready for aggregation
+    print "the results dictionary is", experiment_results
+
+    
     return experiment_results
+
+# control_charts = ewma
+# TODO don't arbitrarily pick lambda
+# TODO: pick a coefficient for the EWMA stddev that isn't arbitrary
+# services_to_monitor is wierd b/c python has mutuable default arguments
+# returns a list of warning times
+def control_charts_loop(dfs, is_sent, lambda_ewma = 0.2, ewma_stddev_coef = 3, services_to_monitor = None):
+    if not services_to_monitor:
+        services_to_monitor = ['front-end', 'user']
+
+    df_time_slices = generate_time_slice_dfs(dfs)
+    df_control_stats = []
+    prev_step_ewmas = empty_ewmas(services_to_monitor, df_time_slices[0])
+    for df in df_time_slices:
+        prev_step_ewmas = control_charts(df, is_sent, prev_step_ewmas, lambda_ewma, services_to_monitor)
+        df_control_stats.append(prev_step_ewmas)
+
+    # check when control charts would give a warning
+    # just going to use sent for now, could use reciever later
+    times = get_times(dfs)
+    # starts at 1, b/c everyting has time stddev 0 at time 0, so everything would trigger a warning
+    control_charts_warning = []
+    control_charts_warning_times = []
+    for time in range(1, len(times) - 1):
+        next_dfs = dfs[dfs['time'].isin([times[time]])]
+        warnings, warning_times = next_value_trigger_control_charts(next_dfs,
+                                                                              df_control_stats[time], times[time],
+                                                                              ewma_stddev_coef)
+        #print "Microsvc sent and rec warnings during loop", warnings
+        control_charts_warning.append(warnings)
+        control_charts_warning_times += warning_times
+    print "these are the warnings from the control charts: (for data that is sent): "
+    print control_charts_warning
+    print "just times:", control_charts_warning_times
+
+    return control_charts_warning_times
 
 # reverses df_sent and then combines them
 # (this is harder than it initially sounds)
@@ -285,8 +286,7 @@ def eigenspace_detection_loop(joint_df, critical_percent, window_size, beta):
         time = times[time_index]
         current_df = joint_df[ joint_df['time'].isin([time])]
         #print current_df
-        #### TODO make the critical percentage + window not arbitrary
-        alarm_p, old_u, z_first_moment, z_sec_moment = eigenvector_based_detector(old_u, 
+        alarm_p, old_u, z_first_moment, z_sec_moment = eigenvector_based_detector(old_u,
                 current_df.drop(['time'], axis=1), window_size, critical_percent, z_first_moment, z_sec_moment, beta)
         print "z first moment", z_first_moment, "z second moment", z_sec_moment
         print alarm_p#, old_u, z_first_moment, z_sec_moment
@@ -693,7 +693,6 @@ def eigenvector_based_detector(old_u, current_tm, window_size, crit_bound, old_z
 
         # now compare z(t) with a threshold, using section 5.3
         # approximate the MLE algorithm for the vMF distribution
-        # beta = 0.05  ## TODO: determine via theory what this should be
         #print "old z_first_moment", old_z_first_mom
         # helps the system 'get up to speed'
         # nevermind, it just takes time to get up to speed
@@ -708,7 +707,8 @@ def eigenvector_based_detector(old_u, current_tm, window_size, crit_bound, old_z
         n = ((2 * z_first_moment ** 2) / (z_sec_moment - z_first_moment ** 2)) + 1
         sigma = (z_sec_moment - z_first_moment ** 2) / (2 * z_first_moment)
         # find the specific threshold value
-        #print "ARGS","n", n, "sigma", sigma,"crit bound", crit_bound
+        print "ARGS","n", n, "sigma", sigma,"crit bound", crit_bound
+        ### TODO: debug this. z_thresh does NOT return a correct value and it makes this function nonsense
         z_thresh = scipy.optimize.fsolve(vMF_thresh_func, 0, args=(n, sigma, crit_bound))
         print "z_thresh is", z_thresh
         z_thresh = z_thresh[0]
@@ -738,14 +738,14 @@ def eigenvector_based_detector(old_u, current_tm, window_size, crit_bound, old_z
 def vMF_pdf_func(z, n, sigma):
     if z < 0:
         return 1000000 # this ensures that fsolve won't get negative 
-    if n < 3:
-        return 1000000
+    #if n < 1:
+    #    return 1000000
     denom = (2* sigma) ** ((n-1)/2) * scipy.special.gamma((n-1)/2)
     return (np.exp((-1 * z) / (2 * sigma)) * z ** (((n-1)/2)-1)) / denom
 
 def vMF_thresh_func(zth, n, sigma, crit_bound):
     unadjusted_bound, err  =  scipy.integrate.quad(vMF_pdf_func, zth, np.inf, args=(n,sigma)) 
-    #print "unadjusetd bound", unadjusted_bound
+    #print "unadjusetd bound", unadjusted_bound, "critical bound", crit_bound
     return unadjusted_bound- crit_bound
 
 def empty_ewmas(svcs, df):
