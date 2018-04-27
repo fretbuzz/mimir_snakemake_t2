@@ -60,11 +60,11 @@ desired_stop_time = 360
 ## note: leave empty if you want never
 ## note: will show up in detection system 5 seconds after the given time, b/c exfiltration starts at the given
 ## time, so it won't be recorded by prometheus until 5 seconds later
-exfils = {80 : 0, 180 : 0}
+exfils = {200 : 0, 205 : 0, 300 : 0, 310 : 0, 315 : 0}
 
 ## this value specifies the increment(/decrement) for each of the exfils
 ## keys are times, values are increments, in bytes
-exfil_increments = {80: 5000, 180: 5000}
+exfil_increments = {200: 5000, 205: 5000, 300 : 5000, 310 : 5000, 315 : 5000}
 
 ## number of increments
 ## will run once using the 'exfils' values and then 
@@ -82,7 +82,7 @@ repeat_experiments = 3
 ## store all the files and graphs there, and maybe even a file
 ## that explains what each file is, b/c there is going to be 
 ## a lot of them.
-experiment_name = "test_15_long_small_incr"
+experiment_name = "cybermonday-target-hack"
 
 ## this is a list of the SENT svc_pair graphs that are displayed/saved
 ## Note: this list should be 1,2, or 4 items long
