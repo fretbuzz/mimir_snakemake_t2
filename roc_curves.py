@@ -811,8 +811,6 @@ def graph_final_roc():
                             # TODO: (1) modify code from prev loop to compute dict w/ avg vals
                             # (2) in a loop outside this one, loop through a bunch of figures and
                             # stick the graphs in each (should be 5 b/c lambda varies)
+                            # (3) I am going to need to modify run_experiment to not destroy
+                            # already-existing vals b/c I don't have time to rerun it ;)
                             pass
-
-
-
-
