@@ -75,9 +75,32 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
     print "df_sent:", df_sent
     print "df_rec:", df_rec
 
+    svc_pairs_to_consider = [ ('front-end', 'carts'), ('front-end', 'user'), \
+                            ('front-end', 'catalogue'), #\, ('front-end', 'payment'), \
+                            ('front-end', 'orders')  ]
+    svc_pair_for_denom = [('front-end', 'user')]
+
+    for ewma_stddev_coef_val in np.arange(0.2, 4.2,0.2):
+        for lambda_values in np.arange(0.2, 0.8, 0.2):
+
+                ratio_warning_times = ewma_svc_pair_ratio_loop(df_sent, lambda_ewma = lambda_values,
+                                                               ewma_stddev_coef = ewma_stddev_coef_val,
+                                                               ratio_denoms= svc_pair_for_denom,
+                                                               svc_pair_list= svc_pairs_to_consider)
+
+                print "the ratio alert triggered at these times", ratio_warning_times
+                ratio_performance_results = calc_tp_fp_etc(("ratio ewma", lambda_values, ewma_stddev_coef_val),
+                                         exfils, ratio_warning_times, exp_time, start_analyze_time)
+                print "exfils took place at", exfils
+                print "lamba", lambda_values, "ewma stddev coef", ewma_stddev_coef_val
+                print "the ratio test did this well", ratio_performance_results
+                experiment_results.update(ratio_performance_results)
+
+
+    ''' # MARKER #
     # this is for non-selective (on MS)
-    for ewma_stddev_coef in np.arange(0, 5, 0.5):
-        for lambda_values in np.arange(0, 1, 0.2):
+    for ewma_stddev_coef in np.arange(0.5 ,4.5,0.5):
+        for lambda_values in np.arange(0.2, 0.8, 0.2):
             naive_all_control_chart_warning_times = control_charts_on_directional_dfs(df_sent, df_rec, services,
                                                                                       lambda_val=lambda_values,
                                                                                       stddev_coef=ewma_stddev_coef)
@@ -93,8 +116,8 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
 
     # this is for selective (on MS)
     print "ENTERING SELECTIVE TERRITORY"
-    for ewma_stddev_coef in np.arange(0,5,0.5):
-        for lambda_values in np.arange(0, 1, 0.2):
+    for ewma_stddev_coef in np.arange(0.5 ,4.5,0.5):
+        for lambda_values in np.arange(0.2, 0.8, 0.2):
             selective_ewma_services = ['front-end', 'user']
             all_control_chart_warning_times = control_charts_on_directional_dfs(df_sent, df_rec, selective_ewma_services,
                                                                               lambda_val=lambda_values,
@@ -111,8 +134,8 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
     df_tt_sent = three_tier_time_aggreg(df_sent)
     df_tt_rec = three_tier_time_aggreg(df_rec)
 
-    for ewma_stddev_coef in np.arange(0,5,0.5):
-        for lambda_values in np.arange(0, 1, 0.2):
+    for ewma_stddev_coef in np.arange(0.5 ,4.5,0.5):
+        for lambda_values in np.arange(0.2, 0.8, 0.2):
             three_tier_services = ['presentation', 'application', 'data']
             tt_all_control_chart_warning_times = control_charts_on_directional_dfs(df_tt_sent, df_tt_rec, three_tier_services,
                                                                                     lambda_val=lambda_values,
@@ -120,6 +143,9 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
             tt_performance_results = calc_tp_fp_etc(("naive 3-tier control charts", lambda_values, ewma_stddev_coef),
                                                     exfils, tt_all_control_chart_warning_times, exp_time, start_analyze_time)
             experiment_results.update(tt_performance_results)
+
+
+    ''' # MARKER #
 
 
 
@@ -218,6 +244,7 @@ def control_charts_loop(dfs, is_sent, lambda_ewma = 0.2, ewma_stddev_coef = 3, s
     if not services_to_monitor:
         services_to_monitor = ['front-end', 'user']
 
+
     df_time_slices = generate_time_slice_dfs(dfs)
     df_control_stats = []
     prev_step_ewmas = empty_ewmas(services_to_monitor, df_time_slices[0])
@@ -244,22 +271,30 @@ def control_charts_loop(dfs, is_sent, lambda_ewma = 0.2, ewma_stddev_coef = 3, s
     print "just times:", control_charts_warning_times
 
     return control_charts_warning_times
-'''
+
 # ratio_denoms is a tuple (src_svc, dst_svc)
 def ewma_svc_pair_ratio_loop(dfs, lambda_ewma, ewma_stddev_coef, ratio_denoms, svc_pair_list):
-    df_time_slices = generate_time_slice_dfs(dfs)
+    times = get_times(dfs)
+    # print times
+    df_time_slices = []
+    for time_index in range(0, len(times)):
+        time = times[time_index]
+        df_time_slices.append( dfs[ dfs['time'].isin([time]) ] )
+
     ratio_ewma_stats = []
     ## VV let's generate all the svc pair traffic vectors at once!!
-    svc_pair_traffic_vectors = svc_pair_traffic_vectors(df_time_slices, svc_pair_list)
-    
-    prev_step_ewma_stats = empty_ewma_stats(svc_pair_list, ratio_denoms, svc_pair_traffic_vectors[0])
-    ### ^^ that may or may not work (key error)
-    
+    svc_pair_traffic_vectors = svc_pair_traffic_vectors_gen(df_time_slices, svc_pair_list)
+    #print "these are the svc pair traffic vects", svc_pair_traffic_vectors
+
+    prev_step_ewma_stats = empty_ewma_stats(svc_pair_list, ratio_denoms, svc_pair_traffic_vectors[times[0]])
+
     for cur_svc_pair_traffic_vector_index in sorted(svc_pair_traffic_vectors.keys()):
         cur_svc_pair_traffic_vector = svc_pair_traffic_vectors[ cur_svc_pair_traffic_vector_index ]
+        print "this is the current traffic vector", cur_svc_pair_traffic_vector, "time", cur_svc_pair_traffic_vector_index
         prev_step_ewma_stats = ewma_svc_pair_ratio(cur_svc_pair_traffic_vector, 
                                                     prev_step_ewma_stats, lambda_ewma,
                                                     ratio_denoms, svc_pair_list)
+        #print "these are the ewma stats", prev_step_ewma_stats
         ratio_ewma_stats.append(prev_step_ewma_stats)
 
     # check when ewma would give a warning
@@ -273,24 +308,26 @@ def ewma_svc_pair_ratio_loop(dfs, lambda_ewma, ewma_stddev_coef, ratio_denoms, s
                                                 ratio_ewma_stats[time], times[time],
                                                 ewma_stddev_coef, ratio_denoms, svc_pair_list)
 
-        print "service ratios sent and rec warnings during loop", warnings
+        #print "service ratios sent and rec warnings during loop", warnings
         ewma_ratio_warning.append(warnings)
         ewma_ratio_warning_times += warning_times
         
-    print "these are the warnings from the control charts: (for data that is sent): "
-    print ewma_ratio_warning
-    print "just times:", ewma_ratio_warning_times
+    #print "these are the warnings from the control charts: (for data that is sent): "
+    #print ewma_ratio_warning
+    #print "just times:", ewma_ratio_warning_times
 
-    return ewma_ratio_warning_times
+    return sorted(list(set(ewma_ratio_warning_times)))
 
 # so what is the traffic vector?
 # it is (front-end, app-tier): bytes
-def svc_pair_traffic_vectors(df_time_slices, svc_pair_list):
+def svc_pair_traffic_vectors_gen(df_time_slices, svc_pair_list):
     traffic_vectors_over_time = {}
     for df in df_time_slices:
+        #print "current df", df
         traffic_vector = {}
         for src_dst in svc_pair_list:
-            traffic_vector(src_dst[0], src_dst[1]) = df.loc[src_dst[0], src_dst[1]]
+            traffic_vector[src_dst[0], src_dst[1]] = df.loc[src_dst[0], src_dst[1]]
+        #print df.loc[svc_pair_list[0][0], 'time']
         traffic_vectors_over_time[df.loc[svc_pair_list[0][0], 'time']] = traffic_vector
     return traffic_vectors_over_time
 
@@ -300,7 +337,7 @@ def empty_ewma_stats(svc_pair_list, ratio_denoms, traffic_vector):
     for denom_svc_pair in ratio_denoms:
         for src_dst in svc_pair_list:
             current_ratio = traffic_vector[src_dst[0], src_dst[1]] / traffic_vector[ denom_svc_pair[0], denom_svc_pair[1]]
-            data_stats[src_dst, denom_svc] = [current_ratio , 0]
+            data_stats[src_dst, denom_svc_pair] = [current_ratio , 0]
     return data_stats
     
 def ewma_svc_pair_ratio(cur_svc_pair_traffic_vector, old_ewmas, lambda_ewma, ratio_denoms, svc_pair_list):
@@ -327,18 +364,22 @@ def next_value_trigger_ewma_ratio(relevant_svc_pair_traffic_vect, ratio_ewma_sta
     for src_dst in svc_pair_list:
         for denoms_svc_pair in ratio_denoms:
             current_ewma_mean = ratio_ewma_stats[src_dst, denoms_svc_pair][0]
-            current_ewma_stddev = ratio_ewma_stats[src_dst, denoms_svc_pair][0]
+            current_ewma_stddev = sqrt( ratio_ewma_stats[src_dst, denoms_svc_pair][1]) # recall, I am storing the variance
             current_traffic_vector_value = relevant_svc_pair_traffic_vect[src_dst[0], src_dst[1]]
             current_denom_value = relevant_svc_pair_traffic_vect[denoms_svc_pair[0], denoms_svc_pair[1]]
             current_ratio = current_traffic_vector_value / current_denom_value
+            #if src_dst[1] == 'catalogue':
+            print "pair", src_dst, time
+            print "will an alarm sounds?", current_ratio, current_ewma_mean, current_ratio - current_ewma_mean
+            print "??", ewma_stddev_coef, current_ewma_stddev, (ewma_stddev_coef * current_ewma_stddev),
+            print "will it??",(current_ratio - current_ewma_mean) > (ewma_stddev_coef * current_ewma_stddev), '\n'
             if (current_ratio - current_ewma_mean) > (ewma_stddev_coef * current_ewma_stddev):
-                warnings_triggered.append(src_dst, denoms_svc_pair,  time, current_ewma_mean, 
-                                        current_ewma_stddev, current_ratio)
+                warnings_triggered.append([src_dst, denoms_svc_pair,  time, current_ewma_mean,
+                                        current_ewma_stddev, current_ratio])
                 warning_times.append(time)
     
     return warnings_triggered, warning_times
-        
-'''
+
 # reverses df_sent and then combines them
 # (this is harder than it initially sounds)
 def join_dfs(df_sent, df_rec):
@@ -573,8 +614,8 @@ def control_charts(df, is_send, old_ewmas, lambda_ewma, df_services):
             new_ewma = old_ewmas[index_service, column_service][0] * (1 - lambda_ewma) + lambda_ewma * \
                     df.loc[df['time'] == time].loc[index_service, column_service]
             #print index_service, column_service, new_ewma
-            new_ewma_var = sqrt( ((lambda_ewma) / (2 - lambda_ewma)) * (relevant_traffic_values.std()**2))
-            data_stats[index_service, column_service] = [new_ewma, new_ewma_var ]
+            new_ewma_stddev = sqrt( ((lambda_ewma) / (2 - lambda_ewma)) * (relevant_traffic_values.std()**2))
+            data_stats[index_service, column_service] = [new_ewma, new_ewma_stddev ]
     return data_stats
 
 # might want to expand to a more generalized printing function at some stage

@@ -86,12 +86,14 @@ def run_series_of_experiments(only_data_analysis):
             # NOTE: we are assuming that all the exfils in an exp are the same size
             all_experimental_results[(rep, exfils.values()[0])] = exp_results
 
+            #pickle.dump( all_experimental_results, open( experimental_directory + '/all_experimental_results.pickle', "wb" ) )
+            
         # performs the increments on the data exfiltration dictionary
         for key,val in exfils.iteritems():
             exfils[key] = val +  meta_parameters.exfil_increments[key]
 
     ## TODO: graph all_experimental_results (but let's get this value to contain something meaningful first)
-    pickle.dump( all_experimental_results, open( experimental_directory + '/all_experimental_results.pickle', "wb" ) )
+    #pickle.dump( all_experimental_results, open( experimental_directory + '/all_experimental_results.pickle', "wb" ) )
     print all_experimental_results
 
 def restart_minikube():
