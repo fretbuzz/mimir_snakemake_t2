@@ -75,12 +75,17 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
     print "df_sent:", df_sent
     print "df_rec:", df_rec
 
+    #'''
+    # TODO: test this puppy out! Also, try making ALL the stuff be spike at the same time
+    # hopefully that will be the magic bullet
+    # honestly, this thing is giving wierd characteristics tho
+        
     svc_pairs_to_consider = [ ('front-end', 'carts'), ('front-end', 'user'), \
                             ('front-end', 'catalogue'), #\, ('front-end', 'payment'), \
                             ('front-end', 'orders')  ]
     svc_pair_for_denom = [('front-end', 'user')]
 
-    for ewma_stddev_coef_val in np.arange(0.2, 4.2,0.2):
+    for ewma_stddev_coef_val in np.arange(0.0, 4.2,0.1):
         for lambda_values in np.arange(0.2, 0.8, 0.2):
 
                 ratio_warning_times = ewma_svc_pair_ratio_loop(df_sent, lambda_ewma = lambda_values,
@@ -88,19 +93,19 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
                                                                ratio_denoms= svc_pair_for_denom,
                                                                svc_pair_list= svc_pairs_to_consider)
 
-                print "the ratio alert triggered at these times", ratio_warning_times
+                #print "the ratio alert triggered at these times", ratio_warning_times
                 ratio_performance_results = calc_tp_fp_etc(("ratio ewma", lambda_values, ewma_stddev_coef_val),
                                          exfils, ratio_warning_times, exp_time, start_analyze_time)
-                print "exfils took place at", exfils
-                print "lamba", lambda_values, "ewma stddev coef", ewma_stddev_coef_val
-                print "the ratio test did this well", ratio_performance_results
+                #print "exfils took place at", exfils
+                #print "lamba", lambda_values, "ewma stddev coef", ewma_stddev_coef_val
+                #print "the ratio test did this well", ratio_performance_results
+                print ewma_stddev_coef_val, ratio_performance_results
                 experiment_results.update(ratio_performance_results)
-
-
-    ''' # MARKER #
+    #'''
+    '''
     # this is for non-selective (on MS)
-    for ewma_stddev_coef in np.arange(0.5 ,4.5,0.5):
-        for lambda_values in np.arange(0.2, 0.8, 0.2):
+    for ewma_stddev_coef in np.arange(0 ,4.5,0.5):
+        for lambda_values in np.arange(0.2, 0.4, 0.2):
             naive_all_control_chart_warning_times = control_charts_on_directional_dfs(df_sent, df_rec, services,
                                                                                       lambda_val=lambda_values,
                                                                                       stddev_coef=ewma_stddev_coef)
@@ -116,41 +121,55 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
 
     # this is for selective (on MS)
     print "ENTERING SELECTIVE TERRITORY"
-    for ewma_stddev_coef in np.arange(0.5 ,4.5,0.5):
-        for lambda_values in np.arange(0.2, 0.8, 0.2):
+    for ewma_stddev_coef in np.arange(0 ,4.5,0.5):
+        for lambda_values in np.arange(0.2, 0.4, 0.2):
             selective_ewma_services = ['front-end', 'user']
             all_control_chart_warning_times = control_charts_on_directional_dfs(df_sent, df_rec, selective_ewma_services,
                                                                               lambda_val=lambda_values,
-                                                                                stddev_coef=ewma_stddev_coef)
+                                                                                stddev_coef=ewma_stddev_coef, also_rec=False)
             # then calc TP/TN/FP/FN
             performance_results = calc_tp_fp_etc(("selective MS control charts", lambda_values, ewma_stddev_coef),
                                                  exfils, all_control_chart_warning_times,exp_time, start_analyze_time)
             experiment_results.update(performance_results)
+    '''
+    '''
+    # this is for selective (on MS)(bidirectional)
+    print "ENTERING bi-SELECTIVE TERRITORY"
+    for ewma_stddev_coef in np.arange(0, 4.5, 0.5):
+        for lambda_values in np.arange(0.2, 0.4, 0.2):
+            selective_ewma_services = ['front-end', 'user']
+            all_control_chart_warning_times = control_charts_on_directional_dfs(df_sent, df_rec,
+                                                                                selective_ewma_services,
+                                                                                lambda_val=lambda_values,
+                                                                                stddev_coef=ewma_stddev_coef)
+            # then calc TP/TN/FP/FN
+            performance_results = calc_tp_fp_etc(("bi-selective MS control charts", lambda_values, ewma_stddev_coef),
+                                                 exfils, all_control_chart_warning_times, exp_time,
+                                                 start_analyze_time)
+            experiment_results.update(performance_results)
 
-
+    
+    '''
+    '''
     # this is for 3-tier
     print "ENTERING 3-TIER TERRITORY"
     # aggregate the matrixes into what we would see in a corresponding 3-tier arch
     df_tt_sent = three_tier_time_aggreg(df_sent)
     df_tt_rec = three_tier_time_aggreg(df_rec)
 
-    for ewma_stddev_coef in np.arange(0.5 ,4.5,0.5):
-        for lambda_values in np.arange(0.2, 0.8, 0.2):
+    for ewma_stddev_coef in np.arange(0 ,4.5,0.5):
+        for lambda_values in np.arange(0.2, 0.4, 0.2):
             three_tier_services = ['presentation', 'application', 'data']
             tt_all_control_chart_warning_times = control_charts_on_directional_dfs(df_tt_sent, df_tt_rec, three_tier_services,
                                                                                     lambda_val=lambda_values,
-                                                                                   stddev_coef=ewma_stddev_coef)
             tt_performance_results = calc_tp_fp_etc(("naive 3-tier control charts", lambda_values, ewma_stddev_coef),
                                                     exfils, tt_all_control_chart_warning_times, exp_time, start_analyze_time)
             experiment_results.update(tt_performance_results)
 
-
-    ''' # MARKER #
-
+    '''
 
 
     '''
-
     svc_pair_to_sent_control_charts = generate_service_pair_arrays(df_sent_control_stats, times, services)
     svc_pair_to_sent_bytes = traffic_matrix_to_svc_pair_list(df_sent, services)
     print svc_pair_to_sent_control_charts['front-end', 'user']
@@ -188,7 +207,6 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
     generate_graphs(three_tier_rec_data_for_display, times, [['application', 'data']], True, graph_names + "_three_tier_rec_ad")
     #generate_graphs(three_tier_rec_data_for_display, times, [['presentation', 'application']], True, graph_names + "_three_tier_rec_pa")
     #generate_graphs(three_tier_rec_data_for_display, times, [['presentation', 'data']], True, graph_names + "_three_tier_rec_pd")
-
     '''
 
 
@@ -221,13 +239,18 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
 
 # this function exists so that I don't have to keep calling stuff
 # twice b/c I don't combine the matrixes
-def control_charts_on_directional_dfs(df_sent, df_rec, services_to_check, lambda_val, stddev_coef):
+# if also_rec is False, then don't do it for df_rec. This is b/c data exfil is most noticable in df_sene
+def control_charts_on_directional_dfs(df_sent, df_rec, services_to_check, lambda_val, stddev_coef, also_rec=True):
+
     control_charts_warning_times_sent = control_charts_loop(df_sent, True, lambda_ewma=lambda_val,
                                                             ewma_stddev_coef=stddev_coef,
                                                             services_to_monitor=services_to_check)
-    control_charts_warning_times_rec = control_charts_loop(df_rec, False, lambda_ewma=lambda_val,
+    if also_rec:
+        control_charts_warning_times_rec = control_charts_loop(df_rec, False, lambda_ewma=lambda_val,
                                                            ewma_stddev_coef=stddev_coef,
                                                            services_to_monitor=services_to_check)
+    else:
+        control_charts_warning_times_rec = []
 
     # print "sent control chart warning times", control_charts_warning_times_sent
     # combine the two sets of warning times (delete duplicates)
@@ -255,6 +278,7 @@ def control_charts_loop(dfs, is_sent, lambda_ewma = 0.2, ewma_stddev_coef = 3, s
     # check when control charts would give a warning
     # just going to use sent for now, could use reciever later
     times = get_times(dfs)
+    print "THESE ARE THE TIMES", times
     # starts at 1, b/c everyting has time stddev 0 at time 0, so everything would trigger a warning
     control_charts_warning = []
     control_charts_warning_times = []
@@ -290,7 +314,7 @@ def ewma_svc_pair_ratio_loop(dfs, lambda_ewma, ewma_stddev_coef, ratio_denoms, s
 
     for cur_svc_pair_traffic_vector_index in sorted(svc_pair_traffic_vectors.keys()):
         cur_svc_pair_traffic_vector = svc_pair_traffic_vectors[ cur_svc_pair_traffic_vector_index ]
-        print "this is the current traffic vector", cur_svc_pair_traffic_vector, "time", cur_svc_pair_traffic_vector_index
+        #print "this is the current traffic vector", cur_svc_pair_traffic_vector, "time", cur_svc_pair_traffic_vector_index
         prev_step_ewma_stats = ewma_svc_pair_ratio(cur_svc_pair_traffic_vector, 
                                                     prev_step_ewma_stats, lambda_ewma,
                                                     ratio_denoms, svc_pair_list)
@@ -369,11 +393,11 @@ def next_value_trigger_ewma_ratio(relevant_svc_pair_traffic_vect, ratio_ewma_sta
             current_denom_value = relevant_svc_pair_traffic_vect[denoms_svc_pair[0], denoms_svc_pair[1]]
             current_ratio = current_traffic_vector_value / current_denom_value
             #if src_dst[1] == 'catalogue':
-            print "pair", src_dst, time
-            print "will an alarm sounds?", current_ratio, current_ewma_mean, current_ratio - current_ewma_mean
-            print "??", ewma_stddev_coef, current_ewma_stddev, (ewma_stddev_coef * current_ewma_stddev),
-            print "will it??",(current_ratio - current_ewma_mean) > (ewma_stddev_coef * current_ewma_stddev), '\n'
-            if (current_ratio - current_ewma_mean) > (ewma_stddev_coef * current_ewma_stddev):
+            #print "pair", src_dst, time
+            #print "will an alarm sounds?", current_ratio, current_ewma_mean, current_ratio - current_ewma_mean
+            #print "??", ewma_stddev_coef, current_ewma_stddev, (ewma_stddev_coef * current_ewma_stddev),
+            #print "will it??",(current_ratio - current_ewma_mean) > (ewma_stddev_coef * current_ewma_stddev), '\n'
+            if (current_ewma_mean - current_ratio) > (ewma_stddev_coef * current_ewma_stddev):
                 warnings_triggered.append([src_dst, denoms_svc_pair,  time, current_ewma_mean,
                                         current_ewma_stddev, current_ratio])
                 warning_times.append(time)
@@ -695,41 +719,49 @@ def detect_pca_anom(pca_explained_vars):
     return anom_scores
 
 def calc_tp_fp_etc(algo_name, exfils, warning_times, exp_time, start_analyze_time):
-    print "calc_tp_fp_etc: ", algo_name, exfils, warning_times, exp_time, start_analyze_time
+    #print "calc_tp_fp_etc: ", algo_name, exfils, warning_times, exp_time, start_analyze_time
+
+    # this is a work around b/c on one / two experiments, the timer-thing got out of wack
+    for wt in warning_times:
+        if int(wt) % 5 > 0:
+            return {}
+
     attack_times = exfils.keys()
-    print attack_times, warning_times
-    total_attacks = len(attack_times)
-    true_attacks_found = 0
+    #print attack_times, warning_times
+    total_positives = len(attack_times)
+    true_positives = 0
     warning_times_after_strt_analyze = [time for time in warning_times if time >= start_analyze_time]
     for attack_time in attack_times:
         # need to add 5 b/c exfil starts at the attack_time, so it is recorded 5 sec later by Prometheus
         if (attack_time+5) in [int(time) for time in warning_times_after_strt_analyze]:
-            true_attacks_found = true_attacks_found + 1
-    true_attacks_missed = total_attacks - true_attacks_found
-    false_attacks_found = len(warning_times_after_strt_analyze) - true_attacks_found
-    total_negatives = ((exp_time-start_analyze_time)/5.0) - total_attacks
-    true_negatives_found = total_negatives - false_attacks_found
-    print "TPs", true_attacks_found, "FPs", false_attacks_found, "Total negs", total_negatives, "TNs",  true_negatives_found
+            true_positives = true_positives + 1
+    false_negatives = total_positives - true_positives
+    total_postives_signalled = len(warning_times_after_strt_analyze)
+    false_positive = total_postives_signalled - true_positives
+    total_negatives_signaled = ((exp_time - start_analyze_time)/5.0) - total_postives_signalled
+    true_negatives = total_negatives_signaled - false_negatives
 
-    ### TODO: better solution
-    if (true_negatives_found + true_attacks_missed) == 0:
-        fnr = 0
-    else:
-        fnr = float(true_attacks_missed) / (true_negatives_found + true_attacks_missed)
-    if (false_attacks_found + true_attacks_found) == 0:
-        fpr = 0
-    else:
-        fpr = float(false_attacks_found) / (false_attacks_found + true_attacks_found)
+    ### I need to give the above problem more consideration, but I'm not actually using it at all
+    ### and I am too tired to think straight and I gave it a lot of thought before
+    print "TPs", true_positives, "FPs", true_positives, \
+        "TNs",  true_negatives, "FNs", false_negatives ,"Total negs signalled", total_negatives_signaled
 
-    if (true_attacks_found +  false_attacks_found) == 0:
-        prec = 0
-    else:
-        prec = float(true_attacks_found) / (true_attacks_found +  false_attacks_found)
-    return {algo_name: {"TPR":  (float(true_attacks_found) / (true_attacks_found + true_attacks_missed)),
+    # tpr = (true positives) / (condition positive)
+    # fpr = (false positives) / (condition negative)
+    # tnr = (true negatives) / (condition negative)
+    # fnr = (false_negatives) / (condition positive)
+
+    tpr = float(true_positives) / total_positives
+    fpr = float(false_positive) / (true_negatives + false_positive)
+    tnr = float(true_negatives) / (true_negatives + false_positive)
+    fnr = float(true_negatives) / total_positives
+    f_one = (2.0*true_positives)/(2*true_positives + false_positive + false_negatives)
+
+    return {algo_name: {"TPR":  tpr,
                         "FPR" : fpr, 
                         "FNR" : fnr,
-                        "TNR" : float(true_negatives_found) / total_negatives,
-                        "Precision": prec }}
+                        "TNR" : tnr,
+                        "f_one": f_one }}
 
 # following method in Lakhina's "Diagnosing
 # Network-Wide Traffic Anomalies" (sigcomm '04)

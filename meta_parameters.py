@@ -60,7 +60,10 @@ desired_stop_time = 360
 ## note: leave empty if you want never
 ## note: will show up in detection system 5 seconds after the given time, b/c exfiltration starts at the given
 ## time, so it won't be recorded by prometheus until 5 seconds later
-exfils = {200 : 0, 205 : 0, 300 : 0, 310 : 0, 315 : 0}
+exfils = {200 : 20000, 205 : 20000, 300 : 20000, 310 : 20000, 315 : 20000}
+
+
+### Note: this section was modified while working on data anaylsis
 
 ## this value specifies the increment(/decrement) for each of the exfils
 ## keys are times, values are increments, in bytes
@@ -69,13 +72,15 @@ exfil_increments = {200: 5000, 205: 5000, 300 : 5000, 310 : 5000, 315 : 5000}
 ## number of increments
 ## will run once using the 'exfils' values and then 
 ## will run the number of times given here, each with the increment applied
-number_increments = 7
+number_increments = 2
 
 ## number of repeat experiments
 ## this is the number of times to run each experiment
 ## (so number of experiments run =
 ## (number of increments) * (number of repeat experiments)
 repeat_experiments = 3
+
+### END modified section
 
 ## this is going to be the name of the experiment
 ## we are going to make a new directory in 'experimental_data'
