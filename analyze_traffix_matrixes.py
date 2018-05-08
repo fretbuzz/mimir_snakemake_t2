@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 #from matplotlib.backend_bases import key_press_handler
 #from matplotlib.figure import Figure
 import parameters
-from sklearn.decomposition import PCA
+from sklearn.decomposition import PCA, SparsePCA
 import scipy
 #import scipy.sparse.linalg.eigs
 from math import sqrt
@@ -75,11 +75,7 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
     print "df_sent:", df_sent
     print "df_rec:", df_rec
 
-    #'''
-    # TODO: test this puppy out! Also, try making ALL the stuff be spike at the same time
-    # hopefully that will be the magic bullet
-    # honestly, this thing is giving wierd characteristics tho
-        
+    '''
     svc_pairs_to_consider = [ ('front-end', 'carts'), ('front-end', 'user'), \
                             ('front-end', 'catalogue'), #\, ('front-end', 'payment'), \
                             ('front-end', 'orders')  ]
@@ -87,21 +83,55 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
 
     for ewma_stddev_coef_val in np.arange(0.0, 4.2,0.1):
         for lambda_values in np.arange(0.2, 0.8, 0.2):
+            for simulataneous_svc_ratio_exceeding_thresh in range(1,4):
+                for no_alert_if_any_svc_ratio_decreases in [False, True]:
+            # now I need to give those new params that I added a workout
+            # can just loop through possible values BUT do I need to chance the saving tuple that identifies it?
 
-                ratio_warning_times = ewma_svc_pair_ratio_loop(df_sent, lambda_ewma = lambda_values,
+                    ratio_warning_times = ewma_svc_pair_ratio_loop(df_sent, lambda_ewma = lambda_values,
+                                                                ewma_stddev_coef = ewma_stddev_coef_val,
+                                                                ratio_denoms= svc_pair_for_denom,
+                                                                svc_pair_list= svc_pairs_to_consider,
+                                                                num_exceed=simulataneous_svc_ratio_exceeding_thresh,
+                                                                dont_trigger_if_decrease=no_alert_if_any_svc_ratio_decreases,
+                                                                linear_comb = False, abs_val = True)
+
+                    print "the ratio alert triggered at these times", ratio_warning_times
+                    ratio_performance_results = calc_tp_fp_etc(("ratio ewma", lambda_values, ewma_stddev_coef_val,
+                                                                simulataneous_svc_ratio_exceeding_thresh,
+                                                                no_alert_if_any_svc_ratio_decreases),
+                                                               exfils, ratio_warning_times, exp_time, start_analyze_time)
+                    #print "exfils took place at", exfils
+                    #print "lamba", lambda_values, "ewma stddev coef", ewma_stddev_coef_val
+                    #print "the ratio test did this well", ratio_performance_results
+                    print ewma_stddev_coef_val, ratio_performance_results
+                    experiment_results.update(ratio_performance_results)
+
+    '''
+    '''
+    # this does the linear-combination-ewma
+    for ewma_stddev_coef_val in np.arange(0.0, 4.2,0.1):
+        for lambda_values in np.arange(0.2, 0.8, 0.2):
+            # num_exceed and dont_trigger_if_decrease do not matter here b/c linear_comb inactivates thier code
+            ratio_warning_times = ewma_svc_pair_ratio_loop(df_sent, lambda_ewma = lambda_values,
                                                                ewma_stddev_coef = ewma_stddev_coef_val,
-                                                               ratio_denoms= svc_pair_for_denom,
-                                                               svc_pair_list= svc_pairs_to_consider)
+                                                                ratio_denoms= svc_pair_for_denom,
+                                                                svc_pair_list= svc_pairs_to_consider,
+                                                                num_exceed=0,
+                                                                dont_trigger_if_decrease=False,
+                                                                linear_comb = True)
 
-                #print "the ratio alert triggered at these times", ratio_warning_times
-                ratio_performance_results = calc_tp_fp_etc(("ratio ewma", lambda_values, ewma_stddev_coef_val),
-                                         exfils, ratio_warning_times, exp_time, start_analyze_time)
-                #print "exfils took place at", exfils
-                #print "lamba", lambda_values, "ewma stddev coef", ewma_stddev_coef_val
-                #print "the ratio test did this well", ratio_performance_results
-                print ewma_stddev_coef_val, ratio_performance_results
-                experiment_results.update(ratio_performance_results)
-    #'''
+            print "the ratio alert triggered at these times", ratio_warning_times
+            ratio_performance_results = calc_tp_fp_etc(("linear-comb ewma", lambda_values, ewma_stddev_coef_val),
+                                                               exfils, ratio_warning_times, exp_time, start_analyze_time)
+            #print "exfils took place at", exfils
+            #print "lamba", lambda_values, "ewma stddev coef", ewma_stddev_coef_val
+            #print "the ratio test did this well", ratio_performance_results
+            print ewma_stddev_coef_val, ratio_performance_results
+            experiment_results.update(ratio_performance_results)
+
+
+    '''
     '''
     # this is for non-selective (on MS)
     for ewma_stddev_coef in np.arange(0 ,4.5,0.5):
@@ -162,6 +192,8 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
             three_tier_services = ['presentation', 'application', 'data']
             tt_all_control_chart_warning_times = control_charts_on_directional_dfs(df_tt_sent, df_tt_rec, three_tier_services,
                                                                                     lambda_val=lambda_values,
+                                                                                   stddev_coef=ewma_stddev_coef)
+
             tt_performance_results = calc_tp_fp_etc(("naive 3-tier control charts", lambda_values, ewma_stddev_coef),
                                                     exfils, tt_all_control_chart_warning_times, exp_time, start_analyze_time)
             experiment_results.update(tt_performance_results)
@@ -210,17 +242,40 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
     '''
 
 
-    ''' # per the discussion, this is not longer very important
+     # per the discussion, this is not longer very important
         # will probably leave out in perpetuity
+    # now, I think it is worth putting in, even if just to show as a 'state-of-the-art' that sucks
     joint_df = join_dfs(df_sent, df_rec)
     print joint_df
+
+    ### TODO: wire it in. those three params are all that matters (I think it is wireed in)
+    for crit_percent in np.append( np.arange(0.0, .51, .01), np.array([[0.001]]) ):
+        for windows_size in np.arange(5, 6, 1): # honestly not going to worry about this param very much
+            for beta_val in np.arange(0, 0.55, 0.05):
+
+                    # orig val: critical_percent=0.0003, window_size=5, beta=0.05
+                    eigenspace_warning_times = eigenspace_detection_loop(joint_df, critical_percent=crit_percent,
+                                                                 window_size=windows_size, beta=beta_val)
+
+                    print "the eigenspace alert triggered at these times", eigenspace_warning_times
+
+                    eigenspace_performance_results = calc_tp_fp_etc(("eigenspace", crit_percent, windows_size, beta_val),
+                                                               exfils, eigenspace_warning_times, exp_time, start_analyze_time)
+
+                    print crit_percent, eigenspace_performance_results
+
+                    experiment_results.update(eigenspace_performance_results)
+
+    #''' # this code is old and has been replaced with the above loop
+    '''
     eigenspace_warning_times = eigenspace_detection_loop(joint_df, critical_percent=0.0003, 
         window_size=5, beta = 0.05 )
 
     print eigenspace_warning_times
     eigenspace_performance_results = calc_tp_fp_etc("eigenspace", exfils, eigenspace_warning_times, exp_time, start_analyze_time)
     experiment_results.update(eigenspace_performance_results)
-    
+    '''
+    '''
 
     #### TODO: get this working. the problem is in join_dfs. see comment inside for details
     #tt_joint_df = join_dfs(df_three_tier_sent, df_three_tier_rec)
@@ -297,7 +352,9 @@ def control_charts_loop(dfs, is_sent, lambda_ewma = 0.2, ewma_stddev_coef = 3, s
     return control_charts_warning_times
 
 # ratio_denoms is a tuple (src_svc, dst_svc)
-def ewma_svc_pair_ratio_loop(dfs, lambda_ewma, ewma_stddev_coef, ratio_denoms, svc_pair_list):
+# if coordinated_p, then ALL the ratio's would need to increase (not just one)
+def ewma_svc_pair_ratio_loop(dfs, lambda_ewma, ewma_stddev_coef, ratio_denoms, svc_pair_list, num_exceed=1,
+                             dont_trigger_if_decrease=False, linear_comb=False, abs_val = False):
     times = get_times(dfs)
     # print times
     df_time_slices = []
@@ -330,7 +387,8 @@ def ewma_svc_pair_ratio_loop(dfs, lambda_ewma, ewma_stddev_coef, ratio_denoms, s
         relevant_svc_pair_traffic_vect = svc_pair_traffic_vectors[times[time]]
         warnings, warning_times = next_value_trigger_ewma_ratio(relevant_svc_pair_traffic_vect,
                                                 ratio_ewma_stats[time], times[time],
-                                                ewma_stddev_coef, ratio_denoms, svc_pair_list)
+                                                ewma_stddev_coef, ratio_denoms, svc_pair_list, num_exceed,
+                                                dont_trigger_if_decrease, linear_comb, abs_val = abs_val)
 
         #print "service ratios sent and rec warnings during loop", warnings
         ewma_ratio_warning.append(warnings)
@@ -382,26 +440,53 @@ def ewma_svc_pair_ratio(cur_svc_pair_traffic_vector, old_ewmas, lambda_ewma, rat
     return data_stats
     
 def next_value_trigger_ewma_ratio(relevant_svc_pair_traffic_vect, ratio_ewma_stats, time,
-                                    ewma_stddev_coef, ratio_denoms, svc_pair_list):
+                                    ewma_stddev_coef, ratio_denoms, svc_pair_list, num_exceed, dont_trigger_if_decrease,
+                                  linear_comb=False, abs_val = False):
     warnings_triggered = []
-    warning_times = []                         
+    warning_times = []
+    num_exceeded_so_far = 0
+    linear_combo_current_ratio_sum = 0
+    linear_combo_mean_ratio_sum = 0
+    linear_combo_stddev_sum = 0
     for src_dst in svc_pair_list:
         for denoms_svc_pair in ratio_denoms:
-            current_ewma_mean = ratio_ewma_stats[src_dst, denoms_svc_pair][0]
-            current_ewma_stddev = sqrt( ratio_ewma_stats[src_dst, denoms_svc_pair][1]) # recall, I am storing the variance
-            current_traffic_vector_value = relevant_svc_pair_traffic_vect[src_dst[0], src_dst[1]]
-            current_denom_value = relevant_svc_pair_traffic_vect[denoms_svc_pair[0], denoms_svc_pair[1]]
-            current_ratio = current_traffic_vector_value / current_denom_value
-            #if src_dst[1] == 'catalogue':
-            #print "pair", src_dst, time
-            #print "will an alarm sounds?", current_ratio, current_ewma_mean, current_ratio - current_ewma_mean
-            #print "??", ewma_stddev_coef, current_ewma_stddev, (ewma_stddev_coef * current_ewma_stddev),
-            #print "will it??",(current_ratio - current_ewma_mean) > (ewma_stddev_coef * current_ewma_stddev), '\n'
-            if (current_ewma_mean - current_ratio) > (ewma_stddev_coef * current_ewma_stddev):
-                warnings_triggered.append([src_dst, denoms_svc_pair,  time, current_ewma_mean,
+            if src_dst != denoms_svc_pair:
+                current_ewma_mean = ratio_ewma_stats[src_dst, denoms_svc_pair][0]
+                current_ewma_stddev = sqrt( ratio_ewma_stats[src_dst, denoms_svc_pair][1]) # recall, I am storing the variance
+                current_traffic_vector_value = relevant_svc_pair_traffic_vect[src_dst[0], src_dst[1]]
+                current_denom_value = relevant_svc_pair_traffic_vect[denoms_svc_pair[0], denoms_svc_pair[1]]
+                current_ratio = current_traffic_vector_value / current_denom_value
+                #if src_dst[1] == 'catalogue':
+                #print "pair", src_dst, time
+                #print "will an alarm sounds?", current_ratio, current_ewma_mean, current_ratio - current_ewma_mean
+                #print "??", ewma_stddev_coef, current_ewma_stddev, (ewma_stddev_coef * current_ewma_stddev),
+                #print "will it??",(current_ratio - current_ewma_mean) > (ewma_stddev_coef * current_ewma_stddev), '\n'
+                if not linear_comb:
+                    if (current_ewma_mean - current_ratio) < 0:
+                        if dont_trigger_if_decrease:
+                            num_exceeded_so_far += -100 # and hence, it won't ever trigger anything ;)
+                    if not abs_val:
+                        if (current_ewma_mean - current_ratio) > (ewma_stddev_coef * current_ewma_stddev):
+                            num_exceeded_so_far += 1
+                    else:
+                        if abs(current_ewma_mean - current_ratio) > (ewma_stddev_coef * current_ewma_stddev):
+                            num_exceeded_so_far += 1
+                    if num_exceeded_so_far == num_exceed:
+                        warnings_triggered.append([src_dst, denoms_svc_pair,  time, current_ewma_mean,
                                         current_ewma_stddev, current_ratio])
-                warning_times.append(time)
-    
+                        warning_times.append(time)
+                else:
+                    # okay, so I want to do a simple linear combination here
+                    linear_combo_current_ratio_sum += current_ratio
+                    linear_combo_mean_ratio_sum += current_ewma_mean
+                    linear_combo_stddev_sum += current_ewma_stddev
+    if linear_comb:
+        if (linear_combo_mean_ratio_sum - linear_combo_current_ratio_sum) > (ewma_stddev_coef * linear_combo_stddev_sum):
+            # note, would need to modify this if I get fancier w/ the what ratio_denoms is
+            warnings_triggered.append(["linear combo", ratio_denoms[0], time, linear_combo_mean_ratio_sum,
+                                       linear_combo_stddev_sum, linear_combo_current_ratio_sum])
+            warning_times.append(time)
+
     return warnings_triggered, warning_times
 
 # reverses df_sent and then combines them
@@ -441,14 +526,15 @@ def eigenspace_detection_loop(joint_df, critical_percent, window_size, beta):
     times = get_times(joint_df)
     old_u = np.array([])
     z_first_moment = 0 
-    z_sec_moment = 0 
+    z_sec_moment = 0
+    old_z_thresh = 0.5
     eigenspace_warning_times = []
     for time_index in range(0,len(times)):
         time = times[time_index]
         current_df = joint_df[ joint_df['time'].isin([time])]
         #print current_df
-        alarm_p, old_u, z_first_moment, z_sec_moment = eigenvector_based_detector(old_u,
-                current_df.drop(['time'], axis=1), window_size, critical_percent, z_first_moment, z_sec_moment, beta)
+        alarm_p, old_u, z_first_moment, z_sec_moment,old_z_thresh = eigenvector_based_detector(old_u,
+                current_df.drop(['time'], axis=1), window_size, critical_percent, z_first_moment, z_sec_moment, old_z_thresh, beta)
         print "z first moment", z_first_moment, "z second moment", z_sec_moment
         print alarm_p#, old_u, z_first_moment, z_sec_moment
         print type(alarm_p)
@@ -743,7 +829,7 @@ def calc_tp_fp_etc(algo_name, exfils, warning_times, exp_time, start_analyze_tim
 
     ### I need to give the above problem more consideration, but I'm not actually using it at all
     ### and I am too tired to think straight and I gave it a lot of thought before
-    print "TPs", true_positives, "FPs", true_positives, \
+    print "TPs", true_positives, "FPs", false_positive, \
         "TNs",  true_negatives, "FNs", false_negatives ,"Total negs signalled", total_negatives_signaled
 
     # tpr = (true positives) / (condition positive)
@@ -765,7 +851,10 @@ def calc_tp_fp_etc(algo_name, exfils, warning_times, exp_time, start_analyze_tim
 
 # following method in Lakhina's "Diagnosing
 # Network-Wide Traffic Anomalies" (sigcomm '04)
-def diagnose_anom_pca(old_dfs, cur_df, n_components):
+# note: this is a real paper and the method is NOT nonsense ;)
+# where it tests if it exceeds the 1 - alpha confidence level
+# 1 - alpha is the percentile in the standard normal distro we're testing against
+def diagnose_anom_pca(old_dfs, cur_df, n_components, alpha):
     # first, convert dfs representation
     # to match the paper's representation
     # (rows = time slices of features, columns = time series
@@ -787,9 +876,12 @@ def diagnose_anom_pca(old_dfs, cur_df, n_components):
     #print converted_cur_df
     
     # third, use PCA to determine old_dfs principal axis
-    pca = PCA(n_components=n_components)
-    converted_dfs_along_principal_components = pca.fit_transform(converted_dfs)
+    pca = SparsePCA(n_components=n_components)
+    converted_array_along_principal_components = pca.fit_transform(converted_dfs)
+    #df = pd.DataFrame()
+    converted_dfs_along_principal_components = pd.DataFrame(converted_array_along_principal_components)
     print converted_dfs_along_principal_components
+    #print p
     #### TODO: is this a unit vector? it needs to be
     #### TODO: does PCA use StandardScaler (hence obviating the need for #2)
 
@@ -800,13 +892,30 @@ def diagnose_anom_pca(old_dfs, cur_df, n_components):
     # (1) normal, (2) anomalous, via threshold
     anom_thresh = -1
     cur_index = 0
-    for index, row in converted_dfs_along_principal_components.iterrows():
-        row_mean = row.mean()
-        row_stddev = row.std()
-        if (row > row_mean + 3 * row_stddev) or (row < row_mean + 3 * row_stddev):
-            anom_thresh = cur_index
+
+    # TODO: this code is WRONG!!! For some reason it is iterating through the vectors taken at certain times
+    # it should be iterating through the projections onto each individual vector space
+    #for index, row in converted_dfs_along_principal_components.iterrows():
+    for column_index in converted_dfs_along_principal_components:
+        print "cur_index is", cur_index
+        column = converted_dfs_along_principal_components[column_index]
+        #print "index", index
+        print "col", column
+        row_mean = column.mean()
+        row_stddev = column.std()
+        print "col mean", row_mean, "col stddev", row_stddev
+        print "row", column
+        for col_item in column:
+            #print row_item,
+            if (col_item > row_mean + 3 * row_stddev) or (col_item < row_mean - 3 * row_stddev):
+                anom_thresh = cur_index
         cur_index = cur_index + 1
-    if anom_thresh < 0:
+        if anom_thresh != -1:
+            break
+    if anom_thresh == -1:
+        anom_thresh = cur_index
+    print "the anomalous threshold is", anom_thresh
+    if anom_thresh <= 0:
         print "SOMETHING WENT WRONG"
 
     # sixth, project cur_df onto both projections
@@ -815,23 +924,50 @@ def diagnose_anom_pca(old_dfs, cur_df, n_components):
     # in the paper and carry out the designated computations
     # SO, take each principal component, and make it a row in the 
     # corresponding matrix
+    #### TODO: Okay, this is wrong also. What the heck is in P??
     P = np.array(pca.components_[0]) # this one has got to not be anomolous
+    print "P", P
     for i in range(1, anom_thresh):
-        P = vstack(P, pca.components_[i])
-    C = P * np.transpose(P)
+        P = np.stack([P, pca.components_[i]], axis=0)
+
+    print P.size, np.transpose(np.asmatrix(P)).size
+    C = P * np.transpose(np.asmatrix(P)).size
+    print C.size
     y_circum = C * mod_cur_df
     y_tilda = (1 - C) * mod_cur_df
 
     # seventh, compute threshold for the  squared prediction 
     # error (SPE) via the Q-statistic
-    #phi_1 = ?
-    #h_naught = 1 - ? 
+    # TODO: finish implementing function by starting here. (this part done)
+    # do steps 7 and 8, then run a couple tests to make sure it's fine,
+    # and THEN investigate the TODO's up above
+    phi = []
+    r = anom_thresh  - 1
+    m = np.size(pca.components_[0])
+    for i in range(1,4):
+        sigma = 0
+        for j in range(r+1, m+1):
+            sigma += converted_dfs_along_principal_components.explained_variance_[j] ** i
+        phi.append(sigma)
+
+    h_naught = 1 - (2 * (phi[0] * phi[2]) / (3 * phi[1]**2))
 
     # eighth, compare SPE to threshold to determine if anomaly occurs
+    spe = np.linalg.norm(y_tilda)
+    c_alpha = scipy.stats.norm.ppf(1 - alpha) # is the 1 - alpha percentile in a standard normal distribution
+    first_term = c_alpha * sqrt(2 * phi[1] * h_naught**2) / phi[0]
+    second_term = phi[1] * h_naught * (h_naught - 1) / phi[0]**2
+    delta_a_squared = phi[0] * (first_term + 1 + second_term) ** (1.0 / h_naught)
+    if spe > delta_a_squared:
+        print "alarm is triggered"
+        return True
+    else:
+        print "an alarm is NOT triggered"
+        return False
 
 # following method given in Ide's "Eigenspace-based Anomaly Detection in
 # Computer Systems"
-def eigenvector_based_detector(old_u, current_tm, window_size, crit_bound, old_z_first_mom, old_z_sec_mom, beta = 0.05):
+def eigenvector_based_detector(old_u, current_tm, window_size, crit_bound, old_z_first_mom, old_z_sec_mom, last_z_thresh, beta = 0.05):
     # first, find the principle eigenvector of the traffic matrix
     #print "shape: ", current_tm.shape, current_tm
     #eigenvals, unit_eigenvect = np.linalg.eig(current_tm)   
@@ -877,8 +1013,7 @@ def eigenvector_based_detector(old_u, current_tm, window_size, crit_bound, old_z
         sigma = (z_sec_moment - z_first_moment ** 2) / (2 * z_first_moment)
         # find the specific threshold value
         print "ARGS","n", n, "sigma", sigma,"crit bound", crit_bound
-        ### TODO: debug this. z_thresh does NOT return a correct value and it makes this function nonsense
-        z_thresh = scipy.optimize.fsolve(vMF_thresh_func, 0, args=(n, sigma, crit_bound))
+        z_thresh = scipy.optimize.fsolve(vMF_thresh_func, last_z_thresh, args=(n, sigma, crit_bound))
         print "z_thresh is", z_thresh
         z_thresh = z_thresh[0]
         print "z_thresh is", z_thresh 
@@ -893,16 +1028,16 @@ def eigenvector_based_detector(old_u, current_tm, window_size, crit_bound, old_z
         #print np.size(old_u)
         print "z", z, "z_thresh", z_thresh
         if z > z_thresh:
-            return 1, old_u, z_first_moment, z_sec_moment  # 1 = an alert
+            return 1, old_u, z_first_moment, z_sec_moment, z_thresh  # 1 = an alert
         else:
-            return 0, old_u, z_first_moment, z_sec_moment  # 0 = no alert
+            return 0, old_u, z_first_moment, z_sec_moment, z_thresh  # 0 = no alert
     else:
         #old_u = princip_eigenvect
         if np.shape(old_u)[0] == 0:
             old_u = princip_eigenvect
         else:
             old_u = np.stack([old_u,princip_eigenvect],axis=1)
-        return 0, old_u, 0, 0  # 0 = no alert
+        return 0, old_u, 0, 0, 0.5  # 0 = no alert
 
 def vMF_pdf_func(z, n, sigma):
     if z < 0:

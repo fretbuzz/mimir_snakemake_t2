@@ -386,319 +386,38 @@ def load_exp(all_exp_results_loc):
 # you can run using this code
 #   python -c "from roc_curves import graph_final_roc; graph_final_roc()"
 def graph_final_roc():
+    # so what are the variables being used here?
+    # results_path, all_results_ratio, all_results_selective_ewma, results_ratio_exchanged_ineq
+
     #results_path = './experimental_data/test_15_long_small_incr/' + 'all_experimental_results.pickle'
-    results_path =  './experimental_data/cybermonday-target-hack/' + 'all_experimental_results_fixed_extended.pickle' #+ 'all_experimental_results.pickle'
+    #results_path =  './experimental_data/cybermonday-target-hack/' + 'all_experimental_results_fixed_extended.pickle' #+ 'all_experimental_results.pickle'
+    results_path = './experimental_data/cybermonday-target-hack/' + 'all_experimental_results_fixed_56.pickle'
     all_results = pickle.load( open( results_path, "rb" ))
 
     #print "all results", all_results
 
     #results_path_ratio = './experimental_data/cybermonday-target-hack/' + 'all_experimental_results_fixed_ratio.pickle'
     #results_path_ratio = './experimental_data/cybermonday-target-hack/' + 'all_experimental_results_fixed_ratio_extended.pickle'
-    results_path_ratio = './experimental_data/cybermonday-target-hack/' + '/all_experimental_results_ratio_all_coef.pickle'
-    all_results_ratio = pickle.load( open( results_path_ratio, "rb" ))
+    #results_path_ratio = './experimental_data/cybermonday-target-hack/' + '/all_experimental_results_ratio_all_coef.pickle'
+    #all_results_ratio = pickle.load( open( results_path_ratio, "rb" ))
+    all_results_ratio = all_results
 
     results_bi_selective_ratio = './experimental_data/cybermonday-target-hack/' + 'all_experimental_results_fixed_just_bi.pickle'
-    all_results_selective_ewma = pickle.load( open( results_bi_selective_ratio, "rb" ))
-
+    #all_results_selective_ewma = pickle.load( open( results_bi_selective_ratio, "rb" ))
+    all_results_selective_ewma = all_results
 
     results_path_ratio_exchanged_ineq = './experimental_data/cybermonday-target-hack/' + '/all_experimental_results_ratio_ineq_exchaned.pickle'
-    results_ratio_exchanged_ineq = pickle.load( open( results_path_ratio_exchanged_ineq, "rb" ))
-    '''
-    print "all results ratio", all_results_ratio
+    #results_ratio_exchanged_ineq = pickle.load( open( results_path_ratio_exchanged_ineq, "rb" ))
+    results_ratio_exchanged_ineq = all_results
 
-    print "prior to merge", len(all_results.values()), len(all_results_ratio.values())
-    # want to combine the dictionaries in a constructive way
-     # why merge them
-    for key, value in all_results.iteritems():
-        # key = (rep, exfils.values()[0])
-        # value is a dict {algo_description(tuple): {'FPR': number, 'TPR': number, etc.}}
-        value.update(all_results_ratio[key]) # update should work. all the algo_descriptions are
-                                               # different, so it should combine nicely (no info loss)
-    
-    print "after merge", len(all_results[all_results.keys()[0]])
+    results_eigen_path = './experimental_data/cybermonday-target-hack/' + 'all_experimental_results_just_eigen.pickle'
+    all_results_eigen = pickle.load( open( results_eigen_path, "rb" ))
 
-
-    ### TODO: when ready, change the exfil_rate to not be zero (20000 would be ideal)
-    ### Also, get graph of f1-score vs exfil rate
-    ### can use that graph  to test the function I wrote the other day
-
-    exfil_rate_to_graph = 5000 # this is arbitrary for now
-    lambda_value_to_graph = 0.2
-    algos_to_graph = ["naive MS control charts", "selective MS control charts", "naive 3-tier control charts", "ratio ewma"]
-
-    #print "all results:", all_results
-
-    all_algo_stddev_coef_to_rate = {}
-    for cur_graph_algo in algos_to_graph:
-
-        stddev_coef_to_rate = {}  # val is (rate, contributers), where contributer is how many enteries contributed
-
-        for exp_params, result in all_results.iteritems():
-            # exp_params has the format (rep, exfils.values()[0])
-            # We want to fix the exfil_rate, so...
-            print exp_params[1]
-            if exp_params[1] == exfil_rate_to_graph:
-
-            #for cur_graph_algo in algos_to_graph:
-
-                for algo, spec_results in result.iteritems():
-                    # exp_params has the format (name, lambda value, stddev coef value)
-                    # spec_results has the format {'FPR': number, 'TPR': number, etc.}
-                    #print exp_params, result, spec_results
-
-                    if cur_graph_algo == algo[0] and lambda_value_to_graph == algo[1]:
-                        #for cur_lambda_val in lambda_values_to_graph:
-
-                        # We want to generate on ROC curve... okay, so what do we want to do...
-                        # we need to fix (lambda_val) (b/c only one param should be varied, and
-                        #  that is stddev_coef_vale)
-                        #if algo[1] == cur_lambda_val:
-
-                        print "this algo matches all the stuff", algo
-                        print "this value is under consideration"
-                        print algo, spec_results
-                        if algo[2] in stddev_coef_to_rate:
-                            print "this value already exists!"
-                            old_tpr = stddev_coef_to_rate[algo[2]][0][0]
-                            old_fpr = stddev_coef_to_rate[algo[2]][0][1]
-                            old_contrib = stddev_coef_to_rate[algo[2]][1]
-                            new_tpr = (old_tpr * old_contrib + spec_results['TPR']) / (old_contrib + 1)
-                            new_fpr = (old_fpr * old_contrib + spec_results['FPR']) / (old_contrib + 1)
-                            stddev_coef_to_rate[algo[2]] = ((new_tpr, new_fpr), old_contrib + 1)
-                        else:
-                            print "this value does not already exist; I am going to add it"
-                            stddev_coef_to_rate[algo[2]] = ((float(spec_results['TPR']),
-                                                             float(spec_results['FPR'])), 1)
-        all_algo_stddev_coef_to_rate[cur_graph_algo] = stddev_coef_to_rate
-    print "all_algo_stddev_coef_to_rate", all_algo_stddev_coef_to_rate
-
-    # how graph everything all at once
-    print 'Mapping', all_algo_stddev_coef_to_rate
-    result_lines = {}
-    for algo_name, stddev_coef_to_rate in all_algo_stddev_coef_to_rate.iteritems():
-        crit_percents = []
-        tpr = []
-        fpr = []
-        # I could fix the problem below if the below code operates on the dict that is ordered
-        # by the fpr value
-        tpr_fpr = []
-        for key in sorted(stddev_coef_to_rate):
-            crit_percents.append(key)
-            tpr_fpr.append((stddev_coef_to_rate[key][0][0] , stddev_coef_to_rate[key][0][1] ) )
-            #tpr.append(stddev_coef_to_rate[key][0][0])
-            #fpr.append(stddev_coef_to_rate[key][0][1])
-            # print "%s: %s" % (key, mydict[key])
-            #  crit_percents = [crit_percent for crit_percent in crit_pert_to_rate.keys()]
-            # tpr = [rates[0][0] for rates  in crit_pert_to_rate.values()]
-            # fpr = [rates[0][1] for rates  in crit_pert_to_rate.values()]
-        for value in sorted(tpr_fpr, key = lambda x: x[1]):
-            tpr.append(value[0])
-            fpr.append(value[1])
-
-        plt.figure(2)
-        print "tpr", tpr
-        print "fpr", fpr
-        result_lines[algo_name] = (tpr, fpr, crit_percents)
-        #tp_line, = plt.plot(crit_percents, tpr, label="TP Rate " + cur_graph_algo)
-        #fp_line, = plt.plot(crit_percents, fpr, label="FP Rate " + cur_graph_algo)
-
-    print "result lines", result_lines
-    tp_line_ms_n, = plt.plot(result_lines['naive MS control charts'][2],
-                             result_lines['naive MS control charts'][0],
-                             label= 'naive MS control charts ' + "TP Rate")
-    fp_line_ms_n, = plt.plot(result_lines['naive MS control charts'][2],
-                             result_lines['naive MS control charts'][1],
-                             label= 'naive MS control charts ' + "FP Rate")
-    tp_line_ms_s, = plt.plot(result_lines['selective MS control charts'][2],
-                             result_lines['selective MS control charts'][0],
-                             label= 'selective MS control charts ' + "TP Rate")
-    fp_line_ms_s, = plt.plot(result_lines['selective MS control charts'][2],
-                             result_lines['selective MS control charts'][1],
-                             label= "selective MS control charts" + " FP Rate ")
-    tp_line_tt_n, = plt.plot(result_lines['naive 3-tier control charts'][2],
-                             result_lines['naive 3-tier control charts'][0],
-                             label= 'naive 3-tier control charts' + " TP Rate ")
-    fp_line_tt_n, = plt.plot(result_lines['naive 3-tier control charts'][2],
-                             result_lines['naive 3-tier control charts'][1],
-                             label= 'naive 3-tier control charts' + " FP Rate ")
-    tp_line_ms_rat, = plt.plot(result_lines['ratio ewma'][2],
-                             result_lines[ 'ratio ewma'][0],
-                             label= 'ratio ewma' + " TP Rate ")
-    fp_line_ms_rat, = plt.plot(result_lines[ 'ratio ewma'][2],
-                             result_lines['ratio ewma'][1],
-                             label= 'ratio ewma' + " FP Rate ")
-    plt.legend(handles=[tp_line_ms_n, fp_line_ms_n, tp_line_ms_s, fp_line_ms_s, tp_line_tt_n, fp_line_tt_n, tp_line_ms_rat, fp_line_ms_rat ])
-    plt.title("kinda roc")
-    plt.xlabel('stddev_coef_to_rate')
-    plt.ylabel('rate')
-
-    # now let's make an actual ROC curve
-    plt.figure(3)
-    for key,val in result_lines.iteritems():
-        print key
-        for vals in val:
-            print vals
-
-    cc_ms_n, = plt.plot(result_lines['naive MS control charts'][1],
-                        result_lines['naive MS control charts'][0],
-                        label='naive MS control charts')
-    cc_ms_s, = plt.plot(result_lines['selective MS control charts'][1],
-                        result_lines['selective MS control charts'][0],
-                        label='selective MS control charts')
-    cc_tt_n, = plt.plot(result_lines['naive 3-tier control charts'][1],
-                        result_lines['naive 3-tier control charts'][0],
-                        label='naive 3-tier control charts')
-    ratio_ms, = plt.plot(result_lines['ratio ewma'][1],
-                        result_lines['ratio ewma'][0],
-                        label='ewma of ratios')
-
-    plt.legend(handles=[cc_ms_n, cc_ms_s, cc_tt_n, ratio_ms ])
-    plt.title("ROC")
-    plt.xlabel('fpr')
-    plt.ylabel('tpr')
-
-    ratio_exfil_rate_to_graph = 20000
-    lambda_value_to_graph_ratio = 0.2
-    lambda_value_to_graph_tm = 0.2
-    tp_lines = []
-    fp_lines = []
-    coef_lines = []
-    joint_lines = []
-
-    # now for selective ewma
-    tp_lines_selective_ewma = []
-    fp_lines_selective_ewma = []
-    coef_lines_selective_ewma = []
-    joint_lines_selective_ewma = []
-
-    joint_lines_naive_ewma = []
-    joint_lines_naive_tt_ewma = []
-
-    for exp_params, result in all_results.iteritems():
-        # exp_params has the format (rep, exfils.values()[0])
-        # We want to fix the exfil_rate, so...
-        print exp_params[1]
-        if exp_params[1] == ratio_exfil_rate_to_graph:
-
-            #for cur_graph_algo in algos_to_graph:
-
-            cur_tp_line = []
-            cur_fp_line = []
-            cur_coef_line = []
-            cur_joint_line = []
-
-            cur_tp_line_sewma = []
-            cur_fp_line_sewma = []
-            cur_coef_line_sewma = []
-            cur_joint_line_sewma = []
-            cur_joint_line_newma = []
-            cur_joint_line_tt_newma = []
-
-            print "found a matching experiment"
-            for algo, spec_results in result.iteritems():
-                # algo has the format (name, lambda value, stddev coef value)
-                # spec_results has the format {'FPR': number, 'TPR': number, etc.}
-                #print exp_params, result, spec_results
-
-                if "ratio ewma" == algo[0] and lambda_value_to_graph_ratio == algo[1]:
-                    #for cur_lambda_val in lambda_values_to_graph:
-
-                    # We want to generate on ROC curve... okay, so what do we want to do...
-                    # we need to fix (lambda_val) (b/c only one param should be varied, and
-                    #  that is stddev_coef_vale)
-                    #if algo[1] == cur_lambda_val:
-
-                    #print "this algo matches all the stuff", algo
-                    #print "this value is under consideration"
-                    #print algo, spec_results
-                    print "cur tpr", spec_results['TPR'], "fpr", spec_results['FPR'], "coef", algo[2]
-                    cur_tp_line.append(spec_results['TPR'])
-                    cur_fp_line.append(spec_results['FPR'])
-                    cur_coef_line.append(algo[2])
-
-                    cur_joint_line.append( ( spec_results['TPR'], spec_results['FPR'], algo[2])   )
-
-            tp_lines.append(list(cur_tp_line))
-            fp_lines.append(list(cur_fp_line))
-            coef_lines.append(list(cur_coef_line))
-            joint_lines.append(cur_joint_line)
-
-
-            for algo, spec_results in result.iteritems():
-                if "selective MS control charts" == algo[0] and lambda_value_to_graph_tm == algo[1]:
-                    cur_tp_line_sewma.append(spec_results['TPR'])
-                    cur_fp_line_sewma.append(spec_results['FPR'])
-                    cur_coef_line_sewma.append(algo[2])
-                    cur_joint_line_sewma.append( ( spec_results['TPR'], spec_results['FPR'], algo[2])   )
-
-            tp_lines_selective_ewma.append( cur_tp_line_sewma )
-            fp_lines_selective_ewma.append( cur_fp_line_sewma )
-            coef_lines_selective_ewma.append( cur_coef_line_sewma )
-            joint_lines_selective_ewma.append( cur_joint_line_sewma )
-
-            for algo, spec_results in result.iteritems():
-                if "naive MS control charts" == algo[0] and lambda_value_to_graph_tm == algo[1]:
-                    cur_joint_line_newma.append( ( spec_results['TPR'], spec_results['FPR'], algo[2])   )
-
-            joint_lines_naive_ewma.append(cur_joint_line_newma)
-
-            for algo, spec_results in result.iteritems():
-                if "naive 3-tier control charts" == algo[0] and lambda_value_to_graph_tm == algo[1]:
-                    cur_joint_line_tt_newma.append( ( spec_results['TPR'], spec_results['FPR'], algo[2])   )
-
-            joint_lines_naive_tt_ewma.append(cur_joint_line_newma)
-
-    print coef_lines
-    #print tp_lines
-
-    joint_ln = joint_lines[0]
-    print joint_ln
-    joint_ln = sorted(joint_ln, key=lambda x: x[2])
-    print joint_ln
-
-
-    joint_sewma_ln = joint_lines_selective_ewma[0]
-    joint_sewma_ln = sorted(joint_sewma_ln, key=lambda x: x[2])
-
-    joint_line_naive_tt_ewma = joint_lines_naive_tt_ewma[0]
-    joint_line_naive_tt_ewma = sorted(joint_line_naive_tt_ewma, key=lambda x: x[2])
-
-    #zipped_lines = zip(tp_lines, fp_lines, coef_lines)
-    #sorted(zipped_lines, key=lambda x: x[2])
-    #print "zipped", zipped_lines
-    plt.figure(4)
-    rat_one_tp, = plt.plot([ln[2] for ln in joint_ln],
-                        [ln[0] for ln in joint_ln],
-                        label='tp')
-
-    rat_one_fp, = plt.plot([ln[2] for ln in joint_ln],
-                        [ln[1] for ln in joint_ln],
-                        label='fp')
-
-    rat_one_tp_swema, = plt.plot([ln[2] for ln in joint_sewma_ln],
-                        [ln[0] for ln in joint_sewma_ln],
-                        label='swema tp')
-
-    rat_one_fp_swema, = plt.plot([ln[2] for ln in joint_sewma_ln],
-                        [ln[1] for ln in joint_sewma_ln],
-                        label='swema fp')
-
-    rat_one_tp_tt_nwema, = plt.plot([ln[2] for ln in joint_line_naive_tt_ewma],
-                        [ln[0] for ln in joint_line_naive_tt_ewma],
-                        label='swema tp')
-
-    rat_one_fp_tt_nwema, = plt.plot([ln[2] for ln in joint_line_naive_tt_ewma],
-                        [ln[1] for ln in joint_line_naive_tt_ewma],
-                        label='swema fp')
-    
-    
-    
-    '''
 
     algos_to_graph = ["naive MS control charts", "selective MS control charts", "naive 3-tier control charts",
                       "ratio ewma"]
 
-    graphed_exfiltration_rate = 20000
+    graphed_exfiltration_rate = 30000
 
     #joint_line_ratio = return_joint_line(all_results_ratio, exfil_rate_to_graph = graphed_exfiltration_rate,
     #                                    algo_to_examine="ratio ewma", lambda_value=0.2)
@@ -707,7 +426,8 @@ def graph_final_roc():
 
     # lambda = 0.4 works best for all the training data
     joint_line_ratio_two = return_joint_line(all_results_ratio, exfil_rate_to_graph = graphed_exfiltration_rate,
-                                        algo_to_examine="ratio ewma", lambda_value=0.4)
+                                        algo_to_examine="ratio ewma", lambda_value=0.4, sim_svc_ratio_exceeding_thresh=1,
+                                        no_alert_if_any_svc_ratio_decreases=False)
 
     '''
     joint_line_ratio_three = return_joint_line(all_results_ratio, exfil_rate_to_graph = graphed_exfiltration_rate,
@@ -744,17 +464,56 @@ def graph_final_roc():
 
 
     joint_line_ratio_exchanged= return_joint_line(results_ratio_exchanged_ineq, exfil_rate_to_graph=graphed_exfiltration_rate,
-                                             algo_to_examine="ratio ewma", lambda_value=0.4)
+                                             algo_to_examine="ratio ewma", lambda_value=0.4, sim_svc_ratio_exceeding_thresh=1,
+                                        no_alert_if_any_svc_ratio_decreases=False)
 
     joint_line_ratio_exchanged_two= return_joint_line(results_ratio_exchanged_ineq, exfil_rate_to_graph=graphed_exfiltration_rate,
-                                             algo_to_examine="ratio ewma", lambda_value=0.2)
+                                             algo_to_examine="ratio ewma", lambda_value=0.2, sim_svc_ratio_exceeding_thresh=1,
+                                        no_alert_if_any_svc_ratio_decreases=False)
 
     joint_line_ratio_exchanged_six= return_joint_line(results_ratio_exchanged_ineq, exfil_rate_to_graph=graphed_exfiltration_rate,
-                                             algo_to_examine="ratio ewma", lambda_value=0.6)
+                                             algo_to_examine="ratio ewma", lambda_value=0.6, sim_svc_ratio_exceeding_thresh=1,
+                                        no_alert_if_any_svc_ratio_decreases=False)
+
+    joint_line_ratio_two_svc = return_joint_line(all_results_ratio, exfil_rate_to_graph = graphed_exfiltration_rate,
+                                        algo_to_examine="ratio ewma", lambda_value=0.2, sim_svc_ratio_exceeding_thresh=2,
+                                        no_alert_if_any_svc_ratio_decreases=False)
+
+    joint_line_ratio_three_svc = return_joint_line(all_results_ratio, exfil_rate_to_graph = graphed_exfiltration_rate,
+                                        algo_to_examine="ratio ewma", lambda_value=0.2, sim_svc_ratio_exceeding_thresh=3,
+                                        no_alert_if_any_svc_ratio_decreases=False)
+
+    joint_line_ratio_two_no_decrease = return_joint_line(all_results_ratio, exfil_rate_to_graph=graphed_exfiltration_rate,
+                                                 algo_to_examine="ratio ewma", lambda_value=0.4,
+                                                 sim_svc_ratio_exceeding_thresh=1,
+                                                 no_alert_if_any_svc_ratio_decreases=True)
+
+    joint_line_ratio_two_svc_no_decre = return_joint_line(all_results_ratio, exfil_rate_to_graph=graphed_exfiltration_rate,
+                                                   algo_to_examine="ratio ewma", lambda_value=0.4,
+                                                   sim_svc_ratio_exceeding_thresh=2,
+                                                   no_alert_if_any_svc_ratio_decreases=True)
+
+    joint_line_ratio_three_svc_no_decre = return_joint_line(all_results_ratio, exfil_rate_to_graph=graphed_exfiltration_rate,
+                                                   algo_to_examine="ratio ewma", lambda_value=0.4,
+                                                   sim_svc_ratio_exceeding_thresh=3,
+                                                   no_alert_if_any_svc_ratio_decreases=True)
+
+
+    joint_line_ratio_linear_comb_ratio = return_joint_line(all_results_ratio, exfil_rate_to_graph=graphed_exfiltration_rate,
+                                                   algo_to_examine="linear-comb ewma",lambda_value=0.4)
+
+    #("eigenspace", crit_percent, windows_size, beta_val),
+    window_size = 5
+    beta_val = 0.1
+    joint_line_eigenspace= return_joint_line(all_results_eigen, exfil_rate_to_graph=graphed_exfiltration_rate,
+                                                   algo_to_examine="eigenspace", lambda_value=window_size,
+                                                   sim_svc_ratio_exceeding_thresh=beta_val)
 
     print "ratio exchanged", joint_line_ratio_exchanged
 
     print "separate lines", joint_line_ratio_exchanged
+
+    print "eigenspace", joint_line_eigenspace
 
     #print "joined lines", avg_lines(joint_line_ratio_exchanged)
 
@@ -767,9 +526,16 @@ def graph_final_roc():
     joint_line_ratio_exchanged =   [ avg_lines(joint_line_ratio_exchanged)    ]
     joint_line_ratio_exchanged_two = [avg_lines(joint_line_ratio_exchanged_two)]
     joint_line_ratio_exchanged_six = [avg_lines(joint_line_ratio_exchanged_six)]
+    joint_line_ratio_two_svc = [ avg_lines(joint_line_ratio_two_svc)    ]
+    joint_line_ratio_three_svc =[ avg_lines(joint_line_ratio_three_svc)    ]
+    joint_line_ratio_two_no_decrease =[ avg_lines(joint_line_ratio_two_no_decrease)    ]
+    joint_line_ratio_two_svc_no_decre =[ avg_lines(joint_line_ratio_two_svc_no_decre)    ]
+    joint_line_ratio_three_svc_no_decre =[ avg_lines(joint_line_ratio_three_svc_no_decre)    ]
+    joint_line_eigenspace = [avg_lines(joint_line_eigenspace)]
+    joint_line_ratio_linear_comb_ratio = [avg_lines(joint_line_ratio_linear_comb_ratio)]
 
     plt.figure(1)
-
+    '''
     rat_one_tp, = plt.plot([ln[2] for ln in joint_line_ratio_two[0]],
                            [ln[0] for ln in joint_line_ratio_two[0]],
                            label='tp ratio')
@@ -809,11 +575,32 @@ def graph_final_roc():
     rat_one_fp_bi_swema, = plt.plot([ln[2] for ln in joint_line_bi_sewma[0]],
                                  [ln[1] for ln in joint_line_bi_sewma[0]],
                                  label='bi-swema fp')
+    
+    '''
 
-    plt.legend(handles=[rat_one_tp, rat_one_fp, rat_one_tp_swema, rat_one_fp_swema,
-                        rat_one_tp_tt_nwema, rat_one_fp_tt_nwema,
-                        rat_one_tp_newma, rat_one_fp_newma,
-                        rat_one_tp_bi_swema, rat_one_fp_bi_swema])
+    rat_one_tp_eigen, = plt.plot([ln[2] for ln in joint_line_eigenspace[0]],
+                                 [ln[0] for ln in joint_line_eigenspace[0]],
+                                 label='eigen tp')
+
+    rat_one_fp_eigen, = plt.plot([ln[2] for ln in joint_line_eigenspace[0]],
+                                 [ln[1] for ln in joint_line_eigenspace[0]],
+                                 label='eigen fp')
+
+    '''
+    rat_one_tp_ratio_lc, = plt.plot([ln[2] for ln in joint_line_ratio_linear_comb_ratio[0]],
+                                 [ln[0] for ln in joint_line_ratio_linear_comb_ratio[0]],
+                                 label='ratio linear comb tp')
+
+    rat_one_fp_ratio_lc, = plt.plot([ln[2] for ln in joint_line_ratio_linear_comb_ratio[0]],
+                                 [ln[1] for ln in joint_line_ratio_linear_comb_ratio[0]],
+                                 label='ratio linear comb fp')
+    '''
+    plt.legend(handles=[#rat_one_tp, rat_one_fp, rat_one_tp_swema, rat_one_fp_swema,
+                        #rat_one_tp_tt_nwema, rat_one_fp_tt_nwema,
+                        #rat_one_tp_newma, rat_one_fp_newma,
+                        #rat_one_tp_bi_swema, rat_one_fp_bi_swema])
+                        rat_one_tp_eigen, rat_one_fp_eigen])
+                        #rat_one_tp_ratio_lc, rat_one_fp_ratio_lc])
     plt.title("coefficient of ewma vs rates")
     plt.xlabel('coef')
     plt.ylabel('rate')
@@ -849,6 +636,17 @@ def graph_final_roc():
                                     label='Monolith Naive-EWMA',alpha=opacity,
                                     linestyle='-.', marker='o')
 
+    rat_one_tp_ratio_linear_comb, = plt.plot([ln[1] for ln in joint_line_ratio_linear_comb_ratio[0]],
+                                    [ln[0] for ln in joint_line_ratio_linear_comb_ratio[0]],
+                                    label='Ratio Linear Combination',alpha=opacity,
+                                    linestyle='-.', marker='o')
+    #'''
+    joint_line_eigenspace[0].sort(key=lambda x: x[1])
+    rat_one_eigen, = plt.plot([ln[1] for ln in joint_line_eigenspace[0]],
+                                    [ln[0] for ln in joint_line_eigenspace[0]],
+                                    label='eigenspace',alpha=opacity,
+                                    linestyle='-.', marker='o')
+    #'''
 
     #rat_one_tp_newma, = plt.plot([ln[1] for ln in joint_line_newma[0]],
     #                             [ln[0] for ln in joint_line_newma[0]],
@@ -860,12 +658,23 @@ def graph_final_roc():
 
     rat_one_tp_two_reversed, = plt.plot([ln[1] for ln in joint_line_ratio_exchanged_two[0]],
                            [ln[0] for ln in joint_line_ratio_exchanged_two[0]],
-                           label='Microservice Traffic-Ratio-EWMA', alpha=opacity,
+                           label='Microservice Traffic-Ratio-EWMA (simple, one_svc, labmda=0.2)', alpha=opacity,
+                            linestyle='-', marker='^')
+
+    rat_one_roc_two_two_svc, = plt.plot([ln[1] for ln in joint_line_ratio_two_svc[0]],
+                           [ln[0] for ln in joint_line_ratio_two_svc[0]],
+                           label='Microservice Traffic-Ratio-EWMA (simple, two_svc, lambda=0.2)', alpha=opacity,
+                            linestyle='-', marker='^')
+
+    rat_one_roc_two_three_svc, = plt.plot([ln[1] for ln in joint_line_ratio_three_svc[0]],
+                           [ln[0] for ln in joint_line_ratio_three_svc[0]],
+                           label='Microservice Traffic-Ratio-EWMA (simple, three_svc, lambda=0.2)', alpha=opacity,
                             linestyle='-', marker='^')
 
     plt.legend(handles=[rat_one_tp_tt_nwema,
                         rat_one_tp_swema,
-                        rat_one_tp_two_reversed])#,
+                        rat_one_tp_two_reversed, rat_one_tp_ratio_linear_comb,
+                        rat_one_roc_two_two_svc, rat_one_roc_two_three_svc, rat_one_eigen])#,
                         #rat_one_tp_three, rat_one_tp_four])
                         #rat_one_tp, rat_one_tp_three, rat_one_tp_four])
     plt.title("ROC Curve")
@@ -873,6 +682,51 @@ def graph_final_roc():
     plt.ylabel('True Positive Rate')
     #plt.savefig('ROC Curve Results' + '.png', bbox_inches='tight')
     plt.savefig('./roc_curve_poster_results.eps', format='eps', dpi=1000)
+
+    # this is going to be a figure just for ratio_ewma
+    plt.figure(3)
+    rat_one_tp_two_reversed, = plt.plot([ln[1] for ln in joint_line_ratio_exchanged_two[0]],
+                           [ln[0] for ln in joint_line_ratio_exchanged_two[0]],
+                           label='Microservice Traffic-Ratio-EWMA (simple, one_svc, lambda=0.2)', alpha=opacity,
+                            linestyle='-', marker='^')
+    #joint_line_ratio_exchanged
+
+
+    rat_one_roc_two_two_svc, = plt.plot([ln[1] for ln in joint_line_ratio_two_svc[0]],
+                           [ln[0] for ln in joint_line_ratio_two_svc[0]],
+                           label='Microservice Traffic-Ratio-EWMA (simple, two_svc, lambda=0.2)', alpha=opacity,
+                            linestyle='-', marker='^')
+
+    rat_one_roc_two_three_svc, = plt.plot([ln[1] for ln in joint_line_ratio_three_svc[0]],
+                           [ln[0] for ln in joint_line_ratio_three_svc[0]],
+                           label='Microservice Traffic-Ratio-EWMA (simple, three_svc, lambda=0.2)', alpha=opacity,
+                            linestyle='-', marker='^')
+    '''
+    rat_one_roc_two_no_decr, = plt.plot([ln[1] for ln in joint_line_ratio_two_no_decrease[0]],
+                           [ln[0] for ln in joint_line_ratio_two_no_decrease[0]],
+                           label='Microservice Traffic-Ratio-EWMA (no_decr, one_svc, lambda=0.4)', alpha=opacity,
+                            linestyle='-', marker='^')
+
+    rat_one_roc_two_two_svc_no_decr, = plt.plot([ln[1] for ln in joint_line_ratio_two_svc_no_decre[0]],
+                           [ln[0] for ln in joint_line_ratio_two_svc_no_decre[0]],
+                           label='Microservice Traffic-Ratio-EWMA (no_decr, two_svc, lambda=0.4)', alpha=opacity,
+                            linestyle='-', marker='^')
+    
+    rat_one_roc_two_three_svc_no_decr, = plt.plot([ln[1] for ln in joint_line_ratio_three_svc_no_decre[0]],
+                           [ln[0] for ln in joint_line_ratio_three_svc_no_decre[0]],
+                           label='Microservice Traffic-Ratio-EWMA (no_decr, three_svc, lambda=0.4)', alpha=opacity,
+                            linestyle='-', marker='^')
+    '''
+    plt.legend(handles=[rat_one_tp_two_reversed,rat_one_roc_two_two_svc,rat_one_roc_two_three_svc])#,
+                        #rat_one_roc_two_no_decr,rat_one_roc_two_two_svc_no_decr])#,rat_one_roc_two_three_svc_no_decr])
+    # rat_one_tp_three, rat_one_tp_four])
+    # rat_one_tp, rat_one_tp_three, rat_one_tp_four])
+    plt.title("ROC Curve")
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.xlim(0, 1)
+    plt.ylim(0, 1)
+
     plt.show()
 
     #plt.legend(handles=[rat_one_tp, rat_one_fp, rat_one_tp_swema, rat_one_fp_swema])
@@ -888,7 +742,8 @@ def graph_final_roc():
     #plt.show()
 
 
-def return_joint_line(all_exp_results, exfil_rate_to_graph, algo_to_examine, lambda_value):
+def return_joint_line(all_exp_results, exfil_rate_to_graph, algo_to_examine, lambda_value, sim_svc_ratio_exceeding_thresh=None,
+                      no_alert_if_any_svc_ratio_decreases=None):
 
     tp_lines = []
     fp_lines = []
@@ -909,10 +764,30 @@ def return_joint_line(all_exp_results, exfil_rate_to_graph, algo_to_examine, lam
             #print "found a matching experiment"
             for algo, spec_results in result.iteritems():
                 # algo has the format (name, lambda value, stddev coef value)
+                # ^^ this is no longer completely true
+                # this is the format for svc-ratio: ("ratio ewma", lambda_values, ewma_stddev_coef_val,
+                #                                    simulataneous_svc_ratio_exceeding_thresh,
+                #                                    no_alert_if_any_svc_ratio_decreases),
                 # spec_results has the format {'FPR': number, 'TPR': number, etc.}
                 #print exp_params, result, spec_results
 
+                # need to do the processing differently for eigenspace because I was stupid w/ the arangment of params in the tuple
+                if algo_to_examine == 'eigenspace':
+                    print "eigenspace match"
+                    # ("eigenspace", crit_percent, windows_size, beta_val); want to iterate through crit_percent
+                    # I'm going to overlead the params (i.e. use them in a way not implied by their name)
+                    if algo_to_examine == algo[0] and lambda_value == algo[2] and sim_svc_ratio_exceeding_thresh == algo[3]:
+                        cur_tp_line.append(spec_results['TPR'])
+                        cur_fp_line.append(spec_results['FPR'])
+                        cur_coef_line.append(algo[1])
+                        cur_joint_line.append((spec_results['TPR'], spec_results['FPR'], algo[1]))
+                    continue # do NOT also want to run the other if statements
+
                 if algo_to_examine == algo[0] and lambda_value == algo[1]:
+                    if algo_to_examine == "ratio ewma":
+                        if sim_svc_ratio_exceeding_thresh != algo[3] or  no_alert_if_any_svc_ratio_decreases != algo[4]:
+                            # if doesn't meet the requirements, try the next one
+                            continue
 
                     #print "cur tpr", spec_results['TPR'], "fpr", spec_results['FPR'], "coef", algo[2]
                     cur_tp_line.append(spec_results['TPR'])

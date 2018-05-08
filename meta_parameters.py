@@ -7,11 +7,11 @@
 ### Note: this section remains unchanged from parameter.py b/c
 ### this only happens on sock shop setup, which only happens one
 
-# the three following values determine the number of customer records 
+# the three following values determine the number of customer records
 # that the sock shop's database is loaded with during the setup phase
 # for more information on why this is necessary, see GitHub issue #25
 
-# these users will be registered, given an address, and given 
+# these users will be registered, given an address, and given
 # CC information (so that they can be used to buy things in background
 # simulation)
 # note: multiply this number by number of desired records by 4
@@ -43,7 +43,7 @@ rate_spawn_background_locusts = "1" # /sec
 ### Note:  this is fine, though will probably need
 ### to be lengthened
 # this is the total length of the experiment
-# so the experiment keeps running for 
+# so the experiment keeps running for
 # desired_stop_time - desired_exfil_time
 # after data exfiltration has taken place
 desired_stop_time = 360
@@ -51,7 +51,7 @@ desired_stop_time = 360
 ### END fine section
 
 
-### Note: this section is the one that is going to need a bunch of 
+### Note: this section is the one that is going to need a bunch of
 ### modifications
 
 ## The 'next-gen' in data exfiltration.
@@ -60,19 +60,16 @@ desired_stop_time = 360
 ## note: leave empty if you want never
 ## note: will show up in detection system 5 seconds after the given time, b/c exfiltration starts at the given
 ## time, so it won't be recorded by prometheus until 5 seconds later
-exfils = {200 : 20000, 205 : 20000, 300 : 20000, 310 : 20000, 315 : 20000}
-
-
-### Note: this section was modified while working on data anaylsis
+exfils = {200 : 0, 205 : 0, 300 : 0, 310 : 0, 315 : 0}
 
 ## this value specifies the increment(/decrement) for each of the exfils
 ## keys are times, values are increments, in bytes
 exfil_increments = {200: 5000, 205: 5000, 300 : 5000, 310 : 5000, 315 : 5000}
 
 ## number of increments
-## will run once using the 'exfils' values and then 
+## will run once using the 'exfils' values and then
 ## will run the number of times given here, each with the increment applied
-number_increments = 2
+number_increments = 8
 
 ## number of repeat experiments
 ## this is the number of times to run each experiment
@@ -80,12 +77,10 @@ number_increments = 2
 ## (number of increments) * (number of repeat experiments)
 repeat_experiments = 3
 
-### END modified section
-
 ## this is going to be the name of the experiment
 ## we are going to make a new directory in 'experimental_data'
 ## store all the files and graphs there, and maybe even a file
-## that explains what each file is, b/c there is going to be 
+## that explains what each file is, b/c there is going to be
 ## a lot of them.
 experiment_name = "cybermonday-target-hack"
 
