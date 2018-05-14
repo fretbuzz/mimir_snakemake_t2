@@ -86,7 +86,7 @@ def run_series_of_experiments(only_data_analysis):
             # NOTE: we are assuming that all the exfils in an exp are the same size
             all_experimental_results[(rep, exfils.values()[0])] = exp_results
 
-            pickle.dump( all_experimental_results, open( experimental_directory + '/all_experimental_results_just_eigen.pickle', "wb" ) )
+            pickle.dump( all_experimental_results, open( experimental_directory + '/all_experimental_results_maybe_fixed_eigen_finally.pickle', "wb" ) )
             
         # performs the increments on the data exfiltration dictionary
         for key,val in exfils.iteritems():

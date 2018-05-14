@@ -134,7 +134,7 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
     '''
     '''
     # this is for non-selective (on MS)
-    for ewma_stddev_coef in np.arange(0 ,4.5,0.5):
+    for ewma_stddev_coef in np.arange(0 ,4.2,0.1):
         for lambda_values in np.arange(0.2, 0.4, 0.2):
             naive_all_control_chart_warning_times = control_charts_on_directional_dfs(df_sent, df_rec, services,
                                                                                       lambda_val=lambda_values,
@@ -151,7 +151,7 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
 
     # this is for selective (on MS)
     print "ENTERING SELECTIVE TERRITORY"
-    for ewma_stddev_coef in np.arange(0 ,4.5,0.5):
+    for ewma_stddev_coef in np.arange(0 ,4.2,0.1):
         for lambda_values in np.arange(0.2, 0.4, 0.2):
             selective_ewma_services = ['front-end', 'user']
             all_control_chart_warning_times = control_charts_on_directional_dfs(df_sent, df_rec, selective_ewma_services,
@@ -165,7 +165,7 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
     '''
     # this is for selective (on MS)(bidirectional)
     print "ENTERING bi-SELECTIVE TERRITORY"
-    for ewma_stddev_coef in np.arange(0, 4.5, 0.5):
+    for ewma_stddev_coef in np.arange(0, 4.2, 0.1):
         for lambda_values in np.arange(0.2, 0.4, 0.2):
             selective_ewma_services = ['front-end', 'user']
             all_control_chart_warning_times = control_charts_on_directional_dfs(df_sent, df_rec,
@@ -187,7 +187,7 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
     df_tt_sent = three_tier_time_aggreg(df_sent)
     df_tt_rec = three_tier_time_aggreg(df_rec)
 
-    for ewma_stddev_coef in np.arange(0 ,4.5,0.5):
+    for ewma_stddev_coef in np.arange(0 ,4.2,0.1):
         for lambda_values in np.arange(0.2, 0.4, 0.2):
             three_tier_services = ['presentation', 'application', 'data']
             tt_all_control_chart_warning_times = control_charts_on_directional_dfs(df_tt_sent, df_tt_rec, three_tier_services,
@@ -247,20 +247,22 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
     # now, I think it is worth putting in, even if just to show as a 'state-of-the-art' that sucks
     joint_df = join_dfs(df_sent, df_rec)
     print joint_df
-
+    #'''
     ### TODO: wire it in. those three params are all that matters (I think it is wireed in)
-    for crit_percent in np.append( np.arange(0.0, .51, .01), np.array([[0.001]]) ):
-        for windows_size in np.arange(5, 6, 1): # honestly not going to worry about this param very much
-            for beta_val in np.arange(0, 0.55, 0.05):
+    #for crit_percent in np.append( np.arange(0.0, .51, .01), np.array([[0.001]]) ):
+    for windows_size in np.arange(5, 6, 1): # honestly not going to worry about this param very much
+        for beta_val in np.arange(0, 0.55, 0.05):
 
-                    # orig val: critical_percent=0.0003, window_size=5, beta=0.05
-                    eigenspace_warning_times = eigenspace_detection_loop(joint_df, critical_percent=crit_percent,
-                                                                 window_size=windows_size, beta=beta_val)
+                critic_percent = 0 # value is now meaningless
+                # orig val: critical_percent=0.0003, window_size=5, beta=0.05
+                eigenspace_warning_times = eigenspace_detection_loop(joint_df, critical_percent=critic_percent,
+                                                             window_size=windows_size, beta=beta_val)
 
-                    print "the eigenspace alert triggered at these times", eigenspace_warning_times
+                print "the eigenspace alert triggered at these times", eigenspace_warning_times
 
+                for crit_percent, warn_times in eigenspace_warning_times.iteritems():
                     eigenspace_performance_results = calc_tp_fp_etc(("eigenspace", crit_percent, windows_size, beta_val),
-                                                               exfils, eigenspace_warning_times, exp_time, start_analyze_time)
+                                                               exfils, warn_times, exp_time, start_analyze_time)
 
                     print crit_percent, eigenspace_performance_results
 
@@ -337,10 +339,10 @@ def control_charts_loop(dfs, is_sent, lambda_ewma = 0.2, ewma_stddev_coef = 3, s
     # starts at 1, b/c everyting has time stddev 0 at time 0, so everything would trigger a warning
     control_charts_warning = []
     control_charts_warning_times = []
-    for time in range(1, len(times) - 1):
+    for time in range(2, len(times) - 1):
         next_dfs = dfs[dfs['time'].isin([times[time]])]
         warnings, warning_times = next_value_trigger_control_charts(next_dfs,
-                                                                              df_control_stats[time], times[time],
+                                                                              df_control_stats[time-1], times[time],
                                                                               ewma_stddev_coef)
         #print "Microsvc sent and rec warnings during loop", warnings
         control_charts_warning.append(warnings)
@@ -383,10 +385,11 @@ def ewma_svc_pair_ratio_loop(dfs, lambda_ewma, ewma_stddev_coef, ratio_denoms, s
     # starts at 1, b/c everyting has time stddev 0 at time 0, so everything would trigger a warning
     ewma_ratio_warning = []
     ewma_ratio_warning_times = []
-    for time in range(1, len(times) - 1):
+    for time in range(2, len(times) - 1):
+        ### TODO: IS THERE A BUG HERE??
         relevant_svc_pair_traffic_vect = svc_pair_traffic_vectors[times[time]]
         warnings, warning_times = next_value_trigger_ewma_ratio(relevant_svc_pair_traffic_vect,
-                                                ratio_ewma_stats[time], times[time],
+                                                ratio_ewma_stats[time-1], times[time],
                                                 ewma_stddev_coef, ratio_denoms, svc_pair_list, num_exceed,
                                                 dont_trigger_if_decrease, linear_comb, abs_val = abs_val)
 
@@ -479,12 +482,12 @@ def next_value_trigger_ewma_ratio(relevant_svc_pair_traffic_vect, ratio_ewma_sta
                     # okay, so I want to do a simple linear combination here
                     linear_combo_current_ratio_sum += current_ratio
                     linear_combo_mean_ratio_sum += current_ewma_mean
-                    linear_combo_stddev_sum += current_ewma_stddev
+                    linear_combo_stddev_sum += current_ewma_stddev ** 2
     if linear_comb:
-        if (linear_combo_mean_ratio_sum - linear_combo_current_ratio_sum) > (ewma_stddev_coef * linear_combo_stddev_sum):
+        if (linear_combo_mean_ratio_sum - linear_combo_current_ratio_sum) > (ewma_stddev_coef * sqrt(linear_combo_stddev_sum)):
             # note, would need to modify this if I get fancier w/ the what ratio_denoms is
             warnings_triggered.append(["linear combo", ratio_denoms[0], time, linear_combo_mean_ratio_sum,
-                                       linear_combo_stddev_sum, linear_combo_current_ratio_sum])
+                                       sqrt(linear_combo_stddev_sum), linear_combo_current_ratio_sum])
             warning_times.append(time)
 
     return warnings_triggered, warning_times
@@ -528,19 +531,27 @@ def eigenspace_detection_loop(joint_df, critical_percent, window_size, beta):
     z_first_moment = 0 
     z_sec_moment = 0
     old_z_thresh = 0.5
-    eigenspace_warning_times = []
+    #eigenspace_warning_times = [] #
+    eigenspace_warning_times = {} # maps crit percent values to times
+    for crit_percent in np.append(np.arange(0.0, .51, .01), np.array([[0.001]])):
+        eigenspace_warning_times[crit_percent] = []
     for time_index in range(0,len(times)):
         time = times[time_index]
         current_df = joint_df[ joint_df['time'].isin([time])]
         #print current_df
-        alarm_p, old_u, z_first_moment, z_sec_moment,old_z_thresh = eigenvector_based_detector(old_u,
+        alerts, old_u, z_first_moment, z_sec_moment,old_z_thresh = eigenvector_based_detector(old_u,
                 current_df.drop(['time'], axis=1), window_size, critical_percent, z_first_moment, z_sec_moment, old_z_thresh, beta)
         print "z first moment", z_first_moment, "z second moment", z_sec_moment
-        print alarm_p#, old_u, z_first_moment, z_sec_moment
-        print type(alarm_p)
-        if alarm_p:
-            eigenspace_warning_times.append(time)
+        for alert in alerts:
+            if alert[1] == 1:
+                eigenspace_warning_times[alert[0]].append(time)
+        #print alarm_p#, old_u, z_first_moment, z_sec_moment
+        #print type(alarm_p)
+        #if alarm_p:
+            #eigenspace_warning_times.append(time)
     return eigenspace_warning_times
+
+
 
 # this function just generates graphs
 # sent_data_for_display is a dictionary of data about the sent traffic matrixc
@@ -924,7 +935,7 @@ def diagnose_anom_pca(old_dfs, cur_df, n_components, alpha):
     # in the paper and carry out the designated computations
     # SO, take each principal component, and make it a row in the 
     # corresponding matrix
-    #### TODO: Okay, this is wrong also. What the heck is in P??
+    #### TODO: Okay, this is wrong also. What
     P = np.array(pca.components_[0]) # this one has got to not be anomolous
     print "P", P
     for i in range(1, anom_thresh):
@@ -967,7 +978,7 @@ def diagnose_anom_pca(old_dfs, cur_df, n_components, alpha):
 
 # following method given in Ide's "Eigenspace-based Anomaly Detection in
 # Computer Systems"
-def eigenvector_based_detector(old_u, current_tm, window_size, crit_bound, old_z_first_mom, old_z_sec_mom, last_z_thresh, beta = 0.05):
+def eigenvector_based_detector(old_u, current_tm, window_size, unused, old_z_first_mom, old_z_sec_mom, last_z_thresh, beta = 0.05):
     # first, find the principle eigenvector of the traffic matrix
     #print "shape: ", current_tm.shape, current_tm
     #eigenvals, unit_eigenvect = np.linalg.eig(current_tm)   
@@ -975,7 +986,11 @@ def eigenvector_based_detector(old_u, current_tm, window_size, crit_bound, old_z
     
     # principle eigenvector has largest associated eigenvalue
     largest_eigenval_index = np.argmax(eigenvals)
-    princip_eigenvect = unit_eigenvect[largest_eigenval_index]
+    #print unit_eigenvect
+    princip_eigenvect = unit_eigenvect[:,largest_eigenval_index] # note: just added the :
+    #princip_two = unit_eigenvect[largest_eigenval_index]
+    #print princip_eigenvect
+    #print princip_two
     #print "pprincip_eigenvect", princip_eigenvect
     #print "eigenvects", unit_eigenvect
     #print "eigenvals", eigenvals
@@ -985,8 +1000,9 @@ def eigenvector_based_detector(old_u, current_tm, window_size, crit_bound, old_z
     #print "size", np.shape(old_u), len(np.shape(old_u)), old_u
     if len(np.shape(old_u)) > 1:
         u,s,vh = np.linalg.svd(old_u)
+        #print u
         largest_signular_val_index = np.argmax(s)
-        princip_left_singular_vect = u[largest_signular_val_index]
+        princip_left_singular_vect = u[:,largest_signular_val_index]
 
         # third, compute z(t), the dissimilarity between the principal left
         # singular vector and the principal eigenvector
@@ -1007,37 +1023,44 @@ def eigenvector_based_detector(old_u, current_tm, window_size, crit_bound, old_z
         #    old_z_sec_mom = z **2
         z_first_moment = (1 - beta) * old_z_first_mom + beta * z
         #print "new z_first_moment", z_first_moment
-        z_sec_moment = (1 - beta) * old_z_sec_mom + beta * (z ** 2)
+        z_sec_moment = (1 - float(beta)) * old_z_sec_mom + float(beta) * (z ** 2)
         #print "z_sec_moment", z_sec_moment
         n = ((2 * z_first_moment ** 2) / (z_sec_moment - z_first_moment ** 2)) + 1
         sigma = (z_sec_moment - z_first_moment ** 2) / (2 * z_first_moment)
         # find the specific threshold value
-        print "ARGS","n", n, "sigma", sigma,"crit bound", crit_bound
-        z_thresh = scipy.optimize.fsolve(vMF_thresh_func, last_z_thresh, args=(n, sigma, crit_bound))
-        print "z_thresh is", z_thresh
-        z_thresh = z_thresh[0]
-        print "z_thresh is", z_thresh 
-        
-        #do the actual comparison, but first modify u
-        if old_u.shape[1] >= window_size:
-            np.delete(old_u, 0, 0)# get rid of old column (outside of window)
-        #print "old_u size", np.shape(old_u)
-        #print "princip_eigenvect size", np.shape(np.transpose(princip_eigenvect[np.newaxis]))
-        #old_u = np.stack([old_u,princip_eigenvect], axis=1)
-        old_u = np.concatenate((old_u, np.transpose(princip_eigenvect[np.newaxis])), axis=1)
-        #print np.size(old_u)
-        print "z", z, "z_thresh", z_thresh
-        if z > z_thresh:
-            return 1, old_u, z_first_moment, z_sec_moment, z_thresh  # 1 = an alert
-        else:
-            return 0, old_u, z_first_moment, z_sec_moment, z_thresh  # 0 = no alert
+
+        results = []
+        # markey
+        for crit_bound in np.append(np.arange(0.0, .51, .01), np.array([[0.001]])):
+            print "ARGS", "n", n, "sigma", sigma, "crit bound", crit_bound
+            z_thresh = scipy.optimize.fsolve(vMF_thresh_func, last_z_thresh, args=(n, sigma, crit_bound))
+            print "z_thresh is", z_thresh
+            z_thresh = z_thresh[0]
+            print "z_thresh is", z_thresh
+
+            #do the actual comparison, but first modify u
+            if old_u.shape[1] >= window_size:
+                np.delete(old_u, 0, 0)# get rid of old column (outside of window)
+            #print "old_u size", np.shape(old_u)
+            #print "princip_eigenvect size", np.shape(np.transpose(princip_eigenvect[np.newaxis]))
+            #old_u = np.stack([old_u,princip_eigenvect], axis=1)
+            old_u = np.concatenate((old_u, np.transpose(princip_eigenvect[np.newaxis])), axis=1)
+            #print np.size(old_u)
+            print "z", z, "z_thresh", z_thresh
+            if z > z_thresh:
+                #return 1, old_u, z_first_moment, z_sec_moment, z_thresh  # 1 = an alert
+                results.append((crit_bound, 1))
+            else:
+                #return 0, old_u, z_first_moment, z_sec_moment, z_thresh  # 0 = no alert
+                results.append((crit_bound, 0))
+        return results, old_u, z_first_moment, z_sec_moment, 0.5
     else:
         #old_u = princip_eigenvect
         if np.shape(old_u)[0] == 0:
             old_u = princip_eigenvect
         else:
             old_u = np.stack([old_u,princip_eigenvect],axis=1)
-        return 0, old_u, 0, 0, 0.5  # 0 = no alert
+        return [], old_u, 0, 0, 0.5  # 0 = no alert
 
 def vMF_pdf_func(z, n, sigma):
     if z < 0:
@@ -1050,7 +1073,7 @@ def vMF_pdf_func(z, n, sigma):
 def vMF_thresh_func(zth, n, sigma, crit_bound):
     unadjusted_bound, err  =  scipy.integrate.quad(vMF_pdf_func, zth, np.inf, args=(n,sigma)) 
     #print "unadjusetd bound", unadjusted_bound, "critical bound", crit_bound
-    return unadjusted_bound- crit_bound
+    return unadjusted_bound - crit_bound
 
 def empty_ewmas(svcs, df):
     data_stats = {}
