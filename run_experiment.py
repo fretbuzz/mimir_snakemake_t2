@@ -36,12 +36,12 @@ CLIENT_RATIO_CYBER = [0.0328, 0.0255, 0.0178, 0.0142, 0.0119, 0.0112, 0.0144, 0.
 0.0574, 0.0571, 0.0568, 0.0543, 0.0532, 0.0514, 0.0514, 0.0518, 0.0522, 0.0571, 0.0609, 0.0589, 0.0564]
 
 #def main(restart_kube, setup_sock, multiple_experiments, only_data_analysis):
-def main(restart_minikube, setup_sockshop, run_an_experiment, output_dict):
-    if restart_minikube:
+def main(start_minikube, setup_sockshop, run_an_experiment, output_dict, analyze_p):
+    if start_minikube:
         restart_minikube()
     if setup_sockshop:
         setup_sock_shop()
-    run_series_of_experiments(run_actual_experiment = run_an_experiment, out_dict= output_dict)
+    run_series_of_experiments(run_actual_experiment = run_an_experiment, out_dict= output_dict, analyze = analyze_p)
 
     '''
     if multiple_experiments == "n":
@@ -50,11 +50,11 @@ def main(restart_minikube, setup_sockshop, run_an_experiment, output_dict):
         run_series_of_experiments(only_data_analysis = only_data_analysis)
     '''
 
-def run_series_of_experiments(run_actual_experiment, out_dict):
+def run_series_of_experiments(run_actual_experiment, out_dict, analyze):
     ## first step, make relevant directory
     experimental_directory = './experimental_data/' + meta_parameters.experiment_name
     #print "only_data_analysis", only_data_analysis
-    '''if only_data_analysis == "n":  # you have to make the directory in advance now
+    '''if only_data_analysis == "n":  # user has to make the directory in advance now
         try:
             os.makedirs(experimental_directory)
         except:
@@ -90,41 +90,42 @@ def run_series_of_experiments(run_actual_experiment, out_dict):
     # I always want to run data analysis (but only after the actual experiments are done)
     # (otherwise prolonged data analysis will cause problems such as kube-proxy to outside pod
     # for Prometheus will be lost)
-    exfils = meta_parameters.exfils
-    for current_increment in range(0, meta_parameters.number_increments):
-        for rep in range(0, meta_parameters.repeat_experiments):
-            print "current rep: ", rep, "increment", current_increment
-            rec_matrx_loc = experimental_directory + '/rec_matrix_increm_' + str(
-                current_increment) + '_rep_' + str(rep) + '.pickle'
-            sent_matrix_loc = experimental_directory + '/sent_matrix_increm_' + str(
-                current_increment) + '_rep_' + str(rep) + '.pickle'
-            graph_name = meta_parameters.experiment_name + "_increm_" + str(current_increment) + '_rep_' + str(
-                rep)
+    if analyze:
+        exfils = meta_parameters.exfils
+        for current_increment in range(0, meta_parameters.number_increments):
+            for rep in range(0, meta_parameters.repeat_experiments):
+                print "current rep: ", rep, "increment", current_increment
+                rec_matrx_loc = experimental_directory + '/rec_matrix_increm_' + str(
+                    current_increment) + '_rep_' + str(rep) + '.pickle'
+                sent_matrix_loc = experimental_directory + '/sent_matrix_increm_' + str(
+                    current_increment) + '_rep_' + str(rep) + '.pickle'
+                graph_name = meta_parameters.experiment_name + "_increm_" + str(current_increment) + '_rep_' + str(
+                    rep)
 
-            exp_results = simulate_incoming_data(rec_matrix_location=rec_matrx_loc,
-                                                 send_matrix_location=sent_matrix_loc,
-                                                 display_sent_svc_pair=meta_parameters.display_sent_svc_pair,
-                                                 display_rec_svc_pair=meta_parameters.display_rec_svc_pair,
-                                                 display_graphs=meta_parameters.display_graphs,
-                                                 graph_names=experimental_directory + '/' + graph_name,
-                                                 exfils=exfils,
-                                                 exp_time=meta_parameters.desired_stop_time,
-                                                 start_analyze_time=meta_parameters.start_analyze_time)
+                exp_results = simulate_incoming_data(rec_matrix_location=rec_matrx_loc,
+                                                     send_matrix_location=sent_matrix_loc,
+                                                     display_sent_svc_pair=meta_parameters.display_sent_svc_pair,
+                                                     display_rec_svc_pair=meta_parameters.display_rec_svc_pair,
+                                                     display_graphs=meta_parameters.display_graphs,
+                                                     graph_names=experimental_directory + '/' + graph_name,
+                                                     exfils=exfils,
+                                                     exp_time=meta_parameters.desired_stop_time,
+                                                     start_analyze_time=meta_parameters.start_analyze_time)
 
-            # will eventually be passed to the graphing function
-            # NOTE: we are assuming that all the exfils in an exp are the same size
-            all_experimental_results[(rep, exfils.values()[0])] = exp_results
+                # will eventually be passed to the graphing function
+                # NOTE: we are assuming that all the exfils in an exp are the same size
+                all_experimental_results[(rep, exfils.values()[0])] = exp_results
 
-            #pickle.dump( all_experimental_results, open( experimental_directory + '/all_experimental_results_maybe_fixed_eigen_finally.pickle', "wb" ) )
-            pickle.dump(all_experimental_results,
-                        open(experimental_directory + '/' + out_dict + '.pickle',
-                             "wb"))
+                #pickle.dump( all_experimental_results, open( experimental_directory + '/all_experimental_results_maybe_fixed_eigen_finally.pickle', "wb" ) )
+                pickle.dump(all_experimental_results,
+                            open(experimental_directory + '/' + out_dict + '.pickle',
+                                 "wb"))
 
-            print "Experiment complete!!"
+                print "Experiment complete!!"
 
-            # performs the increments on the data exfiltration dictionary
-            for key,val in exfils.iteritems():
-                exfils[key] = val +  meta_parameters.exfil_increments[key]
+                # performs the increments on the data exfiltration dictionary
+                for key,val in exfils.iteritems():
+                    exfils[key] = val +  meta_parameters.exfil_increments[key]
 
     ## TODO: graph all_experimental_results (but let's get this value to contain something meaningful first)
     #pickle.dump( all_experimental_results, open( experimental_directory + '/all_experimental_results_ratio.pickle', "wb" ) )
@@ -540,9 +541,12 @@ if __name__=="__main__":
     parser.add_argument('--run_experiment', dest='run_experiment', action='store_true',
                         default=False,
                         help='should an actual experiment be run??')
+    parser.add_argument('--analyze', dest='analyze', action='store_true',
+                        default=False,
+                        help='do you want to do data analysis??')
     parser.add_argument('--output_dict',dest="output_dict", default='all_results')
 
     args = parser.parse_args()
-    print args.restart_minikube, args.setup_sockshop, args.run_experiment, args.output_dict
+    print args.restart_minikube, args.setup_sockshop, args.run_experiment, args.analyze, args.output_dict
 
-    main(args.restart_minikube, args.setup_sockshop, args.run_experiment, args.output_dict)
+    main(args.restart_minikube, args.setup_sockshop, args.run_experiment, args.output_dict, args.analyze)
