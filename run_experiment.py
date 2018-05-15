@@ -16,6 +16,7 @@ import errno
 from exfil_data_v2 import how_much_data
 from analyze_traffix_matrixes import simulate_incoming_data 
 import pickle
+import argparse
 
 #Locust contemporary client count.  Calculated from the function f(x) = 1/25*(-1/2*sin(pi*x/12) + 1.1), 
 #   where x goes from 0 to 23 and x represents the hour of the day
@@ -34,63 +35,96 @@ CLIENT_RATIO_VIRAL = [0.0278, 0.0246, 0.0215, 0.0189, 0.0169, 0.0156, 0.0152, 0.
 CLIENT_RATIO_CYBER = [0.0328, 0.0255, 0.0178, 0.0142, 0.0119, 0.0112, 0.0144, 0.0224, 0.0363, 0.0428, 0.0503, 
 0.0574, 0.0571, 0.0568, 0.0543, 0.0532, 0.0514, 0.0514, 0.0518, 0.0522, 0.0571, 0.0609, 0.0589, 0.0564]
 
-def main(restart_kube, setup_sock, multiple_experiments, only_data_analysis):
-    if restart_kube == "y":
+#def main(restart_kube, setup_sock, multiple_experiments, only_data_analysis):
+def main(restart_minikube, setup_sockshop, run_an_experiment, output_dict):
+    if restart_minikube:
         restart_minikube()
-    if setup_sock == "y":
+    if setup_sockshop:
         setup_sock_shop()
+    run_series_of_experiments(run_actual_experiment = run_an_experiment, out_dict= output_dict)
+
+    '''
     if multiple_experiments == "n":
         run_experiment(only_data_analysis = only_data_analysis)
     else:
         run_series_of_experiments(only_data_analysis = only_data_analysis)
+    '''
 
-def run_series_of_experiments(only_data_analysis):
+def run_series_of_experiments(run_actual_experiment, out_dict):
     ## first step, make relevant directory
     experimental_directory = './experimental_data/' + meta_parameters.experiment_name
     #print "only_data_analysis", only_data_analysis
-    if only_data_analysis == "n":    
+    '''if only_data_analysis == "n":  # you have to make the directory in advance now
         try:
             os.makedirs(experimental_directory)
         except:
             print "this experiment name is already taken and/or race condition"
             sys.exit("this experiment name is already taken and/or race condition, try again")
+    '''
 
     exfils = meta_parameters.exfils
-
     all_experimental_results = {}
-    ## second, want a loop through the exfils values (pre and post incremnet)
-    for current_increment in range(0, meta_parameters.number_increments):
 
+    # I am going to run all the experiments first, and only do data analysis later
+    if run_actual_experiment:
+        ## second, want a loop through the exfils values (pre and post incremnet)
+        for current_increment in range(0, meta_parameters.number_increments):
+
+            for rep in range(0, meta_parameters.repeat_experiments):
+
+                print "current rep: ", rep, "increment", current_increment
+                rec_matrx_loc = experimental_directory + '/rec_matrix_increm_' + str(current_increment) + '_rep_' + str(rep) +'.pickle'
+                sent_matrix_loc = experimental_directory + '/sent_matrix_increm_' + str(current_increment) + '_rep_' + str(rep) +'.pickle'
+                run_experiment(num_background_locusts = meta_parameters.num_background_locusts,
+                    rate_spawn_background_locusts = meta_parameters.rate_spawn_background_locusts,
+                    desired_stop_time = meta_parameters.desired_stop_time,
+                    exfils = exfils,
+                    rec_matrix_location = rec_matrx_loc,
+                    sent_matrix_location = sent_matrix_loc,
+                    traffic_type = meta_parameters.traffic_type)
+
+                for key,val in exfils.iteritems():
+                    exfils[key] = val +  meta_parameters.exfil_increments[key]
+
+
+    # I always want to run data analysis (but only after the actual experiments are done)
+    # (otherwise prolonged data analysis will cause problems such as kube-proxy to outside pod
+    # for Prometheus will be lost)
+    exfils = meta_parameters.exfils
+    for current_increment in range(0, meta_parameters.number_increments):
         for rep in range(0, meta_parameters.repeat_experiments):
-            
             print "current rep: ", rep, "increment", current_increment
-            rec_matrx_loc = experimental_directory + '/rec_matrix_increm_' + str(current_increment) + '_rep_' + str(rep) +'.pickle' 
-            sent_matrix_loc = experimental_directory + '/sent_matrix_increm_' + str(current_increment) + '_rep_' + str(rep) +'.pickle'
-            graph_name = meta_parameters.experiment_name + "_increm_" + str(current_increment) + '_rep_' + str(rep)
-            exp_results = run_experiment(num_background_locusts = meta_parameters.num_background_locusts,
-                rate_spawn_background_locusts = meta_parameters.rate_spawn_background_locusts,
-                desired_stop_time = meta_parameters.desired_stop_time,
-                exfils = exfils,
-                rec_matrix_location = rec_matrx_loc,
-                sent_matrix_location = sent_matrix_loc,
-                display_sent_svc_pair = meta_parameters.display_sent_svc_pair, 
-                display_rec_svc_pair  = meta_parameters.display_rec_svc_pair,
-                display_graphs_p = meta_parameters.display_graphs,
-                names_graphs = experimental_directory + '/' + graph_name,
-                exp_time = meta_parameters.desired_stop_time,
-                start_analyze_time = meta_parameters.start_analyze_time,
-                only_data_analysis = only_data_analysis,
-                traffic_type = meta_parameters.traffic_type)
-        
+            rec_matrx_loc = experimental_directory + '/rec_matrix_increm_' + str(
+                current_increment) + '_rep_' + str(rep) + '.pickle'
+            sent_matrix_loc = experimental_directory + '/sent_matrix_increm_' + str(
+                current_increment) + '_rep_' + str(rep) + '.pickle'
+            graph_name = meta_parameters.experiment_name + "_increm_" + str(current_increment) + '_rep_' + str(
+                rep)
+
+            exp_results = simulate_incoming_data(rec_matrix_location=rec_matrx_loc,
+                                                 send_matrix_location=sent_matrix_loc,
+                                                 display_sent_svc_pair=meta_parameters.display_sent_svc_pair,
+                                                 display_rec_svc_pair=meta_parameters.display_rec_svc_pair,
+                                                 display_graphs=meta_parameters.display_graphs,
+                                                 graph_names=experimental_directory + '/' + graph_name,
+                                                 exfils=exfils,
+                                                 exp_time=meta_parameters.desired_stop_time,
+                                                 start_analyze_time=meta_parameters.start_analyze_time)
+
             # will eventually be passed to the graphing function
             # NOTE: we are assuming that all the exfils in an exp are the same size
             all_experimental_results[(rep, exfils.values()[0])] = exp_results
 
-            pickle.dump( all_experimental_results, open( experimental_directory + '/all_experimental_results_maybe_fixed_eigen_finally.pickle', "wb" ) )
-            
-        # performs the increments on the data exfiltration dictionary
-        for key,val in exfils.iteritems():
-            exfils[key] = val +  meta_parameters.exfil_increments[key]
+            #pickle.dump( all_experimental_results, open( experimental_directory + '/all_experimental_results_maybe_fixed_eigen_finally.pickle', "wb" ) )
+            pickle.dump(all_experimental_results,
+                        open(experimental_directory + '/' + out_dict + '.pickle',
+                             "wb"))
+
+            print "Experiment complete!!"
+
+            # performs the increments on the data exfiltration dictionary
+            for key,val in exfils.iteritems():
+                exfils[key] = val +  meta_parameters.exfil_increments[key]
 
     ## TODO: graph all_experimental_results (but let's get this value to contain something meaningful first)
     #pickle.dump( all_experimental_results, open( experimental_directory + '/all_experimental_results_ratio.pickle', "wb" ) )
@@ -311,7 +345,7 @@ def setup_sock_shop(number_full_customer_records = parameters.number_full_custom
 # Args:
 #   time: total time for test. Will be subdivided into 24 smaller chunks to represent 1 hour each
 #   max_clients: Arg provided by user in parameters.py. Represents maximum number of simultaneous clients
-def generate_background_traffic(run_time, max_clients, traffic_type):
+def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate):
     minikube = subprocess.check_output(["minikube", "ip"]).rstrip()
     devnull = open(os.devnull, 'wb')  # disposing of stdout manualy
 
@@ -327,7 +361,7 @@ def generate_background_traffic(run_time, max_clients, traffic_type):
         client_ratio = CLIENT_RATIO_CYBER
     else:
         raise RuntimeError("Invalid traffic parameter provided!")
-    if (time <= 0):
+    if (run_time <= 0):
         raise RuntimeError("Invalid testing time provided!")
 
     normalizer = 1/max(client_ratio)
@@ -340,7 +374,7 @@ def generate_background_traffic(run_time, max_clients, traffic_type):
 
         try:
             proc = subprocess.Popen(["locust", "-f", "background_traffic.py", "--host=http://"+minikube+":32001", "--no-web", "-c", 
-                                    client_count, "-r", parameters.rate_spawn_background_locusts], 
+                                    client_count, "-r", spawn_rate],
                                     stdout=devnull, stderr=devnull, preexec_fn=os.setsid)
         except subprocess.CalledProcessError as e:
             raise RuntimeError("command '{}' return with error (code {}): {}".format(e.cmd, e.returncode, e.output))
@@ -352,98 +386,64 @@ def generate_background_traffic(run_time, max_clients, traffic_type):
         # this stops the background traffic process 
         os.killpg(os.getpgid(proc.pid), signal.SIGTERM) # should kill it
 
-def run_experiment(num_background_locusts = parameters.num_background_locusts, 
-        rate_spawn_background_locusts = parameters.rate_spawn_background_locusts,
-        desired_stop_time = parameters.desired_stop_time,
-        exfils = parameters.exfils,
-        rec_matrix_location = './experimental_data/' + parameters.rec_matrix_location,
-        sent_matrix_location = './experimental_data/' + parameters.sent_matrix_location,
-        display_sent_svc_pair = parameters.display_sent_svc_pair, 
-        display_rec_svc_pair  = parameters.display_rec_svc_pair,
-        display_graphs_p = parameters.display_graphs,
-        names_graphs = './experimental_data/' + parameters.graph_names,
-        exp_time = parameters.desired_stop_time,
-        start_analyze_time = parameters.start_analyze_time,
-        only_data_analysis = "n",
-        traffic_type = parameters.traffic_type):
+def run_experiment(num_background_locusts, rate_spawn_background_locusts,
+        desired_stop_time, exfils, rec_matrix_location, sent_matrix_location,
+        traffic_type):
     
-    if only_data_analysis == "n":
-        ## okay, this is where the experiment is actualy going to be implemented (the rest is all setup)
-        ## 0th step: determine how much data each of the data exfiltration calls gets so we can plan the exfiltration
-        ## step accordingly
-        minikube = subprocess.check_output(["minikube", "ip"]).rstrip()
-        amt_custs, amt_addr, amt_cards = how_much_data("http://"+minikube+":32001")
-        print amt_custs, amt_addr, amt_cards
-        time.sleep(5) # want to make sure that we're not going to mess with the recorded traffic vals
+    ## okay, this is where the experiment is actualy going to be implemented (the rest is all setup)
+    ## 0th step: determine how much data each of the data exfiltration calls gets so we can plan the exfiltration
+    ## step accordingly
+    minikube = subprocess.check_output(["minikube", "ip"]).rstrip()
+    amt_custs, amt_addr, amt_cards = how_much_data("http://"+minikube+":32001")
+    print amt_custs, amt_addr, amt_cards
+    time.sleep(5) # want to make sure that we're not going to mess with the recorded traffic vals
 
-        
-        # First, start the background traffic, spawning variable number of clients during test in a separate thread
-        max_client_count = int(num_background_locusts)
-        thread.start_new_thread(generate_background_traffic, (desired_stop_time, max_client_count, traffic_type))
 
-        # Second, sync with prometheus scraping (see function below for explanation) and then start experimental recording script  
-        # the plus one is so that what it pulls includes the last frame (b/c always a little over the current sec)
-        synch_with_prom()
-        subprocess.Popen(["python", "pull_from_prom.py", "n", str( desired_stop_time + 1), rec_matrix_location, sent_matrix_location ])
-        start_time = time.time()
+    # First, start the background traffic, spawning variable number of clients during test in a separate thread
+    max_client_count = int(num_background_locusts)
+    thread.start_new_thread(generate_background_traffic, (desired_stop_time, max_client_count,
+                                                          traffic_type, rate_spawn_background_locusts))
 
-        # Third, wait some period of time and then start the data exfiltration
-        # this has been modified to support multiple exfiltrations during a single time period
-        print "Ready to exfiltrate!"
-        exfil_times_left = [c_time for c_time in exfils.iterkeys()]
-        print "exfil_times_left", exfil_times_left
-        while exfil_times_left:
-            cur_time = time.time() - start_time
-            for i in exfil_times_left:
-                print i, cur_time, i<cur_time
-                if i < cur_time:
-                    exfil_times_left.remove(i)
-            exfil_times_left.sort()
-            print "exfil_times_left", exfil_times_left, "cur time: ", cur_time
-            if not exfil_times_left:
-                break
-            next_exfil = int(exfil_times_left[0])
-            sleep_time = next_exfil - (time.time() - start_time)
-            print "next exfil at: ", next_exfil, "will sleep for: ", sleep_time
-            if sleep_time > 0:
-                time.sleep(sleep_time)
-                # going to use the updated version instead
-                out = subprocess.check_output(["python", "exfil_data_v2.py", "http://"+minikube+":32001", str(exfils[next_exfil]), str(amt_custs), str(amt_addr), str(amt_cards)])
-                print "Data exfiltrated", out
-        print "all data exfiltration complete"
+    # Second, sync with prometheus scraping (see function below for explanation) and then start experimental recording script
+    # the plus one is so that what it pulls includes the last frame (b/c always a little over the current sec)
+    synch_with_prom()
+    subprocess.Popen(["python", "pull_from_prom.py", "n", str( desired_stop_time + 1), rec_matrix_location, sent_matrix_location ])
+    start_time = time.time()
 
-        # Fourth, wait for some period of time and then stop the experiment
-        # NOTE: going to leave sock shop and everything up, only stopping the experimental
-        # stuff, not the stuff that the experiment is run on
-        wait_time = desired_stop_time - (time.time() - start_time)
-        print "wait time is: ", wait_time
-        if wait_time > 0:
-            time.sleep(wait_time)
-        print "just stopped waiting!"
+    # Third, wait some period of time and then start the data exfiltration
+    # this has been modified to support multiple exfiltrations during a single time period
+    print "Ready to exfiltrate!"
+    exfil_times_left = [c_time for c_time in exfils.iterkeys()]
+    print "exfil_times_left", exfil_times_left
+    while exfil_times_left:
+        cur_time = time.time() - start_time
+        for i in exfil_times_left:
+            print i, cur_time, i<cur_time
+            if i < cur_time:
+                exfil_times_left.remove(i)
+        exfil_times_left.sort()
+        print "exfil_times_left", exfil_times_left, "cur time: ", cur_time
+        if not exfil_times_left:
+            break
+        next_exfil = int(exfil_times_left[0])
+        sleep_time = next_exfil - (time.time() - start_time)
+        print "next exfil at: ", next_exfil, "will sleep for: ", sleep_time
+        if sleep_time > 0:
+            time.sleep(sleep_time)
+            # going to use the updated version instead
+            out = subprocess.check_output(["python", "exfil_data_v2.py", "http://"+minikube+":32001", str(exfils[next_exfil]), str(amt_custs), str(amt_addr), str(amt_cards)])
+            print "Data exfiltrated", out
+    print "all data exfiltration complete"
 
-    # Fifth, call the function that analyzes the traffic matrices
-    # (It should output potential times that the exfiltration may have occured)
-    # (which it does not do yet)
-    print "About to analyze traffic matrices...."
-    print "Should traffic graphs be displayed: ",display_graphs_p 
-    exp_results = simulate_incoming_data(rec_matrix_location = rec_matrix_location, send_matrix_location = sent_matrix_location, 
-                            display_sent_svc_pair = display_sent_svc_pair, 
-                            display_rec_svc_pair  = display_rec_svc_pair,
-                            display_graphs = display_graphs_p,
-                            graph_names = names_graphs,
-                            exfils = exfils,
-                            exp_time = exp_time,
-                            start_analyze_time = start_analyze_time)
-    # don't actually need to start a new process for analysis purposes
-    #subprocess.check_output(["python", "analyze_traffix_matrixes.py", rec_matrix_location, sent_matrix_location])
-    #print out
+    # Fourth, wait for some period of time and then stop the experiment
+    # NOTE: going to leave sock shop and everything up, only stopping the experimental
+    # stuff, not the stuff that the experiment is run on
+    wait_time = desired_stop_time - (time.time() - start_time)
+    print "wait time is: ", wait_time
+    if wait_time > 0:
+        time.sleep(wait_time)
+    print "just stopped waiting!"
 
-    # Sixth, what is the FP / FN / TP / TN ??
-    #### TODO (prob need to write a function for this + need to fix analyze_traffic_matrixes)
-    ## implemented in above function
- 
-    print "Experiment complete!!"
-    return exp_results
 
 # kc_out is the result from a "kubectl get" command
 # desired_chunks is a list of the non-zero chunks in each
@@ -529,26 +529,20 @@ def synch_with_prom():
     time.sleep(time_to_sync)
 
 if __name__=="__main__":
-    
+    parser = argparse.ArgumentParser(description='Creates and analyzes microservice traffic matrices')
+    parser.add_argument('--start_minikube', dest='restart_minikube',
+                        action='store_true',
+                        default=False,
+                        help='should minikube (and therefore Kubernetes) be (re)started')
+    parser.add_argument('--setup_sockshop', dest='setup_sockshop', action='store_true',
+                        default=False,
+                        help='does sockshop need to be re(started)?')
+    parser.add_argument('--run_experiment', dest='run_experiment', action='store_true',
+                        default=False,
+                        help='should an actual experiment be run??')
+    parser.add_argument('--output_dict',dest="output_dict", default='all_results')
 
+    args = parser.parse_args()
+    print args.restart_minikube, args.setup_sockshop, args.run_experiment, args.output_dict
 
-    restart_kube = "n"
-    setup_sock = "n"
-    multiple_experiments = "n"
-    only_data_analysis = "n"
-#    print sys.argv[1]
-    if len(sys.argv) > 1:
-        print "triggered"
-        print sys.argv
-        restart_kube = sys.argv[1] 
-    if len(sys.argv) > 2:
-        print "triggered num two"
-        print sys.argv
-        setup_sock = sys.argv[2] 
-    if len(sys.argv) > 3:
-        print "triggered num three"
-        multiple_experiments = sys.argv[3]
-    if len(sys.argv) > 4:
-        print "triggered num four"
-        only_data_analysis = sys.argv[4]
-    main(restart_kube, setup_sock, multiple_experiments, only_data_analysis)
+    main(args.restart_minikube, args.setup_sockshop, args.run_experiment, args.output_dict)
