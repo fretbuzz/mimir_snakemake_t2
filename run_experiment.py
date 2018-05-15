@@ -529,6 +529,9 @@ def synch_with_prom():
     time.sleep(time_to_sync)
 
 if __name__=="__main__":
+    
+
+
     restart_kube = "n"
     setup_sock = "n"
     multiple_experiments = "n"
