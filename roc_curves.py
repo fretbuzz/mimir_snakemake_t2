@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import pickle
 from analyze_traffix_matrixes import join_dfs, eigenspace_detection_loop, calc_tp_fp_etc
 import numpy as np
+import time
 
 #algo = 'control charts'
 #algo = '3-tier control charts'
@@ -391,8 +392,8 @@ def graph_final_roc():
 
     #results_path = './experimental_data/test_15_long_small_incr/' + 'all_experimental_results.pickle'
     #results_path =  './experimental_data/cybermonday-target-hack/' + 'all_experimental_results_fixed_extended.pickle' #+ 'all_experimental_results.pickle'
-    results_path = './experimental_data/cybermonday-target-hack/' + 'all_experimental_results_maybe_fixed_bug_plus_lc_bug.pickle'
-
+    #results_path = './experimental_data/cybermonday-target-hack/' + 'all_experimental_results_maybe_fixed_bug_plus_lc_bug.pickle'
+    results_path = './experimental_data/cybermonday-target-hack-take-3/' +'all_results_take_something_fixed.pickle'#+ 'all_results.pickle'
 
     #+ 'all_experimental_results_fixed_56.pickle'
     all_results = pickle.load( open( results_path, "rb" ))
@@ -405,24 +406,39 @@ def graph_final_roc():
     #all_results_ratio = pickle.load( open( results_path_ratio, "rb" ))
     all_results_ratio = all_results
 
-    results_bi_selective_ratio = './experimental_data/cybermonday-target-hack/' + 'all_experimental_results_fixed_just_bi.pickle'
+    #results_bi_selective_ratio = './experimental_data/cybermonday-target-hack/' + 'all_experimental_results_fixed_just_bi.pickle'
     #all_results_selective_ewma = pickle.load( open( results_bi_selective_ratio, "rb" ))
     all_results_selective_ewma = all_results
 
-    results_path_ratio_exchanged_ineq = './experimental_data/cybermonday-target-hack/' + '/all_experimental_results_ratio_ineq_exchaned.pickle'
-    #results_ratio_exchanged_ineq = pickle.load( open( results_path_ratio_exchanged_ineq, "rb" ))
-    results_ratio_exchanged_ineq = all_results
+    results_path_ratio_exchanged_ineq = './experimental_data/cybermonday-target-hack-take-3/' + 'all_results_more_lambdas.pickle'
+    results_ratio_exchanged_ineq = pickle.load( open( results_path_ratio_exchanged_ineq, "rb" ))
+    #print "ratio results", results_ratio_exchanged_ineq
+    #time.sleep(5)
+    #results_ratio_exchanged_ineq = all_results
 
-    results_eigen_path = './experimental_data/cybermonday-target-hack/'  + 'all_experimental_results_maybe_fixed_eigen_finally.pickle'
+    #results_eigen_path = './experimental_data/cybermonday-target-hack/'  + 'all_experimental_results_maybe_fixed_eigen_finally.pickle'
     #+'all_experimental_results_just_testing_v2.pickle'
     # + 'all_experimental_results_just_testing.pickle'#'all_experimental_results_just_eigen.pickle'
-    all_results_eigen = pickle.load( open( results_eigen_path, "rb" ))
+    #all_results_eigen = pickle.load( open( results_eigen_path, "rb" ))
+    all_results_eigen = all_results
+
+    #results_simple_selective_path = './experimental_data/cybermonday-target-hack-take-2/' + 'simple_just_selective.pickle'
+    #all_results_simple_selective = pickle.load( open( results_simple_selective_path, "rb" ))
+    all_results_simple_selective = all_results
+
+    results_simple_linear_regression_path = './experimental_data/cybermonday-target-hack-take-3/' + 'simple_linear_regress_even_even_even_smaller_params.pickle'
+    #'simple_linear_regress_even_even_smaller_params.pickle'
+    #+ 'simple_linear_regress_even_smaller_params.pickle'
+    #+ 'simple_linear_regress_dif_params.pickle'
+    all_results_simple_linear_regression = pickle.load( open( results_simple_linear_regression_path, "rb" ))
 
 
     algos_to_graph = ["naive MS control charts", "selective MS control charts", "naive 3-tier control charts",
                       "ratio ewma"]
 
     #graphed_exfiltration_rate = 30000
+    for key,val in all_results.iteritems():
+        print key
 
     for graphed_exfiltration_rate in [10000, 20000, 30000]:
 
@@ -469,25 +485,36 @@ def graph_final_roc():
 
         print "bi-sewma", len(joint_line_bi_sewma)
 
+        joint_line_simple_selective = return_joint_line(all_results_simple_selective, exfil_rate_to_graph=graphed_exfiltration_rate,
+                                             algo_to_examine="simple_selective", lambda_value=0)
 
-        joint_line_ratio_exchanged= return_joint_line(results_ratio_exchanged_ineq, exfil_rate_to_graph=graphed_exfiltration_rate,
-                                                 algo_to_examine="ratio ewma", lambda_value=0.4, sim_svc_ratio_exceeding_thresh=1,
+
+        print "simple selective", len(joint_line_simple_selective)
+
+        joint_line_simple_lg = return_joint_line(all_results_simple_linear_regression, exfil_rate_to_graph=graphed_exfiltration_rate,
+                                             algo_to_examine="lin_reg", lambda_value=0)
+
+        print "simple lg", len(joint_line_simple_lg)
+
+        joint_line_ratio_exchanged = return_joint_line(results_ratio_exchanged_ineq, exfil_rate_to_graph=graphed_exfiltration_rate,
+                                                 algo_to_examine="ratio ewma", lambda_value=0.1, sim_svc_ratio_exceeding_thresh=1,
                                             no_alert_if_any_svc_ratio_decreases=False)
 
+        # note: I am going to mess w/ this
         joint_line_ratio_exchanged_two= return_joint_line(results_ratio_exchanged_ineq, exfil_rate_to_graph=graphed_exfiltration_rate,
-                                                 algo_to_examine="ratio ewma", lambda_value=0.2, sim_svc_ratio_exceeding_thresh=1,
+                                                 algo_to_examine="ratio ewma", lambda_value=0.1, sim_svc_ratio_exceeding_thresh=1,
                                             no_alert_if_any_svc_ratio_decreases=False)
 
         joint_line_ratio_exchanged_six= return_joint_line(results_ratio_exchanged_ineq, exfil_rate_to_graph=graphed_exfiltration_rate,
-                                                 algo_to_examine="ratio ewma", lambda_value=0.6, sim_svc_ratio_exceeding_thresh=1,
+                                                 algo_to_examine="ratio ewma", lambda_value=0.05, sim_svc_ratio_exceeding_thresh=1,
                                             no_alert_if_any_svc_ratio_decreases=False)
 
         joint_line_ratio_two_svc = return_joint_line(all_results_ratio, exfil_rate_to_graph = graphed_exfiltration_rate,
                                             algo_to_examine="ratio ewma", lambda_value=0.2, sim_svc_ratio_exceeding_thresh=2,
                                             no_alert_if_any_svc_ratio_decreases=False)
 
-        joint_line_ratio_three_svc = return_joint_line(all_results_ratio, exfil_rate_to_graph = graphed_exfiltration_rate,
-                                            algo_to_examine="ratio ewma", lambda_value=0.2, sim_svc_ratio_exceeding_thresh=3,
+        joint_line_ratio_three_svc = return_joint_line(results_ratio_exchanged_ineq, exfil_rate_to_graph = graphed_exfiltration_rate,
+                                            algo_to_examine="ratio ewma", lambda_value=0.1, sim_svc_ratio_exceeding_thresh=3,
                                             no_alert_if_any_svc_ratio_decreases=False)
 
         joint_line_ratio_two_no_decrease = return_joint_line(all_results_ratio, exfil_rate_to_graph=graphed_exfiltration_rate,
@@ -509,6 +536,7 @@ def graph_final_roc():
         joint_line_ratio_linear_comb_ratio = return_joint_line(all_results_ratio, exfil_rate_to_graph=graphed_exfiltration_rate,
                                                        algo_to_examine="linear-comb ewma",lambda_value=0.4)
 
+
         #("eigenspace", crit_percent, windows_size, beta_val),
         window_size = 5
         beta_val = 0.05
@@ -524,22 +552,25 @@ def graph_final_roc():
 
         #print "joined lines", avg_lines(joint_line_ratio_exchanged)
 
-        joint_line_ratio_two = [avg_lines(joint_line_ratio_two)]
-        joint_line_sewma = [ avg_lines(joint_line_sewma)   ]
-        joint_line_ttewma = [ avg_lines(joint_line_ttewma)    ]
-        print "averaged ttewma", joint_line_ttewma
-        joint_line_newma = [  avg_lines(joint_line_newma)   ]
-        joint_line_bi_sewma = [  avg_lines(joint_line_bi_sewma)   ]
+        #joint_line_ratio_two = [avg_lines(joint_line_ratio_two)]
+        #joint_line_sewma = [ avg_lines(joint_line_sewma)   ]
+        #joint_line_ttewma = [ avg_lines(joint_line_ttewma)    ]
+        #print "averaged ttewma", joint_line_ttewma
+        #joint_line_newma = [  avg_lines(joint_line_newma)   ]
+        #joint_line_bi_sewma = [  avg_lines(joint_line_bi_sewma)   ]
         joint_line_ratio_exchanged =   [ avg_lines(joint_line_ratio_exchanged)    ]
         joint_line_ratio_exchanged_two = [avg_lines(joint_line_ratio_exchanged_two)]
         joint_line_ratio_exchanged_six = [avg_lines(joint_line_ratio_exchanged_six)]
         joint_line_ratio_two_svc = [ avg_lines(joint_line_ratio_two_svc)    ]
         joint_line_ratio_three_svc =[ avg_lines(joint_line_ratio_three_svc)    ]
-        joint_line_ratio_two_no_decrease =[ avg_lines(joint_line_ratio_two_no_decrease)    ]
-        joint_line_ratio_two_svc_no_decre =[ avg_lines(joint_line_ratio_two_svc_no_decre)    ]
-        joint_line_ratio_three_svc_no_decre =[ avg_lines(joint_line_ratio_three_svc_no_decre)    ]
+        #joint_line_ratio_two_no_decrease =[ avg_lines(joint_line_ratio_two_no_decrease)    ]
+        #joint_line_ratio_two_svc_no_decre =[ avg_lines(joint_line_ratio_two_svc_no_decre)    ]
+        #joint_line_ratio_three_svc_no_decre =[ avg_lines(joint_line_ratio_three_svc_no_decre)    ]
         joint_line_eigenspace = [avg_lines(joint_line_eigenspace)]
         joint_line_ratio_linear_comb_ratio = [avg_lines(joint_line_ratio_linear_comb_ratio)]
+        joint_line_simple_selective = [avg_lines(joint_line_simple_selective)]
+        joint_line_simple_lg = [avg_lines(joint_line_simple_lg)]
+        joint_line_simple_lg[0].sort(key=lambda x: x[1])
 
         plt.figure(1)
         '''
@@ -585,13 +616,13 @@ def graph_final_roc():
         
         '''
 
-        rat_one_tp_eigen, = plt.plot([ln[2] for ln in joint_line_eigenspace[0]],
-                                     [ln[0] for ln in joint_line_eigenspace[0]],
-                                     label='eigen tp')
+        rat_one_tp_eigen, = plt.plot([ln[2] for ln in joint_line_simple_lg[0]],
+                                     [ln[0] for ln in joint_line_simple_lg[0]],
+                                     label='lg tp')
 
-        rat_one_fp_eigen, = plt.plot([ln[2] for ln in joint_line_eigenspace[0]],
-                                     [ln[1] for ln in joint_line_eigenspace[0]],
-                                     label='eigen fp')
+        rat_one_fp_eigen, = plt.plot([ln[2] for ln in joint_line_simple_lg[0]],
+                                     [ln[1] for ln in joint_line_simple_lg[0]],
+                                     label='lg fp')
 
         '''
         rat_one_tp_ratio_lc, = plt.plot([ln[2] for ln in joint_line_ratio_linear_comb_ratio[0]],
@@ -608,7 +639,7 @@ def graph_final_roc():
                             #rat_one_tp_bi_swema, rat_one_fp_bi_swema])
                             rat_one_tp_eigen, rat_one_fp_eigen])
                             #rat_one_tp_ratio_lc, rat_one_fp_ratio_lc])
-        plt.title("coefficient of ewma vs rates")
+        plt.title("coefficient of lg vs rates")
         plt.xlabel('coef')
         plt.ylabel('rate')
 
@@ -634,7 +665,7 @@ def graph_final_roc():
                                [ln[0] for ln in joint_line_ratio_exchanged_six[0]],
                                label='exch ratio (0.6 lambda)')
         '''
-
+        '''
         rat_one_tp_tt_nwema, = plt.plot([ln[1] for ln in joint_line_ttewma[0]],
                                         [ln[0] for ln in joint_line_ttewma[0]],
                                         label='Monolith Naive-mEWMA',alpha=opacity,
@@ -644,23 +675,33 @@ def graph_final_roc():
                                      [ln[0] for ln in joint_line_newma[0]],
                                      label='Naive-mEWMA',alpha=opacity,
                                      linestyle='-', marker='^')
-
+        '''
+        '''
         rat_one_tp_swema, = plt.plot([ln[1] for ln in joint_line_sewma[0]],
                                      [ln[0] for ln in joint_line_sewma[0]],
-                                     label='Selective-mEWMA', alpha=opacity,
+                                     label='Selective EWMA', alpha=opacity,
                                      linestyle=':', marker='D')
         '''
+        #'''
         # (for line below) -> lambda = 0.2
         rat_one_tp_two_reversed, = plt.plot([ln[1] for ln in joint_line_ratio_exchanged_two[0]],
                                [ln[0] for ln in joint_line_ratio_exchanged_two[0]],
-                               label='Traffic-Ratio-mEWMA', alpha=opacity,
+                               label='Traffic-Ratio', alpha=opacity,
                                     linestyle='--', marker='*')
+        #'''
         '''
         # (for line below) -> (3 services, lambda=0.2)
         rat_one_roc_two_three_svc, = plt.plot([ln[1] for ln in joint_line_ratio_three_svc[0]],
                                [ln[0] for ln in joint_line_ratio_three_svc[0]],
-                               label='Coord-Traffic-Ratio-mEWMA', alpha=opacity,
+                               label='Coord-Traffic-Ratio', alpha=opacity,
+                                linestyle=':', marker='+')
+        '''
+
+        lg_line, = plt.plot([ln[1] for ln in joint_line_simple_lg[0]],
+                               [ln[0] for ln in joint_line_simple_lg[0]],
+                               label='Linear Regression', alpha=opacity,
                                 linestyle='-', marker='^')
+
         #'''
         '''
         rat_one_tp_ratio_linear_comb, = plt.plot([ln[1] for ln in joint_line_ratio_linear_comb_ratio[0]],
@@ -669,10 +710,17 @@ def graph_final_roc():
                                                  linestyle='-.', marker='o')
 
         '''
+        '''
         rat_one_tp_ratio_linear_comb, = plt.plot([ln[1] for ln in joint_line_ratio_linear_comb_ratio[0]],
                                         [ln[0] for ln in joint_line_ratio_linear_comb_ratio[0]],
                                         label='Lin-Comb-Traffic-Ratio-mEWMA',alpha=opacity,
                                         linestyle='-.', marker='o')
+        '''
+        simple_selective_line, = plt.plot([ln[1] for ln in joint_line_simple_selective[0]],
+                                        [ln[0] for ln in joint_line_simple_selective[0]],
+                                        label='Simple Threshold',alpha=opacity,
+                                        linestyle='-.', marker='s')
+
         '''
         #joint_line_eigenspace[0].sort(key=lambda x: x[1])
         rat_one_eigen, = plt.plot([ln[1] for ln in joint_line_eigenspace[0]],
@@ -695,10 +743,16 @@ def graph_final_roc():
                                label='Microservice Traffic-Ratio-EWMA (simple, two_svc, lambda=0.2)', alpha=opacity,
                                 linestyle='-', marker='^')
         '''
+        joint_line_eigenspace[0].sort(key=lambda x: x[1])
+        rat_one_eigen, = plt.plot([ln[1] for ln in joint_line_eigenspace[0]],
+                                  [ln[0] for ln in joint_line_eigenspace[0]],
+                                  label='Eigenspace', alpha=opacity,
+                                  linestyle='-', marker='o')
 
-        plt.legend(handles=[rat_one_tp_tt_nwema, rat_one_tp_newma,rat_one_tp_swema,
-                            rat_one_roc_two_three_svc,
-                        rat_one_tp_ratio_linear_comb])#, rat_one_roc_two_three_svc]),
+
+        plt.legend(handles=[simple_selective_line,lg_line,
+                            rat_one_tp_two_reversed,
+                            rat_one_eigen])#, rat_one_roc_two_three_svc]),
                             #rat_one_tp_ratio_linear_comb, rat_one_eigen])#,
                             #rat_one_tp_two_reversed, rat_one_roc_two_two_svc])#,
                             #rat_one_tp_three, rat_one_tp_four])
@@ -713,11 +767,18 @@ def graph_final_roc():
         plt.figure(3)
         rat_one_tp_two_reversed, = plt.plot([ln[1] for ln in joint_line_ratio_exchanged_two[0]],
                                [ln[0] for ln in joint_line_ratio_exchanged_two[0]],
-                               label='Microservice Traffic-Ratio-EWMA (simple, one_svc, lambda=0.2)', alpha=opacity,
+                               label='Microservice Traffic-Ratio-EWMA (simple, one_svc, lambda=0.1)', alpha=opacity,
                                 linestyle='-', marker='^')
-        #joint_line_ratio_exchanged
+        rat_one_tp_two_reversed_two, = plt.plot([ln[1] for ln in joint_line_ratio_exchanged[0]],
+                               [ln[0] for ln in joint_line_ratio_exchanged[0]],
+                               label='Microservice Traffic-Ratio-EWMA (simple, one_svc, lambda=0.1)', alpha=opacity,
+                                linestyle='-', marker='^')
+        rat_one_tp_two_reversed_three, = plt.plot([ln[1] for ln in joint_line_ratio_exchanged_six[0]],
+                               [ln[0] for ln in joint_line_ratio_exchanged_six[0]],
+                               label='Microservice Traffic-Ratio-EWMA (simple, one_svc, lambda=0.05)', alpha=opacity,
+                                linestyle='-', marker='^')
 
-
+        '''
         rat_one_roc_two_two_svc, = plt.plot([ln[1] for ln in joint_line_ratio_two_svc[0]],
                                [ln[0] for ln in joint_line_ratio_two_svc[0]],
                                label='Microservice Traffic-Ratio-EWMA (simple, two_svc, lambda=0.2)', alpha=opacity,
@@ -727,6 +788,7 @@ def graph_final_roc():
                                [ln[0] for ln in joint_line_ratio_three_svc[0]],
                                label='Microservice Traffic-Ratio-EWMA (simple, three_svc, lambda=0.2)', alpha=opacity,
                                 linestyle='-', marker='^')
+        '''
         '''
         rat_one_roc_two_no_decr, = plt.plot([ln[1] for ln in joint_line_ratio_two_no_decrease[0]],
                                [ln[0] for ln in joint_line_ratio_two_no_decrease[0]],
@@ -743,7 +805,7 @@ def graph_final_roc():
                                label='Microservice Traffic-Ratio-EWMA (no_decr, three_svc, lambda=0.4)', alpha=opacity,
                                 linestyle='-', marker='^')
         '''
-        plt.legend(handles=[rat_one_tp_two_reversed,rat_one_roc_two_two_svc,rat_one_roc_two_three_svc])#,
+        plt.legend(handles=[rat_one_tp_two_reversed,rat_one_tp_two_reversed_two,rat_one_tp_two_reversed_three])#,
                             #rat_one_roc_two_no_decr,rat_one_roc_two_two_svc_no_decr])#,rat_one_roc_two_three_svc_no_decr])
         # rat_one_tp_three, rat_one_tp_four])
         # rat_one_tp, rat_one_tp_three, rat_one_tp_four])
@@ -811,6 +873,19 @@ def graph_final_roc():
         plt.ylabel('True Positive Rate')
         # plt.savefig('ROC Curve Results' + '.png', bbox_inches='tight')
         plt.savefig('./roc_curve_story_' + str(graphed_exfiltration_rate) + '.eps', format='eps', dpi=1000)
+
+        # this figure is just to check if LR is working or not
+        plt.figure(5)
+        plt.title("ROC Curve")
+        plt.xlabel('False Positive Rate')
+        plt.ylabel('True Positive Rate')
+        plt.xlim(0, 1)
+        plt.ylim(0, 1)
+        lg_line, = plt.plot([ln[1] for ln in joint_line_simple_lg[0]],
+                               [ln[0] for ln in joint_line_simple_lg[0]],
+                               label='Linear Regression', alpha=opacity,
+                                linestyle='-', marker='^')
+
 
         plt.show()
     #plt.legend(handles=[rat_one_tp, rat_one_fp, rat_one_tp_swema, rat_one_fp_swema])

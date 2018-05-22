@@ -17,6 +17,7 @@ from exfil_data_v2 import how_much_data
 from analyze_traffix_matrixes import simulate_incoming_data 
 import pickle
 import argparse
+import copy
 
 #Locust contemporary client count.  Calculated from the function f(x) = 1/25*(-1/2*sin(pi*x/12) + 1.1), 
 #   where x goes from 0 to 23 and x represents the hour of the day
@@ -62,11 +63,9 @@ def run_series_of_experiments(run_actual_experiment, out_dict, analyze):
             sys.exit("this experiment name is already taken and/or race condition, try again")
     '''
 
-    exfils = meta_parameters.exfils
-    all_experimental_results = {}
-
     # I am going to run all the experiments first, and only do data analysis later
     if run_actual_experiment:
+        exfils = copy.deepcopy(meta_parameters.exfils)
         ## second, want a loop through the exfils values (pre and post incremnet)
         for current_increment in range(0, meta_parameters.number_increments):
 
@@ -83,15 +82,15 @@ def run_series_of_experiments(run_actual_experiment, out_dict, analyze):
                     sent_matrix_location = sent_matrix_loc,
                     traffic_type = meta_parameters.traffic_type)
 
-                for key,val in exfils.iteritems():
-                    exfils[key] = val +  meta_parameters.exfil_increments[key]
+            for key,val in exfils.iteritems():
+                exfils[key] = val +  meta_parameters.exfil_increments[key]
 
-
+    all_experimental_results = {}
     # I always want to run data analysis (but only after the actual experiments are done)
     # (otherwise prolonged data analysis will cause problems such as kube-proxy to outside pod
     # for Prometheus will be lost)
     if analyze:
-        exfils = meta_parameters.exfils
+        exfils_2 = copy.deepcopy(meta_parameters.exfils)
         for current_increment in range(0, meta_parameters.number_increments):
             for rep in range(0, meta_parameters.repeat_experiments):
                 print "current rep: ", rep, "increment", current_increment
@@ -108,13 +107,13 @@ def run_series_of_experiments(run_actual_experiment, out_dict, analyze):
                                                      display_rec_svc_pair=meta_parameters.display_rec_svc_pair,
                                                      display_graphs=meta_parameters.display_graphs,
                                                      graph_names=experimental_directory + '/' + graph_name,
-                                                     exfils=exfils,
+                                                     exfils=exfils_2,
                                                      exp_time=meta_parameters.desired_stop_time,
                                                      start_analyze_time=meta_parameters.start_analyze_time)
 
                 # will eventually be passed to the graphing function
                 # NOTE: we are assuming that all the exfils in an exp are the same size
-                all_experimental_results[(rep, exfils.values()[0])] = exp_results
+                all_experimental_results[(rep, exfils_2.values()[0])] = exp_results
 
                 #pickle.dump( all_experimental_results, open( experimental_directory + '/all_experimental_results_maybe_fixed_eigen_finally.pickle', "wb" ) )
                 pickle.dump(all_experimental_results,
@@ -124,8 +123,8 @@ def run_series_of_experiments(run_actual_experiment, out_dict, analyze):
                 print "Experiment complete!!"
 
                 # performs the increments on the data exfiltration dictionary
-                for key,val in exfils.iteritems():
-                    exfils[key] = val +  meta_parameters.exfil_increments[key]
+            for key,val in exfils_2.iteritems():
+                exfils_2[key] = val +  meta_parameters.exfil_increments[key]
 
     ## TODO: graph all_experimental_results (but let's get this value to contain something meaningful first)
     #pickle.dump( all_experimental_results, open( experimental_directory + '/all_experimental_results_ratio.pickle', "wb" ) )

@@ -64,12 +64,12 @@ exfils = {200 : 0, 205 : 0, 300 : 0, 310 : 0, 315 : 0}
 
 ## this value specifies the increment(/decrement) for each of the exfils
 ## keys are times, values are increments, in bytes
-exfil_increments = {200: 5000, 205: 5000, 300 : 5000, 310 : 5000, 315 : 5000}
+exfil_increments = {200: 10000, 205: 10000, 300 : 10000, 310 : 10000, 315 : 10000}
 
 ## number of increments
 ## will run once using the 'exfils' values and then
 ## will run the number of times given here, each with the increment applied
-number_increments = 8
+number_increments = 4
 
 ## number of repeat experiments
 ## this is the number of times to run each experiment
@@ -82,7 +82,7 @@ repeat_experiments = 3
 ## store all the files and graphs there, and maybe even a file
 ## that explains what each file is, b/c there is going to be
 ## a lot of them.
-experiment_name = "cybermonday-target-hack"
+experiment_name = "cybermonday-target-hack-take-3"
 
 ## this is a list of the SENT svc_pair graphs that are displayed/saved
 ## Note: this list should be 1,2, or 4 items long

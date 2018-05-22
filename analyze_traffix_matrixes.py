@@ -14,6 +14,7 @@ from sklearn.decomposition import PCA, SparsePCA
 import scipy
 #import scipy.sparse.linalg.eigs
 from math import sqrt
+import statsmodels.api as sm
 '''
 USAGE: python analyze_traffic_matrixes.py [recieved_matrix_location] [sent_matrix_location]
 
@@ -74,15 +75,69 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
     df_rec = df_rec.drop(services_to_ignore).drop(services_to_ignore, axis=1)
     print "df_sent:", df_sent
     print "df_rec:", df_rec
-
+    joint_df = join_dfs(df_sent, df_rec)
     '''
+    # this is simple, naive
+    for stddev_coef in np.arange(0.0, 4.2,0.1):
+        # now I need to give those new params that I added a workout
+        # can just loop through possible values BUT do I need to chance the saving tuple that identifies it?
+        simple_warning_times = simple_stats_loop(joint_df, stddev_coef, services_to_check=services)
+        print "a simple alert was triggered at these times", simple_warning_times
+        simple_naive_performance_results = calc_tp_fp_etc(("simple_naive", 0, stddev_coef),
+                                                    exfils, simple_warning_times, exp_time, start_analyze_time)
+        print stddev_coef, simple_naive_performance_results
+        experiment_results.update(simple_naive_performance_results)
+    '''
+    '''
+    # this is simple, selective
+    for stddev_coef in np.arange(0.0, 4.2,0.1):
+        # now I need to give those new params that I added a workout
+        # can just loop through possible values BUT do I need to chance the saving tuple that identifies it?
+        simple_warning_times = simple_stats_loop(df_sent, stddev_coef, services_to_check=['front-end', 'user', 'user-db'])
+        print "a simple alert was triggered at these times", simple_warning_times
+        simple_selective_performance_results = calc_tp_fp_etc(("simple_selective", 0, stddev_coef),
+                                                    exfils, simple_warning_times, exp_time, start_analyze_time)
+        print stddev_coef, simple_selective_performance_results
+        experiment_results.update(simple_selective_performance_results)
+    '''
+
+    #'''
     svc_pairs_to_consider = [ ('front-end', 'carts'), ('front-end', 'user'), \
                             ('front-end', 'catalogue'), #\, ('front-end', 'payment'), \
                             ('front-end', 'orders')  ]
     svc_pair_for_denom = [('front-end', 'user')]
 
+    #''' # one day this might implement something useful
+        # And that day is today!!
+        # okay, need to do two things: (1) matrix threshold (2) selective matrix threshold
+        # As a bonus (seems unlikely): (3) linear regression w/o the time-series part
+    # confidence interval bound is 1 - confidence_interval_cutoff
+    expon_vals = np.arange(-18, 2, 1)
+    for confidence_interval_cutoff in expon_vals:
+        confidence_interval_cutoff = 5.0 * (10.0 ** confidence_interval_cutoff) # b/c I want a geometric series, not an arithmetic one
+        #np.append(np.array([[0.0000000000005,0.000000000005, 0.00000000005]]), np.arange(.000005, 2.5, .000005)): #, np.array([[0.001]])):#np.arange(90, 101, 1):
+        #np.append(np.arange(0.0, .51, .01), np.array([[0.001]]))
+        for simulataneous_svc_ratio_exceeding_thresh in range(1, 2):
+            # now I need to give those new params that I added a workout
+            # can just loop through possible values BUT do I need to chance the saving tuple that identifies it?
+            lin_reg_warning_times = linear_regression_loop(df_sent,
+                                                           confidence_interval_cutoff=confidence_interval_cutoff,
+                                                           ratio_denoms=svc_pair_for_denom,
+                                                           svc_pair_list=svc_pairs_to_consider,
+                                                           num_exceed=simulataneous_svc_ratio_exceeding_thresh)
+
+            print "the ratio alert triggered at these times", lin_reg_warning_times
+            lin_reg_performance_results = calc_tp_fp_etc(("lin_reg", 0,  confidence_interval_cutoff),
+                                                         exfils, lin_reg_warning_times, exp_time, start_analyze_time)
+            # print "exfils took place at", exfils
+            # print "lamba", lambda_values, "ewma stddev coef", ewma_stddev_coef_val
+            # print "the ratio test did this well", ratio_performance_results
+            print confidence_interval_cutoff, lin_reg_performance_results
+            experiment_results.update(lin_reg_performance_results)
+    #'''
+    '''
     for ewma_stddev_coef_val in np.arange(0.0, 4.2,0.1):
-        for lambda_values in np.arange(0.2, 0.8, 0.2):
+        for lambda_values in np.arange(0.0, 0.8, 0.05):
             for simulataneous_svc_ratio_exceeding_thresh in range(1,4):
                 for no_alert_if_any_svc_ratio_decreases in [False, True]:
             # now I need to give those new params that I added a workout
@@ -110,6 +165,7 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
     '''
     '''
     # this does the linear-combination-ewma
+    # I no longer give a crap about this.
     for ewma_stddev_coef_val in np.arange(0.0, 4.2,0.1):
         for lambda_values in np.arange(0.2, 0.8, 0.2):
             # num_exceed and dont_trigger_if_decrease do not matter here b/c linear_comb inactivates thier code
@@ -133,6 +189,7 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
 
     '''
     '''
+    # I no longer give a crap about this
     # this is for non-selective (on MS)
     for ewma_stddev_coef in np.arange(0 ,4.2,0.1):
         for lambda_values in np.arange(0.2, 0.4, 0.2):
@@ -148,12 +205,13 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
             print "the naive MS results are:"
             print naive_performance_results
 
-
+    '''
+    '''
     # this is for selective (on MS)
     print "ENTERING SELECTIVE TERRITORY"
     for ewma_stddev_coef in np.arange(0 ,4.2,0.1):
-        for lambda_values in np.arange(0.2, 0.4, 0.2):
-            selective_ewma_services = ['front-end', 'user']
+        for lambda_values in np.arange(0.0, 0.8, 0.05):
+            selective_ewma_services = ['front-end', 'user', 'user-db']
             all_control_chart_warning_times = control_charts_on_directional_dfs(df_sent, df_rec, selective_ewma_services,
                                                                               lambda_val=lambda_values,
                                                                                 stddev_coef=ewma_stddev_coef, also_rec=False)
@@ -161,6 +219,7 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
             performance_results = calc_tp_fp_etc(("selective MS control charts", lambda_values, ewma_stddev_coef),
                                                  exfils, all_control_chart_warning_times,exp_time, start_analyze_time)
             experiment_results.update(performance_results)
+
     '''
     '''
     # this is for selective (on MS)(bidirectional)
@@ -198,45 +257,46 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
                                                     exfils, tt_all_control_chart_warning_times, exp_time, start_analyze_time)
             experiment_results.update(tt_performance_results)
 
-    '''
-
 
     '''
-    svc_pair_to_sent_control_charts = generate_service_pair_arrays(df_sent_control_stats, times, services)
+
+    '''
+    #svc_pair_to_sent_control_charts = generate_service_pair_arrays(df_sent_control_stats, times, services)
     svc_pair_to_sent_bytes = traffic_matrix_to_svc_pair_list(df_sent, services)
-    print svc_pair_to_sent_control_charts['front-end', 'user']
-    sent_data_for_display = {'raw': svc_pair_to_sent_bytes, 'control-charts':svc_pair_to_sent_control_charts}
+    #print svc_pair_to_sent_control_charts['front-end', 'user']
+    sent_data_for_display = {'raw': svc_pair_to_sent_bytes}#, 'control-charts':svc_pair_to_sent_control_charts}
     #generate_graphs(sent_data_for_display, times, display_sent_svc_pair, True, graph_names + "_sent_graphs")
     #### TODO ^^ put back in
     
-    svc_pair_to_rec_control_charts = generate_service_pair_arrays(df_rec_control_stats, times, services)
+    #svc_pair_to_rec_control_charts = generate_service_pair_arrays(df_rec_control_stats, times, services)
     svc_pair_to_rec_bytes = traffic_matrix_to_svc_pair_list(df_rec, services)
     #print svc_pair_to_rec_control_charts['front-end', 'user']
-    rec_data_for_display = {'raw': svc_pair_to_rec_bytes, 'control-charts':svc_pair_to_rec_control_charts}
+    rec_data_for_display = {'raw': svc_pair_to_rec_bytes}#, 'control-charts':svc_pair_to_rec_control_charts}
     #generate_graphs(rec_data_for_display, times, display_rec_svc_pair, False, graph_names + "_rec_graphs")
     #### TODO ^^ put back in
-
-    if display_graphs:
-        plt.show()
     
     # user sent to front end is particulary important to me b/c that's where data exfiltration
     # happens
+    times = get_times(df_sent)
     generate_graphs(sent_data_for_display, times, [['front-end', 'user' ]], True, graph_names + "_user_sent_front_graphs")
     generate_graphs(rec_data_for_display, times, [['front-end', 'user' ]], False, graph_names + "_user_rec_front_graphs")
 
+    if display_graphs:
+        plt.show()
+
     # let's make some graphs for the 3-tier aggregates (so I can tell what is going on)
-    three_tier_svc_pair_to_sent_control_charts = generate_service_pair_arrays(df_three_tier_sent_control_stats, times, three_tier_services)
-    three_tier_svc_pair_to_sent_bytes = traffic_matrix_to_svc_pair_list(df_three_tier_sent, three_tier_services)
-    three_tier_sent_data_for_display = {'raw': three_tier_svc_pair_to_sent_bytes, 'control-charts': three_tier_svc_pair_to_sent_control_charts}
+    #three_tier_svc_pair_to_sent_control_charts = generate_service_pair_arrays(df_three_tier_sent_control_stats, times, three_tier_services)
+    #three_tier_svc_pair_to_sent_bytes = traffic_matrix_to_svc_pair_list(df_three_tier_sent, three_tier_services)
+    #three_tier_sent_data_for_display = {'raw': three_tier_svc_pair_to_sent_bytes, 'control-charts': three_tier_svc_pair_to_sent_control_charts}
     
-    generate_graphs(three_tier_sent_data_for_display, times, [['application', 'data']], True, graph_names + "_three_tier_sent_ad")
+    #generate_graphs(three_tier_sent_data_for_display, times, [['application', 'data']], True, graph_names + "_three_tier_sent_ad")
     #generate_graphs(three_tier_sent_data_for_display, times, [['presentation', 'application']], True, graph_names + "_three_tier_sent_pa")
     #generate_graphs(three_tier_sent_data_for_display, times, [['presentation', 'data']], True, graph_names + "_three_tier_sent_pd")
     # we need to do it for everything b/c there is a bizarre number of alerts
-    three_tier_svc_pair_to_rec_control_charts = generate_service_pair_arrays(df_three_tier_rec_control_stats, times, three_tier_services)
-    three_tier_svc_pair_to_rec_bytes = traffic_matrix_to_svc_pair_list(df_three_tier_rec, three_tier_services)
-    three_tier_rec_data_for_display = {'raw': three_tier_svc_pair_to_rec_bytes, 'control-charts': three_tier_svc_pair_to_rec_control_charts}
-    generate_graphs(three_tier_rec_data_for_display, times, [['application', 'data']], True, graph_names + "_three_tier_rec_ad")
+    #three_tier_svc_pair_to_rec_control_charts = generate_service_pair_arrays(df_three_tier_rec_control_stats, times, three_tier_services)
+    #three_tier_svc_pair_to_rec_bytes = traffic_matrix_to_svc_pair_list(df_three_tier_rec, three_tier_services)
+    #three_tier_rec_data_for_display = {'raw': three_tier_svc_pair_to_rec_bytes, 'control-charts': three_tier_svc_pair_to_rec_control_charts}
+    #generate_graphs(three_tier_rec_data_for_display, times, [['application', 'data']], True, graph_names + "_three_tier_rec_ad")
     #generate_graphs(three_tier_rec_data_for_display, times, [['presentation', 'application']], True, graph_names + "_three_tier_rec_pa")
     #generate_graphs(three_tier_rec_data_for_display, times, [['presentation', 'data']], True, graph_names + "_three_tier_rec_pd")
     '''
@@ -248,6 +308,7 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
     joint_df = join_dfs(df_sent, df_rec)
     print joint_df
     #'''
+    '''
     ### TODO: wire it in. those three params are all that matters (I think it is wireed in)
     #for crit_percent in np.append( np.arange(0.0, .51, .01), np.array([[0.001]]) ):
     for windows_size in np.arange(5, 6, 1): # honestly not going to worry about this param very much
@@ -267,6 +328,7 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
                     print crit_percent, eigenspace_performance_results
 
                     experiment_results.update(eigenspace_performance_results)
+    '''
 
     #''' # this code is old and has been replaced with the above loop
     '''
@@ -294,6 +356,250 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
     
     return experiment_results
 
+
+def simple_stats_loop(dfs, stddev_coef, services_to_check):
+    times = get_times(dfs)
+    warning_times = []
+    time_so_far = [times[0]]
+    for time in times[1:]:
+        time_so_far.append(time)
+        # these should both be dataframes
+        # they aren't tho. Or maybe
+        #print "this is the dataframe", dfs[dfs['time'].isin(time_so_far)]
+        for src_svc in services_to_check:
+            for dst_svc in services_to_check:
+                stddevs = dfs[dfs['time'].isin(time_so_far)].loc[src_svc, dst_svc].std()
+                means = dfs[dfs['time'].isin(time_so_far)].loc[src_svc, dst_svc].mean()
+                #print "these are the means", means
+                # now let's do an actual check~
+                next_val = dfs[dfs['time'].isin([time])].loc[src_svc,dst_svc]
+                mean = means
+                stddev = stddevs
+                if (next_val - mean) > (stddev_coef * stddev):
+                    warning_times.append(time)
+    return sorted(list(set(warning_times)))
+
+# this is going to find the coefficient in the (supposed) linear relationship between
+# the links and the critical link
+def linear_regression_loop(dfs, confidence_interval_cutoff, ratio_denoms, svc_pair_list, num_exceed=1):
+    times = get_times(dfs)
+    # print times
+    df_time_slices = []
+    time = []
+    for time_index in range(0, len(times)):
+        time.append(times[time_index])
+        df_time_slices.append( dfs[ dfs['time'].isin(time) ] )
+
+    linear_reg_stats = []
+    svc_pair_traffic_vectors = svc_pair_traffic_vectors_gen_lin_reg(df_time_slices, svc_pair_list)
+    prev_step_lin_reg_stats = empty_linear_reg_stats(svc_pair_list, ratio_denoms, svc_pair_traffic_vectors[times[0]])
+
+    for cur_svc_pair_traffic_vector_index in sorted(svc_pair_traffic_vectors.keys())[1:]:
+        cur_svc_pair_traffic_vector = svc_pair_traffic_vectors[ cur_svc_pair_traffic_vector_index ]
+        #print "this is the current traffic vector", cur_svc_pair_traffic_vector, "time", cur_svc_pair_traffic_vector_index
+        prev_step_lin_reg_stats = svc_pair_lin_reg_coef(cur_svc_pair_traffic_vector,
+                                                     prev_step_lin_reg_stats,
+                                                    ratio_denoms, svc_pair_list)
+        #print "these are the ewma stats", prev_step_ewma_stats
+        linear_reg_stats.append(prev_step_lin_reg_stats)
+
+    #print linear_reg_stats
+    #sys.exit(1)
+    # check when method would give a warning
+    times = get_times(dfs)
+    individual_df_time_slices = []
+    for time_index in range(0, len(times)):
+        time = times[time_index]
+        individual_df_time_slices.append( dfs[ dfs['time'].isin([time]) ] )
+
+    # starts at 1, b/c everyting has time stddev 0 at time 0, so everything would trigger a warning
+    ewma_ratio_warning = []
+    ewma_ratio_warning_times = []
+    for time in range(2, len(times) - 1):
+        relevant_svc_pair_traffic_vect = svc_pair_traffic_vectors[times[time]]
+        warnings, warning_times = next_value_trigger_lin_reg(individual_df_time_slices[time],
+                                                                linear_reg_stats[time-2], times[time],
+                                                             confidence_interval_cutoff, ratio_denoms, svc_pair_list, num_exceed)
+
+        # print "service ratios sent and rec warnings during loop", warnings
+        ewma_ratio_warning.append(warnings)
+        ewma_ratio_warning_times += warning_times
+    #exit(1)
+    # print "these are the warnings from the control charts: (for data that is sent): "
+    # print ewma_ratio_warning
+    # print "just times:", ewma_ratio_warning_times
+
+    return sorted(list(set(ewma_ratio_warning_times)))
+
+def next_value_trigger_lin_reg(relevant_traffic_matrix, linear_reg_stats, times,
+                               confidence_interval_cutoff, ratio_denoms, svc_pair_list, num_exceed):
+    #print linear_reg_stats
+
+
+    warnings_triggered = []
+    warning_times = []
+    num_exceeded_so_far = 0
+    for src_dst in svc_pair_list:
+        for denoms_svc_pair in ratio_denoms:
+            if src_dst != denoms_svc_pair:
+                # okay, it seems that here is where I actually need to do the comparison
+                # well, we can stick in the value for front-end-x and get prediction for front-end-user
+                # so we get this prediction. Increase it by some multiple of the standard deviation and then
+                # compare this value to the actual value. Trigger an alert if it is too big.
+                # well, I'm not sure standard deviation makes sense here. Maybe standard error?
+                # no, it decreases too rapidly...
+                #### TODO: I should complete this at some point... like how about now??
+                #### Okay fine, I will do it
+                #print relevant_svc_pair_traffic_vect
+                next_val = relevant_traffic_matrix.loc[src_dst]
+                #print next_val
+                #print linear_reg_stats[src_dst, denoms_svc_pair]
+                next_val = np.asmatrix(np.array([1.0, next_val,]))
+                next_val = pd.DataFrame(next_val, index=[src_dst[0]], columns=['const', src_dst[0]])
+                #print "val", next_val
+                #print np.array([1, 2, 3])
+                #print "valval", np.asmatrix(next_val), type(np.asmatrix(next_val))
+                next_val = sm.add_constant(next_val)
+                #print "next value:", next_val, np.ndim(next_val)
+                predicted_values= linear_reg_stats[src_dst, denoms_svc_pair].get_prediction(next_val)
+                '''
+                print src_dst, denoms_svc_pair
+                print linear_reg_stats[src_dst, denoms_svc_pair].summary()
+                print "independent variable", relevant_traffic_matrix.loc[src_dst], type(relevant_traffic_matrix.loc[src_dst])
+                print "exact form of independent variable"
+                print next_val
+                print "predicted values", predicted_values.conf_int(obs=False, alpha=0.05) #predicted_values#, type(predicted_values)
+                print "actual value", relevant_traffic_matrix.loc[denoms_svc_pair]
+                #print "conf interval", linear_reg_stats[src_dst, denoms_svc_pair].conf_int(alpha=0.01, cols=None)
+                #print "conf interval", linear_reg_stats[src_dst, denoms_svc_pair].conf_int(alpha=0.05, cols=None)
+                #print "conf interval", linear_reg_stats[src_dst, denoms_svc_pair].conf_int(alpha=0.5, cols=None)
+                # let's do it with 95%. I'm not exactly sure what that means but I'll figure it out later
+                print "more prediction stuff", predicted_values.summary_frame()
+                print predicted_values.conf_int(obs=False, alpha=confidence_interval_cutoff), confidence_interval_cutoff
+                print predicted_values.conf_int(obs=False, alpha=confidence_interval_cutoff)[0][1]
+                '''
+                #print "done with conf interval"
+                #dfs.loc[svc_pair_list[0][0], 'time'].max()
+                # okay, so the prediction makes sense. We need to actually implement the trigger now
+                if relevant_traffic_matrix.loc[denoms_svc_pair] > predicted_values.conf_int(obs=False, alpha=confidence_interval_cutoff)[0][1]:
+                    warning_times.append(times)
+                    warnings_triggered.append((src_dst, denoms_svc_pair, confidence_interval_cutoff,
+                                               relevant_traffic_matrix.loc[denoms_svc_pair],
+                                               predicted_values))
+
+
+                '''
+                current_ewma_mean = ratio_ewma_stats[src_dst, denoms_svc_pair][0]
+                current_ewma_stddev = sqrt( ratio_ewma_stats[src_dst, denoms_svc_pair][1]) # recall, I am storing the variance
+                current_traffic_vector_value = relevant_svc_pair_traffic_vect[src_dst[0], src_dst[1]]
+                current_denom_value = relevant_svc_pair_traffic_vect[denoms_svc_pair[0], denoms_svc_pair[1]]
+                current_ratio = current_traffic_vector_value / current_denom_value
+                #if src_dst[1] == 'catalogue':
+                #print "pair", src_dst, time
+                #print "will an alarm sounds?", current_ratio, current_ewma_mean, current_ratio - current_ewma_mean
+                #print "??", ewma_stddev_coef, current_ewma_stddev, (ewma_stddev_coef * current_ewma_stddev),
+                #print "will it??",(current_ratio - current_ewma_mean) > (ewma_stddev_coef * current_ewma_stddev), '\n'
+                if (current_ewma_mean - current_ratio) < 0:
+                    if dont_trigger_if_decrease:
+                        num_exceeded_so_far += -100 # and hence, it won't ever trigger anything ;)
+                if not abs_val:
+                    if (current_ewma_mean - current_ratio) > (ewma_stddev_coef * current_ewma_stddev):
+                        num_exceeded_so_far += 1
+                else:
+                    if abs(current_ewma_mean - current_ratio) > (ewma_stddev_coef * current_ewma_stddev):
+                        num_exceeded_so_far += 1
+                if num_exceeded_so_far == num_exceed:
+                    warnings_triggered.append([src_dst, denoms_svc_pair,  time, current_ewma_mean,
+                                    current_ewma_stddev, current_ratio])
+                    warning_times.append(time)
+
+                '''
+    return warnings_triggered, warning_times
+
+def empty_linear_reg_stats(svc_pair_list, ratio_denoms, svc_pair_traffic_vectors):
+    data_stats = {}
+    for denom_svc_pair in ratio_denoms:
+        for src_dst in svc_pair_list:
+            data_stats[src_dst, denom_svc_pair] = [0 , 0]
+    return data_stats
+
+def svc_pair_traffic_vectors_gen_lin_reg(df_time_slices, svc_pair_list):
+    print "going to make the traffic vectors"
+    print "this is the svc_pair_list", svc_pair_list
+    traffic_vectors_over_time = {}
+    for dfs in df_time_slices:
+        traffic_vector = {}
+        for src_dst in svc_pair_list:
+            traffic_vector[src_dst[0], src_dst[1]] = dfs.loc[src_dst[0], src_dst[1]]
+        #print dfs.loc[svc_pair_list[0][0], 'time'].max()
+        traffic_vectors_over_time[dfs.loc[svc_pair_list[0][0], 'time'].max()] = traffic_vector
+    '''
+    for time_stamp, time_stamp_vector in traffic_vectors_over_time.iteritems():
+        print "new time"
+        print time_stamp#, time_stamp_vector
+        for pair,vals in time_stamp_vector.iteritems():
+            print pair, vals
+    '''
+    return traffic_vectors_over_time
+
+# okay, this is going to need to be modified I think. I want the traffic_vector to really be for *all* previous times
+# so that I can get an accurate lin reg going on.
+def svc_pair_lin_reg_coef(cur_svc_pair_traffic_vector, prev_step_lin_reg_stats, ratio_denoms, svc_pair_list):
+    data_stats = {}
+
+    for src_dst in svc_pair_list:
+        current_entry = cur_svc_pair_traffic_vector[src_dst[0], src_dst[1]] # this is a slice across time
+        for denom_svc_pair in ratio_denoms:
+            current_denom_svc_pair_entry = cur_svc_pair_traffic_vector[denom_svc_pair[0], denom_svc_pair[1]]
+
+            # now I need to do some analysis on these values (i.e. series)
+            # for now, it will suffice to do linear regression on them
+
+            #print current_entry
+            #print type(current_entry), type(current_denom_svc_pair_entry)
+            #print current_entry
+            #print "space"
+            #print current_denom_svc_pair_entry
+            #print "spacee"
+            ### NOTE: added a (0,0) here b/c logically that should be here too
+            ### let's do that--- b/c it should only be like that when the thing isn't active/live
+            #print "top"
+            #print current_entry.columns.values
+            #print current_entry
+            #print current_denom_svc_pair_entry
+            current_entry = current_entry.append(pd.Series([0], index=[current_entry.index[0]]))
+            #print current_denom_svc_pair_entry.index[0]
+            current_denom_svc_pair_entry = current_denom_svc_pair_entry.append(pd.Series([0], index=[current_denom_svc_pair_entry.index[0]]))
+            current_entry.rename(columns={'0': current_entry.index[0]}, inplace=True)
+            #print current_entry
+            #print current_denom_svc_pair_entry
+            current_entry = sm.add_constant(current_entry)
+            #print current_entry
+            #print type(current_entry), current_entry
+            #print type(np.array(current_denom_svc_pair_entry)), np.array(current_denom_svc_pair_entry)
+            #print current_entry
+            #print current_denom_svc_pair_entry
+            current_entry.rename(columns={current_entry.columns.values[1]: current_entry.index[0]}, inplace=True)
+            #print current_entry.columns.values[1]
+            #print "cur", current_entry
+            model = sm.OLS(endog=current_denom_svc_pair_entry, exog=current_entry)
+            results = model.fit()
+            #if src_dst == svc_pair_list[0]:
+            #    print "params:::"
+            #    print results.params
+            data_stats[src_dst, denom_svc_pair] = results
+
+            '''
+            current_ratio = current_entry / cur_svc_pair_traffic_vector[denom_svc_pair[0], denom_svc_pair[1]]
+            new_ewma = prev_step_lin_reg_stats[src_dst, denom_svc_pair][0] * (1 - lambda_ewma) + lambda_ewma * current_ratio
+
+            old_ewma_var = prev_step_lin_reg_stats[src_dst, denom_svc_pair][1]
+            new_ewma_var = (1 - lambda_ewma) * (old_ewma_var + lambda_ewma * (current_ratio - new_ewma) ** 2)
+
+            data_stats[src_dst, denom_svc_pair] = [new_ewma, new_ewma_var]
+            '''
+    return data_stats
+
 # this function exists so that I don't have to keep calling stuff
 # twice b/c I don't combine the matrixes
 # if also_rec is False, then don't do it for df_rec. This is b/c data exfil is most noticable in df_sene
@@ -316,6 +622,7 @@ def control_charts_on_directional_dfs(df_sent, df_rec, services_to_check, lambda
     print "all the control chart warning times", all_control_chart_warning_times
 
     return all_control_chart_warning_times
+
 
 # control_charts = ewma
 # services_to_monitor is wierd b/c python has mutuable default arguments
@@ -560,7 +867,7 @@ def eigenspace_detection_loop(joint_df, critical_percent, window_size, beta):
 # assumes the form {['src', 'dst']: [list of time-ordered values]
 def generate_graphs(data_for_display, times, src_pairs_to_display, is_sent, graph_names):
 
-    svc_pair_to_control_charts = data_for_display['control-charts'] 
+    #svc_pair_to_control_charts = data_for_display['control-charts']
     svc_pair_to_raw = data_for_display['raw']
 
     if len(src_pairs_to_display) == 1:
@@ -582,18 +889,18 @@ def generate_graphs(data_for_display, times, src_pairs_to_display, is_sent, grap
 
         cur_src_svc = src_pairs_to_display[i][0]
         cur_dst_svc = src_pairs_to_display[i][1]
-        print cur_src_svc, cur_dst_svc, svc_pair_to_control_charts[cur_src_svc, cur_dst_svc]
+        #print cur_src_svc, cur_dst_svc, svc_pair_to_control_charts[cur_src_svc, cur_dst_svc]
         print cur_src_svc, cur_dst_svc, svc_pair_to_raw[cur_src_svc, cur_dst_svc]
-        print [item[0] for item in svc_pair_to_control_charts[cur_src_svc, cur_dst_svc]]
-        avg_line, = plt.plot(times, [item[0] for item in svc_pair_to_control_charts[cur_src_svc, cur_dst_svc]], label='mean')
-        avg_plus_one_stddev = [item[0] + item[1] for item in svc_pair_to_control_charts[cur_src_svc, cur_dst_svc]]
-        control_chart_above, = plt.plot(times, avg_plus_one_stddev, label='mean + 1 * stddev')
-        avg_minus_one_stddev = [item[0] - item[1] for item in svc_pair_to_control_charts[cur_src_svc, cur_dst_svc]]
-        control_chart_below, = plt.plot(times, avg_minus_one_stddev, label='mean - 1 * stddev')
-        avg_plus_two_stddev = [item[0] + 3 * item[1] for item in svc_pair_to_control_charts[cur_src_svc, cur_dst_svc]]
-        control_chart_two_above, = plt.plot(times, avg_plus_two_stddev, label='mean + 2 * stddev')
-        avg_minus_two_stddev = [item[0] - 3 * item[1] for item in svc_pair_to_control_charts[cur_src_svc, cur_dst_svc]]
-        control_chart_two_below, = plt.plot(times, avg_minus_two_stddev, label='mean - 2 * stddev')    
+        #print [item[0] for item in svc_pair_to_control_charts[cur_src_svc, cur_dst_svc]]
+        #avg_line, = plt.plot(times, [item[0] for item in svc_pair_to_control_charts[cur_src_svc, cur_dst_svc]], label='mean')
+        #avg_plus_one_stddev = [item[0] + item[1] for item in svc_pair_to_control_charts[cur_src_svc, cur_dst_svc]]
+        #control_chart_above, = plt.plot(times, avg_plus_one_stddev, label='mean + 1 * stddev')
+        #avg_minus_one_stddev = [item[0] - item[1] for item in svc_pair_to_control_charts[cur_src_svc, cur_dst_svc]]
+        #control_chart_below, = plt.plot(times, avg_minus_one_stddev, label='mean - 1 * stddev')
+        #avg_plus_two_stddev = [item[0] + 3 * item[1] for item in svc_pair_to_control_charts[cur_src_svc, cur_dst_svc]]
+        #control_chart_two_above, = plt.plot(times, avg_plus_two_stddev, label='mean + 2 * stddev')
+        #avg_minus_two_stddev = [item[0] - 3 * item[1] for item in svc_pair_to_control_charts[cur_src_svc, cur_dst_svc]]
+        #control_chart_two_below, = plt.plot(times, avg_minus_two_stddev, label='mean - 2 * stddev')
         raw_line, = plt.plot(times, svc_pair_to_raw[cur_src_svc, cur_dst_svc], label='sent bytes')
         graph_ready_times = [int(i) for i in times] # floats are hard to read
         plt.xticks(times, graph_ready_times)
@@ -605,7 +912,7 @@ def generate_graphs(data_for_display, times, src_pairs_to_display, is_sent, grap
         plt.ylabel('bytes')
         # some of the lines are obvious just by looking at it, so let's not show those
         #plt.legend(handles=[avg_line, control_chart_two_above, control_chart_two_below, control_chart_above, control_chart_below,  raw_line])
-        plt.legend(handles=[avg_line, raw_line])
+        plt.legend(handles=[raw_line])
     plt.subplots_adjust(hspace=.3) # too close by default
     #plt.show()
     plt.savefig(graph_names + '.png', bbox_inches='tight')
@@ -827,7 +1134,9 @@ def calc_tp_fp_etc(algo_name, exfils, warning_times, exp_time, start_analyze_tim
     #print attack_times, warning_times
     total_positives = len(attack_times)
     true_positives = 0
-    warning_times_after_strt_analyze = [time for time in warning_times if time >= start_analyze_time]
+    # the -.3 below is b/c of measurement lag (which should be an order of magnitude less than .3 sec)
+    warning_times_after_strt_analyze = [time for time in warning_times if (time-0.3) > start_analyze_time]
+    #print "warning times after starting to analyze", len(warning_times_after_strt_analyze), warning_times_after_strt_analyze
     for attack_time in attack_times:
         # need to add 5 b/c exfil starts at the attack_time, so it is recorded 5 sec later by Prometheus
         if (attack_time+5) in [int(time) for time in warning_times_after_strt_analyze]:
