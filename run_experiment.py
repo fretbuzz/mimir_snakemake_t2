@@ -154,6 +154,10 @@ def restart_minikube():
     print out
     print "Starting minikube completed"
 
+# I am moving this up here b/c moving to cloudlab means I need to isolate all minikube functionality
+def setup_sock_shop(number_full_customer_records=parameters.number_full_customer_records,
+                        number_half_customer_records=parameters.number_half_customer_records,
+                        number_quarter_customer_records=parameters.number_quarter_customer_records):
 
     # TODO check if istio already exists (or not, doesn't really matter)
     print "Cloning Istio..."
@@ -183,10 +187,6 @@ def restart_minikube():
     print out
     print "Completed installing Istio"
 
-
-def setup_sock_shop(number_full_customer_records = parameters.number_full_customer_records,
-        number_half_customer_records = parameters.number_half_customer_records,
-        number_quarter_customer_records = parameters.number_quarter_customer_records):
     # then deploy application
     print "Starting to deploy sock shop..."
     istio_folder = get_istio_folder()
