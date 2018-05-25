@@ -154,6 +154,12 @@ def restart_minikube():
     print out
     print "Starting minikube completed"
 
+## TODO: simply getting the ip from the minikube command isn't going to cut it b/c
+## cloudlab isn't using minikube. On the cloudlab cluster, we can get the ip like this
+#  kubectl config view
+## parsing to get cluster: server: there's an IP addresses
+# okay, this works for minikube + cloudlab, so make the change
+
 # I am moving this up here b/c moving to cloudlab means I need to isolate all minikube functionality
 def setup_sock_shop(number_full_customer_records=parameters.number_full_customer_records,
                         number_half_customer_records=parameters.number_half_customer_records,
@@ -199,7 +205,7 @@ def setup_sock_shop(number_full_customer_records=parameters.number_full_customer
     print "Completed installing sock shop..."
 
     istio_folder = get_istio_folder()
-    minikube = subprocess.check_output(["minikube", "ip"])
+    minikube = get_IP() #subprocess.check_output(["minikube", "ip"])
     # wait until istio pods are started
     print "Checking if Istio pods are ready..."
     pods_ready_p = False
@@ -276,16 +282,16 @@ def setup_sock_shop(number_full_customer_records=parameters.number_full_customer
     # okay, now can expose
     #try:
     # cannot assign output to a variable because then wont run in 'background'
-    subprocess.Popen(["kubectl", "-n", "istio-system", "port-forward", prom_cont_name, "9090:9090"])
     #except:
     #    print "Promtheus was already exposed"
     #print out
-    print "Completed Exposing Prometheus"
 
     # verify that prometheus is active
     print "Verifying that prometheus is active..."
     r = None
     while not r:
+        subprocess.Popen(["kubectl", "-n", "istio-system", "port-forward", prom_cont_name, "9090:9090"])
+        print "Completed Exposing Prometheus"
         try:
             r = requests.get('http://127.0.0.1:9090/')
         except:
@@ -324,7 +330,7 @@ def setup_sock_shop(number_full_customer_records=parameters.number_full_customer
         # sometimes generating some traffic makes the pods get into shape
         if time_waited % 24 == 0:
             # first get minikube ip
-            minikube = subprocess.check_output(["minikube", "ip"]).rstrip()
+            #minikube = subprocess.check_output(["minikube", "ip"]).rstrip()
             try:
                 out = subprocess.check_output(["docker", "run", "--rm", "weaveworksdemos/load-test", "-d", "5", "-h", 
                                                 minikube+":32001", "-c", "2", "-r", "60"])
@@ -334,7 +340,7 @@ def setup_sock_shop(number_full_customer_records=parameters.number_full_customer
 
     # okay, now it is time to register a bunch of users
     # note: we need to register users to a bunch of different 'levels', see GitHub issue #25 for why
-    minikube = subprocess.check_output(["minikube", "ip"]).rstrip()
+    #minikube = subprocess.check_output(["minikube", "ip"]).rstrip()
     # make c larger if it takes too long (I think 1000 users takes about 5 min currently)
     out = subprocess.check_output(["locust", "-f", "pop_db.py", "--host=http://"+minikube+":32001", "--no-web", "-c", "15", "-r", "1", "-n", number_full_customer_records])
     out = subprocess.check_output(["locust", "-f", "pop_db_reg_and_andr.py", "--host=http://"+minikube+":32001", "--no-web", "-c", "15", "-r", "1", "-n", number_half_customer_records])
@@ -347,7 +353,7 @@ def setup_sock_shop(number_full_customer_records=parameters.number_full_customer
 #   time: total time for test. Will be subdivided into 24 smaller chunks to represent 1 hour each
 #   max_clients: Arg provided by user in parameters.py. Represents maximum number of simultaneous clients
 def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate):
-    minikube = subprocess.check_output(["minikube", "ip"]).rstrip()
+    minikube = get_IP()#subprocess.check_output(["minikube", "ip"]).rstrip()
     devnull = open(os.devnull, 'wb')  # disposing of stdout manualy
 
     client_ratio = []
@@ -394,7 +400,7 @@ def run_experiment(num_background_locusts, rate_spawn_background_locusts,
     ## okay, this is where the experiment is actualy going to be implemented (the rest is all setup)
     ## 0th step: determine how much data each of the data exfiltration calls gets so we can plan the exfiltration
     ## step accordingly
-    minikube = subprocess.check_output(["minikube", "ip"]).rstrip()
+    minikube = get_IP()#subprocess.check_output(["minikube", "ip"]).rstrip()
     amt_custs, amt_addr, amt_cards = how_much_data("http://"+minikube+":32001")
     print amt_custs, amt_addr, amt_cards
     time.sleep(5) # want to make sure that we're not going to mess with the recorded traffic vals
@@ -528,6 +534,12 @@ def synch_with_prom():
         print "SOMETHING WENT HORRIBLY WRONG IN SYNC FUNCTION"
     print "time to sync: ", time_to_sync
     time.sleep(time_to_sync)
+
+def get_IP():
+    ip = subprocess.check_output(["kubectl", "config", "view"])
+    for thing in ip.split("\n"):
+        if "https" in thing:
+            return thing.split(":")[2].split("//")[1]
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description='Creates and analyzes microservice traffic matrices')
