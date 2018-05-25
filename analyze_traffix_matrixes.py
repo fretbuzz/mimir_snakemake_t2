@@ -15,6 +15,8 @@ import scipy
 #import scipy.sparse.linalg.eigs
 from math import sqrt
 import statsmodels.api as sm
+import networkx as nx
+from networkx.drawing.nx_agraph import graphviz_layout
 '''
 USAGE: python analyze_traffic_matrixes.py [recieved_matrix_location] [sent_matrix_location]
 
@@ -76,6 +78,37 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
     print "df_sent:", df_sent
     print "df_rec:", df_rec
     joint_df = join_dfs(df_sent, df_rec)
+
+    # I am going to test some graph representation's here.
+    # TODO: okay, I got a couple of problems here
+    # (1) should be directional w/ different weights. Weigths are same both directions
+    # so some info is being discarded (fixed)
+    # (2) labels are being lost (fixed)
+    # (3) weigths aren't being shown (TODO)
+    joint_df_time_slices = generate_time_slice_dfs(joint_df)
+    G = nx.DiGraph()
+    nx.from_pandas_adjacency(joint_df_time_slices[0].drop('time', axis=1), G)
+    print(nx.info(G))
+    pos = graphviz_layout(G)
+    print G
+    #print nx.adjacency_matrix(G, nodelist=None, weight='weight')
+    #for n,d in G.nodes(data=True):
+    #    print n,d
+    nx.draw_networkx(G, pos, with_labels = True)
+    #nx.draw_networkx_edge_labels(G, pos)
+    # okay, let's find some metrics
+    density = nx.density(G) # porportion of possible edges that are present
+    diam = nx.diameter(G) # length between the two nodes that are the furthest apart
+    triadic_closure = nx.transitivity(G) # porportion of possible triangles that are present
+    degree_dict = dict(G.degree(G.nodes()))
+    betweenness_dict = nx.betweenness_centrality(G)  # betweenness centrality
+    eigenvector_dict = nx.eigenvector_centrality(G)  # eigenvector centrality
+    reciprocity = nx.reciprocity(G) # fraction of links that are mutual
+    avg_clustering_coef = nx.average_clustering(G)
+    # not sure how degree distribution matters, b/c everything is bidirectional
+
+    plt.show()
+
     '''
     # this is simple, naive
     for stddev_coef in np.arange(0.0, 4.2,0.1):
@@ -101,13 +134,14 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
         experiment_results.update(simple_selective_performance_results)
     '''
 
-    #'''
+    '''
     svc_pairs_to_consider = [ ('front-end', 'carts'), ('front-end', 'user'), \
                             ('front-end', 'catalogue'), #\, ('front-end', 'payment'), \
                             ('front-end', 'orders')  ]
     svc_pair_for_denom = [('front-end', 'user')]
 
-    #''' # one day this might implement something useful
+    '''
+    ''' # one day this might implement something useful
         # And that day is today!!
         # okay, need to do two things: (1) matrix threshold (2) selective matrix threshold
         # As a bonus (seems unlikely): (3) linear regression w/o the time-series part
@@ -134,7 +168,7 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
             # print "the ratio test did this well", ratio_performance_results
             print confidence_interval_cutoff, lin_reg_performance_results
             experiment_results.update(lin_reg_performance_results)
-    #'''
+    '''
     '''
     for ewma_stddev_coef_val in np.arange(0.0, 4.2,0.1):
         for lambda_values in np.arange(0.0, 0.8, 0.05):

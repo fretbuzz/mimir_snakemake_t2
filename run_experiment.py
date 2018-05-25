@@ -313,9 +313,10 @@ def setup_sock_shop(number_full_customer_records = parameters.number_full_custom
         print statuses
         parsed_statuses = []
         # realistically rabbitmq is never going to work ;-)
+        # doesn't have istio, but should be working
         for status in statuses:
-            if "rabbitmq" not in status[0]:
-                parsed_statuses.append(status)
+        #    if "rabbitmq" not in status[0]:
+            parsed_statuses.append(status)
         pods_ready_p = check_if_pods_ready(parsed_statuses)
         print "Application pods are ready: ", pods_ready_p
         time.sleep(10)
