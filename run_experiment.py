@@ -138,30 +138,37 @@ def run_series_of_experiments(run_actual_experiment, out_dict, analyze, tcpdump_
     print all_experimental_results
 
 def restart_minikube(on_cloudlab):
-    if not on_cloudlab:
-        # no point checking, just trying stopping + deleteing
-        print "Stopping minikube..."
-        try:
-            out = subprocess.check_output(["minikube", "stop"])
-            print out
-        except:
-            print "Minikube was not running"
-        print "Stopping minikube completed"
-        print "Deleting minikube..."
-        try:
-            out = subprocess.check_output(["minikube", "delete"])
-            print out
-        except:
-            print "No minikube image to delete"
-        print "Deleting minikube completed"
+    if on_cloudlab:
+        print "installing dependencies..."
+        out = subprocess.check_output(["bash", "install_munnin_dependencies.sh"])
 
-        # then start minikube
-        print "Starting minikube..."
-        out = subprocess.check_output(["minikube", "start", "--memory=8192", "--cpus=3"])
+    # no point checking, just trying stopping + deleteing
+    print "Stopping minikube..."
+    try:
+        out = subprocess.check_output(["minikube", "stop"])
         print out
-        print "Starting minikube completed"
+    except:
+        print "Minikube was not running"
+    print "Stopping minikube completed"
+    print "Deleting minikube..."
+    try:
+        out = subprocess.check_output(["minikube", "delete"])
+        print out
+    except:
+        print "No minikube image to delete"
+    print "Deleting minikube completed"
+
+    # then start minikube
+    print "Starting minikube..."
+    out = ''
+    if not on_cloudlab: 
+        print "not on cloudlab"
+        out = subprocess.check_output(["minikube", "start", "--memory=8192", "--cpus=3"])
     else:
-        print "okay, so this is on cloudlab"
+        print "this is on cloudlab"
+        out = subprocess.check_output(["minikube", "start", "--memory=25000", "--cpus=8"])
+    print out
+    print "Starting minikube completed"
 
 # I am moving this up here b/c moving to cloudlab means I need to isolate all minikube functionality
 def setup_sock_shop(number_full_customer_records=parameters.number_full_customer_records,
