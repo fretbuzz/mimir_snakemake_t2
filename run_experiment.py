@@ -165,7 +165,7 @@ def setup_sock_shop(number_full_customer_records=parameters.number_full_customer
                         number_half_customer_records=parameters.number_half_customer_records,
                         number_quarter_customer_records=parameters.number_quarter_customer_records):
 
-    # TODO check if istio already exists (or not, doesn't really matter)
+    # maybe wanna check if istio already exists (or not, doesn't really matter)
     print "Cloning Istio..."
     #ps = subprocess.Popen(("curl", "-L", "https://git.io/getIstio"), stdout=subprocess.PIPE)
     ps = subprocess.Popen(("curl", "-L", "https://git.io/getLatestIstio"), stdout=subprocess.PIPE)
@@ -183,7 +183,7 @@ def setup_sock_shop(number_full_customer_records=parameters.number_full_customer
     #try:
     # I am going to do kinda a lazy fix here. If this gives additional problems see Github issue #29i
     try:
-        out = subprocess.check_output(["kubectl","apply", "-f", istio_folder + "/install/kubernetes/istio.yaml"])
+        out = subprocess.check_output(["kubectl","apply", "-f", istio_folder + "/install/kubernetes/istio-demo.yaml"])
     except:
         print "That istio race condition is happening. Need to try install istio a second time!"
         time.sleep(60)
@@ -212,13 +212,14 @@ def setup_sock_shop(number_full_customer_records=parameters.number_full_customer
     while not pods_ready_p:
         out = subprocess.check_output(["kubectl", "get", "pods", "-n", "istio-system"])
         print out
-        statuses = parse_kubeclt_output(out, [1,2])
+        statuses = parse_kubeclt_output(out, [1,2,3])
         print statuses
         pods_ready_p = check_if_pods_ready(statuses)
         print "Istio pods are ready: ", pods_ready_p
         time.sleep(10)
     print "Istio pods are ready!"
 
+    ''' Prometheus is started by defualt as of istio-0.8
     # Install prometheus plug-in so we can get the metrics
     print "Installing prometheus..."
     out = subprocess.check_output(["kubectl", "apply", "-f", istio_folder + "/install/kubernetes/addons/prometheus.yaml"])
@@ -245,7 +246,7 @@ def setup_sock_shop(number_full_customer_records=parameters.number_full_customer
         print "Prometheus pod is ready: ", pods_ready_p
         time.sleep(10)
     print "Prometheus pods are ready!"
-
+    '''
     ## Activate the custom metrics that we will use
     print "Installing custom metrics..."
     out = ""
@@ -403,6 +404,17 @@ def run_experiment(num_background_locusts, rate_spawn_background_locusts,
     minikube = get_IP()#subprocess.check_output(["minikube", "ip"]).rstrip()
     amt_custs, amt_addr, amt_cards = how_much_data("http://"+minikube+":32001")
     print amt_custs, amt_addr, amt_cards
+
+    out = subprocess.check_output(["kubectl", "get", "pods", "-n", "istio-system"])
+    statuses = parse_kubeclt_output(out, [1,2])
+    prom_cont_name = ""
+    for status in statuses[1:]:
+        if 'prometheus' in status[0]:
+            prom_cont_name = status[0]
+    print prom_cont_name
+    subprocess.Popen(["kubectl", "-n", "istio-system", "port-forward", prom_cont_name, "9090:9090"])
+
+
     time.sleep(5) # want to make sure that we're not going to mess with the recorded traffic vals
 
 
@@ -483,13 +495,20 @@ def is_pod_ready_p(pod_status):
 
 def check_if_pods_ready(statuses):
     are_pods_ready = True
+    #print statuses
     for status in statuses[1:]:
         if len(status) > 1:
-            #print status
+            #print "status", status
             is_ready =  is_pod_ready_p(status[1])
-            print is_ready
+            #print is_ready
             if not is_ready:
                 are_pods_ready = False
+	for part in status:
+		#print "part", part
+		if part == "Completed":
+			are_pods_ready = True
+			break
+	print is_ready, are_pods_ready 
     return are_pods_ready
 
 def get_istio_folder():
@@ -568,6 +587,7 @@ def start_tcpdump(file_name):
     pass
 
 def recover_tcpdump_file(file_name):
+    pass
     # need to go into the
 
 if __name__=="__main__":
