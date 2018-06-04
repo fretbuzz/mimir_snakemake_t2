@@ -37,9 +37,9 @@ CLIENT_RATIO_CYBER = [0.0328, 0.0255, 0.0178, 0.0142, 0.0119, 0.0112, 0.0144, 0.
 0.0574, 0.0571, 0.0568, 0.0543, 0.0532, 0.0514, 0.0514, 0.0518, 0.0522, 0.0571, 0.0609, 0.0589, 0.0564]
 
 #def main(restart_kube, setup_sock, multiple_experiments, only_data_analysis):
-def main(start_minikube, setup_sockshop, run_an_experiment, output_dict, analyze_p, tcpdump_p):
+def main(start_minikube, setup_sockshop, run_an_experiment, output_dict, analyze_p, tcpdump_p, on_cloudlab):
     if start_minikube:
-        restart_minikube()
+        restart_minikube(on_cloudlab)
     if setup_sockshop:
         setup_sock_shop()
     run_series_of_experiments(run_actual_experiment = run_an_experiment, out_dict= output_dict,
@@ -137,7 +137,11 @@ def run_series_of_experiments(run_actual_experiment, out_dict, analyze, tcpdump_
     print "okay, run_experiments is drawing to a close..."
     print all_experimental_results
 
-def restart_minikube():
+def restart_minikube(on_cloudlab):
+    if on_cloudlab:
+        print "installing dependencies..."
+        out = subprocess.check_output(["bash", "install_munnin_dependencies.sh"])
+
     # no point checking, just trying stopping + deleteing
     print "Stopping minikube..."
     try:
@@ -156,7 +160,13 @@ def restart_minikube():
 
     # then start minikube
     print "Starting minikube..."
-    out = subprocess.check_output(["minikube", "start", "--memory=8192", "--cpus=3"])
+    out = ''
+    if not on_cloudlab: 
+        print "not on cloudlab"
+        out = subprocess.check_output(["minikube", "start", "--memory=8192", "--cpus=3"])
+    else:
+        print "this is on cloudlab"
+        out = subprocess.check_output(["minikube", "start", "--memory=25000", "--cpus=8"])
     print out
     print "Starting minikube completed"
 
@@ -609,8 +619,11 @@ if __name__=="__main__":
     parser.add_argument('--tcpdump', dest='tcpdump', action='store_true',
                         default=False,
                         help='do you want to store record logs using tcpdump?')
+    parser.add_argument('--on_cloudlab', dest='on_cloudlab', action='store_true',
+                        default=False,
+                        help='are we starting minikube on cloudlab? (have dependencies + can make larger)')
 
     args = parser.parse_args()
-    print args.restart_minikube, args.setup_sockshop, args.run_experiment, args.analyze, args.output_dict, args.tcpdump
+    print args.restart_minikube, args.setup_sockshop, args.run_experiment, args.analyze, args.output_dict, args.tcpdump, args.on_cloudlab
 
-    main(args.restart_minikube, args.setup_sockshop, args.run_experiment, args.output_dict, args.analyze, args.tcpdump)
+    main(args.restart_minikube, args.setup_sockshop, args.run_experiment, args.output_dict, args.analyze, args.tcpdump, args.on_cloudlab)
