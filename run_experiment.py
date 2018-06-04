@@ -138,9 +138,9 @@ def run_series_of_experiments(run_actual_experiment, out_dict, analyze, tcpdump_
     print all_experimental_results
 
 def restart_minikube(on_cloudlab):
-    if on_cloudlab:
-        print "installing dependencies..."
-        out = subprocess.check_output(["bash", "install_munnin_dependencies.sh"])
+    #if on_cloudlab:
+    #    print "installing dependencies..."
+    #    out = subprocess.check_output(["bash", "install_minikube_dependencies.sh"])
 
     # no point checking, just trying stopping + deleteing
     print "Stopping minikube..."
@@ -166,7 +166,7 @@ def restart_minikube(on_cloudlab):
         out = subprocess.check_output(["minikube", "start", "--memory=8192", "--cpus=3"])
     else:
         print "this is on cloudlab"
-        out = subprocess.check_output(["minikube", "start", "--memory=25000", "--cpus=8"])
+        out = subprocess.check_output(["minikube", "start", "--memory=30000", "--cpus=14"])
     print out
     print "Starting minikube completed"
 
