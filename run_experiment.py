@@ -37,12 +37,13 @@ CLIENT_RATIO_CYBER = [0.0328, 0.0255, 0.0178, 0.0142, 0.0119, 0.0112, 0.0144, 0.
 0.0574, 0.0571, 0.0568, 0.0543, 0.0532, 0.0514, 0.0514, 0.0518, 0.0522, 0.0571, 0.0609, 0.0589, 0.0564]
 
 #def main(restart_kube, setup_sock, multiple_experiments, only_data_analysis):
-def main(start_minikube, setup_sockshop, run_an_experiment, output_dict, analyze_p):
+def main(start_minikube, setup_sockshop, run_an_experiment, output_dict, analyze_p, tcpdump_p):
     if start_minikube:
         restart_minikube()
     if setup_sockshop:
         setup_sock_shop()
-    run_series_of_experiments(run_actual_experiment = run_an_experiment, out_dict= output_dict, analyze = analyze_p)
+    run_series_of_experiments(run_actual_experiment = run_an_experiment, out_dict= output_dict,
+                              analyze = analyze_p, tcpdump_p = tcpdump_p)
 
     '''
     if multiple_experiments == "n":
@@ -51,7 +52,7 @@ def main(start_minikube, setup_sockshop, run_an_experiment, output_dict, analyze
         run_series_of_experiments(only_data_analysis = only_data_analysis)
     '''
 
-def run_series_of_experiments(run_actual_experiment, out_dict, analyze):
+def run_series_of_experiments(run_actual_experiment, out_dict, analyze, tcpdump_p):
     ## first step, make relevant directory
     experimental_directory = './experimental_data/' + meta_parameters.experiment_name
     #print "only_data_analysis", only_data_analysis
@@ -74,6 +75,11 @@ def run_series_of_experiments(run_actual_experiment, out_dict, analyze):
                 print "current rep: ", rep, "increment", current_increment
                 rec_matrx_loc = experimental_directory + '/rec_matrix_increm_' + str(current_increment) + '_rep_' + str(rep) +'.pickle'
                 sent_matrix_loc = experimental_directory + '/sent_matrix_increm_' + str(current_increment) + '_rep_' + str(rep) +'.pickle'
+
+                print "Should I Start TCPdump?", tcpdump_p
+                # this is where I presumably would call a function to start tcpdump
+                # on the minikube node
+
                 run_experiment(num_background_locusts = meta_parameters.num_background_locusts,
                     rate_spawn_background_locusts = meta_parameters.rate_spawn_background_locusts,
                     desired_stop_time = meta_parameters.desired_stop_time,
@@ -153,12 +159,6 @@ def restart_minikube():
     out = subprocess.check_output(["minikube", "start", "--memory=8192", "--cpus=3"])
     print out
     print "Starting minikube completed"
-
-## TODO: simply getting the ip from the minikube command isn't going to cut it b/c
-## cloudlab isn't using minikube. On the cloudlab cluster, we can get the ip like this
-#  kubectl config view
-## parsing to get cluster: server: there's an IP addresses
-# okay, this works for minikube + cloudlab, so make the change
 
 # I am moving this up here b/c moving to cloudlab means I need to isolate all minikube functionality
 def setup_sock_shop(number_full_customer_records=parameters.number_full_customer_records,
@@ -541,6 +541,35 @@ def get_IP():
         if "https" in thing:
             return thing.split(":")[2].split("//")[1]
 
+# note this may need to be implemented as a seperate thread
+# in which case it'll also need experimental time + will not need
+# to reset the bash situation
+def start_tcpdump(file_name):
+    # step one: SSH onto minikube (minikube ssh)
+
+    # step two: start special docker container + get bash shell inside it
+    # docker run -it --rm -v /var/run/docker/netns:/var/run/docker/netns --privileged=true nicolaka/netshoot
+
+    # step 3: check of overlay network might exist
+    # ls /var/run/docker/netns/
+    # ^ is 'default' there?
+
+    # step 4: verify that that is the overlay network
+    # nsenter --net=/var/run/docker/netns/default sh
+    # ifconfig
+    # ^ check that a bunch of entries are there
+
+    # step 5: actually start tcpdump
+    # tcpdump -i docker0 -w file_name
+
+    # step 6: probably need to return the bash situation back to normal
+    # exit
+    # exit
+    pass
+
+def recover_tcpdump_file(file_name):
+    # need to go into the
+
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description='Creates and analyzes microservice traffic matrices')
     parser.add_argument('--start_minikube', dest='restart_minikube',
@@ -557,8 +586,11 @@ if __name__=="__main__":
                         default=False,
                         help='do you want to do data analysis??')
     parser.add_argument('--output_dict',dest="output_dict", default='all_results')
+    parser.add_argument('--tcpdump', dest='tcpdump', action='store_true',
+                        default=False,
+                        help='do you want to store record logs using tcpdump?')
 
     args = parser.parse_args()
-    print args.restart_minikube, args.setup_sockshop, args.run_experiment, args.analyze, args.output_dict
+    print args.restart_minikube, args.setup_sockshop, args.run_experiment, args.analyze, args.output_dict, args.tcpdump
 
-    main(args.restart_minikube, args.setup_sockshop, args.run_experiment, args.output_dict, args.analyze)
+    main(args.restart_minikube, args.setup_sockshop, args.run_experiment, args.output_dict, args.analyze, args.tcpdump)

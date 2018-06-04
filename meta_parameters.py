@@ -83,7 +83,6 @@ repeat_experiments = 3
 ## that explains what each file is, b/c there is going to be
 ## a lot of them.
 experiment_name = "cybermonday-target-hack-take-3"
-
 ## this is a list of the SENT svc_pair graphs that are displayed/saved
 ## Note: this list should be 1,2, or 4 items long
 ## anything else and it won't work

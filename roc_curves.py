@@ -682,7 +682,7 @@ def graph_final_roc():
                                      label='Selective EWMA', alpha=opacity,
                                      linestyle=':', marker='D')
         '''
-        #'''
+        '''
         # (for line below) -> lambda = 0.2
         rat_one_tp_two_reversed, = plt.plot([ln[1] for ln in joint_line_ratio_exchanged_two[0]],
                                [ln[0] for ln in joint_line_ratio_exchanged_two[0]],
@@ -751,7 +751,7 @@ def graph_final_roc():
 
 
         plt.legend(handles=[simple_selective_line,lg_line,
-                            rat_one_tp_two_reversed,
+                            #rat_one_tp_two_reversed,
                             rat_one_eigen])#, rat_one_roc_two_three_svc]),
                             #rat_one_tp_ratio_linear_comb, rat_one_eigen])#,
                             #rat_one_tp_two_reversed, rat_one_roc_two_two_svc])#,
@@ -761,7 +761,7 @@ def graph_final_roc():
         plt.xlabel('False Positive Rate')
         plt.ylabel('True Positive Rate')
         #plt.savefig('ROC Curve Results' + '.png', bbox_inches='tight')
-        plt.savefig('./roc_curve_' + str(graphed_exfiltration_rate) + '.eps', format='eps', dpi=1000)
+        plt.savefig('./roc_curve_' + str(graphed_exfiltration_rate) + 'no_traffic_rate'+ '.eps', format='eps', dpi=1000)
 
         # this is going to be a figure just for ratio_ewma
         plt.figure(3)

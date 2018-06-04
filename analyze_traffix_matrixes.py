@@ -86,17 +86,23 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
     # (2) labels are being lost (fixed)
     # (3) weigths aren't being shown (TODO)
     joint_df_time_slices = generate_time_slice_dfs(joint_df)
+    #''' # this is graph stuff
     G = nx.DiGraph()
     nx.from_pandas_adjacency(joint_df_time_slices[0].drop('time', axis=1), G)
     print(nx.info(G))
     pos = graphviz_layout(G)
     print G
-    #print nx.adjacency_matrix(G, nodelist=None, weight='weight')
-    #for n,d in G.nodes(data=True):
-    #    print n,d
-    nx.draw_networkx(G, pos, with_labels = True)
-    #nx.draw_networkx_edge_labels(G, pos)
+    print nx.adjacency_matrix(G, nodelist=None, weight='weight')
+    for n,d in G.nodes(data=True):
+        print n,d
+    nx.draw_networkx(G, pos, with_labels = True, arrows=True)
+    #nx.draw_networkx(G[, pos, arrows, with_labels])
+    edge_labels = dict([((u, v,), d['weight'])
+                        for u, v, d in G.edges(data=True)])
+    nx.draw_networkx_edge_labels(G, pos, edge_labels = edge_labels)
+    # with_with_labels = True)
     # okay, let's find some metrics
+    '''
     density = nx.density(G) # porportion of possible edges that are present
     diam = nx.diameter(G) # length between the two nodes that are the furthest apart
     triadic_closure = nx.transitivity(G) # porportion of possible triangles that are present
@@ -106,8 +112,9 @@ def simulate_incoming_data(rec_matrix_location = './experimental_data/' + parame
     reciprocity = nx.reciprocity(G) # fraction of links that are mutual
     avg_clustering_coef = nx.average_clustering(G)
     # not sure how degree distribution matters, b/c everything is bidirectional
-
+    '''
     plt.show()
+    #'''
 
     '''
     # this is simple, naive
