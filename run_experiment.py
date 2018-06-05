@@ -166,7 +166,7 @@ def restart_minikube(on_cloudlab):
         out = subprocess.check_output(["minikube", "start", "--memory=8192", "--cpus=3"])
     else:
         print "this is on cloudlab"
-        out = subprocess.check_output(["minikube", "start", "--memory=30000", "--cpus=14"])
+        out = subprocess.check_output(["minikube", "start", "--memory=16384", "--cpus=8"])
     print out
     print "Starting minikube completed"
 
