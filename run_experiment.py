@@ -564,6 +564,14 @@ def synch_with_prom():
     print "time to sync: ", time_to_sync
     time.sleep(time_to_sync)
 
+# takes namespace. Returns list of strings correpsonding to existing kubernetes deployments
+def get_deployments(namespace):
+    out = subprocess.check_output(["kubectl", "get", "deploy", "--namespace="+namespace])
+    print 'out', out
+    deploys = parse_kubeclt_output(out, [1,2,])
+    list_deploys = [i[0] for i in deploys[1:]]
+    print "deploys", deploys, list_deploys
+
 def get_IP():
     ip = subprocess.check_output(["kubectl", "config", "view"])
     for thing in ip.split("\n"):
