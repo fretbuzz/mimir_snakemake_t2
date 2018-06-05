@@ -18,6 +18,7 @@ from analyze_traffix_matrixes import simulate_incoming_data
 import pickle
 import argparse
 import copy
+import pexpect
 
 #Locust contemporary client count.  Calculated from the function f(x) = 1/25*(-1/2*sin(pi*x/12) + 1.1), 
 #   where x goes from 0 to 23 and x represents the hour of the day
@@ -341,9 +342,11 @@ def setup_sock_shop(number_full_customer_records=parameters.number_full_customer
                     istio_p=False):
 
     # need to git the sock shop repo
-    # or do I? maybe those scripts I have are sufficient
-    #out = subprocess.check_output(["git", "clone", "https://github.com/microservices-demo/microservices-demo.git"])
-    #print out
+    try:
+        out = subprocess.check_output(["git", "clone", "https://github.com/microservices-demo/microservices-demo.git"])
+        print out
+    except:
+        print "sock shop repo should already be here"
 
     # then deploy application
     print "Starting to deploy sock shop..."
@@ -625,32 +628,50 @@ def get_IP():
 # note this may need to be implemented as a seperate thread
 # in which case it'll also need experimental time + will not need
 # to reset the bash situation
-def start_tcpdump(file_name):
+def start_tcpdump(file_name, time):
+    print "perfoming tcpdump..."
     # step one: SSH onto minikube (minikube ssh)
+    child = pexpect.spawn('minikube ssh')
+    child.expect('[\s\S]*\\____\)')
+    print child.after
 
     # step two: start special docker container + get bash shell inside it
-    # docker run -it --rm -v /var/run/docker/netns:/var/run/docker/netns --privileged=true nicolaka/netshoot
+    child.sendline('docker run -it --rm -v /var/run/docker/netns:/var/run/docker/netns -v /home/docker:/outside --privileged=true nicolaka/netshoot')
+    child.expect('[\s\S]*Welcome to Netshoot![\s\S]*')
+    print child.after
 
     # step 3: check of overlay network might exist
     # ls /var/run/docker/netns/
     # ^ is 'default' there?
+    child.sendline('ls /var/run/docker/netns/')
+    child.expect('[\s\S]*default[\s\S]*')
+    print child.after
 
     # step 4: verify that that is the overlay network
     # nsenter --net=/var/run/docker/netns/default sh
     # ifconfig
     # ^ check that a bunch of entries are there
+    child.sendline('nsenter --net=/var/run/docker/netns/default sh')
+    #child.expect('[\s\S]*')
+    #print child.before, child.after
+    #child.sendline('ifconfig')
+    #child.expect('[\s\S]*veth[\s\S]*')
+    #print child.before, child.after
 
     # step 5: actually start tcpdump
     # tcpdump -i docker0 -w file_name
+    child.sendline('tcpdump -i docker0 -w /outside/' + file_name)
+    #child.expect(??)
+    child.expect('[\s\S]*bytes[\s\S]*')
+    print child.before, child.after
 
-    # step 6: probably need to return the bash situation back to normal
-    # exit
-    # exit
-    pass
+    # step 6: wait until we all the traces that we want
 
-def recover_tcpdump_file(file_name):
-    pass
-    # need to go into the
+
+    # step 6: recover tcpdump file and move it someplace local
+    # maybe one way to do this would be to mount a directory for the docker container to use
+    # and then I don't have to explicitely move the file
+    # need to
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description='Creates and analyzes microservice traffic matrices')
