@@ -37,11 +37,11 @@ CLIENT_RATIO_CYBER = [0.0328, 0.0255, 0.0178, 0.0142, 0.0119, 0.0112, 0.0144, 0.
 0.0574, 0.0571, 0.0568, 0.0543, 0.0532, 0.0514, 0.0514, 0.0518, 0.0522, 0.0571, 0.0609, 0.0589, 0.0564]
 
 #def main(restart_kube, setup_sock, multiple_experiments, only_data_analysis):
-def main(start_minikube, setup_sockshop, run_an_experiment, output_dict, analyze_p, tcpdump_p, on_cloudlab):
+def main(start_minikube, setup_sockshop, run_an_experiment, output_dict, analyze_p, tcpdump_p, on_cloudlab, app_name):
     if start_minikube:
         restart_minikube(on_cloudlab)
     if setup_sockshop:
-        setup_sock_shop()
+        setup_sock_shop(app_name)
     run_series_of_experiments(run_actual_experiment = run_an_experiment, out_dict= output_dict,
                               analyze = analyze_p, tcpdump_p = tcpdump_p)
 
@@ -169,6 +169,12 @@ def restart_minikube(on_cloudlab):
         out = subprocess.check_output(["minikube", "start", "--memory=30000", "--cpus=14"])
     print out
     print "Starting minikube completed"
+
+def setup_app(app_name):
+    if app_name == 'sockshop':
+        setup_sock_shop()
+    else:
+        print "I do not recongnize that application name"
 
 # I am moving this up here b/c moving to cloudlab means I need to isolate all minikube functionality
 def setup_sock_shop(number_full_customer_records=parameters.number_full_customer_records,
@@ -623,7 +629,9 @@ if __name__=="__main__":
                         default=False,
                         help='are we starting minikube on cloudlab? (have dependencies + can make larger)')
 
+    parser.add_argument("--app", type=str, default="sockshop", dest='app', help='what app do you want to run?')
+    
     args = parser.parse_args()
-    print args.restart_minikube, args.setup_sockshop, args.run_experiment, args.analyze, args.output_dict, args.tcpdump, args.on_cloudlab
+    print args.restart_minikube, args.setup_sockshop, args.run_experiment, args.analyze, args.output_dict, args.tcpdump, args.on_cloudlab, args.app
 
-    main(args.restart_minikube, args.setup_sockshop, args.run_experiment, args.output_dict, args.analyze, args.tcpdump, args.on_cloudlab)
+    main(args.restart_minikube, args.setup_sockshop, args.run_experiment, args.output_dict, args.analyze, args.tcpdump, args.on_cloudlab, args.app)
