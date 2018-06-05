@@ -37,11 +37,11 @@ CLIENT_RATIO_CYBER = [0.0328, 0.0255, 0.0178, 0.0142, 0.0119, 0.0112, 0.0144, 0.
 0.0574, 0.0571, 0.0568, 0.0543, 0.0532, 0.0514, 0.0514, 0.0518, 0.0522, 0.0571, 0.0609, 0.0589, 0.0564]
 
 #def main(restart_kube, setup_sock, multiple_experiments, only_data_analysis):
-def main(start_minikube, setup_sockshop, run_an_experiment, output_dict, analyze_p, tcpdump_p, on_cloudlab):
+def main(start_minikube, setup_sockshop, run_an_experiment, output_dict, analyze_p, tcpdump_p, on_cloudlab, app_name, istio_p):
     if start_minikube:
         restart_minikube(on_cloudlab)
     if setup_sockshop:
-        setup_sock_shop()
+        setup_app(app_name, istio_p)
     run_series_of_experiments(run_actual_experiment = run_an_experiment, out_dict= output_dict,
                               analyze = analyze_p, tcpdump_p = tcpdump_p)
 
@@ -166,15 +166,41 @@ def restart_minikube(on_cloudlab):
         out = subprocess.check_output(["minikube", "start", "--memory=8192", "--cpus=4"]) # need 4 b/c new minikube has more components
     else:
         print "this is on cloudlab"
-        out = subprocess.check_output(["minikube", "start", "--memory=30000", "--cpus=14"])
+        out = subprocess.check_output(["minikube", "start", "--memory=16384", "--cpus=8"])
     print out
     print "Starting minikube completed"
 
-# I am moving this up here b/c moving to cloudlab means I need to isolate all minikube functionality
-def setup_sock_shop(number_full_customer_records=parameters.number_full_customer_records,
-                        number_half_customer_records=parameters.number_half_customer_records,
-                        number_quarter_customer_records=parameters.number_quarter_customer_records):
+def setup_app(app_name, istio_p):
+    if istio_p:
+        start_istio()
+    if app_name == 'sockshop':
+        setup_sock_shop(istio_p=istio_p)
+    elif app_name == 'wordpress':
+        out = subprocess.check_output(["helm", "init"])
+        print out
+        out = subprocess.check_output(["helm", "install", "--name", "wordpress", "stable/wordpress"])
+        print out
+        # helm install --name wordpress stable/wordpress
+    elif app_name == 'gitlab':
+        out = subprocess.check_output(["helm", "init"])
+        print out
+        out = subprocess.check_output(["helm", "install", "--name", "wordpress", "stable/wordpress"])
+        print out
+        # helm install --name gitlab --set externalUrl=http://your-domain.com/ stable/gitlab-ce
+        pass
+    elif app_name == 'eshop':
+        # the microsoft app
+        # I think it is docker compose tho
+        pass
+    elif app_name == 'piggy':
+        # piggymetrics ((https://github.com/sqshq/PiggyMetrics)
+        # I think it is docker compose tho
+        pass
+    else:
+        # might wanna add this one https://github.com/IBM/GameOn-Java-Microservices-on-Kubernetes
+        print "I do not recongnize that application name"
 
+def start_istio():
     # maybe wanna check if istio already exists (or not, doesn't really matter)
     print "Cloning Istio..."
     #ps = subprocess.Popen(("curl", "-L", "https://git.io/getIstio"), stdout=subprocess.PIPE)
@@ -203,17 +229,7 @@ def setup_sock_shop(number_full_customer_records=parameters.number_full_customer
     print out
     print "Completed installing Istio"
 
-    # then deploy application
-    print "Starting to deploy sock shop..."
-    istio_folder = get_istio_folder()
-    try:
-        out = subprocess.check_output(["bash", "start_with_istio.sh", istio_folder])
-    except Exception as e:
-        print("Failed to start with istio! " + e.message)
-        return
-    print out
-    print "Completed installing sock shop..."
-
+def finish_setting_up_istio():
     istio_folder = get_istio_folder()
     minikube = get_IP() #subprocess.check_output(["minikube", "ip"])
     # wait until istio pods are started
@@ -319,6 +335,37 @@ def setup_sock_shop(number_full_customer_records=parameters.number_full_customer
         time.sleep(10)
     print "Completed verifying that prometheus is active"
 
+def setup_sock_shop(number_full_customer_records=parameters.number_full_customer_records,
+                    number_half_customer_records=parameters.number_half_customer_records,
+                    number_quarter_customer_records=parameters.number_quarter_customer_records,
+                    istio_p=False):
+
+    # need to git the sock shop repo
+    # or do I? maybe those scripts I have are sufficient
+    #out = subprocess.check_output(["git", "clone", "https://github.com/microservices-demo/microservices-demo.git"])
+    #print out
+
+    # then deploy application
+    print "Starting to deploy sock shop..."
+    if istio_p:
+        istio_folder = get_istio_folder()
+        try:
+            out = subprocess.check_output(["bash", "start_with_istio.sh", istio_folder])
+        except Exception as e:
+            print("Failed to start with istio! " + e.message)
+            return
+        print out
+        print "Completed installing sock shop..."
+        finish_setting_up_istio()
+    else:
+        try:
+            out = subprocess.check_output(["bash", "start_without_istio.sh"])
+        except Exception as e:
+            print("Failed to start without istio! " + e.message)
+            return
+        print out
+        print "Completed installing sock shop..."
+
     # verify that all containers are active
     print "Checking if application pods are ready..."
     pods_ready_p = False
@@ -329,10 +376,7 @@ def setup_sock_shop(number_full_customer_records=parameters.number_full_customer
         statuses = parse_kubeclt_output(out, [1,2])
         print statuses
         parsed_statuses = []
-        # realistically rabbitmq is never going to work ;-)
-        # doesn't have istio, but should be working
         for status in statuses:
-        #    if "rabbitmq" not in status[0]:
             parsed_statuses.append(status)
         pods_ready_p = check_if_pods_ready(parsed_statuses)
         print "Application pods are ready: ", pods_ready_p
@@ -646,7 +690,13 @@ if __name__=="__main__":
                         default=False,
                         help='are we starting minikube on cloudlab? (have dependencies + can make larger)')
 
-    args = parser.parse_args()
-    print args.restart_minikube, args.setup_sockshop, args.run_experiment, args.analyze, args.output_dict, args.tcpdump, args.on_cloudlab
+    parser.add_argument('--with_istio', dest='istio_p', action='store_true',
+                    default=False,
+                    help='should we do the stuff involving istio?')
 
-    main(args.restart_minikube, args.setup_sockshop, args.run_experiment, args.output_dict, args.analyze, args.tcpdump, args.on_cloudlab)
+    parser.add_argument("--app", type=str, default="sockshop", dest='app', help='what app do you want to run?')
+    
+    args = parser.parse_args()
+    print args.restart_minikube, args.setup_sockshop, args.run_experiment, args.analyze, args.output_dict, args.tcpdump, args.on_cloudlab, args.app, args.istio_p
+
+    main(args.restart_minikube, args.setup_sockshop, args.run_experiment, args.output_dict, args.analyze, args.tcpdump, args.on_cloudlab, args.app, args.istio_p)
