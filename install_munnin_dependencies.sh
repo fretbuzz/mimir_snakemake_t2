@@ -28,3 +28,4 @@ cd ..
 pip install networkx
 
 pip install locustio
+pip install pexpect
