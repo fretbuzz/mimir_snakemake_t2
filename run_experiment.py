@@ -164,7 +164,7 @@ def restart_minikube(on_cloudlab):
     out = ''
     if not on_cloudlab: 
         print "not on cloudlab"
-        out = subprocess.check_output(["minikube", "start", "--memory=8192", "--cpus=3"])
+        out = subprocess.check_output(["minikube", "start", "--memory=8192", "--cpus=4"]) # need 4 b/c new minikube has more components
     else:
         print "this is on cloudlab"
         out = subprocess.check_output(["minikube", "start", "--memory=16384", "--cpus=8"])
@@ -617,7 +617,22 @@ def get_deployments(namespace):
     print 'out', out
     deploys = parse_kubeclt_output(out, [1,2,])
     list_deploys = [i[0] for i in deploys[1:]]
-    print "deploys", deploys, list_deploys
+    #print "deploys", deploys, list_deploys
+    return list_deploys
+
+# we are going to start off with a relatively naive implementation here
+# and if we need something more complicated later, then we can add it later.
+# start_autoscalers(get_deployments('default'), '70')
+def start_autoscalers(deploys, cpu_percent): # cpu percent should be a string (and not a decimal)
+    # need to make sure that the metrics server is running
+    out = subprocess.check_output(["minikube", "addons", "enable", "metrics-server"])
+    print out
+
+    for deploy in deploys:
+        command_list = ["kubectl", "autoscale", "deployment", deploy, "--cpu-percent=" + cpu_percent, "--min=1", "--max=10"]
+        print command_list
+        out = subprocess.check_output(command_list)
+        print out
 
 def get_IP():
     ip = subprocess.check_output(["kubectl", "config", "view"])
