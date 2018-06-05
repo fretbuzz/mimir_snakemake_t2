@@ -167,9 +167,14 @@ def restart_minikube(on_cloudlab):
         out = subprocess.check_output(["minikube", "start", "--memory=8192", "--cpus=4"]) # need 4 b/c new minikube has more components
     else:
         print "this is on cloudlab"
-        out = subprocess.check_output(["minikube", "start", "--memory=16384", "--cpus=8"])
+        out = subprocess.check_output(["minikube", "start", "--memory=16384", "--cpus=10"])
     print out
     print "Starting minikube completed"
+
+    # need to make sure that the metrics server is running
+    print "enable metrics-server for hpa"
+    out = subprocess.check_output(["minikube", "addons", "enable", "metrics-server"])
+    print out
 
 def setup_app(app_name, istio_p):
     if istio_p:
@@ -385,6 +390,7 @@ def setup_sock_shop(number_full_customer_records=parameters.number_full_customer
         print "Application pods are ready: ", pods_ready_p
         time.sleep(10)
         time_waited = time_waited + 1
+        minikube = get_IP()
         # sometimes generating some traffic makes the pods get into shape
         if time_waited % 24 == 0:
             # first get minikube ip
@@ -624,10 +630,6 @@ def get_deployments(namespace):
 # and if we need something more complicated later, then we can add it later.
 # start_autoscalers(get_deployments('default'), '70')
 def start_autoscalers(deploys, cpu_percent): # cpu percent should be a string (and not a decimal)
-    # need to make sure that the metrics server is running
-    out = subprocess.check_output(["minikube", "addons", "enable", "metrics-server"])
-    print out
-
     for deploy in deploys:
         command_list = ["kubectl", "autoscale", "deployment", deploy, "--cpu-percent=" + cpu_percent, "--min=1", "--max=10"]
         print command_list
@@ -643,7 +645,8 @@ def get_IP():
 # note this may need to be implemented as a seperate thread
 # in which case it'll also need experimental time + will not need
 # to reset the bash situation
-def start_tcpdump(file_name, time):
+def start_tcpdump(file_name, tcpdump_time):
+    print "this is indeed the most updated version"
     print "perfoming tcpdump..."
     # step one: SSH onto minikube (minikube ssh)
     child = pexpect.spawn('minikube ssh')
@@ -675,18 +678,31 @@ def start_tcpdump(file_name, time):
 
     # step 5: actually start tcpdump
     # tcpdump -i docker0 -w file_name
-    child.sendline('tcpdump -i docker0 -w /outside/' + file_name)
-    #child.expect(??)
+    print "sending this...", 'tcpdump -G ' + str(tcpdump_time) + ' -W 1 -i docker0 -w /outside/' + file_name
+    child.sendline('tcpdump -G ' + str(tcpdump_time) + ' -W 1 -i docker0 -w /outside/' + file_name)
     child.expect('[\s\S]*bytes[\s\S]*')
+    print child.after
+    child.expect('Maximum[\s\S]*', timeout=tcpdump_time+2)
+    print child.before, child.after
+    print "okay, about to exit"
+    # step 6: leave container
+    # b/c -rm flag, I think this should also delete the container
+    child.sendline('exit')
+    child.sendline('exit') # need two exits b/c tcpdump does something wierd to shell
+    child.expect('[\s\S]*logout[\s\S]*')
+    print child.before, child.after
+    print "okay, exited"
+
+    child.sendline('ls')
+    #child.expect('[\s\S]*')
+    #print child.before, child.after
+    child.sendline('ls')
+    child.expect('[\s\S]*' + file_name +'[\s\S]*')
     print child.before, child.after
 
-    # step 6: wait until we all the traces that we want
-
-
-    # step 6: recover tcpdump file and move it someplace local
-    # maybe one way to do this would be to mount a directory for the docker container to use
-    # and then I don't have to explicitely move the file
-    # need to
+    # step 7: tcpdump file is safely on minikube but we might wanna move it all the way to localhost
+    #child.sendline('ls')
+    ## though it might make more sense to do this once after all the experiments are completed
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description='Creates and analyzes microservice traffic matrices')
