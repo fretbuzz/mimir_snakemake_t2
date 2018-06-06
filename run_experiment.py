@@ -54,7 +54,7 @@ def main(start_minikube, setup_sockshop, run_an_experiment, output_dict, analyze
 
 def run_series_of_experiments(run_actual_experiment, out_dict, analyze, tcpdump_p, app_name):
     ## first step, make relevant directory
-    meta_parameters.experiment_name += ' ' + app_name # I am not sure whether or not this will work
+    meta_parameters.experiment_name += '_' + app_name # I am not sure whether or not this will work
     experimental_directory = './experimental_data/' + meta_parameters.experiment_name
     #print "only_data_analysis", only_data_analysis
     try:
@@ -668,13 +668,16 @@ def start_tcpdump(file_name, tcpdump_time, exp_dir):
     print "perfoming tcpdump..."
     # step one: SSH onto minikube (minikube ssh)
     child = pexpect.spawn('minikube ssh')
-    child.expect('[\s\S]*\\____\)')
-    print child.after
+    try:
+        child.expect('[\s\S]*\\____\)')
+        print child.before, child.after
+    except: #pexpect.exceptions.TIMEOUT
+        print "something strange happened with ssh-ing into minikube"
 
     # step two: start special docker container + get bash shell inside it
     child.sendline('docker run -it --rm -v /var/run/docker/netns:/var/run/docker/netns -v /home/docker:/outside --privileged=true nicolaka/netshoot')
     child.expect('[\s\S]*Welcome to Netshoot![\s\S]*')
-    print child.after
+    print  child.after
 
     # step 3: check of overlay network might exist
     # ls /var/run/docker/netns/
@@ -697,9 +700,12 @@ def start_tcpdump(file_name, tcpdump_time, exp_dir):
     # step 5: actually start tcpdump
     # tcpdump -i docker0 -w file_name
     print "sending this...", 'tcpdump -G ' + str(tcpdump_time) + ' -W 1 -i docker0 -w /outside/' + file_name
+    # TODO: NOT STARTING CORRECTLY
     child.sendline('tcpdump -G ' + str(tcpdump_time) + ' -W 1 -i docker0 -w /outside/' + file_name)
     child.expect('[\s\S]*bytes[\s\S]*')
+    #child.read()
     print child.after
+    time.sleep(tcpdump_time+2)
     child.expect('Maximum[\s\S]*', timeout=tcpdump_time+2)
     print child.before, child.after
     print "okay, about to exit"
