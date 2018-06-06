@@ -3,22 +3,22 @@ USAGE: python run_experiment.py [y/n restart kubernetes cluster] [y/n setup sock
 note: need to start docker daemon beforehand
 '''
 
-import subprocess
-import time
-import requests
-import sys
-import os
-import signal
-import parameters
-import thread
-import meta_parameters
-import errno
-from exfil_data_v2 import how_much_data
-from analyze_traffix_matrixes import simulate_incoming_data 
-import pickle
 import argparse
 import copy
+import os
+import pickle
+import signal
+import subprocess
+import thread
+import time
+
 import pexpect
+import requests
+
+import meta_parameters
+import parameters
+from analyze_traffix_matrixes import simulate_incoming_data
+from sockshop_config.exfil_data_v2 import how_much_data
 
 #Locust contemporary client count.  Calculated from the function f(x) = 1/25*(-1/2*sin(pi*x/12) + 1.1), 
 #   where x goes from 0 to 23 and x represents the hour of the day
@@ -38,11 +38,11 @@ CLIENT_RATIO_CYBER = [0.0328, 0.0255, 0.0178, 0.0142, 0.0119, 0.0112, 0.0144, 0.
 0.0574, 0.0571, 0.0568, 0.0543, 0.0532, 0.0514, 0.0514, 0.0518, 0.0522, 0.0571, 0.0609, 0.0589, 0.0564]
 
 #def main(restart_kube, setup_sock, multiple_experiments, only_data_analysis):
-def main(start_minikube, setup_sockshop, run_an_experiment, output_dict, analyze_p, tcpdump_p, on_cloudlab, app_name, istio_p):
+def main(start_minikube, setup_sockshop, run_an_experiment, output_dict, analyze_p, tcpdump_p, on_cloudlab, app_name, istio_p, hpa):
     if start_minikube:
         restart_minikube(on_cloudlab)
     if setup_sockshop:
-        setup_app(app_name, istio_p)
+        setup_app(app_name, istio_p, hpa)
     run_series_of_experiments(run_actual_experiment = run_an_experiment, out_dict= output_dict,
                               analyze = analyze_p, tcpdump_p = tcpdump_p)
 
@@ -87,7 +87,8 @@ def run_series_of_experiments(run_actual_experiment, out_dict, analyze, tcpdump_
                     exfils = exfils,
                     rec_matrix_location = rec_matrx_loc,
                     sent_matrix_location = sent_matrix_loc,
-                    traffic_type = meta_parameters.traffic_type)
+                    traffic_type = meta_parameters.traffic_type,
+                    exp_name = meta_parameters.experiment_name + str(current_increment) + '_rep_' + str(rep))
 
             for key,val in exfils.iteritems():
                 exfils[key] = val +  meta_parameters.exfil_increments[key]
@@ -164,7 +165,7 @@ def restart_minikube(on_cloudlab):
     out = ''
     if not on_cloudlab: 
         print "not on cloudlab"
-        out = subprocess.check_output(["minikube", "start", "--memory=8192", "--cpus=4"]) # need 4 b/c new minikube has more components
+        out = subprocess.check_output(["minikube", "start", "--memory=8192", "--cpus=3"])
     else:
         print "this is on cloudlab"
         out = subprocess.check_output(["minikube", "start", "--memory=16384", "--cpus=10"])
@@ -176,16 +177,21 @@ def restart_minikube(on_cloudlab):
     out = subprocess.check_output(["minikube", "addons", "enable", "metrics-server"])
     print out
 
-def setup_app(app_name, istio_p):
+def setup_app(app_name, istio_p, hpa):
     if istio_p:
         start_istio()
     if app_name == 'sockshop':
         setup_sock_shop(istio_p=istio_p)
+        if hpa:
+            pass
     elif app_name == 'wordpress':
         out = subprocess.check_output(["helm", "init"])
         print out
         out = subprocess.check_output(["helm", "install", "--name", "wordpress", "stable/wordpress"])
         print out
+        if hpa:
+            # start_autoscalers(get_deployments('default'), '70')
+            pass
         # helm install --name wordpress stable/wordpress
     elif app_name == 'gitlab':
         out = subprocess.check_output(["helm", "init"])
@@ -193,7 +199,9 @@ def setup_app(app_name, istio_p):
         out = subprocess.check_output(["helm", "install", "--name", "wordpress", "stable/wordpress"])
         print out
         # helm install --name gitlab --set externalUrl=http://your-domain.com/ stable/gitlab-ce
-        pass
+        if hpa:
+            # start_autoscalers(get_deployments('default'), '70')
+            pass
     elif app_name == 'eshop':
         # the microsoft app
         # I think it is docker compose tho
@@ -294,12 +302,6 @@ def finish_setting_up_istio():
     print out
     print "Custom metrics are ready!"
 
-    # Deploy manifests_tcp_take_2 (to switch the service ports)
-    print "Modifying service port names..."
-    out = subprocess.check_output(["kubectl", "apply", "-f", "./manifests_tcp_take_2"])
-    print out
-    print "Completed modifying service port names"
-
     # expose prometheus
     print "Exposing prometheus..."
     #try:
@@ -358,16 +360,22 @@ def setup_sock_shop(number_full_customer_records=parameters.number_full_customer
     if istio_p:
         istio_folder = get_istio_folder()
         try:
-            out = subprocess.check_output(["bash", "start_with_istio.sh", istio_folder])
+            out = subprocess.check_output(["bash", "./sockshop_config/start_with_istio.sh", istio_folder])
         except Exception as e:
             print("Failed to start with istio! " + e.message)
             return
         print out
         print "Completed installing sock shop..."
+        # Deploy manifests_tcp_take_2 (to switch the service ports)
+        # the new names helps istio work
+        print "Modifying service port names..."
+        out = subprocess.check_output(["kubectl", "apply", "-f", "./sockshop_config/manifests_tcp_take_2"])
+        print out
+        print "Completed modifying service port names"
         finish_setting_up_istio()
     else:
         try:
-            out = subprocess.check_output(["bash", "start_without_istio.sh"])
+            out = subprocess.check_output(["bash", "./sockshop_config/start_without_istio.sh"])
         except Exception as e:
             print("Failed to start without istio! " + e.message)
             return
@@ -379,7 +387,7 @@ def setup_sock_shop(number_full_customer_records=parameters.number_full_customer
     pods_ready_p = False
     time_waited = 0
     while not pods_ready_p:
-        out = subprocess.check_output(["kubectl", "get", "pods"])
+        out = subprocess.check_output(["kubectl", "get", "pods", "--namespace=sock-shop"])
         print out
         statuses = parse_kubeclt_output(out, [1,2])
         print statuses
@@ -406,9 +414,9 @@ def setup_sock_shop(number_full_customer_records=parameters.number_full_customer
     # note: we need to register users to a bunch of different 'levels', see GitHub issue #25 for why
     #minikube = subprocess.check_output(["minikube", "ip"]).rstrip()
     # make c larger if it takes too long (I think 1000 users takes about 5 min currently)
-    out = subprocess.check_output(["locust", "-f", "pop_db.py", "--host=http://"+minikube+":32001", "--no-web", "-c", "15", "-r", "1", "-n", number_full_customer_records])
-    out = subprocess.check_output(["locust", "-f", "pop_db_reg_and_andr.py", "--host=http://"+minikube+":32001", "--no-web", "-c", "15", "-r", "1", "-n", number_half_customer_records])
-    out = subprocess.check_output(["locust", "-f", "pop_db_reg.py", "--host=http://"+minikube+":32001", "--no-web", "-c", "15", "-r", "1", "-n", number_quarter_customer_records])
+    out = subprocess.check_output(["locust", "-f", "./sockshop_config/pop_db.py", "--host=http://"+minikube+":30001", "--no-web", "-c", "15", "-r", "1", "-n", number_full_customer_records])
+    out = subprocess.check_output(["locust", "-f", "./sockshop_config/pop_db_reg_and_andr.py", "--host=http://"+minikube+":30001", "--no-web", "-c", "15", "-r", "1", "-n", number_half_customer_records])
+    out = subprocess.check_output(["locust", "-f", "./sockshop_config/pop_db_reg.py", "--host=http://"+minikube+":30001", "--no-web", "-c", "15", "-r", "1", "-n", number_quarter_customer_records])
     #print out
 
 # Func: generate_background_traffic
@@ -444,7 +452,7 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate)
         client_count = str(int(round(normalizer*client_ratio[i]*max_clients)))
 
         try:
-            proc = subprocess.Popen(["locust", "-f", "background_traffic.py", "--host=http://"+minikube+":32001", "--no-web", "-c", 
+            proc = subprocess.Popen(["locust", "-f", "./sockshop_config/background_traffic.py", "--host=http://"+minikube+":32001", "--no-web", "-c",
                                     client_count, "-r", spawn_rate],
                                     stdout=devnull, stderr=devnull, preexec_fn=os.setsid)
         except subprocess.CalledProcessError as e:
@@ -459,7 +467,7 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate)
 
 def run_experiment(num_background_locusts, rate_spawn_background_locusts,
         desired_stop_time, exfils, rec_matrix_location, sent_matrix_location,
-        traffic_type):
+        traffic_type, exp_name):
     
     ## okay, this is where the experiment is actualy going to be implemented (the rest is all setup)
     ## 0th step: determine how much data each of the data exfiltration calls gets so we can plan the exfiltration
@@ -468,6 +476,7 @@ def run_experiment(num_background_locusts, rate_spawn_background_locusts,
     amt_custs, amt_addr, amt_cards = how_much_data("http://"+minikube+":32001")
     print amt_custs, amt_addr, amt_cards
 
+    ''' # not necessarily using istio
     out = subprocess.check_output(["kubectl", "get", "pods", "-n", "istio-system"])
     statuses = parse_kubeclt_output(out, [1,2])
     prom_cont_name = ""
@@ -475,9 +484,8 @@ def run_experiment(num_background_locusts, rate_spawn_background_locusts,
         if 'prometheus' in status[0]:
             prom_cont_name = status[0]
     print prom_cont_name
-    subprocess.Popen(["kubectl", "-n", "istio-system", "port-forward", prom_cont_name, "9090:9090"])
-
-
+    subprocess.Popen(["kubectl", "-n", "istio-system", "port-forward", prom_cont_name, "9090:9090"])    
+    '''
     time.sleep(5) # want to make sure that we're not going to mess with the recorded traffic vals
 
 
@@ -488,8 +496,11 @@ def run_experiment(num_background_locusts, rate_spawn_background_locusts,
 
     # Second, sync with prometheus scraping (see function below for explanation) and then start experimental recording script
     # the plus one is so that what it pulls includes the last frame (b/c always a little over the current sec)
-    synch_with_prom()
-    subprocess.Popen(["python", "pull_from_prom.py", "n", str( desired_stop_time + 1), rec_matrix_location, sent_matrix_location ])
+    # UPDATE: no need to sync b/c not using istio atm
+    # BUT: do need to setup tcpdump
+    start_tcpdump(exp_name, desired_stop_time)
+    #synch_with_prom()
+    #subprocess.Popen(["python", "pull_from_prom.py", "n", str( desired_stop_time + 1), rec_matrix_location, sent_matrix_location ])
     start_time = time.time()
 
     # Third, wait some period of time and then start the data exfiltration
@@ -513,7 +524,7 @@ def run_experiment(num_background_locusts, rate_spawn_background_locusts,
         if sleep_time > 0:
             time.sleep(sleep_time)
             # going to use the updated version instead
-            out = subprocess.check_output(["python", "exfil_data_v2.py", "http://"+minikube+":32001", str(exfils[next_exfil]), str(amt_custs), str(amt_addr), str(amt_cards)])
+            out = subprocess.check_output(["python", "./sockshop_config/exfil_data_v2.py", "http://"+minikube+":32001", str(exfils[next_exfil]), str(amt_custs), str(amt_addr), str(amt_cards)])
             print "Data exfiltrated", out
     print "all data exfiltration complete"
 
@@ -703,6 +714,8 @@ def start_tcpdump(file_name, tcpdump_time):
     # step 7: tcpdump file is safely on minikube but we might wanna move it all the way to localhost
     #child.sendline('ls')
     ## though it might make more sense to do this once after all the experiments are completed
+    ## something like this (via subprocess could work)
+    ##scp -i ~/.minikube/machines/minikube/id_rsa docker@$(minikube ip):/home/docker/test ./
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description='Creates and analyzes microservice traffic matrices')
@@ -731,9 +744,13 @@ if __name__=="__main__":
                     default=False,
                     help='should we do the stuff involving istio?')
 
+    parser.add_argument('--hpa', dest='hpa', action='store_true',
+                    default=False,
+                    help='setup horizontap pod autoscalers?')
+
     parser.add_argument("--app", type=str, default="sockshop", dest='app', help='what app do you want to run?')
     
     args = parser.parse_args()
-    print args.restart_minikube, args.setup_sockshop, args.run_experiment, args.analyze, args.output_dict, args.tcpdump, args.on_cloudlab, args.app, args.istio_p
+    print args.restart_minikube, args.setup_sockshop, args.run_experiment, args.analyze, args.output_dict, args.tcpdump, args.on_cloudlab, args.app, args.istio_p, args.hpa
 
-    main(args.restart_minikube, args.setup_sockshop, args.run_experiment, args.output_dict, args.analyze, args.tcpdump, args.on_cloudlab, args.app, args.istio_p)
+    main(args.restart_minikube, args.setup_sockshop, args.run_experiment, args.output_dict, args.analyze, args.tcpdump, args.on_cloudlab, args.app, args.istio_p, args.hpa)
