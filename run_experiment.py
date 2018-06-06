@@ -1,6 +1,5 @@
 '''
-USAGE: python run_experiment.py [y/n restart kubernetes cluster] [y/n setup sock shop application] [y/n run series of experiments] [y/n only do data analysis]
-note: need to start docker daemon beforehand
+To see usage: python run_experiment.py --help
 '''
 
 import argparse
@@ -57,13 +56,10 @@ def run_series_of_experiments(run_actual_experiment, out_dict, analyze, tcpdump_
     ## first step, make relevant directory
     experimental_directory = './experimental_data/' + meta_parameters.experiment_name
     #print "only_data_analysis", only_data_analysis
-    '''if only_data_analysis == "n":  # user has to make the directory in advance now
-        try:
-            os.makedirs(experimental_directory)
-        except:
-            print "this experiment name is already taken and/or race condition"
-            sys.exit("this experiment name is already taken and/or race condition, try again")
-    '''
+    try:
+        os.makedirs(experimental_directory)
+    except:
+        print "this experiment name is already taken and/or race condition"
 
     # I am going to run all the experiments first, and only do data analysis later
     if run_actual_experiment:
@@ -88,7 +84,8 @@ def run_series_of_experiments(run_actual_experiment, out_dict, analyze, tcpdump_
                     rec_matrix_location = rec_matrx_loc,
                     sent_matrix_location = sent_matrix_loc,
                     traffic_type = meta_parameters.traffic_type,
-                    exp_name = meta_parameters.experiment_name + str(current_increment) + '_rep_' + str(rep))
+                    exp_name = meta_parameters.experiment_name + '_' + str(current_increment) + '_rep_' + str(rep),
+                    exp_dir = experimental_directory)
 
             for key,val in exfils.iteritems():
                 exfils[key] = val +  meta_parameters.exfil_increments[key]
@@ -183,10 +180,16 @@ def setup_app(app_name, istio_p, hpa):
     if app_name == 'sockshop':
         setup_sock_shop(istio_p=istio_p)
         if hpa:
-            pass
+            try:
+                out = subprocess.check_output(["bash", "./sockshop_config/start_sockshop_hpas.sh"])
+            except Exception as e:
+                print("Failed to start sockshop hpas! " + e.message)
+                return
     elif app_name == 'wordpress':
         out = subprocess.check_output(["helm", "init"])
         print out
+        time.sleep(5)
+        wait_until_pods_done("kube-system") # need tiller pod deployed
         out = subprocess.check_output(["helm", "install", "--name", "wordpress", "stable/wordpress"])
         print out
         if hpa:
@@ -467,7 +470,7 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate)
 
 def run_experiment(num_background_locusts, rate_spawn_background_locusts,
         desired_stop_time, exfils, rec_matrix_location, sent_matrix_location,
-        traffic_type, exp_name):
+        traffic_type, exp_name, exp_dir):
     
     ## okay, this is where the experiment is actualy going to be implemented (the rest is all setup)
     ## 0th step: determine how much data each of the data exfiltration calls gets so we can plan the exfiltration
@@ -498,7 +501,7 @@ def run_experiment(num_background_locusts, rate_spawn_background_locusts,
     # the plus one is so that what it pulls includes the last frame (b/c always a little over the current sec)
     # UPDATE: no need to sync b/c not using istio atm
     # BUT: do need to setup tcpdump
-    thread.start_new_thread(start_tcpdump, (exp_name, desired_stop_time))
+    thread.start_new_thread(start_tcpdump, (exp_name, desired_stop_time, exp_dir))
     #synch_with_prom()
     #subprocess.Popen(["python", "pull_from_prom.py", "n", str( desired_stop_time + 1), rec_matrix_location, sent_matrix_location ])
     start_time = time.time()
@@ -656,7 +659,7 @@ def get_IP():
 # note this may need to be implemented as a seperate thread
 # in which case it'll also need experimental time + will not need
 # to reset the bash situation
-def start_tcpdump(file_name, tcpdump_time):
+def start_tcpdump(file_name, tcpdump_time, exp_dir):
     print "this is indeed the most updated version"
     print "perfoming tcpdump..."
     # step one: SSH onto minikube (minikube ssh)
@@ -704,18 +707,39 @@ def start_tcpdump(file_name, tcpdump_time):
     print child.before, child.after
     print "okay, exited"
 
-    child.sendline('ls')
+    # if we made it this far, maybe just assume that
+    # everything went okay?
+    #child.sendline('ls')
     #child.expect('[\s\S]*')
     #print child.before, child.after
-    child.sendline('ls')
-    child.expect('[\s\S]*' + file_name +'[\s\S]*')
-    print child.before, child.after
+    #child.sendline('ls')
+    #child.expect('[\s\S]*' + file_name +'[\s\S]*')
+    #print child.before, child.after
 
     # step 7: tcpdump file is safely on minikube but we might wanna move it all the way to localhost
     #child.sendline('ls')
     ## though it might make more sense to do this once after all the experiments are completed
     ## something like this (via subprocess could work)
     ##scp -i ~/.minikube/machines/minikube/id_rsa docker@$(minikube ip):/home/docker/test ./
+    out = subprocess.check_output(("scp", "-i", "~/.minikube/machines/minikube/id_rsa", "-o", "StrictHostKeyChecking=no", "docker@"+ get_IP() +":/home/docker/" + file_name, exp_dir + '/' + file_name))
+    print out
+
+    print "okay, the tcpdump file should be succesfully stored"
+
+def wait_until_pods_done(namespace):
+    # wait until  pods are started
+    print "Checking if " + namespace + " pods are ready..."
+    pods_ready_p = False
+    while not pods_ready_p:
+        out = subprocess.check_output(["kubectl", "get", "pods", "-n", namespace])
+        print out
+        statuses = parse_kubeclt_output(out, [1,2,3])
+        print statuses
+        pods_ready_p = check_if_pods_ready(statuses)
+        print namespace + " pods are ready: ", pods_ready_p
+        time.sleep(10)
+    print namespace + " pods are ready!"
+
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description='Creates and analyzes microservice traffic matrices')
