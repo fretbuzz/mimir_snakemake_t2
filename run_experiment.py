@@ -498,7 +498,7 @@ def run_experiment(num_background_locusts, rate_spawn_background_locusts,
     # the plus one is so that what it pulls includes the last frame (b/c always a little over the current sec)
     # UPDATE: no need to sync b/c not using istio atm
     # BUT: do need to setup tcpdump
-    start_tcpdump(exp_name, desired_stop_time)
+    thread.start_new_thread(start_tcpdump, (exp_name, desired_stop_time))
     #synch_with_prom()
     #subprocess.Popen(["python", "pull_from_prom.py", "n", str( desired_stop_time + 1), rec_matrix_location, sent_matrix_location ])
     start_time = time.time()
@@ -524,7 +524,7 @@ def run_experiment(num_background_locusts, rate_spawn_background_locusts,
         if sleep_time > 0:
             time.sleep(sleep_time)
             # going to use the updated version instead
-            out = subprocess.check_output(["python", "./sockshop_config/exfil_data_v2.py", "http://"+minikube+":32001", str(exfils[next_exfil]), str(amt_custs), str(amt_addr), str(amt_cards)])
+            out = subprocess.check_output(["python", "./sockshop_config/exfil_data_v2.py", "http://"+minikube+":30001", str(exfils[next_exfil]), str(amt_custs), str(amt_addr), str(amt_cards)])
             print "Data exfiltrated", out
     print "all data exfiltration complete"
 
