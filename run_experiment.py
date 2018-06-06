@@ -43,7 +43,7 @@ def main(start_minikube, setup_sockshop, run_an_experiment, output_dict, analyze
     if setup_sockshop:
         setup_app(app_name, istio_p, hpa)
     run_series_of_experiments(run_actual_experiment = run_an_experiment, out_dict= output_dict,
-                              analyze = analyze_p, tcpdump_p = tcpdump_p)
+                              analyze = analyze_p, tcpdump_p = tcpdump_p, app_name=app_name)
 
     '''
     if multiple_experiments == "n":
@@ -52,8 +52,9 @@ def main(start_minikube, setup_sockshop, run_an_experiment, output_dict, analyze
         run_series_of_experiments(only_data_analysis = only_data_analysis)
     '''
 
-def run_series_of_experiments(run_actual_experiment, out_dict, analyze, tcpdump_p):
+def run_series_of_experiments(run_actual_experiment, out_dict, analyze, tcpdump_p, app_name):
     ## first step, make relevant directory
+    meta_parameters.experiment_name += ' ' + app_name # I am not sure whether or not this will work
     experimental_directory = './experimental_data/' + meta_parameters.experiment_name
     #print "only_data_analysis", only_data_analysis
     try:
@@ -131,7 +132,6 @@ def run_series_of_experiments(run_actual_experiment, out_dict, analyze, tcpdump_
             for key,val in exfils_2.iteritems():
                 exfils_2[key] = val +  meta_parameters.exfil_increments[key]
 
-    ## TODO: graph all_experimental_results (but let's get this value to contain something meaningful first)
     #pickle.dump( all_experimental_results, open( experimental_directory + '/all_experimental_results_ratio.pickle', "wb" ) )
     print "okay, run_experiments is drawing to a close..."
     print all_experimental_results
@@ -191,10 +191,10 @@ def setup_app(app_name, istio_p, hpa):
         time.sleep(5)
         wait_until_pods_done("kube-system") # need tiller pod deployed
         out = subprocess.check_output(["helm", "install", "--name", "wordpress", "stable/wordpress"])
+        wait_until_pods_done("default") # need new pods working before can start experiment
         print out
         if hpa:
-            # start_autoscalers(get_deployments('default'), '70')
-            pass
+            start_autoscalers(get_deployments('default'), '70')
         # helm install --name wordpress stable/wordpress
     elif app_name == 'gitlab':
         out = subprocess.check_output(["helm", "init"])
@@ -475,9 +475,11 @@ def run_experiment(num_background_locusts, rate_spawn_background_locusts,
     ## okay, this is where the experiment is actualy going to be implemented (the rest is all setup)
     ## 0th step: determine how much data each of the data exfiltration calls gets so we can plan the exfiltration
     ## step accordingly
+    ''' # is sock shop specific
     minikube = get_IP()#subprocess.check_output(["minikube", "ip"]).rstrip()
     amt_custs, amt_addr, amt_cards = how_much_data("http://"+minikube+":30001")
     print amt_custs, amt_addr, amt_cards
+    '''
 
     ''' # not necessarily using istio
     out = subprocess.check_output(["kubectl", "get", "pods", "-n", "istio-system"])
@@ -506,6 +508,7 @@ def run_experiment(num_background_locusts, rate_spawn_background_locusts,
     #subprocess.Popen(["python", "pull_from_prom.py", "n", str( desired_stop_time + 1), rec_matrix_location, sent_matrix_location ])
     start_time = time.time()
 
+    ''' # data exfiltration is currently on hold
     # Third, wait some period of time and then start the data exfiltration
     # this has been modified to support multiple exfiltrations during a single time period
     print "Ready to exfiltrate!"
@@ -530,6 +533,7 @@ def run_experiment(num_background_locusts, rate_spawn_background_locusts,
             out = subprocess.check_output(["python", "./sockshop_config/exfil_data_v2.py", "http://"+minikube+":30001", str(exfils[next_exfil]), str(amt_custs), str(amt_addr), str(amt_cards)])
             print "Data exfiltrated", out
     print "all data exfiltration complete"
+    '''
 
     # Fourth, wait for some period of time and then stop the experiment
     # NOTE: going to leave sock shop and everything up, only stopping the experimental
