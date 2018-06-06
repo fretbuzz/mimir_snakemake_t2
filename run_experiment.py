@@ -41,7 +41,7 @@ def main(start_minikube, setup_sockshop, run_an_experiment, output_dict, analyze
     if start_minikube:
         restart_minikube(on_cloudlab)
     if setup_sockshop:
-        setup_app(app_name, istio_p, hpa)
+        setup_app(app_name, istio_p, hpa, on_cloudlab)
     run_series_of_experiments(run_actual_experiment = run_an_experiment, out_dict= output_dict,
                               analyze = analyze_p, tcpdump_p = tcpdump_p, app_name=app_name)
 
@@ -174,7 +174,7 @@ def restart_minikube(on_cloudlab):
     out = subprocess.check_output(["minikube", "addons", "enable", "metrics-server"])
     print out
 
-def setup_app(app_name, istio_p, hpa):
+def setup_app(app_name, istio_p, hpa, on_cloudlab):
     if istio_p:
         start_istio()
     if app_name == 'sockshop':
@@ -186,11 +186,17 @@ def setup_app(app_name, istio_p, hpa):
                 print("Failed to start sockshop hpas! " + e.message)
                 return
     elif app_name == 'wordpress':
-        out = subprocess.check_output(["helm", "init"])
+        if on_cloudlab:
+		out = subprocess.check_output(["./linux-amd64/helm", "init"])
+	else:
+		out = subprocess.check_output(["helm", "init"])
         print out
         time.sleep(5)
         wait_until_pods_done("kube-system") # need tiller pod deployed
-        out = subprocess.check_output(["helm", "install", "--name", "wordpress", "stable/wordpress"])
+        if on_cloudlab:
+		out = subprocess.check_output(["./linux-amd64/helm", "install", "--name", "wordpress", "stable/wordpress"])
+	else:
+		out = subprocess.check_output(["helm", "install", "--name", "wordpress", "stable/wordpress"])
         wait_until_pods_done("default") # need new pods working before can start experiment
         print out
         if hpa:
