@@ -473,7 +473,7 @@ def run_experiment(num_background_locusts, rate_spawn_background_locusts,
     ## 0th step: determine how much data each of the data exfiltration calls gets so we can plan the exfiltration
     ## step accordingly
     minikube = get_IP()#subprocess.check_output(["minikube", "ip"]).rstrip()
-    amt_custs, amt_addr, amt_cards = how_much_data("http://"+minikube+":32001")
+    amt_custs, amt_addr, amt_cards = how_much_data("http://"+minikube+":30001")
     print amt_custs, amt_addr, amt_cards
 
     ''' # not necessarily using istio
