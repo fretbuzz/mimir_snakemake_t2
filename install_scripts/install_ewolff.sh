@@ -1,5 +1,4 @@
-# TODO: install maven
-
+bash ./install_maven.sh
 sudo bash ../install_docker_compose.sh
 git clone https://github.com/ewolff/microservice.git 
 cd ./microservice/

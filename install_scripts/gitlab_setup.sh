@@ -2,7 +2,6 @@ git clone https://gitlab.com/charts/gitlab.git
 
 cd ./gitlab
 
-helm init
 helm repo add gitlab https://charts.gitlab.io
 
 cd ./gitlab
