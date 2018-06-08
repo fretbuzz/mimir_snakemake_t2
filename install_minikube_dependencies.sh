@@ -42,4 +42,4 @@ curl -Lo minikube https://storage.googleapis.com/minikube/releases/v0.18.0/minik
 # okay, let's install helm now
 wget https://storage.googleapis.com/kubernetes-helm/helm-v2.9.1-linux-amd64.tar.gz
 tar -xvf helm-v2.9.1-linux-amd64.tar.gz
-#export PATH=$PATH:$(pwd)/linux-amd64/
+export PATH=$PATH:$(pwd)/linux-amd64
