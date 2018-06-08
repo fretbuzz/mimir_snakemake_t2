@@ -1,8 +1,10 @@
 git clone https://github.com/gameontext/gameon.git
 cd ./gameon
-{ echo '1\n';
-} | ./go-admin.sh choose
+./go-admin.sh choose
 eval $(./go-admin.sh env)
+#ls
 alias go-run
-go-admin setup
-go-admin up
+#ls
+bash ./go-admin.sh setup
+bash ./go-admin.sh up
+./docker/go-run.sh wait

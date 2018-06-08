@@ -1,4 +1,4 @@
-sudo bash ../install_docker_compose.sh
+bash ../install_docker_compose.sh
 git clone https://github.com/micronaut-projects/micronaut-examples.git 
 cd ./micronaut-examples/petstore/
 ./gradlew build -x test # and wait a long time
