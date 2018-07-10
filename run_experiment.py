@@ -187,30 +187,41 @@ def setup_app(app_name, istio_p, hpa, on_cloudlab):
                 return
     elif app_name == 'wordpress':
         if on_cloudlab:
-		out = subprocess.check_output(["./linux-amd64/helm", "init"])
-	else:
-		out = subprocess.check_output(["helm", "init"])
-        print out
+            out = subprocess.check_output(["./linux-amd64/helm", "init"])
+            print out
+        else:
+            out = subprocess.check_output(["helm", "init"])
+            print out
         time.sleep(5)
         wait_until_pods_done("kube-system") # need tiller pod deployed
         if on_cloudlab:
-		out = subprocess.check_output(["./linux-amd64/helm", "install", "--name", "wordpress", "stable/wordpress"])
-	else:
-		out = subprocess.check_output(["helm", "install", "--name", "wordpress", "stable/wordpress"])
+            out = subprocess.check_output(["./linux-amd64/helm", "install", "--name", "wordpress", "stable/wordpress"])
+            print out
+        else:
+            out = subprocess.check_output(["helm", "install", "--name", "wordpress", "stable/wordpress"])
+            print out
         wait_until_pods_done("default") # need new pods working before can start experiment
-        print out
         if hpa:
             start_autoscalers(get_deployments('default'), '70')
         # helm install --name wordpress stable/wordpress
     elif app_name == 'gitlab':
-        out = subprocess.check_output(["helm", "init"])
-        print out
-        out = subprocess.check_output(["helm", "install", "--name", "wordpress", "stable/wordpress"])
-        print out
-        # helm install --name gitlab --set externalUrl=http://your-domain.com/ stable/gitlab-ce
+        if on_cloudlab:
+            out = subprocess.check_output(["./linux-amd64/helm", "init"])
+            print out
+        else:
+            out = subprocess.check_output(["helm", "init"])
+            print out
+        time.sleep(5)
+        wait_until_pods_done("kube-system") # need tiller pod deployed
+        if on_cloudlab:
+            out = subprocess.check_output(["./linux-amd64/helm", "install", "--name", "gitlab", "stable/gitlab"])
+            print out
+        else:
+            out = subprocess.check_output(["helm", "install", "--name", "gitlab", "stable/gitlab"])
+            print out
+        wait_until_pods_done("default") # need new pods working before can start experiment
         if hpa:
-            # start_autoscalers(get_deployments('default'), '70')
-            pass
+            start_autoscalers(get_deployments('default'), '70')
     elif app_name == 'eshop':
         # the microsoft app
         # I think it is docker compose tho
@@ -434,7 +445,7 @@ def setup_sock_shop(number_full_customer_records=parameters.number_full_customer
 #   time: total time for test. Will be subdivided into 24 smaller chunks to represent 1 hour each
 #   max_clients: Arg provided by user in parameters.py. Represents maximum number of simultaneous clients
 def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate):
-    minikube = get_IP()#subprocess.check_output(["minikube", "ip"]).rstrip()
+    #minikube = get_IP()#subprocess.check_output(["minikube", "ip"]).rstrip()
     devnull = open(os.devnull, 'wb')  # disposing of stdout manualy
 
     client_ratio = []
@@ -461,8 +472,15 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate)
         client_count = str(int(round(normalizer*client_ratio[i]*max_clients)))
 
         try:
-            proc = subprocess.Popen(["locust", "-f", "./sockshop_config/background_traffic.py", "--host=http://"+minikube+":32001", "--no-web", "-c",
-                                    client_count, "-r", spawn_rate],
+            #proc = subprocess.Popen(["locust", "-f", "./sockshop_config/background_traffic.py", "--host=http://"+minikube+":32001", "--no-web", "-c",
+            #                        client_count, "-r", spawn_rate],
+            #                        stdout=devnull, stderr=devnull, preexec_fn=os.setsid)
+            # for use w/ seastore:
+            #proc = subprocess.Popen(["locust", "-f", "./load_generators/seashop_background.py", "--host=https://192.168.99.107",
+            #                         "--no-web", "-c", client_count, "-r", spawn_rate],
+            #                  stdout=devnull, stderr=devnull, preexec_fn=os.setsid)
+            proc = subprocess.Popen(["locust", "-f", "./load_generators/wordpress_background.py", "--host=https://192.168.99.103:31758",
+                                    "--no-web", "-c", client_count, "-r", spawn_rate],
                                     stdout=devnull, stderr=devnull, preexec_fn=os.setsid)
         except subprocess.CalledProcessError as e:
             raise RuntimeError("command '{}' return with error (code {}): {}".format(e.cmd, e.returncode, e.output))
@@ -747,8 +765,11 @@ def wait_until_pods_done(namespace):
     print "Checking if " + namespace + " pods are ready..."
     pods_ready_p = False
     while not pods_ready_p:
+        print "command to be used ", "kubectl get pods -n " + namespace
         out = subprocess.check_output(["kubectl", "get", "pods", "-n", namespace])
         print out
+        #out2 = subprocess.check_output(["kubectl", "get", "pods", "--all-namespaces"])
+        #print out2
         statuses = parse_kubeclt_output(out, [1,2,3])
         print statuses
         pods_ready_p = check_if_pods_ready(statuses)
