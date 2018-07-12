@@ -450,10 +450,10 @@ def run_analysis_pipeline_recipes():
     basefile_name = '/Users/jseverin/Documents/Microservices/munnin/atsea_info/edgefiles/seastore_swarm'
     basegraph_name = '/Users/jseverin/Documents/Microservices/munnin/atsea_info/graphs/seastore_swarm'
     container_info_path = '/Users/jseverin/Documents/Microservices/munnin/atsea_info/atsea_redux_docker_container_configs.txt'
-    time_interval_lengths = [378.5, 37.85, 3.785, 1, .3785] # seconds
+    time_interval_lengths = [100, 100, 10, 1, 0.1] # seconds
     network_or_microservice_list = ["atsea_back-tier", "atsea_default", "atsea_front-tier", "atsea_payment" ]
     ms_s = ['appserver', 'reverse_proxy', 'front-tier']
-    make_edgefiles = False
+    make_edgefiles = False #True
     start_time = 1529180898.56
     end_time = 1529181277.03
     run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
