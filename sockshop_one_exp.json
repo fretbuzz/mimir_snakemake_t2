@@ -1,0 +1,20 @@
+{
+    "application_name": "sockshop",
+    "experiment_name": "sockshop_one",
+    "orchestrator": "docker_swarm",
+    "setup" : {
+      "number_customer_records": "30000",
+      "number_background_locusts": "150",
+      "background_locust_spawn_rate": "10"
+    },
+    "experiment" : {
+      "number_background_locusts": 400,
+      "background_locust_spawn_rate": 100,
+      "experiment_length_sec": 360,
+      "traffic_type" : "normal",
+      "number_of_trials": 2
+    },
+    "exfiltration_info" : {
+      "min_time_sleep": 1
+    }
+}
