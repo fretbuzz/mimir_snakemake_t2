@@ -43,6 +43,7 @@ def perform_multiple_time_network_measures(base_edgefile, time_increment, num_in
     # and then I can iterate through the contents and do stuff.
     list_of_graphs = []
 
+
     for i in range(0, num_increments):
         G = nx.DiGraph()
         file_path = base_edgefile + '_' + str(int(i * time_increment)) + '_' + str(int(time_increment)) + '.txt'
@@ -57,31 +58,39 @@ def perform_multiple_time_network_measures(base_edgefile, time_increment, num_in
 
 def pipeline_analysis_step(filenames, ms_s, time_interval, basegraph_name):
     list_of_graphs = []
+    list_of_aggregated_graphs = [] # all nodes of the same class aggregated into a single node
+    list_of_aggregated_graphs_multi = [] # the above w/ multiple edges
+
     for file_path in filenames:
         G = nx.DiGraph()
         print "path to file is ", file_path
         nx.read_edgelist(file_path,
                         create_using=G, delimiter=',', data=(('weight', float),))
         list_of_graphs.append(G)
+        aggreg_multi_G, aggreg_simple_G = aggregate_graph(G, ms_s)
+        list_of_aggregated_graphs.append( aggreg_simple_G )
+        list_of_aggregated_graphs_multi.append( aggreg_multi_G )
 
-    calc_graph_metrics(list_of_graphs, ms_s, time_interval, basegraph_name)
+    calc_graph_metrics(list_of_graphs, ms_s, time_interval, basegraph_name + '_container_')
+    #calc_graph_metrics(list_of_aggregated_graphs, ms_s, time_interval, basegraph_name + '_class_')
+
 
 def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name):
     average_path_lengths = []
     densities = []
     degree_dicts = []
     weight_recips = []
-    weighed_recips_eigen_ready = []
-    princ_eigenvals = []
-    total_weight_egonets = []
-    edge_strengths = []
+    #weighed_recips_eigen_ready = []
+    #princ_eigenvals = []
+    #total_weight_egonets = []
+    #edge_strengths = []
     weighted_average_path_lengths = []
     unweighted_overall_reciprocities = [] # defined per networkx definition (see their docs)
     weighted_reciprocities = [] # defined per the nature paper (see comment @ function definition)
-    weighted_reciprocities_nodes = {}
+    #weighted_reciprocities_nodes = {}
 
-    for ms in ms_s:
-        weighted_reciprocities_nodes[ms] = []
+    #for ms in ms_s:
+    #    weighted_reciprocities_nodes[ms] = []
 
     for cur_G in G_list:
         # okay, so this is where to calculate those metrics from the excel document
@@ -118,6 +127,9 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name):
         weighted_average_path_lengths.append(weighted_avg_path_length)
         #input("check it")
 
+
+
+
         density = nx.density(cur_G)
 
         # now let's do the nodal metrics (and then aggregate them to node-class metrics)
@@ -137,17 +149,17 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name):
                 weighted_reciprocity_processed[key] = val[1] / val[0]  # out/in
 
         edge_strength = find_heaviest_edge_vs_avg(cur_G, ms_s)  # todo: process to do max-vs-avg
-        princ_eigen, total_weight_egonet = find_dominant_pair(cur_G, ms_s)  # todo: like in oddball
+        #princ_eigen, total_weight_egonet = find_dominant_pair(cur_G, ms_s)  # todo: like in oddball
 
         # let's store these values to use again later
         average_path_lengths.append(avg_path_length)
         densities.append(density)
         degree_dicts.append(degree_dict)
-        weight_recips.append(weighted_reciprocity_processed)
-        weighed_recips_eigen_ready.append(weighted_reciprocity_eigenvector_ready)
-        edge_strengths.append(edge_strength)
-        princ_eigenvals.append(princ_eigen)
-        total_weight_egonets.append(total_weight_egonet)
+        #weight_recips.append(weighted_reciprocity_processed)
+        #weighed_recips_eigen_ready.append(weighted_reciprocity_eigenvector_ready)
+        #edge_strengths.append(edge_strength)
+        #princ_eigenvals.append(princ_eigen)
+        #total_weight_egonets.append(total_weight_egonet)
 
     # okay, so now to do some simple analysis that'll lead to the creation of some graphs...
     # average_path_lengths: honestly just plot time vs value (maybe can add in stddevs or something later)
@@ -162,15 +174,15 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name):
     print "avg path lengths", average_path_lengths, len(average_path_lengths)
     plt.figure(3)
     plt.clf()
-    plt.title('unweighted average path length, ' + str(int(time_interval)))
+    plt.title('unweighted average path length, ' + '%.2f' % (time_interval) )
     plt.ylabel('average path length (unweighted)')
     plt.xlabel('time (sec)')
     plt.plot(x, average_path_lengths[1:])
-    plt.savefig(basegraph_name + '+avg_path_length_' + str(int(time_interval)))
+    plt.savefig(basegraph_name + '+avg_path_length_' + '%.2f' % (time_interval), format='png')
 
     plt.figure(20)
     plt.clf()
-    plt.title('unweighted average path length, ' + str(int(time_interval)))
+    plt.title('unweighted average path length, ' + '%.2f' % (time_interval))
     plt.ylabel('average path length (unweighted)')
     #print ~np.isnan(average_path_lengths)
     average_path_lengths_no_nan = []
@@ -180,76 +192,76 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name):
     #plt.boxplot(average_path_lengths[np.logical_not(np.isnan(average_path_lengths))])
     #plt.boxplot(average_path_lengths[~np.isnan(average_path_lengths)][1:] )
     plt.boxplot(average_path_lengths_no_nan[1:], sym='k.', whis=[5, 95])
-    plt.savefig(basegraph_name + '+avg_path_length_boxplot_' + str(int(time_interval)))
+    plt.savefig(basegraph_name + '+avg_path_length_boxplot_' + '%.2f' % (time_interval), format='png')
 
     plt.figure(10)
     plt.clf()
     plt.ylabel('average weighted path length')
     plt.xlabel('time (sec)')
-    plt.title('time vs (weighted) average path lengths, ' + str(int(time_interval)))
+    plt.title('time vs (weighted) average path lengths, ' + '%.2f' % (time_interval))
     plt.plot(x, weighted_average_path_lengths[1:])
-    plt.savefig(basegraph_name + '_weighted_avg_path_length_' + str(int(time_interval)))
+    plt.savefig(basegraph_name + '_weighted_avg_path_length_' + '%.2f' % (time_interval), format='png')
 
     plt.figure(30)
     plt.clf()
     plt.ylabel('average weighted path length')
-    plt.title('time vs (weighted) average path lengths, ' + str(int(time_interval)))
+    plt.title('time vs (weighted) average path lengths, ' + '%.2f' % (time_interval))
     weighted_average_path_lengths_no_nan = []
     for val in weighted_average_path_lengths:
         if not math.isnan(val):
             weighted_average_path_lengths_no_nan.append(val)
     plt.boxplot(weighted_average_path_lengths_no_nan[1:], sym='k.', whis=[5, 95])
     #plt.boxplot(weighted_average_path_lengths[1:])
-    plt.savefig(basegraph_name + '_weighted_avg_path_length_boxplot_' + str(int(time_interval)))
+    plt.savefig(basegraph_name + '_weighted_avg_path_length_boxplot_' +'%.2f' % (time_interval), format='png')
 
     plt.figure(11)
     plt.clf()
     plt.ylabel('overall reciprocity (unweighted)')
     plt.xlabel('time (sec)')
     # yah, so this could maybe detect like a udp thing (b/c no ack's?)
-    plt.title('unweighted overall reciprocity, ' + str(int(time_interval)))
+    plt.title('unweighted overall reciprocity, ' + '%.2f' % (time_interval))
     plt.plot(x, unweighted_overall_reciprocities[1:])
-    plt.savefig(basegraph_name + '_unweighted_overall_reciprocity_' + str(int(time_interval)))
+    plt.savefig(basegraph_name + '_unweighted_overall_reciprocity_' + '%.2f' % (time_interval), format='png')
 
     plt.figure(31)
     plt.clf()
     plt.ylabel('overall reciprocity (unweighted)')
     # yah, so this could maybe detect like a udp thing (b/c no ack's?)
-    plt.title('unweighted overall reciprocity, ' + str(int(time_interval)))
+    plt.title('unweighted overall reciprocity, ' + '%.2f' % (time_interval))
     unweighted_overall_reciprocities_no_nan = []
     for val in unweighted_overall_reciprocities:
         if not math.isnan(val):
             unweighted_overall_reciprocities_no_nan.append(val)
     plt.boxplot(unweighted_overall_reciprocities_no_nan, sym='k.', whis=[5, 95])
     #plt.boxplot(unweighted_overall_reciprocities[1:])
-    plt.savefig(basegraph_name + '_unweighted_overall_reciprocity_boxplot_' + str(int(time_interval)))
+    plt.savefig(basegraph_name + '_unweighted_overall_reciprocity_boxplot_' + '%.2f' % (time_interval), format='png')
 
     plt.figure(12)
     plt.clf()
     plt.ylabel('overall weighted reciprocity')
     plt.xlabel('time (sec)')
-    plt.title('weighted reciprocity, ' + str(int(time_interval)))
+    plt.title('weighted reciprocity, ' + '%.2f' % (time_interval))
     plt.plot(x, weighted_reciprocities[1:])
-    plt.savefig(basegraph_name + '_weighted_overall_reciprocity_' + str(int(time_interval)))
+    plt.savefig(basegraph_name + '_weighted_overall_reciprocity_' + '%.2f' % (time_interval), format='png')
 
     plt.figure(32)
     plt.clf()
     plt.ylabel('overall weighted reciprocity')
-    plt.title('weighted reciprocity, ' + str(int(time_interval)))
+    plt.title('weighted reciprocity, ' + '%.2f' % (time_interval))
     weighted_reciprocities_no_nan = []
     for val in weighted_reciprocities:
         if not math.isnan(val):
             weighted_reciprocities_no_nan.append(val)
     plt.boxplot(weighted_reciprocities_no_nan[1:], sym='k.', whis=[5, 95])
-    plt.savefig(basegraph_name + '_weighted_overall_reciprocity_boxplot_' + str(int(time_interval)))
+    plt.savefig(basegraph_name + '_weighted_overall_reciprocity_boxplot_' + '%.2f' % (time_interval), format='png')
 
     plt.figure(4)
     plt.clf()
     plt.ylabel('overall graph density')
     plt.xlabel('time (sec)')
-    plt.title('graph density, ' + str(int(time_interval)))
+    plt.title('graph density, ' + '%.2f' % (time_interval))
     plt.plot(x, densities[1:])
-    plt.savefig(basegraph_name + '_graph_density_' + str(int(time_interval)))
+    plt.savefig(basegraph_name + '_graph_density_' + '%.2f' % (time_interval), format='png')
 
     print "degrees", degree_dicts
     print "weighted recips", weight_recips
@@ -282,6 +294,10 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name):
     print "angles degrees", type(angles_degrees), angles_degrees
     print node_degrees
     #print "DOING WEIGHTED RECIPROCITY"
+
+    angles_degrees_eigenvector = eigenvector_analysis(degree_dicts, 4, total_node_list)
+    print "angles degrees eigenvector", angles_degrees_eigenvector
+
     #weighted_reciprocity_degrees = eigenvector_analysis(weight_recips, window_size=4)  # todo: not sure if will work...
 
 
@@ -289,24 +305,24 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name):
     plt.clf()
     plt.ylabel('angle between out-degree vectors')
     plt.xlabel('time (sec)')
-    plt.title('angle between out-degree vectors, ' + str(int(time_interval)))
+    plt.title('angle between out-degree vectors, ' + '%.2f' % (time_interval))
     #x_after_window = x[window_size:]
     #if len(x_after_window) == 0: # problem with 1 time step...
     #    x_after_window = x
     #print "fig5", len(x_after_window), len(angles_degrees), angles_degrees
     plt.plot(x, angles_degrees[1:])
-    plt.savefig(basegraph_name + '_out_degree_angles_' + str(int(time_interval)))
+    plt.savefig(basegraph_name + '_out_degree_angles_' + '%.2f' % (time_interval), format='png')
 
     plt.figure(35)
     plt.clf()
     plt.ylabel('angle between out-degree vectors')
-    plt.title('angle between out-degree vectors, ' + str(int(time_interval)))
+    plt.title('angle between out-degree vectors, ' + '%.2f' % (time_interval))
     angles_degrees_no_nan = []
     for val in angles_degrees:
         if not math.isnan(val):
             angles_degrees_no_nan.append(val)
     plt.boxplot(angles_degrees_no_nan[1:], sym='k.', whis=[5, 95])
-    plt.savefig(basegraph_name + '_out_degree_angles_boxplot_' + str(int(time_interval)))
+    plt.savefig(basegraph_name + '_out_degree_angles_boxplot_' + '%.2f' % (time_interval), format='png')
 
     #plt.figure(6)
     plt.figure(6)
@@ -328,7 +344,7 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name):
     plt.figure(34)
     plt.clf()
     plt.ylabel('overall graph density')
-    plt.title('graph density, ' + str(int(time_interval)))
+    plt.title('graph density, ' + '%.2f' % (time_interval))
     print "graph density", densities[1:]
     densities_no_nan = []
     for val in densities:
@@ -336,7 +352,7 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name):
             densities_no_nan.append(val)
     print densities_no_nan[1:]
     plt.boxplot(densities_no_nan[1:], sym='k.', whis=[5, 95])
-    plt.savefig(basegraph_name + '_graph_density_boxplot_' + str(int(time_interval)))
+    plt.savefig(basegraph_name + '_graph_density_boxplot_' + '%.2f' % (time_interval), format='png')
     #time.sleep(5)
 
     '''
@@ -355,6 +371,9 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name):
     # TODO: 2 broken boxplots :( (density + average path length)
     # actually, they aren't broken (i don't think), the data's structure is just causing it too look wierd
     # (should probably mess w/ params and see what happens)
+
+
+    # eigenvector_analysis(tensor, window_size,nodes_in_tensor)
 
     print average_path_lengths_no_nan[1:]
     try:
@@ -680,9 +699,53 @@ def perform_network_calcs(G, ms_s, num_increments = 0, time_increment=0, multipl
     plt.show()
 '''
 
+# aggregate all nodes of the same class into a single node
+# let's use a multigraph, so we can keep all the edges as intact...
+def aggregate_graph(G, ms_s):
+    H = nx.MultiDiGraph()
+    mapping = {}
+    mapping_node_to_ms = {}
+    for ms in ms_s:
+        mapping[ms] = []
+    for node in G.nodes():
+        for ms in ms_s:
+            if ms in node:
+                mapping[ms].append(node)
+                mapping_node_to_ms[node] = ms
+                break
+    for (u,v,data) in G.edges(data=True):
+        H.add_edge(mapping_node_to_ms[u], mapping_node_to_ms[v], weight=data['weight'])
+    pos = graphviz_layout(H)
+    nx.draw_networkx(H, pos, with_labels = True, arrows=True)
+    #plt.show()
+
+    # while we are at it, let's also return a simpler graph, which is just
+    # the multigraph but with all the edges aggregated together
+    M = nx.DiGraph()
+    mapping_edge_to_weight = {}
+    for node_one in H.nodes():
+        for node_two in H.nodes():
+            mapping_edge_to_weight[ (node_one, node_two)  ] = 0
+
+    for (u,v,data) in H.edges.data(data=True):
+        mapping_edge_to_weight[(u,v)] += data['weight']
+
+    print "mapping_edge_to_weight", mapping_edge_to_weight
+
+    for edges, weights in mapping_edge_to_weight.iteritems():
+        if weights:
+            M.add_edge(edges[0], edges[1], weight=weights)
+
+    pos = graphviz_layout(M)
+    nx.draw_networkx(M, pos, with_labels = True, arrows=True)
+    #plt.show()
+
+    return H, M
+
 # returns dict of (ms_instance, ms_class) = (in, out)
 # where 'in' is the total in-strength from all nodes in the ms_class to this ms_instance
 # where 'out' is the total out-strength from the ms_instance to all the nodes in the ms_class
+# TODO: there is some problem with the input data to pearsonr, causing the correlation value to be nan
 def find_reciprocated_strength(G, ms_s):
     reciprocated_strength_dict = {}
     avg_strength_dict = {}
@@ -819,7 +882,9 @@ def find_dominant_pair(G, ms_s):
 
 # returns list of angles
 # TODO: fix (might need to rewrite a bunch from scratch...)
-def eigenvector_analysis(tensor, window_size):
+# todo: the values for each time stamp entry must be a dictinoary
+# mapped by
+def eigenvector_analysis(tensor, window_size,nodes_in_tensor):
     # let's outline what I gotta do here...
     # take a 'window' size time slice
     # for each pair of nodes in this window -> calculate correlation of time series
@@ -829,8 +894,74 @@ def eigenvector_analysis(tensor, window_size):
     # for each correlation matrix, find the principal eigenvector
     # this is kinda a second pass of the window thing, but combine (via normal
         # average) all the eigenvectors in the window
-    # find angle (via dot product) of current eigenvector vs the average of the window
-    # if angle too big, then flag
+    # find angle (seperate function)
+
+    correlation_matrices = []
+    p_value_matrices =[]
+    correlation_matrix_eigenvectors = []
+    # let's iterate through the times, pulling out slices that correspond to windows
+    for i in range(0, len(tensor)):
+        correlation_matrix = pandas.DataFrame(0, index=nodes_in_tensor, columns=nodes_in_tensor)
+        pearson_p_val_matrix = pandas.DataFrame(0, index=nodes_in_tensor, columns=nodes_in_tensor)
+
+        start_of_window = max(0, i - window_size + 1)
+        # compute average window (with what we have available)
+        print "list slice window of tensor", tensor[start_of_window: i]
+        tensor_window = tensor[start_of_window: i]
+
+        # okay, now that we have the window, it is time to go through each pair of nodes in
+        # the window
+        for node_one in nodes_in_tensor:
+            for node_two in nodes_in_tensor:
+                # compute pearson's rho of the corresponding time series
+                try:
+                    node_one_time_series = [x[node_one] for x in tensor_window]
+                except:
+                    continue
+                try:
+                    nodE_two_time_series = [x[node_two] for x in tensor_window]
+                except:
+                    continue
+                pearson_rho = scipy.stats.pearsonr(node_one_time_series, nodE_two_time_series)
+                print 'peasrson', pearson_rho
+                if math.isnan(pearson_rho[0]) and pearson_rho[1] == 1.0:
+                    correlation_matrix.at[node_one, node_two] = 1
+                else:
+                    if math.isnan(pearson_rho[0]):
+                        correlation_matrix.at[node_one, node_two] = 0
+                    else:
+                        correlation_matrix.at[node_one, node_two] = pearson_rho[0]
+                try:
+                    pearson_p_val_matrix.at[node_one, node_two] = pearson_rho[1]
+                except:
+                    pearson_p_val_matrix.at[node_one, node_two] = -1
+
+
+        correlation_matrices.append(correlation_matrix)
+        p_value_matrices.append(pearson_p_val_matrix)
+
+        eigen_vals, eigen_vects = scipy.linalg.eigh(correlation_matrix.values)
+        correlation_matrix_eigenvectors.append(eigen_vects[0])
+
+    print "correlation eigenvects", correlation_matrix_eigenvectors
+    angles = find_angles(correlation_matrix_eigenvectors, window_size)
+
+    '''
+    # angles function needs a list of lists # NO NOT THIS
+    correlation_matrices_list = []
+    for correlation_matrix in correlation_matrices:
+        correlation_matrix_list = []
+        for node in nodes_in_tensor:
+            for node_two in nodes_in_tensor:
+                correlation_matrix_list.append(correlation_matrix.at[node, node_two])
+        correlation_matrices_list.append(correlation_matrix_list)
+
+    angles = find_angles(correlation_matrices_list, window_size)
+    '''
+
+    '''
+    
+    for i in range(0, len(correlation_matrix))
 
     pearson_rho_matrices = []
     perason_rho_princip_eigenvectors = []
@@ -887,31 +1018,8 @@ def eigenvector_analysis(tensor, window_size):
         print pearson_rho_matrix.values
         eigen_vals, eigen_vects = scipy.linalg.eigh(pearson_rho_matrix.values)
         perason_rho_princip_eigenvectors.append(eigen_vects[0])
-
-    # i don't want this anymore...
-    #for i in range(0,window_size + 1):
-    #    angles.append()
-
-    angles = find_angles(perason_rho_princip_eigenvectors, window_size)
-
-    ''' # this is WAY TOO CONVOLUTED
-    angles = []
-    for i in range(0,len(tensor) - window_size - 1):
-        perason_rho_princip_eigenvector_window = perason_rho_princip_eigenvectors[i:i+window_size]
-        print "eigenvect window", perason_rho_princip_eigenvector_window
-        avg_for_window = np.mean(perason_rho_princip_eigenvector_window)
-
-        current_time = i + window_size + 1
-        current_princip_eigenval = perason_rho_princip_eigenvectors[current_time]
-        # okay now just find angle between the vectors (and return it)
-        # from https://stackoverflow.com/questions/2827393/angles-between-two-n-dimensional-vectors-in-python/13849249#13849249
-        avg_for_window_unit_vector = avg_for_window / np.linalg.norm(avg_for_window)
-        current_princip_eigenval_unit_vector = current_princip_eigenval / np.linalg.norm(current_princip_eigenval)
-        angle = np.arccos( np.clip(np.dot(avg_for_window_unit_vector, current_princip_eigenval_unit_vector), -1.0, 1.0)  )
-        angles.append(angle)
-    if len(angles) == 0:
-        angles.append(0) # can't really be an angle b/c only one vector but this'll keep it from crashing
     '''
+
     return angles
 
 def find_angles(list_of_vectors, window_size):
@@ -1031,17 +1139,42 @@ def network_weidge_weighted_reciprocity(G):
 # (3) graphs for seastore, preferably others as well (shouldn't be too bad if (1) goes smoothly)
 # (4) play some ai war
 
-
-
 # TODO: some other things to try
 # using basic angle technique:
-#   weighted reciprocity (on a per-service basis)
-#   ?
-#   ?
+#   weighted reciprocity
+#   maximum weight ratio on reciprocated edges egonet
+        # from leman's paper, i think might be helpful to find the one-attack-link
 # using full eigenspace technique:
+#   out degree
 #   outstrength
 #   instrength
-#   non-reciprocated
-#   ?
-#   ?
+#   non-reciprocated weight
+#
+# actually we can all of these both ways, with node,class,and graph granularity!
+#
 # all these would take me to 10 total measures... that's a good number for now
+
+# wed.
+# (1) above graph metrics
+    # prereq: finish implementing the leman method
+        # I still need to work some more on this, b/c I think 'dirty' data (maybe nan's or something)
+        # are being fed into the pearsonr function, and so it is returning nan
+    # prereq: want another (aggregated by node class) graph
+        # okay, I think this is more or less fine
+    # need to modify it so edgesfiles for < 1 time intervals can be created
+# (2) finish polishing graphs
+    # big thing here is the multi-time resolution boxplots
+# (3) develop concrete plan for simulating exfiltration
+    # hopefully there is some pre-existing library that I can use
+    # looks like DET (https://github.com/PaulSec/DET is my best bet here, tho
+    # it may not be setup for multi-hop, tho it looks like no tool is setup for
+    # that, so i guess that's just the way it is, wait holdup, it looks like
+    # Proxy mode is a thing... yep, just need to configure the config.json file
+    # btw, I will need a way to ssh into a large of these containers + install stuff
+    # hm.... (see text document for more details...)
+
+
+# (4) read dockerGuard code / technical details of paper
+    # looks like most of it is in python, which is good
+# (5) try running the dockerGuard code
+    # might be tricky...

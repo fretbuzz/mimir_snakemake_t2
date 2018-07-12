@@ -184,7 +184,9 @@ def write_to_file(mapping, time, time_interval, basefile_name):
         mapped_dst = map_pod_to_integer[src_dst[1]]
         converted_mapping[(mapped_src, mapped_dst)] = weight
 
-    ending = '_' + str(int(time)) + '_' + str(int(time_interval))
+    #ending = '_' + str(int(time)) + '_' + str(int(time_interval))
+    print time, type(time),  time_interval, type(time_interval)
+    ending = '_' + '%.2f' % (time) + '_' + '%.2f' % (time_interval)
     print "file suffix ", ending
 
     ''' note: can reenable if I want to use the odball code...
@@ -369,7 +371,8 @@ def aggregate_pcaps(list_of_pcaps, network_list):
 # network_or_microservice_list = network list if swarm, microservice (class) list if k8s
 # TODO can ms_s take the part of network_or_microservice_list under the appropriate scenario??
 def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
-                               network_or_microservice_list, ms_s, make_edgefiles_p, basegraph_name):
+                               network_or_microservice_list, ms_s, make_edgefiles_p, basegraph_name,
+                               start_time = None, end_time = None):
     if is_swarm:
         mapping = swarm_container_ips(container_info_path, network_or_microservice_list)
     else:
@@ -378,13 +381,15 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
     print "container to ip mapping", mapping
     # okay, how to do this... going to want to (1) generate the filenames and then (2) delete them.
     # problem, don't know how long the
-    #current_pcap = rdpcap(pcap_paths[0]) # todo might be able to only partially load the pcap when i don't need to make edgefiles
     # going to divide the time intervals here. Input the list such that the you are fine with the first pcap
     # file being used for this.
-    # todo #fst_pkt = current_pcap[0]
-    start_time = 1529180898.56 #todo fst_pkt.time
-    #todo #last_pkt = current_pcap[-1]
-    end_time = 1529181277.03 #todo last_pkt.time
+    if start_time==None or end_time==None or make_edgefiles_p:
+        current_pcap = rdpcap(pcap_paths[0])
+        fst_pkt = current_pcap[0]
+        last_pkt = current_pcap[-1]
+        start_time = fst_pkt.time
+        end_time = last_pkt.time
+
     print "start_time: ", start_time, "end_time:", end_time
     interval_to_filenames = {}
 
@@ -394,7 +399,8 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
         number_of_time_intervals = int( math.ceil(number_of_time_intervals) )
         time_counter = 0
         for interval in range(1, number_of_time_intervals+1):
-            ending = '_' + str(int(time_counter)) + '_' + str(int(time_interval_length))
+            #ending = '_' + str(int(time_counter)) + '_' + str(int(time_interval_length))
+            ending = '_' + '%.2f' % (time_counter) + '_' + '%.2f'% (time_interval_length)
             filenames.append(basefile_name + ending + '.txt')
             time_counter += time_interval_length
         interval_to_filenames[time_interval_length] = filenames
@@ -411,11 +417,13 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
             for interval in range(1, number_of_time_intervals+1):
                 # starts at 1 b/c nothing happened at 0
                 # ends with +1 b/c it was leaving the last value out
-                ending = '_' + str(int(time_counter)) + '_' + str(int(time_interval_length))
+                #ending = '_' + str(int(time_counter)) + '_' + str(int(time_interval_length))
+                ending = '_' + '%.2f' % (time_counter) + '_' + '%.2f' % (time_interval_length)
+                filename = basefile_name + ending + '.txt'
                 try:
-                    os.remove(basefile_name + ending + '.txt')
+                    os.remove(filename)
                 except:
-                    print basefile_name + ending + '.txt', "   ", "does not exist"
+                    print filename, "   ", "does not exist"
                 time_counter += time_interval_length
 
 
@@ -442,12 +450,16 @@ def run_analysis_pipeline_recipes():
     basefile_name = '/Users/jseverin/Documents/Microservices/munnin/atsea_info/edgefiles/seastore_swarm'
     basegraph_name = '/Users/jseverin/Documents/Microservices/munnin/atsea_info/graphs/seastore_swarm'
     container_info_path = '/Users/jseverin/Documents/Microservices/munnin/atsea_info/atsea_redux_docker_container_configs.txt'
-    time_interval_lengths = [378.5, 37.85, 3.785, 1] # seconds
+    time_interval_lengths = [378.5, 37.85, 3.785, 1, .3785] # seconds
     network_or_microservice_list = ["atsea_back-tier", "atsea_default", "atsea_front-tier", "atsea_payment" ]
     ms_s = ['appserver', 'reverse_proxy', 'front-tier']
     make_edgefiles = False
+    start_time = 1529180898.56
+    end_time = 1529181277.03
     run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
-                               network_or_microservice_list, ms_s, make_edgefiles, basegraph_name)
+                               network_or_microservice_list, ms_s, make_edgefiles, basegraph_name,
+                               start_time=start_time, end_time=end_time)
+
 
     # sockshop recipe (TODO: test it)
     '''
