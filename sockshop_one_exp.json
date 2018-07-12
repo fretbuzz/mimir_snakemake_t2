@@ -8,13 +8,17 @@
       "background_locust_spawn_rate": "10"
     },
     "experiment" : {
-      "number_background_locusts": 400,
-      "background_locust_spawn_rate": 100,
-      "experiment_length_sec": 360,
+      "number_background_locusts": "400",
+      "background_locust_spawn_rate": "100",
+      "experiment_length_sec": "360",
       "traffic_type" : "normal",
-      "number_of_trials": 2
+      "number_of_trials": "2"
     },
     "exfiltration_info" : {
-      "min_time_sleep": 1
+      "exfiltration_path_class":[ "user-db", "user", "front-end" ],
+      "exfiltration_path_how_many_instances_for_each_class":[ "1", "1", "1" ],
+      "exfiltration_rate_mb_per_sec": "10",
+      "exfiltration_path_class_which_installer_TODO": ["apt", "tce-load", "apk"]
+
     }
 }

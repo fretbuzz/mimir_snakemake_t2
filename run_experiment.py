@@ -60,6 +60,30 @@ def main(experiment_name, config_file, prepare_app_p, port, vm_ip):
 
     # step (3) prepare system for data exfiltration (i.g. get DET working on the relevant containers)
     ### TODO [probably via bash script that I ssh onto the vm]
+    # TODO: determine proxies
+    endpoints = [] # will start DET locally as the endpoint
+    proxies = {}
+    # the furthest will be the originator, the others will be proxies (endpoint will be local)
+    for proxy_class in config_params["exfiltration_info"]["exfiltration_path_class"][:-1]:
+        proxies[proxy_class] = []
+
+        # TODO determine which container instances should actually be the proxies
+        # (then add these to the list)
+        # probably should resuse my docker-config parsing function that I wrote to process
+        # the pcaps (this also provides an obvious integration point for newly created/destroyed
+        # containers)
+
+    # TODO: determine which container instances should be the originator point (use the same
+    # method that I use above, once I figure out how to do that)
+
+    instance_to_ip = {}
+    # TODO: need to map all of names of the proxy container instances to their corresponding IP's
+
+    # TODO: need to install the pre-reqs for each of the containers (proxies + orgiinator)
+    # note: assuming endpoint (i.e. local) pre-reqs are already installed
+
+    # TODO: start the endpoint + proxy DET instances (note: will need to dynamically configure some
+    # of the configuration file)
 
     experiment_length = config_params["experiment"]["experiment_length_sec"]
     for i in range(0, int(config_params["experiment"]["number_of_trials"])):
@@ -75,11 +99,10 @@ def main(experiment_name, config_file, prepare_app_p, port, vm_ip):
 
         # step (6) start data exfiltration at the relevant time
         ## TODO
-
+        ## this will probably be a fairly simple modification of part of step 3
 
         # step (7) wait, all the tasks are being taken care of elsewhere
         time.sleep(experiment_length + 5)
-
 
 def prepare_app(app_name, config_params, ip, port):
     if app_name == "sockshop":
