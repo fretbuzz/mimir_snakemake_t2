@@ -444,12 +444,12 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
 # comment out the ones you are not using
 def run_analysis_pipeline_recipes():
     # atsea store recipe
-    pcap_paths = ['/Users/jseverin/Documents/Microservices/munnin/atsea_info/seastore_redux_back-tier_1.pcap',
-                   '/Users/jseverin/Documents/Microservices/munnin/atsea_info/seastore_redux_front-tier_1.pcap']
+    pcap_paths = ['/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/seastore_redux_back-tier_1.pcap',
+                   '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/seastore_redux_front-tier_1.pcap']
     is_swarm = 1
-    basefile_name = '/Users/jseverin/Documents/Microservices/munnin/atsea_info/edgefiles/seastore_swarm'
-    basegraph_name = '/Users/jseverin/Documents/Microservices/munnin/atsea_info/graphs/seastore_swarm'
-    container_info_path = '/Users/jseverin/Documents/Microservices/munnin/atsea_info/atsea_redux_docker_container_configs.txt'
+    basefile_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/edgefiles/seastore_swarm'
+    basegraph_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/graphs/seastore_swarm'
+    container_info_path = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/atsea_redux_docker_container_configs.txt'
     time_interval_lengths = [100, 100, 10, 1, 0.1] # seconds
     network_or_microservice_list = ["atsea_back-tier", "atsea_default", "atsea_front-tier", "atsea_payment" ]
     ms_s = ['appserver', 'reverse_proxy', 'front-tier']
