@@ -9,5 +9,5 @@ apk add gcc
 apk add python-dev # need certain python header files for compiling extensions required by DET (below)
 curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
 python get-pip.py # this takes a while...
-git clone https://github.com/PaulSec/DET
-pip install -r ./DET/requirements.txt --user
+git clone https://github.com/PaulSec/DET /
+pip install -r /DET/requirements.txt --user

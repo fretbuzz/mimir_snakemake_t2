@@ -37,7 +37,7 @@ CLIENT_RATIO_VIRAL = [0.0278, 0.0246, 0.0215, 0.0189, 0.0169, 0.0156, 0.0152, 0.
 CLIENT_RATIO_CYBER = [0.0328, 0.0255, 0.0178, 0.0142, 0.0119, 0.0112, 0.0144, 0.0224, 0.0363, 0.0428, 0.0503, 
 0.0574, 0.0571, 0.0568, 0.0543, 0.0532, 0.0514, 0.0514, 0.0518, 0.0522, 0.0571, 0.0609, 0.0589, 0.0564]
 
-def main(experiment_name, config_file, prepare_app_p, port, vm_ip):
+def main(experiment_name, config_file, prepare_app_p, port, vm_ip, localhostip):
     # step (1) read in the config file
     with open(config_file + 'json') as f:
         config_params = json.load(f)
@@ -66,14 +66,14 @@ def main(experiment_name, config_file, prepare_app_p, port, vm_ip):
     network_namespaces = network_ids_to_namespaces.values()
 
     # step (3) prepare system for data exfiltration (i.g. get DET working on the relevant containers)
-    ### TODO [probably via bash script that I ssh onto the vm]
     # note: I may want to re-select the specific instances during each trial
     possible_proxies = {}
     selected_proxies = {}
     class_to_networks = {}
     # the furthest will be the originator, the others will be proxies (endpoint will be local)
     index = 0
-    for proxy_class in config_params["exfiltration_info"]["exfiltration_path_class"][:-1]:
+    exfil_path = config_params["exfiltration_info"]["exfiltration_path_class"]
+    for proxy_class in exfil_path[:-1]:
         possible_proxies[proxy_class], class_to_networks[proxy_class] = get_class_instances(orchestrator, proxy_class)
         num_proxies_of_this_class = int(config_params["exfiltration_info"]
                                         ["exfiltration_path_how_many_instances_for_each_class"][index])
@@ -104,9 +104,47 @@ def main(experiment_name, config_file, prepare_app_p, port, vm_ip):
         for container in container_instances:
             install_det_dependencies(orchestrator, container, class_to_installer[class_name])
 
-
-    # TODO: start the endpoint + proxy DET instances (note: will need to dynamically configure some
+    # start thes proxy DET instances (note: will need to dynamically configure some
     # of the configuration file)
+    # note: this is only going to work for a single src and a single dst ip, ATM
+    exfil_protocol = config_params["exfiltration_info"]["exfil_protocol"]
+    for class_name, container_instances in selected_proxies:
+        # okay, gotta determine srcs and dst
+        # okay, so fine location in exfil_path
+        # look backward to find src class, then index into selected_proxies, and then index into
+        # instances_to_network_to_ips (will need to match up networks)
+        loc_in_exfil_path = exfil_path.index(class_name)
+        prev_class_in_path = exfil_path[loc_in_exfil_path + 1]
+        prev_instance = selected_proxies[prev_class_in_path]
+        current_class_networks = proxy_instance_to_networks_to_ip[class_name].keys()
+        prev_class_networks = proxy_instance_to_networks_to_ip[prev_instance].keys()
+        prev_and_current_class_network = list(set(current_class_networks + prev_class_networks))[0] # should be precisly one
+        prev_instance_ip = [proxy_instance_to_networks_to_ip[prev_instance][prev_and_current_class_network]]
+
+        # look forward to find dst class, do the same indexing thing; but if it is at the front, then it'd want to
+        # send the data to the local instance
+        if loc_in_exfil_path == 0:
+            # then gotta pass it to the endpoint (i.e. the local instance running it)
+            next_class_in_path = 'local'
+            # todo check if this works for k8s also (so far only checked for swarm)
+            next_instance_ip = localhostip
+
+        else:
+            # then can just pass to another proxy in the exfiltration path
+            next_class_in_path = exfil_path[loc_in_exfil_path - 1]
+            next_instance = selected_proxies[next_class_in_path]
+            next_class_networks = proxy_instance_to_networks_to_ip[next_instance].keys()
+            next_and_current_class_network = list(set(current_class_networks + next_class_networks))[
+                0]  # should be precisly one
+            next_instance_ip = proxy_instance_to_networks_to_ip[next_class_networks][next_and_current_class_network]
+
+        for container in container_instances:
+            start_det_proxy_mode(orchestrator, container, prev_instance_ip, next_instance_ip, exfil_protocol)
+
+    # TODO start the endpoint (assuming the pre-reqs are installed prior to the running of this script)
+    # after lunch, start with this. then do the one below, then ready for testing (maybe sketch an
+    # architecture diagram first tho?)
+
 
     experiment_length = config_params["experiment"]["experiment_length_sec"]
     for i in range(0, int(config_params["experiment"]["number_of_trials"])):
@@ -334,6 +372,40 @@ def map_network_ids_to_namespaces(orchestrator, full_network_ids):
     else:
         pass
 
+# note: det must be a single ip, in string form, ATM
+def start_det_proxy_mode(orchestrator, container, srcs, dst, protocol):
+    network_ids_to_namespaces = {}
+    if orchestrator == 'kubernetes':
+        ## todo
+        pass
+    elif orchestrator == "docker_swarm":
+        # okay, so this is what we need to do here
+        # (0) create a new config file
+            # probably want to use sed (#coreutilsonly)
+        # (1) upload the new configuration file to the container
+            # use 'docker cp' shell command
+        # (2) send a command to start DET
+            # just use container.exec_run, it's a one liner, so no big deal
+
+        sed_command = ["sed", "-e",  "\'s/TARGETIP/" + dst + "/\'", "-e", "\'s/PROXIESIP/" + srcs +"/\'",
+                       "./src/det_config_template.json", ">", "./current_det_config.json"]
+        subprocess.Popen(sed_command)
+
+        upload_config_command = ["docker", "cp", container.id+ ":/config.json", "./current_det_config.json"]
+        subprocess.Popen(upload_config_command)
+
+        start_det_command = ["python", "/det.py", "-c", "./config.json", "-p", protocol, "-Z"]
+        subprocess.Popen(start_det_command)
+
+    else:
+        pass
+
+def start_det_server_local(protocol):
+    # TODO pretty much this whole function
+    cmds = ["python", "det.py", "-L" ,"-c", "./src/det_config_local_configured.json", "-p", protocol]
+    pass
+
+
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description='Creates microservice-architecture application pcaps')
 
@@ -345,8 +417,14 @@ if __name__=="__main__":
     parser.add_argument('--port',dest="port_number", default='30001')
     parser.add_argument('--ip',dest="vm_ip", default='None')
 
+    #  localhost communicates w/ vm over vboxnet0 ifconfig interface, apparently, so use the
+    # address there as the response address, in this case it seems to default to the below
+    # value, but that might change at somepoints
+    parser.add_argument('--localhostip',dest="localhostip", default="192.168.99.1")
+
+
     args = parser.parse_args()
     #print args.restart_minikube, args.setup_sockshop, args.run_experiment, args.analyze, args.output_dict, args.tcpdump, args.on_cloudlab, args.app, args.istio_p, args.hpa
-    print args.exp_name, args.config_file, args.prepare_app_p, args.port_number, args.vm_ip
+    print args.exp_name, args.config_file, args.prepare_app_p, args.port_number, args.vm_ip, args.localhostip
 
-    main(args.exp_name, args.config_file, args.prepare_app_p, int(args.port_number), args.vm_ip)
+    main(args.exp_name, args.config_file, args.prepare_app_p, int(args.port_number), args.vm_ip, args.localhostip)
