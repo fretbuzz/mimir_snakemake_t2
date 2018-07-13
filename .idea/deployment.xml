@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="PublishConfigData" autoUpload="Always" serverName="cloudlab_mimir">
+    <serverData>
+      <paths name="cloudlab_mimir">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/" local="$PROJECT_DIR$" web="/" />
+          </mappings>
+          <excludedPaths>
+            <excludedPath local="true" path="$PROJECT_DIR$/experimental_data" />
+            <excludedPath local="true" path="$PROJECT_DIR$/microservices-demo" />
+            <excludedPath local="true" path="$PROJECT_DIR$/atsea-sample-shop-app" />
+            <excludedPath local="true" path="$PROJECT_DIR$/install_scripts/atsea-sample-shop-app" />
+            <excludedPath local="true" path="$PROJECT_DIR$/install_scripts/gitlab" />
+          </excludedPaths>
+        </serverdata>
+      </paths>
+    </serverData>
+    <option name="myAutoUpload" value="ALWAYS" />
+  </component>
+</project>

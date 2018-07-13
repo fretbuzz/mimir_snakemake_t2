@@ -20,6 +20,9 @@
       "exfiltration_path_how_many_instances_for_each_class":[ "1", "1", "1" ],
       "exfiltration_rate_mb_per_sec": "10",
       "exfiltration_path_class_which_installer": ["apk", "apk", "apt"],
-      "exfil_protocol": "http"
+      "exfil_protocol": "http",
+      "file_to_exfil": "????",
+      "exfil_start_time": "250",
+      "exfil_end_time": "270"
     }
 }

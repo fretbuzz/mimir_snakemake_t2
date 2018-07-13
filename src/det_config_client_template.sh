@@ -1,16 +1,17 @@
 {
     "plugins": {
         "http": {
-            "port": 8080,
-            "proxies": ["192.168.0.13", "192.168.0.14"]
+            "target": TARGETIP,
+            "port": 8080
         },
         "google_docs": {
+            "target": "SERVER",
             "port": 8080
         },
         "dns": {
             "key": "google.com",
-            "port": 53,
-            "proxies": ["192.168.0.13", "192.168.0.14"]
+            "target": TARGETIP,
+            "port": 53
         },
         "gmail": {
             "username": "dataexfil@gmail.com",
@@ -19,20 +20,20 @@
             "port": 587
         },
         "tcp": {
-            "port": 6969,
-            "proxies": ["192.168.0.13", "192.168.0.14"]
+            "target": TARGETIP,
+            "port": 6969
         },
         "tcp_ipv6": {
+            "target": "::1",
             "port": 6969,
-            "proxies": [""]
         },
         "udp_ipv6": {
+            "target": "::1",
             "port": 6969,
-            "proxies": [""]
         },
         "udp": {
-            "port": 6969,
-            "proxies": ["192.168.0.13", "192.168.0.14"]
+            "target": TARGETIP,
+            "port": 6969
         },
         "twitter": {
             "username": "PaulWebSec",
@@ -42,7 +43,7 @@
             "ACCESS_TOKEN_SECRET": "XXXXXXXXXXX"
         },
         "icmp": {
-            "proxies": ["192.168.0.13", "192.168.0.14"]
+            "target": TARGETIP
         },
         "slack": {
             "api_token": "xoxb-XXXXXXXXXXX",
@@ -50,16 +51,16 @@
             "bot_id": "<@XXXXXXXXXXX>:"
         },
         "smtp": {
-            "port": 25,
-            "proxies": ["192.168.0.13", "192.168.0.14"]
+            "target": TARGETIP,
+            "port": 25
         },
         "ftp": {
-            "port": 21,
-            "proxies": ["192.168.0.13", "192.168.0.14"]
+            "target": TARGETIP,
+            "port": 21
         },
         "sip": {
-            "port": 5060,
-            "proxies": ["192.168.0.13", "192.168.0.14"]
+            "target": TARGETIP,
+            "port": 5060
         },
         "wifi": {
             "interface": "wlan0mon"

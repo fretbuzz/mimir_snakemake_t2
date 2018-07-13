@@ -6,16 +6,26 @@ cloudlab anyway, it makes little sense to use a complicated directory structure 
 this stage (though it makes more sense later, when I'm actually analyzing the pcaps)
 '''
 
+# okay, so the plan for saturday is:
+#   further refine install scripts (since I start a new machine anyway) (about 30 min)
+#   ideally, i get this whole thing working tomorrow, but that is unlikely, the goal is to get the
+#       non-exfiltration parts working correctly (or finding some work-around)
+#       [whatever I don't finish on sat, I will try to finish on monday]
+#    also, I can't forget about making those graphs. i'm going to want to (1) fix/finish
+#       those aggregate boxplots that I wanted (2) implement those other metrics (3) try running
+#       on sockshop. This may seem like a lot, but (1) should only take like 1/2 an hour and (3) ideally
+#       doesn't take much time either. Now (2) might need to be post-poned....
+#   okay, so if I work hard, I think I can stop at... 4? that's like 7 hours or so, so it should
+#   be plenty...
+
+# todo: automate getting the relevant docker configs (for the pcap processing function)
+
 import argparse
-import copy
 import os
-import pickle
 import signal
 import subprocess
 import thread
 import time
-import pexpect
-import requests
 import json
 import docker
 import random
@@ -37,9 +47,10 @@ CLIENT_RATIO_VIRAL = [0.0278, 0.0246, 0.0215, 0.0189, 0.0169, 0.0156, 0.0152, 0.
 CLIENT_RATIO_CYBER = [0.0328, 0.0255, 0.0178, 0.0142, 0.0119, 0.0112, 0.0144, 0.0224, 0.0363, 0.0428, 0.0503, 
 0.0574, 0.0571, 0.0568, 0.0543, 0.0532, 0.0514, 0.0514, 0.0518, 0.0522, 0.0571, 0.0609, 0.0589, 0.0564]
 
+
 def main(experiment_name, config_file, prepare_app_p, port, vm_ip, localhostip):
     # step (1) read in the config file
-    with open(config_file + 'json') as f:
+    with open(config_file + '.json') as f:
         config_params = json.load(f)
     if experiment_name == 'None':
         experiment_name = config_params["experiment_name"]
@@ -52,6 +63,8 @@ def main(experiment_name, config_file, prepare_app_p, port, vm_ip, localhostip):
         ip = get_IP(orchestrator)
     else:
         ip = vm_ip
+
+    print prepare_app_p, config_params["application_name"], config_params["setup"], ip, port
 
     if prepare_app_p:
         prepare_app(config_params["application_name"], config_params["setup"], ip, port)
@@ -92,7 +105,7 @@ def main(experiment_name, config_file, prepare_app_p, port, vm_ip, localhostip):
     # map all of the names of the proxy container instances to their corresponding IP's
     # a dict of dicts (instance -> networks -> ip)
     proxy_instance_to_networks_to_ip = map_container_instances_to_ips(orchestrator, possible_proxies, class_to_networks)
-    orginator_instance_to_networks_to_ip = map_container_instances_to_ips(orchestrator, possible_originators, class_to_networks)
+    proxy_instance_to_networks_to_ip.update( map_container_instances_to_ips(orchestrator, possible_originators, class_to_networks) )
 
     # need to install the pre-reqs for each of the containers (proxies + orgiinator)
     # note: assuming endpoint (i.e. local) pre-reqs are already installed
@@ -107,6 +120,9 @@ def main(experiment_name, config_file, prepare_app_p, port, vm_ip, localhostip):
     # start thes proxy DET instances (note: will need to dynamically configure some
     # of the configuration file)
     # note: this is only going to work for a single src and a single dst ip, ATM
+    # TODO:  I should probably make a function to that takes which pair of containers you
+    # want an ip connection between and it returns the ip, since I have pretty much the same
+    # code three times below...
     exfil_protocol = config_params["exfiltration_info"]["exfil_protocol"]
     for class_name, container_instances in selected_proxies:
         # okay, gotta determine srcs and dst
@@ -141,10 +157,21 @@ def main(experiment_name, config_file, prepare_app_p, port, vm_ip, localhostip):
         for container in container_instances:
             start_det_proxy_mode(orchestrator, container, prev_instance_ip, next_instance_ip, exfil_protocol)
 
-    # TODO start the endpoint (assuming the pre-reqs are installed prior to the running of this script)
-    # after lunch, start with this. then do the one below, then ready for testing (maybe sketch an
-    # architecture diagram first tho?)
+    # start the endpoint (assuming the pre-reqs are installed prior to the running of this script)
+    srcs = [ proxy_instance_to_networks_to_ip[ selected_proxies[exfil_path[0]] ]['ingress'] ]
+    start_det_server_local(exfil_protocol, srcs)
 
+    # now setup the originator (i.e. the client that originates the exfiltrated data)
+    next_class_in_path = exfil_path[-2]
+    next_instance = selected_proxies[next_class_in_path]
+    current_class_networks = proxy_instance_to_networks_to_ip[selected_originators[originator_class][0]].keys()
+    next_class_networks = proxy_instance_to_networks_to_ip[next_instance].keys()
+    next_and_current_class_network = list(set(current_class_networks + next_class_networks))[
+        0]  # should be precisly one
+    next_instance_ip = proxy_instance_to_networks_to_ip[next_instance][next_and_current_class_network]
+    for class_name, container_instances in selected_originators:
+        for container in container_instances:
+            setup_config_file_det_client(next_instance_ip, container)
 
     experiment_length = config_params["experiment"]["experiment_length_sec"]
     for i in range(0, int(config_params["experiment"]["number_of_trials"])):
@@ -154,28 +181,49 @@ def main(experiment_name, config_file, prepare_app_p, port, vm_ip, localhostip):
             thread.start_new_thread(start_tcpdump, (orchestrator, network_namespaces, experiment_length + 5, filename))
 
         # step (5) start load generator (okay, this I can do!)
+        start_time = time.time()
         max_client_count = int( config_params["experiment"]["number_background_locusts"])
         thread.start_new_thread(generate_background_traffic, (experiment_length, max_client_count,
                     config_params["experiment"]["traffic_type"], config_params["experiment"]["background_locust_spawn_rate"]))
 
         # step (6) start data exfiltration at the relevant time
-        ## TODO
         ## this will probably be a fairly simple modification of part of step 3
+        # for now, assume just a single exfiltration time
+        exfil_start_time = int(config_params["exfiltration_info"]["exfil_start_time"])
+        exfil_end_time = int(config_params["exfiltration_info"]["exfil_end_time"])
+
+        time.sleep(start_time + exfil_start_time - time.time())
+        file_to_exfil = config_params["exfiltration_info"]["file_to_exfil"]
+        for class_name, container_instances in selected_originators:
+            for container in container_instances:
+                start_det_client(file_to_exfil, exfil_protocol, container)
+
+        time.sleep(start_time + exfil_end_time - time.time())
+        for class_name, container_instances in selected_originators:
+            for container in container_instances:
+                stop_det_client(container)
 
         # step (7) wait, all the tasks are being taken care of elsewhere
-        time.sleep(experiment_length + 5)
+        time.sleep(start_time + experiment_length + 5 - time.time())
+
 
 def prepare_app(app_name, config_params, ip, port):
     if app_name == "sockshop":
-        out = subprocess.check_output(
-            ["locust", "-f", "./sockshop_config/pop_db.py", "--host=http://" + ip + ":"+ port, "--no-web", "-c",
+        print config_params["number_background_locusts"], config_params["background_locust_spawn_rate"], config_params["number_customer_records"]
+        print type(config_params["number_background_locusts"]), type(config_params["background_locust_spawn_rate"]), type(config_params["number_customer_records"])
+        request_url = "--host=http://" + ip + ":"+ str(port)
+        print request_url
+        prepare_cmds = ["locust", "-f", "./sockshop_config/pop_db.py", request_url, "--no-web", "-c",
              config_params["number_background_locusts"], "-r", config_params["background_locust_spawn_rate"],
-             "-n", config_params["number_customer_records"]])
+             "-n", config_params["number_customer_records"]]
+        print prepare_cmds
+        out = subprocess.check_output(prepare_cmds)
         print out
     else:
         # TODO TODO TODO other applications will require other setup procedures (if they can be automated) #
         # note: some cannot be automated (i.e. wordpress)
         pass
+
 
 # Func: generate_background_traffic
 #   Uses locustio to run a dynamic number of background clients based on 24 time steps
@@ -208,6 +256,7 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
     for i in xrange(24):
 
         client_count = str(int(round(normalizer*client_ratio[i]*max_clients)))
+        proc = 0
 
         try:
             if app_name == "sockshop":
@@ -229,8 +278,10 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
 
         #Run some number of background clients for 1/24th of the total test time
         time.sleep(timestep)
-        # this stops the background traffic process 
-        os.killpg(os.getpgid(proc.pid), signal.SIGTERM) # should kill it
+        # this stops the background traffic process
+        if proc:
+            os.killpg(os.getpgid(proc.pid), signal.SIGTERM) # should kill it
+
 
 def get_IP(orchestrator):
     if orchestrator == "kubernetes":
@@ -242,6 +293,7 @@ def get_IP(orchestrator):
         # TODO TODO TODO TODO
         return "0"
     return "-1"
+
 
 # note this may need to be implemented as a seperate thread
 # in which case it'll also need experimental time + will not need
@@ -261,6 +313,7 @@ def start_tcpdump(orchestrator, network_namespace, tcpdump_time, filename):
                  "/home/docker/" + filename, filename]
         subprocess.Popen(args2)
 
+
 # returns a list of container names that correspond to the
 # selected class
 def get_class_instances(orchestrator, class_name):
@@ -277,8 +330,9 @@ def get_class_instances(orchestrator, class_name):
                     container_instances.append(container)
                     container_networks_attached.append(network)
         return container_instances, list(set(container_networks_attached))
-    else
+    else:
         pass
+
 
 def get_network_ids(orchestrator, list_of_network_names):
     if orchestrator == "kubernetes":
@@ -289,6 +343,7 @@ def get_network_ids(orchestrator, list_of_network_names):
         client = docker.from_env()
         for network_name in list_of_network_names:
             for network in client.networks.list(greedy=True):
+                print network
                 if network_name == network.name:
                     network_ids.append(network.id)
 
@@ -296,6 +351,7 @@ def get_network_ids(orchestrator, list_of_network_names):
     else:
         # TODO
         pass
+
 
 def map_container_instances_to_ips(orchestrator, class_to_instances, class_to_networks):
     instance_to_networks_to_ip = {}
@@ -314,6 +370,7 @@ def map_container_instances_to_ips(orchestrator, class_to_instances, class_to_ne
 
     return instance_to_networks_to_ip
 
+
 def install_det_dependencies(orchestrator, container, installer):
     if orchestrator == 'kubernetes':
         ## todo
@@ -323,6 +380,7 @@ def install_det_dependencies(orchestrator, container, installer):
         # make a list of lists, where each list is a line
         # and then send each to the container
         # (I shall pretest it, so I'm just going to ignore error for the moment...)
+
         if installer == 'apk':
             filename = './install_scripts/apk_det_dependencies.sh'
         elif installer =='apt':
@@ -331,6 +389,7 @@ def install_det_dependencies(orchestrator, container, installer):
             filename = './install_scripts/tce_load_det_dependencies.sh'
         else:
             print "unrecognized installer, cannot install DET dependencies.."
+            filename = ''
             pass
 
         with open(filename, 'r') as fp:
@@ -345,6 +404,7 @@ def install_det_dependencies(orchestrator, container, installer):
 
     else:
         pass
+
 
 def map_network_ids_to_namespaces(orchestrator, full_network_ids):
     network_ids_to_namespaces = {}
@@ -372,6 +432,7 @@ def map_network_ids_to_namespaces(orchestrator, full_network_ids):
     else:
         pass
 
+
 # note: det must be a single ip, in string form, ATM
 def start_det_proxy_mode(orchestrator, container, srcs, dst, protocol):
     network_ids_to_namespaces = {}
@@ -395,26 +456,59 @@ def start_det_proxy_mode(orchestrator, container, srcs, dst, protocol):
         subprocess.Popen(upload_config_command)
 
         start_det_command = ["python", "/det.py", "-c", "./config.json", "-p", protocol, "-Z"]
-        subprocess.Popen(start_det_command)
+
+        container.exec_run(start_det_command)
 
     else:
         pass
 
-def start_det_server_local(protocol):
-    # TODO pretty much this whole function
+
+def start_det_server_local(protocol, srcs):
+    sed_command = ["sed", "\'s/PROXIESIP/" + srcs + "/\'",
+                   "./src/det_config_local_template.json", ">", "./src/det_config_local_configured.json"]
+    subprocess.Popen(sed_command)
+
+    # note: don't have to move anything b/c the file is already local
+
     cmds = ["python", "det.py", "-L" ,"-c", "./src/det_config_local_configured.json", "-p", protocol]
-    pass
+    subprocess.Popen(cmds)
+
+
+def setup_config_file_det_client(dst, container):
+    sed_command = ["sed", "\'s/TARGETIP/" + dst + "/\'",
+                   "./src/det_config_client_template.sh", ">", "./src/det_config_client.sh.json"]
+    subprocess.Popen(sed_command)
+
+    upload_config_command = ["docker", "cp", container.id + ":/config.json", "./src/det_config_client.sh.json"]
+    subprocess.Popen(upload_config_command)
+
+
+def start_det_client(file, protocol, container):
+    cmds = ["python", "/det.py", "-c", "./config.json", "-p", protocol, "-f", file]
+    container.exec_run(cmds)
+
+
+def stop_det_client(container):
+    ## let's just kill all python processes, that'll be easier than trying to record PIDs, or anything else
+    cmds = ["pkill", "-9", "python"]
+    container.exec_run(cmds)
 
 
 if __name__=="__main__":
+    print "RUNNING"
+
+    #file = open('./sockshop_config/pop_db.py', "r")
+    #for line in file:
+    #    print line,
+
     parser = argparse.ArgumentParser(description='Creates microservice-architecture application pcaps')
 
-    parser.add_argument('--exp_name',dest="None", default='repOne')
+    parser.add_argument('--exp_name',dest="exp_name", default='None')
     parser.add_argument('--config_file',dest="config_file", default='configFile')
     parser.add_argument('--prepare_app_p', dest='prepare_app_p', action='store_true',
                         default=False,
                         help='sets up the application (i.e. loads db, etc.)')
-    parser.add_argument('--port',dest="port_number", default='30001')
+    parser.add_argument('--port',dest="port_number", default='80')
     parser.add_argument('--ip',dest="vm_ip", default='None')
 
     #  localhost communicates w/ vm over vboxnet0 ifconfig interface, apparently, so use the
