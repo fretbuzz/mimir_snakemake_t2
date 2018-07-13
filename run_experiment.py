@@ -16,8 +16,9 @@ import thread
 import time
 import pexpect
 import requests
-import meta_parameters
 import json
+import docker
+import random
 
 #Locust contemporary client count.  Calculated from the function f(x) = 1/25*(-1/2*sin(pi*x/12) + 1.1), 
 #   where x goes from 0 to 23 and x represents the hour of the day
@@ -36,7 +37,6 @@ CLIENT_RATIO_VIRAL = [0.0278, 0.0246, 0.0215, 0.0189, 0.0169, 0.0156, 0.0152, 0.
 CLIENT_RATIO_CYBER = [0.0328, 0.0255, 0.0178, 0.0142, 0.0119, 0.0112, 0.0144, 0.0224, 0.0363, 0.0428, 0.0503, 
 0.0574, 0.0571, 0.0568, 0.0543, 0.0532, 0.0514, 0.0514, 0.0518, 0.0522, 0.0571, 0.0609, 0.0589, 0.0564]
 
-#def main(restart_kube, setup_sock, multiple_experiments, only_data_analysis):
 def main(experiment_name, config_file, prepare_app_p, port, vm_ip):
     # step (1) read in the config file
     with open(config_file + 'json') as f:
@@ -44,6 +44,7 @@ def main(experiment_name, config_file, prepare_app_p, port, vm_ip):
     if experiment_name == 'None':
         experiment_name = config_params["experiment_name"]
     orchestrator = config_params["orchestrator"]
+    class_to_installer = config_params["exfiltration_info"]["exfiltration_path_class_which_installer"]
 
     # step (2) setup the application, if necessary (e.g. fill up the DB, etc.)
     # note: it is assumed that the application is already deployed
@@ -55,32 +56,54 @@ def main(experiment_name, config_file, prepare_app_p, port, vm_ip):
     if prepare_app_p:
         prepare_app(config_params["application_name"], config_params["setup"], ip, port)
 
-    # TODO: determine the network namespaces
-    network_namespaces = []
+    # determine the network namespaces
+    # this will require mapping the name of the network to the network id, which
+    # is then present (in truncated form) in the network namespace
+    full_network_ids = get_network_ids(orchestrator, config_params["networks_to_tcpdump_on"])
+    network_ids_to_namespaces = map_network_ids_to_namespaces(orchestrator, full_network_ids)
+    # okay, so I have the full network id's now, but these aren't the id's of the network namespace,
+    # so I need to do two things: (1) get list of network namespaces, (2) parse the list to get the mapping
+    network_namespaces = network_ids_to_namespaces.values()
 
     # step (3) prepare system for data exfiltration (i.g. get DET working on the relevant containers)
     ### TODO [probably via bash script that I ssh onto the vm]
-    # TODO: determine proxies
-    endpoints = [] # will start DET locally as the endpoint
-    proxies = {}
+    # note: I may want to re-select the specific instances during each trial
+    possible_proxies = {}
+    selected_proxies = {}
+    class_to_networks = {}
     # the furthest will be the originator, the others will be proxies (endpoint will be local)
+    index = 0
     for proxy_class in config_params["exfiltration_info"]["exfiltration_path_class"][:-1]:
-        proxies[proxy_class] = []
+        possible_proxies[proxy_class], class_to_networks[proxy_class] = get_class_instances(orchestrator, proxy_class)
+        num_proxies_of_this_class = int(config_params["exfiltration_info"]
+                                        ["exfiltration_path_how_many_instances_for_each_class"][index])
+        selected_proxies[proxy_class] = random.sample(possible_proxies[proxy_class], num_proxies_of_this_class)
+        index += 1
 
-        # TODO determine which container instances should actually be the proxies
-        # (then add these to the list)
-        # probably should resuse my docker-config parsing function that I wrote to process
-        # the pcaps (this also provides an obvious integration point for newly created/destroyed
-        # containers)
+    # determine which container instances should be the originator point
+    originator_class = config_params["exfiltration_info"]["exfiltration_path_class"][-1]
+    possible_originators = {}
+    possible_originators[originator_class] = get_class_instances(orchestrator, originator_class)
+    num_originators = int(config_params["exfiltration_info"]
+                                    ["exfiltration_path_how_many_instances_for_each_class"][-1])
+    selected_originators = {}
+    selected_originators[originator_class] = random.sample(possible_originators[originator_class], num_originators)
 
-    # TODO: determine which container instances should be the originator point (use the same
-    # method that I use above, once I figure out how to do that)
+    # map all of the names of the proxy container instances to their corresponding IP's
+    # a dict of dicts (instance -> networks -> ip)
+    proxy_instance_to_networks_to_ip = map_container_instances_to_ips(orchestrator, possible_proxies, class_to_networks)
+    orginator_instance_to_networks_to_ip = map_container_instances_to_ips(orchestrator, possible_originators, class_to_networks)
 
-    instance_to_ip = {}
-    # TODO: need to map all of names of the proxy container instances to their corresponding IP's
-
-    # TODO: need to install the pre-reqs for each of the containers (proxies + orgiinator)
+    # need to install the pre-reqs for each of the containers (proxies + orgiinator)
     # note: assuming endpoint (i.e. local) pre-reqs are already installed
+    for class_name, container_instances in possible_proxies:
+        for container in container_instances:
+            install_det_dependencies(orchestrator, container, class_to_installer[class_name])
+
+    for class_name, container_instances in possible_originators:
+        for container in container_instances:
+            install_det_dependencies(orchestrator, container, class_to_installer[class_name])
+
 
     # TODO: start the endpoint + proxy DET instances (note: will need to dynamically configure some
     # of the configuration file)
@@ -113,6 +136,7 @@ def prepare_app(app_name, config_params, ip, port):
         print out
     else:
         # TODO TODO TODO other applications will require other setup procedures (if they can be automated) #
+        # note: some cannot be automated (i.e. wordpress)
         pass
 
 # Func: generate_background_traffic
@@ -199,38 +223,119 @@ def start_tcpdump(orchestrator, network_namespace, tcpdump_time, filename):
                  "/home/docker/" + filename, filename]
         subprocess.Popen(args2)
 
+# returns a list of container names that correspond to the
+# selected class
+def get_class_instances(orchestrator, class_name):
+    if orchestrator == "kubernetes":
+        # TODo
+        pass
+    elif orchestrator == "docker_swarm":
+        client = docker.from_env()
+        container_instances = []
+        container_networks_attached = []
+        for network in client.networks.list(greedy=True):
+            for container in network.containers:
+                if class_name in container.name:
+                    container_instances.append(container)
+                    container_networks_attached.append(network)
+        return container_instances, list(set(container_networks_attached))
+    else
+        pass
+
+def get_network_ids(orchestrator, list_of_network_names):
+    if orchestrator == "kubernetes":
+        #TODO
+        pass
+    elif orchestrator == "docker_swarm":
+        network_ids = []
+        client = docker.from_env()
+        for network_name in list_of_network_names:
+            for network in client.networks.list(greedy=True):
+                if network_name == network.name:
+                    network_ids.append(network.id)
+
+        return network_ids
+    else:
+        # TODO
+        pass
+
+def map_container_instances_to_ips(orchestrator, class_to_instances, class_to_networks):
+    instance_to_networks_to_ip = {}
+    for class_name, containers in class_to_instances.iteritems():
+        for container in containers:
+            instance_to_networks_to_ip[ container ] = {}
+            container_atrribs =  container.attrs
+            for connected_network in class_to_networks[class_name]:
+                instance_to_networks_to_ip[container][connected_network] = []
+                try:
+                    ip_on_this_network = container_atrribs["NetworkSettings"]["Networks"][connected_network]["IPAMConfig"][
+                        "IPv4Address"]
+                    instance_to_networks_to_ip[container][connected_network] = ip_on_this_network
+                except:
+                    pass
+
+    return instance_to_networks_to_ip
+
+def install_det_dependencies(orchestrator, container, installer):
+    if orchestrator == 'kubernetes':
+        ## todo
+        pass
+    elif orchestrator == "docker_swarm":
+        # okay, so want to read in the relevant bash script
+        # make a list of lists, where each list is a line
+        # and then send each to the container
+        # (I shall pretest it, so I'm just going to ignore error for the moment...)
+        if installer == 'apk':
+            filename = './install_scripts/apk_det_dependencies.sh'
+        elif installer =='apt':
+            filename = './install_scripts/apt_det_dependencies.sh.sh'
+        elif installer == 'tce-load':
+            filename = './install_scripts/tce_load_det_dependencies.sh'
+        else:
+            print "unrecognized installer, cannot install DET dependencies.."
+            pass
+
+        with open(filename, 'r') as fp:
+            read_lines = fp.readlines()
+            read_lines = [line.rstrip('\n') for line in read_lines]
+
+        for command_string in read_lines:
+            command_list = command_string.split(' ')
+            print "command string", command_string
+            print "command list", command_list
+            container.exec_run(command_list)
+
+    else:
+        pass
+
+def map_network_ids_to_namespaces(orchestrator, full_network_ids):
+    network_ids_to_namespaces = {}
+    if orchestrator == 'kubernetes':
+        ## todo
+        pass
+    elif orchestrator == "docker_swarm":
+        # okay, so this is what we need to do
+        # (1) get the network namespaces on the vm
+        # (2) search for part of the network ids in the namespace
+
+        # (1)
+        args = ["docker-machine", "ssh -s", "<", "./src/get_network_namespaces.sh"]
+        out = subprocess.check_output(args)
+        network_namespaces = out.split(' ')
+
+        # (2)
+        for network_namespace in network_namespaces:
+            if '1-' in network_namespace: # only looking at overlay networks
+                for network_id in full_network_ids:
+                    if network_namespace[2:] in network_id:
+                        network_ids_to_namespaces[network_id] = network_namespace
+                        break
+        return network_ids_to_namespaces
+    else:
+        pass
+
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description='Creates microservice-architecture application pcaps')
-    '''
-    parser.add_argument('--start_minikube', dest='restart_minikube',
-                        action='store_true',
-                        default=False,
-                        help='should minikube (and therefore Kubernetes) be (re)started')
-    parser.add_argument('--setup_sockshop', dest='setup_sockshop', action='store_true',
-                        default=False,
-                        help='does sockshop need to be re(started)?')
-    parser.add_argument('--analyze', dest='analyze', action='store_true',
-                        default=False,
-                        help='do you want to do data analysis??')
-    parser.add_argument('--tcpdump', dest='tcpdump', action='store_true',
-                        default=False,
-                        help='do you want to store record logs using tcpdump?')
-    parser.add_argument('--output_dict',dest="output_dict", default='all_results')
-    parser.add_argument('--on_cloudlab', dest='on_cloudlab', action='store_true',
-                        default=False,
-                        help='are we starting minikube on cloudlab? (have dependencies + can make larger)')
-    parser.add_argument('--with_istio', dest='istio_p', action='store_true',
-                    default=False,
-                    help='should we do the stuff involving istio?')
-    parser.add_argument('--hpa', dest='hpa', action='store_true',
-                    default=False,
-                    help='setup horizontap pod autoscalers?')        
-    parser.add_argument('--run_experiment', dest='run_experiment', action='store_true',
-                        default=False,
-                        help='should an actual experiment be run??')
-
-    parser.add_argument("--app", type=str, default="sockshop", dest='app', help='what app do you want to run?')
-    '''
 
     parser.add_argument('--exp_name',dest="None", default='repOne')
     parser.add_argument('--config_file',dest="config_file", default='configFile')

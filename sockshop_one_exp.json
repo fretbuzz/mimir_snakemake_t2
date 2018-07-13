@@ -2,6 +2,7 @@
     "application_name": "sockshop",
     "experiment_name": "sockshop_one",
     "orchestrator": "docker_swarm",
+    "networks_to_tcpdump_on": ["sockshop_default"],
     "setup" : {
       "number_customer_records": "30000",
       "number_background_locusts": "150",
@@ -15,10 +16,9 @@
       "number_of_trials": "2"
     },
     "exfiltration_info" : {
-      "exfiltration_path_class":[ "user-db", "user", "front-end" ],
+      "exfiltration_path_class":[ "front-end",  "user", "user-db" ],
       "exfiltration_path_how_many_instances_for_each_class":[ "1", "1", "1" ],
       "exfiltration_rate_mb_per_sec": "10",
-      "exfiltration_path_class_which_installer_TODO": ["apt", "tce-load", "apk"]
-
+      "exfiltration_path_class_which_installer": ["apk", "apk", "apt"]
     }
 }

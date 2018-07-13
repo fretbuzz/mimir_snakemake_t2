@@ -1,0 +1,1 @@
+ls /var/run/docker/netns
