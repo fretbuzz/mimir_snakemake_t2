@@ -13,6 +13,7 @@
             <excludedPath local="true" path="$PROJECT_DIR$/atsea-sample-shop-app" />
             <excludedPath local="true" path="$PROJECT_DIR$/install_scripts/atsea-sample-shop-app" />
             <excludedPath local="true" path="$PROJECT_DIR$/install_scripts/gitlab" />
+            <excludedPath local="true" path="$PROJECT_DIR$/.ssh" />
           </excludedPaths>
         </serverdata>
       </paths>

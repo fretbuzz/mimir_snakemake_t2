@@ -7,18 +7,18 @@ this stage (though it makes more sense later, when I'm actually analyzing the pc
 '''
 
 # okay, so the plan for saturday is:
-#   further refine install scripts (since I start a new machine anyway) (about 30 min)
-#   ideally, i get this whole thing working tomorrow, but that is unlikely, the goal is to get the
-#       non-exfiltration parts working correctly (or finding some work-around)
-#       [whatever I don't finish on sat, I will try to finish on monday]
+#   TODO: monday: I'm up to about line 155 in making this work. So keep going from there.
+#                 I think I can get those whole thing working on Monday (I'd say maybe like 4-5 hours)
+#                 Then I can get working on those graph below.
+#                 Plus, need to get the configs (below) + write instructions for recovering the pcaps
+#                       from the cloudlab machine (should be fairly easy but is still important)
+#                 todo: automate getting the relevant docker configs (for the pcap processing function)
 #    also, I can't forget about making those graphs. i'm going to want to (1) fix/finish
 #       those aggregate boxplots that I wanted (2) implement those other metrics (3) try running
 #       on sockshop. This may seem like a lot, but (1) should only take like 1/2 an hour and (3) ideally
 #       doesn't take much time either. Now (2) might need to be post-poned....
 #   okay, so if I work hard, I think I can stop at... 4? that's like 7 hours or so, so it should
 #   be plenty...
-
-# todo: automate getting the relevant docker configs (for the pcap processing function)
 
 import argparse
 import os
@@ -29,6 +29,7 @@ import time
 import json
 import docker
 import random
+import re
 
 #Locust contemporary client count.  Calculated from the function f(x) = 1/25*(-1/2*sin(pi*x/12) + 1.1), 
 #   where x goes from 0 to 23 and x represents the hour of the day
@@ -48,7 +49,7 @@ CLIENT_RATIO_CYBER = [0.0328, 0.0255, 0.0178, 0.0142, 0.0119, 0.0112, 0.0144, 0.
 0.0574, 0.0571, 0.0568, 0.0543, 0.0532, 0.0514, 0.0514, 0.0518, 0.0522, 0.0571, 0.0609, 0.0589, 0.0564]
 
 
-def main(experiment_name, config_file, prepare_app_p, port, vm_ip, localhostip):
+def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip):
     # step (1) read in the config file
     with open(config_file + '.json') as f:
         config_params = json.load(f)
@@ -59,10 +60,6 @@ def main(experiment_name, config_file, prepare_app_p, port, vm_ip, localhostip):
 
     # step (2) setup the application, if necessary (e.g. fill up the DB, etc.)
     # note: it is assumed that the application is already deployed
-    if vm_ip == 'None':
-        ip = get_IP(orchestrator)
-    else:
-        ip = vm_ip
 
     print prepare_app_p, config_params["application_name"], config_params["setup"], ip, port
 
@@ -77,6 +74,9 @@ def main(experiment_name, config_file, prepare_app_p, port, vm_ip, localhostip):
     # okay, so I have the full network id's now, but these aren't the id's of the network namespace,
     # so I need to do two things: (1) get list of network namespaces, (2) parse the list to get the mapping
     network_namespaces = network_ids_to_namespaces.values()
+    print "full_network_ids", full_network_ids
+    print "network_ids_to_namespaces", network_ids_to_namespaces
+    print "network_namespaces", network_ids_to_namespaces
 
     # step (3) prepare system for data exfiltration (i.g. get DET working on the relevant containers)
     # note: I may want to re-select the specific instances during each trial
@@ -87,33 +87,65 @@ def main(experiment_name, config_file, prepare_app_p, port, vm_ip, localhostip):
     index = 0
     exfil_path = config_params["exfiltration_info"]["exfiltration_path_class"]
     for proxy_class in exfil_path[:-1]:
+        print "current proxy class", proxy_class
         possible_proxies[proxy_class], class_to_networks[proxy_class] = get_class_instances(orchestrator, proxy_class)
+        print "new possible proxies", possible_proxies[proxy_class]
+        print "new class_to_network mapping", class_to_networks[proxy_class]
         num_proxies_of_this_class = int(config_params["exfiltration_info"]
                                         ["exfiltration_path_how_many_instances_for_each_class"][index])
         selected_proxies[proxy_class] = random.sample(possible_proxies[proxy_class], num_proxies_of_this_class)
+        print "new selected proxies", selected_proxies[proxy_class]
         index += 1
+
+    # get_class_instances cannot get the ingress network, so we must compensate manually
+    if orchestrator == 'docker_swarm':
+        print "let's handle the ingress network edgecase"
+        classes_connected_to_ingess = config_params["ingess_class"]
+        ingress_network = None
+        client = docker.from_env()
+        for a_network in client.networks.list():
+            if a_network.name == 'ingress':
+                ingress_network = a_network
+                break
+        print "the ingress class is", ingress_network, ingress_network.name
+        for ingress_class in classes_connected_to_ingess:
+            print "this class is connected to the ingress network", ingress_class
+            class_to_networks[ingress_class].append(ingress_network)
 
     # determine which container instances should be the originator point
     originator_class = config_params["exfiltration_info"]["exfiltration_path_class"][-1]
     possible_originators = {}
-    possible_originators[originator_class] = get_class_instances(orchestrator, originator_class)
+    print "originator class", originator_class
+    possible_originators[originator_class], class_to_networks[originator_class] = get_class_instances(orchestrator, originator_class)
     num_originators = int(config_params["exfiltration_info"]
                                     ["exfiltration_path_how_many_instances_for_each_class"][-1])
+    print "num originators", num_originators
     selected_originators = {}
     selected_originators[originator_class] = random.sample(possible_originators[originator_class], num_originators)
+    print "selected originators", selected_originators, selected_originators[originator_class]
 
     # map all of the names of the proxy container instances to their corresponding IP's
     # a dict of dicts (instance -> networks -> ip)
+    print "about to map the proxy instances to their networks to their IPs..."
     proxy_instance_to_networks_to_ip = map_container_instances_to_ips(orchestrator, possible_proxies, class_to_networks)
     proxy_instance_to_networks_to_ip.update( map_container_instances_to_ips(orchestrator, possible_originators, class_to_networks) )
+    print "proxy_instance_to_networks_to_ip", proxy_instance_to_networks_to_ip
+    for container, network_to_ip in proxy_instance_to_networks_to_ip.iteritems():
+        print container.name, [i.name for i in network_to_ip.keys()]
+
+    print "#####"
+
+    for name_of_class, network in class_to_networks.iteritems():
+        print name_of_class, [i.name for i in network]
 
     # need to install the pre-reqs for each of the containers (proxies + orgiinator)
     # note: assuming endpoint (i.e. local) pre-reqs are already installed
-    for class_name, container_instances in possible_proxies:
+    for class_name, container_instances in possible_proxies.iteritems():
         for container in container_instances:
             install_det_dependencies(orchestrator, container, class_to_installer[class_name])
 
-    for class_name, container_instances in possible_originators:
+    print "possible_originators", possible_originators
+    for class_name, container_instances in possible_originators.iteritems():
         for container in container_instances:
             install_det_dependencies(orchestrator, container, class_to_installer[class_name])
 
@@ -124,7 +156,7 @@ def main(experiment_name, config_file, prepare_app_p, port, vm_ip, localhostip):
     # want an ip connection between and it returns the ip, since I have pretty much the same
     # code three times below...
     exfil_protocol = config_params["exfiltration_info"]["exfil_protocol"]
-    for class_name, container_instances in selected_proxies:
+    for class_name, container_instances in selected_proxies.iteritems():
         # okay, gotta determine srcs and dst
         # okay, so fine location in exfil_path
         # look backward to find src class, then index into selected_proxies, and then index into
@@ -325,10 +357,16 @@ def get_class_instances(orchestrator, class_name):
         container_instances = []
         container_networks_attached = []
         for network in client.networks.list(greedy=True):
-            for container in network.containers:
-                if class_name in container.name:
-                    container_instances.append(container)
-                    container_networks_attached.append(network)
+            try:
+                #print 'note', network, network.containers
+                for container in network.containers:
+                    if class_name +'.' in container.name:
+                        print class_name, container.name
+                        container_instances.append(container)
+                        container_networks_attached.append(network)
+            except:
+                print network.name, "has hidden containers..."
+
         return container_instances, list(set(container_networks_attached))
     else:
         pass
@@ -343,10 +381,11 @@ def get_network_ids(orchestrator, list_of_network_names):
         client = docker.from_env()
         for network_name in list_of_network_names:
             for network in client.networks.list(greedy=True):
-                print network
+                print network, network.name, network_name
                 if network_name == network.name:
                     network_ids.append(network.id)
 
+        print "just finished getting network id's...", network_ids
         return network_ids
     else:
         # TODO
@@ -384,7 +423,7 @@ def install_det_dependencies(orchestrator, container, installer):
         if installer == 'apk':
             filename = './install_scripts/apk_det_dependencies.sh'
         elif installer =='apt':
-            filename = './install_scripts/apt_det_dependencies.sh.sh'
+            filename = './install_scripts/apt_det_dependencies.sh'
         elif installer == 'tce-load':
             filename = './install_scripts/tce_load_det_dependencies.sh'
         else:
@@ -398,10 +437,15 @@ def install_det_dependencies(orchestrator, container, installer):
 
         for command_string in read_lines:
             command_list = command_string.split(' ')
+            print container.name
             print "command string", command_string
             print "command list", command_list
-            container.exec_run(command_list)
-
+            # problem: doesn't run as root...
+            out = container.exec_run(command_list, stream=True, user="root")
+            print "response from command string:"
+            for output in out.output:
+                print output
+            print "\n"
     else:
         pass
 
@@ -417,17 +461,29 @@ def map_network_ids_to_namespaces(orchestrator, full_network_ids):
         # (2) search for part of the network ids in the namespace
 
         # (1)
-        args = ["docker-machine", "ssh -s", "<", "./src/get_network_namespaces.sh"]
+        #
+        args = ['docker-machine', 'ssh', 'default', '-t', "sudo ls /var/run/docker/netns"]
+        #args = ["docker-machine", "ssh", "<", "./src/get_network_namespaces.sh"]
+        print "let's get some network namespaces...", args
         out = subprocess.check_output(args)
-        network_namespaces = out.split(' ')
+        print "single string network namespaces", out
+        network_namespaces = re.split('  |\n', out) #out.split(' ')
+        # todo: remove \x1b[0;0m from front
+        # todo; remove \x1b[0m from end
+        # note: this isn't foolproof, sometimes the string stays distorted
+        print type(network_namespaces[0])
+        #processed_network_namespaces = network_namespaces
+        processed_network_namespaces = [i.replace('\x1b[0;0m', '').replace('\x1b[0m', '') for i in network_namespaces]
+        print "semi-processed network namespaces:", processed_network_namespaces
 
         # (2)
-        for network_namespace in network_namespaces:
+        for network_namespace in processed_network_namespaces:
             if '1-' in network_namespace: # only looking at overlay networks
                 for network_id in full_network_ids:
                     if network_namespace[2:] in network_id:
                         network_ids_to_namespaces[network_id] = network_namespace
                         break
+        #print "network_ids_to_namespaces", network_ids_to_namespaces
         return network_ids_to_namespaces
     else:
         pass
@@ -493,6 +549,30 @@ def stop_det_client(container):
     cmds = ["pkill", "-9", "python"]
     container.exec_run(cmds)
 
+def find_dst_and_srcs_ips_for_det(exfil_path, current_class_name):
+    current_loc_in_exfil_path = exfil_path.index(current_class_name)
+
+    # at originator -> no srcs (or rather, it is the src for itself):
+    if current_loc_in_exfil_path == len(exfil_path):
+        srcs = None
+        pass
+    else: # then it has srcs other than itself
+        prev_class_in_path = exfil_path[loc_in_exfil_path + 1]
+        pass
+
+    # at last microservice hop -> next dest is local host
+    if current_loc_in_exfil_path == 0:
+        pass
+    else: # then it'll hop through another microservice
+        pass
+
+    prev_instance = selected_proxies[prev_class_in_path]
+    current_class_networks = proxy_instance_to_networks_to_ip[class_name].keys()
+    prev_class_networks = proxy_instance_to_networks_to_ip[prev_instance].keys()
+    prev_and_current_class_network = list(set(current_class_networks + prev_class_networks))[
+        0]  # should be precisly one
+    prev_instance_ip = [proxy_instance_to_networks_to_ip[prev_instance][prev_and_current_class_network]]
+
 
 if __name__=="__main__":
     print "RUNNING"
@@ -510,15 +590,35 @@ if __name__=="__main__":
                         help='sets up the application (i.e. loads db, etc.)')
     parser.add_argument('--port',dest="port_number", default='80')
     parser.add_argument('--ip',dest="vm_ip", default='None')
+    parser.add_argument('--docker_daemon_port',dest="docker_daemon_port", default='2376')
+
 
     #  localhost communicates w/ vm over vboxnet0 ifconfig interface, apparently, so use the
     # address there as the response address, in this case it seems to default to the below
     # value, but that might change at somepoints
     parser.add_argument('--localhostip',dest="localhostip", default="192.168.99.1")
 
-
     args = parser.parse_args()
     #print args.restart_minikube, args.setup_sockshop, args.run_experiment, args.analyze, args.output_dict, args.tcpdump, args.on_cloudlab, args.app, args.istio_p, args.hpa
     print args.exp_name, args.config_file, args.prepare_app_p, args.port_number, args.vm_ip, args.localhostip
 
-    main(args.exp_name, args.config_file, args.prepare_app_p, int(args.port_number), args.vm_ip, args.localhostip)
+    with open(args.config_file + '.json') as f:
+        config_params = json.load(f)
+    orchestrator = config_params["orchestrator"]
+
+    if args.vm_ip == 'None':
+        ip = get_IP(orchestrator)
+    else:
+        ip = args.vm_ip
+
+    # need to setup some environmental variables so that the docker python api will interact with
+    # the docker daemon on the docker machine
+    docker_host_url = "tcp://" + ip + ":" + args.docker_daemon_port
+    print "docker_host_url", docker_host_url
+    path_to_docker_machine_tls_certs = "/users/jsev/.docker/machine/machines/default"
+    print "path_to_docker_machine_tls_certs", path_to_docker_machine_tls_certs
+    os.environ['DOCKER_HOST'] = docker_host_url
+    os.environ['DOCKER_TLS_VERIFY'] = "1"
+    os.environ['DOCKER_CERT_PATH'] = path_to_docker_machine_tls_certs
+
+    main(args.exp_name, args.config_file, args.prepare_app_p, int(args.port_number), ip, args.localhostip)

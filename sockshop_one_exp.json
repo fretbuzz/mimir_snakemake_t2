@@ -3,6 +3,7 @@
     "experiment_name": "sockshop_one",
     "orchestrator": "docker_swarm",
     "networks_to_tcpdump_on": ["sockshop_default", "ingress"],
+    "ingess_class": ["front-end"],
     "setup" : {
       "number_customer_records": "30000",
       "number_background_locusts": "150",
@@ -19,7 +20,7 @@
       "exfiltration_path_class":[ "front-end",  "user", "user-db" ],
       "exfiltration_path_how_many_instances_for_each_class":[ "1", "1", "1" ],
       "exfiltration_rate_mb_per_sec": "10",
-      "exfiltration_path_class_which_installer": ["apk", "apk", "apt"],
+      "exfiltration_path_class_which_installer": {"front-end": "apk", "user":"apk", "user-db":"apt"},
       "exfil_protocol": "http",
       "file_to_exfil": "????",
       "exfil_start_time": "250",

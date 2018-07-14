@@ -50,10 +50,10 @@ def pipeline_analysis_step(filenames, ms_s, time_interval, basegraph_name):
         list_of_aggregated_graphs.append( aggreg_simple_G )
         list_of_aggregated_graphs_multi.append( aggreg_multi_G )
 
-    calc_graph_metrics(list_of_graphs, ms_s, time_interval, basegraph_name + '_container_')
-    calc_graph_metrics(list_of_aggregated_graphs, ms_s, time_interval, basegraph_name + '_class_')
+    calc_graph_metrics(list_of_graphs, ms_s, time_interval, basegraph_name + '_container_', 'container')
+    calc_graph_metrics(list_of_aggregated_graphs, ms_s, time_interval, basegraph_name + '_class_', 'class')
 
-def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name):
+def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or_class):
     global number_boxplots # this is a bad practice, but I am going to do it anyway
     global boxplot_xtick_lables
 
@@ -156,7 +156,7 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name):
     plt.boxplot(average_path_lengths_no_nan, sym='k.', whis=[5, 95], labels=['%.2f' % (time_interval)],
                 positions=[number_boxplots])#, names=[time_interval])
     ax.set_xlim(0, number_boxplots)
-    boxplot_xtick_lables.append('%.2f' % (time_interval))
+    boxplot_xtick_lables.append('%.2f' % (time_interval) + ' ' + container_or_class)
     plt.xticks(range(0,number_boxplots), boxplot_xtick_lables)
     number_boxplots +=1
     plt.savefig(basegraph_name + 'avg_path_length_boxplot_multiple_times_' + '%.2f' % (time_interval) + '.png', format='png')
