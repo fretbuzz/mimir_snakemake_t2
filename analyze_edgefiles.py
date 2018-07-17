@@ -45,13 +45,17 @@ def pipeline_analysis_step(filenames, ms_s, time_interval, basegraph_name):
         print "path to file is ", file_path
         nx.read_edgelist(file_path,
                         create_using=G, delimiter=',', data=(('weight', float),))
+        pos = graphviz_layout(G)
+        nx.draw_networkx(G, pos, with_labels=True, arrows=True)
+        #plt.show()
         list_of_graphs.append(G)
         aggreg_multi_G, aggreg_simple_G = aggregate_graph(G, ms_s)
         list_of_aggregated_graphs.append( aggreg_simple_G )
         list_of_aggregated_graphs_multi.append( aggreg_multi_G )
 
-    calc_graph_metrics(list_of_graphs, ms_s, time_interval, basegraph_name + '_container_', 'container')
-    calc_graph_metrics(list_of_aggregated_graphs, ms_s, time_interval, basegraph_name + '_class_', 'class')
+
+    #calc_graph_metrics(list_of_graphs, ms_s, time_interval, basegraph_name + '_container_', 'container')
+    #calc_graph_metrics(list_of_aggregated_graphs, ms_s, time_interval, basegraph_name + '_class_', 'class')
 
 def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or_class):
     global number_boxplots # this is a bad practice, but I am going to do it anyway
@@ -299,7 +303,7 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or
     plt.plot(x, appserver_sum_degrees)
     #plt.title('time vs angle for weighted reciprocity')
     #plt.plot(x, weighted_reciprocity_degrees)
-    plt.show()
+    #plt.show()
 
     print angles_degrees_no_nan
 
@@ -329,10 +333,12 @@ def aggregate_graph(G, ms_s):
         mapping[ms] = []
     for node in G.nodes():
         for ms in ms_s:
+            print node
             if ms in node:
                 mapping[ms].append(node)
                 mapping_node_to_ms[node] = ms
                 break
+    print mapping_node_to_ms
     for (u,v,data) in G.edges(data=True):
         H.add_edge(mapping_node_to_ms[u], mapping_node_to_ms[v], weight=data['weight'])
     pos = graphviz_layout(H)

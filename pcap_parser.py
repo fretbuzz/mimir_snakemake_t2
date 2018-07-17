@@ -379,6 +379,7 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
         mapping = map_ip_to_ms(container_info_path, network_or_microservice_list)
 
     print "container to ip mapping", mapping
+    #time.sleep(120)
     # okay, how to do this... going to want to (1) generate the filenames and then (2) delete them.
     # problem, don't know how long the
     # going to divide the time intervals here. Input the list such that the you are fine with the first pcap
@@ -431,9 +432,9 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
             for time_interval_length in time_interval_lengths:
                 if current_pcap_path != pcap_paths[0]: # already loaded the first one in order to perform time interval calculations
                     current_pcap = rdpcap(current_pcap_path)
-                    unmapped_ips, _ = parse_pcap(current_pcap, time_interval_length, mapping, basefile_name,
+                unmapped_ips, _ = parse_pcap(current_pcap, time_interval_length, mapping, basefile_name,
                                                          start_time, end_time)
-                    print "unmapped ips", unmapped_ips
+                print "unmapped ips", unmapped_ips
 
     for time_interval_length in time_interval_lengths:
         print "analyzing edgefiles..."
@@ -444,36 +445,38 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
 # comment out the ones you are not using
 def run_analysis_pipeline_recipes():
     # atsea store recipe
+    '''
     pcap_paths = ['/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/seastore_redux_back-tier_1.pcap',
                    '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/seastore_redux_front-tier_1.pcap']
     is_swarm = 1
     basefile_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/edgefiles/seastore_swarm'
     basegraph_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/graphs/seastore_swarm'
     container_info_path = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/atsea_redux_docker_container_configs.txt'
-    time_interval_lengths = [100, 100, 10, 1, 0.1] # seconds
-    network_or_microservice_list = ["atsea_back-tier", "atsea_default", "atsea_front-tier", "atsea_payment" ]
-    ms_s = ['appserver', 'reverse_proxy', 'front-tier']
-    make_edgefiles = False #True
+    time_interval_lengths = [100, 100, 10, 1]#, #0.1] # seconds
+    network_or_microservice_list = ["atsea_back-tier", "atsea_default", "atsea_front-tier", "atsea_payment"]
+    ms_s = ['appserver', 'reverse_proxy', 'database']
+    make_edgefiles = True
     start_time = 1529180898.56
     end_time = 1529181277.03
     run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
                                network_or_microservice_list, ms_s, make_edgefiles, basegraph_name,
                                start_time=start_time, end_time=end_time)
-
+    '''
 
     # sockshop recipe (TODO: test it)
-    '''
-    pcap_paths = ["/Users/jseverin/Documents/Microservices/munnin/sockshop_info/sockshop_swarm_fixed_br0_0.pcap"]
+    #'''
+    pcap_paths = ["/Users/jseverin/Documents/Microservices/munnin/experimental_data/sockshop_info/sockshop_swarm_fixed_br0_0.pcap"]
     is_swarm = 1
-    basefile_name = '/Users/jseverin/Documents/Microservices/munnin/sockshop_info/edgefiles/sockshop_swarm_pipeline_br0'
-    basegraph_name = '/Users/jseverin/Documents/Microservices/munnin/sockshop_info/graphs/sockshop_swarm'
-    container_info_path = '/Users/jseverin/Documents/Microservices/munnin/sockshop_info/sockshop_swarm_fixed_containers_config.txt'
+    basefile_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/sockshop_info/edgefiles/sockshop_swarm_pipeline_br0'
+    basegraph_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/sockshop_info/graphs/sockshop_swarm'
+    container_info_path = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/sockshop_info/sockshop_swarm_fixed_containers_config.txt'
     time_interval_lengths = [369, 36.9, 3.69] # seconds
     network_or_microservice_list = ["sockshop_default"]
     ms_s = microservices_sockshop
+    make_edgefiles = False
     run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
-                               network_or_microservice_list, ms_s, basegraph_name)
-    '''
+                               network_or_microservice_list, ms_s, make_edgefiles, basegraph_name)
+    #'''
     # wordpress recipe (TODO)
     '''
     pcap_paths = ??

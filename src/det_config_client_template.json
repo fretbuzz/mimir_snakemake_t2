@@ -25,11 +25,11 @@
         },
         "tcp_ipv6": {
             "target": "::1",
-            "port": 6969,
+            "port": 6969
         },
         "udp_ipv6": {
             "target": "::1",
-            "port": 6969,
+            "port": 6969
         },
         "udp": {
             "target": TARGETIP,
