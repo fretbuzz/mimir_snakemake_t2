@@ -63,6 +63,16 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
     orchestrator = config_params["orchestrator"]
     class_to_installer = config_params["exfiltration_info"]["exfiltration_path_class_which_installer"]
 
+    min_exfil_bytes_in_packet = int(config_params["exfiltration_info"]["min_exfil_data_per_packet_bytes"])
+    max_exfil_bytes_in_packet = int(config_params["exfiltration_info"]["max_exfil_data_per_packet_bytes"])
+    avg_exfil_rate_KB_per_sec = float(config_params["exfiltration_info"]["avg_exfiltration_rate_KB_per_sec"])
+    # okay, now need to calculate the time between packetes (and throw an error if necessary)
+    avg_exfil_bytes_in_packet = (float(min_exfil_bytes_in_packet) + float(max_exfil_bytes_in_packet)) / 2.0
+    BYTES_PER_MB = 1024
+    avg_number_of_packets_per_second = (avg_exfil_rate_KB_per_sec * BYTES_PER_MB) / avg_exfil_bytes_in_packet
+    # will need to calculate the MAX_SLEEP_TIME after I load the webapp (and hence
+    # the corresponding database)
+
     # step (2) setup the application, if necessary (e.g. fill up the DB, etc.)
     # note: it is assumed that the application is already deployed
 
@@ -225,7 +235,6 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
         # step (5) start load generator (okay, this I can do!)
         start_time = time.time()
         max_client_count = int( config_params["experiment"]["number_background_locusts"])
-        # todo: re-enable when ready...
         thread.start_new_thread(generate_background_traffic, (str(int(experiment_length)+5), max_client_count,
                     config_params["experiment"]["traffic_type"], config_params["experiment"]["background_locust_spawn_rate"]))
 
@@ -234,8 +243,6 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
             current_network =  client.networks.get(network_id)
             print "about to tcpdump on:", current_network.name
             filename = config_params["experiment_name"] + '_' + current_network.name + '_' + str(i) + '.pcap'
-            #thread.start_new_thread(start_tcpdump, (orchestrator, network_namespace, str(int(experiment_length) + 5), filename))
-            # okay, for now, let's just check w/o using a seperate thread (for easier debugging...)
             thread.start_new_thread(start_tcpdump, (orchestrator, network_namespace, str(int(experiment_length)), filename))
 
 
@@ -266,9 +273,9 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
 
     # stopping the proxies can be done the same way (useful if e.g., switching
     # protocols between experiments, etc.)
-    for class_name, container_instances in selected_proxies.iteritems():
-        for container in container_instances:
-            stop_det_client(container)
+    #for class_name, container_instances in selected_proxies.iteritems():
+    #    for container in container_instances:
+    #        stop_det_client(container)
 
 
 def prepare_app(app_name, config_params, ip, port):

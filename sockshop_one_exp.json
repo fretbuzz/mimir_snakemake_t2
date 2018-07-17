@@ -5,7 +5,7 @@
     "networks_to_tcpdump_on": ["sockshop_default", "ingress"],
     "ingess_class": ["front-end"],
     "setup" : {
-      "number_customer_records": "30000",
+      "number_customer_records": "90000",
       "number_background_locusts": "150",
       "background_locust_spawn_rate": "10"
     },
@@ -19,12 +19,14 @@
     "exfiltration_info" : {
       "exfiltration_path_class":[ "front-end",  "user", "user-db" ],
       "exfiltration_path_how_many_instances_for_each_class":[ "1", "1", "1" ],
-      "exfiltration_rate_mb_per_sec": "10",
       "exfiltration_path_class_which_installer": {"front-end": "apk", "user":"apk", "user-db":"apt"},
       "exfil_protocol": "http",
       "folder_to_exfil": "/data/db-users/",
       "exfil_start_time": "5",
-      "exfil_end_time": "15"
+      "exfil_end_time": "15",
+      "min_exfil_data_per_packet_bytes": 300,
+      "max_exfil_data_per_packet_bytes": 400,
+      "avg_exfiltration_rate_KB_per_sec": "10"
     },
     "scale" :{
       "carts":10,
