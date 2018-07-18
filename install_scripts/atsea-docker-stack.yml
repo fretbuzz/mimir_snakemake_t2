@@ -1,5 +1,11 @@
 version: "3.2"
 
+networks:
+  front-tier:
+  back-tier:
+  payment:
+    driver: overlay
+
 services:
   reverse_proxy:
     image: dockersamples/atseasampleshopapp_reverse_proxy
@@ -25,9 +31,11 @@ services:
     secrets:
       - postgres_password
     deploy:
-      placement:
-        constraints:
-          - 'node.role == worker'
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s    
 
   appserver:
     image: dockersamples/atsea_app
@@ -40,9 +48,6 @@ services:
       update_config:
         parallelism: 2
         failure_action: rollback
-      placement:
-        constraints:
-          - 'node.role == worker'
       restart_policy:
         condition: on-failure
         delay: 5s
@@ -64,6 +69,13 @@ services:
       placement:
         constraints:
           - 'node.role == manager'
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 500M
+        reservations:
+          cpus: '1'
+          memory: 20M
 
   payment_gateway:
     image: dockersamples/atseasampleshopapp_payment_gateway
@@ -75,18 +87,6 @@ services:
     deploy:
       update_config:
         failure_action: rollback
-      placement:
-        constraints:
-          - 'node.role == worker'
-          - 'node.labels.pcidss == yes'
-
-networks:
-  front-tier:
-  back-tier:
-  payment:
-    driver: overlay
-    driver_opts:
-      encrypted: 'yes'
 
 secrets:
   postgres_password:
