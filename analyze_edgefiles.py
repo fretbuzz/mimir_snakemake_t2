@@ -28,6 +28,7 @@ import time
 import scipy.stats
 import scipy.sparse.linalg
 import pandas
+import csv
 
 sockshop_ms_s = ['carts-db','carts','catalogue-db','catalogue','front-end','orders-db','orders',
         'payment','queue-master','rabbitmq','session-db','shipping','user-sim', 'user-db','user','load-test']
@@ -35,7 +36,7 @@ sockshop_ms_s = ['carts-db','carts','catalogue-db','catalogue','front-end','orde
 number_boxplots = 0 # bad
 boxplot_xtick_lables = []
 
-def pipeline_analysis_step(filenames, ms_s, time_interval, basegraph_name):
+def pipeline_analysis_step(filenames, ms_s, time_interval, basegraph_name, calc_vals_p):
     list_of_graphs = []
     list_of_aggregated_graphs = [] # all nodes of the same class aggregated into a single node
     list_of_aggregated_graphs_multi = [] # the above w/ multiple edges
@@ -54,81 +55,222 @@ def pipeline_analysis_step(filenames, ms_s, time_interval, basegraph_name):
         list_of_aggregated_graphs_multi.append( aggreg_multi_G )
 
 
-    #calc_graph_metrics(list_of_graphs, ms_s, time_interval, basegraph_name + '_container_', 'container')
-    #calc_graph_metrics(list_of_aggregated_graphs, ms_s, time_interval, basegraph_name + '_class_', 'class')
+    #calc_graph_metrics(list_of_graphs, ms_s, time_interval, basegraph_name + '_container_', 'container', calc_vals_p)
+    #calc_graph_metrics(list_of_aggregated_graphs, ms_s, time_interval, basegraph_name + '_class_', 'class', calc_vals_p)
 
-def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or_class):
+def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or_class, calc_vals_p):
     global number_boxplots # this is a bad practice, but I am going to do it anyway
     global boxplot_xtick_lables
 
-    average_path_lengths = []
-    densities = []
-    degree_dicts = []
-    weight_recips = []
-    weighted_average_path_lengths = []
-    unweighted_overall_reciprocities = [] # defined per networkx definition (see their docs)
-    weighted_reciprocities = [] # defined per the nature paper (see comment @ function definition)
+    if calc_vals_p:
+        average_path_lengths = []
+        densities = []
+        degree_dicts = []
+        weight_recips = []
+        weighted_average_path_lengths = []
+        unweighted_overall_reciprocities = [] # defined per networkx definition (see their docs)
+        weighted_reciprocities = [] # defined per the nature paper (see comment @ function definition)
+        average_clustering = []
 
-    for cur_G in G_list:
-        # okay, so this is where to calculate those metrics from the excel document
+        for cur_G in G_list:
+            # okay, so this is where to calculate those metrics from the excel document
 
-        # first, let's do the graph-wide metrics (b/c it is simple) (these are only single values)
-        try:
-            avg_path_length = nx.average_shortest_path_length(cur_G) #
-        except:
-            avg_path_length = 0
+            # first, let's do the graph-wide metrics (b/c it is simple) (these are only single values)
+            try:
+                avg_path_length = nx.average_shortest_path_length(cur_G) #
+            except:
+                avg_path_length = 0
 
-        try:
-            recip = nx.overall_reciprocity(cur_G)  # if it is not one, then I cna deal w/ looking at dictinoarty
-        except :
-            recip = -1 # overall reciprocity not defined for empty graphs
-        unweighted_overall_reciprocities.append(recip)
+            try:
+                recip = nx.overall_reciprocity(cur_G)  # if it is not one, then I cna deal w/ looking at dictinoarty
+            except :
+                recip = -1 # overall reciprocity not defined for empty graphs
+            unweighted_overall_reciprocities.append(recip)
 
-        # prob wanna do weighted reciprocity per ms class (I'm thinking scatter plot) (tho I need to figure out the other axis)
-        # note: in the nature paper they actually just graph in-strength vs out-strength (might be the way to go)
-        # could also try a repeat of the angle-vector-measurement-trick that i did for degrees
-        # (they also do weighted reciprocity vs time later on in the paper)
-        weighted_reciprocity, non_reciprocated_out_weight, non_reciprocated_in_weight = network_weidge_weighted_reciprocity(cur_G)
-        weighted_reciprocities.append(weighted_reciprocity)
+            average_clustering.append(nx.average_clustering(cur_G))
 
-        #print nx.all_pairs_dijkstra_path_length(cur_G)
-        sum_of_all_distances = 0
-        for thing in nx.all_pairs_dijkstra_path_length(cur_G, weight=graph_distance):
-            #print thing
-            for key,val in thing[1].iteritems():
-                sum_of_all_distances += val
-        try:
-            weighted_avg_path_length = float(sum_of_all_distances) / (cur_G.number_of_nodes() * (cur_G.number_of_nodes() - 1))
-        except ZeroDivisionError:
-            weighted_avg_path_length = 0 # b/c number_of_nodes = 0/1
-        weighted_average_path_lengths.append(weighted_avg_path_length)
-        #input("check it")
+            #print nx.all_pairs_dijkstra_path_length(cur_G)
+            sum_of_all_distances = 0
+            for thing in nx.all_pairs_dijkstra_path_length(cur_G, weight=graph_distance):
+                #print thing
+                for key,val in thing[1].iteritems():
+                    sum_of_all_distances += val
+            try:
+                weighted_avg_path_length = float(sum_of_all_distances) / (cur_G.number_of_nodes() * (cur_G.number_of_nodes() - 1))
+            except ZeroDivisionError:
+                weighted_avg_path_length = 0 # b/c number_of_nodes = 0/1
+            weighted_average_path_lengths.append(weighted_avg_path_length)
+            #input("check it")
 
-        density = nx.density(cur_G)
+            density = nx.density(cur_G)
 
-        # now let's do the nodal metrics (and then aggregate them to node-class metrics)
-        degree_dict = {}
-        degree_dict_iterator = cur_G.out_degree()  # node-instance granularity (might wanna aggregate it or something)
-        for val in degree_dict_iterator:
-            print val, val[0], val[1]
-            degree_dict[val[0]] = val[1]
-        print "degree dict", degree_dict
-        #input("stuff")
-        weighted_reciprocity, weighted_reciprocity_eigenvector_ready = find_reciprocated_strength(cur_G, ms_s)
-        weighted_reciprocity_processed = {}
-        for key, val in weighted_reciprocity.iteritems():
-            if val[0] == 0:
-                weighted_reciprocity_processed[key] = -1 # sentinal value
-            else:
-                weighted_reciprocity_processed[key] = val[1] / val[0]  # out/in
+            # now let's do the nodal metrics (and then aggregate them to node-class metrics)
+            degree_dict = {}
+            degree_dict_iterator = cur_G.out_degree()  # node-instance granularity (might wanna aggregate it or something)
+            for val in degree_dict_iterator:
+                print val, val[0], val[1]
+                degree_dict[val[0]] = val[1]
+            print "degree dict", degree_dict
 
-        # let's store these values to use again later
-        average_path_lengths.append(avg_path_length)
-        densities.append(density)
-        degree_dicts.append(degree_dict)
+            # todo: ... [such as making list and time-list]
+            outstrength_dict = {}
+            instrength_dict = {}
+            for (u, v, data) in cur_G.edges(data=True):
+                if u in outstrength_dict:
+                    outstrength_dict[u] += data
+                else:
+                    outstrength_dict[u] = data
+                if v in instrength_dict:
+                    instrength_dict[v] += data
+                else:
+                    instrength_dict[v] = data
+            eigenvector_centrality_dict = nx.eigenvector_centrality(cur_G)
+            clustering_dict = nx.clustering(cur_G)
+            betweeness_centrality_dict = nx.betweenness_centrality(cur_G)
+            load_centrality_dict = nx.load_centrality(cur_G)
+            # prob wanna do weighted reciprocity per ms class (I'm thinking scatter plot) (tho I need to figure out the other axis)
+            # note: in the nature paper they actually just graph in-strength vs out-strength (might be the way to go)
+            # could also try a repeat of the angle-vector-measurement-trick that i did for degrees
+            # (they also do weighted reciprocity vs time later on in the paper)
+            weighted_reciprocity, non_reciprocated_out_weight_dict, non_reciprocated_in_weight_dict = network_weidge_weighted_reciprocity(cur_G)
 
-    # okay, so now to do some simple analysis that'll lead to the creation of some graphs...
-    # NOTE: slicing off the first value for a lot of these b/c i started tcpdump before the load generator...
+            weighted_reciprocities.append(weighted_reciprocity)
+            #input("stuff")
+            weighted_reciprocity, weighted_reciprocity_eigenvector_ready = find_reciprocated_strength(cur_G, ms_s)
+            weighted_reciprocity_processed = {}
+            for key, val in weighted_reciprocity.iteritems():
+                if val[0] == 0:
+                    weighted_reciprocity_processed[key] = -1 # sentinal value
+                else:
+                    weighted_reciprocity_processed[key] = val[1] / val[0]  # out/in
+
+            # let's store these values to use again later
+            average_path_lengths.append(avg_path_length)
+            densities.append(density)
+            degree_dicts.append(degree_dict)
+
+        # okay, so now to do some simple analysis that'll lead to the creation of some graphs...
+        # NOTE: slicing off the first value for a lot of these b/c i started tcpdump before the load generator...
+
+        print "degrees", degree_dicts
+        print "weighted recips", weight_recips
+        #raw_input("Press Enter2 to continue...")
+        # now going to perform leman method
+        print "DOING ANGLES"
+        window_size = 4
+        node_degrees = []
+        print "degree dicts", degree_dicts
+        total_node_list = []
+        for cur_g in G_list:
+            for node in cur_g.nodes():
+                total_node_list.append(node)
+        total_node_list = list(set(total_node_list))
+        for degree_dict in degree_dicts:
+            current_nodes = []
+            #print G_list, len(G_list)
+            for node in total_node_list:
+                try:
+                    current_nodes.append( degree_dict[node] )
+                except:
+                    current_nodes.append(0) # the current degree_dict must not have an entry for node -> no comm -> degree zero
+            if current_nodes not in node_degrees:
+                print "new degree set", current_nodes
+            node_degrees.append(current_nodes)
+            #print "degree angles", node_degrees
+        angles_degrees = find_angles(node_degrees, 4) #eigenvector_analysis(degree_dicts, window_size=window_size)  # setting window size arbitrarily for now...
+        print "angles degrees", type(angles_degrees), angles_degrees
+        print node_degrees
+        #print "DOING WEIGHTED RECIPROCITY"
+
+        angles_degrees_eigenvector = eigenvector_analysis(degree_dicts, 4, total_node_list)
+        print "angles degrees eigenvector", angles_degrees_eigenvector
+
+
+
+
+        average_path_lengths_no_nan = []
+        for val in average_path_lengths:
+            if not math.isnan(val):
+                average_path_lengths_no_nan.append(val)
+
+        weighted_average_path_lengths_no_nan = []
+        for val in weighted_average_path_lengths:
+            if not math.isnan(val):
+                weighted_average_path_lengths_no_nan.append(val)
+
+        unweighted_overall_reciprocities_no_nan = []
+        for val in unweighted_overall_reciprocities:
+            if not math.isnan(val):
+                unweighted_overall_reciprocities_no_nan.append(val)
+
+        weighted_reciprocities_no_nan = []
+        for val in weighted_reciprocities:
+            if not math.isnan(val):
+                weighted_reciprocities_no_nan.append(val)
+
+        angles_degrees_no_nan = []
+        for val in angles_degrees:
+            if not math.isnan(val):
+                angles_degrees_no_nan.append(val)
+
+        appserver_sum_degrees = []
+        for degree_dict in degree_dicts:
+            appserver_degrees = []
+            for key,val in degree_dict.iteritems():
+                if 'appserver' in key:
+                    appserver_degrees.append(val)
+            appserver_sum_degrees.append( np.mean(appserver_degrees))
+
+        print "graph density", densities
+        densities_no_nan = []
+        for val in densities:
+            if not math.isnan(val):
+                densities_no_nan.append(val)
+        print densities_no_nan
+
+        calculated_values = {}    
+        calculated_values['average_path_lengths_no_nan'] = average_path_lengths_no_nan
+        calculated_values['weighted_average_path_lengths_no_nan'] = weighted_average_path_lengths_no_nan
+        calculated_values['unweighted_overall_reciprocities_no_nan'] = unweighted_overall_reciprocities_no_nan
+        calculated_values['weighted_reciprocities_no_nan'] = weighted_reciprocities_no_nan
+        calculated_values['angles_degrees_no_nan'] = angles_degrees_no_nan
+        calculated_values['appserver_sum_degrees'] = appserver_sum_degrees
+        calculated_values['densities_no_nan'] = densities_no_nan
+        calculated_values['average_path_lengths'] = average_path_lengths
+        calculated_values['weighted_average_path_lengths'] = weighted_average_path_lengths
+        calculated_values['unweighted_overall_reciprocities'] = unweighted_overall_reciprocities
+        calculated_values['weighted_reciprocities'] = weighted_reciprocities
+        calculated_values['densities'] = densities
+        calculated_values['angles_degrees'] = angles_degrees
+        calculated_values['average_clustering'] = average_clustering
+
+        with open(basegraph_name + '_processed_vales.txt', 'w') as csvfile:
+            spamwriter = csv.writer(csvfile, delimiter=',',
+                                        quotechar='|', quoting=csv.QUOTE_MINIMAL)
+            for value_name, value in calculated_values.iteritems():
+                spamwriter.writerow([value_name, value])
+    else:
+        calculated_values = {}
+        with open(basegraph_name + '_processed_vales.txt', 'r') as csvfile:
+            csvread = csv.reader(csvfile, delimiter=',')
+            for row in csvread:
+                print row
+                calculated_values[row[0]] = row[1]
+        average_path_lengths_no_nan = calculated_values['average_path_lengths_no_nan']
+        weighted_average_path_lengths_no_nan = calculated_values['weighted_average_path_lengths_no_nan']
+        unweighted_overall_reciprocities_no_nan = calculated_values['unweighted_overall_reciprocities_no_nan']
+        weighted_reciprocities_no_nan = calculated_values['weighted_reciprocities_no_nan']
+        angles_degrees_no_nan = calculated_values['angles_degrees_no_nan']
+        appserver_sum_degrees = calculated_values['appserver_sum_degrees']
+        densities_no_nan = calculated_values['densities_no_nan']
+        average_path_lengths = calculated_values['average_path_lengths']
+        weighted_average_path_lengths = calculated_values['weighted_average_path_lengths']
+        unweighted_overall_reciprocities = calculated_values['unweighted_overall_reciprocities']
+        weighted_reciprocities = calculated_values['weighted_reciprocities']
+        densities = calculated_values['densities']
+        angles_degrees = calculated_values['angles_degrees']
+        average_clustering = calculated_values['average_clustering']
+
 
     x = [i*time_interval for i in range(0, len(average_path_lengths))] #[1:] # I'm taking the first value now...
     print "avg path lengths", average_path_lengths, len(average_path_lengths)
@@ -145,10 +287,6 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or
     plt.title('unweighted average path length, ' + '%.2f' % (time_interval))
     plt.ylabel('average path length (unweighted)')
     #print ~np.isnan(average_path_lengths)
-    average_path_lengths_no_nan = []
-    for val in average_path_lengths:
-        if not math.isnan(val):
-            average_path_lengths_no_nan.append(val)
     #plt.boxplot(average_path_lengths[np.logical_not(np.isnan(average_path_lengths))])
     #plt.boxplot(average_path_lengths[~np.isnan(average_path_lengths)][1:] )
     plt.boxplot(average_path_lengths_no_nan, sym='k.', whis=[5, 95])
@@ -177,10 +315,6 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or
     plt.clf()
     plt.ylabel('average weighted path length')
     plt.title('time vs (weighted) average path lengths, ' + '%.2f' % (time_interval))
-    weighted_average_path_lengths_no_nan = []
-    for val in weighted_average_path_lengths:
-        if not math.isnan(val):
-            weighted_average_path_lengths_no_nan.append(val)
     plt.boxplot(weighted_average_path_lengths_no_nan, sym='k.', whis=[5, 95])
     #plt.boxplot(weighted_average_path_lengths[1:])
     plt.savefig(basegraph_name + '_weighted_avg_path_length_boxplot_' +'%.2f' % (time_interval) + '.png', format='png')
@@ -199,10 +333,6 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or
     plt.ylabel('overall reciprocity (unweighted)')
     # yah, so this could maybe detect like a udp thing (b/c no ack's?)
     plt.title('unweighted overall reciprocity, ' + '%.2f' % (time_interval))
-    unweighted_overall_reciprocities_no_nan = []
-    for val in unweighted_overall_reciprocities:
-        if not math.isnan(val):
-            unweighted_overall_reciprocities_no_nan.append(val)
     plt.boxplot(unweighted_overall_reciprocities_no_nan, sym='k.', whis=[5, 95])
     #plt.boxplot(unweighted_overall_reciprocities[1:])
     plt.savefig(basegraph_name + '_unweighted_overall_reciprocity_boxplot_' + '%.2f' % (time_interval) + '.png', format='png')
@@ -219,10 +349,6 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or
     plt.clf()
     plt.ylabel('overall weighted reciprocity')
     plt.title('weighted reciprocity, ' + '%.2f' % (time_interval))
-    weighted_reciprocities_no_nan = []
-    for val in weighted_reciprocities:
-        if not math.isnan(val):
-            weighted_reciprocities_no_nan.append(val)
     plt.boxplot(weighted_reciprocities_no_nan, sym='k.', whis=[5, 95])
     plt.savefig(basegraph_name + '_weighted_overall_reciprocity_boxplot_' + '%.2f' % (time_interval) + '.png', format='png')
 
@@ -233,39 +359,6 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or
     plt.title('graph density, ' + '%.2f' % (time_interval))
     plt.plot(x, densities)
     plt.savefig(basegraph_name + '_graph_density_' + '%.2f' % (time_interval) + '.png', format='png')
-
-    print "degrees", degree_dicts
-    print "weighted recips", weight_recips
-    #raw_input("Press Enter2 to continue...")
-    # now going to perform leman method
-    print "DOING ANGLES"
-    window_size = 4
-    node_degrees = []
-    print "degree dicts", degree_dicts
-    total_node_list = []
-    for cur_g in G_list:
-        for node in cur_g.nodes():
-            total_node_list.append(node)
-    total_node_list = list(set(total_node_list))
-    for degree_dict in degree_dicts:
-        current_nodes = []
-        #print G_list, len(G_list)
-        for node in total_node_list:
-            try:
-                current_nodes.append( degree_dict[node] )
-            except:
-                current_nodes.append(0) # the current degree_dict must not have an entry for node -> no comm -> degree zero
-        if current_nodes not in node_degrees:
-            print "new degree set", current_nodes
-        node_degrees.append(current_nodes)
-        #print "degree angles", node_degrees
-    angles_degrees = find_angles(node_degrees, 4) #eigenvector_analysis(degree_dicts, window_size=window_size)  # setting window size arbitrarily for now...
-    print "angles degrees", type(angles_degrees), angles_degrees
-    print node_degrees
-    #print "DOING WEIGHTED RECIPROCITY"
-
-    angles_degrees_eigenvector = eigenvector_analysis(degree_dicts, 4, total_node_list)
-    print "angles degrees eigenvector", angles_degrees_eigenvector
 
     plt.figure(10)
     plt.clf()
@@ -283,23 +376,12 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or
     plt.clf()
     plt.ylabel('angle between out-degree vectors')
     plt.title('angle between out-degree vectors, ' + '%.2f' % (time_interval))
-    angles_degrees_no_nan = []
-    for val in angles_degrees:
-        if not math.isnan(val):
-            angles_degrees_no_nan.append(val)
     plt.boxplot(angles_degrees_no_nan, sym='k.', whis=[5, 95])
     plt.savefig(basegraph_name + '_out_degree_angles_boxplot_' + '%.2f' % (time_interval) + '.png', format='png')
 
     #plt.figure(6)
     plt.figure(12)
     plt.title("time vs app_server degrees")
-    appserver_sum_degrees = []
-    for degree_dict in degree_dicts:
-        appserver_degrees = []
-        for key,val in degree_dict.iteritems():
-            if 'appserver' in key:
-                appserver_degrees.append(val)
-        appserver_sum_degrees.append( np.mean(appserver_degrees))
     plt.plot(x, appserver_sum_degrees)
     #plt.title('time vs angle for weighted reciprocity')
     #plt.plot(x, weighted_reciprocity_degrees)
@@ -311,12 +393,6 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or
     plt.clf()
     plt.ylabel('overall graph density')
     plt.title('graph density, ' + '%.2f' % (time_interval))
-    print "graph density", densities
-    densities_no_nan = []
-    for val in densities:
-        if not math.isnan(val):
-            densities_no_nan.append(val)
-    print densities_no_nan
     plt.boxplot(densities_no_nan, sym='k.', whis=[5, 95])
     plt.savefig(basegraph_name + '_graph_density_boxplot_' + '%.2f' % (time_interval) + '.png', format='png')
 

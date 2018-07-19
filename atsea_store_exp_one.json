@@ -1,0 +1,39 @@
+{
+    "application_name": "atsea_store",
+    "experiment_name": "atsea_store_one",
+    "orchestrator": "docker_swarm",
+    "networks_to_tcpdump_on": ["atsea_back-tier", "atsea_default", "atsea_front-tier", "atsea_payment", "ingress"],
+    "ingess_class": ["atsea_reverse_proxy"],
+    "setup" : {
+      "number_customer_records": "15000",
+      "number_background_locusts": "150",
+      "background_locust_spawn_rate": "10"
+    },
+    "experiment" : {
+      "number_background_locusts": "600",
+      "background_locust_spawn_rate": "150",
+      "experiment_length_sec": "360",
+      "traffic_type" : "normal",
+      "number_of_trials": "3"
+    },
+    "exfiltration_info" : {
+      "exfiltration_path_class":[ "atsea_reverse_proxy",  "atsea_appserver", "atsea_database" ],
+      "exfiltration_path_how_many_instances_for_each_class":[ "1", "1", "1" ],
+      "exfiltration_path_class_which_installer": {"atsea_reverse_proxy": "apk", "atsea_appserver":"apk", "atsea_database":"apt"},
+      "exfil_protocol": "http",
+      "folder_to_exfil": "/var/lib/postgresql/data/",
+      "regex_of_file_to_exfil": "\"124*\"",
+      "exfil_start_time": "270",
+      "exfil_end_time": "310",
+      "min_exfil_data_per_packet_bytes": 300,
+      "max_exfil_data_per_packet_bytes": 400,
+      "avg_exfiltration_rate_KB_per_sec": "5"
+    },
+    "scale" :{
+      "atsea_appserver": 19,
+      "atsea_database": 5,
+      "atsea_payment_gateway": 10,
+      "atsea_reverse_proxy": 10,
+      "queue-atsea_visualizer": 10
+    }
+}

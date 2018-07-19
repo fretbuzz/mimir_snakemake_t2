@@ -301,6 +301,17 @@ def prepare_app(app_name, config_params, ip, port):
         print prepare_cmds
         out = subprocess.check_output(prepare_cmds)
         print out
+    elif app_name == "atsea_store":
+        print config_params["number_background_locusts"], config_params["background_locust_spawn_rate"], config_params["number_customer_records"]
+        print type(config_params["number_background_locusts"]), type(config_params["background_locust_spawn_rate"]), type(config_params["number_customer_records"])
+        request_url = "--host=https://" + ip + ":"+ str(port)
+        print request_url
+        prepare_cmds = ["locust", "-f", "./load_generators/seastore_pop_db.py", request_url, "--no-web", "-c",
+             config_params["number_background_locusts"], "-r", config_params["background_locust_spawn_rate"],
+             "-n", config_params["number_customer_records"]]
+        print prepare_cmds
+        out = subprocess.check_output(prepare_cmds)
+        print out
     else:
         # TODO TODO TODO other applications will require other setup procedures (if they can be automated) #
         # note: some cannot be automated (i.e. wordpress)
@@ -348,9 +359,10 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
                                         stdout=devnull, stderr=devnull, preexec_fn=os.setsid)
                 #print proc.stdout
             # for use w/ seastore:
-            #proc = subprocess.Popen(["locust", "-f", "./load_generators/seashop_background.py", "--host=https://192.168.99.107",
-            #                         "--no-web", "-c", client_count, "-r", spawn_rate],
-            #                  stdout=devnull, stderr=devnull, preexec_fn=os.setsid)
+            if app_name == "atsea_store":
+                proc = subprocess.Popen(["locust", "-f", "./load_generators/seashop_background.py", "--host=https://"+ip+ ":" +str(port),
+                                     "--no-web", "-c", client_count, "-r", spawn_rate],
+                              stdout=devnull, stderr=devnull, preexec_fn=os.setsid)
             #proc = subprocess.Popen(["locust", "-f", "./load_generators/wordpress_background.py", "--host=https://192.168.99.103:31758",
             #                        "--no-web", "-c", client_count, "-r", spawn_rate],
             #                        stdout=devnull, stderr=devnull, preexec_fn=os.setsid)
@@ -509,6 +521,13 @@ def install_det_dependencies(orchestrator, container, installer):
         # make a list of lists, where each list is a line
         # and then send each to the container
         # (I shall pretest it, so I'm just going to ignore error for the moment...)
+
+        upload_config_command = ["docker", "cp", "./src/modify_resolve_conf.sh", container.id+ ":/modify_resolv.sh"]
+        out = subprocess.check_output(upload_config_command)
+        print "upload_config_command", upload_config_command, out
+
+        out = container.exec_run(['sh', '//modify_resolv.sh'], stream=True, user="root")
+        print out
 
         if installer == 'apk':
             filename = './install_scripts/apk_det_dependencies.sh'

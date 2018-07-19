@@ -372,7 +372,7 @@ def aggregate_pcaps(list_of_pcaps, network_list):
 # TODO can ms_s take the part of network_or_microservice_list under the appropriate scenario??
 def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
                                network_or_microservice_list, ms_s, make_edgefiles_p, basegraph_name,
-                               start_time = None, end_time = None):
+                               start_time = None, end_time = None, calc_vals=True):
     if is_swarm:
         mapping = swarm_container_ips(container_info_path, network_or_microservice_list)
     else:
@@ -438,7 +438,8 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
 
     for time_interval_length in time_interval_lengths:
         print "analyzing edgefiles..."
-        analyze_edgefiles.pipeline_analysis_step(interval_to_filenames[time_interval_length], ms_s, time_interval_length, basegraph_name)
+        analyze_edgefiles.pipeline_analysis_step(interval_to_filenames[time_interval_length], ms_s, time_interval_length,
+                                                 basegraph_name, calc_vals)
         #raw_input("Press Enter to continue...")
 
 # here are some 'recipes'
@@ -458,9 +459,10 @@ def run_analysis_pipeline_recipes():
     make_edgefiles = True
     start_time = 1529180898.56
     end_time = 1529181277.03
+    calc_vals = True
     run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
                                network_or_microservice_list, ms_s, make_edgefiles, basegraph_name,
-                               start_time=start_time, end_time=end_time)
+                               start_time=start_time, end_time=end_time, calc_vals = calc_vals)
     '''
 
     # sockshop recipe (TODO: test it)
@@ -474,8 +476,9 @@ def run_analysis_pipeline_recipes():
     network_or_microservice_list = ["sockshop_default"]
     ms_s = microservices_sockshop
     make_edgefiles = False
+    calc_vals = True
     run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
-                               network_or_microservice_list, ms_s, make_edgefiles, basegraph_name)
+                               network_or_microservice_list, ms_s, make_edgefiles, basegraph_name, calc_vals = calc_vals)
     #'''
     # wordpress recipe (TODO)
     '''
