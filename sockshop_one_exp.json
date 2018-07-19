@@ -12,7 +12,7 @@
     "experiment" : {
       "number_background_locusts": "400",
       "background_locust_spawn_rate": "100",
-      "experiment_length_sec": "20",
+      "experiment_length_sec": "60",
       "traffic_type" : "normal",
       "number_of_trials": "2"
     },
@@ -22,8 +22,9 @@
       "exfiltration_path_class_which_installer": {"front-end": "apk", "user":"apk", "user-db":"apt"},
       "exfil_protocol": "http",
       "folder_to_exfil": "/data/db-users/",
+      "regex_of_file_to_exfil": "\"index-0*\"",
       "exfil_start_time": "5",
-      "exfil_end_time": "15",
+      "exfil_end_time": "45",
       "min_exfil_data_per_packet_bytes": 300,
       "max_exfil_data_per_packet_bytes": 400,
       "avg_exfiltration_rate_KB_per_sec": "10"

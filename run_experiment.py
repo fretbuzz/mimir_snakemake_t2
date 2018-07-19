@@ -70,6 +70,8 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
     avg_exfil_bytes_in_packet = (float(min_exfil_bytes_in_packet) + float(max_exfil_bytes_in_packet)) / 2.0
     BYTES_PER_MB = 1024
     avg_number_of_packets_per_second = (avg_exfil_rate_KB_per_sec * BYTES_PER_MB) / avg_exfil_bytes_in_packet
+    average_seconds_between_packets = 1.0 / avg_number_of_packets_per_second
+    maxsleep = average_seconds_between_packets * 2 # take random value between 0 and the max, so 2*average gives the right
     # will need to calculate the MAX_SLEEP_TIME after I load the webapp (and hence
     # the corresponding database)
 
@@ -185,7 +187,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
                                                 proxy_instance_to_networks_to_ip, class_to_networks)
 
         for container in container_instances:
-            start_det_proxy_mode(orchestrator, container, srcs, dst, exfil_protocol)
+            start_det_proxy_mode(orchestrator, container, srcs, dst, exfil_protocol, maxsleep, max_exfil_bytes_in_packet, min_exfil_bytes_in_packet)
 
     # start the endpoint (assuming the pre-reqs are installed prior to the running of this script)
     # todo: modify this for the k8s scaneario
@@ -199,9 +201,9 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
         print "cannot find the the hop-point immediately before the local DET instance"
         exit(1)
     #srcs = [ proxy_instance_to_networks_to_ip[ selected_proxies[exfil_path[0]][0] ]['ingress'] ]
-    start_det_server_local(exfil_protocol, srcs)
-
     #'''
+    start_det_server_local(exfil_protocol, srcs, maxsleep, max_exfil_bytes_in_packet,
+                           min_exfil_bytes_in_packet)
     # now setup the originator (i.e. the client that originates the exfiltrated data)
     next_instance_ip, _ = find_dst_and_srcs_ips_for_det(exfil_path, originator_class,
                                                                          selected_containers, localhostip,
@@ -209,12 +211,19 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
                                                                          class_to_networks)
 
     print "next ip for the originator to send to", next_instance_ip
+    directory_to_exfil = config_params["exfiltration_info"]["folder_to_exfil"]
+    regex_to_exfil = config_params["exfiltration_info"]["regex_of_file_to_exfil"]
+    files_to_exfil = []
     for class_name, container_instances in selected_originators.iteritems():
         for container in container_instances:
-            setup_config_file_det_client(next_instance_ip, container)
+            file_to_exfil = setup_config_file_det_client(next_instance_ip, container, directory_to_exfil, regex_to_exfil,
+                                                         maxsleep, min_exfil_bytes_in_packet, max_exfil_bytes_in_packet)
+            files_to_exfil.append(file_to_exfil)
 
     experiment_length = config_params["experiment"]["experiment_length_sec"]
     for i in range(0, int(config_params["experiment"]["number_of_trials"])):
+        exfil_info_file_name = experiment_name + '_docker' + '_' + str(i) + '_exfil_info.txt'
+
         # step (3b) get docker configs for docker containers (assuming # is constant for the whole experiment)
         container_id_file = experiment_name + '_docker' + '_' + str(i) + '_containers.txt'
         container_config_file = experiment_name + '_docker' '_' + str(i) +  '_container_configs.txt'
@@ -235,8 +244,9 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
         # step (5) start load generator (okay, this I can do!)
         start_time = time.time()
         max_client_count = int( config_params["experiment"]["number_background_locusts"])
-        thread.start_new_thread(generate_background_traffic, (str(int(experiment_length)+5), max_client_count,
-                    config_params["experiment"]["traffic_type"], config_params["experiment"]["background_locust_spawn_rate"]))
+        thread.start_new_thread(generate_background_traffic, ((int(experiment_length)+2.4), max_client_count,
+                    config_params["experiment"]["traffic_type"], config_params["experiment"]["background_locust_spawn_rate"],
+                                                              config_params["application_name"], ip, port))
 
         # step (4) setup testing infrastructure (i.e. tcpdump)
         for network_id, network_namespace in network_ids_to_namespaces.iteritems():
@@ -255,7 +265,8 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
         print "need to wait this long before starting the det client...", start_time + exfil_start_time - time.time()
         print "current time", time.time(), "start time", start_time, "exfil_start_time", exfil_start_time, "exfil_end_time", exfil_end_time
         time.sleep(start_time + exfil_start_time - time.time())
-        file_to_exfil = config_params["exfiltration_info"]["folder_to_exfil"]
+        #file_to_exfil = config_params["exfiltration_info"]["folder_to_exfil"]
+        file_to_exfil = files_to_exfil[0]
         for class_name, container_instances in selected_originators.iteritems():
             for container in container_instances:
                 thread.start_new_thread(start_det_client, (file_to_exfil, exfil_protocol, container))
@@ -273,9 +284,9 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
 
     # stopping the proxies can be done the same way (useful if e.g., switching
     # protocols between experiments, etc.)
-    #for class_name, container_instances in selected_proxies.iteritems():
-    #    for container in container_instances:
-    #        stop_det_client(container)
+    for class_name, container_instances in selected_proxies.iteritems():
+        for container in container_instances:
+            stop_det_client(container)
 
 
 def prepare_app(app_name, config_params, ip, port):
@@ -332,9 +343,10 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
         try:
             if app_name == "sockshop":
                 proc = subprocess.Popen(["locust", "-f", "./sockshop_config/background_traffic.py",
-                                         "--host=http://"+ip+ ":" +port, "--no-web", "-c",
+                                         "--host=http://"+ip+ ":" +str(port), "--no-web", "-c",
                                         client_count, "-r", spawn_rate],
                                         stdout=devnull, stderr=devnull, preexec_fn=os.setsid)
+                #print proc.stdout
             # for use w/ seastore:
             #proc = subprocess.Popen(["locust", "-f", "./load_generators/seashop_background.py", "--host=https://192.168.99.107",
             #                         "--no-web", "-c", client_count, "-r", spawn_rate],
@@ -567,7 +579,7 @@ def map_network_ids_to_namespaces(orchestrator, full_network_ids):
 
 
 # note: det must be a single ip, in string form, ATM
-def start_det_proxy_mode(orchestrator, container, srcs, dst, protocol):
+def start_det_proxy_mode(orchestrator, container, srcs, dst, protocol, maxsleep, maxbytesread, minbytesread):
     network_ids_to_namespaces = {}
     if orchestrator == 'kubernetes':
         ## todo
@@ -592,8 +604,11 @@ def start_det_proxy_mode(orchestrator, container, srcs, dst, protocol):
         proxiesip_switch = "s/PROXIESIP/" + "[\\\"" + srcs[0] + "\\\"]" + "/"
         print "targetip_switch", targetip_switch
         print "proxiesip_switch", proxiesip_switch
-        sed_command = ["sed", "-i", "-e",  targetip_switch, "-e", proxiesip_switch,
-                       "./current_det_config.json"]
+        maxsleeptime_switch = "s/MAXTIMELSLEEP/" + "{:.2f}".format(maxsleep) + "/"
+        maxbytesread_switch = "s/MAXBYTESREAD/" + str(maxbytesread) + "/"
+        minbytesread_switch = "s/MINBYTESREAD/" + str(minbytesread) + "/"
+        sed_command = ["sed", "-i", "-e",  targetip_switch, "-e", proxiesip_switch, "-e", maxsleeptime_switch,
+                       "-e", maxbytesread_switch, "-e", minbytesread_switch, "./current_det_config.json"]
         print "sed_command", sed_command
         out = subprocess.check_output(sed_command)
         print "sed command result", out
@@ -621,29 +636,76 @@ def start_det_proxy_mode(orchestrator, container, srcs, dst, protocol):
         pass
 
 
-def start_det_server_local(protocol, srcs):
+def start_det_server_local(protocol, srcs, maxsleep, maxbytesread, minbytesread):
     # okay, need to modify this so that it can work (can use the working version above as a template)
-
+    #'''
     cp_command = ['sudo', 'cp', "./src/det_config_local_template.json", "/DET/det_config_local_configured.json"]
     out = subprocess.check_output(cp_command)
     print "cp command result", out
 
     proxiesip_switch = "s/PROXIESIP/" + "[\\\"" + srcs[0] + "\\\"]" + "/"
-    sed_command = ["sudo", "sed", "-i", proxiesip_switch, "/DET/det_config_local_configured.json"]
+    maxsleeptime_switch = "s/MAXTIMELSLEEP/" + "{:.2f}".format(maxsleep) + "/"
+    maxbytesread_switch = "s/MAXBYTESREAD/" + str(maxbytesread) + "/"
+    minbytesread_switch = "s/MINBYTESREAD/" + str(minbytesread) + "/"
+    sed_command = ["sudo", "sed", "-i", "-e", proxiesip_switch, "-e", maxsleeptime_switch, "-e", maxbytesread_switch,
+                   "-e", minbytesread_switch,"/DET/det_config_local_configured.json"]
     print "proxiesip_switch", proxiesip_switch
     print "sed_command", sed_command
     out = subprocess.check_output(sed_command)
     print out
-
     # note: don't have to move anything b/c the file is already local
     #out = subprocess.check_output(['pwd'])
     #print out
-
+    #'''
     cmds = ["sudo", "python", "/DET/det.py", "-L" ,"-c", "/DET/det_config_local_configured.json", "-p", protocol]
-    out = subprocess.Popen(cmds, cwd='/DET/')
-    print out
+    #out = subprocess.Popen(cmds, cwd='/DET/')
+    print "commands to start DET", cmds
+    # okay, I am going to want to actually parse the results so I can see how often the data arrives
+    # which will allow me to find the actual rate of exfiltration, b/c I think DET might be rather
+    # slow...
+    cmd = subprocess.Popen(cmds, cwd='/DET/', stdout=subprocess.PIPE, preexec_fn=os.setsid)
+    print cmd # okay, I guess I'll just analyze the output manually... (Since this fancy thing doe
+    '''
+    parsing_thread = thread.start_new_thread(parse_local_det_output, (cmd, exfil_info_file_name))
 
-def setup_config_file_det_client(dst, container):
+    # now wait for a certain amount of time and then kill both of those
+    # threads, so that we can start on the next experiment
+    print "about to start waiting for", exp_time, "seconds!"
+    time.sleep(exp_time)
+    # honestly, I don't really need to kill it, b/c it'll stop getting input and then it'll
+    # just die with the process (i think)...
+    parsing_thread.kill()
+    if cmd:
+        #os.killpg(os.getpgid(cmd.pid), signal.SIGTERM)
+        os.system("sudo kill %s" % (cmd.pid,))
+    print cmd
+    '''
+
+def parse_local_det_output(subprocess_output, exfil_info_file_name):
+    print "this is the output parsing function!!"
+    cmd = subprocess_output
+    time_of_first_arrival = None
+    total_bytes = 0
+    for line in cmd.stdout:
+        print "before recieved", line
+        if "Received" in line:
+            print "after recieved", line
+            matchObj = re.search(r'(.*)Received(.*)bytes (.*)', line)
+            bytes_recieved = int(matchObj.group(2))
+            total_bytes += bytes_recieved
+            print "bytes recieved...", bytes_recieved
+            print "total bytes...", total_bytes
+            if not time_of_first_arrival:
+                time_of_first_arrival = time.time()
+            current_time = time.time()
+            with open(exfil_info_file_name, 'w') as f:
+                print >> f, time_of_first_arrival, '\n', total_bytes, '\n', current_time
+                # then just keep printing these values to a file.
+                # we can just kill the thread at the end of the program and it'll be fine
+                # note: will also need to write current time to file, so that the endpoint
+                # in the time can be calculated
+
+def setup_config_file_det_client(dst, container, directory_to_exfil, regex_to_exfil, maxsleep, minbytesread, maxbytesread):
     # note: don't want to actually start the client yet, however
     out = subprocess.check_output(['pwd'])
     print out
@@ -655,7 +717,11 @@ def setup_config_file_det_client(dst, container):
     print 'dst', dst
     targetip_switch = "s/TARGETIP/\"" + dst + "\"/"
     print "targetip_switch", targetip_switch
-    sed_command = ["sed", "-i", targetip_switch, "./det_config_client.json"]
+    maxsleeptime_switch = "s/MAXTIMELSLEEP/" + "{:.2f}".format(maxsleep) + "/"
+    maxbytesread_switch = "s/MAXBYTESREAD/" + str(maxbytesread) + "/"
+    minbytesread_switch = "s/MINBYTESREAD/" + str(minbytesread) + "/"
+    sed_command = ["sed", "-i", "-e", targetip_switch, "-e", maxsleeptime_switch, "-e", maxbytesread_switch, "-e",
+                   minbytesread_switch, "./det_config_client.json"]
     print "sed_command", sed_command
     out = subprocess.check_output(sed_command)
     print "sed command result", out
@@ -665,10 +731,34 @@ def setup_config_file_det_client(dst, container):
     print "upload_config_command", upload_config_command
     print "upload_config_command result", out
 
+    # i also want to move ./src/loop.py here (so that I can call it easily later on)
+    upload_loop_command = ["docker", "cp", "./src/loop.py", container.id + ":/DET/loop.py"]
+    out = subprocess.check_output(upload_loop_command)
+    print "upload_loop_command", upload_loop_command
+    print "upload_loop_command result", out
 
-def start_det_client(folder, protocol, container):
-    cmds = ["python", "/DET/det.py", "-c", "/config.json", "-p", protocol, "-d", folder]
-    out = container.exec_run(cmds, user="root", workdir='/DET', stdout=False)
+    find_file_to_exfil = "find " + directory_to_exfil + " -name " + regex_to_exfil
+    print "find_file_to_exfil", find_file_to_exfil
+    file_to_exfil = container.exec_run(find_file_to_exfil, user="root", stdout=True, tty=True)
+    print "file_to_exfil", file_to_exfil, file_to_exfil.output
+    file_to_exfil = file_to_exfil.output.replace("\n", "").replace("\r", "")
+    print file_to_exfil
+    #print next( file_to_exfil.output )
+    return file_to_exfil
+
+def start_det_client(file, protocol, container):
+    cmds = ["python", "/DET/det.py", "-c", "/config.json", "-p", protocol, "-f", file]
+    print "start det client commands", str(cmds)
+    print "start det client commands", str(cmds)[1:-1]
+    arg_string = ''
+    for cmd in cmds:
+        arg_string += cmd + ' '
+        print arg_string
+    arg_string = arg_string[:-1]
+    loopy_cmds = ["python", "/DET/loop.py", protocol, file]
+    print "loopy_cmds", loopy_cmds
+    out = container.exec_run(loopy_cmds, user="root", workdir='/DET', stdout=False)
+    #out = container.exec_run(cmds, user="root", workdir='/DET', stdout=False)
     print "start det client output", out
 
 def stop_det_client(container):
@@ -768,5 +858,6 @@ if __name__=="__main__":
     os.environ['DOCKER_HOST'] = docker_host_url
     os.environ['DOCKER_TLS_VERIFY'] = "1"
     os.environ['DOCKER_CERT_PATH'] = path_to_docker_machine_tls_certs
+    client =docker.from_env()
 
     main(args.exp_name, args.config_file, args.prepare_app_p, int(args.port_number), ip, args.localhostip, args.install_det_depen_p)
