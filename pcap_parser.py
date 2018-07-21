@@ -371,7 +371,7 @@ def aggregate_pcaps(list_of_pcaps, network_list):
 # network_or_microservice_list = network list if swarm, microservice (class) list if k8s
 # TODO can ms_s take the part of network_or_microservice_list under the appropriate scenario??
 def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
-                               network_or_microservice_list, ms_s, make_edgefiles_p, basegraph_name, window_size,
+                               network_or_microservice_list, ms_s, make_edgefiles_p, basegraph_name, window_size, colors,
                                start_time = None, end_time = None, calc_vals=True, graph_p = True):
     if is_swarm:
         mapping = swarm_container_ips(container_info_path, network_or_microservice_list)
@@ -439,20 +439,20 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
     total_calculated_vals = {}
     for time_interval_length in time_interval_lengths:
         print "analyzing edgefiles..."
-        newly_calculated_values = analyze_edgefiles.pipeline_analysis_step(interval_to_filenames[time_interval_length], ms_s, time_interval_length,
-                                                 basegraph_name, calc_vals, window_size)
+        newly_calculated_values = analyze_edgefiles.pipeline_analysis_step(interval_to_filenames[time_interval_length], ms_s,
+                                                                           time_interval_length, basegraph_name, calc_vals, window_size)
+
         total_calculated_vals.update(newly_calculated_values)
     if graph_p:
-        # todo: this isn't really the way that I'd want this tho...
-        for item, calculated_vals in total_calculated_vals.iteritems():
-            analyze_edgefiles.create_graphs(calculated_vals, basegraph_name, item[0], window_size, item[1])
+        # (time gran) -> (node gran) -> metrics -> vals
+        analyze_edgefiles.create_graphs(total_calculated_vals, basegraph_name, window_size, colors)
 
 # here are some 'recipes'
 # comment out the ones you are not using
 def run_analysis_pipeline_recipes():
     # atsea store recipe
 
-    '''
+    #'''
     pcap_paths = ['/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/seastore_redux_back-tier_1.pcap',
                    '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/seastore_redux_front-tier_1.pcap']
     is_swarm = 1
@@ -468,13 +468,14 @@ def run_analysis_pipeline_recipes():
     calc_vals = True
     window_size = 4
     graph_p = True # should I make graphs?
+    colors = ['b', 'r']
     run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
-                               network_or_microservice_list, ms_s, make_edgefiles, basegraph_name, window_size
+                               network_or_microservice_list, ms_s, make_edgefiles, basegraph_name, window_size, colors,
                                start_time=start_time, end_time=end_time, calc_vals = calc_vals, graph_p = graph_p)
     #'''
 
-    # sockshop recipe (TODO: test it)
-    #'''
+    # sockshop recipe
+    ''' # note: still gotta do calc_vals again...
     pcap_paths = ["/Users/jseverin/Documents/Microservices/munnin/experimental_data/sockshop_info/sockshop_swarm_fixed_br0_0.pcap"]
     is_swarm = 1
     basefile_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/sockshop_info/edgefiles/sockshop_swarm_pipeline_br0'
@@ -489,8 +490,9 @@ def run_analysis_pipeline_recipes():
     start_time = 1529527610.6
     end_time = 1529527979.54
     window_size = 4
+    colors = ['b', 'r']
     run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
-                               network_or_microservice_list, ms_s, make_edgefiles, basegraph_name, window_size
+                               network_or_microservice_list, ms_s, make_edgefiles, basegraph_name, window_size, colors,
                                start_time=start_time, end_time=end_time, calc_vals = calc_vals, graph_p = graph_p)
     #'''
     # wordpress recipe (TODO)
@@ -505,6 +507,8 @@ def run_analysis_pipeline_recipes():
                                network_or_microservice_list)
     '''
 
+    # here are some example colors:
+    # b: blue ;  g: green  ;  r: red   ;   c: cyan    ; m: magenta
 
 # TODO TODO TODO TODO TODO TODO TODO
 # okay so this is what I gotta do Monday

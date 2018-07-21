@@ -16,14 +16,12 @@ import ast
 sockshop_ms_s = ['carts-db','carts','catalogue-db','catalogue','front-end','orders-db','orders',
         'payment','queue-master','rabbitmq','session-db','shipping','user-sim', 'user-db','user','load-test']
 
-number_boxplots = 0 # bad
-boxplot_xtick_lables = []
-
 def pipeline_analysis_step(filenames, ms_s, time_interval, basegraph_name, calc_vals_p, window_size):
     list_of_graphs = []
     list_of_aggregated_graphs = [] # all nodes of the same class aggregated into a single node
     list_of_aggregated_graphs_multi = [] # the above w/ multiple edges
     total_calculated_values = {}
+    counter= 0 # let's not make more than 50 images of graphs
 
     for file_path in filenames:
         if calc_vals_p:
@@ -33,12 +31,21 @@ def pipeline_analysis_step(filenames, ms_s, time_interval, basegraph_name, calc_
                             create_using=G, delimiter=',', data=(('weight', float),))
             pos = graphviz_layout(G)
             nx.draw_networkx(G, pos, with_labels=True, arrows=True)
+            if counter < 50: # keep # of network graphs to a reasonable amount
+                plt.savefig(file_path.replace('.txt', '') + '_network_graph_container.png', format='png')
             #plt.show()
             list_of_graphs.append(G)
             aggreg_multi_G, aggreg_simple_G = aggregate_graph(G, ms_s)
             list_of_aggregated_graphs.append( aggreg_simple_G )
             list_of_aggregated_graphs_multi.append( aggreg_multi_G )
 
+            plt.clf()
+            pos = graphviz_layout(aggreg_simple_G)
+            nx.draw_networkx(aggreg_simple_G, pos, with_labels=True, arrows=True)
+            if counter < 50:
+                plt.savefig(file_path.replace('.txt', '') + '_network_graph_class.png', format='png')
+
+            counter += 1
     total_calculated_values[(time_interval, 'container')] = calc_graph_metrics(list_of_graphs, ms_s, time_interval,
                                                                                basegraph_name + '_container_', 'container',
                                                                                calc_vals_p, window_size)
@@ -48,8 +55,6 @@ def pipeline_analysis_step(filenames, ms_s, time_interval, basegraph_name, calc_
     return total_calculated_values
 
 def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or_class, calc_vals_p, window_size):
-    global number_boxplots # this is a bad practice, but I am going to do it anyway
-    global boxplot_xtick_lables
 
     if calc_vals_p:
         average_path_lengths = []
@@ -117,7 +122,6 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or
                 degree_dict[val[0]] = val[1]
             #print "degree dict", degree_dict
 
-            # todo: ... [such as making list and time-list]
             outstrength_dict = {}
             instrength_dict = {}
             for (u, v, data) in cur_G.edges(data=True):
@@ -331,8 +335,8 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or
         calculated_values['non_reciprocated_in_weight_degrees_eigenvector'] = non_reciprocated_in_weight_degrees_eigenvector
 
         # note: these are dictionaries
-        calculated_values['non_reciprocated_in_weight'] = non_reciprocated_in_weight_dicts
-        calculated_values['non_reciprocated_out_weight'] = non_reciprocated_out_weight_dicts
+        #calculated_values['non_reciprocated_in_weight'] = non_reciprocated_in_weight_dicts
+        #calculated_values['non_reciprocated_out_weight'] = non_reciprocated_out_weight_dicts
 
 
         with open(basegraph_name + '_processed_vales_' + container_or_class + '_' + '%.2f' % (time_interval) + '.txt', 'w') as csvfile:
@@ -344,282 +348,214 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or
         calculated_values = {}
         with open(basegraph_name + '_processed_vales_' + container_or_class + '_' + '%.2f' % (time_interval) + '.txt', 'r') as csvfile:
             csvread = csv.reader(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
-            for row in csvread:
-                print row
-                try:
-                    calculated_values[row[0]] = ast.literal_eval(row[1])
-                except:
-                    calculated_values[row[0]] = []
+            try:
+                for row in csvread:
+                    print row
+                    try:
+                        calculated_values[row[0]] = ast.literal_eval(row[1])
+                    except:
+                        calculated_values[row[0]] = []
+            except:
+                print "that row was too long!!!"
 
     return calculated_values
 
 
 # okay, so I guess 2 bigs things here: (1) I guess I should iterate through the all the calculated_vals
 # dicts here? Also I need to refactor the combined boxplots such that they actually make sense...
-def create_graphs(calculated_values, basegraph_name, time_interval, window_size, container_or_class):
-    average_path_lengths_no_nan = calculated_values['average_path_lengths_no_nan']
-    weighted_average_path_lengths_no_nan = calculated_values['weighted_average_path_lengths_no_nan']
-    unweighted_overall_reciprocities_no_nan = calculated_values['unweighted_overall_reciprocities_no_nan']
-    weighted_reciprocities_no_nan = calculated_values['weighted_reciprocities_no_nan']
-    angles_degrees_no_nan = calculated_values['angles_degrees_no_nan']
-    appserver_sum_degrees = calculated_values['appserver_sum_degrees']
-    densities_no_nan = calculated_values['densities_no_nan']
-    average_path_lengths = calculated_values['average_path_lengths']
-    weighted_average_path_lengths = calculated_values['weighted_average_path_lengths']
-    unweighted_overall_reciprocities = calculated_values['unweighted_overall_reciprocities']
-    weighted_reciprocities = calculated_values['weighted_reciprocities']
-    densities = calculated_values['densities']
-    angles_degrees = calculated_values['angles_degrees']
+def create_graphs(total_calculated_vals, basegraph_name, window_size, colors):
+    time_grans = []
+    node_grans = []
+    metrics = []
 
-    #average_clusterings = calculated_values['average_clusterings']
-    angles_degrees_eigenvector = calculated_values['angles_degrees_eigenvector']
-    outstrength_degrees = calculated_values['outstrength_degrees']
-    outstrength_degrees_eigenvector = calculated_values['outstrength_degrees_eigenvector']
-    instrengths_degrees = calculated_values['instrengths_degrees']
-    instrengths_degrees_eigenvector = calculated_values['instrengths_degrees_eigenvector']
-    eigenvector_centrality_degrees = calculated_values['eigenvector_centrality_degrees']
-    eigenvector_centrality_degrees_eigenvector = calculated_values['eigenvector_centrality_degrees_eigenvector']
-    #clustering_degrees = calculated_values['clustering_degrees']
-    #clustering_degrees_eigenvector = calculated_values['clustering_degrees_eigenvector']
-    betweeness_centrality_degrees = calculated_values['betweeness_centrality_degrees']
-    betweeness_centrality_degrees_eigenvector = calculated_values['betweeness_centrality_degrees_eigenvector']
-    load_centrality_degrees = calculated_values['load_centrality_degrees']
-    load_centrality_degrees_eigenvector = calculated_values['load_centrality_degrees_eigenvector']
-    non_reciprocated_out_weight_degrees = calculated_values['non_reciprocated_out_weight_degrees']
-    non_reciprocated_out_weight_degrees_eigenvector = calculated_values['non_reciprocated_out_weight_degrees_eigenvector']
-    non_reciprocated_in_weight_degrees = calculated_values['non_reciprocated_in_weight_degrees']
-    non_reciprocated_in_weight_degrees_eigenvector = calculated_values['non_reciprocated_in_weight_degrees_eigenvector']
+    for label, calculated_values in total_calculated_vals.iteritems():
+        ## gotta remove those dicts from calculated_values b/c it'll break our next function
+        try:
+            del calculated_values['non_reciprocated_in_weight']
+        except:
+            pass # I guess it wasn't there...
 
-    print "len average path lengths", average_path_lengths, "!!!!!", len(average_path_lengths)
-    x = [i*time_interval for i in range(0, len(average_path_lengths))]
+        try:
+            del calculated_values['non_reciprocated_out_weight']
+        except:
+            pass # I guess it wasn't there...
 
-    print "avg path lengths", average_path_lengths, len(average_path_lengths)
+        #####
+        container_or_class = label[1]
+        time_interval = label[0]
+        time_grans.append(time_interval)
+        node_grans.append(container_or_class)
+        metrics = calculated_values.keys()
+        #####
 
-    make_graphs_for_val(x, average_path_lengths, time_interval, basegraph_name, 200,
-                        'graph_avg_path_length', container_or_class, 'average path length (unweighted)', 'distance')
+        average_path_lengths_no_nan = calculated_values['average_path_lengths_no_nan']
+        weighted_average_path_lengths_no_nan = calculated_values['weighted_average_path_lengths_no_nan']
+        unweighted_overall_reciprocities_no_nan = calculated_values['unweighted_overall_reciprocities_no_nan']
+        weighted_reciprocities_no_nan = calculated_values['weighted_reciprocities_no_nan']
+        angles_degrees_no_nan = calculated_values['angles_degrees_no_nan']
+        appserver_sum_degrees = calculated_values['appserver_sum_degrees']
+        densities_no_nan = calculated_values['densities_no_nan']
+        average_path_lengths = calculated_values['average_path_lengths']
+        weighted_average_path_lengths = calculated_values['weighted_average_path_lengths']
+        unweighted_overall_reciprocities = calculated_values['unweighted_overall_reciprocities']
+        weighted_reciprocities = calculated_values['weighted_reciprocities']
+        densities = calculated_values['densities']
+        angles_degrees = calculated_values['angles_degrees']
 
+        #average_clusterings = calculated_values['average_clusterings']
+        angles_degrees_eigenvector = calculated_values['angles_degrees_eigenvector']
+        outstrength_degrees = calculated_values['outstrength_degrees']
+        outstrength_degrees_eigenvector = calculated_values['outstrength_degrees_eigenvector']
+        instrengths_degrees = calculated_values['instrengths_degrees']
+        instrengths_degrees_eigenvector = calculated_values['instrengths_degrees_eigenvector']
+        eigenvector_centrality_degrees = calculated_values['eigenvector_centrality_degrees']
+        eigenvector_centrality_degrees_eigenvector = calculated_values['eigenvector_centrality_degrees_eigenvector']
+        #clustering_degrees = calculated_values['clustering_degrees']
+        #clustering_degrees_eigenvector = calculated_values['clustering_degrees_eigenvector']
+        betweeness_centrality_degrees = calculated_values['betweeness_centrality_degrees']
+        betweeness_centrality_degrees_eigenvector = calculated_values['betweeness_centrality_degrees_eigenvector']
+        load_centrality_degrees = calculated_values['load_centrality_degrees']
+        load_centrality_degrees_eigenvector = calculated_values['load_centrality_degrees_eigenvector']
+        non_reciprocated_out_weight_degrees = calculated_values['non_reciprocated_out_weight_degrees']
+        non_reciprocated_out_weight_degrees_eigenvector = calculated_values['non_reciprocated_out_weight_degrees_eigenvector']
+        non_reciprocated_in_weight_degrees = calculated_values['non_reciprocated_in_weight_degrees']
+        non_reciprocated_in_weight_degrees_eigenvector = calculated_values['non_reciprocated_in_weight_degrees_eigenvector']
 
-    '''
-    plt.figure(1)
-    plt.clf()
-    plt.title('unweighted average path length, ' + '%.2f' % (time_interval) )
-    plt.ylabel('average path length (unweighted)')
-    plt.xlabel('time (sec)')
-    plt.plot(x, average_path_lengths) #[1:])
-    plt.savefig(basegraph_name + '+avg_path_length_' + '%.2f' % (time_interval) + '.png', format='png')
+        print "len average path lengths", average_path_lengths, "!!!!!", len(average_path_lengths)
+        x = [i*time_interval for i in range(0, len(average_path_lengths))]
 
-    plt.figure(2)
-    plt.clf()
-    plt.title('unweighted average path length, ' + '%.2f' % (time_interval))
-    plt.ylabel('average path length (unweighted)')
-    plt.boxplot(average_path_lengths_no_nan, sym='k.', whis=[5, 95])
-    plt.savefig(basegraph_name + '+avg_path_length_boxplot_' + '%.2f' % (time_interval) + '.png', format='png')
+        print "avg path lengths", average_path_lengths, len(average_path_lengths)
 
-    fig = plt.figure(20)
-    ax = plt.subplot(111)
-    plt.title('unweighted average path length, multiple')
-    plt.boxplot(average_path_lengths_no_nan, sym='k.', whis=[5, 95], labels=['%.2f' % (time_interval)],
-                positions=[number_boxplots])#, names=[time_interval])
-    ax.set_xlim(0, number_boxplots)
-    boxplot_xtick_lables.append('%.2f' % (time_interval) + ' ' + container_or_class)
-    plt.xticks(range(0,number_boxplots), boxplot_xtick_lables)
-    plt.savefig(basegraph_name + 'avg_path_length_boxplot_multiple_times_' + '%.2f' % (time_interval) + '.png', format='png')
-    '''
-    make_graphs_for_val(x, weighted_average_path_lengths, time_interval, basegraph_name, 204,
-                        '_graph_avg_weighted_path_length_', container_or_class, 'average path length (weighted)', 'distance')
-    '''
-    plt.figure(3)
-    plt.clf()
-    plt.ylabel('average weighted path length')
-    plt.xlabel('time (sec)')
-    plt.title('time vs (weighted) average path lengths, ' + '%.2f' % (time_interval))
-    plt.plot(x, weighted_average_path_lengths)
-    plt.savefig(basegraph_name + '_weighted_avg_path_length_' + '%.2f' % (time_interval) + '.png', format='png')
-
-    plt.figure(4)
-    plt.clf()
-    plt.ylabel('average weighted path length')
-    plt.title('time vs (weighted) average path lengths, ' + '%.2f' % (time_interval))
-    plt.boxplot(weighted_average_path_lengths_no_nan, sym='k.', whis=[5, 95])
-    #plt.boxplot(weighted_average_path_lengths[1:])
-    plt.savefig(basegraph_name + '_weighted_avg_path_length_boxplot_' +'%.2f' % (time_interval) + '.png', format='png')
-    '''
-    make_graphs_for_val(x, unweighted_overall_reciprocities, time_interval, basegraph_name, 207,
-                        '_graph_unweighted_overall_reciprocity', container_or_class, 'unweighted overall reciprocity', 'reciprocity')
-
-    '''
-    plt.figure(5)
-    plt.clf()
-    plt.ylabel('overall reciprocity (unweighted)')
-    plt.xlabel('time (sec)')
-    # yah, so this could maybe detect like a udp thing (b/c no ack's?)
-    plt.title('unweighted overall reciprocity, ' + '%.2f' % (time_interval))
-    plt.plot(x, unweighted_overall_reciprocities)
-    plt.savefig(basegraph_name + '_unweighted_overall_reciprocity_' + '%.2f' % (time_interval) + '.png', format='png')
-
-    plt.figure(6)
-    plt.clf()
-    plt.ylabel('overall reciprocity (unweighted)')
-    # yah, so this could maybe detect like a udp thing (b/c no ack's?)
-    plt.title('unweighted overall reciprocity, ' + '%.2f' % (time_interval))
-    plt.boxplot(unweighted_overall_reciprocities_no_nan, sym='k.', whis=[5, 95])
-    #plt.boxplot(unweighted_overall_reciprocities[1:])
-    plt.savefig(basegraph_name + '_unweighted_overall_reciprocity_boxplot_' + '%.2f' % (time_interval) + '.png', format='png')
-    '''
-
-    make_graphs_for_val(x, weighted_reciprocities, time_interval, basegraph_name, 210,
-                        '_graph_weighted_overall_reciprocity', container_or_class, 'weighted overall reciprocity',
-                        'reciprocity (weighted)')
-
-    '''
-    plt.figure(7)
-    plt.clf()
-    plt.ylabel('overall weighted reciprocity')
-    plt.xlabel('time (sec)')
-    plt.title('weighted reciprocity, ' + '%.2f' % (time_interval))
-    plt.plot(x, weighted_reciprocities)
-    plt.savefig(basegraph_name + '_weighted_overall_reciprocity_' + '%.2f' % (time_interval) + '.png', format='png')
-
-    plt.figure(8)
-    plt.clf()
-    plt.ylabel('overall weighted reciprocity')
-    plt.title('weighted reciprocity, ' + '%.2f' % (time_interval))
-    plt.boxplot(weighted_reciprocities_no_nan, sym='k.', whis=[5, 95])
-    plt.savefig(basegraph_name + '_weighted_overall_reciprocity_boxplot_' + '%.2f' % (time_interval) + '.png', format='png')
-    '''
-
-    make_graphs_for_val(x, densities, time_interval, basegraph_name, 213,
-                        '_graph_overall_graph_density', container_or_class, 'overall graph density',
-                        'density')
-
-    '''
-    plt.figure(9)
-    plt.clf()
-    plt.ylabel('overall graph density')
-    plt.xlabel('time (sec)')
-    plt.title('graph density, ' + '%.2f' % (time_interval))
-    plt.plot(x, densities)
-    plt.savefig(basegraph_name + '_graph_density_' + '%.2f' % (time_interval) + '.png', format='png')
-    '''
-
-    make_graphs_for_val(x[window_size:], angles_degrees, time_interval, basegraph_name, 216,
-                        '_graph_out_degree_simple_angles', container_or_class, 'out degree simple angles',
-                        'angle')
-
-    '''
-    plt.figure(10)
-    plt.clf()
-    plt.ylabel('angle between out-degree vectors')
-    plt.xlabel('time (sec)')
-    plt.title('angle between out-degree vectors, ' + '%.2f' % (time_interval))
-    #x_after_window = x[window_size:]
-    #if len(x_after_window) == 0: # problem with 1 time step...
-    #    x_after_window = x
-    #print "fig5", len(x_after_window), len(angles_degrees), angles_degrees
-    plt.plot(x[window_size:], angles_degrees)
-    plt.savefig(basegraph_name + '_out_degree_angles_' + '%.2f' % (time_interval) + '.png', format='png')
-
-    plt.figure(11)
-    plt.clf()
-    plt.ylabel('angle between out-degree vectors')
-    plt.title('angle between out-degree vectors, ' + '%.2f' % (time_interval))
-    plt.boxplot(angles_degrees_no_nan, sym='k.', whis=[5, 95])
-    plt.savefig(basegraph_name + '_out_degree_angles_boxplot_' + '%.2f' % (time_interval) + '.png', format='png')
-    '''
-
-    #plt.figure(6)
-    try:
-        plt.figure(12)
-        plt.title("time vs app_server degrees")
-        print appserver_sum_degrees
-        appserver_sum_degrees = ast.literal_eval(appserver_sum_degrees)
-        plt.plot(x, ast.literal_eval(appserver_sum_degrees))
-        plt.savefig(basegraph_name + '_appserver_sum_degrees_' + '%.2f' % (time_interval) + '.png', format='png')
-    except:
-        pass
-        #pass-ing b/c I don't really care...
-
-    '''
-    plt.figure(13)
-    plt.clf()
-    plt.ylabel('overall graph density')
-    plt.title('graph density, ' + '%.2f' % (time_interval))
-    plt.boxplot(densities_no_nan, sym='k.', whis=[5, 95])
-    plt.savefig(basegraph_name + '_graph_density_boxplot_' + '%.2f' % (time_interval) + '.png', format='png')
-    '''
+        make_graphs_for_val(x, average_path_lengths, time_interval, basegraph_name, 200,
+                            'graph_avg_path_length', container_or_class, 'average path length (unweighted)', 'distance')
 
 
-    #make_graphs_for_val(x, average_clusterings, time_interval, basegraph_name, 50, '_graph_average_cluster_degree_',
-    #                    container_or_class, 'average clustering simple degree', 'angle')
-    print "old x", x
-    starting_x = window_size+ (window_size-1)
-    print "window_size", window_size, "so starting x:", starting_x
-    x_simple_angle = x[window_size:]
-    x = x[starting_x:] # b/c I don't calculate angles for the first window_size values...
-    for counter,val in enumerate(outstrength_degrees):
-        print counter,val
-    make_graphs_for_val(x, angles_degrees_eigenvector, time_interval, basegraph_name, 53,
-                        '_graph_degrees_eigenvector_degree_', container_or_class, 'degrees eigenvector degree', 'angle')
-    make_graphs_for_val(x_simple_angle, outstrength_degrees, time_interval, basegraph_name, 56,
-                        '_graph_outstrength_degree_', container_or_class, 'outstrength simple degree', 'angle')
-    make_graphs_for_val(x, outstrength_degrees_eigenvector, time_interval, basegraph_name, 59,
-                        '_graph_outstrength_eigenvector_degree_', container_or_class, 'outstrength eigenvector degree', 'angle')
-    make_graphs_for_val(x_simple_angle, instrengths_degrees, time_interval, basegraph_name, 62,
-                        '_graph_instrength_degree_', container_or_class, 'instrength simple degree', 'angle')
-    make_graphs_for_val(x, instrengths_degrees_eigenvector, time_interval, basegraph_name, 65,
-                        '_graph_instrength_eigenvector_degree_', container_or_class, 'instrength eigenvector degree', 'angle')
-    make_graphs_for_val(x_simple_angle, eigenvector_centrality_degrees, time_interval, basegraph_name, 68,
-                        '_graph_eigenvector_centrality_degree_', container_or_class, 'eigenvector centrality simple degree', 'angle')
-    make_graphs_for_val(x, eigenvector_centrality_degrees_eigenvector, time_interval, basegraph_name, 71,
-                        '_graph_eigenvector_centrality_eigenvector_degree_', container_or_class, 'eigenvector centrality eigenvector degree',
-                        'angle')
-    #make_graphs_for_val(x, clustering_degrees, time_interval, basegraph_name, 74,
-    #                    '_graph_clustering_degree_', container_or_class, 'clustering simple degree', 'angle')
-    #make_graphs_for_val(x, clustering_degrees_eigenvector, time_interval, basegraph_name, 77,
-    #                    '_graph_clustering_degrees_eigenvector_degree_', container_or_class, 'clustering eigenvector degree',
-    #                    'angle')
-    make_graphs_for_val(x_simple_angle, betweeness_centrality_degrees, time_interval, basegraph_name, 80,
-                        '_graph_betweeness_centrality_degree_', container_or_class, 'betweeness centrality degree', 'angle')
-    make_graphs_for_val(x, betweeness_centrality_degrees_eigenvector, time_interval, basegraph_name, 83,
-                        '_graph_betweeness_centrality_eigenvector_degree_', container_or_class, 'betweeness centrality eigenvector degree',
-                        'angle')
-    make_graphs_for_val(x_simple_angle, load_centrality_degrees, time_interval, basegraph_name, 86,
-                        '_graph_load_centrality_degree_', container_or_class, 'load centrality degree', 'angle')
-    make_graphs_for_val(x, load_centrality_degrees_eigenvector, time_interval, basegraph_name, 89,
-                        '_graph_load_centrality_eigenvector_degree_', container_or_class, 'load centrality eigenvector degree',
-                        'angle')
-    make_graphs_for_val(x_simple_angle, non_reciprocated_out_weight_degrees, time_interval, basegraph_name, 92,
-                        '_graph_non_reciprocated_out_weight_degree_', container_or_class, 'non-reciprocated outweight  degree', 'angle')
-    make_graphs_for_val(x, non_reciprocated_out_weight_degrees_eigenvector, time_interval, basegraph_name, 95,
-                        '_graph_non_reciprocated_out_weight_eigenvector_degree_', container_or_class, 'non-reciprocated outweight eigenvector degree',
-                        'angle')
-    make_graphs_for_val(x_simple_angle, non_reciprocated_in_weight_degrees, time_interval, basegraph_name, 98,
-                        '_graph_non_reciprocated_in_weight_degree_', container_or_class, 'non-reciprocated inweight degree', 'angle')
-    make_graphs_for_val(x, non_reciprocated_in_weight_degrees_eigenvector, time_interval, basegraph_name, 101,
-                        '_graph_non_reciprocated_in_weight_eigenvector_degree_', container_or_class, 'non-reciprocated inweight eigenvector degree',
-                        'angle')
+        make_graphs_for_val(x, weighted_average_path_lengths, time_interval, basegraph_name, 204,
+                            '_graph_avg_weighted_path_length_', container_or_class, 'average path length (weighted)', 'distance')
 
-    number_boxplots +=1
+        make_graphs_for_val(x, unweighted_overall_reciprocities, time_interval, basegraph_name, 207,
+                            '_graph_unweighted_overall_reciprocity', container_or_class, 'unweighted overall reciprocity', 'reciprocity')
 
-    ## gotta remove those dicts from calculated_values b/c it'll break our next function
+        make_graphs_for_val(x, weighted_reciprocities, time_interval, basegraph_name, 210,
+                            '_graph_weighted_overall_reciprocity', container_or_class, 'weighted overall reciprocity',
+                            'reciprocity (weighted)')
 
-    try:
-        del calculated_values['non_reciprocated_in_weight']
-    except:
-        pass # I guess it wasn't there...
+        make_graphs_for_val(x, densities, time_interval, basegraph_name, 213,
+                            '_graph_overall_graph_density', container_or_class, 'overall graph density',
+                            'density')
 
-    try:
-        del calculated_values['non_reciprocated_out_weight']
-    except:
-        pass # I guess it wasn't there...
+        make_graphs_for_val(x[window_size:], angles_degrees, time_interval, basegraph_name, 216,
+                            '_graph_out_degree_simple_angles', container_or_class, 'out degree simple angles',
+                            'angle')
+
+        #plt.figure(6)
+        try:
+            plt.figure(12)
+            plt.title("time vs app_server degrees")
+            print appserver_sum_degrees
+            appserver_sum_degrees = ast.literal_eval(appserver_sum_degrees)
+            plt.plot(x, ast.literal_eval(appserver_sum_degrees))
+            plt.savefig(basegraph_name + '_appserver_sum_degrees_' + '%.2f' % (time_interval) + '.png', format='png')
+        except:
+            pass
+            #pass-ing b/c I don't really care...
+
+
+        #make_graphs_for_val(x, average_clusterings, time_interval, basegraph_name, 50, '_graph_average_cluster_degree_',
+        #                    container_or_class, 'average clustering simple degree', 'angle')
+
+        print "old x", x
+        starting_x = window_size+ (window_size-1)
+        print "window_size", window_size, "so starting x:", starting_x
+        x_simple_angle = x[window_size:]
+        x = x[starting_x:] # b/c I don't calculate angles for the first window_size values...
+        for counter,val in enumerate(outstrength_degrees):
+            print counter,val
+        make_graphs_for_val(x, angles_degrees_eigenvector, time_interval, basegraph_name, 53,
+                            '_graph_degrees_eigenvector_degree_', container_or_class, 'degrees eigenvector degree', 'angle')
+        make_graphs_for_val(x_simple_angle, outstrength_degrees, time_interval, basegraph_name, 56,
+                            '_graph_outstrength_degree_', container_or_class, 'outstrength simple degree', 'angle')
+        make_graphs_for_val(x, outstrength_degrees_eigenvector, time_interval, basegraph_name, 59,
+                            '_graph_outstrength_eigenvector_degree_', container_or_class, 'outstrength eigenvector degree', 'angle')
+        make_graphs_for_val(x_simple_angle, instrengths_degrees, time_interval, basegraph_name, 62,
+                            '_graph_instrength_degree_', container_or_class, 'instrength simple degree', 'angle')
+        make_graphs_for_val(x, instrengths_degrees_eigenvector, time_interval, basegraph_name, 65,
+                            '_graph_instrength_eigenvector_degree_', container_or_class, 'instrength eigenvector degree', 'angle')
+        make_graphs_for_val(x_simple_angle, eigenvector_centrality_degrees, time_interval, basegraph_name, 68,
+                            '_graph_eigenvector_centrality_degree_', container_or_class, 'eigenvector centrality simple degree', 'angle')
+        make_graphs_for_val(x, eigenvector_centrality_degrees_eigenvector, time_interval, basegraph_name, 71,
+                            '_graph_eigenvector_centrality_eigenvector_degree_', container_or_class, 'eigenvector centrality eigenvector degree',
+                            'angle')
+        #make_graphs_for_val(x, clustering_degrees, time_interval, basegraph_name, 74,
+        #                    '_graph_clustering_degree_', container_or_class, 'clustering simple degree', 'angle')
+        #make_graphs_for_val(x, clustering_degrees_eigenvector, time_interval, basegraph_name, 77,
+        #                    '_graph_clustering_degrees_eigenvector_degree_', container_or_class, 'clustering eigenvector degree',
+        #                    'angle')
+        make_graphs_for_val(x_simple_angle, betweeness_centrality_degrees, time_interval, basegraph_name, 80,
+                            '_graph_betweeness_centrality_degree_', container_or_class, 'betweeness centrality degree', 'angle')
+        make_graphs_for_val(x, betweeness_centrality_degrees_eigenvector, time_interval, basegraph_name, 83,
+                            '_graph_betweeness_centrality_eigenvector_degree_', container_or_class, 'betweeness centrality eigenvector degree',
+                            'angle')
+        make_graphs_for_val(x_simple_angle, load_centrality_degrees, time_interval, basegraph_name, 86,
+                            '_graph_load_centrality_degree_', container_or_class, 'load centrality degree', 'angle')
+        make_graphs_for_val(x, load_centrality_degrees_eigenvector, time_interval, basegraph_name, 89,
+                            '_graph_load_centrality_eigenvector_degree_', container_or_class, 'load centrality eigenvector degree',
+                            'angle')
+        make_graphs_for_val(x_simple_angle, non_reciprocated_out_weight_degrees, time_interval, basegraph_name, 92,
+                            '_graph_non_reciprocated_out_weight_degree_', container_or_class, 'non-reciprocated outweight  degree', 'angle')
+        make_graphs_for_val(x, non_reciprocated_out_weight_degrees_eigenvector, time_interval, basegraph_name, 95,
+                            '_graph_non_reciprocated_out_weight_eigenvector_degree_', container_or_class, 'non-reciprocated outweight eigenvector degree',
+                            'angle')
+        make_graphs_for_val(x_simple_angle, non_reciprocated_in_weight_degrees, time_interval, basegraph_name, 98,
+                            '_graph_non_reciprocated_in_weight_degree_', container_or_class, 'non-reciprocated inweight degree', 'angle')
+        make_graphs_for_val(x, non_reciprocated_in_weight_degrees_eigenvector, time_interval, basegraph_name, 101,
+                            '_graph_non_reciprocated_in_weight_eigenvector_degree_', container_or_class, 'non-reciprocated inweight eigenvector degree',
+                            'angle')
+
+    # okay, so later on I am going to want to group by class/node granularity via color
+    # and by time granularity via spacing... so each time granularity should be a seperatae
+    # list and each of the class/node granularites should be a nested list (inside the corresponding list)
+    # right now: (time gran, node gran) -> metrics -> vals
+
+    # todo: keep working on getting the multi-res boxplots (tho maybe check overlap with covariance matrix)
+    node_grans = list(set(node_grans))
+    time_grans = list(set(time_grans)).sort()
+    # okay, so what I want to do here is (time gran, node gran, metric) -> vals
+    # or do I want to do (metric) -> (nested lists in order of the things above?)
+    # well to do the covrariance matrix I am going to need (1) but in order to ddo the boxplots
+    # I am going to need to do (2)
+    # b/c then I can easily index in later
+
+    # okay, so later on I am going to want to group by class/node granularity via color
+    # and by time granularity via spacing... so each time granularity should be a seperatae
+    # list and each of the class/node granularites should be a nested list (inside the corresponding list)
+    # so below: (metric) -> (time gran) -> (nested list of node grans)
+    metrics_to_time_to_granularity_lists = {}
+    fully_indexed_metrics = {}
+    for metric in metrics:
+        metrics_to_time_to_granularity_lists[metric] = {}
+        for time_gran in time_grans:
+            metrics_to_time_to_granularity_lists[metric][time_gran] = []
+            for node_gran in node_grans:
+                metrics_to_time_to_granularity_lists[metric][time_gran].append(  total_calculated_vals[(time_gran, node_gran )][metric] )
+                fully_indexed_metrics[(time_gran, node_gran, metric)] = total_calculated_vals[(time_gran, node_gran )][metric]
+
+
+    # okay, so now I actually need to handle make those multi-dimensional boxplots
+    for metric in metrics:
+        make_multi_time_boxplots(metrics_to_time_to_granularity_lists, time_grans, metric, colors, metric + '_multitime_boxplot')
+
+    # todo: next thing on the todo list is to create two seperate covariance matrices (one w/ deltas, one w/ absolutes),
+    # note that this means I'll need to do like weighted average or something for the normal vals (i.e. not angles)
+    # okay, so I am probably going to want to do that in calc_convariance_matrix, and then just have it return two
+    # values...
 
     print "about to make covariance matrix!"
-    correlation_dataframe = calc_covaraiance_matrix(calculated_values)
+    correlation_dataframe = calc_covaraiance_matrix(fully_indexed_metrics)
     print "made covariance matrix! Now time to plot it!"
     print "correlation dataframe"
     print correlation_dataframe
-    # todo: just showing ATM, should also save...
-    plot_correlogram(correlation_dataframe)
+    plot_correlogram(correlation_dataframe, basegraph_name)
 
 # aggregate all nodes of the same class into a single node
 # let's use a multigraph, so we can keep all the edges as intact...
@@ -1035,7 +971,6 @@ def turn_into_list(dicts, node_list):
 
 def make_graphs_for_val(x_vals, y_vals, time_interval, basegraph_name, fig_num, graph_name_extenstion,
                         container_or_class, graph_tile, y_axis_label):
-    global number_boxplots
 
     #y_vals = ast.literal_eval(y_vals)
     plt.figure(fig_num)
@@ -1046,43 +981,28 @@ def make_graphs_for_val(x_vals, y_vals, time_interval, basegraph_name, fig_num, 
     print "x inputs", x_vals, type(x_vals)
     print "y inputs", y_vals, type(y_vals)
     plt.plot(x_vals, y_vals)
-    plt.savefig(basegraph_name + graph_name_extenstion + '_' + '%.2f' % (time_interval) + '.png', format='png')
+    plt.savefig(basegraph_name + graph_name_extenstion + '_' + container_or_class + '_' + '%.2f' % (time_interval) + '.png', format='png')
 
     plt.figure(fig_num + 1)
     plt.clf()
     plt.title(graph_tile + ', ' + '%.2f' % (time_interval))
     plt.ylabel(y_axis_label)
     plt.boxplot(y_vals, sym='k.', whis=[5, 95])
-    plt.savefig(basegraph_name + graph_name_extenstion + '_boxplot_' + '%.2f' % (time_interval) + '.png', format='png')
-
-    fig = plt.figure(fig_num + 2)
-    ax = plt.subplot(111)
-    plt.title(graph_tile + ', multiple')
-    plt.ylabel(y_axis_label)
-    plt.boxplot(y_vals, sym='k.', whis=[5, 95], labels=['%.2f' % (time_interval)],
-                positions=[number_boxplots])  # , names=[time_interval])
-    ax.set_xlim(0, number_boxplots)
-    boxplot_xtick_lables.append('%.2f' % (time_interval) + ' ' + container_or_class)
-    plt.xticks(range(0, number_boxplots), boxplot_xtick_lables)
-    plt.savefig(basegraph_name + graph_name_extenstion + '_boxplot_multiple_times_' + '%.2f' % (time_interval) + '.png',
-                format='png')
-
-    # so, I wanna like group + lalbel this multi-boxplot... okay, how to do that...
-    #
+    plt.savefig(basegraph_name + graph_name_extenstion + '_boxplot_' + container_or_class + '_' + '%.2f' % (time_interval) + '.png', format='png')
 
 # i think correlation matrix must be a pandas dataframe (with the appropriate labels)
 def plot_correlogram(correlation_matrix, basegraph_name):
+
     # based off of example located at: https://seaborn.pydata.org/generated/seaborn.heatmap.html
     #don't think is needed: flights = sns.load_dataset("flights")
     #don't think is needed: flights = flights.pivot("month", "year", "passengers")
 
     ax = sns.heatmap(correlation_matrix)
-    #ax.savefig(basegraph_name + graph_name_extenstion + '_' + '%.2f' % (time_interval) + '.png', format='png')
-
+    ax.savefig(basegraph_name + 'correlation_heatmap' + '.png', format='png')
 
     # going to drop NaN's beforep plotting
     ax2 = sns.pairplot(correlation_matrix.dropna()) # note: I hope dropna() doesn't mess the alignment up but it might
-    ax2.savefig(basegraph_name + graph_name_extenstion + '_' + '%.2f' % (time_interval) + '.png', format='png')
+    ax2.savefig(basegraph_name + 'correlation_pairplot' + '.png', format='png')
 
 
     ''' Note: this'd take some work, but might be worth doing at some point
@@ -1101,8 +1021,16 @@ def plot_correlogram(correlation_matrix, basegraph_name):
     #plt.show()
 
 def calc_covaraiance_matrix(calculated_values):
+    # todo: okay, so I guess here is where I want to calc the two different covariance matrixes (delta vs abs)
+    # additionally, I'm going to prob want to calc the delta for the graph-wide metrics here (so that I don't
+    # have to rerun all of the processing function, but I'll probably want ot move it over to that func at some
+    # point).
+    # so let's keep this really simple and just calc the change between two values (don't worry about doing like
+    # EWMA or anything like that, keep it real simple)
+
     # I want to remove all of the simple angle analysis here (but keep the
     # eigenvector analysis!)
+    # todo: am I sure I don't these vals?
     parsed_calculated_values = {}
     for item, val in calculated_values.iteritems():
         if 'degree' in item:
@@ -1111,18 +1039,6 @@ def calc_covaraiance_matrix(calculated_values):
         else:
             parsed_calculated_values[item] = val
 
-    # gotta make a list of dictionaries, where each dict corresponds to a pandas row
-    # todo: yah this is not the way I'd want to do this...
-    '''
-    rows = []
-    print calculated_values
-    for item,val in calculated_values.iteritems():
-        row_dict = {}
-        for counter,list_member in enumerate(val):
-            row_dict[counter] = list_member
-        rows.append(row_dict)
-    # this list can be used to create a pandas dataframe
-    '''
     # using the method from: https://stackoverflow.com/questions/19736080/creating-dataframe-from-a-dictionary-where-entries-have-different-lengths
     #DataFrame(dict([ (k,Series(v)) for k,v in d.items() ]))
     #
@@ -1139,11 +1055,50 @@ def calc_covaraiance_matrix(calculated_values):
     # column should have a seperate variable
     covariance_dataframe = covariance_matrix_input.corr()
     print covariance_dataframe.shape
-    #covariance_matrix = np.cov(covariance_matrix_input.values)
-    #covariance_dataframe = pandas.DataFrame(covariance_matrix, index=covariance_matrix_input.index.values,
-    #                                        columns = covariance_matrix_input.index.values)
 
     return covariance_dataframe
+
+# in the style of: https://stackoverflow.com/questions/16592222/matplotlib-group-boxplots
+def make_multi_time_boxplots(metrics_to_time_to_granularity_lists, time_grans, metric, colors, graph_name):
+    fig = plt.figure()
+    fig.clf()
+    ax = plt.axis()
+
+    cur_pos = 1
+    tick_position_list = []
+    for time_gran in time_grans:
+        number_nested_lists = len(metrics_to_time_to_granularity_lists[metric][time_gran])
+        number_positions_on_graph = range(cur_pos, cur_pos+number_nested_lists)
+        tick_position = (float(number_positions_on_graph[0]) + float(number_positions_on_graph[-1])) / number_nested_lists
+        tick_position_list.append( tick_position )
+        bp = plt.boxplot(metrics_to_time_to_granularity_lists[metric][time_gran], positions = number_positions_on_graph, widths = 0.6)
+        cur_pos += number_nested_lists + 1 # the +1 is so that there is extra space between the groups
+        set_boxplot_colors(bp, colors)
+
+    ax.xlim(0, cur_pos)
+    ax.set_xticklabels([str(i) for i in time_grans])
+    ax.set_xticks(tick_position_list)
+
+    invisible_lines = []
+    for color in colors:
+        cur_line, = plt.plot([1,1], color)
+        invisible_lines.append(cur_line.copy())
+    plt.legend(invisible_lines, colors)
+    for line in invisible_lines:
+        line.set_visible(False)
+
+    plt.savefig(graph_name + '.png', format='png')
+
+def set_boxplot_colors(bp, colors):
+    for counter, color in enumerate(colors):
+        plt.setp(bp['boxes'][counter], color=color)
+        plt.setp(bp['caps'][counter * 2], color=color)
+        plt.setp(bp['caps'][counter * 2 + 1], color=color)
+        plt.setp(bp['whiskers'][counter * 2], color=color)
+        plt.setp(bp['whiskers'][counter * 2 + 1], color=color)
+        plt.setp(bp['fliers'][counter * 2 ], color=color)
+        plt.setp(bp['fliers'][counter * 2 + 1], color=color)
+        plt.setp(bp['medians'][counter], color=color)
 
 ##########################################
 ##########################################
