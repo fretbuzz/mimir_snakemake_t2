@@ -371,8 +371,8 @@ def aggregate_pcaps(list_of_pcaps, network_list):
 # network_or_microservice_list = network list if swarm, microservice (class) list if k8s
 # TODO can ms_s take the part of network_or_microservice_list under the appropriate scenario??
 def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
-                               network_or_microservice_list, ms_s, make_edgefiles_p, basegraph_name,
-                               start_time = None, end_time = None, calc_vals=True):
+                               network_or_microservice_list, ms_s, make_edgefiles_p, basegraph_name, window_size,
+                               start_time = None, end_time = None, calc_vals=True, graph_p = True):
     if is_swarm:
         mapping = swarm_container_ips(container_info_path, network_or_microservice_list)
     else:
@@ -436,16 +436,22 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
                                                          start_time, end_time)
                 print "unmapped ips", unmapped_ips
 
+    total_calculated_vals = {}
     for time_interval_length in time_interval_lengths:
         print "analyzing edgefiles..."
-        analyze_edgefiles.pipeline_analysis_step(interval_to_filenames[time_interval_length], ms_s, time_interval_length,
-                                                 basegraph_name, calc_vals)
-        #raw_input("Press Enter to continue...")
+        newly_calculated_values = analyze_edgefiles.pipeline_analysis_step(interval_to_filenames[time_interval_length], ms_s, time_interval_length,
+                                                 basegraph_name, calc_vals, window_size)
+        total_calculated_vals.update(newly_calculated_values)
+    if graph_p:
+        # todo: this isn't really the way that I'd want this tho...
+        for item, calculated_vals in total_calculated_vals.iteritems():
+            analyze_edgefiles.create_graphs(calculated_vals, basegraph_name, item[0], window_size, item[1])
 
 # here are some 'recipes'
 # comment out the ones you are not using
 def run_analysis_pipeline_recipes():
     # atsea store recipe
+
     '''
     pcap_paths = ['/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/seastore_redux_back-tier_1.pcap',
                    '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/seastore_redux_front-tier_1.pcap']
@@ -453,17 +459,19 @@ def run_analysis_pipeline_recipes():
     basefile_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/edgefiles/seastore_swarm'
     basegraph_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/graphs/seastore_swarm'
     container_info_path = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/atsea_redux_docker_container_configs.txt'
-    time_interval_lengths = [100, 100, 10, 1]#, #0.1] # seconds
+    time_interval_lengths = [100, 100, 10, 1, 0.1] # seconds
     network_or_microservice_list = ["atsea_back-tier", "atsea_default", "atsea_front-tier", "atsea_payment"]
     ms_s = ['appserver', 'reverse_proxy', 'database']
-    make_edgefiles = True
+    make_edgefiles = False
     start_time = 1529180898.56
     end_time = 1529181277.03
     calc_vals = True
+    window_size = 4
+    graph_p = True # should I make graphs?
     run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
-                               network_or_microservice_list, ms_s, make_edgefiles, basegraph_name,
-                               start_time=start_time, end_time=end_time, calc_vals = calc_vals)
-    '''
+                               network_or_microservice_list, ms_s, make_edgefiles, basegraph_name, window_size
+                               start_time=start_time, end_time=end_time, calc_vals = calc_vals, graph_p = graph_p)
+    #'''
 
     # sockshop recipe (TODO: test it)
     #'''
@@ -472,13 +480,18 @@ def run_analysis_pipeline_recipes():
     basefile_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/sockshop_info/edgefiles/sockshop_swarm_pipeline_br0'
     basegraph_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/sockshop_info/graphs/sockshop_swarm'
     container_info_path = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/sockshop_info/sockshop_swarm_fixed_containers_config.txt'
-    time_interval_lengths = [369, 36.9, 3.69] # seconds
+    time_interval_lengths = [100, 10, 1, 0.1] # seconds
     network_or_microservice_list = ["sockshop_default"]
     ms_s = microservices_sockshop
     make_edgefiles = False
     calc_vals = True
+    graph_p = True # should I make graphs?
+    start_time = 1529527610.6
+    end_time = 1529527979.54
+    window_size = 4
     run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
-                               network_or_microservice_list, ms_s, make_edgefiles, basegraph_name, calc_vals = calc_vals)
+                               network_or_microservice_list, ms_s, make_edgefiles, basegraph_name, window_size
+                               start_time=start_time, end_time=end_time, calc_vals = calc_vals, graph_p = graph_p)
     #'''
     # wordpress recipe (TODO)
     '''
@@ -530,3 +543,6 @@ def run_analysis_pipeline_recipes():
 # (6) (after the previous thing tomorrow) finish meeting visualizations / notes/ prepare-in-general (should have about 2 hours for this...)
 
 
+if __name__=="__main__":
+    print "RUNNING"
+    run_analysis_pipeline_recipes()

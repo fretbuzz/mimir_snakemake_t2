@@ -1,25 +1,7 @@
-# the ones I want to do are :
-# reciprocity (this is more of a formality in my case b/c it is obviously one)
-# density (ratio of edges-to-nodes)
-# diameter (can be done for each pair of nodes, typically convyed via 'effective' diameter',
-    # which is just the 90th percentile of the distance between every pair of connected nodes)
-# clustering coefficient
-    # there's an equation
-# degree distribution
-    # calc in and out degrees and use the tool to fit the distro
-# joint degree distribution
-    # see pseudocode
-# in-flow vs out-flow (maybe?)
-
-# okay, plan of attack:
-# (1) read in edge file
-# (2) graph it to make sure that it looks fine
-# (3) start going down the list
-
 import networkx as nx
 from networkx.drawing.nx_agraph import graphviz_layout
 import matplotlib.pyplot as plt
-#import seaborn as sns; sns.set()
+import seaborn as sns; sns.set()
 import numpy as np
 import statsmodels.api as sm
 import math
@@ -29,6 +11,7 @@ import scipy.stats
 import scipy.sparse.linalg
 import pandas
 import csv
+import ast
 
 sockshop_ms_s = ['carts-db','carts','catalogue-db','catalogue','front-end','orders-db','orders',
         'payment','queue-master','rabbitmq','session-db','shipping','user-sim', 'user-db','user','load-test']
@@ -36,29 +19,35 @@ sockshop_ms_s = ['carts-db','carts','catalogue-db','catalogue','front-end','orde
 number_boxplots = 0 # bad
 boxplot_xtick_lables = []
 
-def pipeline_analysis_step(filenames, ms_s, time_interval, basegraph_name, calc_vals_p):
+def pipeline_analysis_step(filenames, ms_s, time_interval, basegraph_name, calc_vals_p, window_size):
     list_of_graphs = []
     list_of_aggregated_graphs = [] # all nodes of the same class aggregated into a single node
     list_of_aggregated_graphs_multi = [] # the above w/ multiple edges
+    total_calculated_values = {}
 
     for file_path in filenames:
-        G = nx.DiGraph()
-        print "path to file is ", file_path
-        nx.read_edgelist(file_path,
-                        create_using=G, delimiter=',', data=(('weight', float),))
-        pos = graphviz_layout(G)
-        nx.draw_networkx(G, pos, with_labels=True, arrows=True)
-        #plt.show()
-        list_of_graphs.append(G)
-        aggreg_multi_G, aggreg_simple_G = aggregate_graph(G, ms_s)
-        list_of_aggregated_graphs.append( aggreg_simple_G )
-        list_of_aggregated_graphs_multi.append( aggreg_multi_G )
+        if calc_vals_p:
+            G = nx.DiGraph()
+            print "path to file is ", file_path
+            nx.read_edgelist(file_path,
+                            create_using=G, delimiter=',', data=(('weight', float),))
+            pos = graphviz_layout(G)
+            nx.draw_networkx(G, pos, with_labels=True, arrows=True)
+            #plt.show()
+            list_of_graphs.append(G)
+            aggreg_multi_G, aggreg_simple_G = aggregate_graph(G, ms_s)
+            list_of_aggregated_graphs.append( aggreg_simple_G )
+            list_of_aggregated_graphs_multi.append( aggreg_multi_G )
 
+    total_calculated_values[(time_interval, 'container')] = calc_graph_metrics(list_of_graphs, ms_s, time_interval,
+                                                                               basegraph_name + '_container_', 'container',
+                                                                               calc_vals_p, window_size)
+    total_calculated_values[(time_interval, 'class')] = calc_graph_metrics(list_of_aggregated_graphs, ms_s, time_interval,
+                                                                           basegraph_name + '_class_', 'class', calc_vals_p,
+                                                                           window_size)
+    return total_calculated_values
 
-    #calc_graph_metrics(list_of_graphs, ms_s, time_interval, basegraph_name + '_container_', 'container', calc_vals_p)
-    #calc_graph_metrics(list_of_aggregated_graphs, ms_s, time_interval, basegraph_name + '_class_', 'class', calc_vals_p)
-
-def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or_class, calc_vals_p):
+def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or_class, calc_vals_p, window_size):
     global number_boxplots # this is a bad practice, but I am going to do it anyway
     global boxplot_xtick_lables
 
@@ -70,12 +59,28 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or
         weighted_average_path_lengths = []
         unweighted_overall_reciprocities = [] # defined per networkx definition (see their docs)
         weighted_reciprocities = [] # defined per the nature paper (see comment @ function definition)
-        average_clustering = []
+        average_clusterings = []
+        outstrength_dicts = []
+        instrength_dicts = []
+        eigenvector_centrality_dicts = []
+        clustering_dicts = []
+        betweeness_centrality_dicts = []
+        load_centrality_dicts = []
+        non_reciprocated_out_weight_dicts = []
+        non_reciprocated_in_weight_dicts = []
+
+        total_node_list = []
+        for cur_g in G_list:
+            for node in cur_g.nodes():
+                total_node_list.append(node)
+        total_node_list = list(set(total_node_list))
 
         for cur_G in G_list:
             # okay, so this is where to calculate those metrics from the excel document
 
             # first, let's do the graph-wide metrics (b/c it is simple) (these are only single values)
+            # todo: this causes problems when one doesn't commmuncaite (e.g. sockshop queue-master
+            # sometimes doesn't do anything)
             try:
                 avg_path_length = nx.average_shortest_path_length(cur_G) #
             except:
@@ -87,7 +92,7 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or
                 recip = -1 # overall reciprocity not defined for empty graphs
             unweighted_overall_reciprocities.append(recip)
 
-            average_clustering.append(nx.average_clustering(cur_G))
+            #average_clusterings.append(nx.average_clustering(cur_G))
 
             #print nx.all_pairs_dijkstra_path_length(cur_G)
             sum_of_all_distances = 0
@@ -108,31 +113,58 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or
             degree_dict = {}
             degree_dict_iterator = cur_G.out_degree()  # node-instance granularity (might wanna aggregate it or something)
             for val in degree_dict_iterator:
-                print val, val[0], val[1]
+                #print val, val[0], val[1]
                 degree_dict[val[0]] = val[1]
-            print "degree dict", degree_dict
+            #print "degree dict", degree_dict
 
             # todo: ... [such as making list and time-list]
             outstrength_dict = {}
             instrength_dict = {}
             for (u, v, data) in cur_G.edges(data=True):
                 if u in outstrength_dict:
-                    outstrength_dict[u] += data
+                    outstrength_dict[u] += data['weight']
                 else:
-                    outstrength_dict[u] = data
+                    outstrength_dict[u] = data['weight']
                 if v in instrength_dict:
-                    instrength_dict[v] += data
+                    instrength_dict[v] += data['weight']
                 else:
-                    instrength_dict[v] = data
-            eigenvector_centrality_dict = nx.eigenvector_centrality(cur_G)
-            clustering_dict = nx.clustering(cur_G)
-            betweeness_centrality_dict = nx.betweenness_centrality(cur_G)
-            load_centrality_dict = nx.load_centrality(cur_G)
+                    instrength_dict[v] = data['weight']
+            try:
+                eigenvector_centrality_dict = nx.eigenvector_centrality(cur_G)
+            except:
+                eigenvector_centrality_dict = {}
+                for node in total_node_list:
+                    eigenvector_centrality_dict[node] = 0
+
+            #clustering_dict = nx.clustering(cur_G)
+            try:
+                betweeness_centrality_dict = nx.betweenness_centrality(cur_G)
+            except:
+                betweeness_centrality_dict = {}
+                for node in total_node_list:
+                    betweeness_centrality_dict[node] = 0
+
+            try:
+                load_centrality_dict = nx.load_centrality(cur_G)
+            except:
+                load_centrality_dict = {}
+                for node in total_node_list:
+                    load_centrality_dict[node] = 0
+
             # prob wanna do weighted reciprocity per ms class (I'm thinking scatter plot) (tho I need to figure out the other axis)
             # note: in the nature paper they actually just graph in-strength vs out-strength (might be the way to go)
             # could also try a repeat of the angle-vector-measurement-trick that i did for degrees
             # (they also do weighted reciprocity vs time later on in the paper)
             weighted_reciprocity, non_reciprocated_out_weight_dict, non_reciprocated_in_weight_dict = network_weidge_weighted_reciprocity(cur_G)
+            outstrength_dicts.append( outstrength_dict )
+            instrength_dicts.append( instrength_dict )
+            eigenvector_centrality_dicts.append( eigenvector_centrality_dict )
+            #clustering_dicts.append( clustering_dict )
+            betweeness_centrality_dicts.append( betweeness_centrality_dict )
+            load_centrality_dicts.append( load_centrality_dict )
+            non_reciprocated_out_weight_dicts.append( non_reciprocated_out_weight_dict )
+            non_reciprocated_in_weight_dicts.append( non_reciprocated_in_weight_dict )
+
 
             weighted_reciprocities.append(weighted_reciprocity)
             #input("stuff")
@@ -149,69 +181,104 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or
             densities.append(density)
             degree_dicts.append(degree_dict)
 
-        # okay, so now to do some simple analysis that'll lead to the creation of some graphs...
-        # NOTE: slicing off the first value for a lot of these b/c i started tcpdump before the load generator...
-
         print "degrees", degree_dicts
         print "weighted recips", weight_recips
         #raw_input("Press Enter2 to continue...")
         # now going to perform leman method
         print "DOING ANGLES"
-        window_size = 4
-        node_degrees = []
         print "degree dicts", degree_dicts
-        total_node_list = []
-        for cur_g in G_list:
-            for node in cur_g.nodes():
-                total_node_list.append(node)
-        total_node_list = list(set(total_node_list))
-        for degree_dict in degree_dicts:
-            current_nodes = []
-            #print G_list, len(G_list)
-            for node in total_node_list:
-                try:
-                    current_nodes.append( degree_dict[node] )
-                except:
-                    current_nodes.append(0) # the current degree_dict must not have an entry for node -> no comm -> degree zero
-            if current_nodes not in node_degrees:
-                print "new degree set", current_nodes
-            node_degrees.append(current_nodes)
-            #print "degree angles", node_degrees
-        angles_degrees = find_angles(node_degrees, 4) #eigenvector_analysis(degree_dicts, window_size=window_size)  # setting window size arbitrarily for now...
+
+        # out degrees analysis
+        node_degrees = turn_into_list(degree_dicts, total_node_list)
+        angles_degrees = find_angles(node_degrees, window_size) #eigenvector_analysis(degree_dicts, window_size=window_size)  # setting window size arbitrarily for now...
         print "angles degrees", type(angles_degrees), angles_degrees
         print node_degrees
-        #print "DOING WEIGHTED RECIPROCITY"
-
-        angles_degrees_eigenvector = eigenvector_analysis(degree_dicts, 4, total_node_list)
+        angles_degrees_eigenvector = eigenvector_analysis(degree_dicts, window_size, total_node_list)
         print "angles degrees eigenvector", angles_degrees_eigenvector
 
+        #######
 
+        # outstrength analysis
+        node_outstrengths = turn_into_list(outstrength_dicts, total_node_list)
+        print "node_outstrengths", node_outstrengths
+        outstrength_degrees = find_angles(node_outstrengths, window_size)
+        outstrength_degrees_eigenvector = eigenvector_analysis(outstrength_dicts, window_size, total_node_list)
+
+        # instrength analysis
+        node_instrengths = turn_into_list(instrength_dicts, total_node_list)
+        print "node_instrengths", node_instrengths
+        instrengths_degrees = find_angles(node_instrengths, window_size)
+        instrengths_degrees_eigenvector = eigenvector_analysis(instrength_dicts, window_size, total_node_list)
+
+        # eigenvector centrality analysis
+        node_eigenvector_centrality = turn_into_list(eigenvector_centrality_dicts, total_node_list)
+        eigenvector_centrality_degrees = find_angles(node_eigenvector_centrality, window_size)
+        eigenvector_centrality_degrees_eigenvector = eigenvector_analysis(eigenvector_centrality_dicts, window_size, total_node_list)
+
+        # clustering analysis (not implemented for directed type)
+        #node_clustering = turn_into_list(clustering_dicts, total_node_list)
+        #clustering_degrees = find_angles(node_clustering, window_size)
+        #clustering_degrees_eigenvector = eigenvector_analysis(node_clustering, window_size, total_node_list)
+
+
+        # betweeness centrality analysis
+        node_betweeness_centrality = turn_into_list(betweeness_centrality_dicts, total_node_list)
+        betweeness_centrality_degrees = find_angles(node_betweeness_centrality, window_size)
+        betweeness_centrality_degrees_eigenvector = eigenvector_analysis(betweeness_centrality_dicts, window_size, total_node_list)
+
+        # load centrality analysis
+        node_load_centrality = turn_into_list(load_centrality_dicts, total_node_list)
+        load_centrality_degrees = find_angles(node_load_centrality, window_size)
+        load_centrality_degrees_eigenvector = eigenvector_analysis(load_centrality_dicts, window_size, total_node_list)
+
+        # non_reciprocated_out_weight analysis
+        node_non_reciprocated_out_weight = turn_into_list(non_reciprocated_out_weight_dicts, total_node_list)
+        non_reciprocated_out_weight_degrees = find_angles(node_non_reciprocated_out_weight, window_size)
+        non_reciprocated_out_weight_degrees_eigenvector = eigenvector_analysis(non_reciprocated_out_weight_dicts, window_size, total_node_list)
+
+
+        # non_reciprocated_in_weight analysis
+        node_non_reciprocated_in_weight = turn_into_list(non_reciprocated_in_weight_dicts, total_node_list)
+        non_reciprocated_in_weight_degrees = find_angles(node_non_reciprocated_in_weight, window_size)
+        non_reciprocated_in_weight_degrees_eigenvector = eigenvector_analysis(non_reciprocated_in_weight_dicts, window_size, total_node_list)
+
+        #######
 
 
         average_path_lengths_no_nan = []
         for val in average_path_lengths:
             if not math.isnan(val):
                 average_path_lengths_no_nan.append(val)
+            else:
+                average_path_lengths_no_nan.append(0)
 
         weighted_average_path_lengths_no_nan = []
         for val in weighted_average_path_lengths:
             if not math.isnan(val):
                 weighted_average_path_lengths_no_nan.append(val)
+            else:
+                weighted_average_path_lengths_no_nan.append(0)
 
         unweighted_overall_reciprocities_no_nan = []
         for val in unweighted_overall_reciprocities:
             if not math.isnan(val):
                 unweighted_overall_reciprocities_no_nan.append(val)
+            else:
+                weighted_average_path_lengths_no_nan.append(0)
 
         weighted_reciprocities_no_nan = []
         for val in weighted_reciprocities:
             if not math.isnan(val):
                 weighted_reciprocities_no_nan.append(val)
+            else:
+                weighted_reciprocities_no_nan.append(0)
 
         angles_degrees_no_nan = []
         for val in angles_degrees:
             if not math.isnan(val):
                 angles_degrees_no_nan.append(val)
+            else:
+                angles_degrees_no_nan.append(0)
 
         appserver_sum_degrees = []
         for degree_dict in degree_dicts:
@@ -226,6 +293,8 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or
         for val in densities:
             if not math.isnan(val):
                 densities_no_nan.append(val)
+            else:
+                densities_no_nan.append(0)
         print densities_no_nan
 
         calculated_values = {}    
@@ -242,38 +311,95 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or
         calculated_values['weighted_reciprocities'] = weighted_reciprocities
         calculated_values['densities'] = densities
         calculated_values['angles_degrees'] = angles_degrees
-        calculated_values['average_clustering'] = average_clustering
+        #calculated_values['average_clusterings'] = average_clusterings
+        calculated_values['angles_degrees_eigenvector'] = angles_degrees_eigenvector
+        calculated_values['outstrength_degrees'] = outstrength_degrees
+        calculated_values['outstrength_degrees_eigenvector'] = outstrength_degrees_eigenvector
+        calculated_values['instrengths_degrees'] = instrengths_degrees
+        calculated_values['instrengths_degrees_eigenvector'] = instrengths_degrees_eigenvector
+        calculated_values['eigenvector_centrality_degrees'] = eigenvector_centrality_degrees
+        calculated_values['eigenvector_centrality_degrees_eigenvector'] = eigenvector_centrality_degrees_eigenvector
+        #calculated_values['clustering_degrees'] = clustering_degrees
+        #calculated_values['clustering_degrees_eigenvector'] = clustering_degrees_eigenvector
+        calculated_values['betweeness_centrality_degrees'] = betweeness_centrality_degrees
+        calculated_values['betweeness_centrality_degrees_eigenvector'] = betweeness_centrality_degrees_eigenvector
+        calculated_values['load_centrality_degrees'] = load_centrality_degrees
+        calculated_values['load_centrality_degrees_eigenvector'] = load_centrality_degrees_eigenvector
+        calculated_values['non_reciprocated_out_weight_degrees'] = non_reciprocated_out_weight_degrees
+        calculated_values['non_reciprocated_out_weight_degrees_eigenvector'] = non_reciprocated_out_weight_degrees_eigenvector
+        calculated_values['non_reciprocated_in_weight_degrees'] = non_reciprocated_in_weight_degrees
+        calculated_values['non_reciprocated_in_weight_degrees_eigenvector'] = non_reciprocated_in_weight_degrees_eigenvector
 
-        with open(basegraph_name + '_processed_vales.txt', 'w') as csvfile:
+        # note: these are dictionaries
+        calculated_values['non_reciprocated_in_weight'] = non_reciprocated_in_weight_dicts
+        calculated_values['non_reciprocated_out_weight'] = non_reciprocated_out_weight_dicts
+
+
+        with open(basegraph_name + '_processed_vales_' + container_or_class + '_' + '%.2f' % (time_interval) + '.txt', 'w') as csvfile:
             spamwriter = csv.writer(csvfile, delimiter=',',
                                         quotechar='|', quoting=csv.QUOTE_MINIMAL)
             for value_name, value in calculated_values.iteritems():
                 spamwriter.writerow([value_name, value])
     else:
         calculated_values = {}
-        with open(basegraph_name + '_processed_vales.txt', 'r') as csvfile:
-            csvread = csv.reader(csvfile, delimiter=',')
+        with open(basegraph_name + '_processed_vales_' + container_or_class + '_' + '%.2f' % (time_interval) + '.txt', 'r') as csvfile:
+            csvread = csv.reader(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
             for row in csvread:
                 print row
-                calculated_values[row[0]] = row[1]
-        average_path_lengths_no_nan = calculated_values['average_path_lengths_no_nan']
-        weighted_average_path_lengths_no_nan = calculated_values['weighted_average_path_lengths_no_nan']
-        unweighted_overall_reciprocities_no_nan = calculated_values['unweighted_overall_reciprocities_no_nan']
-        weighted_reciprocities_no_nan = calculated_values['weighted_reciprocities_no_nan']
-        angles_degrees_no_nan = calculated_values['angles_degrees_no_nan']
-        appserver_sum_degrees = calculated_values['appserver_sum_degrees']
-        densities_no_nan = calculated_values['densities_no_nan']
-        average_path_lengths = calculated_values['average_path_lengths']
-        weighted_average_path_lengths = calculated_values['weighted_average_path_lengths']
-        unweighted_overall_reciprocities = calculated_values['unweighted_overall_reciprocities']
-        weighted_reciprocities = calculated_values['weighted_reciprocities']
-        densities = calculated_values['densities']
-        angles_degrees = calculated_values['angles_degrees']
-        average_clustering = calculated_values['average_clustering']
+                try:
+                    calculated_values[row[0]] = ast.literal_eval(row[1])
+                except:
+                    calculated_values[row[0]] = []
+
+    return calculated_values
 
 
-    x = [i*time_interval for i in range(0, len(average_path_lengths))] #[1:] # I'm taking the first value now...
+# okay, so I guess 2 bigs things here: (1) I guess I should iterate through the all the calculated_vals
+# dicts here? Also I need to refactor the combined boxplots such that they actually make sense...
+def create_graphs(calculated_values, basegraph_name, time_interval, window_size, container_or_class):
+    average_path_lengths_no_nan = calculated_values['average_path_lengths_no_nan']
+    weighted_average_path_lengths_no_nan = calculated_values['weighted_average_path_lengths_no_nan']
+    unweighted_overall_reciprocities_no_nan = calculated_values['unweighted_overall_reciprocities_no_nan']
+    weighted_reciprocities_no_nan = calculated_values['weighted_reciprocities_no_nan']
+    angles_degrees_no_nan = calculated_values['angles_degrees_no_nan']
+    appserver_sum_degrees = calculated_values['appserver_sum_degrees']
+    densities_no_nan = calculated_values['densities_no_nan']
+    average_path_lengths = calculated_values['average_path_lengths']
+    weighted_average_path_lengths = calculated_values['weighted_average_path_lengths']
+    unweighted_overall_reciprocities = calculated_values['unweighted_overall_reciprocities']
+    weighted_reciprocities = calculated_values['weighted_reciprocities']
+    densities = calculated_values['densities']
+    angles_degrees = calculated_values['angles_degrees']
+
+    #average_clusterings = calculated_values['average_clusterings']
+    angles_degrees_eigenvector = calculated_values['angles_degrees_eigenvector']
+    outstrength_degrees = calculated_values['outstrength_degrees']
+    outstrength_degrees_eigenvector = calculated_values['outstrength_degrees_eigenvector']
+    instrengths_degrees = calculated_values['instrengths_degrees']
+    instrengths_degrees_eigenvector = calculated_values['instrengths_degrees_eigenvector']
+    eigenvector_centrality_degrees = calculated_values['eigenvector_centrality_degrees']
+    eigenvector_centrality_degrees_eigenvector = calculated_values['eigenvector_centrality_degrees_eigenvector']
+    #clustering_degrees = calculated_values['clustering_degrees']
+    #clustering_degrees_eigenvector = calculated_values['clustering_degrees_eigenvector']
+    betweeness_centrality_degrees = calculated_values['betweeness_centrality_degrees']
+    betweeness_centrality_degrees_eigenvector = calculated_values['betweeness_centrality_degrees_eigenvector']
+    load_centrality_degrees = calculated_values['load_centrality_degrees']
+    load_centrality_degrees_eigenvector = calculated_values['load_centrality_degrees_eigenvector']
+    non_reciprocated_out_weight_degrees = calculated_values['non_reciprocated_out_weight_degrees']
+    non_reciprocated_out_weight_degrees_eigenvector = calculated_values['non_reciprocated_out_weight_degrees_eigenvector']
+    non_reciprocated_in_weight_degrees = calculated_values['non_reciprocated_in_weight_degrees']
+    non_reciprocated_in_weight_degrees_eigenvector = calculated_values['non_reciprocated_in_weight_degrees_eigenvector']
+
+    print "len average path lengths", average_path_lengths, "!!!!!", len(average_path_lengths)
+    x = [i*time_interval for i in range(0, len(average_path_lengths))]
+
     print "avg path lengths", average_path_lengths, len(average_path_lengths)
+
+    make_graphs_for_val(x, average_path_lengths, time_interval, basegraph_name, 200,
+                        'graph_avg_path_length', container_or_class, 'average path length (unweighted)', 'distance')
+
+
+    '''
     plt.figure(1)
     plt.clf()
     plt.title('unweighted average path length, ' + '%.2f' % (time_interval) )
@@ -286,9 +412,6 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or
     plt.clf()
     plt.title('unweighted average path length, ' + '%.2f' % (time_interval))
     plt.ylabel('average path length (unweighted)')
-    #print ~np.isnan(average_path_lengths)
-    #plt.boxplot(average_path_lengths[np.logical_not(np.isnan(average_path_lengths))])
-    #plt.boxplot(average_path_lengths[~np.isnan(average_path_lengths)][1:] )
     plt.boxplot(average_path_lengths_no_nan, sym='k.', whis=[5, 95])
     plt.savefig(basegraph_name + '+avg_path_length_boxplot_' + '%.2f' % (time_interval) + '.png', format='png')
 
@@ -300,9 +423,11 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or
     ax.set_xlim(0, number_boxplots)
     boxplot_xtick_lables.append('%.2f' % (time_interval) + ' ' + container_or_class)
     plt.xticks(range(0,number_boxplots), boxplot_xtick_lables)
-    number_boxplots +=1
     plt.savefig(basegraph_name + 'avg_path_length_boxplot_multiple_times_' + '%.2f' % (time_interval) + '.png', format='png')
-
+    '''
+    make_graphs_for_val(x, weighted_average_path_lengths, time_interval, basegraph_name, 204,
+                        '_graph_avg_weighted_path_length_', container_or_class, 'average path length (weighted)', 'distance')
+    '''
     plt.figure(3)
     plt.clf()
     plt.ylabel('average weighted path length')
@@ -318,7 +443,11 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or
     plt.boxplot(weighted_average_path_lengths_no_nan, sym='k.', whis=[5, 95])
     #plt.boxplot(weighted_average_path_lengths[1:])
     plt.savefig(basegraph_name + '_weighted_avg_path_length_boxplot_' +'%.2f' % (time_interval) + '.png', format='png')
+    '''
+    make_graphs_for_val(x, unweighted_overall_reciprocities, time_interval, basegraph_name, 207,
+                        '_graph_unweighted_overall_reciprocity', container_or_class, 'unweighted overall reciprocity', 'reciprocity')
 
+    '''
     plt.figure(5)
     plt.clf()
     plt.ylabel('overall reciprocity (unweighted)')
@@ -336,7 +465,13 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or
     plt.boxplot(unweighted_overall_reciprocities_no_nan, sym='k.', whis=[5, 95])
     #plt.boxplot(unweighted_overall_reciprocities[1:])
     plt.savefig(basegraph_name + '_unweighted_overall_reciprocity_boxplot_' + '%.2f' % (time_interval) + '.png', format='png')
+    '''
 
+    make_graphs_for_val(x, weighted_reciprocities, time_interval, basegraph_name, 210,
+                        '_graph_weighted_overall_reciprocity', container_or_class, 'weighted overall reciprocity',
+                        'reciprocity (weighted)')
+
+    '''
     plt.figure(7)
     plt.clf()
     plt.ylabel('overall weighted reciprocity')
@@ -351,7 +486,13 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or
     plt.title('weighted reciprocity, ' + '%.2f' % (time_interval))
     plt.boxplot(weighted_reciprocities_no_nan, sym='k.', whis=[5, 95])
     plt.savefig(basegraph_name + '_weighted_overall_reciprocity_boxplot_' + '%.2f' % (time_interval) + '.png', format='png')
+    '''
 
+    make_graphs_for_val(x, densities, time_interval, basegraph_name, 213,
+                        '_graph_overall_graph_density', container_or_class, 'overall graph density',
+                        'density')
+
+    '''
     plt.figure(9)
     plt.clf()
     plt.ylabel('overall graph density')
@@ -359,7 +500,13 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or
     plt.title('graph density, ' + '%.2f' % (time_interval))
     plt.plot(x, densities)
     plt.savefig(basegraph_name + '_graph_density_' + '%.2f' % (time_interval) + '.png', format='png')
+    '''
 
+    make_graphs_for_val(x[window_size:], angles_degrees, time_interval, basegraph_name, 216,
+                        '_graph_out_degree_simple_angles', container_or_class, 'out degree simple angles',
+                        'angle')
+
+    '''
     plt.figure(10)
     plt.clf()
     plt.ylabel('angle between out-degree vectors')
@@ -369,7 +516,7 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or
     #if len(x_after_window) == 0: # problem with 1 time step...
     #    x_after_window = x
     #print "fig5", len(x_after_window), len(angles_degrees), angles_degrees
-    plt.plot(x, angles_degrees)
+    plt.plot(x[window_size:], angles_degrees)
     plt.savefig(basegraph_name + '_out_degree_angles_' + '%.2f' % (time_interval) + '.png', format='png')
 
     plt.figure(11)
@@ -378,26 +525,101 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or
     plt.title('angle between out-degree vectors, ' + '%.2f' % (time_interval))
     plt.boxplot(angles_degrees_no_nan, sym='k.', whis=[5, 95])
     plt.savefig(basegraph_name + '_out_degree_angles_boxplot_' + '%.2f' % (time_interval) + '.png', format='png')
+    '''
 
     #plt.figure(6)
-    plt.figure(12)
-    plt.title("time vs app_server degrees")
-    plt.plot(x, appserver_sum_degrees)
-    #plt.title('time vs angle for weighted reciprocity')
-    #plt.plot(x, weighted_reciprocity_degrees)
-    #plt.show()
+    try:
+        plt.figure(12)
+        plt.title("time vs app_server degrees")
+        print appserver_sum_degrees
+        appserver_sum_degrees = ast.literal_eval(appserver_sum_degrees)
+        plt.plot(x, ast.literal_eval(appserver_sum_degrees))
+        plt.savefig(basegraph_name + '_appserver_sum_degrees_' + '%.2f' % (time_interval) + '.png', format='png')
+    except:
+        pass
+        #pass-ing b/c I don't really care...
 
-    print angles_degrees_no_nan
-
+    '''
     plt.figure(13)
     plt.clf()
     plt.ylabel('overall graph density')
     plt.title('graph density, ' + '%.2f' % (time_interval))
     plt.boxplot(densities_no_nan, sym='k.', whis=[5, 95])
     plt.savefig(basegraph_name + '_graph_density_boxplot_' + '%.2f' % (time_interval) + '.png', format='png')
+    '''
 
-    #weighted_reciprocity_degrees = eigenvector_analysis(weight_recips, window_size=4)  # todo: not sure if will work...
 
+    #make_graphs_for_val(x, average_clusterings, time_interval, basegraph_name, 50, '_graph_average_cluster_degree_',
+    #                    container_or_class, 'average clustering simple degree', 'angle')
+    print "old x", x
+    starting_x = window_size+ (window_size-1)
+    print "window_size", window_size, "so starting x:", starting_x
+    x_simple_angle = x[window_size:]
+    x = x[starting_x:] # b/c I don't calculate angles for the first window_size values...
+    for counter,val in enumerate(outstrength_degrees):
+        print counter,val
+    make_graphs_for_val(x, angles_degrees_eigenvector, time_interval, basegraph_name, 53,
+                        '_graph_degrees_eigenvector_degree_', container_or_class, 'degrees eigenvector degree', 'angle')
+    make_graphs_for_val(x_simple_angle, outstrength_degrees, time_interval, basegraph_name, 56,
+                        '_graph_outstrength_degree_', container_or_class, 'outstrength simple degree', 'angle')
+    make_graphs_for_val(x, outstrength_degrees_eigenvector, time_interval, basegraph_name, 59,
+                        '_graph_outstrength_eigenvector_degree_', container_or_class, 'outstrength eigenvector degree', 'angle')
+    make_graphs_for_val(x_simple_angle, instrengths_degrees, time_interval, basegraph_name, 62,
+                        '_graph_instrength_degree_', container_or_class, 'instrength simple degree', 'angle')
+    make_graphs_for_val(x, instrengths_degrees_eigenvector, time_interval, basegraph_name, 65,
+                        '_graph_instrength_eigenvector_degree_', container_or_class, 'instrength eigenvector degree', 'angle')
+    make_graphs_for_val(x_simple_angle, eigenvector_centrality_degrees, time_interval, basegraph_name, 68,
+                        '_graph_eigenvector_centrality_degree_', container_or_class, 'eigenvector centrality simple degree', 'angle')
+    make_graphs_for_val(x, eigenvector_centrality_degrees_eigenvector, time_interval, basegraph_name, 71,
+                        '_graph_eigenvector_centrality_eigenvector_degree_', container_or_class, 'eigenvector centrality eigenvector degree',
+                        'angle')
+    #make_graphs_for_val(x, clustering_degrees, time_interval, basegraph_name, 74,
+    #                    '_graph_clustering_degree_', container_or_class, 'clustering simple degree', 'angle')
+    #make_graphs_for_val(x, clustering_degrees_eigenvector, time_interval, basegraph_name, 77,
+    #                    '_graph_clustering_degrees_eigenvector_degree_', container_or_class, 'clustering eigenvector degree',
+    #                    'angle')
+    make_graphs_for_val(x_simple_angle, betweeness_centrality_degrees, time_interval, basegraph_name, 80,
+                        '_graph_betweeness_centrality_degree_', container_or_class, 'betweeness centrality degree', 'angle')
+    make_graphs_for_val(x, betweeness_centrality_degrees_eigenvector, time_interval, basegraph_name, 83,
+                        '_graph_betweeness_centrality_eigenvector_degree_', container_or_class, 'betweeness centrality eigenvector degree',
+                        'angle')
+    make_graphs_for_val(x_simple_angle, load_centrality_degrees, time_interval, basegraph_name, 86,
+                        '_graph_load_centrality_degree_', container_or_class, 'load centrality degree', 'angle')
+    make_graphs_for_val(x, load_centrality_degrees_eigenvector, time_interval, basegraph_name, 89,
+                        '_graph_load_centrality_eigenvector_degree_', container_or_class, 'load centrality eigenvector degree',
+                        'angle')
+    make_graphs_for_val(x_simple_angle, non_reciprocated_out_weight_degrees, time_interval, basegraph_name, 92,
+                        '_graph_non_reciprocated_out_weight_degree_', container_or_class, 'non-reciprocated outweight  degree', 'angle')
+    make_graphs_for_val(x, non_reciprocated_out_weight_degrees_eigenvector, time_interval, basegraph_name, 95,
+                        '_graph_non_reciprocated_out_weight_eigenvector_degree_', container_or_class, 'non-reciprocated outweight eigenvector degree',
+                        'angle')
+    make_graphs_for_val(x_simple_angle, non_reciprocated_in_weight_degrees, time_interval, basegraph_name, 98,
+                        '_graph_non_reciprocated_in_weight_degree_', container_or_class, 'non-reciprocated inweight degree', 'angle')
+    make_graphs_for_val(x, non_reciprocated_in_weight_degrees_eigenvector, time_interval, basegraph_name, 101,
+                        '_graph_non_reciprocated_in_weight_eigenvector_degree_', container_or_class, 'non-reciprocated inweight eigenvector degree',
+                        'angle')
+
+    number_boxplots +=1
+
+    ## gotta remove those dicts from calculated_values b/c it'll break our next function
+
+    try:
+        del calculated_values['non_reciprocated_in_weight']
+    except:
+        pass # I guess it wasn't there...
+
+    try:
+        del calculated_values['non_reciprocated_out_weight']
+    except:
+        pass # I guess it wasn't there...
+
+    print "about to make covariance matrix!"
+    correlation_dataframe = calc_covaraiance_matrix(calculated_values)
+    print "made covariance matrix! Now time to plot it!"
+    print "correlation dataframe"
+    print correlation_dataframe
+    # todo: just showing ATM, should also save...
+    plot_correlogram(correlation_dataframe)
 
 # aggregate all nodes of the same class into a single node
 # let's use a multigraph, so we can keep all the edges as intact...
@@ -409,14 +631,27 @@ def aggregate_graph(G, ms_s):
         mapping[ms] = []
     for node in G.nodes():
         for ms in ms_s:
-            print node
+            #print node
             if ms in node:
                 mapping[ms].append(node)
                 mapping_node_to_ms[node] = ms
                 break
     print mapping_node_to_ms
     for (u,v,data) in G.edges(data=True):
-        H.add_edge(mapping_node_to_ms[u], mapping_node_to_ms[v], weight=data['weight'])
+        #print (u,v,data)
+        try:
+            H.add_edge(mapping_node_to_ms[u], mapping_node_to_ms[v], weight=data['weight'])
+        except:
+            print "this edge did NOT show up in the map!", (u,v,data)
+            # this happens when the outside talking to the 'gateway' shows up in our pcaps
+            if u == "1":
+                H.add_edge("outside", mapping_node_to_ms[v], weight=data['weight'])
+            elif v == "1":
+                H.add_edge(mapping_node_to_ms[u], "outside", weight=data['weight'])
+            else:
+                print "I have no idea what is going on in the aggregate graph function..."
+                exit(1)
+
     pos = graphviz_layout(H)
     nx.draw_networkx(H, pos, with_labels = True, arrows=True)
     #plt.show()
@@ -448,6 +683,7 @@ def aggregate_graph(G, ms_s):
 # where 'in' is the total in-strength from all nodes in the ms_class to this ms_instance
 # where 'out' is the total out-strength from the ms_instance to all the nodes in the ms_class
 # TODO: there is some problem with the input data to pearsonr, causing the correlation value to be nan
+
 def find_reciprocated_strength(G, ms_s):
     reciprocated_strength_dict = {}
     avg_strength_dict = {}
@@ -582,11 +818,11 @@ def find_dominant_pair(G, ms_s):
 
     return princ_eigenvect, total_weight
 
-# returns list of angles
-# TODO: fix (might need to rewrite a bunch from scratch...)
-# todo: the values for each time stamp entry must be a dictinoary
-# mapped by
-def eigenvector_analysis(tensor, window_size,nodes_in_tensor):
+# returns list of angles (of size len(tensor) - window_size)
+# (b/c the first window_size angles do not exist in a meaningful way...)
+# note: tensor is really a list of dictionaries, with keys of nodes_in_tensor
+# note: does not make sense for window_size to be less than 3
+def eigenvector_analysis(tensor, window_size, nodes_in_tensor):
     # let's outline what I gotta do here...
     # take a 'window' size time slice
     # for each pair of nodes in this window -> calculate correlation of time series
@@ -597,53 +833,92 @@ def eigenvector_analysis(tensor, window_size,nodes_in_tensor):
     # this is kinda a second pass of the window thing, but combine (via normal
         # average) all the eigenvectors in the window
     # find angle (seperate function)
-
+    #print "tensor", tensor
     correlation_matrices = []
     p_value_matrices =[]
     correlation_matrix_eigenvectors = []
     # let's iterate through the times, pulling out slices that correspond to windows
-    for i in range(0, len(tensor)):
-        correlation_matrix = pandas.DataFrame(0, index=nodes_in_tensor, columns=nodes_in_tensor)
-        pearson_p_val_matrix = pandas.DataFrame(0, index=nodes_in_tensor, columns=nodes_in_tensor)
+    ####smallest_slice = 3 # 2 is guaranteed to get a pearson value of 1, even smaller breaks it
+    for i in range( window_size, len(tensor) + 1):
+        correlation_matrix = pandas.DataFrame(0.0, index=nodes_in_tensor, columns=nodes_in_tensor)
+        pearson_p_val_matrix = pandas.DataFrame(0.0, index=nodes_in_tensor, columns=nodes_in_tensor)
 
-        start_of_window = max(0, i - window_size + 1)
+        start_of_window =  i - window_size # no +1 b/c of the slicing
         # compute average window (with what we have available)
+        print "start_of_window", start_of_window
         print "list slice window of tensor", tensor[start_of_window: i]
         tensor_window = tensor[start_of_window: i]
 
-        # okay, now that we have the window, it is time to go through each pair of nodes in
-        # the window
+        # okay, now that we have the window, it is time to go through each pairing of nodes
         for node_one in nodes_in_tensor:
             for node_two in nodes_in_tensor:
                 # compute pearson's rho of the corresponding time series
-                try:
-                    node_one_time_series = [x[node_one] for x in tensor_window]
-                except:
-                    continue
-                try:
-                    nodE_two_time_series = [x[node_two] for x in tensor_window]
-                except:
-                    continue
-                pearson_rho = scipy.stats.pearsonr(node_one_time_series, nodE_two_time_series)
-                print 'peasrson', pearson_rho
+                node_one_time_series = [x[node_one] if node_one in x else 0 for x in tensor_window]
+                node_two_time_series = [x[node_two] if node_two in x else 0 for x in tensor_window]
+
+                print "node_one_time_series", node_one_time_series
+                print "node_two_time_series", node_two_time_series
+
+                ''' don't really need this anymore...
+                with open('./' + 'debugging.txt', 'a') as csvfile:
+                    spamwriter = csv.writer(csvfile, delimiter=',',
+                                            quotechar='|', quoting=csv.QUOTE_MINIMAL)
+                    spamwriter.writerow([node_one, node_one_time_series])
+                    spamwriter.writerow([node_two, node_two_time_series])
+                  '''
+
+                pearson_rho = scipy.stats.pearsonr(node_one_time_series, node_two_time_series)
+                print 'peasrson', pearson_rho, pearson_rho[0], node_one, node_two
+                correlation_matrix.at[node_one, node_two] = pearson_rho[0]
+                #print correlation_matrix
+                pearson_p_val_matrix.at[node_one, node_two] = pearson_rho[1]
+                #'''
+                # todo: does this make sense????
+                # note: this is a questionable edgecase. My reasoning is that
+                # all the values are typically the same during each time interval, since
+                # neither changes, we have no idea if there is (or isn't) a relation,
+                # so to be safe let's say zero
                 if math.isnan(pearson_rho[0]) and pearson_rho[1] == 1.0:
-                    correlation_matrix.at[node_one, node_two] = 1
+                    correlation_matrix.at[node_one, node_two] = 0.0
                 else:
-                    if math.isnan(pearson_rho[0]):
-                        correlation_matrix.at[node_one, node_two] = 0
-                    else:
-                        correlation_matrix.at[node_one, node_two] = pearson_rho[0]
-                try:
-                    pearson_p_val_matrix.at[node_one, node_two] = pearson_rho[1]
-                except:
-                    pearson_p_val_matrix.at[node_one, node_two] = -1
+                    correlation_matrix.at[node_one, node_two] = pearson_rho[0]
 
-
+                #'''
+        print "correlation matrix\n", correlation_matrix
         correlation_matrices.append(correlation_matrix)
         p_value_matrices.append(pearson_p_val_matrix)
 
         eigen_vals, eigen_vects = scipy.linalg.eigh(correlation_matrix.values)
-        correlation_matrix_eigenvectors.append(eigen_vects[0])
+        # note: here we want the principal eigenvector, which is assocated with the
+        # eigenvalue that has the largest magnitude
+        print "eigenvalues", eigen_vals
+        largest_mag_eigenvalue = max(eigen_vals, key=abs)
+        print "largest_mag_eigenvalue", largest_mag_eigenvalue
+        largest_mag_eigenvalue_index = 0
+        for counter, value in enumerate(eigen_vals):
+            if value == largest_mag_eigenvalue:
+                largest_mag_eigenvalue_index = counter
+                break
+        ''' # I thought this was going to be needed, but I am not so sure anymore...
+        if len(largest_mag_eigenvalue_index) == 1:
+            largest_mag_eigenvalue_index = largest_mag_eigenvalue_index[0]
+        else:
+            # if multiple identical eigenvalues, then we gotta
+            # choose the largest eigenvector by comparing the magnitudes
+            # of the eigenvectors
+            largest_mag_eigenvector = -100000 # effectively infinity
+            largest_mag_eigenvector_index = -1
+            for possibly_largest_eigenvector_index in largest_mag_eigenvalue_index:
+                # then just do the comparison
+                if np.linalg.norm(eigen_vects[possibly_largest_eigenvector_index]) > largest_mag_eigenvector:
+                    largest_mag_eigenvector = np.linalg.norm(eigen_vects[possibly_largest_eigenvector_index])
+                    largest_mag_eigenvector_index = possibly_largest_eigenvector_index
+            largest_mag_eigenvalue_index = largest_mag_eigenvector_index
+        '''
+
+        print "eigenvectors", eigen_vects
+        print "principal eigenvector", eigen_vects[largest_mag_eigenvalue_index]
+        correlation_matrix_eigenvectors.append(eigen_vects[largest_mag_eigenvalue_index])
 
     print "correlation eigenvects", correlation_matrix_eigenvectors
     angles = find_angles(correlation_matrix_eigenvectors, window_size)
@@ -652,9 +927,9 @@ def eigenvector_analysis(tensor, window_size,nodes_in_tensor):
 
 def find_angles(list_of_vectors, window_size):
 
-    angles = [0] # first must be zero (nothing to compare to)
-    for i in range(1, len(list_of_vectors)):
-        start_of_window = max(0, i - window_size)
+    angles = [] # first must be zero (nothing to compare to)
+    for i in range(window_size, len(list_of_vectors)):
+        start_of_window = i - window_size
         # compute average window (with what we have available)
         print "list slice window", list_of_vectors[start_of_window: i]
         window_average = np.mean([x for x in list_of_vectors[start_of_window: i] if x != []], axis=0)
@@ -725,7 +1000,7 @@ def network_weidge_weighted_reciprocity(G):
     # only goes through out-edges (so no double counting)
     total_weight = 0
     for edge in G.edges(data=True):
-        print edge
+        #print edge
         #input("Look!!!")
         try:
             total_weight += edge[2]['weight']
@@ -743,7 +1018,137 @@ def network_weidge_weighted_reciprocity(G):
 
     return weighted_reciprocity, non_reciprocated_out_weight, non_reciprocated_in_weight
 
-        # todo tomorrow (saturday) (ideally, I get all of this done on saturday)
+# note: this works b/c items do not change order in lists
+def turn_into_list(dicts, node_list):
+    node_vals= []
+    for dict in dicts:
+        current_nodes = []
+        # print G_list, len(G_list)
+        for node in node_list:
+            try:
+                current_nodes.append(float(dict[node]))
+            except:
+                current_nodes.append(0.0)  # the current dict must not have an entry for node -> zero val
+        node_vals.append(current_nodes)
+        # print "degree angles", node_degrees
+    return node_vals
+
+def make_graphs_for_val(x_vals, y_vals, time_interval, basegraph_name, fig_num, graph_name_extenstion,
+                        container_or_class, graph_tile, y_axis_label):
+    global number_boxplots
+
+    #y_vals = ast.literal_eval(y_vals)
+    plt.figure(fig_num)
+    plt.clf()
+    plt.title(graph_tile + ', ' + '%.2f' % (time_interval))
+    plt.ylabel(y_axis_label)
+    plt.xlabel('time (sec)')
+    print "x inputs", x_vals, type(x_vals)
+    print "y inputs", y_vals, type(y_vals)
+    plt.plot(x_vals, y_vals)
+    plt.savefig(basegraph_name + graph_name_extenstion + '_' + '%.2f' % (time_interval) + '.png', format='png')
+
+    plt.figure(fig_num + 1)
+    plt.clf()
+    plt.title(graph_tile + ', ' + '%.2f' % (time_interval))
+    plt.ylabel(y_axis_label)
+    plt.boxplot(y_vals, sym='k.', whis=[5, 95])
+    plt.savefig(basegraph_name + graph_name_extenstion + '_boxplot_' + '%.2f' % (time_interval) + '.png', format='png')
+
+    fig = plt.figure(fig_num + 2)
+    ax = plt.subplot(111)
+    plt.title(graph_tile + ', multiple')
+    plt.ylabel(y_axis_label)
+    plt.boxplot(y_vals, sym='k.', whis=[5, 95], labels=['%.2f' % (time_interval)],
+                positions=[number_boxplots])  # , names=[time_interval])
+    ax.set_xlim(0, number_boxplots)
+    boxplot_xtick_lables.append('%.2f' % (time_interval) + ' ' + container_or_class)
+    plt.xticks(range(0, number_boxplots), boxplot_xtick_lables)
+    plt.savefig(basegraph_name + graph_name_extenstion + '_boxplot_multiple_times_' + '%.2f' % (time_interval) + '.png',
+                format='png')
+
+    # so, I wanna like group + lalbel this multi-boxplot... okay, how to do that...
+    #
+
+# i think correlation matrix must be a pandas dataframe (with the appropriate labels)
+def plot_correlogram(correlation_matrix, basegraph_name):
+    # based off of example located at: https://seaborn.pydata.org/generated/seaborn.heatmap.html
+    #don't think is needed: flights = sns.load_dataset("flights")
+    #don't think is needed: flights = flights.pivot("month", "year", "passengers")
+
+    ax = sns.heatmap(correlation_matrix)
+    #ax.savefig(basegraph_name + graph_name_extenstion + '_' + '%.2f' % (time_interval) + '.png', format='png')
+
+
+    # going to drop NaN's beforep plotting
+    ax2 = sns.pairplot(correlation_matrix.dropna()) # note: I hope dropna() doesn't mess the alignment up but it might
+    ax2.savefig(basegraph_name + graph_name_extenstion + '_' + '%.2f' % (time_interval) + '.png', format='png')
+
+
+    ''' Note: this'd take some work, but might be worth doing at some point
+    # LIFTED: from https://python-graph-gallery.com/327-network-from-correlation-matrix/
+    # Transform it in a links data frame (3 columns only):
+    links = correlation_matrix.stack().reset_index()
+    links.columns = ['var1', 'var2', 'value']
+    # Keep only correlation over a threshold and remove self correlation (cor(A,A)=1)
+    links_filtered = links.loc[(links['value'] > 0.8) & (links['var1'] != links['var2'])]
+    # Build your graph
+    G = nx.from_pandas_dataframe(links_filtered, 'var1', 'var2')
+    # Plot the network:
+    nx.draw(G, with_labels=True, node_color='orange', node_size=400, edge_color='black', linewidths=1, font_size=15)
+    '''
+
+    #plt.show()
+
+def calc_covaraiance_matrix(calculated_values):
+    # I want to remove all of the simple angle analysis here (but keep the
+    # eigenvector analysis!)
+    parsed_calculated_values = {}
+    for item, val in calculated_values.iteritems():
+        if 'degree' in item:
+            if 'eigenvector' in item:
+                parsed_calculated_values[item] = val
+        else:
+            parsed_calculated_values[item] = val
+
+    # gotta make a list of dictionaries, where each dict corresponds to a pandas row
+    # todo: yah this is not the way I'd want to do this...
+    '''
+    rows = []
+    print calculated_values
+    for item,val in calculated_values.iteritems():
+        row_dict = {}
+        for counter,list_member in enumerate(val):
+            row_dict[counter] = list_member
+        rows.append(row_dict)
+    # this list can be used to create a pandas dataframe
+    '''
+    # using the method from: https://stackoverflow.com/questions/19736080/creating-dataframe-from-a-dictionary-where-entries-have-different-lengths
+    #DataFrame(dict([ (k,Series(v)) for k,v in d.items() ]))
+    #
+    covariance_matrix_input = pandas.DataFrame(dict([ (k,pandas.Series(v)) for k,v in calculated_values.iteritems() ]))
+    #covariance_matrix_input = pandas.DataFrame(calculated_values)
+    print "covariance_matrix_input", covariance_matrix_input
+    print covariance_matrix_input.shape
+    # todo: is this square? ^^^ I think not b/c some values (computed via the vector/angle thingee) would
+    # be missing some vals, compared to the simple graph-wide metrics
+    # (so might wanna either pad or remove...)
+    # NOTE: with the modification to using corr(), i don't think it needs to be the same angle anymore...
+
+    # must transpose b/c corr() finds covariance between columns, so it follows that each
+    # column should have a seperate variable
+    covariance_dataframe = covariance_matrix_input.corr()
+    print covariance_dataframe.shape
+    #covariance_matrix = np.cov(covariance_matrix_input.values)
+    #covariance_dataframe = pandas.DataFrame(covariance_matrix, index=covariance_matrix_input.index.values,
+    #                                        columns = covariance_matrix_input.index.values)
+
+    return covariance_dataframe
+
+##########################################
+##########################################
+##########################################
+# todo tomorrow (saturday) (ideally, I get all of this done on saturday)
 # (1) find replacement for dominantPair
     # morning (idk that one is really necessary?)
     # actually, i think this maybe fine? or just take the eigenvalue of the weighted adjaceny matrix...
