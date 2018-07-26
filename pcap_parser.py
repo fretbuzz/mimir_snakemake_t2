@@ -372,7 +372,8 @@ def aggregate_pcaps(list_of_pcaps, network_list):
 # TODO can ms_s take the part of network_or_microservice_list under the appropriate scenario??
 def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
                                network_or_microservice_list, ms_s, make_edgefiles_p, basegraph_name, window_size, colors,
-                               start_time = None, end_time = None, calc_vals=True, graph_p = True):
+                               exfil_start_time, exfil_end_time, start_time = None, end_time = None, calc_vals=True,
+                               graph_p = True):
     if is_swarm:
         mapping = swarm_container_ips(container_info_path, network_or_microservice_list)
     else:
@@ -445,7 +446,8 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
         total_calculated_vals.update(newly_calculated_values)
     if graph_p:
         # (time gran) -> (node gran) -> metrics -> vals
-        analyze_edgefiles.create_graphs(total_calculated_vals, basegraph_name, window_size, colors)
+        analyze_edgefiles.create_graphs(total_calculated_vals, basegraph_name, window_size, colors, time_interval_lengths)
+
 
 # here are some 'recipes'
 # comment out the ones you are not using
@@ -459,19 +461,22 @@ def run_analysis_pipeline_recipes():
     basefile_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/edgefiles/seastore_swarm'
     basegraph_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/graphs/seastore_swarm'
     container_info_path = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/atsea_redux_docker_container_configs.txt'
-    time_interval_lengths = [100, 100, 10, 1, 0.1] # seconds
+    time_interval_lengths = [10, 1, 0.1] # seconds # note: 100 used to be here too
     network_or_microservice_list = ["atsea_back-tier", "atsea_default", "atsea_front-tier", "atsea_payment"]
     ms_s = ['appserver', 'reverse_proxy', 'database']
     make_edgefiles = False
     start_time = 1529180898.56
     end_time = 1529181277.03
-    calc_vals = True
-    window_size = 4
+    exfil_start_time = None
+    exfil_end_time = None
+    calc_vals = False
+    window_size = 6
     graph_p = True # should I make graphs?
     colors = ['b', 'r']
     run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
                                network_or_microservice_list, ms_s, make_edgefiles, basegraph_name, window_size, colors,
-                               start_time=start_time, end_time=end_time, calc_vals = calc_vals, graph_p = graph_p)
+                               exfil_start_time, exfil_end_time, start_time=start_time, end_time=end_time,
+                               calc_vals = calc_vals, graph_p = graph_p)
     #'''
 
     # sockshop recipe
@@ -481,7 +486,7 @@ def run_analysis_pipeline_recipes():
     basefile_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/sockshop_info/edgefiles/sockshop_swarm_pipeline_br0'
     basegraph_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/sockshop_info/graphs/sockshop_swarm'
     container_info_path = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/sockshop_info/sockshop_swarm_fixed_containers_config.txt'
-    time_interval_lengths = [100, 10, 1, 0.1] # seconds
+    time_interval_lengths = [10, 1, .1] # seconds
     network_or_microservice_list = ["sockshop_default"]
     ms_s = microservices_sockshop
     make_edgefiles = False
@@ -489,11 +494,14 @@ def run_analysis_pipeline_recipes():
     graph_p = True # should I make graphs?
     start_time = 1529527610.6
     end_time = 1529527979.54
-    window_size = 4
+    window_size = 6
     colors = ['b', 'r']
+    exfil_start_time = None
+    exfil_end_time = None
     run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
                                network_or_microservice_list, ms_s, make_edgefiles, basegraph_name, window_size, colors,
-                               start_time=start_time, end_time=end_time, calc_vals = calc_vals, graph_p = graph_p)
+                               exfil_start_time, exfil_end_time, start_time=start_time, end_time=end_time, 
+                               calc_vals = calc_vals, graph_p = graph_p)
     #'''
     # wordpress recipe (TODO)
     '''
