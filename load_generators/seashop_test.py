@@ -18,18 +18,18 @@ import time
 
 s = requests.Session()
 
-r = s.get('https://192.168.99.101', verify=False)
+r = s.get('https://192.168.99.100', verify=False)
 print r.text
 
 print "########"
 
-r = s.get('https://192.168.99.101:443', verify=False)
+r = s.get('https://192.168.99.100:443', verify=False)
 print r.text
 
 print "########"
 succeeded = False
 while not succeeded:
-    r = s.get('https://192.168.99.101/api/product/', verify=False)
+    r = s.get('https://192.168.99.100/api/product/', verify=False)
     try:
         for product in r.json():
             print product
@@ -46,7 +46,7 @@ except:
     print "timeout"
 #print product['productId']
 
-r = s.get('https://192.168.99.101/api/product/' + str(product['productId']), verify=False)
+r = s.get('https://192.168.99.100/api/product/' + str(product['productId']), verify=False)
 print r.text
 
 print "########"
@@ -80,7 +80,7 @@ trys = 0
 for i in range(1,2):
     succeeded = False
     while not succeeded:
-        r = s.post('https://192.168.99.101/api/customer/', headers={'Content-type': 'application/json', 'Accept': 'application/json'},
+        r = s.post('https://192.168.99.100/api/customer/', headers={'Content-type': 'application/json', 'Accept': 'application/json'},
                    data = json.dumps(new_costumer_data), verify=False)
         trys += 1
         print trys
@@ -114,7 +114,7 @@ trys = 0
 start_time = time.time()
 time.sleep(.5)
 while not succeeded:
-    r = s.post('https://192.168.99.101/login/', headers={'Content-type': 'application/json', 'Accept': 'application/json'},
+    r = s.post('https://192.168.99.100/login/', headers={'Content-type': 'application/json', 'Accept': 'application/json'},
                data = json.dumps(login_data))
     trys += 1
     if r.status_code == 200:
@@ -146,7 +146,7 @@ print "ordering data", order_data
 succeeded = False
 trys = 0
 while not succeeded:
-    r = s.post('https://192.168.99.101/api/order/', headers={'Content-type': 'application/json', 'Accept': 'application/json'},
+    r = s.post('https://192.168.99.100/api/order/', headers={'Content-type': 'application/json', 'Accept': 'application/json'},
            data = json.dumps(order_data))
     trys += 1
     print trys
@@ -179,7 +179,7 @@ print "purchasing..."
 succeeded = False
 trys = 0
 while not succeeded:
-    r = s.get('https://192.168.99.101/purchase/', headers={'Content-type': 'application/json', 'Accept': 'application/json',
+    r = s.get('https://192.168.99.100/purchase/', headers={'Content-type': 'application/json', 'Accept': 'application/json',
                                                            'Authorization': "Bearer " + token},
               data=json.dumps(order_data))
     # NOTE: I am testing the data part (it worked before w/o it but what was it ordering??)

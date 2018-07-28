@@ -18,9 +18,9 @@
       "number_of_trials": "3"
     },
     "exfiltration_info" : {
-      "exfiltration_path_class":[ "atsea_reverse_proxy",  "atsea_appserver", "atsea_database" ],
+      "exfiltration_path_class":[ "reverse_proxy",  "appserver", "database" ],
       "exfiltration_path_how_many_instances_for_each_class":[ "1", "1", "1" ],
-      "exfiltration_path_class_which_installer": {"atsea_reverse_proxy": "apk", "atsea_appserver":"apk", "atsea_database":"apt"},
+      "exfiltration_path_class_which_installer": {"reverse_proxy": "apk", "appserver":"apk", "database":"apt"},
       "exfil_protocol": "http",
       "folder_to_exfil": "/var/lib/postgresql/data/",
       "regex_of_file_to_exfil": "\"124*\"",

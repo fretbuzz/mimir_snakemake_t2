@@ -6,7 +6,7 @@
     "ingess_class": ["front-end"],
       "class_to_networks": {"front-end": ["sockshop_default", "ingress"], "user": ["sockshop_default"], "user-db": ["sockshop_default"]},
     "setup" : {
-      "number_customer_records": "90000",
+      "number_customer_records": "15000",
       "number_background_locusts": "150",
       "background_locust_spawn_rate": "10"
     },
