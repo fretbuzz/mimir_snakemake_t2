@@ -375,7 +375,7 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or
                 # note: I think I implemented this below, but idk for sure...
                 #try:
                 calculated_values[row[0]] = [i if i != (None) else float('nan') for i in ast.literal_eval(row[1])]
-
+                print row[0], calculated_values[row[0]]
                 #except:
                 #    calculated_values[row[0]] = []
 
@@ -627,6 +627,7 @@ def create_graphs(total_calculated_vals, basegraph_name, window_size, colors, ti
         metrics_to_time_to_granularity_nans[metric] = {}
         for time_gran in time_grans:
             metrics_to_time_to_granularity_lists[metric][time_gran] = []
+            metrics_to_time_to_granularity_nans[metric][time_gran] = []
             for node_gran in node_grans:
                 # todo: get rid of [1:] once I run an exp where I start the load generator bfore tcpdump
                 metrics_to_time_to_granularity_lists[metric][time_gran].append(  total_calculated_vals[(time_gran, node_gran )][metric][1:] )
@@ -634,9 +635,15 @@ def create_graphs(total_calculated_vals, basegraph_name, window_size, colors, ti
 
                 nan_count = 0
                 for val in total_calculated_vals[(time_gran, node_gran )][metric]:
+                    #print val, math.isnan(val)
                     if math.isnan(val):
                         nan_count += 1
                 metrics_to_time_to_granularity_nans[metric][time_gran].append(nan_count)
+
+    for label, time_gran_to_val in metrics_to_time_to_granularity_nans.iteritems():
+        for label_two, val in time_gran_to_val.iteritems():
+            print 'nan', label, label_two, val
+    #print metrics_to_time_to_granularity_nans
 
     # okay, so now I actually need to handle make those multi-dimensional boxplots
     for metric in metrics:
@@ -1358,8 +1365,6 @@ def make_multi_time_boxplots(metrics_to_time_to_granularity_lists, time_grans, m
     tick_position_list = []
     for time_gran in time_grans:
         current_vals = metrics_to_time_to_granularity_lists[metric][time_gran]
-        # todo: is there a better way to handle Nan's? Maybe describe them somewhere??
-        # yes, we'll display them in a bar graph.
         current_vals = [[x for x in i if x is not None and not math.isnan(x)] for i in current_vals]
         number_nested_lists = len(current_vals)
         number_positions_on_graph = range(cur_pos, cur_pos+number_nested_lists)
@@ -1386,7 +1391,34 @@ def make_multi_time_boxplots(metrics_to_time_to_granularity_lists, time_grans, m
             pass
 
         # todo: plot the points specifically during exfiltration times
-
+        # okay, here's the plan, I'll need to plot points as certain x-axis positions
+            # ((using the number_positions_on_graph list))
+        # I can iterate through the nested loops (in order to keep track of the x-axis values)
+        # then I'll need a function that takes the 'deepest' list + granularity and exfil times
+        # and then returns the specific points to plot
+        i = 0
+        for current_vals_at_certain_node_gran in current_vals:
+            # note that there is also an implicit time granularity from the for loop way up above
+            # okay, so this is where it I'd call the function that looks for other stuff
+            # todo: does this work?
+            points_to_plot = get_points_to_plot(time_gran, current_vals_at_certain_node_gran, exfil_start, exfil_end)
+            print "points_to_plot", metric, time_gran, points_to_plot, number_positions_on_graph[i]
+            # plt.plot([1,1,1], [6,7,8], marker='o', markersize=3, color="red")
+            j = 0
+            # plotting in reverse so that the newer ones are on top (and easier to see)
+            for point in list(reversed(points_to_plot)):
+                # number_positions_on_graph[i]
+                # todo: fade from 1 color to another (so I can see which is newer) RGBA
+                x_point = np.random.normal(loc=number_positions_on_graph[i], scale= 0.1,size=None)
+                # wanna start with rgb(0,128,0) [green]
+                # and end with rgb(124,252,0) [lawngreen]
+                # in effect (including the reverse), early vals -> brighter, late vals -> darker
+                #print type(points_to_plot), points_to_plot
+                color_vector = [0.486 * (float(j)/len(points_to_plot)), 0.5 + 0.48  * (float(j)/len(points_to_plot)),
+                                0.0, 0.7]
+                plt.plot([x_point], [point], marker='o', markersize=4, color=color_vector) #y=[point], style='g-', label='point')
+                j +=1
+            i += 1
 
     yaxis_range = max_yaxis - min_yaxis
     #print "old min yaxis", min_yaxis
@@ -1435,7 +1467,7 @@ def set_boxplot_colors(bp, colors):
 
 # todo: make this actually work out
 def make_multi_time_nan_bars(metrics_to_time_to_granularity_nans, time_grans, node_grans, metric, graph_name):
-    fig = plt.figure()
+    fig = plt.figure(figsize=(20,8))
     fig.clf()
     ax = plt.axis()
 
@@ -1450,7 +1482,14 @@ def make_multi_time_nan_bars(metrics_to_time_to_granularity_nans, time_grans, no
         number_positions_on_graph = range(cur_pos, cur_pos + number_nested_lists)
         tick_position = (float(number_positions_on_graph[0]) + float(number_positions_on_graph[-1])) / number_nested_lists
         tick_position_list.append(tick_position)
-        bp = plt.bar(current_vals, positions=number_positions_on_graph, widths=0.6, sym='k.')
+        #print current_vals, number_positions_on_graph
+
+        #for i in range(0,len(node_grans))
+        #number_positions_on_graph = np.arange(0,4)
+        #current_vals = [1.5e5, 2.5e6]
+
+        print number_positions_on_graph, current_vals
+        bp = plt.bar(number_positions_on_graph, current_vals)
         # print "number of boxplots just added:", len(metrics_to_time_to_granularity_lists[metric][time_gran]), " , ", number_nested_lists
         plt.title(metric)
         plt.xlabel('time granularity (seconds)')
@@ -1458,11 +1497,12 @@ def make_multi_time_nan_bars(metrics_to_time_to_granularity_nans, time_grans, no
         cur_pos += number_nested_lists + 1  # the +1 is so that there is extra space between the groups
         # print metric
         try:
-            max_yaxis = max(max_yaxis, max([max(x) for x in current_vals]))
+            max_yaxis = max(max_yaxis, max(current_vals))
         except:
+            print "problem with max_yaxis"
             pass
         try:
-            min_yaxis = min(min_yaxis, min([min(x) for x in current_vals]))
+            min_yaxis = min(min_yaxis, min(current_vals))
         except:
             pass
     yaxis_range = max_yaxis - min_yaxis
@@ -1471,13 +1511,27 @@ def make_multi_time_nan_bars(metrics_to_time_to_granularity_nans, time_grans, no
     # print "yaxis_range", yaxis_range
     min_yaxis = min_yaxis - (yaxis_range * 0.05)
     max_yaxis = max_yaxis + (yaxis_range * 0.25)
-    # print "min_yaxis", min_yaxis
-    # print "max_yaxis", max_yaxis
+    print "min_yaxis", min_yaxis, "max_yaxis", max_yaxis
     plt.xlim(0, cur_pos)
     plt.ylim(min_yaxis, max_yaxis)
     plt.xticks(tick_position_list, [str(i) for i in time_grans])
 
     plt.savefig(graph_name + '.png', format='png')
+
+def get_points_to_plot(time_grand, vals, exfil_start, exfil_end):
+    # okay, so what I'd do here is extract the necessary values that occured during
+    # exfiltration, and return them
+    #[0, 10, 20, 30, 40, 50, 60, 70, 80, 90]
+    #30 - 50
+    #30 / 10 = 3
+    #50 / 10 = 5 (if slicing going t want to add one more)
+    if exfil_start and exfil_end:
+        start_index = int(float(exfil_start) / time_grand)
+        end_index = int(float(exfil_end) / time_grand)
+        #print "indices", start_index, end_index
+        return vals[start_index : end_index + 1]
+    else:
+        return []
 
 
 ##########################################

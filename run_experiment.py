@@ -83,6 +83,8 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
     if prepare_app_p:
         prepare_app(config_params["application_name"], config_params["setup"], ip, port)
 
+    class_to_net = config_params["class_to_networks"]
+    print "class_to_net", class_to_net
     # determine the network namespaces
     # this will require mapping the name of the network to the network id, which
     # is then present (in truncated form) in the network namespace
@@ -105,7 +107,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
     exfil_path = config_params["exfiltration_info"]["exfiltration_path_class"]
     for proxy_class in exfil_path[:-1]:
         print "current proxy class", proxy_class
-        possible_proxies[proxy_class], class_to_networks[proxy_class] = get_class_instances(orchestrator, proxy_class)
+        possible_proxies[proxy_class], class_to_networks[proxy_class] = get_class_instances(orchestrator, proxy_class, class_to_net[proxy_class])
         print "new possible proxies", possible_proxies[proxy_class]
         print "new class_to_network mapping", class_to_networks[proxy_class]
         num_proxies_of_this_class = int(config_params["exfiltration_info"]
@@ -113,7 +115,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
         selected_proxies[proxy_class] = random.sample(possible_proxies[proxy_class], num_proxies_of_this_class)
         print "new selected proxies", selected_proxies[proxy_class]
         index += 1
-
+    '''
     print "selected proxies", selected_proxies
     # get_class_instances cannot get the ingress network, so we must compensate manually
     if orchestrator == 'docker_swarm':
@@ -129,12 +131,12 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
         for ingress_class in classes_connected_to_ingess:
             print "this class is connected to the ingress network", ingress_class
             class_to_networks[ingress_class].append(ingress_network)
-
+    '''
     # determine which container instances should be the originator point
     originator_class = config_params["exfiltration_info"]["exfiltration_path_class"][-1]
     possible_originators = {}
     print "originator class", originator_class
-    possible_originators[originator_class], class_to_networks[originator_class] = get_class_instances(orchestrator, originator_class)
+    possible_originators[originator_class], class_to_networks[originator_class] = get_class_instances(orchestrator, originator_class, class_to_net[originator_class])
     num_originators = int(config_params["exfiltration_info"]
                                     ["exfiltration_path_how_many_instances_for_each_class"][-1])
     print "num originators", num_originators
@@ -187,7 +189,9 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
                                                 proxy_instance_to_networks_to_ip, class_to_networks)
 
         for container in container_instances:
-            start_det_proxy_mode(orchestrator, container, srcs, dst, exfil_protocol, maxsleep, max_exfil_bytes_in_packet, min_exfil_bytes_in_packet)
+            # todo: does this work?
+            thread.start_new_thread(start_det_proxy_mode, (orchestrator, container, srcs, dst, exfil_protocol,
+                                                           maxsleep, max_exfil_bytes_in_packet, min_exfil_bytes_in_packet))
 
     # start the endpoint (assuming the pre-reqs are installed prior to the running of this script)
     # todo: modify this for the k8s scaneario
@@ -450,24 +454,39 @@ def start_tcpdump(orchestrator, network_namespace, tcpdump_time, filename):
 
 # returns a list of container names that correspond to the
 # selected class
-def get_class_instances(orchestrator, class_name):
+def get_class_instances(orchestrator, class_name, networks):
+    print "finding class instances for: ", class_name
     if orchestrator == "kubernetes":
         # TODo
         pass
     elif orchestrator == "docker_swarm":
-        client = docker.from_env()
+        client = docker.from_env(timeout=300)
         container_instances = []
         container_networks_attached = []
+        #'''
+        for container in client.containers.list():
+            #print "containers", network.containers
+            if class_name + '.' in container.name:
+                print class_name, container.name
+                container_instances.append(container)
+                #container_networks_attached.append(network)
+        '''
         for network in client.networks.list(greedy=True):
             try:
                 #print 'note', network, network.containers
                 for container in network.containers:
+                    print "containers", network.containers
                     if class_name +'.' in container.name:
                         print class_name, container.name
                         container_instances.append(container)
                         container_networks_attached.append(network)
-            except:
-                print network.name, "has hidden containers..."
+            except Exception as e:
+                print network.name, "has hidden containers...", "error", e
+        #'''
+        for network in client.networks.list():
+            for connected_nets in networks:
+                if connected_nets in network.name:
+                    container_networks_attached.append(network)
 
         return container_instances, list(set(container_networks_attached))
     else:
@@ -496,7 +515,10 @@ def get_network_ids(orchestrator, list_of_network_names):
 
 def map_container_instances_to_ips(orchestrator, class_to_instances, class_to_networks):
     instance_to_networks_to_ip = {}
+    print "class_to_instance_names", class_to_instances.keys()
+    print class_to_instances
     for class_name, containers in class_to_instances.iteritems():
+        print 'class_to_networks[class_name]', class_to_networks[class_name], class_name,  class_to_networks
         for container in containers:
             instance_to_networks_to_ip[ container ] = {}
             container_atrribs =  container.attrs
@@ -508,7 +530,7 @@ def map_container_instances_to_ips(orchestrator, class_to_instances, class_to_ne
                     instance_to_networks_to_ip[container][connected_network] = ip_on_this_network
                 except:
                     pass
-
+    print "instance_to_networks_to_ip", instance_to_networks_to_ip
     return instance_to_networks_to_ip
 
 
@@ -618,6 +640,7 @@ def start_det_proxy_mode(orchestrator, container, srcs, dst, protocol, maxsleep,
         out = subprocess.check_output(cp_command)
         print "cp command result", out
 
+        # TODO: modify the switches below for n-n / 1-n
         targetip_switch = "s/TARGETIP/\"" + dst + "\"/"
         print srcs[0], srcs
         proxiesip_switch = "s/PROXIESIP/" + "[\\\"" + srcs[0] + "\\\"]" + "/"
@@ -662,6 +685,7 @@ def start_det_server_local(protocol, srcs, maxsleep, maxbytesread, minbytesread)
     out = subprocess.check_output(cp_command)
     print "cp command result", out
 
+    # todo: switch this for 1-n and n-n
     proxiesip_switch = "s/PROXIESIP/" + "[\\\"" + srcs[0] + "\\\"]" + "/"
     maxsleeptime_switch = "s/MAXTIMELSLEEP/" + "{:.2f}".format(maxsleep) + "/"
     maxbytesread_switch = "s/MAXBYTESREAD/" + str(maxbytesread) + "/"
@@ -734,6 +758,7 @@ def setup_config_file_det_client(dst, container, directory_to_exfil, regex_to_ex
     print "cp command result", out
 
     print 'dst', dst
+    # todo: modify this for n-to-1 (you know what I mean)
     targetip_switch = "s/TARGETIP/\"" + dst + "\"/"
     print "targetip_switch", targetip_switch
     maxsleeptime_switch = "s/MAXTIMELSLEEP/" + "{:.2f}".format(maxsleep) + "/"
@@ -794,15 +819,24 @@ def find_dst_and_srcs_ips_for_det(exfil_path, current_class_name, selected_conta
     current_loc_in_exfil_path = exfil_path.index(current_class_name)
     current_class_networks = class_to_networks[current_class_name] #proxy_instance_to_networks_to_ip[current_class_name].keys()
 
+    # todo: modify this function to handle 1-n and n-1 situations
     # at originator -> no srcs (or rather, it is the src for itself):
+    print current_class_name, current_loc_in_exfil_path+1, len(exfil_path)
     if current_loc_in_exfil_path+1 == len(exfil_path):
         srcs = None
         pass
     else: # then it has srcs other than itself
         prev_class_in_path = exfil_path[current_loc_in_exfil_path + 1]
         print selected_containers
+        # todo: this is one of the places to modify [[ this whole sectio will need to be modified so that
+        # todo: the srcs list has all of the previous ip's append to it ]]
+        # iterate through selected_containers[prev_class_in_path] and append the IP's (seems easy but must wait until done w/ experiments)
         prev_instance = selected_containers[prev_class_in_path][0] # note: assuming that there will be only one
-        prev_class_networks = proxy_instance_to_networks_to_ip[prev_instance].keys()
+        prev_class_networks = class_to_networks[prev_class_in_path]#proxy_instance_to_networks_to_ip[prev_instance].keys()
+
+        print 'nneettss', prev_instance,selected_containers[current_class_name]
+        print current_class_name, current_class_networks
+        print prev_class_in_path, prev_class_networks
 
         # containers must be on same network to communicate...
         prev_and_current_class_network = list( set(current_class_networks) & set(prev_class_networks))[0] # should be precisely one
@@ -812,12 +846,16 @@ def find_dst_and_srcs_ips_for_det(exfil_path, current_class_name, selected_conta
         print prev_and_current_class_network.name, [i.name for i in proxy_instance_to_networks_to_ip[prev_instance]]
         prev_instance_ip = [proxy_instance_to_networks_to_ip[prev_instance][prev_and_current_class_network]]
         srcs = prev_instance_ip
+        ## end of part that needs to be modified per the todo directly above
 
     # at last microservice hop -> next dest is local host
     if current_loc_in_exfil_path == 0:
         next_instance_ip = localhostip
     else: # then it'll hop through another microservice
         # then can just pass to another proxy in the exfiltration path
+
+        # todo: this is another one of the places to modify, per the todos above,
+        # going to want to do the same tpye of thing (follow the example of the code above)
         next_class_in_path = exfil_path[current_loc_in_exfil_path - 1]
         next_instance = selected_containers[next_class_in_path][0] # note: assuming that there will be only one
         next_class_networks = proxy_instance_to_networks_to_ip[next_instance].keys()

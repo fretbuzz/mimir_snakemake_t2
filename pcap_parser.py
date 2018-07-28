@@ -446,7 +446,8 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
         total_calculated_vals.update(newly_calculated_values)
     if graph_p:
         # (time gran) -> (node gran) -> metrics -> vals
-        analyze_edgefiles.create_graphs(total_calculated_vals, basegraph_name, window_size, colors, time_interval_lengths)
+        analyze_edgefiles.create_graphs(total_calculated_vals, basegraph_name, window_size, colors, time_interval_lengths,
+                                        exfil_start_time, exfil_end_time)
 
 
 # here are some 'recipes'
@@ -467,8 +468,8 @@ def run_analysis_pipeline_recipes():
     make_edgefiles = False
     start_time = 1529180898.56
     end_time = 1529181277.03
-    exfil_start_time = None
-    exfil_end_time = None
+    exfil_start_time = 40
+    exfil_end_time = 70
     calc_vals = False
     window_size = 6
     graph_p = True # should I make graphs?
