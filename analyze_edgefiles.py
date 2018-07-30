@@ -694,7 +694,9 @@ def aggregate_graph(G, ms_s):
         except:
             print "this edge did NOT show up in the map!", (u,v,data)
             # this happens when the outside talking to the 'gateway' shows up in our pcaps
-            if u == "1":
+            if  u == "1" and v == "1":
+                H.add_edge("outside", 'outside', weight=data['weight'])
+            elif u == "1":
                 H.add_edge("outside", mapping_node_to_ms[v], weight=data['weight'])
             elif v == "1":
                 H.add_edge(mapping_node_to_ms[u], "outside", weight=data['weight'])
@@ -1410,12 +1412,18 @@ def make_multi_time_boxplots(metrics_to_time_to_granularity_lists, time_grans, m
                 # number_positions_on_graph[i]
                 # todo: fade from 1 color to another (so I can see which is newer) RGBA
                 x_point = np.random.normal(loc=number_positions_on_graph[i], scale= 0.1,size=None)
+                # todo: let's just make the first 10% of exfil points one color and the next
+                # 90% another
                 # wanna start with rgb(0,128,0) [green]
                 # and end with rgb(124,252,0) [lawngreen]
                 # in effect (including the reverse), early vals -> brighter, late vals -> darker
                 #print type(points_to_plot), points_to_plot
-                color_vector = [0.486 * (float(j)/len(points_to_plot)), 0.5 + 0.48  * (float(j)/len(points_to_plot)),
-                                0.0, 0.7]
+                if float(j)/len(points_to_plot) >= 0.9:
+                    color_vector = [0.486, 0.988, 0.0, 0.7]
+                else:
+                    color_vector = [0.0, 0.5, 0.0, 0.7]
+                #color_vector = [0.486 * (float(j)/len(points_to_plot)), 0.5 + 0.48  * (float(j)/len(points_to_plot)),
+                #                0.0, 0.7]
                 plt.plot([x_point], [point], marker='o', markersize=4, color=color_vector) #y=[point], style='g-', label='point')
                 j +=1
             i += 1
