@@ -6,24 +6,6 @@ cloudlab anyway, it makes little sense to use a complicated directory structure 
 this stage (though it makes more sense later, when I'm actually analyzing the pcaps)
 '''
 
-# okay, so the plan for saturday is:
-#   TODO: monday: I'm up to about line 155 in making this work. So keep going from there. (note: actually
-#                   it seems that whatever retrieves the IP for the containers is broken too)
-#                 I think I can get those whole thing working on Monday (I'd say maybe like 4-5 hours)
-#                 Then I can get working on those graph below.
-#                 Plus, need to get the configs (below) + write instructions for recovering the pcaps
-#                       from the cloudlab machine (should be fairly easy but is still important)
-#                 todo: automate getting the relevant docker configs (for the pcap processing function)
-#                 also want to update those blogs posts / README / architectural diagram / my_working_paper
-#                 [but getting this working for sockshop + nice graphs would be sufficient, then on tuesday
-#                 I can work on getting it work for atsea store (plus get the rest of the graph-based analysis)
-#    also, I can't forget about making those graphs. i'm going to want to (1) fix/finish
-#       those aggregate boxplots that I wanted (2) implement those other metrics (3) try running
-#       on sockshop. This may seem like a lot, but (1) should only take like 1/2 an hour and (3) ideally
-#       doesn't take much time either. Now (2) might need to be post-poned....
-#   okay, so if I work hard, I think I can stop at... 4? that's like 7 hours or so, so it should
-#   be plenty...
-
 import argparse
 import os
 import signal
@@ -185,26 +167,28 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
         # look backward to find src class, then index into selected_proxies, and then index into
         # instances_to_network_to_ips (will need to match up networks)
 
-        dst,srcs=find_dst_and_srcs_ips_for_det(exfil_path, class_name, selected_containers, localhostip,
+        dsts,srcs=find_dst_and_srcs_ips_for_det(exfil_path, class_name, selected_containers, localhostip,
                                                 proxy_instance_to_networks_to_ip, class_to_networks)
 
         for container in container_instances:
-            # note: cannot wrap the call to start_det_proxy in a start_new_thread b/c the program won't
-            # work then (idk why, exactly)
-            print "config stuff", container.name, srcs, dst, proxy_instance_to_networks_to_ip[ container ]
-            start_det_proxy_mode(orchestrator, container, srcs, dst, exfil_protocol,
-                                                           maxsleep, max_exfil_bytes_in_packet, min_exfil_bytes_in_packet)
+            # todo: does this work?
+            for dst in dsts:
+                print "config stuff", container.name, srcs, dst, proxy_instance_to_networks_to_ip[ container ]
+                start_det_proxy_mode(orchestrator, container, srcs, dst, exfil_protocol,
+                                        maxsleep, max_exfil_bytes_in_packet, min_exfil_bytes_in_packet)
 
     # start the endpoint (assuming the pre-reqs are installed prior to the running of this script)
     # todo: modify this for the k8s scaneario
+    # todo: modify for 1-n, n-1, n-n
     print "ex", exfil_path[0], proxy_instance_to_networks_to_ip[ selected_proxies[exfil_path[0]][0] ]
-    srcs = None
-    for network, ip in proxy_instance_to_networks_to_ip[ selected_proxies[exfil_path[0]][0] ].iteritems():
-        print "finding proxy for local", network.name, ip
-        if network.name == 'ingress':
-            srcs = [ip]
-            break
-    if not srcs:
+    srcs = []
+    for proxy_instance in selected_proxies[exfil_path[0]]:
+        for network, ip in proxy_instance_to_networks_to_ip[ proxy_instance ].iteritems():
+            print "finding proxy for local", network.name, ip
+            if network.name == 'ingress':
+                srcs.append(ip)
+                break
+    if srcs == []:
         print "cannot find the the hop-point immediately before the local DET instance"
         exit(1)
     #srcs = [ proxy_instance_to_networks_to_ip[ selected_proxies[exfil_path[0]][0] ]['ingress'] ]
@@ -650,7 +634,11 @@ def start_det_proxy_mode(orchestrator, container, srcs, dst, protocol, maxsleep,
         # TODO: modify the switches below for n-n / 1-n
         targetip_switch = "s/TARGETIP/\"" + dst + "\"/"
         print srcs[0], srcs
-        proxiesip_switch = "s/PROXIESIP/" + "[\\\"" + srcs[0] + "\\\"]" + "/"
+        src_string = ""
+        for src in srcs[:-1]:
+            src_string += "\\\"" + src +  "\\\"" + ','
+        str_string += "\\\"" + src[-1] +  "\\\""
+        proxiesip_switch = "s/PROXIESIP/" + "[" + src_string  + "]" + "/"
         print "targetip_switch", targetip_switch
         print "proxiesip_switch", proxiesip_switch
         maxsleeptime_switch = "s/MAXTIMELSLEEP/" + "{:.2f}".format(maxsleep) + "/"
@@ -694,7 +682,13 @@ def start_det_server_local(protocol, srcs, maxsleep, maxbytesread, minbytesread)
     print "cp command result", out
 
     # todo: switch this for 1-n and n-n
-    proxiesip_switch = "s/PROXIESIP/" + "[\\\"" + srcs[0] + "\\\"]" + "/"
+    #proxiesip_switch = "s/PROXIESIP/" + "[\\\"" + srcs[0] + "\\\"]" + "/"
+    src_string = ""
+    for src in srcs[:-1]:
+        src_string += "\\\"" + src +  "\\\"" + ','
+    str_string += "\\\"" + src[-1] +  "\\\""
+    proxiesip_switch = "s/PROXIESIP/" + "[" + src_string  + "]" + "/"
+
     maxsleeptime_switch = "s/MAXTIMELSLEEP/" + "{:.2f}".format(maxsleep) + "/"
     maxbytesread_switch = "s/MAXBYTESREAD/" + str(maxbytesread) + "/"
     minbytesread_switch = "s/MINBYTESREAD/" + str(minbytesread) + "/"
@@ -840,22 +834,20 @@ def find_dst_and_srcs_ips_for_det(exfil_path, current_class_name, selected_conta
         # todo: this is one of the places to modify [[ this whole sectio will need to be modified so that
         # todo: the srcs list has all of the previous ip's append to it ]]
         # iterate through selected_containers[prev_class_in_path] and append the IP's (seems easy but must wait until done w/ experiments)
-        prev_instance = selected_containers[prev_class_in_path][0] # note: assuming that there will be only one
-        prev_class_networks = class_to_networks[prev_class_in_path]#proxy_instance_to_networks_to_ip[prev_instance].keys()
-
-        print 'nneettss', prev_instance,selected_containers[current_class_name]
-        print current_class_name, current_class_networks
-        print prev_class_in_path, prev_class_networks
-
+        srcs = []
         # containers must be on same network to communicate...
+        prev_class_networks = class_to_networks[prev_class_in_path]
         prev_and_current_class_network = list( set(current_class_networks) & set(prev_class_networks))[0] # should be precisely one
+        for prev_instance in selected_containers[prev_class_in_path]:
+            print 'nneettss', prev_instance,selected_containers[current_class_name]
+            print current_class_name, current_class_networks
+            print prev_class_in_path, prev_class_networks
 
-        # now retrieve the previous container's IP for the correct network
-        print "finding previous ip in exfiltration path...", proxy_instance_to_networks_to_ip[prev_instance], prev_instance.name
-        print prev_and_current_class_network.name, [i.name for i in proxy_instance_to_networks_to_ip[prev_instance]]
-        prev_instance_ip = [proxy_instance_to_networks_to_ip[prev_instance][prev_and_current_class_network]]
-        srcs = prev_instance_ip
-        ## end of part that needs to be modified per the todo directly above
+            # now retrieve the previous container's IP for the correct network
+            print "finding previous ip in exfiltration path...", proxy_instance_to_networks_to_ip[prev_instance], prev_instance.name
+            print prev_and_current_class_network.name, [i.name for i in proxy_instance_to_networks_to_ip[prev_instance]]
+            prev_instance_ip = proxy_instance_to_networks_to_ip[prev_instance][prev_and_current_class_network]
+            srcs.append(prev_instance_ip)
 
     # at last microservice hop -> next dest is local host
     if current_loc_in_exfil_path == 0:
@@ -866,14 +858,15 @@ def find_dst_and_srcs_ips_for_det(exfil_path, current_class_name, selected_conta
         # todo: this is another one of the places to modify, per the todos above,
         # going to want to do the same tpye of thing (follow the example of the code above)
         next_class_in_path = exfil_path[current_loc_in_exfil_path - 1]
-        next_instance = selected_containers[next_class_in_path][0] # note: assuming that there will be only one
-        next_class_networks = proxy_instance_to_networks_to_ip[next_instance].keys()
-        next_and_current_class_network = list(set(current_class_networks) & set(next_class_networks))[
-            0]  # should be precisly one
-        print "next_and_current_class_network", next_and_current_class_network
-        next_instance_ip = proxy_instance_to_networks_to_ip[next_instance][next_and_current_class_network]
+        next_class_networks = class_to_networks[next_class_in_path]
+        next_and_current_class_network = list(set(current_class_networks) & set(next_class_networks))[0]  # should be precisly one 
+        dests = []
+        for next_instance in selected_containers[next_class_in_path]:
+            print "next_and_current_class_network", next_and_current_class_network
+            next_instance_ip = proxy_instance_to_networks_to_ip[next_instance][next_and_current_class_network]
+            dests.append(next_instance_ip)
 
-    return next_instance_ip, srcs
+    return dests, srcs
 
 if __name__=="__main__":
     print "RUNNING"
