@@ -455,7 +455,7 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
 def run_analysis_pipeline_recipes():
     # atsea store recipe
 
-    #'''
+    '''
     pcap_paths = ['/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/seastore_redux_back-tier_1.pcap',
                    '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/seastore_redux_front-tier_1.pcap']
     is_swarm = 1
@@ -478,10 +478,11 @@ def run_analysis_pipeline_recipes():
                                network_or_microservice_list, ms_s, make_edgefiles, basegraph_name, window_size, colors,
                                exfil_start_time, exfil_end_time, start_time=start_time, end_time=end_time,
                                calc_vals = calc_vals, graph_p = graph_p)
-    #'''
+    '''
 
     # sockshop recipe
-    ''' # note: still gotta do calc_vals again...
+    ''' 
+    # note: still gotta do calc_vals again...
     pcap_paths = ["/Users/jseverin/Documents/Microservices/munnin/experimental_data/sockshop_info/sockshop_swarm_fixed_br0_0.pcap"]
     is_swarm = 1
     basefile_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/sockshop_info/edgefiles/sockshop_swarm_pipeline_br0'
@@ -515,6 +516,56 @@ def run_analysis_pipeline_recipes():
     run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
                                network_or_microservice_list)
     '''
+
+    # sockshop exp 2 (rep 0)
+    #''' # note: still gotta do calc_vals again...
+    pcap_paths = ["/Users/jseverin/Documents/Microservices/munnin/experimental_data/sockshop_info/sockshop_two_sockshop_default_0.pcap"]
+    is_swarm = 1
+    basefile_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/sockshop_info/edgefiles/sockshop_two_pipeline_br0'
+    basegraph_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/sockshop_info/graphs/sockshop_two'
+    container_info_path = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/sockshop_info/sockshop_two_docker_0_container_configs.txt'
+    time_interval_lengths = [50, 10, 1, .1] # seconds
+    network_or_microservice_list = ["sockshop_default"]
+    ms_s = microservices_sockshop
+    make_edgefiles = True
+    calc_vals = True
+    graph_p = True # should I make graphs?
+    start_time = None
+    end_time = None
+    window_size = 6
+    colors = ['b', 'r']
+    exfil_start_time = None
+    exfil_end_time = None
+    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
+                               network_or_microservice_list, ms_s, make_edgefiles, basegraph_name, window_size, colors,
+                               exfil_start_time, exfil_end_time, start_time=start_time, end_time=end_time,
+                               calc_vals = calc_vals, graph_p = graph_p)
+    '''
+    '''
+    # sockshop exp 3 (rep 0)
+    pcap_paths = ["/Users/jseverin/Documents/Microservices/munnin/experimental_data/sockshop_info/sockshop_three_sockshop_default_0.pcap"]
+    is_swarm = 1
+    basefile_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/sockshop_info/edgefiles/sockshop_three_0'
+    basegraph_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/sockshop_info/graphs/sockshop_three_0'
+    container_info_path = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/sockshop_info/sockshop_three_docker_0_container_configs.txt'
+    time_interval_lengths = [50, 10, 1, .1] # seconds
+    network_or_microservice_list = ["sockshop_default"]
+    ms_s = microservices_sockshop
+    make_edgefiles = True
+    calc_vals = True
+    graph_p = True # should I make graphs?
+    start_time = None
+    end_time = None
+    window_size = 6
+    colors = ['b', 'r']
+    exfil_start_time = None
+    exfil_end_time = None
+    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
+                               network_or_microservice_list, ms_s, make_edgefiles, basegraph_name, window_size, colors,
+                               exfil_start_time, exfil_end_time, start_time=start_time, end_time=end_time,
+                               calc_vals = calc_vals, graph_p = graph_p)
+
+    #'''
 
     # here are some example colors:
     # b: blue ;  g: green  ;  r: red   ;   c: cyan    ; m: magenta

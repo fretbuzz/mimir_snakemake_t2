@@ -190,14 +190,17 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
 
         for container in container_instances:
             # todo: does this work?
-            thread.start_new_thread(start_det_proxy_mode, (orchestrator, container, srcs, dst, exfil_protocol,
-                                                           maxsleep, max_exfil_bytes_in_packet, min_exfil_bytes_in_packet))
+            # I do not think that starting a new thread works here.
+            print "config stuff", container.name, srcs, dst, proxy_instance_to_networks_to_ip[ container ]
+            start_det_proxy_mode(orchestrator, container, srcs, dst, exfil_protocol,
+                                                           maxsleep, max_exfil_bytes_in_packet, min_exfil_bytes_in_packet)
 
     # start the endpoint (assuming the pre-reqs are installed prior to the running of this script)
     # todo: modify this for the k8s scaneario
-    print proxy_instance_to_networks_to_ip[ selected_proxies[exfil_path[0]][0] ]
+    print "ex", exfil_path[0], proxy_instance_to_networks_to_ip[ selected_proxies[exfil_path[0]][0] ]
     srcs = None
     for network, ip in proxy_instance_to_networks_to_ip[ selected_proxies[exfil_path[0]][0] ].iteritems():
+        print "finding proxy for local", network.name, ip
         if network.name == 'ingress':
             srcs = [ip]
             break
@@ -206,8 +209,11 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
         exit(1)
     #srcs = [ proxy_instance_to_networks_to_ip[ selected_proxies[exfil_path[0]][0] ]['ingress'] ]
     #'''
+    print "srcs for local", srcs
+    #'''
     start_det_server_local(exfil_protocol, srcs, maxsleep, max_exfil_bytes_in_packet,
                            min_exfil_bytes_in_packet)
+    #'''
     # now setup the originator (i.e. the client that originates the exfiltrated data)
     next_instance_ip, _ = find_dst_and_srcs_ips_for_det(exfil_path, originator_class,
                                                                          selected_containers, localhostip,
@@ -224,6 +230,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
                                                          maxsleep, min_exfil_bytes_in_packet, max_exfil_bytes_in_packet)
             files_to_exfil.append(file_to_exfil)
 
+    print "files_to_exfil", files_to_exfil
     experiment_length = config_params["experiment"]["experiment_length_sec"]
     for i in range(0, int(config_params["experiment"]["number_of_trials"])):
         exfil_info_file_name = experiment_name + '_docker' + '_' + str(i) + '_exfil_info.txt'
@@ -660,14 +667,15 @@ def start_det_proxy_mode(orchestrator, container, srcs, dst, protocol, maxsleep,
         print "upload_config_command", upload_config_command
         print "upload_config_command result", out
 
+        time.sleep(1)
         start_det_command = ["python", "/DET/det.py", "-c", "/config.json", "-p", protocol, "-Z"]
         print "start_det_command", start_det_command
 
         # stdout=False b/c hangs otherwise
         try:
-            out = container.exec_run(start_det_command, user="root", workdir='/DET',stdout=False)
-            print "response from DET proxy start command:"
-            print out
+            container.exec_run(start_det_command, user="root", workdir='/DET',stdout=False)
+            #print "response from DET proxy start command:"
+            #print out
         except:
             print "start det proxy command is hanging, going to hope it is okay and just keep going"
         #for output in out.output:
@@ -706,7 +714,8 @@ def start_det_server_local(protocol, srcs, maxsleep, maxbytesread, minbytesread)
     # okay, I am going to want to actually parse the results so I can see how often the data arrives
     # which will allow me to find the actual rate of exfiltration, b/c I think DET might be rather
     # slow...
-    cmd = subprocess.Popen(cmds, cwd='/DET/', stdout=subprocess.PIPE, preexec_fn=os.setsid)
+    # removed: stdout=subprocess.PIPE,
+    cmd = subprocess.Popen(cmds, cwd='/DET/', preexec_fn=os.setsid)
     print cmd # okay, I guess I'll just analyze the output manually... (Since this fancy thing doe
     '''
     parsing_thread = thread.start_new_thread(parse_local_det_output, (cmd, exfil_info_file_name))
@@ -784,9 +793,9 @@ def setup_config_file_det_client(dst, container, directory_to_exfil, regex_to_ex
     find_file_to_exfil = "find " + directory_to_exfil + " -name " + regex_to_exfil
     print "find_file_to_exfil", find_file_to_exfil
     file_to_exfil = container.exec_run(find_file_to_exfil, user="root", stdout=True, tty=True)
-    print "file_to_exfil", file_to_exfil, file_to_exfil.output
-    file_to_exfil = file_to_exfil.output.replace("\n", "").replace("\r", "")
-    print file_to_exfil
+    print "file_to_exfil", file_to_exfil, file_to_exfil.output, "end file to exfil"
+    file_to_exfil = file_to_exfil.output.split('\n')[0].replace("\n", "").replace("\r", "")
+    print "start file to exfil", file_to_exfil, "end file to exfil"
     #print next( file_to_exfil.output )
     return file_to_exfil
 
