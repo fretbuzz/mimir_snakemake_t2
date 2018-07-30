@@ -498,6 +498,8 @@ def run_analysis_pipeline_recipes():
     end_time = 1529527979.54
     window_size = 6
     colors = ['b', 'r']
+    # here are some example colors:
+    # b: blue ;  g: green  ;  r: red   ;   c: cyan    ; m: magenta
     exfil_start_time = None
     exfil_end_time = None
     run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
@@ -540,7 +542,7 @@ def run_analysis_pipeline_recipes():
                                network_or_microservice_list, ms_s, make_edgefiles, basegraph_name, window_size, colors,
                                exfil_start_time, exfil_end_time, start_time=start_time, end_time=end_time,
                                calc_vals = calc_vals, graph_p = graph_p)
-    '''
+    #'''
     '''
     # sockshop exp 3 (rep 0)
     pcap_paths = ["/Users/jseverin/Documents/Microservices/munnin/experimental_data/sockshop_info/sockshop_three_sockshop_default_0.pcap"]
@@ -567,8 +569,11 @@ def run_analysis_pipeline_recipes():
 
     #'''
 
-    # here are some example colors:
-    # b: blue ;  g: green  ;  r: red   ;   c: cyan    ; m: magenta
+    # atsea exp 2
+
+
+
+    # atsea exp 3
 
 # TODO TODO TODO TODO TODO TODO TODO
 # okay so this is what I gotta do Monday

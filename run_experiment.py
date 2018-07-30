@@ -189,8 +189,8 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
                                                 proxy_instance_to_networks_to_ip, class_to_networks)
 
         for container in container_instances:
-            # todo: does this work?
-            # I do not think that starting a new thread works here.
+            # note: cannot wrap the call to start_det_proxy in a start_new_thread b/c the program won't
+            # work then (idk why, exactly)
             print "config stuff", container.name, srcs, dst, proxy_instance_to_networks_to_ip[ container ]
             start_det_proxy_mode(orchestrator, container, srcs, dst, exfil_protocol,
                                                            maxsleep, max_exfil_bytes_in_packet, min_exfil_bytes_in_packet)
