@@ -1,5 +1,5 @@
 apk update
-apk upgrade
+#apk upgrade
 apk add git
 apk add python
 apk add curl

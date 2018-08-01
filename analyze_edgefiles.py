@@ -30,11 +30,11 @@ def pipeline_analysis_step(filenames, ms_s, time_interval, basegraph_name, calc_
             print "path to file is ", file_path
             nx.read_edgelist(file_path,
                             create_using=G, delimiter=',', data=(('weight', float),))
+            plt.clf()
             pos = graphviz_layout(G)
             nx.draw_networkx(G, pos, with_labels=True, arrows=True)
             if counter < 50: # keep # of network graphs to a reasonable amount
                 plt.savefig(file_path.replace('.txt', '') + '_network_graph_container.png', format='png')
-            #plt.show()
             list_of_graphs.append(G)
             aggreg_multi_G, aggreg_simple_G = aggregate_graph(G, ms_s)
             list_of_aggregated_graphs.append( aggreg_simple_G )
@@ -1533,6 +1533,7 @@ def get_points_to_plot(time_grand, vals, exfil_start, exfil_end):
     #30 - 50
     #30 / 10 = 3
     #50 / 10 = 5 (if slicing going t want to add one more)
+    print "exfil_start", exfil_start, "exfil_end", exfil_end, "time_grand", time_grand
     if exfil_start and exfil_end:
         start_index = int(float(exfil_start) / time_grand)
         end_index = int(float(exfil_end) / time_grand)

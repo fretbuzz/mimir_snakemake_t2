@@ -67,7 +67,7 @@ class BackgroundTraffic(TaskSet):
 
         # browse through a certain number of items
         num_browsing = randint(1,21)
-        r = self.client.get(':443', verify=False)
+        r = self.client.get('/', verify=False)
         catalogue = self.client.get('/api/product/', verify=False)
         for i in range(0, num_browsing):
             time.sleep(randint(min_wait,max_wait) / 1000.0) # going to wait a bit between events

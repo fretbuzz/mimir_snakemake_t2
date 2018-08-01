@@ -7,6 +7,7 @@ this stage (though it makes more sense later, when I'm actually analyzing the pc
 '''
 
 import argparse
+import csv
 import os
 import signal
 import subprocess
@@ -149,15 +150,14 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
     # need to install the pre-reqs for each of the containers (proxies + orgiinator)
     # note: assuming endpoint (i.e. local) pre-reqs are already installed
     if install_det_depen_p:
-        for class_name, container_instances in possible_proxies.iteritems():
+        for class_name, container_instances in selected_proxies.iteritems():
             for container in container_instances:
                 install_det_dependencies(orchestrator, container, class_to_installer[class_name])
 
         print "possible_originators", possible_originators
-        for class_name, container_instances in possible_originators.iteritems():
+        for class_name, container_instances in selected_originators.iteritems():
             for container in container_instances:
                 install_det_dependencies(orchestrator, container, class_to_installer[class_name])
-
     # start thes proxy DET instances (note: will need to dynamically configure some
     # of the configuration file)
     # note: this is only going to work for a single src and a single dst ip, ATM
@@ -171,7 +171,6 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
                                                 proxy_instance_to_networks_to_ip, class_to_networks)
 
         for container in container_instances:
-            # todo: does this work?
             for dst in dsts:
                 print "config stuff", container.name, srcs, dst, proxy_instance_to_networks_to_ip[ container ]
                 start_det_proxy_mode(orchestrator, container, srcs, dst, exfil_protocol,
@@ -183,10 +182,10 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
     print "ex", exfil_path[0], proxy_instance_to_networks_to_ip[ selected_proxies[exfil_path[0]][0] ]
     srcs = []
     for proxy_instance in selected_proxies[exfil_path[0]]:
-        for network, ip in proxy_instance_to_networks_to_ip[ proxy_instance ].iteritems():
+        for network, ip_ad in proxy_instance_to_networks_to_ip[ proxy_instance ].iteritems():
             print "finding proxy for local", network.name, ip
             if network.name == 'ingress':
-                srcs.append(ip)
+                srcs.append(ip_ad)
                 break
     if srcs == []:
         print "cannot find the the hop-point immediately before the local DET instance"
@@ -195,24 +194,26 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
     #'''
     print "srcs for local", srcs
     #'''
+
     start_det_server_local(exfil_protocol, srcs, maxsleep, max_exfil_bytes_in_packet,
-                           min_exfil_bytes_in_packet)
+                           min_exfil_bytes_in_packet, experiment_name)
     #'''
     # now setup the originator (i.e. the client that originates the exfiltrated data)
-    next_instance_ip, _ = find_dst_and_srcs_ips_for_det(exfil_path, originator_class,
+    next_instance_ips, _ = find_dst_and_srcs_ips_for_det(exfil_path, originator_class,
                                                                          selected_containers, localhostip,
                                                                          proxy_instance_to_networks_to_ip,
                                                                          class_to_networks)
 
-    print "next ip for the originator to send to", next_instance_ip
+    print "next ip(s) for the originator to send to", next_instance_ips
     directory_to_exfil = config_params["exfiltration_info"]["folder_to_exfil"]
     regex_to_exfil = config_params["exfiltration_info"]["regex_of_file_to_exfil"]
     files_to_exfil = []
     for class_name, container_instances in selected_originators.iteritems():
         for container in container_instances:
-            file_to_exfil = setup_config_file_det_client(next_instance_ip, container, directory_to_exfil, regex_to_exfil,
+            for next_instance_ip in next_instance_ips:
+                file_to_exfil = setup_config_file_det_client(next_instance_ip, container, directory_to_exfil, regex_to_exfil,
                                                          maxsleep, min_exfil_bytes_in_packet, max_exfil_bytes_in_packet)
-            files_to_exfil.append(file_to_exfil)
+                files_to_exfil.append(file_to_exfil)
 
     print "files_to_exfil", files_to_exfil
     experiment_length = config_params["experiment"]["experiment_length_sec"]
@@ -239,9 +240,11 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
         # step (5) start load generator (okay, this I can do!)
         start_time = time.time()
         max_client_count = int( config_params["experiment"]["number_background_locusts"])
+        print "experiment length: ", experiment_length, "max_client_count", max_client_count, "traffic types", config_params["experiment"]["traffic_type"]
+        print "background_locust_spawn_rate", config_params["experiment"]["background_locust_spawn_rate"], "ip", ip, "port", port
         thread.start_new_thread(generate_background_traffic, ((int(experiment_length)+2.4), max_client_count,
                     config_params["experiment"]["traffic_type"], config_params["experiment"]["background_locust_spawn_rate"],
-                                                              config_params["application_name"], ip, port))
+                                                              config_params["application_name"], ip, port, experiment_name))
 
         # step (4) setup testing infrastructure (i.e. tcpdump)
         for network_id, network_namespace in network_ids_to_namespaces.iteritems():
@@ -273,9 +276,23 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
                 stop_det_client(container)
 
         # step (7) wait, all the tasks are being taken care of elsewhere
-        time.sleep(start_time + int(experiment_length) + 7 - time.time())
+        time_left_in_experiment = start_time + int(experiment_length) + 7 - time.time()
+        #while(time_left_in_experiment > 0):
+        #    print "time left:", time_left_in_experiment
+        #    time_to_sleep = min(15, time_left_in_experiment)
+        #    time.sleep(time_to_sleep)
+        #    time_left_in_experiment -= time_to_sleep
         # I don't wanna return while the other threads are still doing stuff b/c I'll get confused
+        time.sleep(time_left_in_experiment)
 
+        exfil_info_file_name = './' + experiment_name + '_det_server_local_output.txt'
+        bytes_exfil, start_ex, end_ex = parse_local_det_output(exfil_info_file_name, exfil_protocol)
+        print bytes_exfil, "bytes exfiltrated"
+        print "starting at ", start_ex, "and ending at", end_ex
+
+        #succeeded_requests, failed_requests, fail_percentage = sanity_check_locust_performance('./'+ experiment_name + '_locust_info.csv')
+        #print "succeeded requests", succeeded_requests, 'failed_requests', failed_requests, "fail percentage", fail_percentage
+        subprocess.call(['cat', './' + experiment_name + '_locust_info.csv' ])
 
     # stopping the proxies can be done the same way (useful if e.g., switching
     # protocols between experiments, etc.)
@@ -295,6 +312,7 @@ def prepare_app(app_name, config_params, ip, port):
              "-n", config_params["number_customer_records"]]
         print prepare_cmds
         out = subprocess.check_output(prepare_cmds)
+
         print out
     elif app_name == "atsea_store":
         print config_params["number_background_locusts"], config_params["background_locust_spawn_rate"], config_params["number_customer_records"]
@@ -306,6 +324,8 @@ def prepare_app(app_name, config_params, ip, port):
              "-n", config_params["number_customer_records"]]
         print prepare_cmds
         out = subprocess.check_output(prepare_cmds)
+        #with open('./' + app_name + '_debugging_background_gen.txt', 'a') as f:
+        #    print >> f, out
         print out
     else:
         # TODO TODO TODO other applications will require other setup procedures (if they can be automated) #
@@ -318,11 +338,14 @@ def prepare_app(app_name, config_params, ip, port):
 # Args:
 #   time: total time for test. Will be subdivided into 24 smaller chunks to represent 1 hour each
 #   max_clients: Arg provided by user in parameters.py. Represents maximum number of simultaneous clients
-def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate, app_name, ip, port):
+def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate, app_name, ip, port, experiment_name):
     #minikube = get_IP()#subprocess.check_output(["minikube", "ip"]).rstrip()
     devnull = open(os.devnull, 'wb')  # disposing of stdout manualy
 
     client_ratio = []
+    total_succeeded_requests = 0
+    total_failed_requests = 0
+
 
     if (traffic_type == "normal"):
         client_ratio = CLIENT_RATIO_NORMAL
@@ -338,6 +361,15 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
         raise RuntimeError("Invalid testing time provided!")
 
     normalizer = 1/max(client_ratio)
+    locust_info_file = './' + experiment_name + '_locust_info.csv'
+    print 'locust info file: ', locust_info_file
+
+    try:
+        os.remove(locust_info_file)
+    except:
+        print locust_info_file, "   ", "does not exist"
+
+    subprocess.call(['touch', locust_info_file])
 
     #24 = hours in a day, we're working with 1 hour granularity
     timestep = run_time / 24.0
@@ -345,23 +377,30 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
 
         client_count = str(int(round(normalizer*client_ratio[i]*max_clients)))
         proc = 0
-
         try:
             if app_name == "sockshop":
+                print "sockshop!"
                 proc = subprocess.Popen(["locust", "-f", "./sockshop_config/background_traffic.py",
                                          "--host=http://"+ip+ ":" +str(port), "--no-web", "-c",
-                                        client_count, "-r", spawn_rate],
-                                        stdout=devnull, stderr=devnull, preexec_fn=os.setsid)
+                                        client_count, "-r", spawn_rate, '--csv=' + locust_info_file],
+                                        preexec_fn=os.setsid, stdout=devnull, stderr=devnull)
                 #print proc.stdout
             # for use w/ seastore:
-            if app_name == "atsea_store":
-                proc = subprocess.Popen(["locust", "-f", "./load_generators/seashop_background.py", "--host=https://"+ip+ ":" +str(port),
-                                     "--no-web", "-c", client_count, "-r", spawn_rate],
-                              stdout=devnull, stderr=devnull, preexec_fn=os.setsid)
+            elif app_name == "atsea_store":
+                seastore_cmds = ["locust", "-f", "./load_generators/seashop_background.py", "--host=https://"+ip+ ":" +str(port),
+                            "--no-web", "-c",  client_count, "-r", spawn_rate, '--csv=' + locust_info_file]
+                #print "seastore!", seastore_cmds
+                proc = subprocess.Popen(seastore_cmds,
+                            preexec_fn=os.setsid, stdout=devnull, stderr=devnull)
             #proc = subprocess.Popen(["locust", "-f", "./load_generators/wordpress_background.py", "--host=https://192.168.99.103:31758",
             #                        "--no-web", "-c", client_count, "-r", spawn_rate],
             #                        stdout=devnull, stderr=devnull, preexec_fn=os.setsid)
+            else:
+                print "ERROR WITH START BACKGROUND TRAFFIC- NAME NOT RECOGNIZED"
+                exit(5)
+
         except subprocess.CalledProcessError as e:
+            print "LOCUST CRASHED"
             raise RuntimeError("command '{}' return with error (code {}): {}".format(e.cmd, e.returncode, e.output))
 
         print("Time: " + str(i) + ". Now running with " + client_count + " simultaneous clients")
@@ -369,8 +408,21 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
         #Run some number of background clients for 1/24th of the total test time
         time.sleep(timestep)
         # this stops the background traffic process
+
         if proc:
+            #print proc.poll
             os.killpg(os.getpgid(proc.pid), signal.SIGTERM) # should kill it
+            #print "proc hopefully killed", proc.poll
+
+        #subprocess.call([locust_info_file + '_requests.csv', '>>', locust_info_file])
+        succeeded_requests, failed_requests, fail_percentage = sanity_check_locust_performance(locust_info_file +'_requests.csv')
+        print "succeeded requests", succeeded_requests, 'failed_requests', failed_requests, "fail percentage", fail_percentage
+        total_succeeded_requests += int(succeeded_requests)
+        total_failed_requests += int(failed_requests)
+
+        with open(locust_info_file, 'w') as f:
+            print >>f, "total_succeeded_requests", total_succeeded_requests, "total_failed_requests", total_failed_requests
+
 
 
 def get_IP(orchestrator):
@@ -637,7 +689,7 @@ def start_det_proxy_mode(orchestrator, container, srcs, dst, protocol, maxsleep,
         src_string = ""
         for src in srcs[:-1]:
             src_string += "\\\"" + src +  "\\\"" + ','
-        str_string += "\\\"" + src[-1] +  "\\\""
+        src_string += "\\\"" + srcs[-1] +  "\\\""
         proxiesip_switch = "s/PROXIESIP/" + "[" + src_string  + "]" + "/"
         print "targetip_switch", targetip_switch
         print "proxiesip_switch", proxiesip_switch
@@ -661,7 +713,7 @@ def start_det_proxy_mode(orchestrator, container, srcs, dst, protocol, maxsleep,
 
         # stdout=False b/c hangs otherwise
         try:
-            container.exec_run(start_det_command, user="root", workdir='/DET',stdout=False)
+            container.exec_run(start_det_command, user="root", workdir='/DET',stdout=False, detach=True)
             #print "response from DET proxy start command:"
             #print out
         except:
@@ -674,7 +726,7 @@ def start_det_proxy_mode(orchestrator, container, srcs, dst, protocol, maxsleep,
         pass
 
 
-def start_det_server_local(protocol, srcs, maxsleep, maxbytesread, minbytesread):
+def start_det_server_local(protocol, srcs, maxsleep, maxbytesread, minbytesread, experiment_name):
     # okay, need to modify this so that it can work (can use the working version above as a template)
     #'''
     cp_command = ['sudo', 'cp', "./src/det_config_local_template.json", "/DET/det_config_local_configured.json"]
@@ -686,7 +738,7 @@ def start_det_server_local(protocol, srcs, maxsleep, maxbytesread, minbytesread)
     src_string = ""
     for src in srcs[:-1]:
         src_string += "\\\"" + src +  "\\\"" + ','
-    str_string += "\\\"" + src[-1] +  "\\\""
+    src_string += "\\\"" + srcs[-1] +  "\\\""
     proxiesip_switch = "s/PROXIESIP/" + "[" + src_string  + "]" + "/"
 
     maxsleeptime_switch = "s/MAXTIMELSLEEP/" + "{:.2f}".format(maxsleep) + "/"
@@ -709,8 +761,10 @@ def start_det_server_local(protocol, srcs, maxsleep, maxbytesread, minbytesread)
     # which will allow me to find the actual rate of exfiltration, b/c I think DET might be rather
     # slow...
     # removed: stdout=subprocess.PIPE,
-    cmd = subprocess.Popen(cmds, cwd='/DET/', preexec_fn=os.setsid)
-    print cmd # okay, I guess I'll just analyze the output manually... (Since this fancy thing doe
+    # note: this will remove the files existing contents (which is fine w/ me!)
+    with open('./' + experiment_name + '_det_server_local_output.txt', 'w') as f:
+        cmd = subprocess.Popen(cmds, cwd='/DET/', preexec_fn=os.setsid, stdout=f)
+    #print cmd # okay, I guess I'll just analyze the output manually... (Since this fancy thing doe
     '''
     parsing_thread = thread.start_new_thread(parse_local_det_output, (cmd, exfil_info_file_name))
 
@@ -727,29 +781,31 @@ def start_det_server_local(protocol, srcs, maxsleep, maxbytesread, minbytesread)
     print cmd
     '''
 
-def parse_local_det_output(subprocess_output, exfil_info_file_name):
-    print "this is the output parsing function!!"
-    cmd = subprocess_output
-    time_of_first_arrival = None
+def parse_local_det_output(exfil_info_file_name, protocol):
+    print "this is the local det server parsing function!"
     total_bytes = 0
-    for line in cmd.stdout:
-        print "before recieved", line
-        if "Received" in line:
-            print "after recieved", line
-            matchObj = re.search(r'(.*)Received(.*)bytes (.*)', line)
-            bytes_recieved = int(matchObj.group(2))
-            total_bytes += bytes_recieved
-            print "bytes recieved...", bytes_recieved
-            print "total bytes...", total_bytes
-            if not time_of_first_arrival:
-                time_of_first_arrival = time.time()
-            current_time = time.time()
-            with open(exfil_info_file_name, 'w') as f:
-                print >> f, time_of_first_arrival, '\n', total_bytes, '\n', current_time
-                # then just keep printing these values to a file.
-                # we can just kill the thread at the end of the program and it'll be fine
-                # note: will also need to write current time to file, so that the endpoint
-                # in the time can be calculated
+    first_time = None
+    last_time = None
+    with open(exfil_info_file_name, 'r') as f:
+        for line in f.readlines():
+            #print "before recieved", line
+            if "Received" in line and protocol in line:
+                #print '\n'
+                #print "after recieved", line.replace('\n','')
+                matchObj = re.search(r'(.*)Received(.*)bytes(.*)', line)
+                #print matchObj.group()
+                bytes_recieved = int(matchObj.group(2))
+                total_bytes += bytes_recieved
+                #print "bytes recieved...", bytes_recieved
+                #print "total bytes...", total_bytes
+                # okay, let's find some times...
+                matchObjTime = re.search(r'\[(.*)\](.*)\](.*)', line)
+                #print "time..", matchObjTime.group(1)
+                if not first_time:
+                    first_time = matchObjTime.group(1)
+                last_time = matchObjTime.group(1)
+
+    return total_bytes, first_time, last_time
 
 def setup_config_file_det_client(dst, container, directory_to_exfil, regex_to_exfil, maxsleep, minbytesread, maxbytesread):
     # note: don't want to actually start the client yet, however
@@ -852,6 +908,7 @@ def find_dst_and_srcs_ips_for_det(exfil_path, current_class_name, selected_conta
     # at last microservice hop -> next dest is local host
     if current_loc_in_exfil_path == 0:
         next_instance_ip = localhostip
+        dests = [next_instance_ip]
     else: # then it'll hop through another microservice
         # then can just pass to another proxy in the exfiltration path
 
@@ -867,6 +924,51 @@ def find_dst_and_srcs_ips_for_det(exfil_path, current_class_name, selected_conta
             dests.append(next_instance_ip)
 
     return dests, srcs
+
+# note, requests means requests that succeeded
+def sanity_check_locust_performance(locust_csv_file):
+    method_to_requests = {}
+    method_to_fails = {}
+    with open(locust_csv_file, 'r') as locust_csv:
+        reader = csv.reader(locust_csv)
+        for row in reader:
+            try: # then it is a line with data
+                int(row[2])
+                #print "real vals", row
+            except: # then it is a line w/ just the names of the columns
+                #print "header", row
+                continue
+            if row[0] == "None":
+                method_to_requests[(row[0], row[1])] = row[2]
+                method_to_fails[(row[0], row[1])] = row[3]
+    total_requests = 0
+    total_fails = 0
+    for method in method_to_requests.keys():
+        total_requests += int(method_to_requests[method])
+        total_fails += int(method_to_fails[method])
+    try:
+        fail_percentage = float(total_fails) / float(total_requests + total_fails)
+    except ZeroDivisionError:
+        fail_percentage = 0
+    return total_requests, total_fails, fail_percentage
+
+# this is an experimental function for handling scaling up/down
+def setup_experiment(config_file):
+    client = docker.from_env()
+    with open(config_file + '.json') as f:
+        config_params = json.load(f)
+    service_scaling = config_params['scale']
+    services = client.services.list()
+    # scale down to zero, so we can start w/ a fresh slate
+    for service in services:
+        service.update(mode={'Replicated': {'Replicas': 0}})
+        # todo: wait until they are all gone
+
+    for serv, scale in service_scaling.iteritems():
+        # todo: okay, so theoretically this is where we'd scale back up
+        # might make more sense to go through the services, index into the dict, and then
+        # use the value for the # of replicas. Also, need to test when/if ready
+        pass
 
 if __name__=="__main__":
     print "RUNNING"

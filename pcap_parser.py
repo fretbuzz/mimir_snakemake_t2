@@ -481,17 +481,17 @@ def run_analysis_pipeline_recipes():
     '''
 
     # sockshop recipe
-    ''' 
+    '''
     # note: still gotta do calc_vals again...
     pcap_paths = ["/Users/jseverin/Documents/Microservices/munnin/experimental_data/sockshop_info/sockshop_swarm_fixed_br0_0.pcap"]
     is_swarm = 1
     basefile_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/sockshop_info/edgefiles/sockshop_swarm_pipeline_br0'
     basegraph_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/sockshop_info/graphs/sockshop_swarm'
     container_info_path = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/sockshop_info/sockshop_swarm_fixed_containers_config.txt'
-    time_interval_lengths = [10, 1, .1] # seconds
+    time_interval_lengths = [10, 1] # seconds
     network_or_microservice_list = ["sockshop_default"]
     ms_s = microservices_sockshop
-    make_edgefiles = False
+    make_edgefiles = True
     calc_vals = True
     graph_p = True # should I make graphs?
     start_time = 1529527610.6
@@ -519,25 +519,49 @@ def run_analysis_pipeline_recipes():
                                network_or_microservice_list)
     '''
 
-    # sockshop exp 2 (rep 0)
+    # sockshop exp 1 (rep 0)
     #''' # note: still gotta do calc_vals again...
-    pcap_paths = ["/Users/jseverin/Documents/Microservices/munnin/experimental_data/sockshop_info/sockshop_two_sockshop_default_0.pcap"]
+    pcap_paths = ["/Users/jseverin/Documents/Microservices/munnin/experimental_data/sockshop_info/sockshop_one_sockshop_default_0.pcap"]
     is_swarm = 1
-    basefile_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/sockshop_info/edgefiles/sockshop_two_pipeline_br0'
-    basegraph_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/sockshop_info/graphs/sockshop_two'
-    container_info_path = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/sockshop_info/sockshop_two_docker_0_container_configs.txt'
-    time_interval_lengths = [50, 10, 1, .1] # seconds
+    basefile_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/sockshop_info/edgefiles/sockshop_one_pipeline_br0'
+    basegraph_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/sockshop_info/graphs/sockshop_one'
+    container_info_path = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/sockshop_info/sockshop_one_docker_0_container_configs.txt'
+    time_interval_lengths = [10, 1]# , .1] # seconds (note eventually the 0.1 gran should be done and can re-enable)
     network_or_microservice_list = ["sockshop_default"]
     ms_s = microservices_sockshop
-    make_edgefiles = True
+    make_edgefiles = False
     calc_vals = True
     graph_p = True # should I make graphs?
     start_time = None
     end_time = None
     window_size = 6
     colors = ['b', 'r']
-    exfil_start_time = None
-    exfil_end_time = None
+    exfil_start_time = 270
+    exfil_end_time = 310
+    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
+                               network_or_microservice_list, ms_s, make_edgefiles, basegraph_name, window_size, colors,
+                               exfil_start_time, exfil_end_time, start_time=start_time, end_time=end_time,
+                               calc_vals = calc_vals, graph_p = graph_p)
+    #'''
+    # sockshop exp 2 (rep 0)
+    ''' # note: still gotta do calc_vals again...
+    pcap_paths = ["/Users/jseverin/Documents/Microservices/munnin/experimental_data/sockshop_info/sockshop_two_sockshop_default_0.pcap"]
+    is_swarm = 1
+    basefile_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/sockshop_info/edgefiles/sockshop_two_pipeline_br0'
+    basegraph_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/sockshop_info/graphs/sockshop_two'
+    container_info_path = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/sockshop_info/sockshop_two_docker_0_container_configs.txt'
+    time_interval_lengths = [50, 10, 1]# , .1] # seconds (note eventually the 0.1 gran should be done and can re-enable)
+    network_or_microservice_list = ["sockshop_default"]
+    ms_s = microservices_sockshop
+    make_edgefiles = True
+    calc_vals = False
+    graph_p = False # should I make graphs?
+    start_time = None
+    end_time = None
+    window_size = 6
+    colors = ['b', 'r']
+    exfil_start_time = 270
+    exfil_end_time = 330
     run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
                                network_or_microservice_list, ms_s, make_edgefiles, basegraph_name, window_size, colors,
                                exfil_start_time, exfil_end_time, start_time=start_time, end_time=end_time,
@@ -550,18 +574,18 @@ def run_analysis_pipeline_recipes():
     basefile_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/sockshop_info/edgefiles/sockshop_three_0'
     basegraph_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/sockshop_info/graphs/sockshop_three_0'
     container_info_path = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/sockshop_info/sockshop_three_docker_0_container_configs.txt'
-    time_interval_lengths = [50, 10, 1, .1] # seconds
+    time_interval_lengths = [50, 10, 1]#, .1] # seconds
     network_or_microservice_list = ["sockshop_default"]
     ms_s = microservices_sockshop
-    make_edgefiles = True
-    calc_vals = True
+    make_edgefiles = False
+    calc_vals = False
     graph_p = True # should I make graphs?
     start_time = None
     end_time = None
     window_size = 6
     colors = ['b', 'r']
-    exfil_start_time = None
-    exfil_end_time = None
+    exfil_start_time = 300
+    exfil_end_time = 360
     run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
                                network_or_microservice_list, ms_s, make_edgefiles, basegraph_name, window_size, colors,
                                exfil_start_time, exfil_end_time, start_time=start_time, end_time=end_time,
@@ -570,10 +594,55 @@ def run_analysis_pipeline_recipes():
     #'''
 
     # atsea exp 2
-
-
-
-    # atsea exp 3
+    '''
+    pcap_paths = ['/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/atsea_store_two_atsea_back-tier_0.pcap',
+                   '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/atsea_store_two_atsea_front-tier_0.pcap']
+    is_swarm = 1
+    basefile_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/edgefiles/atsea_store_two'
+    basegraph_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/graphs/atsea_store_two'
+    container_info_path = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/atsea_store_two_docker_0_container_configs.txt'
+    time_interval_lengths = [50, 10, 1, 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
+    network_or_microservice_list = ["atsea_back-tier", "atsea_default", "atsea_front-tier", "atsea_payment"]
+    ms_s = ['appserver', 'reverse_proxy', 'database']
+    make_edgefiles = True
+    start_time = None
+    end_time = None
+    exfil_start_time = 270
+    exfil_end_time = 330
+    calc_vals = True
+    window_size = 6
+    graph_p = True # should I make graphs?
+    colors = ['b', 'r']
+    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
+                               network_or_microservice_list, ms_s, make_edgefiles, basegraph_name, window_size, colors,
+                               exfil_start_time, exfil_end_time, start_time=start_time, end_time=end_time,
+                               calc_vals = calc_vals, graph_p = graph_p)
+    '''
+    '''
+    # atsea exp 3 (rep 0)
+    pcap_paths = ['/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/atsea_store_three_atsea_front-tier_0.pcap']
+    # ^^ only a single value in list b/c connected database to front-tier network (so backtier didn't do anything)
+    is_swarm = 1
+    basefile_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/edgefiles/atsea_store_three'
+    basegraph_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/graphs/atsea_store_three'
+    container_info_path = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/atsea_store_three_docker_0_container_configs.txt'
+    time_interval_lengths = [50] #, 10, 1, 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
+    network_or_microservice_list = ["atsea_back-tier", "atsea_default", "atsea_front-tier", "atsea_payment"]
+    ms_s = ['appserver', 'reverse_proxy', 'database']
+    make_edgefiles = True
+    start_time = None
+    end_time = None
+    exfil_start_time = 300
+    exfil_end_time = 360
+    calc_vals = True
+    window_size = 6
+    graph_p = True # should I make graphs?
+    colors = ['b', 'r']
+    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
+                               network_or_microservice_list, ms_s, make_edgefiles, basegraph_name, window_size, colors,
+                               exfil_start_time, exfil_end_time, start_time=start_time, end_time=end_time,
+                               calc_vals = calc_vals, graph_p = graph_p)
+    '''
 
 # TODO TODO TODO TODO TODO TODO TODO
 # okay so this is what I gotta do Monday
