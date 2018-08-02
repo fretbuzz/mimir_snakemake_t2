@@ -19,7 +19,10 @@ EOF
 
 # end one command
 apt-get update
-apt-get install -y kubectl
+#apt-get install -y kubectl #v 1.11 causes problems...
+curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.8.7/bin/linux/amd64/kubectl
+chmod +x ./kubectl
+sudo mv ./kubectl /usr/local/bin/kubectl
 curl -Lo minikube https://storage.googleapis.com/minikube/releases/v0.27.0/minikube-linux-amd64 && chmod +x minikube && sudo mv minikube /usr/local/bin/
 # need to install virtual box b/c dependencies :/ (from https://askubuntu.com/questions/779095/install-virtualbox-on-ubuntu-16-04-lts)
 
