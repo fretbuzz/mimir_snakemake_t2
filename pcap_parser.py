@@ -22,6 +22,7 @@
 # Well, I actually want to calculate all the values for all nodes, but I only wanna compare certain particular values
 # instead of comparing all of them.
 # So, it looks like I should parse leman's output and then go from there (as  opposed to implementing anything here)
+import time
 from scapy.all import *
 import re
 import pickle
@@ -110,10 +111,20 @@ def parse_pcap(a, time_intervals, mapping, basefile_name, start_time, end_time):
         # so it is in seconds
         if 'IP' in a_pkt:
             src_dst = (a_pkt['IP'].src, a_pkt['IP'].dst)
+        elif 'ARP' in a_pkt:
+            #print "there is an ARP packet!"
+            pass
+        else:
+            print "so this is not an IP/ARP packet..."
+            print a_pkt.show()
+            exit(105)
         if 'TCP' in a_pkt:
             src_dst_ports = (a_pkt['TCP'].sport, a_pkt['TCP'].dport)
         if src_dst == ():
             continue
+
+        # todo: remove? yah, so NAT-ing is clearly happening...
+        #src_dst = (src_dst[0]+':'+str(src_dst_ports[0]), src_dst[1] +':'+ str(src_dst_ports[1]))
 
         if src_dst in time_to_graphs[current_time_interval]:
             if 'IP' in a_pkt:
@@ -136,15 +147,17 @@ def parse_pcap(a, time_intervals, mapping, basefile_name, start_time, end_time):
             try:
                 src_ms = mapping[src][0]
             except:
+                #print "not_mapped_src", src
                 src_ms = src
                 no_mapping_found.append(src)
             try:
                 dst_ms = mapping[dst][0]
             except:
+                #print "not_mapped_dst", dst
                 dst_ms = dst
                 no_mapping_found.append(dst)
             print "index stuff", time, src_ms, dst_ms
-            time_to_parsed_mapping[time][src_ms[0][0], dst_ms[0][0]] = weight
+            time_to_parsed_mapping[time][src_ms, dst_ms] = weight
         for item, weight in time_to_parsed_mapping[time].iteritems():
             print item, weight
 
@@ -157,6 +170,9 @@ def parse_pcap(a, time_intervals, mapping, basefile_name, start_time, end_time):
         time_counter += time_intervals
         filesnames.append(filename)
     #'''
+    #print time_to_parsed_mapping[0]
+    print list(set(no_mapping_found))
+    #exit(55)
 
     return list(set(no_mapping_found)), filesnames
 
@@ -165,6 +181,7 @@ def parse_pcap(a, time_intervals, mapping, basefile_name, start_time, end_time):
 # NOTE: looks like oddball code requires that the src and dest are integers
 # example: basefile_name = './atsea_info/seastore_swarm_br0_0'
 def write_to_file(mapping, time, time_interval, basefile_name):
+    #'''
     # make mapping of pods to integers
     counter = 1
     map_pod_to_integer = {}
@@ -175,7 +192,7 @@ def write_to_file(mapping, time, time_interval, basefile_name):
         if src_dst[1] not in map_pod_to_integer.keys():
             map_pod_to_integer[src_dst[1]] = counter
             counter += 1
-    print map_pod_to_integer
+    #print map_pod_to_integer
 
     # now apply the mapping
     converted_mapping = {}
@@ -183,6 +200,7 @@ def write_to_file(mapping, time, time_interval, basefile_name):
         mapped_src = map_pod_to_integer[src_dst[0]]
         mapped_dst = map_pod_to_integer[src_dst[1]]
         converted_mapping[(mapped_src, mapped_dst)] = weight
+    #'''
 
     #ending = '_' + str(int(time)) + '_' + str(int(time_interval))
     print time, type(time),  time_interval, type(time_interval)
@@ -212,7 +230,7 @@ def write_to_file(mapping, time, time_interval, basefile_name):
                 spamwriter.writerow([pod,integer])
     '''
 
-    print "counter", counter
+    #print "counter", counter
 #find_switch_ports(a,1)
 
 # modifies egonet feature file produced by lemnan's code such that each egonet is focused on a particular
@@ -286,32 +304,21 @@ def swarm_container_ips(path, network_list):
         #    print config
         current_config = yaml.safe_load(config)
         found_something = 0
-        for network in network_list:
-            # this network just doesn't happen to be there...
-            try:
-                print type(current_config), len(current_config)
-                print current_config[0]["Name"]
-                print current_config[0]["NetworkSettings"]["Networks"], network
-                print current_config[0]["NetworkSettings"]["Networks"][network]
-            except:
-                continue
+        network_name = current_config[0]["Name"]
+        for container_id, container in current_config[0]["Containers"].iteritems():
+            #print "hi", container
+            container_name = container["Name"]
+            container_ip = container["IPv4Address"].split('/',1)[0]
+            container_to_ip[container_ip] = (container_name, network_name)
 
-            try:
-                print current_config[0]["NetworkSettings"]["Networks"][network]["IPAMConfig"]["IPv4Address"]
-                if current_config[0]["NetworkSettings"]["Networks"][network]["IPAMConfig"]["IPv4Address"] in container_to_ip.keys():
-                    container_to_ip[current_config[0]["NetworkSettings"]["Networks"][network]["IPAMConfig"]["IPv4Address"]].append(([current_config[0]["Name"]], network))
-                    found_something = 1
-                else:
-                    container_to_ip[current_config[0]["NetworkSettings"]["Networks"][network]["IPAMConfig"]["IPv4Address"]] = [([current_config[0]["Name"]], network)]
-                    found_something = 1
-            except:
-                print "yaml parsing did *not* work"
-                print "does this work?"
-                not_matched.append(current_config[0]["Name"])
-                #print current_config[0]["NetworkSettings"]["Networks"]["bridge"]
-        if not found_something:
-            not_matched.append(current_config[0]["Name"])
-    print "non-matched names", not_matched
+        try:
+            for service_name, service_vals in current_config[0]["Services"].iteritems():
+                print service_name, service_vals["VIP"]
+                service_vip = service_vals["VIP"]
+                container_to_ip[service_vip] = (service_name + "_VIP", network_name)
+        except:
+            print "no sevices in this network..."
+
     return container_to_ip
 
 # in our current edge-list generation, we have some pieces that
@@ -381,6 +388,7 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
 
     print "container to ip mapping", mapping
     #time.sleep(120)
+    #time.sleep(120)
     # okay, how to do this... going to want to (1) generate the filenames and then (2) delete them.
     # problem, don't know how long the
     # going to divide the time intervals here. Input the list such that the you are fine with the first pcap
@@ -441,7 +449,8 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
     for time_interval_length in time_interval_lengths:
         print "analyzing edgefiles..."
         newly_calculated_values = analyze_edgefiles.pipeline_analysis_step(interval_to_filenames[time_interval_length], ms_s,
-                                                                           time_interval_length, basegraph_name, calc_vals, window_size)
+                                                                           time_interval_length, basegraph_name, calc_vals, window_size,
+                                                                           mapping)
 
         total_calculated_vals.update(newly_calculated_values)
     if graph_p:
@@ -520,7 +529,7 @@ def run_analysis_pipeline_recipes():
     '''
 
     # sockshop exp 1 (rep 0)
-    #''' # note: still gotta do calc_vals again...
+    ''' # note: still gotta do calc_vals again...
     pcap_paths = ["/Users/jseverin/Documents/Microservices/munnin/experimental_data/sockshop_info/sockshop_one_sockshop_default_0.pcap"]
     is_swarm = 1
     basefile_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/sockshop_info/edgefiles/sockshop_one_pipeline_br0'
@@ -593,17 +602,47 @@ def run_analysis_pipeline_recipes():
 
     #'''
 
-    # atsea exp 2
+    # atsea exp 2 (v2)
     '''
-    pcap_paths = ['/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/atsea_store_two_atsea_back-tier_0.pcap',
-                   '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/atsea_store_two_atsea_front-tier_0.pcap']
+    pcap_paths = ['/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/atsea_store_exp_two_v2__atsea_back-tier_0.pcap',
+                   '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/atsea_store_exp_two_v2__atsea_front-tier_0.pcap',
+                  '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/atsea_store_exp_two_v2__ingress_0.pcap']
     is_swarm = 1
-    basefile_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/edgefiles/atsea_store_two'
-    basegraph_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/graphs/atsea_store_two'
-    container_info_path = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/atsea_store_two_docker_0_container_configs.txt'
-    time_interval_lengths = [50, 10, 1, 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
+    basefile_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/edgefiles/atsea_store_exp_two_v2_'
+    basegraph_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/graphs/atsea_store_exp_two_v2_'
+    container_info_path = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/atsea_store_exp_two_v2__docker_0_network_configs.txt'
+    time_interval_lengths = [50, 10]#50, , 1] #, 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
     network_or_microservice_list = ["atsea_back-tier", "atsea_default", "atsea_front-tier", "atsea_payment"]
-    ms_s = ['appserver', 'reverse_proxy', 'database']
+    ms_s = ['appserver_VIP', 'reverse_proxy_VIP', 'database_VIP', 'appserver', 'reverse_proxy', 'database', 'back-tier', 'front-tier']
+    make_edgefiles = True
+    start_time = 1533310837.05
+    end_time = 1533311351.12
+    exfil_start_time = 270
+    exfil_end_time = 330
+    calc_vals = True
+    window_size = 6
+    graph_p = True # should I make graphs?
+    colors = ['b', 'r']
+    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
+                               network_or_microservice_list, ms_s, make_edgefiles, basegraph_name, window_size, colors,
+                               exfil_start_time, exfil_end_time, start_time=start_time, end_time=end_time,
+                               calc_vals = calc_vals, graph_p = graph_p)
+    '''
+
+    # atsea exp 2 (v7)
+
+    pcap_paths = ['/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/atsea_store_exp_two_v7__atsea_back-tier_0.pcap',
+                   '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/atsea_store_exp_two_v7__atsea_front-tier_0.pcap',
+                  '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/atsea_store_exp_two_v7__ingress_0.pcap',
+                  '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/atsea_store_exp_two_v7__bridge_0.pcap',
+                  '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/atsea_store_exp_two_v7__ingress_sbox_0.pcap']
+    is_swarm = 1
+    basefile_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/edgefiles/atsea_store_exp_two_v7_'
+    basegraph_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/graphs/atsea_store_exp_two_v7_'
+    container_info_path = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/atsea_store_exp_two_v7__docker_0_network_configs.txt'
+    time_interval_lengths = [50, 10]#50, , 1] #, 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
+    network_or_microservice_list = ["atsea_back-tier", "atsea_default", "atsea_front-tier", "atsea_payment"]
+    ms_s = ['appserver_VIP', 'reverse_proxy_VIP', 'database_VIP', 'appserver', 'reverse_proxy', 'database', 'back-tier', 'front-tier']
     make_edgefiles = True
     start_time = None
     end_time = None
@@ -617,7 +656,7 @@ def run_analysis_pipeline_recipes():
                                network_or_microservice_list, ms_s, make_edgefiles, basegraph_name, window_size, colors,
                                exfil_start_time, exfil_end_time, start_time=start_time, end_time=end_time,
                                calc_vals = calc_vals, graph_p = graph_p)
-    '''
+    #'''
     '''
     # atsea exp 3 (rep 0)
     pcap_paths = ['/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/atsea_store_three_atsea_front-tier_0.pcap']

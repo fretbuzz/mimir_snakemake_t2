@@ -10,5 +10,5 @@ echo "${2}"
 docker network ls -q > "${1}"
 
 while read p; do
-    docker inspect $p >> "${2}" ;
+    docker network inspect $p -v >> "${2}" ;
 done < "${1}"

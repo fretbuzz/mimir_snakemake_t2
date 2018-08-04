@@ -1,4 +1,3 @@
---config_file atsea_store_exp_two --ip 192.168.99.100 --port 443 --prepare_app_p --install_det_depen --exp_name atsea_store_exp_two_0
---config_file atsea_store_exp_two --ip 192.168.99.100 --port 443 --prepare_app_p --install_det_depen --exp_name atsea_store_exp_two_1
+-ç-config_file atsea_store_exp_two --ip 192.168.99.100 --port 443 --prepare_app_p --install_det_depen --exp_name atsea_store_exp_two_1
 --config_file atsea_store_exp_two --ip 192.168.99.100 --port 443 --prepare_app_p --install_det_depen --exp_name atsea_store_exp_two_2
 

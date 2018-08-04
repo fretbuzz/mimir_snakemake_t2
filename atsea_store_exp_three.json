@@ -6,16 +6,16 @@
     "ingess_class": ["reverse_proxy"],
     "class_to_networks": {"reverse_proxy": ["front-tier", "ingress"], "database": ["back-tier", "front-tier"], "appserver": ["front-tier", "back-tier", "payment"], "payment_gateway": ["payment"]},
     "setup" : {
-      "number_customer_records": "15000",
-      "number_background_locusts": "150",
+      "number_customer_records": "1000",
+      "number_background_locusts": "10",
       "background_locust_spawn_rate": "10"
     },
     "experiment" : {
-      "number_background_locusts": "600",
-      "background_locust_spawn_rate": "150",
+      "number_background_locusts": "110",
+      "background_locust_spawn_rate": "10",
       "experiment_length_sec": "900",
       "traffic_type" : "normal",
-      "number_of_trials": "3"
+      "number_of_trials": "1"
     },
     "exfiltration_info" : {
       "exfiltration_path_class":[ "reverse_proxy",  "database" ],
@@ -28,13 +28,13 @@
       "exfil_end_time": "360",
       "min_exfil_data_per_packet_bytes": 300,
       "max_exfil_data_per_packet_bytes": 400,
-      "avg_exfiltration_rate_KB_per_sec": "5"
+      "avg_exfiltration_rate_KB_per_sec": "1"
     },
     "scale" :{
       "atsea_reverse_proxy": 5,
       "atsea_payment_gateway": 5,
       "atsea_appserver": 10,
       "atsea_database": 1,
-      "queue-atsea_visualizer": 10
+      "queue-atsea_visualizer": 1
     }
 }

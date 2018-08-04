@@ -2,7 +2,7 @@
     "application_name": "atsea_store",
     "experiment_name": "atsea_store_two",
     "orchestrator": "docker_swarm",
-    "networks_to_tcpdump_on": ["atsea_back-tier", "atsea_default", "atsea_front-tier", "atsea_payment", "ingress"],
+    "networks_to_tcpdump_on": ["atsea_back-tier", "atsea_default", "atsea_front-tier", "atsea_payment", "ingress", "bridge"],
     "ingess_class": ["reverse_proxy"],
     "class_to_networks": {"reverse_proxy": ["front-tier", "ingress"], "database": ["back-tier"], "appserver": ["front-tier", "back-tier", "payment"], "payment_gateway": ["payment"]},
     "setup" : {
@@ -11,7 +11,7 @@
       "background_locust_spawn_rate": "10"
     },
     "experiment" : {
-      "number_background_locusts": "100",
+      "number_background_locusts": "110",
       "background_locust_spawn_rate": "10",
       "experiment_length_sec": "900",
       "traffic_type" : "normal",

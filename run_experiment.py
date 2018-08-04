@@ -41,7 +41,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
     # step (1) read in the config file
     with open(config_file + '.json') as f:
         config_params = json.load(f)
-    if experiment_name == 'None':
+    if not experiment_name:
         experiment_name = config_params["experiment_name"]
     orchestrator = config_params["orchestrator"]
     class_to_installer = config_params["exfiltration_info"]["exfiltration_path_class_which_installer"]
@@ -98,23 +98,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
         selected_proxies[proxy_class] = random.sample(possible_proxies[proxy_class], num_proxies_of_this_class)
         print "new selected proxies", selected_proxies[proxy_class]
         index += 1
-    '''
-    print "selected proxies", selected_proxies
-    # get_class_instances cannot get the ingress network, so we must compensate manually
-    if orchestrator == 'docker_swarm':
-        print "let's handle the ingress network edgecase"
-        classes_connected_to_ingess = config_params["ingess_class"]
-        ingress_network = None
-        client = docker.from_env()
-        for a_network in client.networks.list():
-            if a_network.name == 'ingress':
-                ingress_network = a_network
-                break
-        print "the ingress class is", ingress_network, ingress_network.name
-        for ingress_class in classes_connected_to_ingess:
-            print "this class is connected to the ingress network", ingress_class
-            class_to_networks[ingress_class].append(ingress_network)
-    '''
+
     # determine which container instances should be the originator point
     originator_class = config_params["exfiltration_info"]["exfiltration_path_class"][-1]
     possible_originators = {}
@@ -183,7 +167,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
     srcs = []
     for proxy_instance in selected_proxies[exfil_path[0]]:
         for network, ip_ad in proxy_instance_to_networks_to_ip[ proxy_instance ].iteritems():
-            print "finding proxy for local", network.name, ip
+            print "finding proxy for local", network.name, ip_ad
             if network.name == 'ingress':
                 srcs.append(ip_ad)
                 break
@@ -221,8 +205,8 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
         exfil_info_file_name = experiment_name + '_docker' + '_' + str(i) + '_exfil_info.txt'
 
         # step (3b) get docker configs for docker containers (assuming # is constant for the whole experiment)
-        container_id_file = experiment_name + '_docker' + '_' + str(i) + '_containers.txt'
-        container_config_file = experiment_name + '_docker' '_' + str(i) +  '_container_configs.txt'
+        container_id_file = experiment_name + '_docker' + '_' + str(i) + '_networks.txt'
+        container_config_file = experiment_name + '_docker' '_' + str(i) +  '_network_configs.txt'
         try:
             os.remove(container_id_file)
         except:
@@ -234,7 +218,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
         out = subprocess.check_output(['pwd'])
         print out
 
-        out = subprocess.check_output(['bash', './src/docker_container_configs.sh', container_id_file, container_config_file])
+        out = subprocess.check_output(['bash', './src/docker_network_configs.sh', container_id_file, container_config_file])
         print out
 
         # step (5) start load generator (okay, this I can do!)
@@ -248,9 +232,13 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
 
         # step (4) setup testing infrastructure (i.e. tcpdump)
         for network_id, network_namespace in network_ids_to_namespaces.iteritems():
-            current_network =  client.networks.get(network_id)
+            if network_id == 'ingress_sbox':
+                current_network_name = 'ingress_sbox'
+            else:
+                current_network =  client.networks.get(network_id)
+                current_network_name = current_network.name
             print "about to tcpdump on:", current_network.name
-            filename = config_params["experiment_name"] + '_' + current_network.name + '_' + str(i) + '.pcap'
+            filename = experiment_name + '_' + current_network_name + '_' + str(i) + '.pcap'
             thread.start_new_thread(start_tcpdump, (orchestrator, network_namespace, str(int(experiment_length)), filename))
 
 
@@ -293,6 +281,14 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
         #succeeded_requests, failed_requests, fail_percentage = sanity_check_locust_performance('./'+ experiment_name + '_locust_info.csv')
         #print "succeeded requests", succeeded_requests, 'failed_requests', failed_requests, "fail percentage", fail_percentage
         subprocess.call(['cat', './' + experiment_name + '_locust_info.csv' ])
+
+        # todo: does this stuff work?
+        subprocess.call(['cp', './' + experiment_name + '_locust_info.csv', './' + experiment_name + '_locust_info_' +
+                          str(i) + '.csv' ])
+        # for det, I think just cp and then delete the old file should do it?
+        subprocess.call(['cp', './' + experiment_name + '_det_server_local_output.txt', './' + experiment_name +
+                         '_det_server_local_output_' + str(i) + '.txt'])
+        subprocess.call(['truncate', '-s', '0' ,'./' + experiment_name + '_det_server_local_output.txt'])
 
     # stopping the proxies can be done the same way (useful if e.g., switching
     # protocols between experiments, etc.)
@@ -455,7 +451,15 @@ def start_tcpdump(orchestrator, network_namespace, tcpdump_time, filename):
         start_netshoot = "docker run -it --rm -v /var/run/docker/netns:/var/run/docker/netns -v /home/docker:/outside --privileged=true nicolaka/netshoot"
         print network_namespace, tcpdump_time
         switch_namespace =  'nsenter --net=/var/run/docker/netns/' + network_namespace + ' ' 'sh'
-        start_tcpdum = "tcpdump -G " + tcpdump_time + ' -W 1 -i ' + "br0" + ' -w /outside/' + filename
+        if network_namespace == "bridge":
+            interface = "eth0"
+            switch_namespace = 'su'
+        elif network_namespace == 'ingress_sbox':
+            interface = "eth1" # already handling 10.255.XX.XX, which is the entry point into the routing mesh
+            # this is stuff that arrives on the routing mesh
+        else:
+            interface = "br0"
+        start_tcpdum = "tcpdump -G " + tcpdump_time + ' -W 1 -i ' + interface + ' -w /outside/' + filename
         cmd_to_send = start_netshoot + ';' + switch_namespace + ';' + start_tcpdum
         print "cmd_to_send", cmd_to_send
         print "start_netshoot", start_netshoot
@@ -549,6 +553,9 @@ def get_network_ids(orchestrator, list_of_network_names):
                 if network_name == network.name:
                     network_ids.append(network.id)
 
+        network_ids.append("bridge")
+        network_ids.append('ingress_sbox')
+
         print "just finished getting network id's...", network_ids
         return network_ids
     else:
@@ -568,8 +575,7 @@ def map_container_instances_to_ips(orchestrator, class_to_instances, class_to_ne
             for connected_network in class_to_networks[class_name]:
                 instance_to_networks_to_ip[container][connected_network] = []
                 try:
-                    ip_on_this_network = container_atrribs["NetworkSettings"]["Networks"][connected_network.name]["IPAMConfig"][
-                        "IPv4Address"]
+                    ip_on_this_network = container_atrribs["NetworkSettings"]["Networks"][connected_network.name]["IPAddress"]
                     instance_to_networks_to_ip[container][connected_network] = ip_on_this_network
                 except:
                     pass
@@ -656,6 +662,13 @@ def map_network_ids_to_namespaces(orchestrator, full_network_ids):
                     if network_namespace[2:] in network_id:
                         network_ids_to_namespaces[network_id] = network_namespace
                         break
+
+        for full_id in full_network_ids:
+            if full_id == "bridge":
+                network_ids_to_namespaces[full_id] =  "bridge"
+            if full_id == 'ingress_sbox':
+                network_ids_to_namespaces[full_id] =  "ingress_sbox"
+
         #print "network_ids_to_namespaces", network_ids_to_namespaces
         return network_ids_to_namespaces
     else:
@@ -979,7 +992,7 @@ if __name__=="__main__":
 
     parser = argparse.ArgumentParser(description='Creates microservice-architecture application pcaps')
 
-    parser.add_argument('--exp_name',dest="exp_name", default='None')
+    parser.add_argument('--exp_name',dest="exp_name", default=None)
     parser.add_argument('--config_file',dest="config_file", default='configFile')
     parser.add_argument('--prepare_app_p', dest='prepare_app_p', action='store_true',
                         default=False,
