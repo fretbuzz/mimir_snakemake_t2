@@ -151,8 +151,14 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
         # look backward to find src class, then index into selected_proxies, and then index into
         # instances_to_network_to_ips (will need to match up networks)
 
+        # todo: explicit_target from the config file (exp_six)... if it has corresponding src and dst values
+        # then use those, if one or more values is missing, use the values from below instead
+        # explicit_dsts,explicit_srcs = config_params["exfiltration_info"]["explicit_target_src"][class_name]
+
         dsts,srcs=find_dst_and_srcs_ips_for_det(exfil_path, class_name, selected_containers, localhostip,
                                                 proxy_instance_to_networks_to_ip, class_to_networks)
+        # if explicit_dsts != 'None': -> use expkicit_dsts (otherwise just keep going with dsts)
+        # if explicit_srcs != 'None' -> use explicit_srcs (otherwise just keep going with sercs)
 
         for container in container_instances:
             for dst in dsts:
@@ -183,10 +189,15 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
                            min_exfil_bytes_in_packet, experiment_name)
     #'''
     # now setup the originator (i.e. the client that originates the exfiltrated data)
+    # todo: explicit_target from the config file (exp_six)... if it has corresponding src and dst values
+    # explicit_dsts,_ = config_params["exfiltration_info"]["explicit_target_src"][originator_class]
+
     next_instance_ips, _ = find_dst_and_srcs_ips_for_det(exfil_path, originator_class,
                                                                          selected_containers, localhostip,
                                                                          proxy_instance_to_networks_to_ip,
                                                                          class_to_networks)
+
+    # if explicit_dsts != 'None: next_instance_ips = explicit_dsts
 
     print "next ip(s) for the originator to send to", next_instance_ips
     directory_to_exfil = config_params["exfiltration_info"]["folder_to_exfil"]
@@ -579,6 +590,7 @@ def map_container_instances_to_ips(orchestrator, class_to_instances, class_to_ne
                     instance_to_networks_to_ip[container][connected_network] = ip_on_this_network
                 except:
                     pass
+
     print "instance_to_networks_to_ip", instance_to_networks_to_ip
     return instance_to_networks_to_ip
 

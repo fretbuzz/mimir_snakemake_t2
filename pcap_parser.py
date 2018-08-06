@@ -114,6 +114,8 @@ def parse_pcap(a, time_intervals, mapping, basefile_name, start_time, end_time):
         elif 'ARP' in a_pkt:
             #print "there is an ARP packet!"
             pass
+        elif 'IPv6' in a_pkt:
+            pass
         else:
             print "so this is not an IP/ARP packet..."
             print a_pkt.show()
@@ -401,6 +403,7 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
         end_time = last_pkt.time
 
     print "start_time: ", start_time, "end_time:", end_time
+    #exit(12)
     interval_to_filenames = {}
 
     for time_interval_length in time_interval_lengths:
@@ -629,8 +632,8 @@ def run_analysis_pipeline_recipes():
                                calc_vals = calc_vals, graph_p = graph_p)
     '''
 
-    # atsea exp 2 (v7)
-
+    # atsea exp 2 (v7) [good]
+    #'''
     pcap_paths = ['/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/atsea_store_exp_two_v7__atsea_back-tier_0.pcap',
                    '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/atsea_store_exp_two_v7__atsea_front-tier_0.pcap',
                   '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/atsea_store_exp_two_v7__ingress_0.pcap',
@@ -643,11 +646,39 @@ def run_analysis_pipeline_recipes():
     time_interval_lengths = [50, 10]#50, , 1] #, 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
     network_or_microservice_list = ["atsea_back-tier", "atsea_default", "atsea_front-tier", "atsea_payment"]
     ms_s = ['appserver_VIP', 'reverse_proxy_VIP', 'database_VIP', 'appserver', 'reverse_proxy', 'database', 'back-tier', 'front-tier']
+    make_edgefiles = False
+    start_time = 1533377817.89
+    end_time = 1533378712.2
+    exfil_start_time = 270
+    exfil_end_time = 330
+    calc_vals = False
+    window_size = 6
+    graph_p = True # should I make graphs?
+    colors = ['b', 'r']
+    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
+                               network_or_microservice_list, ms_s, make_edgefiles, basegraph_name, window_size, colors,
+                               exfil_start_time, exfil_end_time, start_time=start_time, end_time=end_time,
+                               calc_vals = calc_vals, graph_p = graph_p)
+    #'''
+    # atsea exp 3 (v2) [good]
+    '''
+    pcap_paths = ['/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/atsea_store_exp_three_v2__atsea_back-tier_0.pcap',
+                   '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/atsea_store_exp_three_v2__atsea_front-tier_0.pcap',
+                  '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/atsea_store_exp_three_v2__ingress_0.pcap',
+                  '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/atsea_store_exp_three_v2__bridge_0.pcap',
+                  '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/atsea_store_exp_three_v2__ingress_sbox_0.pcap']
+    is_swarm = 1
+    basefile_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/edgefiles/atsea_store_exp_three_v2_'
+    basegraph_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/graphs/atsea_store_exp_three_v2_'
+    container_info_path = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/atsea_store_exp_three_v2__docker_0_network_configs.txt'
+    time_interval_lengths = [50, 30, 10, 1]#50, , 1] #, 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
+    network_or_microservice_list = ["atsea_back-tier", "atsea_default", "atsea_front-tier", "atsea_payment"]
+    ms_s = ['appserver_VIP', 'reverse_proxy_VIP', 'database_VIP', 'appserver', 'reverse_proxy', 'database', 'back-tier', 'front-tier']
     make_edgefiles = True
     start_time = None
     end_time = None
-    exfil_start_time = 270
-    exfil_end_time = 330
+    exfil_start_time = 300
+    exfil_end_time = 360
     calc_vals = True
     window_size = 6
     graph_p = True # should I make graphs?
@@ -657,6 +688,7 @@ def run_analysis_pipeline_recipes():
                                exfil_start_time, exfil_end_time, start_time=start_time, end_time=end_time,
                                calc_vals = calc_vals, graph_p = graph_p)
     #'''
+
     '''
     # atsea exp 3 (rep 0)
     pcap_paths = ['/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/atsea_store_three_atsea_front-tier_0.pcap']
