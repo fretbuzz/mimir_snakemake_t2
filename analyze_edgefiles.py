@@ -148,7 +148,8 @@ def pipeline_analysis_step(filenames, ms_s, time_interval, basegraph_name, calc_
             for key in pos.keys():
                 #print pos[key]
                 pos[key] = (pos[key][0] * 4, pos[key][1] * 4 ) # too close otherwise
-            nx.draw_networkx(G, pos, with_labels=True, arrows=True, font_size=8, node_color=np.array(color_map))
+            # used to be 8
+            nx.draw_networkx(G, pos, with_labels=True, arrows=True, font_size=13, node_color=np.array(color_map))
             edge_labels = nx.get_edge_attributes(G, 'weight')
             print "edge_labels", edge_labels
             nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=7, label_pos=0.3)
@@ -189,12 +190,12 @@ def pipeline_analysis_step(filenames, ms_s, time_interval, basegraph_name, calc_
 
             counter += 1
     # todo: re-enable (when ready...)
-    #total_calculated_values[(time_interval, 'container')] = calc_graph_metrics(list_of_graphs, ms_s, time_interval,
-    #                                                                           basegraph_name + '_container_', 'container',
-    #                                                                           calc_vals_p, window_size)
-    #total_calculated_values[(time_interval, 'class')] = calc_graph_metrics(list_of_aggregated_graphs, ms_s, time_interval,
-    #                                                                       basegraph_name + '_class_', 'class', calc_vals_p,
-    #                                                                       window_size)
+    total_calculated_values[(time_interval, 'container')] = calc_graph_metrics(list_of_graphs, ms_s, time_interval,
+                                                                               basegraph_name + '_container_', 'container',
+                                                                               calc_vals_p, window_size)
+    total_calculated_values[(time_interval, 'class')] = calc_graph_metrics(list_of_aggregated_graphs, ms_s, time_interval,
+                                                                           basegraph_name + '_class_', 'class', calc_vals_p,
+                                                                           window_size)
     return total_calculated_values
 
 def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or_class, calc_vals_p, window_size):
