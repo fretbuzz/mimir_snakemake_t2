@@ -1,7 +1,7 @@
 import unittest
 import json
 import networkx as nx
-from analyze_edgefiles import change_point_detection, find_angles
+from analyze_edgefiles import change_point_detection, find_angles, get_points_to_plot
 import numpy as np
 import math
 
@@ -130,11 +130,14 @@ class TestChangePoint(unittest.TestCase):
         array4 = np.array([1,1])
         list_of_arrays = [array1, array2, array3, array4]
 
-        expected_angles = [0.0, 0.0, 0.0]
+        expected_angles = [float('nan'), 0.0, 0.0, 0.0]
         computed_angles = find_angles(list_of_arrays, window_size=1)
         #self.assertEquals(computed_angles , [0.0, 0.0, 0.0])
         for i in range(0, len(expected_angles)):
-            self.assertAlmostEqual(computed_angles[i], expected_angles[i])
+            if math.isnan(expected_angles[i]):
+                self.assertTrue(math.isnan(computed_angles[i]))
+            else:
+                self.assertAlmostEqual(computed_angles[i], expected_angles[i])
 
     def test_find_angles_simple_averaging(self):
         # find_angles(list_of_vectors, window_size)
@@ -147,11 +150,14 @@ class TestChangePoint(unittest.TestCase):
         array4 = np.array([1, 1])
         list_of_arrays = [array1, array2, array3, array4]
 
-        expected_angles = [0.0, 0.0]
+        expected_angles = [float('nan'), float('nan'), 0.0, 0.0]
         computed_angles = find_angles(list_of_arrays, window_size=2)
         # self.assertEquals(computed_angles , [0.0, 0.0, 0.0])
         for i in range(0, len(expected_angles)):
-            self.assertAlmostEqual(computed_angles[i], expected_angles[i])
+            if math.isnan(computed_angles[i]):
+                self.assertTrue(math.isnan(computed_angles[i]))
+            else:
+                self.assertAlmostEqual(computed_angles[i], expected_angles[i])
         print "averaging worked"
 
     def test_find_angles_averaging(self):
@@ -165,11 +171,14 @@ class TestChangePoint(unittest.TestCase):
         array4 = np.array([1000, 1000])
         list_of_arrays = [array1, array2, array3, array4]
 
-        expected_angles = [0.5667292, 0.0]
+        expected_angles = [float('nan'), float('nan'), 0.5667292, 0.0]
         computed_angles = find_angles(list_of_arrays, window_size=2)
         # self.assertEquals(computed_angles , [0.0, 0.0, 0.0])
         for i in range(0, len(expected_angles)):
-            self.assertAlmostEqual(computed_angles[i], expected_angles[i])
+            if math.isnan(expected_angles[i]):
+                self.assertTrue(math.isnan(computed_angles[i]))
+            else:
+                self.assertAlmostEqual(computed_angles[i], expected_angles[i])
         print "averaging worked"
 
     def test_find_angles_empty(self):
@@ -186,7 +195,7 @@ class TestChangePoint(unittest.TestCase):
         array7 = np.array([1000, 1000])
         list_of_arrays = [array1, array2, array3, array4, array5, array6, array7]
 
-        expected_angles = [float('nan'), float('nan'), float('nan'), 0.0, 0.0]
+        expected_angles = [float('nan'), float('nan'), float('nan'), float('nan'), float('nan'), 0.0, 0.0] # 7 - 2 = 5
         computed_angles = find_angles(list_of_arrays, window_size=2)
         # self.assertEquals(computed_angles , [0.0, 0.0, 0.0])
         for i in range(0, len(expected_angles)):
@@ -213,7 +222,7 @@ class TestChangePoint(unittest.TestCase):
         array7 = np.array([1000, 1000])
         list_of_arrays = [array1, array2, array3, array4, array5, array6, array7]
 
-        expected_angles = [.6435011, float('nan'), .32175055, 0.0, 0.0]
+        expected_angles = [float('nan'), float('nan'), .6435011, float('nan'), .32175055, 0.0, 0.0] # 7 - 5 = 2
         computed_angles = find_angles(list_of_arrays, window_size=2)
         # self.assertEquals(computed_angles , [0.0, 0.0, 0.0])
         for i in range(0, len(expected_angles)):
@@ -236,7 +245,7 @@ class TestChangePoint(unittest.TestCase):
         array7 = np.array([1000, 1000])
         list_of_arrays = [array1, array2, array3, array4, array5, array6, array7]
 
-        expected_angles = [.6435011, 1.5707963, 0.7833984, 0.00353549, 0.0017677651]
+        expected_angles = [float('nan'), float('nan'), .6435011, 1.5707963, 0.7833984, 0.00353549, 0.0017677651] #7-5=2
         computed_angles = find_angles(list_of_arrays, window_size=2)
         # self.assertEquals(computed_angles , [0.0, 0.0, 0.0])
         for i in range(0, len(expected_angles)):
@@ -275,10 +284,17 @@ class TestChangePoint(unittest.TestCase):
 
         tensor = [dict1, dict2, dict3, dict4, dict5, dict6, dict7, dict8, dict9, dict10, dict11, dict12]
         angles = change_point_detection(tensor, 4, [])
-        expected_angles = [0.0, 0.0, 0.0, 0.0, 0.0]
+        # returns list of angles (of size len(tensor)). Note:
+
+        print "test_change_point_tensor_none_dict", angles
+        expected_angles = [float('nan'), float('nan'), float('nan'), float('nan'), float('nan'), float('nan'),
+                           float('nan'), 0.0, 0.0, 0.0, 0.0, 0.0] # 12 - 5 = 7 nan's
         print "None", angles
 
-        self.assertEquals(angles, expected_angles)
+        for i in range(0,7):
+            self.assertTrue(math.isnan(angles[i]))
+
+        self.assertEquals(angles[7:], expected_angles[7:])
 
     '''
     def test_change_point_tensor_dict_val_nan(self):
@@ -314,12 +330,14 @@ class TestChangePoint(unittest.TestCase):
         dict11 = {'front-end.1': 40, 'user.1': 50, 'user-db.1': 39}
         tensor = [dict1, dict2, dict3, dict4, dict5, dict6, dict7, dict8, dict9, dict10, dict11]
 
-        angles = change_point_detection(tensor, 4, [])
+        angles = change_point_detection(tensor, 4, []) # 11 - 4 = 7 nan's
         print "disappear", angles
-        self.assertEqual(angles[0], 0)
-        self.assertNotEqual(angles[1], 0)
-        self.assertNotEqual(angles[2], 0)
-        self.assertNotEqual(angles[3], 0)
+        for i in range(0,7):
+            self.assertTrue(math.isnan(angles[i]))
+        self.assertEqual(angles[7], 0)
+        self.assertNotEqual(angles[8], 0)
+        self.assertNotEqual(angles[9], 0)
+        self.assertNotEqual(angles[10], 0)
 
     def test_change_point_nodes_extra_appear(self):
         dict1 = {'front-end.1': 15, 'user.1': 25, 'user.2': 22}
@@ -337,11 +355,14 @@ class TestChangePoint(unittest.TestCase):
 
         angles = change_point_detection(tensor, 4, [])
         print "appear", angles
+        # 11 - 4 = 7
+        for i in range(0,7):
+            self.assertTrue(math.isnan(angles[i]))
 
-        self.assertEqual(angles[0], 0)
-        self.assertNotEqual(angles[1], 0)
-        self.assertNotEqual(angles[2], 0)
-        self.assertNotEqual(angles[3], 0)
+        self.assertEqual(angles[7], 0)
+        self.assertNotEqual(angles[8], 0)
+        self.assertNotEqual(angles[9], 0)
+        self.assertNotEqual(angles[10], 0)
 
     def test_change_point_nodes_perfect_corr(self):
         dict1 = {'front-end.1': 15, 'user.1': 25, 'user.2': 22}
@@ -355,12 +376,14 @@ class TestChangePoint(unittest.TestCase):
         dict9 = {'front-end.1': 35, 'user.1': 45, 'user.2': 2}
         tensor = [dict1, dict2, dict3, dict4, dict5, dict6, dict7, dict8, dict9]
 
-        expected_angles = [0.0, 0.0, 0.0, 0.0]
+        expected_angles = [float('nan'), float('nan'), float('nan'), float('nan'), float('nan'), 0.0, 0.0, 0.0, 0.0] # 9 - 4 = 5
         angles = change_point_detection(tensor, 3, [])
         # self.assertEquals(computed_angles , [0.0, 0.0, 0.0])
         for i in range(0, len(expected_angles)):
-            self.assertEqual(expected_angles[i], angles[i])
-
+            if math.isnan(expected_angles[i]):
+                self.assertTrue(math.isnan(angles[i]))
+            else:
+                self.assertEqual(expected_angles[i], angles[i])
 
     def test_change_point_tensor_no_angle_again(self):
         dict1 = {'front-end.1': 15, 'user.1': 25, 'user-db.1': 14}
@@ -372,13 +395,16 @@ class TestChangePoint(unittest.TestCase):
         dict7 = {'front-end.1': 29, 'user.1': 39, 'user-db.1': 28}
         dict8 = {'front-end.1': 31, 'user.1': 41, 'user-db.1': 30}
         dict9 = {'front-end.1': 35, 'user.1': 45, 'user-db.1': 34}
-        tensor = [dict1, dict2, dict3, dict4, dict5, dict6, dict7, dict8, dict9]
+        tensor = [dict1, dict2, dict3, dict4, dict5, dict6, dict7, dict8, dict9] # 9 - 4 = 5
         angles = change_point_detection(tensor, 3, [])
 
-        expected_angles = [0.0, 0.0, 0.0, 0.0]
+        expected_angles = [float('nan'), float('nan'), float('nan'), float('nan'), float('nan'), 0.0, 0.0, 0.0, 0.0]
         # self.assertEquals(computed_angles , [0.0, 0.0, 0.0])
         for i in range(0, len(expected_angles)):
-            self.assertEqual(expected_angles[i], angles[i])
+            if math.isnan(expected_angles[i]):
+                self.assertTrue(math.isnan(angles[i]))
+            else:
+                self.assertEqual(expected_angles[i], angles[i])
 
     def test_change_point_tensor_one_decreasing(self):
         dict1 = {'front-end.1': 15, 'user.1': 25, 'user-db.1': 14, 'user-db.2': 24}
@@ -393,10 +419,13 @@ class TestChangePoint(unittest.TestCase):
         tensor = [dict1, dict2, dict3, dict4, dict5, dict6, dict7, dict8, dict9]
         angles = change_point_detection(tensor, 3, [])
 
-        expected_angles = [0.0, 0.0, 0.0, 0.0]
+        expected_angles = [float('nan'), float('nan'), float('nan'), float('nan'), float('nan'), 0.0, 0.0, 0.0, 0.0] # 9 - 4 = 5
         # self.assertEquals(computed_angles , [0.0, 0.0, 0.0])
         for i in range(0, len(expected_angles)):
-            self.assertEqual(expected_angles[i], angles[i])
+            if math.isnan(expected_angles[i]):
+                self.assertTrue(math.isnan(angles[i]))
+            else:
+                self.assertEqual(expected_angles[i], angles[i])
 
     def test_change_point_tensor_one_reordered(self):
         dict1 = {'front-end.1': 15, 'user-db.2': 24, 'user.1': 25, 'user-db.1': 14}
@@ -411,10 +440,13 @@ class TestChangePoint(unittest.TestCase):
         tensor = [dict1, dict2, dict3, dict4, dict5, dict6, dict7, dict8, dict9]
         angles = change_point_detection(tensor, 3, [])
 
-        expected_angles = [0.0, 0.0, 0.0, 0.0]
+        expected_angles = [float('nan'), float('nan'), float('nan'), float('nan'), float('nan'), 0.0, 0.0, 0.0, 0.0] # 9 - 4 = 5
         # self.assertEquals(computed_angles , [0.0, 0.0, 0.0])
         for i in range(0, len(expected_angles)):
-            self.assertEqual(expected_angles[i], angles[i])
+            if math.isnan(expected_angles[i]):
+                self.assertTrue(math.isnan(angles[i]))
+            else:
+                self.assertEqual(expected_angles[i], angles[i])
 
     def test_change_point_tensor_one_reordered_spike(self):
         dict1 = {'front-end.1': 15, 'user-db.2': 24, 'user.1': 25, 'user-db.1': 14}
@@ -435,13 +467,28 @@ class TestChangePoint(unittest.TestCase):
         angles = change_point_detection(tensor, 3, [])
         print "reordered_spike", angles
 
+        # used to have 13 - (3 + 2) = 8 vals. So 5 nan's in beginning are new...
         # self.assertEquals(computed_angles , [0.0, 0.0, 0.0])
         for i in range(0, len(angles)):
-            if i == 0 or i == 7:
+            if i < 5:
+                self.assertTrue(math.isnan(angles[i]))
+            elif i == 5 or i == 12:
                 self.assertEqual(0.0, angles[i])
             else:
                 print "i", i, angles[i]
                 self.assertNotEqual(angles[i], 0)
+
+    # hmm... I might need to think about this a little more....
+    def test_get_points_to_plot(self):
+        vals = [5, 9, 3, 4, 19, 30, 20, 67, 89, 32]
+        time_grand = 10
+        exfil_start = 50
+        exfil_end = 60
+        wiggle_room = 2 #seconds
+        vals = get_points_to_plot(time_grand, vals, exfil_start, exfil_end, wiggle_room)
+        # expect vals to be [30]
+        print "vals for test_get_points_to_plot", vals
+        self.assertEquals(vals, [19, 30, 20])
 
 if __name__ == "__main__":
     unittest.main()

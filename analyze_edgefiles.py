@@ -27,6 +27,10 @@ import pandas
 import csv
 import ast
 import itertools
+from cStringIO import StringIO
+import matplotlib.image as mpimg
+from matplotlib import colors as mcolors
+
 
 sockshop_ms_s = ['carts-db','carts','catalogue-db','catalogue','front-end','orders-db','orders',
         'payment','queue-master','rabbitmq','session-db','shipping','user-sim', 'user-db','user','load-test']
@@ -37,6 +41,10 @@ def pipeline_analysis_step(filenames, ms_s, time_interval, basegraph_name, calc_
     list_of_aggregated_graphs_multi = [] # the above w/ multiple edges
     total_calculated_values = {}
     counter= 0 # let's not make more than 50 images of graphs
+    ms_to_containers = {}
+    for ms in ms_s:
+        ms_to_containers[ms] = []
+    ms_to_containers['NATs'] = []
 
     if calc_vals_p:
         for file_path in filenames:
@@ -46,13 +54,14 @@ def pipeline_analysis_step(filenames, ms_s, time_interval, basegraph_name, calc_
                             create_using=G, delimiter=',', data=(('weight', float),))
 
             # note a few edge cases not covered in 49-64, but i'll handle those as they occur
-            for container_list_and_class in container_to_ip.values():
+            for container_list_and_network in container_to_ip.values():
                 #print "containerzzz", container_list_and_class[0]
                 for ms in ms_s:
-                    if ms in container_list_and_class[0] and 'VIP' not in container_list_and_class[0]:
-                        if container_list_and_class[0] not in G and 'endpoint' not in container_list_and_class[0]:
-                            G.add_node(container_list_and_class[0])
-                            break
+                    if ms in container_list_and_network[0] :
+                        if 'VIP' not in container_list_and_network[0]:
+                            if container_list_and_network[0] not in G and 'endpoint' not in container_list_and_network[0]:
+                                G.add_node(container_list_and_network[0])
+                                break
 
             for (u, v, data) in G.edges(data=True):
                 if 'VIP' in v:
@@ -85,7 +94,11 @@ def pipeline_analysis_step(filenames, ms_s, time_interval, basegraph_name, calc_
 
             # 192.168.99.1 is really just the generic 'outside' here
             mapping = {'192.168.99.1': 'outside'}
-            nx.relabel_nodes(G, mapping, copy=False)
+            try:
+                nx.relabel_nodes(G, mapping, copy=False)
+            except KeyError:
+                pass # maybe it's not in the graph?
+
             #return 1
 
             #'''
@@ -95,14 +108,71 @@ def pipeline_analysis_step(filenames, ms_s, time_interval, basegraph_name, calc_
             # (prob by making container_to_ip into a list)
             #print "qqqq", container_to_ip
             plt.clf()
-            plt.figure(figsize=(20, 8))
+            # okay, now I want to color the different classes different colors. I am going to make the assumption
+            # that if an container's name has a '.' in it, then I can get the class name by splitting on the '.'
+            # and taking the value to the left
+            # NOTE: wait, I might actually do this above instead...
+            # actually, it looks like maybe making a color map is the way to go??
+            color_map = []
+            #'''
+            #colors = ['r', 'blue', 'g', 'y' 'p', 'm', 'c', 'cyan', 'teal', 'lime']  # todo: pass this is via a parameter (at some point)
+            #colors_dict =  dict(mcolors.BASE_COLORS)#, **mcolors.CSS4_COLORS)
+            #colors = colors_dict.values()
+            #print "colors", colors
+            for node in G:
+                j = None
+                for i in range(0, len(ms_s)):
+                    if 'endpoint' in node or 'VIP' in node or 'sbox' in node:
+                        j = len(ms_s) + 1
+                        break
+                    if ms_s[i] in node:
+                        j = i
+                        break
+                #print "j", j
+                if j != None:
+                    # assign color to the node here
+                    if j == len(ms_s) + 1:
+                        color_map.append(0.0)
+                    else:
+                        color_map.append(float(len(ms_s) + 2) / j )
+                else:
+                    # okay, either load balancer or other
+                    color_map.append((len(ms) * 2) / (len(ms)))#float(len(ms_s) + 2) / (len(ms_s) + 2))
+
+            #'''
+            print "color_map", color_map, len(color_map), len(G.nodes()), len(ms_s), np.array(color_map)
+            print [i for i in G.nodes()]#range(len(G.nodes()))
+            #return 1
+            plt.figure(figsize=(27, 16))
             pos = graphviz_layout(G)
             for key in pos.keys():
                 #print pos[key]
                 pos[key] = (pos[key][0] * 4, pos[key][1] * 4 ) # too close otherwise
-            nx.draw_networkx(G, pos, with_labels=True, arrows=True, font_size=8)
+            nx.draw_networkx(G, pos, with_labels=True, arrows=True, font_size=8, node_color=np.array(color_map))
+            edge_labels = nx.get_edge_attributes(G, 'weight')
+            print "edge_labels", edge_labels
+            nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=7, label_pos=0.3)
+
+            #print "edge_labels", edge_labels
             if counter < 50: # keep # of network graphs to a reasonable amount
                 plt.savefig(file_path.replace('.txt', '') + '_network_graph_container.png', format='png')
+                # from https://stackoverflow.com/questions/39657395/how-to-draw-properly-networkx-graphs#
+                #G.graph['graph'] = {'rankdir': 'TD'}
+                #G.graph['node'] = {'shape': 'circle'}
+                #G.graph['edges'] = {'arrowsize': '4.0'}
+                #A = nx.drawing.nx_agraph.to_agraph(G)
+                #A.layout('dot')
+                #A.draw(file_path.replace('.txt', '') + '_network_graph_container.png')
+                # from https://stackoverflow.com/questions/10379448/plotting-directed-graphs-in-python-in-a-way-that-show-all-edges-separately
+                #d = nx.drawing.nx_pydot.to_pydot(G)
+                #png_str = d.create_png()
+                #sio = StringIO()  # file-like string, appropriate for imread below
+                #sio.write(png_str)
+                #sio.seek(0)
+                #img = mpimg.imread(sio)
+                #imgplot = plt.imshow(img)
+                #plt.savefig(file_path.replace('.txt', '') + '_network_graph_container_viz.png', format='png')
+                #plt.imgsva  savefig(file_path.replace('.txt', '') + '_network_graph_container.png', format='png')
             list_of_graphs.append(G)
             aggreg_multi_G, aggreg_simple_G = aggregate_graph(G, ms_s)
             list_of_aggregated_graphs.append( aggreg_simple_G )
@@ -111,17 +181,20 @@ def pipeline_analysis_step(filenames, ms_s, time_interval, basegraph_name, calc_
             plt.clf()
             pos = graphviz_layout(aggreg_simple_G)
             nx.draw_networkx(aggreg_simple_G, pos, with_labels=True, arrows=True)
+            edge_labels_aggreg_simple = nx.get_edge_attributes(aggreg_simple_G, 'weight')
+            print "edge_labels", edge_labels_aggreg_simple
+            nx.draw_networkx_edge_labels(aggreg_simple_G, pos, edge_labels=edge_labels_aggreg_simple, font_size=7, label_pos=0.3,)
             if counter < 50:
                 plt.savefig(file_path.replace('.txt', '') + '_network_graph_class.png', format='png')
 
             counter += 1
-    # todo: does it still work
-    total_calculated_values[(time_interval, 'container')] = calc_graph_metrics(list_of_graphs, ms_s, time_interval,
-                                                                               basegraph_name + '_container_', 'container',
-                                                                               calc_vals_p, window_size)
-    total_calculated_values[(time_interval, 'class')] = calc_graph_metrics(list_of_aggregated_graphs, ms_s, time_interval,
-                                                                           basegraph_name + '_class_', 'class', calc_vals_p,
-                                                                           window_size)
+    # todo: re-enable (when ready...)
+    #total_calculated_values[(time_interval, 'container')] = calc_graph_metrics(list_of_graphs, ms_s, time_interval,
+    #                                                                           basegraph_name + '_container_', 'container',
+    #                                                                           calc_vals_p, window_size)
+    #total_calculated_values[(time_interval, 'class')] = calc_graph_metrics(list_of_aggregated_graphs, ms_s, time_interval,
+    #                                                                       basegraph_name + '_class_', 'class', calc_vals_p,
+    #                                                                       window_size)
     return total_calculated_values
 
 def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or_class, calc_vals_p, window_size):
@@ -453,7 +526,7 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or
 
 # okay, so I guess 2 bigs things here: (1) I guess I should iterate through the all the calculated_vals
 # dicts here? Also I need to refactor the combined boxplots such that they actually make sense...
-def create_graphs(total_calculated_vals, basegraph_name, window_size, colors, time_interval_lengths, exfil_start, exfil_end):
+def create_graphs(total_calculated_vals, basegraph_name, window_size, colors, time_interval_lengths, exfil_start, exfil_end, wiggle_room):
     time_grans = []
     node_grans = []
     metrics = []
@@ -716,7 +789,7 @@ def create_graphs(total_calculated_vals, basegraph_name, window_size, colors, ti
     # okay, so now I actually need to handle make those multi-dimensional boxplots
     for metric in metrics:
         make_multi_time_boxplots(metrics_to_time_to_granularity_lists, time_grans, metric, colors,
-                                 basegraph_name + metric + '_multitime_boxplot', node_grans, exfil_start, exfil_end)
+                                 basegraph_name + metric + '_multitime_boxplot', node_grans, exfil_start, exfil_end, wiggle_room)
 
         make_multi_time_nan_bars(metrics_to_time_to_granularity_nans, time_grans, node_grans, metric,
                                  basegraph_name + metric + 'multi_nans')
@@ -943,14 +1016,15 @@ def find_dominant_pair(G, ms_s):
 
     return princ_eigenvect, total_weight
 
-# returns list of angles (of size len(tensor) - window_size). Note:
+# returns list of angles (of size len(tensor)). Note:
 # i have decided to append window_size 'nans' to the front of the list of
 # angles (so that the graphing goes easier b/c I won't have to worry about shifting stuff)
-# (b/c the first window_size angles do not exist in a meaningful way...)
+# (b/c the first window_size angles do not exist in a meaningful way...) -
 # note: tensor is really a *list of dictionaries*, with keys of nodes_in_tensor
 ### NOTE: have this function be at least >4 if you want results that are behave coherently, ###
 ### though >= 6 is best ###
 def change_point_detection(tensor, window_size, nodes_in_tensor):
+    print "len(tensor)", len(tensor)
     if window_size < 3:
         # does not make sense for window_size to be less than 3
         print "window_size needs to be >= 3 for pearson to work"
@@ -1110,18 +1184,16 @@ def change_point_detection(tensor, window_size, nodes_in_tensor):
     angles = find_angles(correlation_matrix_eigenvectors, window_size)
 
     # note: padding front so that alignment is maintained
-    for i in range(0, window_size):
+    for i in range(0, window_size - 1): # first window_size values becomes one value, hence want to add bakc window_size -1 vals
         angles.insert(0, float('nan'))
 
     return angles
 
-# as related to check445, this function returns too many nan's
-# I think this is because it gives nan values when an all zero's
-# vector is given (b/c cosine distance not defined for that)
-# note: problem could potentially be in turn_into_list
+# looks like it returns a vector of size ( len(list_of_vectors) - window_size )
+# I'm going to make it return a vector of size len(list_of_vectors)
 def find_angles(list_of_vectors, window_size):
 
-    angles = [] # first must be zero (nothing to compare to)
+    angles = []
     for i in range(window_size, len(list_of_vectors)):
         print "angles is", angles
         start_of_window = i - window_size
@@ -1189,6 +1261,9 @@ def find_angles(list_of_vectors, window_size):
         angle = np.arccos( np.clip(np.dot(window_average_unit_vector, current_value_unit_vector), -1.0, 1.0)  )
         print "the angle was found to be ", angle
         angles.append(angle)
+
+    for i in range(0, window_size):
+        angles.insert(0, float('nan'))
 
     print "angles", angles
     return angles
@@ -1437,7 +1512,7 @@ def calc_covaraiance_matrix(calculated_values):
 
 # in the style of: https://stackoverflow.com/questions/16592222/matplotlib-group-boxplots
 def make_multi_time_boxplots(metrics_to_time_to_granularity_lists, time_grans, metric, colors,
-                             graph_name, node_grans, exfil_start, exfil_end):
+                             graph_name, node_grans, exfil_start, exfil_end, wiggle_room):
     fig = plt.figure()
     fig.clf()
     ax = plt.axis()
@@ -1453,7 +1528,7 @@ def make_multi_time_boxplots(metrics_to_time_to_granularity_lists, time_grans, m
         number_positions_on_graph = range(cur_pos, cur_pos+number_nested_lists)
         tick_position = (float(number_positions_on_graph[0]) + float(number_positions_on_graph[-1])) / number_nested_lists
         tick_position_list.append( tick_position )
-        bp = plt.boxplot(current_vals, positions = number_positions_on_graph, widths = 0.6, sym='k.')
+        bp = plt.boxplot(current_vals, positions = number_positions_on_graph, widths = 0.6, sym='k.', showfliers=False)
         #print "number of boxplots just added:", len(metrics_to_time_to_granularity_lists[metric][time_gran]), " , ", number_nested_lists
         plt.title(metric)
         plt.xlabel('time granularity (seconds)')
@@ -1473,40 +1548,40 @@ def make_multi_time_boxplots(metrics_to_time_to_granularity_lists, time_grans, m
         except:
             pass
 
-        # todo: plot the points specifically during exfiltration times
-        # okay, here's the plan, I'll need to plot points as certain x-axis positions
-            # ((using the number_positions_on_graph list))
         # I can iterate through the nested loops (in order to keep track of the x-axis values)
         # then I'll need a function that takes the 'deepest' list + granularity and exfil times
         # and then returns the specific points to plot
         i = 0
-        for current_vals_at_certain_node_gran in current_vals:
+        for current_vals_at_certain_node_gran in metrics_to_time_to_granularity_lists[metric][time_gran]:
             # note that there is also an implicit time granularity from the for loop way up above
             # okay, so this is where it I'd call the function that looks for other stuff
-            # todo: does this work?
-            points_to_plot = get_points_to_plot(time_gran, current_vals_at_certain_node_gran, exfil_start, exfil_end)
+            points_to_plot, start_index_ptp, end_index_ptp = get_points_to_plot(time_gran, current_vals_at_certain_node_gran, exfil_start, exfil_end, wiggle_room)
+            non_exfil_points_to_plot = get_non_exfil_points_to_plot(current_vals_at_certain_node_gran, start_index_ptp, end_index_ptp)
             print "points_to_plot", metric, time_gran, points_to_plot, number_positions_on_graph[i]
             # plt.plot([1,1,1], [6,7,8], marker='o', markersize=3, color="red")
+            for point in [x for x in non_exfil_points_to_plot if x is not None and not math.isnan(x)]:
+                x_point = np.random.normal(loc=number_positions_on_graph[i], scale= 0.1, size=None)
+                color_vector = [0.0, 0.0, 0.0, 0.7]
+                plt.plot([x_point], [point], marker='o', markersize=4, color=color_vector)  # y=[point], style='g-', label='point')
+
             j = 0
             # plotting in reverse so that the newer ones are on top (and easier to see)
-            for point in list(reversed(points_to_plot)):
+            for point in list(reversed([x for x in points_to_plot if x is not None and not math.isnan(x)])):
                 # number_positions_on_graph[i]
-                # todo: fade from 1 color to another (so I can see which is newer) RGBA
                 x_point = np.random.normal(loc=number_positions_on_graph[i], scale= 0.1,size=None)
-                # todo: let's just make the first 10% of exfil points one color and the next
-                # 90% another
+                # let's just make the first 10% of exfil points one color and the next 90% another
                 # wanna start with rgb(0,128,0) [green]
                 # and end with rgb(124,252,0) [lawngreen]
                 # in effect (including the reverse), early vals -> brighter, late vals -> darker
-                #print type(points_to_plot), points_to_plot
                 if float(j)/len(points_to_plot) >= 0.9:
-                    color_vector = [0.486, 0.988, 0.0, 0.7]
+                    color_vector = [0.486, 0.988, 0.0, 0.8]
                 else:
-                    color_vector = [0.0, 0.5, 0.0, 0.7]
+                    color_vector = [0.0, 0.5, 0.0, 0.8]
                 #color_vector = [0.486 * (float(j)/len(points_to_plot)), 0.5 + 0.48  * (float(j)/len(points_to_plot)),
                 #                0.0, 0.7]
                 plt.plot([x_point], [point], marker='o', markersize=4, color=color_vector) #y=[point], style='g-', label='point')
                 j +=1
+
             i += 1
 
     yaxis_range = max_yaxis - min_yaxis
@@ -1522,11 +1597,11 @@ def make_multi_time_boxplots(metrics_to_time_to_granularity_lists, time_grans, m
     plt.xticks(tick_position_list, [str(i) for i in time_grans])
 
     invisible_lines = []
-    i = 0
+    z = 0
     for color in colors:
-        cur_line, = plt.plot([1,1], color, label=time_grans[i])
+        cur_line, = plt.plot([1,1], color, label=time_grans[z])
         invisible_lines.append(cur_line)
-        i += 1
+        z += 1
     plt.legend(invisible_lines, node_grans)
     for line in invisible_lines:
         line.set_visible(False)
@@ -1607,7 +1682,7 @@ def make_multi_time_nan_bars(metrics_to_time_to_granularity_nans, time_grans, no
 
     plt.savefig(graph_name + '.png', format='png')
 
-def get_points_to_plot(time_grand, vals, exfil_start, exfil_end):
+def get_points_to_plot(time_grand, vals, exfil_start, exfil_end, wiggle_room):
     # okay, so what I'd do here is extract the necessary values that occured during
     # exfiltration, and return them
     #[0, 10, 20, 30, 40, 50, 60, 70, 80, 90]
@@ -1616,13 +1691,15 @@ def get_points_to_plot(time_grand, vals, exfil_start, exfil_end):
     #50 / 10 = 5 (if slicing going t want to add one more)
     print "exfil_start", exfil_start, "exfil_end", exfil_end, "time_grand", time_grand
     if exfil_start and exfil_end:
-        start_index = int(float(exfil_start) / time_grand)
-        end_index = int(float(exfil_end) / time_grand)
+        start_index = int(float(exfil_start - wiggle_room) / time_grand)
+        end_index = int(float(exfil_end + wiggle_room) / time_grand)
         #print "indices", start_index, end_index
-        return vals[start_index : end_index + 1]
+        return vals[start_index : end_index + 1], start_index, end_index
     else:
-        return []
+        return [], None, None
 
+def get_non_exfil_points_to_plot(vals, start_index_ptp, end_index_ptp):
+    return vals[:start_index_ptp] + vals[end_index_ptp + 1:]
 
 ##########################################
 ##########################################

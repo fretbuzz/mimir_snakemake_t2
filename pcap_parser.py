@@ -125,7 +125,7 @@ def parse_pcap(a, time_intervals, mapping, basefile_name, start_time, end_time):
         if src_dst == ():
             continue
 
-        # todo: remove? yah, so NAT-ing is clearly happening...
+        # NAT-ing is clearly happening, can turn on the line below and observe it if you want...
         #src_dst = (src_dst[0]+':'+str(src_dst_ports[0]), src_dst[1] +':'+ str(src_dst_ports[1]))
 
         if src_dst in time_to_graphs[current_time_interval]:
@@ -310,6 +310,12 @@ def swarm_container_ips(path, network_list):
         for container_id, container in current_config[0]["Containers"].iteritems():
             #print "hi", container
             container_name = container["Name"]
+            # todo: re-enable if I need to
+            split_container_name = container_name.split('.')
+            if (len(split_container_name) == 3):
+                container_name = split_container_name[0] + '.' + split_container_name[1]
+
+            # how to do this???? -> let's split the string and then stick the parts that we want back together
             container_ip = container["IPv4Address"].split('/',1)[0]
             container_to_ip[container_ip] = (container_name, network_name)
 
@@ -381,7 +387,7 @@ def aggregate_pcaps(list_of_pcaps, network_list):
 # TODO can ms_s take the part of network_or_microservice_list under the appropriate scenario??
 def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
                                network_or_microservice_list, ms_s, make_edgefiles_p, basegraph_name, window_size, colors,
-                               exfil_start_time, exfil_end_time, start_time = None, end_time = None, calc_vals=True,
+                               exfil_start_time, exfil_end_time, wiggle_room, start_time = None, end_time = None, calc_vals=True,
                                graph_p = True):
     if is_swarm:
         mapping = swarm_container_ips(container_info_path, network_or_microservice_list)
@@ -459,7 +465,7 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
     if graph_p:
         # (time gran) -> (node gran) -> metrics -> vals
         analyze_edgefiles.create_graphs(total_calculated_vals, basegraph_name, window_size, colors, time_interval_lengths,
-                                        exfil_start_time, exfil_end_time)
+                                        exfil_start_time, exfil_end_time, wiggle_room)
 
 
 # here are some 'recipes'
@@ -514,9 +520,10 @@ def run_analysis_pipeline_recipes():
     # b: blue ;  g: green  ;  r: red   ;   c: cyan    ; m: magenta
     exfil_start_time = None
     exfil_end_time = None
+    wiggle_room = ??
     run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
                                network_or_microservice_list, ms_s, make_edgefiles, basegraph_name, window_size, colors,
-                               exfil_start_time, exfil_end_time, start_time=start_time, end_time=end_time, 
+                               exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time, 
                                calc_vals = calc_vals, graph_p = graph_p)
     #'''
     # wordpress recipe (TODO)
@@ -550,9 +557,10 @@ def run_analysis_pipeline_recipes():
     colors = ['b', 'r']
     exfil_start_time = 270
     exfil_end_time = 310
+    wiggle_room = ??
     run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
                                network_or_microservice_list, ms_s, make_edgefiles, basegraph_name, window_size, colors,
-                               exfil_start_time, exfil_end_time, start_time=start_time, end_time=end_time,
+                               exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
                                calc_vals = calc_vals, graph_p = graph_p)
     #'''
     # sockshop exp 2 (rep 0)
@@ -574,9 +582,10 @@ def run_analysis_pipeline_recipes():
     colors = ['b', 'r']
     exfil_start_time = 270
     exfil_end_time = 330
+    wiggle_room = ???
     run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
                                network_or_microservice_list, ms_s, make_edgefiles, basegraph_name, window_size, colors,
-                               exfil_start_time, exfil_end_time, start_time=start_time, end_time=end_time,
+                               exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
                                calc_vals = calc_vals, graph_p = graph_p)
     #'''
     '''
@@ -598,9 +607,10 @@ def run_analysis_pipeline_recipes():
     colors = ['b', 'r']
     exfil_start_time = 300
     exfil_end_time = 360
+    wiggle_room = ??
     run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
                                network_or_microservice_list, ms_s, make_edgefiles, basegraph_name, window_size, colors,
-                               exfil_start_time, exfil_end_time, start_time=start_time, end_time=end_time,
+                               exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
                                calc_vals = calc_vals, graph_p = graph_p)
 
     #'''
@@ -626,9 +636,10 @@ def run_analysis_pipeline_recipes():
     window_size = 6
     graph_p = True # should I make graphs?
     colors = ['b', 'r']
+    wiggle_room = 2
     run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
                                network_or_microservice_list, ms_s, make_edgefiles, basegraph_name, window_size, colors,
-                               exfil_start_time, exfil_end_time, start_time=start_time, end_time=end_time,
+                               exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
                                calc_vals = calc_vals, graph_p = graph_p)
     '''
 
@@ -643,21 +654,22 @@ def run_analysis_pipeline_recipes():
     basefile_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/edgefiles/atsea_store_exp_two_v7_'
     basegraph_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/graphs/atsea_store_exp_two_v7_'
     container_info_path = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/atsea_store_exp_two_v7__docker_0_network_configs.txt'
-    time_interval_lengths = [50, 10]#50, , 1] #, 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
+    time_interval_lengths = [50, 30, 10]#50, , 1] #, 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
     network_or_microservice_list = ["atsea_back-tier", "atsea_default", "atsea_front-tier", "atsea_payment"]
-    ms_s = ['appserver_VIP', 'reverse_proxy_VIP', 'database_VIP', 'appserver', 'reverse_proxy', 'database', 'back-tier', 'front-tier']
+    ms_s = ['appserver_VIP', 'reverse_proxy_VIP', 'database_VIP', 'appserver', 'reverse_proxy', 'database', 'back-tier', 'front-tier'. 'visualizer']
     make_edgefiles = False
     start_time = 1533377817.89
     end_time = 1533378712.2
     exfil_start_time = 270
     exfil_end_time = 330
-    calc_vals = False
+    calc_vals = True
     window_size = 6
     graph_p = True # should I make graphs?
     colors = ['b', 'r']
+    wiggle_room = 2 # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
     run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
                                network_or_microservice_list, ms_s, make_edgefiles, basegraph_name, window_size, colors,
-                               exfil_start_time, exfil_end_time, start_time=start_time, end_time=end_time,
+                               exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
                                calc_vals = calc_vals, graph_p = graph_p)
     #'''
     # atsea exp 3 (v2) [good]
@@ -674,18 +686,19 @@ def run_analysis_pipeline_recipes():
     time_interval_lengths = [50, 30, 10, 1]#50, , 1] #, 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
     network_or_microservice_list = ["atsea_back-tier", "atsea_default", "atsea_front-tier", "atsea_payment"]
     ms_s = ['appserver_VIP', 'reverse_proxy_VIP', 'database_VIP', 'appserver', 'reverse_proxy', 'database', 'back-tier', 'front-tier']
-    make_edgefiles = True
-    start_time = None
-    end_time = None
+    make_edgefiles = False
+    start_time = 1533381724.66 #None
+    end_time = 1533382619.64 #None
     exfil_start_time = 300
     exfil_end_time = 360
     calc_vals = True
     window_size = 6
     graph_p = True # should I make graphs?
     colors = ['b', 'r']
+    wiggle_room = 2
     run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
                                network_or_microservice_list, ms_s, make_edgefiles, basegraph_name, window_size, colors,
-                               exfil_start_time, exfil_end_time, start_time=start_time, end_time=end_time,
+                               exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
                                calc_vals = calc_vals, graph_p = graph_p)
     #'''
 
@@ -709,9 +722,10 @@ def run_analysis_pipeline_recipes():
     window_size = 6
     graph_p = True # should I make graphs?
     colors = ['b', 'r']
+    wiggle_room = ??
     run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
                                network_or_microservice_list, ms_s, make_edgefiles, basegraph_name, window_size, colors,
-                               exfil_start_time, exfil_end_time, start_time=start_time, end_time=end_time,
+                               exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
                                calc_vals = calc_vals, graph_p = graph_p)
     '''
 
