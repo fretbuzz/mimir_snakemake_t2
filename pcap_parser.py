@@ -31,6 +31,8 @@ import csv
 import math
 import yaml
 import analyze_edgefiles
+import gc
+
 
 #a = rdpcap("/Users/jseverin/Documents/Microservices/munnin_pcaps/no_exfil_sockshop_0_rep_0_0")
 # /Users/jseverin/Documents/Microservices/munnin/sockshop_info/sockshop_docker0_default_5.pcap
@@ -46,9 +48,6 @@ minikube_infrastructure = ['etcd', 'kube-addon-manager', 'kube-apiserver', 'kube
                             'storage-provisioner']
 microservices_wordpress = ['mariadb-master', 'mariadb-slave', 'wordpress']
 
-
-# TODO: should probably write an algorithm to parse these automatically from the results
-# of kubectl get deploy (--all-namespaces)
 
 # returns a dictionary from IP to the corresponding microservice
 # for kubernetes (minikube, in particular)
@@ -93,6 +92,7 @@ def parse_pcap(a, time_intervals, mapping, basefile_name, start_time, end_time):
 
 
     current_time_interval = 0
+    #time_to_graphs[current_time_interval] = {}
 
     for a_pkt in a:
         if a_pkt.time > end_time:
@@ -100,6 +100,7 @@ def parse_pcap(a, time_intervals, mapping, basefile_name, start_time, end_time):
 
         if a_pkt.time - (start_time + current_time_interval * time_intervals) > time_intervals:
             current_time_interval += 1
+            #time_to_graphs[current_time_interval] = {}
 
         #a_pkt.show()
         #print len(a_pkt)
@@ -288,7 +289,7 @@ def parse_egonet(file, mapping, microservices):
 # for at sea:
 # network_list = ["atsea_back-tier", "atsea_default", "atsea_front-tier", "atsea_payment" ]
 # path = /Users/jseverin/Documents/Microservices/munnin/atsea_info/atsea_redux_docker_container_configs.txt
-def swarm_container_ips(path, network_list):
+def swarm_container_ips(path):
     file = open(path, "r")
     swarm_configs = file.read()
     swarm_config_groups = swarm_configs.split("\n]\n")
@@ -310,7 +311,6 @@ def swarm_container_ips(path, network_list):
         for container_id, container in current_config[0]["Containers"].iteritems():
             #print "hi", container
             container_name = container["Name"]
-            # todo: re-enable if I need to
             split_container_name = container_name.split('.')
             if (len(split_container_name) == 3):
                 container_name = split_container_name[0] + '.' + split_container_name[1]
@@ -318,6 +318,13 @@ def swarm_container_ips(path, network_list):
             # how to do this???? -> let's split the string and then stick the parts that we want back together
             container_ip = container["IPv4Address"].split('/',1)[0]
             container_to_ip[container_ip] = (container_name, network_name)
+
+        try:
+            network_gateway = current_config[0]["IPAM"]["Config"]["Gateway"]
+            print network_name, " has the following gateway: ", network_gateway
+            container_to_ip[network_gateway] = (network_name + "_gateway", network_name)
+        except:
+            print network_name, "has no gateway"
 
         try:
             for service_name, service_vals in current_config[0]["Services"].iteritems():
@@ -388,12 +395,24 @@ def aggregate_pcaps(list_of_pcaps, network_list):
 def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
                                network_or_microservice_list, ms_s, make_edgefiles_p, basegraph_name, window_size, colors,
                                exfil_start_time, exfil_end_time, wiggle_room, start_time = None, end_time = None, calc_vals=True,
-                               graph_p = True):
-    if is_swarm:
-        mapping = swarm_container_ips(container_info_path, network_or_microservice_list)
-    else:
-        mapping = map_ip_to_ms(container_info_path, network_or_microservice_list)
+                               graph_p = True, kubernetes_svc_info=None):
+    #if is_swarm:
+    mapping = swarm_container_ips(container_info_path)
 
+    if not is_swarm:
+        # okay if it is kubernetes, then it is also necessary to read in that file with all the
+        # info about the svc's
+        with open(kubernetes_svc_info, 'r') as svc_f:
+            with open('test.txt', 'r') as f:
+                line = f.readlines()
+                for l in line[1:]:
+                    l_pieces = l.split()
+                    print l_pieces[1], l_pieces[3]
+                    mapping[l_pieces[1]] = l_pieces[3]
+    try:
+        del mapping['<nil>'] # don't want this value in there (no IP = just noise)
+    except:
+        pass
     print "container to ip mapping", mapping
     #time.sleep(120)
     #time.sleep(120)
@@ -403,10 +422,15 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
     # file being used for this.
     if start_time==None or end_time==None or make_edgefiles_p:
         current_pcap = rdpcap(pcap_paths[0])
+        #with PcapReader(pcap_paths[0]) as pr:
+        #for p in pr:
         fst_pkt = current_pcap[0]
-        last_pkt = current_pcap[-1]
         start_time = fst_pkt.time
+        #        break
+        #    for p in reversed(pr):
+        last_pkt = current_pcap[-1]
         end_time = last_pkt.time
+        #        break
 
     print "start_time: ", start_time, "end_time:", end_time
     #exit(12)
@@ -450,6 +474,8 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
             for time_interval_length in time_interval_lengths:
                 if current_pcap_path != pcap_paths[0]: # already loaded the first one in order to perform time interval calculations
                     current_pcap = rdpcap(current_pcap_path)
+                    gc.collect() # i think this might keep RAM reasonable?
+                    #current_pcap = PcapReader(current_pcap_path)
                 unmapped_ips, _ = parse_pcap(current_pcap, time_interval_length, mapping, basefile_name,
                                                          start_time, end_time)
                 print "unmapped ips", unmapped_ips
@@ -459,13 +485,13 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
         print "analyzing edgefiles..."
         newly_calculated_values = analyze_edgefiles.pipeline_analysis_step(interval_to_filenames[time_interval_length], ms_s,
                                                                            time_interval_length, basegraph_name, calc_vals, window_size,
-                                                                           mapping)
+                                                                           mapping, is_swarm)
 
         total_calculated_vals.update(newly_calculated_values)
     if graph_p:
         # (time gran) -> (node gran) -> metrics -> vals
         analyze_edgefiles.create_graphs(total_calculated_vals, basegraph_name, window_size, colors, time_interval_lengths,
-                                        exfil_start_time, exfil_end_time, wiggle_room)
+                                        exfil_start_time, exfil_end_time, wiggle_room, end_time - start_time)
 
 
 # here are some 'recipes'
@@ -526,17 +552,64 @@ def run_analysis_pipeline_recipes():
                                exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time, 
                                calc_vals = calc_vals, graph_p = graph_p)
     #'''
-    # wordpress recipe (TODO)
+    # wordpress recipe
     '''
-    pcap_paths = ??
-    is_swarm = 1
-    basefile_name = ??
-    container_info_path = ??
-    time_interval_lengths = [??, ??, ??] # seconds
-    network_or_microservice_list = ??
+    pcap_paths = ["/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_exp_one_rep1_default_bridge_0any.pcap"]
+    #['/Users/jseverin/Documents/Microservices/munnin/experimental_data/wordpress_info/wordpress_exp_one_rep1_default_bridge_0docker0.pcap',
+    #              '/Users/jseverin/Documents/Microservices/munnin/experimental_data/wordpress_info/wordpress_exp_one_rep1_default_bridge_0eth0.pcap',
+    #              '/Users/jseverin/Documents/Microservices/munnin/experimental_data/wordpress_info/wordpress_exp_one_rep1_default_bridge_0eth1.pcap']
+    is_swarm = 0
+    basefile_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/edgefiles/wordpress_exp_one_rep1'
+    basegraph_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/graphs/wordpress_exp_one_rep1'
+    container_info_path = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_exp_one_rep1_docker_0_network_configs.txt'
+    kubernetes_svc_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_exp_one_rep1_svc_config_0.txt'
+    time_interval_lengths = [50, 30, 10, 1] #, 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
+    network_or_microservice_list = [] # not actually needed
+    ms_s = ["k8s_POD_dbcmmz-mariadb-slave",  "k8s_POD_dbcmmz-mariadb-master", "k8s_POD_awwwppp-wordpress"]
+    make_edgefiles = True
+    start_time = None
+    end_time = None
+    exfil_start_time = None
+    exfil_end_time = None
+    calc_vals = True
+    window_size = 6
+    graph_p = True # should I make graphs?
+    colors = ['b', 'r']
+    wiggle_room = 2 # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
     run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
-                               network_or_microservice_list)
+                               network_or_microservice_list, ms_s, make_edgefiles, basegraph_name, window_size, colors,
+                               exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
+                               calc_vals = calc_vals, graph_p = graph_p, kubernetes_svc_info = kubernetes_svc_info)
+    #'''
+
+    # sockshop recipe (new exp1)
     '''
+    pcap_paths = ["/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/sockshop_exp_six_rep1_sockshop_default_0.pcap",
+                  "/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/sockshop_exp_six_rep1_ingress_sbox_0.pcap",
+                  "/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/sockshop_exp_six_rep1_ingress_0.pcap",
+                  "/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/sockshop_exp_six_rep1_bridge_0.pcap"]
+    is_swarm = 1
+    basefile_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/edgefiles/sockshop_exp_six_rep1_'
+    basegraph_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/graphs/sockshop_exp_six_rep1_'
+    container_info_path = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/sockshop_exp_six_rep1_docker_0_network_configs.txt'
+    time_interval_lengths = [50, 30, 10, 1] #, 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
+    ms_s = microservices_sockshop
+    network_or_microservice_list = ["sockshop_default"]
+    make_edgefiles = False
+    start_time = 1533994537.35
+    end_time = 1533995436.18
+    exfil_start_time = 270
+    exfil_end_time = 330
+    calc_vals = True
+    window_size = 6
+    graph_p = True # should I make graphs?
+    colors = ['b', 'r']
+    wiggle_room = 2 # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
+    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
+                               network_or_microservice_list, ms_s, make_edgefiles, basegraph_name, window_size, colors,
+                               exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
+                               calc_vals = calc_vals, graph_p = graph_p)
+    #'''
 
     # sockshop exp 1 (rep 0)
     ''' # note: still gotta do calc_vals again...
@@ -644,17 +717,17 @@ def run_analysis_pipeline_recipes():
     '''
 
     # atsea exp 2 (v7) [good]
-    #'''
-    pcap_paths = ['/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/atsea_store_exp_two_v7__atsea_back-tier_0.pcap',
-                   '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/atsea_store_exp_two_v7__atsea_front-tier_0.pcap',
-                  '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/atsea_store_exp_two_v7__ingress_0.pcap',
-                  '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/atsea_store_exp_two_v7__bridge_0.pcap',
-                  '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/atsea_store_exp_two_v7__ingress_sbox_0.pcap']
-    is_swarm = 1
-    basefile_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/edgefiles/atsea_store_exp_two_v7_'
-    basegraph_name = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/graphs/atsea_store_exp_two_v7_'
-    container_info_path = '/Users/jseverin/Documents/Microservices/munnin/experimental_data/atsea_info/atsea_store_exp_two_v7__docker_0_network_configs.txt'
-    time_interval_lengths = [50, 30, 10, 1] #, 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
+    #''''
+    pcap_paths = ['/Volumes/Seagate Backup Plus Drive/experimental_data/atsea_info/atsea_store_exp_two_v7__atsea_back-tier_0.pcap',
+                   '/Volumes/Seagate Backup Plus Drive/experimental_data/atsea_info/atsea_store_exp_two_v7__atsea_front-tier_0.pcap',
+                  '/Volumes/Seagate Backup Plus Drive/experimental_data/atsea_info/atsea_store_exp_two_v7__ingress_0.pcap',
+                  '/Volumes/Seagate Backup Plus Drive/experimental_data/atsea_info/atsea_store_exp_two_v7__bridge_0.pcap',
+                  '/Volumes/Seagate Backup Plus Drive/experimental_data/atsea_info/atsea_store_exp_two_v7__ingress_sbox_0.pcap']
+    is_swarm = True
+    basefile_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/atsea_info/edgefiles/atsea_store_exp_two_v7_'
+    basegraph_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/atsea_info/graphs/atsea_store_exp_two_v7_'
+    container_info_path = '/Volumes/Seagate Backup Plus Drive/experimental_data/atsea_info/atsea_store_exp_two_v7__docker_0_network_configs.txt'
+    time_interval_lengths = [30, 10, 1] #, 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
     network_or_microservice_list = ["atsea_back-tier", "atsea_default", "atsea_front-tier", "atsea_payment"]
     ms_s = ['appserver_VIP', 'reverse_proxy_VIP', 'database_VIP', 'appserver', 'reverse_proxy', 'database', 'back-tier', 'front-tier', 'visualizer']
     make_edgefiles = False
