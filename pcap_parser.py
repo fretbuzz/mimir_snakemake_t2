@@ -9,9 +9,10 @@ import yaml
 import analyze_edgefiles
 import gc
 import ast
+import json
 
 # parse_pcap : packet_array seconds_per_time_interval ip_to_container_and_network, basename_of_output pcap_start_time
-#              shouldnt_delete_old_edgefiles_p  -> unidentified_IPs list_of_filenames endtime (+ filenames filled w/ edgelists)
+#    shouldnt_delete_old_edgefiles_p  -> unidentified_IPs list_of_filenames endtime (+ filenames filled w/ edgelists)
 # this file creates edgefiles passed on the packet array. each edgefile lasts for a certain length of time.
 def parse_pcap(a, time_intervals, mapping, basefile_name, start_time, dont_delete_old_edgefiles):
     time_to_graphs = {}
@@ -174,7 +175,7 @@ def parse_kubernetes_svc_info(kubernetes_svc_info_path):
 def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
                                ms_s, make_edgefiles_p, basegraph_name, window_size, colors,
                                exfil_start_time, exfil_end_time, wiggle_room, start_time = None, end_time = None, calc_vals=True,
-                               graph_p = True, kubernetes_svc_info=None):
+                               graph_p = True, kubernetes_svc_info=None, make_net_graphs_p=False):
 
     # First, get a mapping of IPs to (container_name, network_name)
     mapping = ips_on_docker_networks(container_info_path)
@@ -189,7 +190,7 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
         pass
     print "container to ip mapping", mapping
 
-    if start_time==None or end_time==None or make_edgefiles_p:
+    if start_time==None or make_edgefiles_p:
         current_pcap = rdpcap(pcap_paths[0])
         fst_pkt = current_pcap[0]
         start_time = fst_pkt.time
@@ -213,19 +214,20 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
             # okay, it looks like at this point interval_to_filenames will be fully loaded. I'm going to want to
             # write this to a file, so I can refer to it later.
             with open(basefile_name + 'edgefile_dict.txt', "w+") as f:
-                f.write(interval_to_filenames)
+                f.write(json.dumps(interval_to_filenames))
     else:
         # I guess I am going to need to store the filenames in another file or something? b/c if I
         with open(basefile_name + 'edgefile_dict.txt', "r") as f:
             a = f.read()
-            interval_to_filenames = ast.literal_eval(a)
+            interval_to_filenames = json.loads(a)
+            #print "interval_to_filenames", interval_to_filenames
 
     total_calculated_vals = {}
     for time_interval_length in time_interval_lengths:
         print "analyzing edgefiles..."
-        newly_calculated_values = analyze_edgefiles.pipeline_analysis_step(interval_to_filenames[time_interval_length], ms_s,
+        newly_calculated_values = analyze_edgefiles.pipeline_analysis_step(interval_to_filenames[str(time_interval_length)], ms_s,
                                                                            time_interval_length, basegraph_name, calc_vals, window_size,
-                                                                           mapping, is_swarm)
+                                                                           mapping, is_swarm, make_net_graphs_p)
 
         total_calculated_vals.update(newly_calculated_values)
     if graph_p:

@@ -1,9 +1,11 @@
 import networkx as nx
+import seaborn as sns; sns.set()
+import scipy.stats
+import scipy.sparse.linalg
 from networkx.drawing.nx_agraph import graphviz_layout
 import matplotlib.pyplot as plt
 import seaborn as sns; sns.set()
 import numpy as np
-import statsmodels.api as sm
 import math
 import scipy
 import time
@@ -13,47 +15,25 @@ import pandas
 import csv
 import ast
 import itertools
-from networkx.drawing.nx_agraph import graphviz_layout
-import matplotlib.pyplot as plt
-import seaborn as sns; sns.set()
-import numpy as np
-import statsmodels.api as sm
-import math
-import scipy
-import time
-import scipy.stats
-import scipy.sparse.linalg
-import pandas
-import csv
-import ast
-import itertools
-from cStringIO import StringIO
-import matplotlib.image as mpimg
-from matplotlib import colors as mcolors
 
-
-sockshop_ms_s = ['carts-db','carts','catalogue-db','catalogue','front-end','orders-db','orders',
-        'payment','queue-master','rabbitmq','session-db','shipping','user-sim', 'user-db','user','load-test']
-
-def pipeline_analysis_step(filenames, ms_s, time_interval, basegraph_name, calc_vals_p, window_size, container_to_ip, is_swarm):
+def pipeline_analysis_step(filenames, ms_s, time_interval, basegraph_name, calc_vals_p, window_size, container_to_ip,
+                           is_swarm, make_net_graphs_p):
     list_of_graphs = []
     list_of_aggregated_graphs = [] # all nodes of the same class aggregated into a single node
     list_of_aggregated_graphs_multi = [] # the above w/ multiple edges
     total_calculated_values = {}
     list_of_unprocessed_graphs = []
-    counter= 0 # let's not make more than 50 images of graphs
+    counter= 0 # let's not make more than 50 images of graphs (per time_interval)
 
     svcs = None
-    if calc_vals_p:
+    if make_net_graphs_p or calc_vals_p:
         for file_path in filenames:
             G = nx.DiGraph()
             print "path to file is ", file_path
             nx.read_edgelist(file_path,
                             create_using=G, delimiter=',', data=(('weight', float),))
 
-            # let's also make a barely processed copy and run some simple metrics on it
-            # (the 'barely processed' part is going to come from aggregating all of the outside
-            # node)
+            # want an 'unprocessed' (just raw from pcaps) and a 'processed' graph (where I use orchestrator-specific knowledge)
             unprocessed_G = G.copy()
             list_of_unprocessed_graphs.append(unprocessed_G)
             if is_swarm:
@@ -63,263 +43,58 @@ def pipeline_analysis_step(filenames, ms_s, time_interval, basegraph_name, calc_
                 except KeyError:
                     pass  # maybe it's not in the graph?
             else:
-                # note: I am not really processing the k8s case anyway (except to consolidate the
-                # outside nodes), so, for now, the k8s case is really unprocessed
-                pass # going to assume that if it is not swarm, then it is kubernetes
-            plt.clf()
-            plt.figure(figsize=(10, 6)) # todo: turn back to (27, 16)
-            pos = graphviz_layout(unprocessed_G)
-            for key in pos.keys():
-                #print pos[key]
-                pos[key] = (pos[key][0] * 4, pos[key][1] * 4 ) # too close otherwise
-            nx.draw_networkx(unprocessed_G, pos, with_labels=True, arrows=True, font_size=8, font_color='b')
-            edge_labels = nx.get_edge_attributes(unprocessed_G, 'weight')
-            print "edge_labels", edge_labels
-            #todo: re-enable: nx.draw_networkx_edge_labels(unprocessed_G, pos, edge_labels=edge_labels, font_size=7, label_pos=0.3)
+                pass # note: I am not really processing the k8s case anyway (except to consolidate the outside nodes)
+
             if counter < 50: # keep # of network graphs to a reasonable amount
-                plt.savefig(file_path.replace('.txt', '') + 'unprocossed_network_graph_container.png', format='png')
+                filename = file_path.replace('.txt', '') + 'unprocessed_network_graph_container.png'
+                make_network_graph(unprocessed_G, edge_label_p=False, filename=filename, figsize=(10,6), node_color_p=False,
+                                   ms_s=ms_s)
 
-            if is_swarm:
-                # okay, here is the deal. I probably want to have an unprocessed and a processed version
-                # of the graphs + metrics
-
-                # note a few edge cases not covered in 49-64, but i'll handle those as they occur
-                for container_list_and_network in container_to_ip.values():
-                    #print "containerzzz", container_list_and_class[0]
-                    for ms in ms_s:
-                        if ms in container_list_and_network[0] :
-                            if 'VIP' not in container_list_and_network[0]:
-                                if container_list_and_network[0] not in G and 'endpoint' not in container_list_and_network[0]:
-                                    G.add_node(container_list_and_network[0])
-                                    break
-                for (u, v, data) in G.edges(data=True):
-                    if 'VIP' in v:
-                        # so this connects the services VIP to the endpoint of that service's network.
-                        # however, it breaks down when the service is in more than one network.
-                        # NOTE THIS SOLUTION MIGHT BREAK DOWN WHEN A LARGE NUMBER OF NETWORKS AND SERVICE
-                        # ARE PRESENT
-                        endpoints = []
-                        for container_ip, container_name_and_net_name in container_to_ip.iteritems():
-                            if container_name_and_net_name[0] == v:
-                                # need to check if there is an edge between a container instance of the
-                                # service and the endpoint -- here's an alternative solution, let's just merge
-                                # all of the possible endpoints together, since who knows?
-                                print "container_name_and_net_name", container_name_and_net_name, v
-                                endpoint = container_name_and_net_name[1]  + '-endpoint'
-                                # note: the code below is just for atsea shop exp3 v2, b/c I am too time
-                                # constrained to write general-purpose code
-                                # okay, should not hardcode this type of thing in, but i am going to do
-                                # it just this once, b/c i have other stuff to do
-                                #if container_name_and_net_name[0] == 'atsea_database_VIP' and 'back' in container_name_and_net_name[1]:
-                                #    break
-
-                        print "endpoint", endpoint, '\n'
-                        if G.has_edge(v, endpoint):
-                            G[v][endpoint]['weight'] += data['weight']
-                        else:
-                            G.add_edge(v, endpoint, weight=data['weight'])
-                #'''
-                for (u,v, data) in G.edges(data=True):
-                    if 'VIP' in u and 'endpoint' in v:
-                        if not G.has_edge(v,u):
-                            # if only goes in a single direction, we
-                            print (u,v,data)
-                            # str() added below b/c it was being converted to unicode
-                            G = nx.contracted_nodes(G, v, u, self_loops=False)
-
-                # not this only applies for docker swarm (well maybe k8s? not sure...)
-                # need to merge 'ingress-endpoint' and 'gateway_ingress_sbox'
-                # b/c these are just two sides of the same NAT
-                for u in G.nodes():
-                    for v in G.nodes():
-                        if u != v:
-                            #print u,v, 'ingress-endpoint' in u, 'gateway_ingress-sbox' in v
-                            if 'ingress-endpoint' in u and 'gateway_ingress-sbox' in v:
-                                if not G.has_edge(u,v) and not G.has_edge(u, v):
-                                    G = nx.contracted_nodes(G, v, u, self_loops=False)
-
-                # this is misleading for k8s b/c it talks to other outside IPs too
-                # 192.168.99.1 is really just the generic 'outside' here
-                mapping = {'192.168.99.1': 'outside'}
-                try:
-                    nx.relabel_nodes(G, mapping, copy=False)
-                except KeyError:
-                    pass # maybe it's not in the graph?
-
-                # todo: check that the code below actually works
-                # going to set the node attributes with the svc now
-                # first, going to find all of the services. The services will be in th e
-                # container_to_ip structure w/ _VIP appended
-                svcs = []
-                for container_list_and_network in container_to_ip.values():
-                    #if container_list_and_network[0] != '':
-                    #    continue
-                    print "container_list_and_network", container_list_and_network
-                    if 'VIP' in container_list_and_network[0] or 'sbox' in container_list_and_network[0]:
-                        print container_list_and_network[0]
-                        svcs.append(container_list_and_network[0].replace("_VIP", ""))
-                    if 'endpoint' in container_list_and_network[0]:
-                            svcs.append(container_list_and_network[0]) # this is so that the load-balancers can be included...
-                svcs.append('outside')
-                # sort services by length, note referred to
-                # https://stackoverflow.com/questions/2587402/sorting-python-list-based-on-the-length-of-the-string
-                svcs.sort(key=len)
-                print "these services were found:", svcs
-                containers_to_ms = {}
-                for u in G.nodes():
-                    for svc in svcs:
-                        if svc in u:
-                            containers_to_ms[u] = svc
-                            break
-                print "container to service mapping: ", containers_to_ms
-                nx.set_node_attributes(G, containers_to_ms, 'svc')
-            else:
-                # I'm going to merge all the traffic that is coming to/from the outside together
-                for u in G.nodes()[:int(G.number_of_nodes()/2.0)]:
-                    for v in G.nodes()[int(G.number_of_nodes()/2.0):]:
-                        if u != v:
-                            #print u,v, 'ingress-endpoint' in u, 'gateway_ingress-sbox' in v
-                            if 'k8s' not in u and '10.0.2' not in u:
-                                if 'k8s' not in v and '10.0.2' not in v:
-                                        G = nx.contracted_nodes(G, v, u, self_loops=False)
-                # note: this is not necessarily the case, but it seems like should more or less
-                # hold for all the minikube deployments that I'd do
-                mapping = {'10.0.2.15': 'default-http-backend(NAT)'}
-                try:
-                    nx.relabel_nodes(G, mapping, copy=False)
-                except KeyError:
-                    pass  # maybe it's not in the graph?
-
-            #'''
-            #'''
-            # even if a node does not communicate -> still want it in the graph
-            # note that I'll need to adjust this for when I dynamically modify the # of nodes
-            # (prob by making container_to_ip into a list)
-            #print "qqqq", container_to_ip
-            plt.clf()
-            # okay, now I want to color the different classes different colors. I am going to make the assumption
-            # that if an container's name has a '.' in it, then I can get the class name by splitting on the '.'
-            # and taking the value to the left
-            # NOTE: wait, I might actually do this above instead...
-            # actually, it looks like maybe making a color map is the way to go??
-            color_map = []
-            #'''
-            #colors = ['r', 'blue', 'g', 'y' 'p', 'm', 'c', 'cyan', 'teal', 'lime']  # todo: pass this is via a parameter (at some point)
-            #colors_dict =  dict(mcolors.BASE_COLORS)#, **mcolors.CSS4_COLORS)
-            #colors = colors_dict.values()
-            #print "colors", colors
-            ''' # todo: re-enable when you want to change the colors of the nodes again
-            for node in G:
-                j = None
-                for i in range(0, len(ms_s)):
-                    if 'endpoint' in node or 'VIP' in node or 'sbox' in node:
-                        j = len(ms_s) + 1
-                        break
-                    if ms_s[i] in node:
-                        j = i
-                        break
-                #print "j", j
-                if j != None:
-                    # assign color to the node here
-                    if j == len(ms_s) + 1:
-                        color_map.append(0.0)
-                    else:
-                        color_map.append(float(len(ms_s) + 2) / j )
-                else:
-                    # okay, either load balancer or other
-                    color_map.append((len(ms) * 2) / (len(ms)))#float(len(ms_s) + 2) / (len(ms_s) + 2))
-
-            print "color_map", color_map, len(color_map), len(G.nodes()), len(ms_s), np.array(color_map)
-            print [i for i in G.nodes()]#range(len(G.nodes()))
-            '''
-            #return 1
-
-
-            plt.figure(figsize=(54, 32)) # todo: turn back to (27, 16)
-            pos = graphviz_layout(G)
-            for key in pos.keys():
-                #print pos[key]
-                pos[key] = (pos[key][0] * 4, pos[key][1] * 4 ) # too close otherwise
-            # used to be 8
-            nx.draw_networkx(G, pos, with_labels=True, arrows=True, font_size=8, font_color='b', node_color=np.array(color_map))
-            edge_labels = nx.get_edge_attributes(G, 'weight')
-            print "edge_labels", edge_labels
-            nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=7, label_pos=0.3)
-
-            #print "edge_labels", edge_labels
+            G = process_graph(G, is_swarm, container_to_ip, ms_s)
             if counter < 50: # keep # of network graphs to a reasonable amount
-                plt.savefig(file_path.replace('.txt', '') + '_network_graph_container.png', format='png')
-                # from https://stackoverflow.com/questions/39657395/how-to-draw-properly-networkx-graphs#
-                #G.graph['graph'] = {'rankdir': 'TD'}
-                #G.graph['node'] = {'shape': 'circle'}
-                #G.graph['edges'] = {'arrowsize': '4.0'}
-                #A = nx.drawing.nx_agraph.to_agraph(G)
-                #A.layout('dot')
-                #A.draw(file_path.replace('.txt', '') + '_network_graph_container.png')
-                # from https://stackoverflow.com/questions/10379448/plotting-directed-graphs-in-python-in-a-way-that-show-all-edges-separately
-                #d = nx.drawing.nx_pydot.to_pydot(G)
-                #png_str = d.create_png()
-                #sio = StringIO()  # file-like string, appropriate for imread below
-                #sio.write(png_str)
-                #sio.seek(0)
-                #img = mpimg.imread(sio)
-                #imgplot = plt.imshow(img)
-                #plt.savefig(file_path.replace('.txt', '') + '_network_graph_container_viz.png', format='png')
-                #plt.imgsva  savefig(file_path.replace('.txt', '') + '_network_graph_container.png', format='png')
+                filename = file_path.replace('.txt', '') + '_network_graph_container.png'
+                make_network_graph(G, edge_label_p=True, filename=filename, figsize=(54, 32), node_color_p=False,
+                                   ms_s=ms_s)
             list_of_graphs.append(G)
+
             aggreg_multi_G, aggreg_simple_G = aggregate_graph(G, ms_s)
             list_of_aggregated_graphs.append( aggreg_simple_G )
             list_of_aggregated_graphs_multi.append( aggreg_multi_G )
-
-            plt.clf()
-            pos = graphviz_layout(aggreg_simple_G)
-            nx.draw_networkx(aggreg_simple_G, pos, with_labels=True, arrows=True)
-            edge_labels_aggreg_simple = nx.get_edge_attributes(aggreg_simple_G, 'weight')
-            print "edge_labels", edge_labels_aggreg_simple
-            nx.draw_networkx_edge_labels(aggreg_simple_G, pos, edge_labels=edge_labels_aggreg_simple, font_size=7, label_pos=0.3,)
             if counter < 50:
-                plt.savefig(file_path.replace('.txt', '') + '_network_graph_class.png', format='png')
-
+                filename = file_path.replace('.txt', '') + '_network_graph_class.png'
+                make_network_graph(aggreg_simple_G, edge_label_p=True, filename=filename, figsize=(16,10), node_color_p=False,
+                                   ms_s=ms_s)
             counter += 1
-    # todo: re-enable (when ready...)
-    #'''
-    total_calculated_values[(time_interval, 'container')] = calc_graph_metrics(list_of_graphs, ms_s, time_interval,
+
+    total_calculated_values[(time_interval, 'container')] = calc_graph_metrics(list_of_graphs, time_interval,
                                                                                basegraph_name + '_container_', 'container',
                                                                                calc_vals_p, window_size)
 
-    total_calculated_values[(time_interval, 'class')] = calc_graph_metrics(list_of_aggregated_graphs, ms_s, time_interval,
+    total_calculated_values[(time_interval, 'class')] = calc_graph_metrics(list_of_aggregated_graphs, time_interval,
                                                                            basegraph_name + '_class_', 'class', calc_vals_p,
                                                                            window_size)
-    # '''
-    total_calculated_values[(time_interval, 'unprocessed_container')] = calc_graph_metrics(list_of_unprocessed_graphs, ms_s, time_interval,
-                                                                                           basegraph_name + '_unprocessed_container_',
-                                                                                           'unprocessed_container',
-                                                                                         calc_vals_p, window_size)
-    # '''
+
+    total_calculated_values[(time_interval, 'unprocessed_container')] = calc_graph_metrics(list_of_unprocessed_graphs,
+                                                        time_interval, basegraph_name + '_unprocessed_container_',
+                                                        'unprocessed_container', calc_vals_p, window_size)
     if is_swarm:
-        print "about to calculate the expected structural characteristics for r swarm..."
-        total_calculated_values[(time_interval, 'container')].update(calc_graph_metrics_processed_docker_swarm(list_of_graphs, svcs,
-                                                           calc_vals_p, basegraph_name + '_container_', 'container', time_interval))
-        #total_calculated_values[(time_interval, 'container')] = calc_graph_metrics_processed_docker_swarm(list_of_graphs, svcs,
-        #                                                   calc_vals_p, basegraph_name + '_container_', 'container', time_interval)
-    #'''
+        print "about to calculate the expected structural characteristics for docker swarm..."
+        total_calculated_values[(time_interval, 'container')].update(calc_service_specific_graph_metrics(list_of_graphs,
+                                        svcs, calc_vals_p, basegraph_name + '_container_', 'container', time_interval))
     return total_calculated_values
 
-def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or_class, calc_vals_p, window_size):
+def calc_graph_metrics(G_list, time_interval, basegraph_name, container_or_class, calc_vals_p, window_size):
 
     if calc_vals_p:
         average_path_lengths = []
         densities = []
         degree_dicts = []
-        weight_recips = []
         weighted_average_path_lengths = []
         unweighted_overall_reciprocities = [] # defined per networkx definition (see their docs)
         weighted_reciprocities = [] # defined per the nature paper (see comment @ function definition)
-        average_clusterings = []
         outstrength_dicts = []
         instrength_dicts = []
         eigenvector_centrality_dicts = []
-        clustering_dicts = []
         betweeness_centrality_dicts = []
         load_centrality_dicts = []
         non_reciprocated_out_weight_dicts = []
@@ -388,6 +163,7 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or
                     instrength_dict[v] += data['weight']
                 else:
                     instrength_dict[v] = data['weight']
+
             try:
                 eigenvector_centrality_dict = nx.eigenvector_centrality(cur_G)
             except nx.NetworkXPointlessConcept:
@@ -396,26 +172,14 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or
             except nx.PowerIterationFailedConvergence:
                 # if failed to converge, then we effectively know nothing
                 eigenvector_centrality_dict = None
-
-                #eigenvector_centrality_dict = {}
-                #for node in total_node_list:
-                #    eigenvector_centrality_dict[node] = 0
-                # doesn't converge -> we now
                 # "computes the centrality of a node based on the centrality
                 # of its neighbors"
 
-
-            #clustering_dict = nx.clustering(cur_G)
             try:
                 betweeness_centrality_dict = nx.betweenness_centrality(cur_G)
             except nx.NetworkXPointlessConcept:
                 betweeness_centrality_dict = None
                 # if graph is Null, then this metric is meaningless
-                #betweeness_centrality_dict = {}
-                #betweeness_centrality_dict = {}
-                #for node in total_node_list:
-                #    betweeness_centrality_dict[node] = 0
-
                 # "the sum of the fraction of all-pairs shortest paths that
                 # pass through that node"
 
@@ -424,47 +188,35 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or
             except nx.NetworkXPointlessConcept:
                 load_centrality_dict = None
                 # if graph is Null, then this metric is meaningless
-                #load_centrality_dict = {}
-                #for node in total_node_list:
-                #    load_centrality_dict[node] = 0
                 # "the fraction of all shortest paths that pass through that node":
 
-            # prob wanna do weighted reciprocity per ms class (I'm thinking scatter plot) (tho I need to figure out the other axis)
-            # note: in the nature paper they actually just graph in-strength vs out-strength (might be the way to go)
-            # could also try a repeat of the angle-vector-measurement-trick that i did for degrees
-            # (they also do weighted reciprocity vs time later on in the paper)
             weighted_reciprocity, non_reciprocated_out_weight_dict, non_reciprocated_in_weight_dict = network_weidge_weighted_reciprocity(cur_G)
             outstrength_dicts.append( outstrength_dict )
             instrength_dicts.append( instrength_dict )
             eigenvector_centrality_dicts.append( eigenvector_centrality_dict )
-            #clustering_dicts.append( clustering_dict )
             betweeness_centrality_dicts.append( betweeness_centrality_dict )
             load_centrality_dicts.append( load_centrality_dict )
             non_reciprocated_out_weight_dicts.append( non_reciprocated_out_weight_dict )
             non_reciprocated_in_weight_dicts.append( non_reciprocated_in_weight_dict )
-
             weighted_reciprocities.append(weighted_reciprocity)
-            # let's store these values to use again later
             average_path_lengths.append(avg_path_length)
             densities.append(density)
             degree_dicts.append(degree_dict)
 
-        print "degrees", degree_dicts
-        print "weighted recips", weight_recips
-        #raw_input("Press Enter2 to continue...")
-        # now going to perform leman method
-        print "DOING ANGLES"
-        print "degree dicts", degree_dicts
+        #print "degrees", degree_dicts
+        #print "weighted recips", weight_recips
+        #print "degree dicts", degree_dicts
+
+        #######
+
+        print "About to perform vector-angle analysis methods (i.e. DOING ANGLES)"
 
         # out degrees analysis
         node_degrees = turn_into_list(degree_dicts, total_node_list)
         angles_degrees = find_angles(node_degrees, window_size) #change_point_detection(degree_dicts, window_size=window_size)  # setting window size arbitrarily for now...
-        print "angles degrees", type(angles_degrees), angles_degrees
-        print node_degrees
+        #print "angles degrees", type(angles_degrees), angles_degrees, node_degrees
         angles_degrees_eigenvector = change_point_detection(degree_dicts, window_size, total_node_list)
-        print "angles degrees eigenvector", angles_degrees_eigenvector
-
-        #######
+        #print "angles degrees eigenvector", angles_degrees_eigenvector
 
         # outstrength analysis
         node_outstrengths = turn_into_list(outstrength_dicts, total_node_list)
@@ -483,12 +235,6 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or
         eigenvector_centrality_degrees = find_angles(node_eigenvector_centrality, window_size)
         eigenvector_centrality_degrees_eigenvector = change_point_detection(eigenvector_centrality_dicts, window_size, total_node_list)
 
-        # clustering analysis (not implemented for directed type)
-        #node_clustering = turn_into_list(clustering_dicts, total_node_list)
-        #clustering_degrees = find_angles(node_clustering, window_size)
-        #clustering_degrees_eigenvector = change_point_detection(node_clustering, window_size, total_node_list)
-
-
         # betweeness centrality analysis
         node_betweeness_centrality = turn_into_list(betweeness_centrality_dicts, total_node_list)
         betweeness_centrality_degrees = find_angles(node_betweeness_centrality, window_size)
@@ -504,49 +250,10 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or
         non_reciprocated_out_weight_degrees = find_angles(node_non_reciprocated_out_weight, window_size)
         non_reciprocated_out_weight_degrees_eigenvector = change_point_detection(non_reciprocated_out_weight_dicts, window_size, total_node_list)
 
-
         # non_reciprocated_in_weight analysis
         node_non_reciprocated_in_weight = turn_into_list(non_reciprocated_in_weight_dicts, total_node_list)
         non_reciprocated_in_weight_degrees = find_angles(node_non_reciprocated_in_weight, window_size)
         non_reciprocated_in_weight_degrees_eigenvector = change_point_detection(non_reciprocated_in_weight_dicts, window_size, total_node_list)
-
-        #######
-
-
-        average_path_lengths_no_nan = []
-        for val in average_path_lengths:
-            if not math.isnan(val):
-                average_path_lengths_no_nan.append(val)
-            else:
-                average_path_lengths_no_nan.append(0)
-
-        weighted_average_path_lengths_no_nan = []
-        for val in weighted_average_path_lengths:
-            if not math.isnan(val):
-                weighted_average_path_lengths_no_nan.append(val)
-            else:
-                weighted_average_path_lengths_no_nan.append(0)
-
-        unweighted_overall_reciprocities_no_nan = []
-        for val in unweighted_overall_reciprocities:
-            if not math.isnan(val):
-                unweighted_overall_reciprocities_no_nan.append(val)
-            else:
-                weighted_average_path_lengths_no_nan.append(0)
-
-        weighted_reciprocities_no_nan = []
-        for val in weighted_reciprocities:
-            if not math.isnan(val):
-                weighted_reciprocities_no_nan.append(val)
-            else:
-                weighted_reciprocities_no_nan.append(0)
-
-        angles_degrees_no_nan = []
-        for val in angles_degrees:
-            if not math.isnan(val):
-                angles_degrees_no_nan.append(val)
-            else:
-                angles_degrees_no_nan.append(0)
 
         appserver_sum_degrees = []
         for degree_dict in degree_dicts:
@@ -556,33 +263,18 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or
                     appserver_degrees.append(val)
             appserver_sum_degrees.append( np.mean(appserver_degrees))
 
-        print "graph density", densities
-        densities_no_nan = []
-        for val in densities:
-            if not math.isnan(val):
-                densities_no_nan.append(val)
-            else:
-                densities_no_nan.append(0)
-        print densities_no_nan
+        #########
 
         calculated_values = {}
-        # abs values
+        # abs values:
         calculated_values['Unweighted Average Path Length'] = average_path_lengths
-        calculated_values['average_path_lengths_no_nan'] = average_path_lengths_no_nan
         calculated_values['Weighted Average Path Length'] = weighted_average_path_lengths
-        calculated_values['weighted_average_path_lengths_no_nan'] = weighted_average_path_lengths_no_nan
         calculated_values['Unweighted Overall Reciprocity'] = unweighted_overall_reciprocities
-        calculated_values['unweighted_overall_reciprocities_no_nan'] = unweighted_overall_reciprocities_no_nan
         calculated_values['Weighted Overall Reciprocity'] = weighted_reciprocities
-        calculated_values['weighted_reciprocities_no_nan'] = weighted_reciprocities_no_nan
         calculated_values['Density'] = densities
-        calculated_values['densities_no_nan'] = densities_no_nan
         calculated_values['Sum of Appserver Node Degrees'] = appserver_sum_degrees
-        #calculated_values['average_clusterings'] = average_clusterings
-
-        # delta values
+        # delta values:
         calculated_values['Simple Angle Between Node Degree Vectors'] = angles_degrees
-        calculated_values['angles_degrees_no_nan'] = angles_degrees_no_nan
         calculated_values['Change-Point Detection Node Degree'] = angles_degrees_eigenvector
         calculated_values['Simple Angle Between Node Outstrength Vectors'] = outstrength_degrees
         calculated_values['Change-Point Detection Node Outstrength']= outstrength_degrees_eigenvector
@@ -590,8 +282,6 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or
         calculated_values['Change-Point Detection Node Instrength'] = instrengths_degrees_eigenvector
         calculated_values['Simple Angle Between Node Eigenvector_Centrality Vectors'] = eigenvector_centrality_degrees
         calculated_values['Change-Point Detection Node Eigenvector_Centrality'] = eigenvector_centrality_degrees_eigenvector
-        #calculated_values['clustering_degrees'] = clustering_degrees
-        #calculated_values['clustering_degrees_eigenvector'] = clustering_degrees_eigenvector
         calculated_values['Simple Angle Between Node Betweeness Centrality Vectors'] = betweeness_centrality_degrees
         calculated_values['Change-Point Detection Node Betweeness Centrality'] = betweeness_centrality_degrees_eigenvector
         calculated_values['Simple Angle Between Node Load Centrality Vectors'] = load_centrality_degrees
@@ -600,11 +290,6 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or
         calculated_values['Change-Point Detection Node Non-Reciprocated Out-Weight'] = non_reciprocated_out_weight_degrees_eigenvector
         calculated_values['Simple Angle Between Node Non-Reciprocated In-Weight'] = non_reciprocated_in_weight_degrees
         calculated_values['Change-Point Detection Node Non-Reciprocated In-Weight'] = non_reciprocated_in_weight_degrees_eigenvector
-
-        # note: these are dictionaries
-        #calculated_values['non_reciprocated_in_weight'] = non_reciprocated_in_weight_dicts
-        #calculated_values['non_reciprocated_out_weight'] = non_reciprocated_out_weight_dicts
-
 
         with open(basegraph_name + '_processed_vales_' + container_or_class + '_' + '%.2f' % (time_interval) + '.txt', 'w') as csvfile:
             spamwriter = csv.writer(csvfile, delimiter=',',
@@ -619,8 +304,6 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or
                 print row
                 calculated_values[row[0]] = [i if i != (None) else float('nan') for i in ast.literal_eval(row[1])]
                 print row[0], calculated_values[row[0]]
-                #except:
-                #    calculated_values[row[0]] = []
 
     return calculated_values
 
@@ -652,195 +335,6 @@ def create_graphs(total_calculated_vals, basegraph_name, window_size, colors, ti
         time_grans.append(time_interval)
         node_grans.append(container_or_class)
         metrics = calculated_values.keys()
-        #####
-
-        average_path_lengths_no_nan = calculated_values['average_path_lengths_no_nan']
-        weighted_average_path_lengths_no_nan = calculated_values['weighted_average_path_lengths_no_nan']
-        unweighted_overall_reciprocities_no_nan = calculated_values['unweighted_overall_reciprocities_no_nan']
-        weighted_reciprocities_no_nan = calculated_values['weighted_reciprocities_no_nan']
-        densities_no_nan = calculated_values['densities_no_nan']
-        angles_degrees_no_nan = calculated_values['angles_degrees_no_nan']
-
-        #appserver_sum_degrees = calculated_values['Sum of Appserver Node Degrees']
-        # change to 'Sum of Appserver Node Degrees'
-
-        average_path_lengths = calculated_values['Unweighted Average Path Length']
-        # change to: 'Unweighted Average Path Length'
-
-        weighted_average_path_lengths = calculated_values['Weighted Average Path Length']
-        # change to 'Weighted Average Path Length'
-
-        unweighted_overall_reciprocities = calculated_values['Unweighted Overall Reciprocity']
-        # change to 'Unweighted Overall Reciprocity'
-
-        weighted_reciprocities = calculated_values['Weighted Overall Reciprocity']
-        # change to 'Weighted Overall Reciprocity'
-
-        densities = calculated_values['Density']
-        # change to 'Density'
-
-        ####
-        ####
-        angles_degrees = calculated_values['Simple Angle Between Node Degree Vectors']
-        # change to 'Simple Angle Between Node Degree Vectors'
-        #average_clusterings = calculated_values['average_clusterings']
-
-        angles_degrees_eigenvector = calculated_values['Change-Point Detection Node Degree']
-        # change to 'Change-Point Detection Node Degree'
-
-        outstrength_degrees = calculated_values['Simple Angle Between Node Outstrength Vectors']
-        # change to 'Simple Angle Between Node Outstrength Vectors'
-
-        outstrength_degrees_eigenvector = calculated_values['Change-Point Detection Node Outstrength']
-        # change to 'Change-Point Detection Node Outstrength'
-
-        instrengths_degrees = calculated_values['Simple Angle Between Node Instrength Vectors']
-        # change to 'Simple Angle Between Node Instrength Vectors'
-
-        instrengths_degrees_eigenvector = calculated_values['Change-Point Detection Node Instrength']
-        # change to 'Change-Point Detection Node Instrength'
-
-        eigenvector_centrality_degrees = calculated_values['Simple Angle Between Node Eigenvector_Centrality Vectors']
-        # change to 'Simple Angle Between Node Eigenvector_Centrality Vectors'
-
-        eigenvector_centrality_degrees_eigenvector = calculated_values['Change-Point Detection Node Eigenvector_Centrality']
-        # change to 'Change-Point Detection Node Eigenvector_Centrality'
-
-        #clustering_degrees = calculated_values['clustering_degrees']
-        #clustering_degrees_eigenvector = calculated_values['clustering_degrees_eigenvector']
-        betweeness_centrality_degrees = calculated_values['Simple Angle Between Node Betweeness Centrality Vectors']
-        # change to 'Simple Angle Between Node Betweeness Centrality Vectors'
-
-        betweeness_centrality_degrees_eigenvector = calculated_values['Change-Point Detection Node Betweeness Centrality']
-        # change to 'Change-Point Detection Node Betweeness Centrality'
-
-        load_centrality_degrees = calculated_values['Simple Angle Between Node Load Centrality Vectors']
-        # change to 'Simple Angle Between Node Load Centrality Vectors'
-
-        load_centrality_degrees_eigenvector = calculated_values['Change-Point Detection Node Load Centrality']
-        # change to 'Change-Point Detection Node Load Centrality'
-
-        non_reciprocated_out_weight_degrees = calculated_values['Simple Angle Between Node Non-Reciprocated Out-Weight Vectors']
-        # change to 'Simple Angle Between Node Non-Reciprocated Out-Weight Vectors'
-
-        non_reciprocated_out_weight_degrees_eigenvector = calculated_values['Change-Point Detection Node Non-Reciprocated Out-Weight']
-        # change to 'Change-Point Detection Node Non-Reciprocated Out-Weight'
-
-        non_reciprocated_in_weight_degrees = calculated_values['Simple Angle Between Node Non-Reciprocated In-Weight']
-        # change to 'Simple Angle Between Node Non-Reciprocated In-Weight'
-
-        non_reciprocated_in_weight_degrees_eigenvector = calculated_values['Change-Point Detection Node Non-Reciprocated In-Weight']
-        # change to 'Change-Point Detection Node Non-Reciprocated In-Weight'
-
-
-        print "len average path lengths", average_path_lengths, "!!!!!", len(average_path_lengths)
-        x = [i*time_interval for i in range(0, len(average_path_lengths))]
-
-        print "avg path lengths", average_path_lengths, len(average_path_lengths)
-
-        ''' # todo: re-enable
-        make_graphs_for_val(x, average_path_lengths, time_interval, basegraph_name, 200,
-                            'graph_avg_path_length', container_or_class, 'average path length (unweighted)', 'distance')
-
-
-        make_graphs_for_val(x, weighted_average_path_lengths, time_interval, basegraph_name, 204,
-                            '_graph_avg_weighted_path_length_', container_or_class, 'average path length (weighted)', 'distance')
-
-        make_graphs_for_val(x, unweighted_overall_reciprocities, time_interval, basegraph_name, 207,
-                            '_graph_unweighted_overall_reciprocity', container_or_class, 'unweighted overall reciprocity', 'reciprocity')
-
-        make_graphs_for_val(x, weighted_reciprocities, time_interval, basegraph_name, 210,
-                            '_graph_weighted_overall_reciprocity', container_or_class, 'weighted overall reciprocity',
-                            'reciprocity (weighted)')
-
-        make_graphs_for_val(x, densities, time_interval, basegraph_name, 213,
-                            '_graph_overall_graph_density', container_or_class, 'overall graph density',
-                            'density')
-
-        make_graphs_for_val(x[window_size:], angles_degrees, time_interval, basegraph_name, 216,
-                            '_graph_out_degree_simple_angles', container_or_class, 'out degree simple angles',
-                            'angle')
-
-        #plt.figure(6)
-        try:
-            plt.figure(12)
-            plt.title("time vs app_server degrees")
-            print appserver_sum_degrees
-            appserver_sum_degrees = ast.literal_eval(appserver_sum_degrees)
-            plt.plot(x, ast.literal_eval(appserver_sum_degrees))
-            plt.savefig(basegraph_name + '_appserver_sum_degrees_' + '%.2f' % (time_interval) + '.png', format='png')
-        except:
-            pass
-            #pass-ing b/c I don't really care...
-
-
-        #make_graphs_for_val(x, average_clusterings, time_interval, basegraph_name, 50, '_graph_average_cluster_degree_',
-        #                    container_or_class, 'average clustering simple degree', 'angle')
-
-        print "old x", x
-        starting_x = window_size+ (window_size-1)
-        print "window_size", window_size, "so starting x:", starting_x
-        x_simple_angle = x[window_size:]
-        x = x[starting_x:] # b/c I don't calculate angles for the first window_size values...
-        #for counter,val in enumerate(outstrength_degrees):
-        #    print counter,val
-        make_graphs_for_val(x, angles_degrees_eigenvector, time_interval, basegraph_name, 53,
-                            '_graph_degrees_eigenvector_degree_', container_or_class, 'degrees eigenvector degree', 'angle')
-        make_graphs_for_val(x_simple_angle, outstrength_degrees, time_interval, basegraph_name, 56,
-                            '_graph_outstrength_degree_', container_or_class, 'outstrength simple degree', 'angle')
-        make_graphs_for_val(x, outstrength_degrees_eigenvector, time_interval, basegraph_name, 59,
-                            '_graph_outstrength_eigenvector_degree_', container_or_class, 'outstrength eigenvector degree', 'angle')
-        make_graphs_for_val(x_simple_angle, instrengths_degrees, time_interval, basegraph_name, 62,
-                            '_graph_instrength_degree_', container_or_class, 'instrength simple degree', 'angle')
-        make_graphs_for_val(x, instrengths_degrees_eigenvector, time_interval, basegraph_name, 65,
-                            '_graph_instrength_eigenvector_degree_', container_or_class, 'instrength eigenvector degree', 'angle')
-        print 'HERE', label#, calculated_values
-        try: # see check 445
-            make_graphs_for_val(x_simple_angle, eigenvector_centrality_degrees, time_interval, basegraph_name, 68,
-                            '_graph_eigenvector_centrality_degree_', container_or_class, 'eigenvector centrality simple degree', 'angle')
-        except:
-            pass
-        make_graphs_for_val(x, eigenvector_centrality_degrees_eigenvector, time_interval, basegraph_name, 71,
-                            '_graph_eigenvector_centrality_eigenvector_degree_', container_or_class, 'eigenvector centrality eigenvector degree',
-                            'angle')
-        #make_graphs_for_val(x, clustering_degrees, time_interval, basegraph_name, 74,
-        #                    '_graph_clustering_degree_', container_or_class, 'clustering simple degree', 'angle')
-        #make_graphs_for_val(x, clustering_degrees_eigenvector, time_interval, basegraph_name, 77,
-        #                    '_graph_clustering_degrees_eigenvector_degree_', container_or_class, 'clustering eigenvector degree',
-        #                    'angle')
-        try: # see check 445
-            make_graphs_for_val(x_simple_angle, betweeness_centrality_degrees, time_interval, basegraph_name, 80,
-                            '_graph_betweeness_centrality_degree_', container_or_class, 'betweeness centrality degree', 'angle')
-        except:
-            pass
-        make_graphs_for_val(x, betweeness_centrality_degrees_eigenvector, time_interval, basegraph_name, 83,
-                            '_graph_betweeness_centrality_eigenvector_degree_', container_or_class, 'betweeness centrality eigenvector degree',
-                            'angle')
-        try:# see check 445
-            make_graphs_for_val(x_simple_angle, load_centrality_degrees, time_interval, basegraph_name, 86,
-                                '_graph_load_centrality_degree_', container_or_class, 'load centrality degree', 'angle')
-        except:
-            pass
-        make_graphs_for_val(x, load_centrality_degrees_eigenvector, time_interval, basegraph_name, 89,
-                            '_graph_load_centrality_eigenvector_degree_', container_or_class, 'load centrality eigenvector degree',
-                            'angle')
-        try: # see check 445
-            make_graphs_for_val(x_simple_angle, non_reciprocated_out_weight_degrees, time_interval, basegraph_name, 92,
-                            '_graph_non_reciprocated_out_weight_degree_', container_or_class, 'non-reciprocated outweight  degree', 'angle')
-        except:
-            pass
-        make_graphs_for_val(x, non_reciprocated_out_weight_degrees_eigenvector, time_interval, basegraph_name, 95,
-                            '_graph_non_reciprocated_out_weight_eigenvector_degree_', container_or_class, 'non-reciprocated outweight eigenvector degree',
-                            'angle')
-        try: # see check 445
-            make_graphs_for_val(x_simple_angle, non_reciprocated_in_weight_degrees, time_interval, basegraph_name, 98,
-                            '_graph_non_reciprocated_in_weight_degree_', container_or_class, 'non-reciprocated inweight degree', 'angle')
-        except:
-            pass
-        make_graphs_for_val(x, non_reciprocated_in_weight_degrees_eigenvector, time_interval, basegraph_name, 101,
-                            '_graph_non_reciprocated_in_weight_eigenvector_degree_', container_or_class, 'non-reciprocated inweight eigenvector degree',
-                            'angle')
-    '''
 
     # okay, so later on I am going to want to group by class/node granularity via color
     # and by time granularity via spacing... so each time granularity should be a seperatae
@@ -896,13 +390,8 @@ def create_graphs(total_calculated_vals, basegraph_name, window_size, colors, ti
         make_multi_time_nan_bars(metrics_to_time_to_granularity_nans, time_grans, node_grans, metric,
                                  basegraph_name + metric + 'multi_nans')
 
-    #'''
     '''
-    # todo: next thing on the todo list is to create two seperate covariance matrices (one w/ deltas, one w/ absolutes),
-    # note that this means I'll need to do like weighted average or something for the normal vals (i.e. not angles)
-    # okay, so I am probably going to want to do that in calc_convariance_matrix, and then just have it return two
-    # values...
-
+    # If I decide to proceed with the covariance matrix idea, this code will come in handy
     print "about to make covariance matrix!"
     # delta_covariance_dataframe, abs_covariance_dataframe
     delta_covariance_dataframe, abs_covariance_dataframe = calc_covaraiance_matrix(fully_indexed_metrics)
@@ -979,144 +468,6 @@ def aggregate_graph(G, ms_s):
 
     return H, M
 
-# returns dict of (ms_instance, ms_class) = (in, out)
-# where 'in' is the total in-strength from all nodes in the ms_class to this ms_instance
-# where 'out' is the total out-strength from the ms_instance to all the nodes in the ms_class
-# TODO: there is some problem with the input data to pearsonr, causing the correlation value to be nan
-
-def find_reciprocated_strength(G, ms_s):
-    reciprocated_strength_dict = {}
-    avg_strength_dict = {}
-    max_strength_dict = {}
-    eigenvector_ready_reciprocated_strength_dict = {}
-
-    print G.nodes() # i think this should contain all the node
-
-    for ms_instance in G.nodes():
-        total_in = {}
-        total_out = {}
-
-        for ms_instance_two in G.nodes():
-            total_in[ms_instance_two] = 0.0
-            total_out[ms_instance_two] = 0.0
-        #for edge in G.edges([ms_instance]):
-        for edge in list(G.edges(data=True)): # todo: i tihnk this mehod does not exist in the current version of this program
-            print "edge", edge
-            # i think (src, dst, weight)
-            if ms_instance in edge[0]:
-                total_out[edge[1]] += edge[2]['weight']
-            if ms_instance in edge[1]:
-                total_in[edge[0]] += edge[2]['weight']
-
-            if ms_instance in edge[0] and ms_instance in edge[1]:
-                print "STRANGE!!"
-
-            eigenvector_ready_reciprocated_strength_dict[edge[0], edge[1]] = edge[2]['weight']
-
-        reciprocated_strength_dict[ms_instance] = (total_out, total_in)
-        #for ms_instance_2, weight in total_out.iteritems():
-        #    eigenvector_ready_reciprocated_strength_dict[ms_instance, ms_instance_2] = weight
-        #for ms_instance_2, weight in total_in.iteritems():
-        #    eigenvector_ready_reciprocated_strength_dict[ms_instance_2. ms_instance] = weight
-
-    # now post-process the reciprocated-strength dictionary to aggregate to/from on the class level (tho the data
-    # is still there for the node which the thing is about)
-    processed_recip_strength_dict = {}
-    for ms_instance in G.nodes():
-        for ms in ms_s:
-            processed_recip_strength_dict[ms_instance, ms] = [0,0] # first is in, second is out (in regard to ms_instance)
-
-    for ms_instance, recip_strength_entry in reciprocated_strength_dict.iteritems():
-        for out_dst, out_val in recip_strength_entry[0].iteritems():
-            for ms in ms_s:
-                if ms in out_dst:
-                    #print "keys", ms_instance, out_dst
-                    #print "result from keys", [ms_instance, ms]
-                    #print "stuff!", recip_strength_entry
-                    #print "incoming!!", processed_recip_strength_dict
-                    processed_recip_strength_dict[ms_instance, ms][1] += out_val # yah, so out_dst seems to be wrong...
-                    break
-        for in_src, in_val in recip_strength_entry[1].iteritems():
-            for ms in ms_s:
-                if ms in in_src:
-                    processed_recip_strength_dict[ms_instance, ms][0] += in_val
-                    break
-    return processed_recip_strength_dict, eigenvector_ready_reciprocated_strength_dict
-
-# uh so what do I want to do here? i could do max/avg or max-avg, or something else
-# let's do the divide I suppose?.... seems fine...
-# note: going to do the heaviest out-weight... (doing in and out would have everything show up twice...)
-# ^^^ not sure if that is true
-# returns a dictionary (src, dst) -> [weights]
-# src,dst are nodes but there also exist values for the ms_classes,
-# so there's some (node, class) and (class, node) pairs in there too (so weights is a multiple element list in that case)
-def find_heaviest_edge_vs_avg(G, ms_s):
-    strength_dict = {}
-    max_strength_dict = {}
-    avg_strength_dict_aggregated = {}
-    for node_src in G.node():
-        for node_dst in G.nodes():
-            strength_dict[node_src, node_dst] = []
-        for ms in ms_s:
-            strength_dict[node_src, ms] = []
-            strength_dict[ms, node_src ] = []
-
-    for edge in list(G.edges(data=True)):
-        strength_dict[edge[0], edge[1]].append(edge[2]['weight'])
-        # we're going to include aggregate components in this list (a.k.a. matrix)
-        for ms in ms_s:
-            if ms in edge[0]:
-                strength_dict[ms, edge[1]].append(edge[2]['weight'])
-                break
-            if ms in edge[1]:
-                strength_dict[edge[0], ms].append(edge[2]['weight'])
-                break
-
-    '''
-    for edge_path, weights in avg_strength_dict.iteritems():
-        for ms in ms_s:
-            if ms in edge_path[0]:
-                avg_strength_dict_aggregated[ms, e]
-        print ms
-
-    for edge_path, weights in avg_strength_dict.iteritems():
-        max_strength_dict[edge_path] = max(weights)
-    '''
-    return strength_dict
-
-# TODO
-# needs to return two dicts; each is indexed by a node as well as the ms_class that it is connected to
-# one dict returns the principal eigenvector for the weighted adjaceny matrix of the corresponding egonet
-# one dict returns the total wieght of the egonet (w/ the corresponding exponent in the power lab TBD at
-# a later stage of processing)
-def find_dominant_pair(G, ms_s):
-    princ_eigenvect = {}
-    total_weight = {}
-
-    class_to_instance = {}
-    for ms in ms_s:
-        class_to_instance[ms] = []
-    # need a map of ms_class to ms_instances
-    for node in G.nodes():
-        for ms in ms_s:
-            if ms in node:
-                class_to_instance[ms].append(node)
-                break
-
-    for node in G.nodes():
-        for ms in ms_s:
-            # step 1: get the relevant ego
-            relevant_egonet = nx.subgraph(G, class_to_instance[ms]+[node]) # todo: verify that this is correcr
-            # step 2: find principal eigenvalue of the weighted adjancy matrix...
-            adj_matrix = nx.adjacency_matrix(relevant_egonet)
-            #print "dimensions of adjacency matrix", scipy.ndim(adj_matrix), "a shape: ", adj_matrix.shape[0]
-            if adj_matrix.shape[0] > 1 or adj_matrix.shape[0] > 1 :  # some of these egonets will be essentially empty
-                eigenval, eigenvect = scipy.sparse.linalg.eigs(adj_matrix, k=1) #scipy.linalg.eigh(adj_matrix)
-                princ_eigenvect[node, ms] = eigenval[0]
-                # step 3: the total weight of the egonet
-                total_weight[node,ms] = scipy.sum(scipy.sum(adj_matrix, axis=1), axis=0)
-
-    return princ_eigenvect, total_weight
 
 # returns list of angles (of size len(tensor)). Note:
 # i have decided to append window_size 'nans' to the front of the list of
@@ -1198,14 +549,6 @@ def change_point_detection(tensor, window_size, nodes_in_tensor):
                 #print "node_one_time_series", node_one_time_series
                 #print "node_two_time_series", node_two_time_series
 
-                ''' don't really need this anymore...
-                with open('./' + 'debugging.txt', 'a') as csvfile:
-                    spamwriter = csv.writer(csvfile, delimiter=',',
-                                            quotechar='|', quoting=csv.QUOTE_MINIMAL)
-                    spamwriter.writerow([node_one, node_one_time_series])
-                    spamwriter.writerow([node_two, node_two_time_series])
-                  '''
-
                 # remove Nan's from array before doing pearson analysis
                 # note: np.isfinite will crash if there's a None in the arraay, but that's fine
                 # cause I there shouldn't be any None's...
@@ -1246,22 +589,6 @@ def change_point_detection(tensor, window_size, nodes_in_tensor):
             if value == largest_mag_eigenvalue:
                 largest_mag_eigenvalue_index = counter
                 break
-        ''' # I thought this was going to be needed, but I am not so sure anymore...
-        if len(largest_mag_eigenvalue_index) == 1:
-            largest_mag_eigenvalue_index = largest_mag_eigenvalue_index[0]
-        else:
-            # if multiple identical eigenvalues, then we gotta
-            # choose the largest eigenvector by comparing the magnitudes
-            # of the eigenvectors
-            largest_mag_eigenvector = -100000 # effectively infinity
-            largest_mag_eigenvector_index = -1
-            for possibly_largest_eigenvector_index in largest_mag_eigenvalue_index:
-                # then just do the comparison
-                if np.linalg.norm(eigen_vects[possibly_largest_eigenvector_index]) > largest_mag_eigenvector:
-                    largest_mag_eigenvector = np.linalg.norm(eigen_vects[possibly_largest_eigenvector_index])
-                    largest_mag_eigenvector_index = possibly_largest_eigenvector_index
-            largest_mag_eigenvalue_index = largest_mag_eigenvector_index
-        '''
 
         #print "eigenvectors", eigen_vects
         print "principal eigenvector", eigen_vects[largest_mag_eigenvalue_index]
@@ -1439,28 +766,6 @@ def turn_into_list(dicts, node_list):
                 current_nodes.append(float('nan'))  # the current dict must not have an entry for node -> zero val
         node_vals.append(np.array(current_nodes))
     return node_vals
-
-def make_graphs_for_val(x_vals, y_vals, time_interval, basegraph_name, fig_num, graph_name_extenstion,
-                        container_or_class, graph_tile, y_axis_label):
-
-    #y_vals = ast.literal_eval(y_vals)
-    plt.figure(fig_num)
-    plt.clf()
-    plt.title(graph_tile + ', ' + '%.2f' % (time_interval))
-    plt.ylabel(y_axis_label)
-    plt.xlabel('time (sec)')
-    print graph_name_extenstion
-    print "x inputs", x_vals, type(x_vals)
-    print "y inputs", y_vals, type(y_vals)
-    plt.plot(x_vals, y_vals)
-    plt.savefig(basegraph_name + graph_name_extenstion + '_' + container_or_class + '_' + '%.2f' % (time_interval) + '.png', format='png')
-
-    plt.figure(fig_num + 1)
-    plt.clf()
-    plt.title(graph_tile + ', ' + '%.2f' % (time_interval))
-    plt.ylabel(y_axis_label)
-    plt.boxplot(y_vals, sym='k.', whis=[5, 95])
-    plt.savefig(basegraph_name + graph_name_extenstion + '_boxplot_' + container_or_class + '_' + '%.2f' % (time_interval) + '.png', format='png')
 
 # i think correlation matrix must be a pandas dataframe (with the appropriate labels)
 def plot_correlogram(delta_covariance_dataframe, abs_covariance_dataframe, basegraph_name):
@@ -1718,6 +1023,9 @@ def set_boxplot_colors(bp, colors):
         ###
         plt.setp(bp['medians'][counter], color=color)
 
+# make_multi_time_nan_bars : ??
+# this function finds the number of nan's present at each (time_gran, node_gran) and makes graphs that resemble
+# the ones make in the multi_time_boxplots function
 def make_multi_time_nan_bars(metrics_to_time_to_granularity_nans, time_grans, node_grans, metric, graph_name):
     fig = plt.figure(figsize=(20,8))
     fig.clf()
@@ -1735,10 +1043,6 @@ def make_multi_time_nan_bars(metrics_to_time_to_granularity_nans, time_grans, no
         tick_position = (float(number_positions_on_graph[0]) + float(number_positions_on_graph[-1])) / number_nested_lists
         tick_position_list.append(tick_position)
         #print current_vals, number_positions_on_graph
-
-        #for i in range(0,len(node_grans))
-        #number_positions_on_graph = np.arange(0,4)
-        #current_vals = [1.5e5, 2.5e6]
 
         print number_positions_on_graph, current_vals
         bp = plt.bar(number_positions_on_graph, current_vals)
@@ -1770,87 +1074,200 @@ def make_multi_time_nan_bars(metrics_to_time_to_granularity_nans, time_grans, no
 
     plt.savefig(graph_name + '.png', format='png')
 
+# get_points_to_plot : time_granularity values exfil_start_time exfil_end_time wiggle_room
+#                   -> list_of_values_during_exfiltration_period index_at_start_of_exfil index_at_end_of_exfil
+# this function calculates the values during exfiltration along with the start/end indexes for these values
+# Ex: vals = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90]; exfil_start = 30, exfil_end = 50, time_gran = 10, wiggle_room = 2
+# floor((30-2)/10)=2, floor((50+2)/10) = 6; returns [20, 30, 40, 50, 60] with indexes 2,6
 def get_points_to_plot(time_grand, vals, exfil_start, exfil_end, wiggle_room):
-    # note: there might be multiple vals for each time period. Exp_length is deal with that.
-    # note: but I am going to assume there is the same number of during each time slice (not
-    # necessariylly the case, but still an assumption that I will make)
-    # okay, so what I'd do here is extract the necessary values that occured during
-    # exfiltration, and return them
-    #[0, 10, 20, 30, 40, 50, 60, 70, 80, 90]
-    #30 - 50
-    #30 / 10 = 3
-    #50 / 10 = 5 (if slicing going t want to add one more)
-   # vals_per_time_interval = len(vals) / (exp_length / float(time_grand))
-
-    print "exfil_start", exfil_start, "exfil_end", exfil_end, "time_grand", time_grand#, "vals_per_time_interval", vals_per_time_interval
-    #if not (vals_per_time_interval).is_integer():
-    #    return [], None, None # if different vals per time interval -> won't be able to find exfiltrated points
+    print "exfil_start", exfil_start, "exfil_end", exfil_end, "time_grand", time_grand
     if exfil_start and exfil_end:
         start_index = int(float(exfil_start - wiggle_room) / time_grand)# * vals_per_time_interval
         end_index = int(float(exfil_end + wiggle_room) / time_grand) #* vals_per_time_interval
-        #print "indices", start_index, end_index
         return vals[start_index : end_index + 1], start_index, end_index
     else:
         return [], None, None
 
+# get_non_exfil_points_to_plot : vals start_index end_index -> 'sub-list' of vals from start_index to end_index
+# this function returns all the values that occured NOT during exfil
+# note: this is a seperate function b/c I think that the logic might become more complicated
 def get_non_exfil_points_to_plot(vals, start_index_ptp, end_index_ptp):
     if start_index_ptp == None or end_index_ptp == None:
         return vals
     return vals[:start_index_ptp] + vals[end_index_ptp + 1:]
 
-def calc_graph_metrics_processed_docker_swarm(G_list, svcs, calc_vals_p, basegraph_name, container_or_class, time_interval):
+def process_graph(G, is_swarm, container_to_ip, ms_s):
+    if is_swarm:
+        # okay, here is the deal. I probably want to have an unprocessed and a processed version
+        # of the graphs + metrics
+
+        # note a few edge cases not covered in 49-64, but i'll handle those as they occur
+        for container_list_and_network in container_to_ip.values():
+            # print "containerzzz", container_list_and_class[0]
+            for ms in ms_s:
+                if ms in container_list_and_network[0]:
+                    if 'VIP' not in container_list_and_network[0]:
+                        if container_list_and_network[0] not in G and 'endpoint' not in container_list_and_network[0]:
+                            G.add_node(container_list_and_network[0])
+                            break
+        for (u, v, data) in G.edges(data=True):
+            if 'VIP' in v:
+                # so this connects the services VIP to the endpoint of that service's network.
+                # however, it breaks down when the service is in more than one network.
+                # NOTE THIS SOLUTION MIGHT BREAK DOWN WHEN A LARGE NUMBER OF NETWORKS AND SERVICE
+                # ARE PRESENT
+                endpoints = []
+                for container_ip, container_name_and_net_name in container_to_ip.iteritems():
+                    if container_name_and_net_name[0] == v:
+                        # need to check if there is an edge between a container instance of the
+                        # service and the endpoint -- here's an alternative solution, let's just merge
+                        # all of the possible endpoints together, since who knows?
+                        print "container_name_and_net_name", container_name_and_net_name, v
+                        endpoint = container_name_and_net_name[1] + '-endpoint'
+                        # note: the code below is just for atsea shop exp3 v2, b/c I am too time
+                        # constrained to write general-purpose code
+                        # okay, should not hardcode this type of thing in, but i am going to do
+                        # it just this once, b/c i have other stuff to do
+                        # if container_name_and_net_name[0] == 'atsea_database_VIP' and 'back' in container_name_and_net_name[1]:
+                        #    break
+
+                print "endpoint", endpoint, '\n'
+                if G.has_edge(v, endpoint):
+                    G[v][endpoint]['weight'] += data['weight']
+                else:
+                    G.add_edge(v, endpoint, weight=data['weight'])
+        # '''
+        for (u, v, data) in G.edges(data=True):
+            if 'VIP' in u and 'endpoint' in v:
+                if not G.has_edge(v, u):
+                    # if only goes in a single direction, we
+                    print (u, v, data)
+                    # str() added below b/c it was being converted to unicode
+                    G = nx.contracted_nodes(G, v, u, self_loops=False)
+
+        # not this only applies for docker swarm (well maybe k8s? not sure...)
+        # need to merge 'ingress-endpoint' and 'gateway_ingress_sbox'
+        # b/c these are just two sides of the same NAT
+        for u in G.nodes():
+            for v in G.nodes():
+                if u != v:
+                    # print u,v, 'ingress-endpoint' in u, 'gateway_ingress-sbox' in v
+                    if 'ingress-endpoint' in u and 'gateway_ingress-sbox' in v:
+                        if not G.has_edge(u, v) and not G.has_edge(u, v):
+                            G = nx.contracted_nodes(G, v, u, self_loops=False)
+
+        # this is misleading for k8s b/c it talks to other outside IPs too
+        # 192.168.99.1 is really just the generic 'outside' here
+        mapping = {'192.168.99.1': 'outside'}
+        try:
+            nx.relabel_nodes(G, mapping, copy=False)
+        except KeyError:
+            pass  # maybe it's not in the graph?
+
+        # going to set the node attributes with the svc now
+        # first, going to find all of the services. The services will be in th e
+        # container_to_ip structure w/ _VIP appended
+        svcs = []
+        for container_list_and_network in container_to_ip.values():
+            # if container_list_and_network[0] != '':
+            #    continue
+            print "container_list_and_network", container_list_and_network
+            if 'VIP' in container_list_and_network[0] or 'sbox' in container_list_and_network[0]:
+                print container_list_and_network[0]
+                svcs.append(container_list_and_network[0].replace("_VIP", ""))
+            if 'endpoint' in container_list_and_network[0]:
+                svcs.append(container_list_and_network[0])  # this is so that the load-balancers can be included...
+        svcs.append('outside')
+        # sort services by length, note referred to
+        # https://stackoverflow.com/questions/2587402/sorting-python-list-based-on-the-length-of-the-string
+        svcs.sort(key=len)
+        print "these services were found:", svcs
+        containers_to_ms = {}
+        for u in G.nodes():
+            for svc in svcs:
+                if svc in u:
+                    containers_to_ms[u] = svc
+                    break
+        print "container to service mapping: ", containers_to_ms
+        nx.set_node_attributes(G, containers_to_ms, 'svc')
+    else:
+        # I'm going to merge all the traffic that is coming to/from the outside together
+        for u in G.nodes()[:int(G.number_of_nodes() / 2.0)]:
+            for v in G.nodes()[int(G.number_of_nodes() / 2.0):]:
+                if u != v:
+                    # print u,v, 'ingress-endpoint' in u, 'gateway_ingress-sbox' in v
+                    if 'k8s' not in u and '10.0.2' not in u:
+                        if 'k8s' not in v and '10.0.2' not in v:
+                            G = nx.contracted_nodes(G, v, u, self_loops=False)
+        # note: this is not necessarily the case, but it seems like should more or less
+        # hold for all the minikube deployments that I'd do
+        mapping = {'10.0.2.15': 'default-http-backend(NAT)'}
+        try:
+            nx.relabel_nodes(G, mapping, copy=False)
+        except KeyError:
+            pass  # maybe it's not in the graph?
+    return G
+
+def generate_network_graph_colormap(color_map, ms_s, G):
+    # okay, now I want to color the different classes different colors. I am going to make the assumption
+    # that if an container's name has a '.' in it, then I can get the class name by splitting on the '.'
+    # and taking the value to the left
+    for node in G:
+        j = None
+        for i in range(0, len(ms_s)):
+            if 'endpoint' in node or 'VIP' in node or 'sbox' in node:
+                j = len(ms_s) + 1
+                break
+            if ms_s[i] in node:
+                j = i
+                break
+        # print "j", j
+        if j != None:
+            # assign color to the node here
+            if j == len(ms_s) + 1:
+                color_map.append(0.0)
+            else:
+                color_map.append(float(len(ms_s) + 2) / j)
+        else:
+            # okay, either load balancer or other
+            color_map.append((len(ms_s) * 2) / (len(ms_s)))  # float(len(ms_s) + 2) / (len(ms_s) + 2))
+
+    print "color_map", color_map, len(color_map), len(G.nodes()), len(ms_s), np.array(color_map)
+    print [i for i in G.nodes()]  # range(len(G.nodes()))
+    return color_map
+
+def make_network_graph(G, edge_label_p, filename, figsize, node_color_p, ms_s):
+    plt.clf()
+    color_map = []
+    if node_color_p:
+        color_map = generate_network_graph_colormap(color_map, ms_s, G)
+    plt.figure(figsize=figsize)  # todo: turn back to (27, 16)
+    pos = graphviz_layout(G)
+    for key in pos.keys():
+        pos[key] = (pos[key][0] * 4, pos[key][1] * 4)  # too close otherwise
+    nx.draw_networkx(G, pos, with_labels=True, arrows=True, font_size=8, font_color='b')
+    edge_labels = nx.get_edge_attributes(G, 'weight')
+    print "edge_labels", edge_labels
+    if edge_label_p:
+        nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=7, label_pos=0.3)
+    plt.savefig(filename, format='png')
+
+
+# calc_service_specific_graph_metrics : ??
+# this function calculates some graph metrics that are specific to each service or pair of services. These metrics are
+# 'spread' of weight frm (svc,svc) traffic (direction matters) and 'spread' of in/out ratio of each container in the svc
+# note: spead = (max(vals) - min(vals)) / (max(vals)), where vals is a list of values at that time stamp
+def calc_service_specific_graph_metrics(G_list, svcs, calc_vals_p, basegraph_name, container_or_class, time_interval):
     if  calc_vals_p:
         calculated_values = {}
-        # okay, so there are really 4 things that I want to calculate here,
-        # and then I'd like to make graphs of those things (either
-        # scatter plots or reuse the boxplot graphing functionality that
-        # I already have); (honestly, probably re-use the boxplot)
-        # the 4 things that I want to calculate are:
-        # (1) weight from lb -> svc (for a particular service, lb tuple)
-        # (2) weight from svc -> lb (again, for a particular service, lb tuple)
-        # (3) if bytes into lb = bytes out of lb
-        # (4) in-weight / out-weight (for each container in a svc)
-        # okay, so what is necessary to actually do this???
-        # well, it looks like we are making distinctions based-on: the svc that a container is in
-        # and a particular load-balancer. This would be a lot easier if there was an easy way to pull
-        # these values out... okay, so it looks like I need to set node attribues passed off of the
-        # svc/loadbalancer
-        # Note: possible method for anomaly-detection is to use leman's change-point
-        # method (tho IDK if that'll work...)
-        calculated_values = {}
-        map_svc_lb_to_weight = {} # this is going to handle (1) and (2) from above. It'll be indexed via
-                                  # a tuple and the first value will be src and the second dst
-                                  # (3) can be then be calculated from these values
-                                  # (4) is going to have to be calculated differently, b/c I'm going to
-                                  # need per-container info...
-
-        map_svc_to_container_to_in = {} # this and the line below will handle (4)
-        map_svc_to_container_to_out = {}
-
-        #for svc_one in svcs:
-        #    for svc_two in svcs:
-        #       # want percisely one of them to be a load-balancer
-        #       if (('endpoint' in svc_one) != ('endpoint' in svc_two)) or (
-        #           ('sbox' in svc_one) != ('sbox' in svc_two)) or (
-        #           ('visualizer' in svc_one) != ('visualizer' in svc_two)):
-        #           map_svc_lb_to_weight[(svc_one, svc_two)] = []
-        svc_lbs = []
-        for svc in svcs:
-            if 'endpoint' in svc or 'sbox' in svc or 'visualizer' in svc:
-                svc_lbs.append(svc)
-        #lb_to_list_of_in_out_ratio = []
-        svc_to_list_of_in_out_ratio ={}
+        map_svc_connection_to_weight_spread = {} # (svc_or_lb, svc_or_lb) -> list of integers (weight)
+        map_svc_to_in_out_spread = {}
 
         for cur_G in G_list:
-
-            map_svc_lb_to_weight_at_this_timestamp = {}
-            #for svc_one in svcs:
-            #    for svc_two in svcs:
-            #        # want percisely one of them to be a load-balancer
-            #        if (('endpoint' in svc_one) != ('endpoint' in svc_two)) or (('sbox' in svc_one) != ('sbox' in svc_two)) or (('visualizer' in svc_one) != ('visualizer' in svc_two)):
-            #            map_svc_lb_to_weight_at_this_timestamp[(svc_one, svc_two)] = []
-
-            #print "map_svc_lb_to_weight_at_this_timestamp", map_svc_lb_to_weight_at_this_timestamp
+            map_svc_connection_to_weight_at_this_timestamp = {}
+            map_svc_to_container_to_in = {}  # (svc_or_lb) -> (container) ->  list of integer (in weight)
+            map_svc_to_container_to_out = {}  # (svc_or_lb) -> (container) -> list of integers (out weight)
+            svc_to_list_of_in_out_ratio = {}  # (svc) -> [in_out_container1, in_out_container2, in_out_container3, ...]
 
             for svc in svcs:
                 map_svc_to_container_to_in[svc] = {}
@@ -1861,9 +1278,9 @@ def calc_graph_metrics_processed_docker_swarm(G_list, svcs, calc_vals_p, basegra
             for (u, v, data) in cur_G.edges(data=True):
                 print (u,v,data)
                 print "cur_G_src_attribs", cur_G_src_attribs
-                if (cur_G_src_attribs[u],cur_G_src_attribs[v]) not in map_svc_lb_to_weight_at_this_timestamp:
-                    map_svc_lb_to_weight_at_this_timestamp[(cur_G_src_attribs[u],cur_G_src_attribs[v])] = []
-                map_svc_lb_to_weight_at_this_timestamp[(cur_G_src_attribs[u],cur_G_src_attribs[v])].append(data['weight'])
+                if (cur_G_src_attribs[u],cur_G_src_attribs[v]) not in map_svc_connection_to_weight_at_this_timestamp:
+                    map_svc_connection_to_weight_at_this_timestamp[(cur_G_src_attribs[u],cur_G_src_attribs[v])] = []
+                map_svc_connection_to_weight_at_this_timestamp[(cur_G_src_attribs[u],cur_G_src_attribs[v])].append(data['weight'])
 
                 if v in map_svc_to_container_to_in[cur_G_src_attribs[v]]:
                     map_svc_to_container_to_in[cur_G_src_attribs[v]][v] += data['weight']
@@ -1884,30 +1301,33 @@ def calc_graph_metrics_processed_docker_swarm(G_list, svcs, calc_vals_p, basegra
                     except:
                         svc_to_list_of_in_out_ratio[key_svc].append(float('NaN'))
 
-            print "map_svc_lb_to_weight", map_svc_lb_to_weight
-            for key,val in map_svc_lb_to_weight_at_this_timestamp.iteritems():
-                if key not in map_svc_lb_to_weight:
-                    map_svc_lb_to_weight[key] = []
+            print "map_svc_connection_to_weight_spread", map_svc_connection_to_weight_spread
+            for key,val in map_svc_connection_to_weight_at_this_timestamp.iteritems():
+                if key not in map_svc_connection_to_weight_spread:
+                    map_svc_connection_to_weight_spread[key] = []
                 # I want some value that will capture the spread of the data in a single number
                 spread = (max(val) - min(val)) / float(max(val))
-                map_svc_lb_to_weight[key].append(spread)
+                map_svc_connection_to_weight_spread[key].append(spread)
+            for key,val in svc_to_list_of_in_out_ratio.iteritems():
+                if key not in map_svc_to_in_out_spread:
+                    map_svc_to_in_out_spread[key] = []
+                spread = (max(val) - min(val)) / float(max(val))
+                map_svc_to_in_out_spread[key].append(spread)
 
-        # the first has (time steps * (# of containers in service)) values in each list (indexed by svc)
-        # the second has (time steps * (# of containers * # of lbs)) (indexed by ms_svc and lb_ms)
-        # note: this'll require a modification in the multi-ploxblot function...
+        calculated_values.update(map_svc_connection_to_weight_spread)
+        calculated_values.update(map_svc_to_in_out_spread)
 
-        calculated_values.update(svc_to_list_of_in_out_ratio)
-        calculated_values.update(map_svc_lb_to_weight)
-
-        with open(basegraph_name + '_processed_docker_swarm_vales_' + container_or_class + '_' + '%.2f' % (time_interval) + '.txt', 'w') as csvfile:
+        with open(basegraph_name + '_processed_service_specific_vales_' + container_or_class + '_' + '%.2f' % (time_interval) + '.txt', 'w') as csvfile:
             spamwriter = csv.writer(csvfile, delimiter=',',
                                         quotechar='|', quoting=csv.QUOTE_MINIMAL)
             for value_name, value in calculated_values.iteritems():
                 if len(value) < 120000: # if larger than that, will not be able to read it in
                     spamwriter.writerow([value_name, [i if not math.isnan(i) else (None) for i in value]])
+                else:
+                    print value_name, " is really, really big!!"
     else:
         calculated_values = {}
-        with open(basegraph_name + '_processed_docker_swarm_vales_' + container_or_class + '_' + '%.2f' % (time_interval) + '.txt',
+        with open(basegraph_name + '_processed_service_specific_vales_' + container_or_class + '_' + '%.2f' % (time_interval) + '.txt',
                   'r') as csvfile:
             csvread = csv.reader(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
             for row in csvread:
@@ -1915,72 +1335,4 @@ def calc_graph_metrics_processed_docker_swarm(G_list, svcs, calc_vals_p, basegra
                 calculated_values[row[0]] = [i if i != (None) else float('nan') for i in ast.literal_eval(row[1])]
                 print row[0], calculated_values[row[0]]
 
-        '''
-        lb_to_in_weight = {}
-        lb_to_out_weight = {}
-        for svc_lb in svc_lbs:
-            lb_to_in_weight[svc_lb] = 0
-            lb_to_out_weight[svc_lb] = 0
-        for key,val in map_svc_lb_to_weight_at_this_timestamp.iteritems():
-            map_svc_lb_to_weight[key].extend(val)
-
-            if 'endpoint' in key[0]:
-                lb_to_out_weight[key[0]] += sum(val)
-            elif 'endpoint' in key[1]:
-                lb_to_in_weight[key[0]] += sum(val)
-
-        for val in list(set(lb_to_out_weight.keys() + lb_to_in_weight.keys())):
-            lb_to_list_of_in_out_ratio[val].append(lb_to_in_weight[val]/lb_to_out_weight[val])
-        '''
-        # TODO: keep grinding on getting these new metrics. It might require modifying
-        # the graph function :( Once I get these done, make pictures of sockshop and run
-        # new functions on atsea store. Then modify pcap_parser to handle packets one at a time.
-        # getting some decent swarm metrics / graphs is a key priority todoay. while for kubernetes
-        # I mostly just want a couple graphs that I can look at to start determining invaraints and
-        # structural characteristics, and I can actually get values for those tomorrow.
-
     return calculated_values
-
-##########################################
-##########################################
-##########################################
-
-# TODO: some other things to try
-# using basic angle technique:
-#   weighted reciprocity
-#   maximum weight ratio on reciprocated edges egonet
-        # from leman's paper, i think might be helpful to find the one-attack-link
-# using full eigenspace technique:
-#   out degree
-#   outstrength
-#   instrength
-#   non-reciprocated weight
-#
-# actually we can all of these both ways, with node,class,and graph granularity!
-#
-# all these would take me to 10 total measures... that's a good number for now
-
-# wed.
-# (1) above graph metrics
-    # prereq: finish implementing the leman method
-        # I still need to work some more on this, b/c I think 'dirty' data (maybe nan's or something)
-        # are being fed into the pearsonr function, and so it is returning nan
-    # prereq: want another (aggregated by node class) graph
-        # okay, I think this is more or less fine
-    # need to modify it so edgesfiles for < 1 time intervals can be created
-# (2) finish polishing graphs
-    # big thing here is the multi-time resolution boxplots
-# (3) develop concrete plan for simulating exfiltration
-    # hopefully there is some pre-existing library that I can use
-    # looks like DET (https://github.com/PaulSec/DET is my best bet here, tho
-    # it may not be setup for multi-hop, tho it looks like no tool is setup for
-    # that, so i guess that's just the way it is, wait holdup, it looks like
-    # Proxy mode is a thing... yep, just need to configure the config.json file
-    # btw, I will need a way to ssh into a large of these containers + install stuff
-    # hm.... (see text document for more details...)
-
-
-# (4) read dockerGuard code / technical details of paper
-    # looks like most of it is in python, which is good
-# (5) try running the dockerGuard code
-    # might be tricky...c_vals_p, window_size, container_to_ip, ms_to_vip):

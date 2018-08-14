@@ -17,7 +17,6 @@ def run_analysis_pipeline_recipes():
                                'storage-provisioner']
     microservices_wordpress = ['mariadb-master', 'mariadb-slave', 'wordpress']
 
-
     # atsea store recipe
 
     '''
@@ -247,7 +246,8 @@ def run_analysis_pipeline_recipes():
     end_time = 1533378712.2
     exfil_start_time = 270
     exfil_end_time = 330
-    calc_vals = False
+    make_net_graphs_p = True # do you want to make network
+    calc_vals = True
     window_size = 6
     graph_p = True # should I make graphs?
     colors = ['b', 'r']
@@ -255,7 +255,7 @@ def run_analysis_pipeline_recipes():
     run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
                                ms_s, make_edgefiles, basegraph_name, window_size, colors,
                                exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
-                               calc_vals = calc_vals, graph_p = graph_p)
+                               calc_vals = calc_vals, graph_p = graph_p, make_net_graphs_p=make_net_graphs_p)
     #'''
     # atsea exp 3 (v2) [good]
     '''
