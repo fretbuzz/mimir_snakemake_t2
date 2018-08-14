@@ -627,7 +627,7 @@ def calc_graph_metrics(G_list, ms_s, time_interval, basegraph_name, container_or
 
 # okay, so I guess 2 bigs things here: (1) I guess I should iterate through the all the calculated_vals
 # dicts here? Also I need to refactor the combined boxplots such that they actually make sense...
-def create_graphs(total_calculated_vals, basegraph_name, window_size, colors, time_interval_lengths, exfil_start, exfil_end, wiggle_room, exp_length):
+def create_graphs(total_calculated_vals, basegraph_name, window_size, colors, time_interval_lengths, exfil_start, exfil_end, wiggle_room):
     time_grans = []
     node_grans = []
     metrics = []
@@ -891,7 +891,7 @@ def create_graphs(total_calculated_vals, basegraph_name, window_size, colors, ti
     for metric in metrics:
         make_multi_time_boxplots(metrics_to_time_to_granularity_lists, time_grans, metric, colors,
                                  basegraph_name + metric + '_multitime_boxplot', node_grans, exfil_start, exfil_end,
-                                 wiggle_room, exp_length)
+                                 wiggle_room)
 
         make_multi_time_nan_bars(metrics_to_time_to_granularity_nans, time_grans, node_grans, metric,
                                  basegraph_name + metric + 'multi_nans')
@@ -1601,7 +1601,7 @@ def calc_covaraiance_matrix(calculated_values):
 
 # in the style of: https://stackoverflow.com/questions/16592222/matplotlib-group-boxplots
 def make_multi_time_boxplots(metrics_to_time_to_granularity_lists, time_grans, metric, colors,
-                             graph_name, node_grans, exfil_start, exfil_end, wiggle_room, exp_length):
+                             graph_name, node_grans, exfil_start, exfil_end, wiggle_room):
     fig = plt.figure()
     fig.clf()
     ax = plt.axis()
@@ -1644,7 +1644,7 @@ def make_multi_time_boxplots(metrics_to_time_to_granularity_lists, time_grans, m
         for current_vals_at_certain_node_gran in metrics_to_time_to_granularity_lists[metric][time_gran]:
             # note that there is also an implicit time granularity from the for loop way up above
             # okay, so this is where it I'd call the function that looks for other stuff
-            points_to_plot, start_index_ptp, end_index_ptp = get_points_to_plot(time_gran, current_vals_at_certain_node_gran, exfil_start, exfil_end, wiggle_room, exp_length)
+            points_to_plot, start_index_ptp, end_index_ptp = get_points_to_plot(time_gran, current_vals_at_certain_node_gran, exfil_start, exfil_end, wiggle_room)
             non_exfil_points_to_plot = get_non_exfil_points_to_plot(current_vals_at_certain_node_gran, start_index_ptp, end_index_ptp)
             print "points_to_plot", metric, time_gran, points_to_plot, number_positions_on_graph[i]
             # plt.plot([1,1,1], [6,7,8], marker='o', markersize=3, color="red")
@@ -1770,7 +1770,7 @@ def make_multi_time_nan_bars(metrics_to_time_to_granularity_nans, time_grans, no
 
     plt.savefig(graph_name + '.png', format='png')
 
-def get_points_to_plot(time_grand, vals, exfil_start, exfil_end, wiggle_room, exp_length):
+def get_points_to_plot(time_grand, vals, exfil_start, exfil_end, wiggle_room):
     # note: there might be multiple vals for each time period. Exp_length is deal with that.
     # note: but I am going to assume there is the same number of during each time slice (not
     # necessariylly the case, but still an assumption that I will make)
@@ -1780,20 +1780,22 @@ def get_points_to_plot(time_grand, vals, exfil_start, exfil_end, wiggle_room, ex
     #30 - 50
     #30 / 10 = 3
     #50 / 10 = 5 (if slicing going t want to add one more)
-    vals_per_time_interval = len(vals) / (exp_length / float(time_grand))
+   # vals_per_time_interval = len(vals) / (exp_length / float(time_grand))
 
-    print "exfil_start", exfil_start, "exfil_end", exfil_end, "time_grand", time_grand, "vals_per_time_interval", vals_per_time_interval
-    if not (vals_per_time_interval).is_integer():
-        return [], None, None # if different vals per time interval -> won't be able to find exfiltrated points
+    print "exfil_start", exfil_start, "exfil_end", exfil_end, "time_grand", time_grand#, "vals_per_time_interval", vals_per_time_interval
+    #if not (vals_per_time_interval).is_integer():
+    #    return [], None, None # if different vals per time interval -> won't be able to find exfiltrated points
     if exfil_start and exfil_end:
-        start_index = int(float(exfil_start - wiggle_room) / time_grand) * vals_per_time_interval
-        end_index = int(float(exfil_end + wiggle_room) / time_grand) * vals_per_time_interval
+        start_index = int(float(exfil_start - wiggle_room) / time_grand)# * vals_per_time_interval
+        end_index = int(float(exfil_end + wiggle_room) / time_grand) #* vals_per_time_interval
         #print "indices", start_index, end_index
         return vals[start_index : end_index + 1], start_index, end_index
     else:
         return [], None, None
 
 def get_non_exfil_points_to_plot(vals, start_index_ptp, end_index_ptp):
+    if start_index_ptp == None or end_index_ptp == None:
+        return vals
     return vals[:start_index_ptp] + vals[end_index_ptp + 1:]
 
 def calc_graph_metrics_processed_docker_swarm(G_list, svcs, calc_vals_p, basegraph_name, container_or_class, time_interval):
@@ -1901,7 +1903,7 @@ def calc_graph_metrics_processed_docker_swarm(G_list, svcs, calc_vals_p, basegra
             spamwriter = csv.writer(csvfile, delimiter=',',
                                         quotechar='|', quoting=csv.QUOTE_MINIMAL)
             for value_name, value in calculated_values.iteritems():
-                if len(value) < 131030: # if larger than that, will not be able to read it in
+                if len(value) < 120000: # if larger than that, will not be able to read it in
                     spamwriter.writerow([value_name, [i if not math.isnan(i) else (None) for i in value]])
     else:
         calculated_values = {}
