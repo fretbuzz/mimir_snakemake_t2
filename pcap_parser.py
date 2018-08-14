@@ -81,18 +81,18 @@ def map_ip_to_ms(file_path, microservices):
 def parse_pcap(a, time_intervals, mapping, basefile_name, start_time, end_time):
     # okay, so what I want is a dictionary mapping time intervals to graph_dictionaries
     time_to_graphs = {}
-    print "pcap start time", a[0].time, "pcap end time", a[-1].time
-    print "start time using", start_time, "end time using", end_time
-    time_elapsed = end_time - start_time
-    print "elapsed time (that I'm using (i.e. not the pcap))", time_elapsed, " sec"
-    num_time_intervals = int(math.ceil(time_elapsed / time_intervals))
-    print "there should be ", num_time_intervals, " time intervals"
-    for i in range(0, num_time_intervals):
-        time_to_graphs[i] = {}
+    #print "pcap start time", a[0].time, "pcap end time", a[-1].time
+    #print "start time using", start_time, "end time using", end_time
+    #time_elapsed = end_time - start_time
+    #print "elapsed time (that I'm using (i.e. not the pcap))", time_elapsed, " sec"
+    #num_time_intervals = int(math.ceil(time_elapsed / time_intervals))
+    #print "there should be ", num_time_intervals, " time intervals"
+    #for i in range(0, num_time_intervals):
+    #    time_to_graphs[i] = {}
 
 
     current_time_interval = 0
-    #time_to_graphs[current_time_interval] = {}
+    time_to_graphs[current_time_interval] = {}
 
     for a_pkt in a:
         if a_pkt.time > end_time:
@@ -100,7 +100,7 @@ def parse_pcap(a, time_intervals, mapping, basefile_name, start_time, end_time):
 
         if a_pkt.time - (start_time + current_time_interval * time_intervals) > time_intervals:
             current_time_interval += 1
-            #time_to_graphs[current_time_interval] = {}
+            time_to_graphs[current_time_interval] = {}
 
         #a_pkt.show()
         #print len(a_pkt)
@@ -168,7 +168,7 @@ def parse_pcap(a, time_intervals, mapping, basefile_name, start_time, end_time):
     #'''
     time_counter = 0
     filesnames = []
-    for interval in range(0,num_time_intervals):
+    for interval in range(0,current_time_interval):
         filename = write_to_file(time_to_parsed_mapping[interval], time_counter, time_intervals, basefile_name)
         time_counter += time_intervals
         filesnames.append(filename)
@@ -420,8 +420,12 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
     # problem, don't know how long the
     # going to divide the time intervals here. Input the list such that the you are fine with the first pcap
     # file being used for this.
+    end_time = None
+    start_time = None
     if start_time==None or end_time==None or make_edgefiles_p:
         current_pcap = rdpcap(pcap_paths[0])
+        #sniff(offline=pcap_paths[0], prn= lambda x: x.time, store=0)
+
         #with PcapReader(pcap_paths[0]) as pr:
         #for p in pr:
         fst_pkt = current_pcap[0]

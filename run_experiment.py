@@ -90,7 +90,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
     exfil_path = config_params["exfiltration_info"]["exfiltration_path_class"]
     for proxy_class in exfil_path[:-1]:
         print "current proxy class", proxy_class
-        possible_proxies[proxy_class], class_to_networks[proxy_class] = get_class_instances(orchestrator, proxy_class, class_to_net[proxy_class])
+        possible_proxies[proxy_class], class_to_networks[proxy_class] = get_class_instances(orchestrator, proxy_class, class_to_net)
         print "new possible proxies", possible_proxies[proxy_class]
         print "new class_to_network mapping", class_to_networks[proxy_class]
         num_proxies_of_this_class = int(config_params["exfiltration_info"]
@@ -103,7 +103,8 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
     originator_class = config_params["exfiltration_info"]["exfiltration_path_class"][-1]
     possible_originators = {}
     print "originator class", originator_class
-    possible_originators[originator_class], class_to_networks[originator_class] = get_class_instances(orchestrator, originator_class, class_to_net[originator_class])
+    possible_originators[originator_class], class_to_networks[originator_class] = get_class_instances(orchestrator, originator_class, class_to_net)
+    print "originator instances", possible_originators[originator_class]
     num_originators = int(config_params["exfiltration_info"]
                                     ["exfiltration_path_how_many_instances_for_each_class"][-1])
     print "num originators", num_originators
@@ -171,22 +172,31 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
     # todo: modify for 1-n, n-1, n-n
     print "ex", exfil_path[0], proxy_instance_to_networks_to_ip[ selected_proxies[exfil_path[0]][0] ]
     srcs = []
-    for proxy_instance in selected_proxies[exfil_path[0]]:
-        for network, ip_ad in proxy_instance_to_networks_to_ip[ proxy_instance ].iteritems():
-            print "finding proxy for local", network.name, ip_ad
-            if network.name == 'ingress':
-                srcs.append(ip_ad)
-                break
-    if srcs == []:
-        print "cannot find the the hop-point immediately before the local DET instance"
-        exit(1)
+    if orchestrator == "docker_swarm":
+        for proxy_instance in selected_proxies[exfil_path[0]]:
+            for network, ip_ad in proxy_instance_to_networks_to_ip[ proxy_instance ].iteritems():
+                print "finding proxy for local", network.name, ip_ad
+                if network.name == 'ingress':
+                    srcs.append(ip_ad)
+                    break
+        if srcs == []:
+            print "cannot find the the hop-point immediately before the local DET instance"
+            exit(1)
+    elif orchestrator == 'kubernetes':
+        # okay, going things are a little different for the k8s case...
+        # how does k8s do ingress?
+        # i'm having a hard time figuring it out, but it appears that it'd appear as if
+        # the packets came from the vm
+        srcs = [ip]
+    else:
+        pass
     #srcs = [ proxy_instance_to_networks_to_ip[ selected_proxies[exfil_path[0]][0] ]['ingress'] ]
     #'''
     print "srcs for local", srcs
     #'''
 
     start_det_server_local(exfil_protocol, srcs, maxsleep, max_exfil_bytes_in_packet,
-                           min_exfil_bytes_in_packet, experiment_name)
+                       min_exfil_bytes_in_packet, experiment_name)
     #'''
     # now setup the originator (i.e. the client that originates the exfiltrated data)
     # todo: explicit_target from the config file (exp_six)... if it has corresponding src and dst values
@@ -206,6 +216,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
     for class_name, container_instances in selected_originators.iteritems():
         for container in container_instances:
             for next_instance_ip in next_instance_ips:
+                pass
                 file_to_exfil = setup_config_file_det_client(next_instance_ip, container, directory_to_exfil, regex_to_exfil,
                                                          maxsleep, min_exfil_bytes_in_packet, max_exfil_bytes_in_packet)
                 files_to_exfil.append(file_to_exfil)
@@ -218,6 +229,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
         # step (3b) get docker configs for docker containers (assuming # is constant for the whole experiment)
         container_id_file = experiment_name + '_docker' + '_' + str(i) + '_networks.txt'
         container_config_file = experiment_name + '_docker' '_' + str(i) +  '_network_configs.txt'
+
         try:
             os.remove(container_id_file)
         except:
@@ -232,6 +244,16 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
         out = subprocess.check_output(['bash', './src/docker_network_configs.sh', container_id_file, container_config_file])
         print out
 
+        if orchestrator == 'kubernetes':
+            # need some info about services, b/c they are not in the docker network configs
+            svc_config_file = experiment_name + '_svc_config' '_' + str(i) + '.txt'
+            try:
+                os.remove(svc_config_file)
+            except:
+                print svc_config_file, "   ", "does not exist"
+            out = subprocess.check_output(['bash', './src/kubernetes_svc_config.sh', svc_config_file])
+            print out
+
         # step (5) start load generator (okay, this I can do!)
         start_time = time.time()
         max_client_count = int( config_params["experiment"]["number_background_locusts"])
@@ -245,13 +267,21 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
         for network_id, network_namespace in network_ids_to_namespaces.iteritems():
             if network_id == 'ingress_sbox':
                 current_network_name = 'ingress_sbox'
+            elif network_id == 'bridge': # for minikube
+                current_network_name = 'default_bridge'
             else:
                 current_network =  client.networks.get(network_id)
                 current_network_name = current_network.name
-            print "about to tcpdump on:", current_network.name
-            filename = experiment_name + '_' + current_network_name + '_' + str(i) + '.pcap'
-            thread.start_new_thread(start_tcpdump, (orchestrator, network_namespace, str(int(experiment_length)), filename))
-
+            print "about to tcpdump on:", current_network_name
+            filename = experiment_name + '_' + current_network_name + '_' + str(i)
+            if orchestrator == 'docker_swarm':
+                thread.start_new_thread(start_tcpdump, (None, network_namespace, str(int(experiment_length)), filename + '.pcap'))
+            elif orchestrator == 'kubernetes':
+                interfaces = ['any'] #['docker0', 'eth0', 'eth1']
+                for interface in interfaces:
+                    thread.start_new_thread(start_tcpdump, (interface, network_namespace, str(int(experiment_length)), filename + interface + '.pcap'))
+            else:
+                pass
 
         # step (6) start data exfiltration at the relevant time
         ## this will probably be a fairly simple modification of part of step 3
@@ -293,7 +323,6 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
         #print "succeeded requests", succeeded_requests, 'failed_requests', failed_requests, "fail percentage", fail_percentage
         subprocess.call(['cat', './' + experiment_name + '_locust_info.csv' ])
 
-        # todo: does this stuff work?
         subprocess.call(['cp', './' + experiment_name + '_locust_info.csv', './' + experiment_name + '_locust_info_' +
                           str(i) + '.csv' ])
         # for det, I think just cp and then delete the old file should do it?
@@ -334,6 +363,9 @@ def prepare_app(app_name, config_params, ip, port):
         #with open('./' + app_name + '_debugging_background_gen.txt', 'a') as f:
         #    print >> f, out
         print out
+    elif app_name == "wordpress":
+        print "wordpress must be prepared manually (via the the /admin panel and Fakerpress)"
+        exit(12)
     else:
         # TODO TODO TODO other applications will require other setup procedures (if they can be automated) #
         # note: some cannot be automated (i.e. wordpress)
@@ -402,6 +434,11 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
             #proc = subprocess.Popen(["locust", "-f", "./load_generators/wordpress_background.py", "--host=https://192.168.99.103:31758",
             #                        "--no-web", "-c", client_count, "-r", spawn_rate],
             #                        stdout=devnull, stderr=devnull, preexec_fn=os.setsid)
+            elif app_name == "wordpress":
+                wordpress_cmds = ["locust", "-f", "./load_generators/wordpress_background.py", "--host=https://"+ip+ ":" +str(port),
+                                  "--no-web", "-c", client_count, "-r", spawn_rate, "--csv=" + locust_info_file]
+                print "wordpress_cmds", wordpress_cmds
+                proc = subprocess.Popen(wordpress_cmds, preexec_fn=os.setsid, stdout=devnull, stderr=devnull)
             else:
                 print "ERROR WITH START BACKGROUND TRAFFIC- NAME NOT RECOGNIZED"
                 exit(5)
@@ -447,21 +484,26 @@ def get_IP(orchestrator):
 # note this may need to be implemented as a seperate thread
 # in which case it'll also need experimental time + will not need
 # to reset the bash situation
-def start_tcpdump(orchestrator, network_namespace, tcpdump_time, filename):
-    if orchestrator == "kubernetes":
-        pass
-    elif orchestrator == "docker_swarm":
-        # ssh root@MachineB 'bash -s' < local_script.sh
-        #args = ["docker-machine", "ssh", "default",  "-s", "./src/start_tcpdump.sh"]
-        #, network_namespace, tcpdump_time,
-                #orchestrator, filename
-        #out = subprocess.check_output(args)
-        #print out
-        #args = ['docker-machine', 'ssh', 'default', '-t', "sudo ls /var/run/docker/netns"]
+def start_tcpdump(interface, network_namespace, tcpdump_time, filename):
+    #if orchestrator == "kubernetes":
+    #    pass
+    #elif orchestrator == "docker_swarm":
+    # ssh root@MachineB 'bash -s' < local_script.sh
+    #args = ["docker-machine", "ssh", "default",  "-s", "./src/start_tcpdump.sh"]
+    #, network_namespace, tcpdump_time,
+            #orchestrator, filename
+    #out = subprocess.check_output(args)
+    #print out
+    #args = ['docker-machine', 'ssh', 'default', '-t', "sudo ls /var/run/docker/netns"]
 
-        start_netshoot = "docker run -it --rm -v /var/run/docker/netns:/var/run/docker/netns -v /home/docker:/outside --privileged=true nicolaka/netshoot"
-        print network_namespace, tcpdump_time
-        switch_namespace =  'nsenter --net=/var/run/docker/netns/' + network_namespace + ' ' 'sh'
+    start_netshoot = "docker run -it --rm -v /var/run/docker/netns:/var/run/docker/netns -v /home/docker:/outside --privileged=true nicolaka/netshoot"
+    print network_namespace, tcpdump_time
+    switch_namespace =  'nsenter --net=/var/run/docker/netns/' + network_namespace + ' ' 'sh'
+
+    # so for docker swarm this is pretty simple, b/c there is really just a single candidate
+    # in each network namespace. But for k8s, it appears that there is a decent-size number
+    # of interfaces even tho there is a relatively-small number of network namespaces
+    if not interface:
         if network_namespace == "bridge":
             interface = "eth0"
             switch_namespace = 'su'
@@ -470,54 +512,85 @@ def start_tcpdump(orchestrator, network_namespace, tcpdump_time, filename):
             # this is stuff that arrives on the routing mesh
         else:
             interface = "br0"
-        start_tcpdum = "tcpdump -G " + tcpdump_time + ' -W 1 -i ' + interface + ' -w /outside/' + filename
-        cmd_to_send = start_netshoot + ';' + switch_namespace + ';' + start_tcpdum
-        print "cmd_to_send", cmd_to_send
-        print "start_netshoot", start_netshoot
-        print "switch_namespace", switch_namespace
-        print "start_tcpdum", start_tcpdum
+    start_tcpdum = "tcpdump -G " + tcpdump_time + ' -W 1 -i ' + interface + ' -w /outside/' + filename + ' -n'
+    cmd_to_send = start_netshoot + ';' + switch_namespace + ';' + start_tcpdum
+    print "cmd_to_send", cmd_to_send
+    print "start_netshoot", start_netshoot
+    print "switch_namespace", switch_namespace
+    print "start_tcpdum", start_tcpdum
 
-        args = ['docker-machine', 'ssh', 'default', '-t', cmd_to_send]
+    args = ['docker-machine', 'ssh', 'default', '-t', cmd_to_send]
 
+    if orchestrator == 'docker_swarm':
         child = pexpect.spawn('docker-machine ssh default')
         child.expect('##')
-        print child.before, child.after
-        print "###################"
-        child.sendline(start_netshoot)
-        child.expect('Netshoot')
-        print child.before, child.after
-        child.sendline(switch_namespace)
-        child.expect('#')
-        print child.before, child.after
-        child.sendline(start_tcpdum)
-        child.expect('bytes')
-        print child.before, child.after
-        print "okay, all commands sent!"
-        #print "args", args
-        #out = subprocess.Popen(args)
-        #print out
+    elif orchestrator == 'kubernetes':
+        child = pexpect.spawn('minikube ssh')
+        child.expect(' ( ) ')
+    else:
+        print "orchestrator not recognized"
+        exit(23)
 
-        time.sleep(int(tcpdump_time) + 2)
+    print child.before, child.after
+    print "###################"
+    child.sendline(start_netshoot)
+    child.expect('Netshoot')
+    print child.before, child.after
+    child.sendline(switch_namespace)
+    child.expect('#')
+    print child.before, child.after
+    child.sendline(start_tcpdum)
+    child.expect('bytes')
+    print child.before, child.after
+    print "okay, all commands sent!"
+    #print "args", args
+    #out = subprocess.Popen(args)
+    #print out
 
-        # don't want to leave too many docker containers running
-        child.sendline('exit')
-        child.sendline('exit')
+    time.sleep(int(tcpdump_time) + 2)
 
-        # tcpdump file is safely on minikube but we might wanna move it all the way to localhost
+    # don't want to leave too many docker containers running
+    child.sendline('exit')
+    child.sendline('exit')
+
+    if orchestrator == 'docker_swarm':
         args2 = ["docker-machine", "scp",
                  "docker@default:/home/docker/" + filename, filename]
-        out = subprocess.check_output(args2)
-        print out
+    elif orchestrator == 'kubernetes':
+        args2 = ["scp", "-i", "$(minikube ssh-key)", '-o', 'StrictHostKeyChecking=no',
+                 '-o', 'UserKnownHostsFile=/dev/null', "docker@$(minikube ip):/home/docker/" + filename,
+                 filename]
+    else:
+        print "orchestrator not recognized"
+        exit(23)
+    # tcpdump file is safely on minikube but we might wanna move it all the way to localhost
+    out = subprocess.check_output(args2)
+    print out
 
 
 # returns a list of container names that correspond to the
 # selected class
-def get_class_instances(orchestrator, class_name, networks):
+def get_class_instances(orchestrator, class_name, class_to_net):
     print "finding class instances for: ", class_name
     if orchestrator == "kubernetes":
-        # TODo
-        pass
+        client = docker.from_env(timeout=300)
+        container_instances = []
+        for container in client.containers.list():
+            #print "container", container, container.name
+            if class_name in container.name:
+                print class_name, container.name
+                container_instances.append(container)
+
+        for network in client.networks.list():
+            if 'bridge' in network.name:
+                # only want this network
+                container_networks_attached = [network]
+                break
+
+        return container_instances, list(set(container_networks_attached))
+
     elif orchestrator == "docker_swarm":
+        networks = class_to_net[class_name]
         client = docker.from_env(timeout=300)
         container_instances = []
         container_networks_attached = []
@@ -528,19 +601,7 @@ def get_class_instances(orchestrator, class_name, networks):
                 print class_name, container.name
                 container_instances.append(container)
                 #container_networks_attached.append(network)
-        '''
-        for network in client.networks.list(greedy=True):
-            try:
-                #print 'note', network, network.containers
-                for container in network.containers:
-                    print "containers", network.containers
-                    if class_name +'.' in container.name:
-                        print class_name, container.name
-                        container_instances.append(container)
-                        container_networks_attached.append(network)
-            except Exception as e:
-                print network.name, "has hidden containers...", "error", e
-        #'''
+
         for network in client.networks.list():
             for connected_nets in networks:
                 if connected_nets in network.name:
@@ -553,8 +614,9 @@ def get_class_instances(orchestrator, class_name, networks):
 
 def get_network_ids(orchestrator, list_of_network_names):
     if orchestrator == "kubernetes":
-        #TODO
-        pass
+        # using minikube, so only two networks that I need to handle
+        # bridge and host
+        return list_of_network_names
     elif orchestrator == "docker_swarm":
         network_ids = []
         client = docker.from_env()
@@ -575,31 +637,46 @@ def get_network_ids(orchestrator, list_of_network_names):
 
 
 def map_container_instances_to_ips(orchestrator, class_to_instances, class_to_networks):
+    #if orchestrator == "docker_swarm":
+    # i think this can work for both orchestrators
     instance_to_networks_to_ip = {}
     print "class_to_instance_names", class_to_instances.keys()
     print class_to_instances
+    ice = 0
     for class_name, containers in class_to_instances.iteritems():
         print 'class_to_networks[class_name]', class_to_networks[class_name], class_name,  class_to_networks
         for container in containers:
             instance_to_networks_to_ip[ container ] = {}
             container_atrribs =  container.attrs
+
             for connected_network in class_to_networks[class_name]:
+                ice += 1
                 instance_to_networks_to_ip[container][connected_network] = []
                 try:
+                    print "container_attribs", container_atrribs["NetworkSettings"]["Networks"]
+                    print "connected_network.name", connected_network, 'end connected network name'
                     ip_on_this_network = container_atrribs["NetworkSettings"]["Networks"][connected_network.name]["IPAddress"]
                     instance_to_networks_to_ip[container][connected_network] = ip_on_this_network
                 except:
                     pass
-
+    print "ice", ice
     print "instance_to_networks_to_ip", instance_to_networks_to_ip
     return instance_to_networks_to_ip
-
+    #elif orchestrator == "kubernetes":
+        # okay, so that strategy above is not going to work here b/c the container configs
+        # don't contain this info. However, there's only a single network that we know everyting
+        # is attached to, so let's just try that?
+        # for container in client.networks.get('bridge').containers:
+        #print container.attrs["NetworkSettings"]["Networks"]['bridge']["IPAddress"]
+        #pass
+    #else:
+    pass # maybe want to return an error?
 
 def install_det_dependencies(orchestrator, container, installer):
-    if orchestrator == 'kubernetes':
-        ## todo
-        pass
-    elif orchestrator == "docker_swarm":
+    #if orchestrator == 'kubernetes':
+    #    ## todo
+    #    pass
+    if orchestrator == "docker_swarm" or orchestrator == 'kubernetes':
         # okay, so want to read in the relevant bash script
         # make a list of lists, where each list is a line
         # and then send each to the container
@@ -645,8 +722,11 @@ def install_det_dependencies(orchestrator, container, installer):
 def map_network_ids_to_namespaces(orchestrator, full_network_ids):
     network_ids_to_namespaces = {}
     if orchestrator == 'kubernetes':
-        ## todo
-        pass
+        network_ids_to_namespaces = {}
+        for full_id in full_network_ids:
+            if full_id == 'bridge':
+                network_ids_to_namespaces['bridge'] = 'default'
+        return network_ids_to_namespaces
     elif orchestrator == "docker_swarm":
         # okay, so this is what we need to do
         # (1) get the network namespaces on the vm
@@ -690,10 +770,10 @@ def map_network_ids_to_namespaces(orchestrator, full_network_ids):
 # note: det must be a single ip, in string form, ATM
 def start_det_proxy_mode(orchestrator, container, srcs, dst, protocol, maxsleep, maxbytesread, minbytesread):
     network_ids_to_namespaces = {}
-    if orchestrator == 'kubernetes':
+    #if orchestrator == 'kubernetes':
         ## todo
-        pass
-    elif orchestrator == "docker_swarm":
+    #    pass
+    if orchestrator == "docker_swarm" or orchestrator == 'kubernetes':
         # okay, so this is what we need to do here
         # (0) create a new config file
             # probably want to use sed (#coreutilsonly)
@@ -1035,11 +1115,19 @@ if __name__=="__main__":
     else:
         ip = args.vm_ip
 
+    if orchestrator == "docker_swarm":
+        path_to_docker_machine_tls_certs = "/users/jsev/.docker/machine/machines/default"
+    elif orchestrator == "kubernetes":
+        # note: this assumes that minikube is deployed on my laptop (as opposed to on the cloud)
+        path_to_docker_machine_tls_certs = "/Users/jseverin/.minikube/certs"
+    else:
+        print "orchestrator not recognized"
+        exit(11)
+
     # need to setup some environmental variables so that the docker python api will interact with
     # the docker daemon on the docker machine
     docker_host_url = "tcp://" + ip + ":" + args.docker_daemon_port
     print "docker_host_url", docker_host_url
-    path_to_docker_machine_tls_certs = "/users/jsev/.docker/machine/machines/default"
     print "path_to_docker_machine_tls_certs", path_to_docker_machine_tls_certs
     os.environ['DOCKER_HOST'] = docker_host_url
     os.environ['DOCKER_TLS_VERIFY'] = "1"

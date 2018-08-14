@@ -43,6 +43,7 @@ def pipeline_analysis_step(filenames, ms_s, time_interval, basegraph_name, calc_
     list_of_unprocessed_graphs = []
     counter= 0 # let's not make more than 50 images of graphs
 
+    svcs = None
     if calc_vals_p:
         for file_path in filenames:
             G = nx.DiGraph()
@@ -281,7 +282,7 @@ def pipeline_analysis_step(filenames, ms_s, time_interval, basegraph_name, calc_
 
             counter += 1
     # todo: re-enable (when ready...)
-    '''
+    #'''
     total_calculated_values[(time_interval, 'container')] = calc_graph_metrics(list_of_graphs, ms_s, time_interval,
                                                                                basegraph_name + '_container_', 'container',
                                                                                calc_vals_p, window_size)
@@ -289,7 +290,7 @@ def pipeline_analysis_step(filenames, ms_s, time_interval, basegraph_name, calc_
     total_calculated_values[(time_interval, 'class')] = calc_graph_metrics(list_of_aggregated_graphs, ms_s, time_interval,
                                                                            basegraph_name + '_class_', 'class', calc_vals_p,
                                                                            window_size)
-    #list_of_unprocessed_graphs
+    # '''
     total_calculated_values[(time_interval, 'unprocessed_container')] = calc_graph_metrics(list_of_unprocessed_graphs, ms_s, time_interval,
                                                                                            basegraph_name + '_unprocessed_container_',
                                                                                            'unprocessed_container',
@@ -297,10 +298,10 @@ def pipeline_analysis_step(filenames, ms_s, time_interval, basegraph_name, calc_
     # '''
     if is_swarm:
         print "about to calculate the expected structural characteristics for r swarm..."
-        #total_calculated_values[(time_interval, 'container')].update(calc_graph_metrics_processed_docker_swarm(list_of_graphs, svcs,
-        #                                                   calc_vals_p, basegraph_name + '_container_', 'container', time_interval))
-        total_calculated_values[(time_interval, 'container')] = calc_graph_metrics_processed_docker_swarm(list_of_graphs, svcs,
-                                                           calc_vals_p, basegraph_name + '_container_', 'container', time_interval)
+        total_calculated_values[(time_interval, 'container')].update(calc_graph_metrics_processed_docker_swarm(list_of_graphs, svcs,
+                                                           calc_vals_p, basegraph_name + '_container_', 'container', time_interval))
+        #total_calculated_values[(time_interval, 'container')] = calc_graph_metrics_processed_docker_swarm(list_of_graphs, svcs,
+        #                                                   calc_vals_p, basegraph_name + '_container_', 'container', time_interval)
     #'''
     return total_calculated_values
 
@@ -1874,13 +1875,20 @@ def calc_graph_metrics_processed_docker_swarm(G_list, svcs, calc_vals_p, basegra
                 for key_container in list(set(map_svc_to_container_to_in[key_svc].keys() +  map_svc_to_container_to_out[key_svc].keys() )):
                     if key_svc not in svc_to_list_of_in_out_ratio.keys():
                         svc_to_list_of_in_out_ratio[key_svc] = []
-                    svc_to_list_of_in_out_ratio[key_svc].append(map_svc_to_container_to_in[key_svc][key_container] / map_svc_to_container_to_out[key_svc][key_container])
+                    try:
+                        current_in_val = map_svc_to_container_to_in[key_svc][key_container]
+                        current_out_val = map_svc_to_container_to_out[key_svc][key_container]
+                        svc_to_list_of_in_out_ratio[key_svc].append(current_in_val / current_out_val)
+                    except:
+                        svc_to_list_of_in_out_ratio[key_svc].append(float('NaN'))
 
             print "map_svc_lb_to_weight", map_svc_lb_to_weight
             for key,val in map_svc_lb_to_weight_at_this_timestamp.iteritems():
                 if key not in map_svc_lb_to_weight:
                     map_svc_lb_to_weight[key] = []
-                map_svc_lb_to_weight[key].extend(val)
+                # I want some value that will capture the spread of the data in a single number
+                spread = (max(val) - min(val)) / float(max(val))
+                map_svc_lb_to_weight[key].append(spread)
 
         # the first has (time steps * (# of containers in service)) values in each list (indexed by svc)
         # the second has (time steps * (# of containers * # of lbs)) (indexed by ms_svc and lb_ms)
@@ -1893,7 +1901,8 @@ def calc_graph_metrics_processed_docker_swarm(G_list, svcs, calc_vals_p, basegra
             spamwriter = csv.writer(csvfile, delimiter=',',
                                         quotechar='|', quoting=csv.QUOTE_MINIMAL)
             for value_name, value in calculated_values.iteritems():
-                spamwriter.writerow([value_name, [i if not math.isnan(i) else (None) for i in value]])
+                if len(value) < 131030: # if larger than that, will not be able to read it in
+                    spamwriter.writerow([value_name, [i if not math.isnan(i) else (None) for i in value]])
     else:
         calculated_values = {}
         with open(basegraph_name + '_processed_docker_swarm_vales_' + container_or_class + '_' + '%.2f' % (time_interval) + '.txt',

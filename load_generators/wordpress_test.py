@@ -29,7 +29,7 @@ print password
 # Required: username, email, password
 
 s = requests.Session()
-minikube_ip = '192.168.99.103'
+minikube_ip = '192.168.99.100'
 wp_port = '31758'
 # https://192.168.99.103:31758
 
