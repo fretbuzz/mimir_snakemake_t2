@@ -1,6 +1,6 @@
 {
     "application_name": "atsea_store",
-    "experiment_name": "atsea_store_four",
+    "experiment_name": "atsea_store_six",
     "orchestrator": "docker_swarm",
     "networks_to_tcpdump_on": ["atsea_back-tier", "atsea_default", "atsea_front-tier", "atsea_payment", "ingress"],
     "ingess_class": ["reverse_proxy"],
@@ -13,7 +13,7 @@
     "experiment" : {
       "number_background_locusts": "110",
       "background_locust_spawn_rate": "10",
-      "experiment_length_sec": "900",
+      "experiment_length_sec": "712",
       "traffic_type" : "normal",
       "number_of_trials": "1"
     },
@@ -21,7 +21,8 @@
       "exfiltration_path_class":[ "reverse_proxy",  "appserver", "database" ],
       "exfiltration_path_how_many_instances_for_each_class":[ "1", "1", "1" ],
       "exfiltration_path_class_which_installer": {"reverse_proxy": "apk", "appserver":"apk", "database":"apt"},
-      "explicit_target_src": {"reverse_proxy": ["None", ["10.0.8.5"]],  "appserver": [["10.0.11.3"], ["10.0.8.5"]], "database": [["10.0.8.5"], "None"]},
+      "path_description": "send to VIP of next service and expect from the lb of the overlay network",
+      "explicit_target_src": {"reverse_proxy": ["None", ["10.0.2.2"]],  "appserver": [["10.0.2.3"], ["10.0.3.2"]], "database": [["10.0.3.5"], "None"]},
       "exfil_protocol": "tcp",
       "folder_to_exfil": "/var/lib/postgresql/data/base/1/",
       "regex_of_file_to_exfil": "\"2838*\"",
