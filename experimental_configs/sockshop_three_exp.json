@@ -1,4 +1,5 @@
 {
+    "NOTE": "Looking at the graph apparently this is kubernetes?",
     "application_name": "sockshop",
     "experiment_name": "sockshop_three",
     "orchestrator": "docker_swarm",

@@ -37,7 +37,7 @@ CLIENT_RATIO_CYBER = [0.0328, 0.0255, 0.0178, 0.0142, 0.0119, 0.0112, 0.0144, 0.
 0.0574, 0.0571, 0.0568, 0.0543, 0.0532, 0.0514, 0.0514, 0.0518, 0.0522, 0.0571, 0.0609, 0.0589, 0.0564]
 
 
-def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, install_det_depen_p):
+def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, install_det_depen_p, exfil_p):
     # step (1) read in the config file
     with open(config_file + '.json') as f:
         config_params = json.load(f)
@@ -164,8 +164,9 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
         for container in container_instances:
             for dst in dsts:
                 print "config stuff", container.name, srcs, dst, proxy_instance_to_networks_to_ip[ container ]
-                start_det_proxy_mode(orchestrator, container, srcs, dst, exfil_protocol,
-                                        maxsleep, max_exfil_bytes_in_packet, min_exfil_bytes_in_packet)
+                if exfil_p:
+                    start_det_proxy_mode(orchestrator, container, srcs, dst, exfil_protocol,
+                                            maxsleep, max_exfil_bytes_in_packet, min_exfil_bytes_in_packet)
 
     # start the endpoint (assuming the pre-reqs are installed prior to the running of this script)
     # todo: modify this for the k8s scaneario
@@ -195,8 +196,9 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
     print "srcs for local", srcs
     #'''
 
-    start_det_server_local(exfil_protocol, srcs, maxsleep, max_exfil_bytes_in_packet,
-                       min_exfil_bytes_in_packet, experiment_name)
+    if exfil_p:
+        start_det_server_local(exfil_protocol, srcs, maxsleep, max_exfil_bytes_in_packet,
+                           min_exfil_bytes_in_packet, experiment_name)
     #'''
     # now setup the originator (i.e. the client that originates the exfiltrated data)
     # todo: explicit_target from the config file (exp_six)... if it has corresponding src and dst values
@@ -216,9 +218,11 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
     for class_name, container_instances in selected_originators.iteritems():
         for container in container_instances:
             for next_instance_ip in next_instance_ips:
-                pass
-                file_to_exfil = setup_config_file_det_client(next_instance_ip, container, directory_to_exfil, regex_to_exfil,
-                                                         maxsleep, min_exfil_bytes_in_packet, max_exfil_bytes_in_packet)
+                if exfil_p:
+                    file_to_exfil = setup_config_file_det_client(next_instance_ip, container, directory_to_exfil, regex_to_exfil,
+                                                             maxsleep, min_exfil_bytes_in_packet, max_exfil_bytes_in_packet)
+                else:
+                    file_to_exfil = ''
                 files_to_exfil.append(file_to_exfil)
 
     print "files_to_exfil", files_to_exfil
@@ -299,23 +303,29 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
         # step (6) start data exfiltration at the relevant time
         ## this will probably be a fairly simple modification of part of step 3
         # for now, assume just a single exfiltration time
-        exfil_start_time = int(config_params["exfiltration_info"]["exfil_start_time"])
-        exfil_end_time = int(config_params["exfiltration_info"]["exfil_end_time"])
+        if exfil_p:
+            exfil_start_time = int(config_params["exfiltration_info"]["exfil_start_time"])
+            exfil_end_time = int(config_params["exfiltration_info"]["exfil_end_time"])
+        else:
+            exfil_start_time = 20 # just put these as random vals b/c nothing will happen anyway
+            exfil_end_time = 40
 
         print "need to wait this long before starting the det client...", start_time + exfil_start_time - time.time()
         print "current time", time.time(), "start time", start_time, "exfil_start_time", exfil_start_time, "exfil_end_time", exfil_end_time
         time.sleep(start_time + exfil_start_time - time.time())
         #file_to_exfil = config_params["exfiltration_info"]["folder_to_exfil"]
-        file_to_exfil = files_to_exfil[0]
-        for class_name, container_instances in selected_originators.iteritems():
-            for container in container_instances:
-                thread.start_new_thread(start_det_client, (file_to_exfil, exfil_protocol, container))
+        if exfil_p:
+            file_to_exfil = files_to_exfil[0]
+            for class_name, container_instances in selected_originators.iteritems():
+                for container in container_instances:
+                    thread.start_new_thread(start_det_client, (file_to_exfil, exfil_protocol, container))
 
         print "need to wait this long before stopping the det client...", start_time + exfil_end_time - time.time()
         time.sleep(start_time + exfil_end_time - time.time())
-        for class_name, container_instances in selected_originators.iteritems():
-            for container in container_instances:
-                stop_det_client(container)
+        if exfil_p:
+            for class_name, container_instances in selected_originators.iteritems():
+                for container in container_instances:
+                    stop_det_client(container)
 
         # step (7) wait, all the tasks are being taken care of elsewhere
         time_left_in_experiment = start_time + int(experiment_length) + 7 - time.time()
@@ -327,10 +337,11 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
         # I don't wanna return while the other threads are still doing stuff b/c I'll get confused
         time.sleep(time_left_in_experiment)
 
-        exfil_info_file_name = './' + experiment_name + '_det_server_local_output.txt'
-        bytes_exfil, start_ex, end_ex = parse_local_det_output(exfil_info_file_name, exfil_protocol)
-        print bytes_exfil, "bytes exfiltrated"
-        print "starting at ", start_ex, "and ending at", end_ex
+        if exfil_p:
+            exfil_info_file_name = './' + experiment_name + '_det_server_local_output.txt'
+            bytes_exfil, start_ex, end_ex = parse_local_det_output(exfil_info_file_name, exfil_protocol)
+            print bytes_exfil, "bytes exfiltrated"
+            print "starting at ", start_ex, "and ending at", end_ex
 
         #succeeded_requests, failed_requests, fail_percentage = sanity_check_locust_performance('./'+ experiment_name + '_locust_info.csv')
         #print "succeeded requests", succeeded_requests, 'failed_requests', failed_requests, "fail percentage", fail_percentage
@@ -339,9 +350,10 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
         subprocess.call(['cp', './' + experiment_name + '_locust_info.csv', './' + experiment_name + '_locust_info_' +
                           str(i) + '.csv' ])
         # for det, I think just cp and then delete the old file should do it?
-        subprocess.call(['cp', './' + experiment_name + '_det_server_local_output.txt', './' + experiment_name +
-                         '_det_server_local_output_' + str(i) + '.txt'])
-        subprocess.call(['truncate', '-s', '0' ,'./' + experiment_name + '_det_server_local_output.txt'])
+        if exfil_p:
+            subprocess.call(['cp', './' + experiment_name + '_det_server_local_output.txt', './' + experiment_name +
+                             '_det_server_local_output_' + str(i) + '.txt'])
+            subprocess.call(['truncate', '-s', '0' ,'./' + experiment_name + '_det_server_local_output.txt'])
 
         ''' # enable if you are using cilium as the network plugin
         cilium_endpoint_args = ["kubectl", "-n", "kube-system", "exec", "cilium-pf6mk", "--", "cilium", "endpoint", "list",
@@ -354,9 +366,10 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
 
     # stopping the proxies can be done the same way (useful if e.g., switching
     # protocols between experiments, etc.)
-    for class_name, container_instances in selected_proxies.iteritems():
-        for container in container_instances:
-            stop_det_client(container)
+    if exfil_p:
+        for class_name, container_instances in selected_proxies.iteritems():
+            for container in container_instances:
+                stop_det_client(container)
 
 
 def prepare_app(app_name, config_params, ip, port):
@@ -668,8 +681,16 @@ def map_container_instances_to_ips(orchestrator, class_to_instances, class_to_ne
     for class_name, containers in class_to_instances.iteritems():
         print 'class_to_networks[class_name]', class_to_networks[class_name], class_name,  class_to_networks
         for container in containers:
+
             instance_to_networks_to_ip[ container ] = {}
-            container_atrribs =  container.attrs
+
+            # TODO: for k8s, cannot actually use the coantiner_attribs for the container.
+            # need to use the attribs of the corresponding pod
+
+            if orchestrator =='kubernetes':
+                container_atrribs = find_corresponding_pod_attribs(container.name) ### TODO ####
+            else:
+                container_atrribs =  container.attrs
 
             for connected_network in class_to_networks[class_name]:
                 ice += 1
@@ -692,7 +713,16 @@ def map_container_instances_to_ips(orchestrator, class_to_instances, class_to_ne
         #print container.attrs["NetworkSettings"]["Networks"]['bridge']["IPAddress"]
         #pass
     #else:
-    pass # maybe want to return an error?
+    #pass # maybe want to return an error?
+
+def find_corresponding_pod_attribs(cur_container_name):
+    client = docker.from_env()
+    # note: this parsing works for wordpress, might not work for others if structure of name is different
+    part_of_name_shared_by_container_and_pod = '_'.join('-'.join(cur_container_name.split('-')[4:]).split('_')[:-1])
+    for container in client.containers.list():
+        # print "containers", network.containers
+        if  part_of_name_shared_by_container_and_pod in container.name and 'POD' in container.name:
+            return container.attrs
 
 def install_det_dependencies(orchestrator, container, installer):
     #if orchestrator == 'kubernetes':
@@ -702,14 +732,14 @@ def install_det_dependencies(orchestrator, container, installer):
         # okay, so want to read in the relevant bash script
         # make a list of lists, where each list is a line
         # and then send each to the container
-        # (I shall pretest it, so I'm just going to ignore error for the moment...)
-
+        ''' # Note: this is only needed for Atsea Shop
         upload_config_command = ["docker", "cp", "./src/modify_resolve_conf.sh", container.id+ ":/modify_resolv.sh"]
         out = subprocess.check_output(upload_config_command)
         print "upload_config_command", upload_config_command, out
 
         out = container.exec_run(['sh', '//modify_resolv.sh'], stream=True, user="root")
         print out
+        '''
 
         if installer == 'apk':
             filename = './install_scripts/apk_det_dependencies.sh'
@@ -720,7 +750,6 @@ def install_det_dependencies(orchestrator, container, installer):
         else:
             print "unrecognized installer, cannot install DET dependencies.."
             filename = ''
-            pass
 
         with open(filename, 'r') as fp:
             read_lines = fp.readlines()
@@ -823,7 +852,7 @@ def start_det_proxy_mode(orchestrator, container, srcs, dst, protocol, maxsleep,
         maxsleeptime_switch = "s/MAXTIMELSLEEP/" + "{:.2f}".format(maxsleep) + "/"
         maxbytesread_switch = "s/MAXBYTESREAD/" + str(maxbytesread) + "/"
         minbytesread_switch = "s/MINBYTESREAD/" + str(minbytesread) + "/"
-        sed_command = ["sed", "-i", "-e",  targetip_switch, "-e", proxiesip_switch, "-e", maxsleeptime_switch,
+        sed_command = ["sed", "-i", "\'\'", "-e",  targetip_switch, "-e", proxiesip_switch, "-e", maxsleeptime_switch,
                        "-e", maxbytesread_switch, "-e", minbytesread_switch, "./current_det_config.json"]
         print "sed_command", sed_command
         out = subprocess.check_output(sed_command)
@@ -1117,7 +1146,9 @@ if __name__=="__main__":
     parser.add_argument('--port',dest="port_number", default='80')
     parser.add_argument('--ip',dest="vm_ip", default='None')
     parser.add_argument('--docker_daemon_port',dest="docker_daemon_port", default='2376')
-
+    parser.add_argument('--no_exfil', dest='exfil_p', action='store_false',
+                        default=True,
+                        help='do NOT perform exfiltration (default is to perform it)')
 
     #  localhost communicates w/ vm over vboxnet0 ifconfig interface, apparently, so use the
     # address there as the response address, in this case it seems to default to the below
@@ -1126,7 +1157,7 @@ if __name__=="__main__":
 
     args = parser.parse_args()
     #print args.restart_minikube, args.setup_sockshop, args.run_experiment, args.analyze, args.output_dict, args.tcpdump, args.on_cloudlab, args.app, args.istio_p, args.hpa
-    print args.exp_name, args.config_file, args.prepare_app_p, args.port_number, args.vm_ip, args.localhostip, args.install_det_depen_p
+    print args.exp_name, args.config_file, args.prepare_app_p, args.port_number, args.vm_ip, args.localhostip, args.install_det_depen_p, args.exfil_p
 
     with open(args.config_file + '.json') as f:
         config_params = json.load(f)
@@ -1156,4 +1187,4 @@ if __name__=="__main__":
     os.environ['DOCKER_CERT_PATH'] = path_to_docker_machine_tls_certs
     client =docker.from_env()
 
-    main(args.exp_name, args.config_file, args.prepare_app_p, int(args.port_number), ip, args.localhostip, args.install_det_depen_p)
+    main(args.exp_name, args.config_file, args.prepare_app_p, int(args.port_number), ip, args.localhostip, args.install_det_depen_p, args.exfil_p)

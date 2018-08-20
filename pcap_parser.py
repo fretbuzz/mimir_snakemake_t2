@@ -425,8 +425,8 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
                 else:
                     current_pcap = PcapReader(current_pcap_path)
                 unmapped_ips, filenames, end_time, unidentified_pkts, weird_timing_pkts = parse_pcap(current_pcap, time_interval_length, mapping,
-                                                            basefile_name, start_time, pcaps_processed_at_time_interval,
-                                                            exfil_start_time, exfil_end_time, wiggle_room)
+                                                            basefile_name, start_time, pcaps_processed_at_time_interval)#,
+                                                            #exfil_start_time, exfil_end_time, wiggle_room)
                 print "unmapped ips", unmapped_ips
                 if current_pcap_path == pcap_paths[0]:
                     interval_to_filenames[str(time_interval_length)] = filenames
