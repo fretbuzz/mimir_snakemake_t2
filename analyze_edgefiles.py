@@ -17,7 +17,7 @@ import ast
 import itertools
 
 def pipeline_analysis_step(filenames, ms_s, time_interval, basegraph_name, calc_vals_p, window_size, container_to_ip,
-                           is_swarm, make_net_graphs_p):
+                           is_swarm, make_net_graphs_p, ):
     list_of_graphs = []
     list_of_aggregated_graphs = [] # all nodes of the same class aggregated into a single node
     list_of_aggregated_graphs_multi = [] # the above w/ multiple edges
@@ -25,7 +25,8 @@ def pipeline_analysis_step(filenames, ms_s, time_interval, basegraph_name, calc_
     list_of_unprocessed_graphs = []
     counter= 0 # let's not make more than 50 images of graphs (per time_interval)
 
-    svcs = None
+    svcs = get_svc_equivalents(is_swarm, container_to_ip)
+    print "these services were found:", svcs
     if make_net_graphs_p or calc_vals_p:
         for file_path in filenames:
             G = nx.DiGraph()
@@ -35,6 +36,11 @@ def pipeline_analysis_step(filenames, ms_s, time_interval, basegraph_name, calc_
 
             # want an 'unprocessed' (just raw from pcaps) and a 'processed' graph (where I use orchestrator-specific knowledge)
             unprocessed_G = G.copy()
+            print "going to use these services to do the mapping", svcs
+            containers_to_ms = map_nodes_to_svcs(unprocessed_G, svcs)
+            print "container to service mapping: ", containers_to_ms
+            nx.set_node_attributes(unprocessed_G, containers_to_ms, 'svc')
+
             list_of_unprocessed_graphs.append(unprocessed_G)
             if is_swarm:
                 mapping = {'192.168.99.1': 'outside'}
@@ -47,10 +53,11 @@ def pipeline_analysis_step(filenames, ms_s, time_interval, basegraph_name, calc_
 
             if counter < 50: # keep # of network graphs to a reasonable amount
                 filename = file_path.replace('.txt', '') + 'unprocessed_network_graph_container.png'
-                make_network_graph(unprocessed_G, edge_label_p=False, filename=filename, figsize=(10,6), node_color_p=False,
+                print "about to make net graph w/ filename", filename
+                make_network_graph(unprocessed_G, edge_label_p=True, filename=filename, figsize=(54,32), node_color_p=False,
                                    ms_s=ms_s)
 
-            G = process_graph(G, is_swarm, container_to_ip, ms_s)
+            G,svcs = process_graph(G, is_swarm, container_to_ip, ms_s)
             if counter < 50: # keep # of network graphs to a reasonable amount
                 filename = file_path.replace('.txt', '') + '_network_graph_container.png'
                 make_network_graph(G, edge_label_p=True, filename=filename, figsize=(54, 32), node_color_p=False,
@@ -76,11 +83,17 @@ def pipeline_analysis_step(filenames, ms_s, time_interval, basegraph_name, calc_
 
     total_calculated_values[(time_interval, 'unprocessed_container')] = calc_graph_metrics(list_of_unprocessed_graphs,
                                                         time_interval, basegraph_name + '_unprocessed_container_',
-                                                        'unprocessed_container', calc_vals_p, window_size)
+                                                       'unprocessed_container', calc_vals_p, window_size)
+    #''' # todo: re-enable
     if is_swarm:
         print "about to calculate the expected structural characteristics for docker swarm..."
         total_calculated_values[(time_interval, 'container')].update(calc_service_specific_graph_metrics(list_of_graphs,
                                         svcs, calc_vals_p, basegraph_name + '_container_', 'container', time_interval))
+        # let's also calculate these specific graph metrics for the raw graphs
+        #total_calculated_values[(time_interval, 'unprocessed_container')].update(calc_service_specific_graph_metrics(list_of_unprocessed_graphs,
+        #                                svcs, calc_vals_p, basegraph_name + '_unprocessed_container_', 'unprocessed_container', time_interval))
+    #'''
+
     return total_calculated_values
 
 def calc_graph_metrics(G_list, time_interval, basegraph_name, container_or_class, calc_vals_p, window_size):
@@ -110,17 +123,13 @@ def calc_graph_metrics(G_list, time_interval, basegraph_name, container_or_class
             # okay, so this is where to calculate those metrics from the excel document
 
             # first, let's do the graph-wide metrics (b/c it is simple) (these are only single values)
-            # todo: this causes problems when one doesn't commmuncaite (e.g. sockshop queue-master
-            # sometimes doesn't do anything)
             try:
                 avg_path_length = nx.average_shortest_path_length(cur_G) #
             except:
                 avg_path_length = float('nan')
-                #for sub_G in (cur_G.subgraph(c) for c in sorted(nx.strongly_connected_components(cur_G), key=len, reverse=True)):
-                #    avg_path_length += nx.average_shortest_path_length(sub_G)
-                # not fully connected, going to add the average (shortest) path length in each strongly connected component
-                # todo: need to weight by the # of components
-                # todo: is this what I want to do here??
+                # note: I could theoretically do something different here (e.g. calc for each subgraph and then
+                # add together in a weighted manner, but I think I'll just do the easier method of placing a 'nan')
+
             try:
                 recip = nx.overall_reciprocity(cur_G)  # if it is not one, then I cna deal w/ looking at dictinoarty
             except :
@@ -334,7 +343,8 @@ def create_graphs(total_calculated_vals, basegraph_name, window_size, colors, ti
             continue
         time_grans.append(time_interval)
         node_grans.append(container_or_class)
-        metrics = calculated_values.keys()
+        metrics.extend(calculated_values.keys())
+    metrics = list(set(metrics))
 
     # okay, so later on I am going to want to group by class/node granularity via color
     # and by time granularity via spacing... so each time granularity should be a seperatae
@@ -366,11 +376,15 @@ def create_graphs(total_calculated_vals, basegraph_name, window_size, colors, ti
             metrics_to_time_to_granularity_lists[metric][time_gran] = []
             metrics_to_time_to_granularity_nans[metric][time_gran] = []
             for node_gran in node_grans:
-                metrics_to_time_to_granularity_lists[metric][time_gran].append(  total_calculated_vals[(time_gran, node_gran )][metric] )
-                fully_indexed_metrics[(time_gran, node_gran, metric)] = total_calculated_vals[(time_gran, node_gran )][metric]
+                try:
+                    current_metric = total_calculated_vals[(time_gran, node_gran )][metric]
+                except:
+                    current_metric = []
+                metrics_to_time_to_granularity_lists[metric][time_gran].append( current_metric )
+                fully_indexed_metrics[(time_gran, node_gran, metric)] = current_metric
 
                 nan_count = 0
-                for val in total_calculated_vals[(time_gran, node_gran )][metric]:
+                for val in current_metric:
                     #print val, math.isnan(val)
                     if math.isnan(val):
                         nan_count += 1
@@ -383,6 +397,8 @@ def create_graphs(total_calculated_vals, basegraph_name, window_size, colors, ti
 
     # okay, so now I actually need to handle make those multi-dimensional boxplots
     for metric in metrics:
+        if type(metric) == tuple:
+            metric = ' '.join(metric)
         make_multi_time_boxplots(metrics_to_time_to_granularity_lists, time_grans, metric, colors,
                                  basegraph_name + metric + '_multitime_boxplot', node_grans, exfil_start, exfil_end,
                                  wiggle_room)
@@ -1097,6 +1113,7 @@ def get_non_exfil_points_to_plot(vals, start_index_ptp, end_index_ptp):
     return vals[:start_index_ptp] + vals[end_index_ptp + 1:]
 
 def process_graph(G, is_swarm, container_to_ip, ms_s):
+    svcs = None
     if is_swarm:
         # okay, here is the deal. I probably want to have an unprocessed and a processed version
         # of the graphs + metrics
@@ -1164,49 +1181,35 @@ def process_graph(G, is_swarm, container_to_ip, ms_s):
         except KeyError:
             pass  # maybe it's not in the graph?
 
-        # going to set the node attributes with the svc now
-        # first, going to find all of the services. The services will be in th e
-        # container_to_ip structure w/ _VIP appended
-        svcs = []
-        for container_list_and_network in container_to_ip.values():
-            # if container_list_and_network[0] != '':
-            #    continue
-            print "container_list_and_network", container_list_and_network
-            if 'VIP' in container_list_and_network[0] or 'sbox' in container_list_and_network[0]:
-                print container_list_and_network[0]
-                svcs.append(container_list_and_network[0].replace("_VIP", ""))
-            if 'endpoint' in container_list_and_network[0]:
-                svcs.append(container_list_and_network[0])  # this is so that the load-balancers can be included...
-        svcs.append('outside')
-        # sort services by length, note referred to
-        # https://stackoverflow.com/questions/2587402/sorting-python-list-based-on-the-length-of-the-string
-        svcs.sort(key=len)
+        svcs = get_svc_equivalents(is_swarm, container_to_ip)
         print "these services were found:", svcs
-        containers_to_ms = {}
-        for u in G.nodes():
-            for svc in svcs:
-                if svc in u:
-                    containers_to_ms[u] = svc
-                    break
+        containers_to_ms = map_nodes_to_svcs(G, svcs)
         print "container to service mapping: ", containers_to_ms
         nx.set_node_attributes(G, containers_to_ms, 'svc')
     else:
+        pass
+        '''
+        # todo: this is ugly, make it nicer
         # I'm going to merge all the traffic that is coming to/from the outside together
-        for u in G.nodes()[:int(G.number_of_nodes() / 2.0)]:
-            for v in G.nodes()[int(G.number_of_nodes() / 2.0):]:
+        for u in G.nodes():#[:int(G.number_of_nodes() / 2.0)]:
+            for v in G.nodes():#[int(G.number_of_nodes() / 2.0):]:
                 if u != v:
                     # print u,v, 'ingress-endpoint' in u, 'gateway_ingress-sbox' in v
                     if 'k8s' not in u and '10.0.2' not in u:
                         if 'k8s' not in v and '10.0.2' not in v:
-                            G = nx.contracted_nodes(G, v, u, self_loops=False)
+                            try:
+                                G = nx.contracted_nodes(G, v, u, self_loops=False)
+                            except:
+                                print u, "and", v, "have probably been merged already"
         # note: this is not necessarily the case, but it seems like should more or less
         # hold for all the minikube deployments that I'd do
+        '''
         mapping = {'10.0.2.15': 'default-http-backend(NAT)'}
         try:
             nx.relabel_nodes(G, mapping, copy=False)
         except KeyError:
             pass  # maybe it's not in the graph?
-    return G
+    return G, svcs
 
 def generate_network_graph_colormap(color_map, ms_s, G):
     # okay, now I want to color the different classes different colors. I am going to make the assumption
@@ -1252,6 +1255,39 @@ def make_network_graph(G, edge_label_p, filename, figsize, node_color_p, ms_s):
         nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=7, label_pos=0.3)
     plt.savefig(filename, format='png')
 
+def get_svc_equivalents(is_swarm, container_to_ip):
+    # going to set the node attributes with the svc now
+    # first, going to find all of the services. The services will be in th e
+    # container_to_ip structure w/ _VIP appended
+    svcs = []
+    if is_swarm:
+        for container_list_and_network in container_to_ip.values():
+            # if container_list_and_network[0] != '':
+            #    continue
+            print "container_list_and_network", container_list_and_network
+            if 'VIP' in container_list_and_network[0] or 'sbox' in container_list_and_network[0]:
+                print container_list_and_network[0]
+                svcs.append(container_list_and_network[0].replace("_VIP", ""))
+            if 'endpoint' in container_list_and_network[0]:
+                svcs.append(container_list_and_network[0])  # this is so that the load-balancers can be included...
+        svcs.append('outside')
+        # sort services by length, note referred to
+        # https://stackoverflow.com/questions/2587402/sorting-python-list-based-on-the-length-of-the-string
+        svcs.sort(key=len)
+    #else:
+    #    pass # todo
+    return svcs
+
+def map_nodes_to_svcs(G, svcs):
+    if svcs == [] or not svcs:
+        return {}
+    containers_to_ms = {}
+    for u in G.nodes():
+        for svc in svcs:
+            if svc in u:
+                containers_to_ms[u] = svc
+                break
+    return containers_to_ms
 
 # calc_service_specific_graph_metrics : ??
 # this function calculates some graph metrics that are specific to each service or pair of services. These metrics are
@@ -1335,4 +1371,6 @@ def calc_service_specific_graph_metrics(G_list, svcs, calc_vals_p, basegraph_nam
                 calculated_values[row[0]] = [i if i != (None) else float('nan') for i in ast.literal_eval(row[1])]
                 print row[0], calculated_values[row[0]]
 
+    print "service specific calculated values", calculated_values
+    #time.sleep(20)
     return calculated_values

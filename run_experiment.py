@@ -254,6 +254,19 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
             out = subprocess.check_output(['bash', './src/kubernetes_svc_config.sh', svc_config_file])
             print out
 
+            pod_config_file = experiment_name + '_pod_config' '_' + str(i) + '.txt'
+            node_config_file = experiment_name + '_node_config' '_' + str(i) + '.txt'
+            try:
+                os.remove(pod_config_file)
+            except:
+                print pod_config_file, "   ", "does not exist"
+            try:
+                os.remove(node_config_file)
+            except:
+                print node_config_file, "   ", "does not exist"
+            out = subprocess.check_output(['bash', './src/kubernetes_pod_config.sh', pod_config_file, node_config_file])
+            print out
+
         # step (5) start load generator (okay, this I can do!)
         start_time = time.time()
         max_client_count = int( config_params["experiment"]["number_background_locusts"])
@@ -329,6 +342,15 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
         subprocess.call(['cp', './' + experiment_name + '_det_server_local_output.txt', './' + experiment_name +
                          '_det_server_local_output_' + str(i) + '.txt'])
         subprocess.call(['truncate', '-s', '0' ,'./' + experiment_name + '_det_server_local_output.txt'])
+
+        ''' # enable if you are using cilium as the network plugin
+        cilium_endpoint_args = ["kubectl", "-n", "kube-system", "exec", "cilium-pf6mk", "--", "cilium", "endpoint", "list",
+                                "-o", "json"]
+        out = subprocess.check_output(cilium_endpoint_args)
+        container_config_file = experiment_name + '_' + str(i) + '_cilium_network_configs.txt'
+        with open(container_config_file, 'w') as f:
+            f.write(out)
+        '''
 
     # stopping the proxies can be done the same way (useful if e.g., switching
     # protocols between experiments, etc.)
