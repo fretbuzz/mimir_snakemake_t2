@@ -727,10 +727,14 @@ def map_container_instances_to_ips(orchestrator, class_to_instances, class_to_ne
 def find_corresponding_pod_attribs(cur_container_name):
     client = docker.from_env()
     # note: this parsing works for wordpress, might not work for others if structure of name is different
-    part_of_name_shared_by_container_and_pod = '_'.join('-'.join(cur_container_name.split('-')[4:]).split('_')[:-1])
+    print "cur_container_name", cur_container_name
+    part_of_name_shared_by_container_and_pod = '_'.join('-'.join(cur_container_name.split('-')[3:]).split('_')[:-1])
+    print "part_of_name_shared_by_container_and_pod", part_of_name_shared_by_container_and_pod        
     for container in client.containers.list():
         # print "containers", network.containers
-        if  part_of_name_shared_by_container_and_pod in container.name and 'POD' in container.name:
+	#print "part_of_name_shared_by_container_and_pod", part_of_name_shared_by_container_and_pod    
+	if  part_of_name_shared_by_container_and_pod in container.name and 'POD' in container.name:
+            print "found container", container.name
             return container.attrs
 
 def install_det_dependencies(orchestrator, container, installer):
@@ -861,7 +865,7 @@ def start_det_proxy_mode(orchestrator, container, srcs, dst, protocol, maxsleep,
         maxsleeptime_switch = "s/MAXTIMELSLEEP/" + "{:.2f}".format(maxsleep) + "/"
         maxbytesread_switch = "s/MAXBYTESREAD/" + str(maxbytesread) + "/"
         minbytesread_switch = "s/MINBYTESREAD/" + str(minbytesread) + "/"
-        sed_command = ["sed", "-i", "\'\'", "-e",  targetip_switch, "-e", proxiesip_switch, "-e", maxsleeptime_switch,
+        sed_command = ["sed", "-i", "-e",  targetip_switch, "-e", proxiesip_switch, "-e", maxsleeptime_switch,
                        "-e", maxbytesread_switch, "-e", minbytesread_switch, "./current_det_config.json"]
         print "sed_command", sed_command
         out = subprocess.check_output(sed_command)
@@ -1181,7 +1185,9 @@ if __name__=="__main__":
         path_to_docker_machine_tls_certs = "/users/jsev/.docker/machine/machines/default"
     elif orchestrator == "kubernetes":
         # note: this assumes that minikube is deployed on my laptop (as opposed to on the cloud)
-        path_to_docker_machine_tls_certs = "/Users/jseverin/.minikube/certs"
+	#path_to_docker_machine_tls_certs = "/Users/jseverin/.minikube/certs"
+    	# note: the below is for cloudlab
+	path_to_docker_machine_tls_certs = "/users/jsev/.minikube/certs"
     else:
         print "orchestrator not recognized"
         exit(11)
