@@ -66,16 +66,15 @@ allowEmptyPassword: "yes"
 externalDatabase:
 ## All of these values are only used when mariadb.enabled is set to false
   ## Database host
-  host: 10.108.28.27 #10.102.17.192 #10.103.204.169 
+  host: 10.99.176.150  #10.108.28.27 #10.102.17.192 #10.103.204.169 
 
   ## non-root Username for Wordpress Database
-  user: john
+  user: my-user
 
   ## Database password
-  password: "johnny"
-
+  password: my-password 
   ## Database name
-  database: my_database
+  database: my-database
 
   ## Database port number
   port: 3306
