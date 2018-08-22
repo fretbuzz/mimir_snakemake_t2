@@ -1,3 +1,5 @@
+import time
+
 from pcap_parser import run_data_anaylsis_pipeline
 
 '''
@@ -283,7 +285,7 @@ def run_analysis_pipeline_recipes():
     #'''
 
     # sockshop exp 8 (no exfil, on k8s, using cilium network plguin) [rep2 = I stopped those wierd load-balancer containers]
-    '''
+    #'''
     pcap_paths = ["/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/sockshop_eight_rep2_noloadtest_default_bridge_0any.pcap"]
     is_swarm = 0
     basefile_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/edgefiles/sockshop_exp_eight_rep2'
@@ -306,7 +308,8 @@ def run_analysis_pipeline_recipes():
     run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
                                ms_s, make_edgefiles, basegraph_name, window_size, colors,
                                exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
-                               calc_vals = calc_vals, graph_p = graph_p, kubernetes_svc_info=kubernetes_svc_info, cilium_config_path=cilium_config_path)
+                               calc_vals = calc_vals, graph_p = graph_p, kubernetes_svc_info=kubernetes_svc_info,
+                               cilium_config_path=cilium_config_path, rdpcap_p=False)
     #'''
 
     # atsea exp 2 (v2)
@@ -338,7 +341,7 @@ def run_analysis_pipeline_recipes():
     #'''
 
     # atsea exp 2 (v7) [good]
-    #'''
+    '''
     pcap_paths = ['/Volumes/Seagate Backup Plus Drive/experimental_data/atsea_info/atsea_store_exp_two_v7__atsea_back-tier_0.pcap',
                    '/Volumes/Seagate Backup Plus Drive/experimental_data/atsea_info/atsea_store_exp_two_v7__atsea_front-tier_0.pcap']#,
                   # note: If I go back to doing the normal thing, then I should re-enable the stuff below
@@ -425,6 +428,103 @@ def run_analysis_pipeline_recipes():
     '''
 
 
+    # atsea exp6 -- send exfil data through VIP (note that only a portion of the data sent from the DB pod actually
+    # made it to the outside of them deployment
+    '''
+    pcap_paths = ['/Volumes/Seagate Backup Plus Drive/experimental_data/atsea_info/atsea_store_six_atsea_back-tier_0.pcap',
+                  '/Volumes/Seagate Backup Plus Drive/experimental_data/atsea_info/atsea_store_six_atsea_front-tier_0.pcap',
+                  '/Volumes/Seagate Backup Plus Drive/experimental_data/atsea_info/atsea_store_six_ingress_0.pcap',
+                  '/Volumes/Seagate Backup Plus Drive/experimental_data/atsea_info/atsea_store_six_ingress_sbox_0.pcap']
+    is_swarm = 1
+    basefile_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/atsea_info/edgefiles/atsea_store_six_' #pcapreader_
+    basegraph_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/atsea_info/graphs/atsea_store_exp_six_' # pcapreader
+    container_info_path = '/Volumes/Seagate Backup Plus Drive/experimental_data/atsea_info/atsea_store_six_docker_0_network_configs.txt'
+    time_interval_lengths = [50, 30, 10, 1]#50, , 1] #, 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
+    ms_s = ['appserver_VIP', 'reverse_proxy_VIP', 'database_VIP', 'appserver', 'reverse_proxy', 'database', 'back-tier', 'front-tier']
+    make_edgefiles = True
+    start_time = None
+    end_time = None
+    exfil_start_time = 270
+    exfil_end_time = 330
+    calc_vals = True
+    window_size = 6
+    graph_p = True # should I make graphs?
+    make_net_graphs_p = True
+    colors = ['b', 'r']
+    wiggle_room = 2
+    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
+                               ms_s, make_edgefiles, basegraph_name, window_size, colors,
+                               exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
+                               calc_vals = calc_vals, graph_p = graph_p, make_net_graphs_p=make_net_graphs_p, rdpcap_p=False)
+    #'''
+
+    ''' # NOTE: I'm missing some pcaps that I'd need to do this analysis... will probably want to re-run it
+        # at some point
+    # atsea exp7 - attempts to send the data through the endpoint (load-balancer). Note that this does not actualyl
+    # work as no data is able to reach the outside
+    pcap_paths = [
+        '/Volumes/Seagate Backup Plus Drive/experimental_data/atsea_info/atsea_store_seven_atsea_back-tier_0.pcap',
+        '/Volumes/Seagate Backup Plus Drive/experimental_data/atsea_info/atsea_store_six_atsea_front-tier_0.pcap',
+        '/Volumes/Seagate Backup Plus Drive/experimental_data/atsea_info/atsea_store_six_ingress_0.pcap',
+        '/Volumes/Seagate Backup Plus Drive/experimental_data/atsea_info/atsea_store_six_ingress_sbox_0.pcap']
+    is_swarm = 1
+    basefile_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/atsea_info/edgefiles/atsea_store_six_'  # pcapreader_
+    basegraph_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/atsea_info/graphs/atsea_store_exp_six_'  # pcapreader
+    container_info_path = '/Volumes/Seagate Backup Plus Drive/experimental_data/atsea_info/atsea_store_six_docker_0_network_configs.txt'
+    time_interval_lengths = [50, 30, 10,
+                             1]  # 50, , 1] #, 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
+    ms_s = ['appserver_VIP', 'reverse_proxy_VIP', 'database_VIP', 'appserver', 'reverse_proxy', 'database', 'back-tier',
+            'front-tier']
+    make_edgefiles = True
+    start_time = None
+    end_time = None
+    exfil_start_time = 270
+    exfil_end_time = 330
+    calc_vals = True
+    window_size = 6
+    graph_p = True  # should I make graphs?
+    make_net_graphs_p = True
+    colors = ['b', 'r']
+    wiggle_room = 2
+    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
+                               ms_s, make_edgefiles, basegraph_name, window_size, colors,
+                               exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
+                               calc_vals=calc_vals, graph_p=graph_p, make_net_graphs_p=make_net_graphs_p,
+                               rdpcap_p=False)
+    '''
+    '''
+    # wordpress- exp3: w/ exfil
+    pcap_paths = ["/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_three_default_bridge_0any.pcap"]
+    #['/Users/jseverin/Documents/Microservices/munnin/experimental_data/wordpress_info/wordpress_exp_one_rep1_default_bridge_0docker0.pcap',
+    #              '/Users/jseverin/Documents/Microservices/munnin/experimental_data/wordpress_info/wordpress_exp_one_rep1_default_bridge_0eth0.pcap',
+    #              '/Users/jseverin/Documents/Microservices/munnin/experimental_data/wordpress_info/wordpress_exp_one_rep1_default_bridge_0eth1.pcap']
+    is_swarm = 0
+    basefile_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/edgefiles/wordpress_three'
+    basegraph_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/graphs/wordpress_three'
+    container_info_path = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_three_docker_0_network_configs.txt'
+    kubernetes_svc_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_three_svc_config_0.txt'
+    time_interval_lengths = [50, 30, 10, 1] #, 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
+    ms_s = ["k8s_POD_dbcmmz-mariadb-slave",  "k8s_POD_dbcmmz-mariadb-master", "k8s_POD_awwwppp-wordpress"]
+    make_edgefiles = True
+    start_time = None
+    end_time = None
+    exfil_start_time = None
+    exfil_end_time = None
+    calc_vals = True
+    window_size = 6
+    graph_p = True # should I make graphs?
+    colors = ['b', 'r']
+    wiggle_room = 2 # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
+    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
+                               ms_s, make_edgefiles, basegraph_name, window_size, colors,
+                               exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
+                               calc_vals = calc_vals, graph_p = graph_p, kubernetes_svc_info = kubernetes_svc_info)
+    #'''
+
+
+
 if __name__=="__main__":
     print "RUNNING"
+    # todo: REMOVE!!!!!
+    time.sleep(600)
     run_analysis_pipeline_recipes()

@@ -727,9 +727,11 @@ def map_container_instances_to_ips(orchestrator, class_to_instances, class_to_ne
 def find_corresponding_pod_attribs(cur_container_name):
     client = docker.from_env()
     # note: this parsing works for wordpress, might not work for others if structure of name is different
-    part_of_name_shared_by_container_and_pod = '_'.join('-'.join(cur_container_name.split('-')[4:]).split('_')[:-1])
+    print "cur_container_name", cur_container_name
+    part_of_name_shared_by_container_and_pod = '_'.join('-'.join(cur_container_name.split('-')[3:]).split('_')[:-1])
     for container in client.containers.list():
         # print "containers", network.containers
+        print "part_of_name_shared_by_container_and_pod", part_of_name_shared_by_container_and_pod
         if  part_of_name_shared_by_container_and_pod in container.name and 'POD' in container.name:
             return container.attrs
 

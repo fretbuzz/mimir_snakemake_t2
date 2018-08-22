@@ -19,15 +19,26 @@ def parse_pcap(a, time_intervals, mapping, basefile_name, start_time, dont_delet
 
     current_time_interval = 0
     time_to_graphs[current_time_interval] = {}
-
+    weird_timing_pkts = []
+    unidentified_pkts = []
     for a_pkt in a:
         # I don't think the belwo code is needed b/c it'll break anyway once all of the packets are processed
         #if a_pkt.time > end_time:
         #    break
 
-        if a_pkt.time - (start_time + current_time_interval * time_intervals) > time_intervals:
+        pkt_messed_up = False
+        while (a_pkt.time - (start_time + current_time_interval * time_intervals) > time_intervals):
+            if (a_pkt.time - (start_time + current_time_interval * time_intervals)) > 900:
+                a_pkt.show()
+                weird_timing_pkts.append(a_pkt)
+                pkt_messed_up = True
+                print "about to break", a_pkt.time, current_time_interval, start_time + current_time_interval * time_intervals
+                break
+            print a_pkt.time, current_time_interval, start_time + current_time_interval * time_intervals
             current_time_interval += 1
             time_to_graphs[current_time_interval] = {}
+        if pkt_messed_up:
+            continue # move onto the next one
 
         #a_pkt.show()
         #print len(a_pkt)
@@ -47,7 +58,7 @@ def parse_pcap(a, time_intervals, mapping, basefile_name, start_time, dont_delet
         else:
             print "so this is not an IP/ARP packet..."
             print a_pkt.show()
-            exit(105)
+            unidentified_pkts.append(a_pkt)
         if 'TCP' in a_pkt:
             src_dst_ports = (a_pkt['TCP'].sport, a_pkt['TCP'].dport)
         if src_dst == ():
@@ -111,7 +122,7 @@ def parse_pcap(a, time_intervals, mapping, basefile_name, start_time, dont_delet
         filesnames.append(filename)
 
     print "unidentified IPs present", list(set(no_mapping_found))
-    return list(set(no_mapping_found)), filesnames, time_counter
+    return list(set(no_mapping_found)), filesnames, time_counter, unidentified_pkts, weird_timing_pkts
 
 # creates a file w/ some features that only exist in relation to the sensitive-DB
 def parse_pcap_sensitive_db_only(a, time_intervals, mapping, basefile_name, start_time, dont_delete_old_edgefiles, exfil_start_time, exfil_end_time, wiggle_room):

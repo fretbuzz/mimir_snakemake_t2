@@ -29,8 +29,8 @@ print password
 # Required: username, email, password
 
 s = requests.Session()
-minikube_ip = '192.168.99.100'
-wp_port = '31758'
+minikube_ip = '192.168.99.101'
+wp_port = '32306'
 # https://192.168.99.103:31758
 
 print "getting admin page..."
