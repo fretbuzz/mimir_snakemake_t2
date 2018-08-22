@@ -1,0 +1,17 @@
+apiVersion: "cilium.io/v2"
+kind: CiliumNetworkPolicy
+metadata:
+  name: "l3-rule-between-db-cluster"
+spec:
+  endpointSelector:
+    matchLabels:
+      app: my-release-pxc 
+  ingress:
+  - fromEndpoints:
+    - matchLabels:
+        app: my-release-pxc
+  egress:
+  - toEndpoints:
+    - matchLabels:
+        app: my-release-pxc
+
