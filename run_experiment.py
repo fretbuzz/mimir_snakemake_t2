@@ -155,16 +155,16 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
         # todo: explicit_target from the config file (exp_six)... if it has corresponding src and dst values
         # then use those, if one or more values is missing, use the values from below instead
         try:
-		explicit_dsts,explicit_srcs = config_params["exfiltration_info"]["explicit_target_src"][class_name]
-	except:
-		explicit_dsts,explicit_srcs = 'None','None'
+            explicit_dsts,explicit_srcs = config_params["exfiltration_info"]["explicit_target_src"][class_name]
+        except:
+            explicit_dsts,explicit_srcs = 'None','None'
 
         dsts,srcs=find_dst_and_srcs_ips_for_det(exfil_path, class_name, selected_containers, localhostip,
                                                 proxy_instance_to_networks_to_ip, class_to_networks)
         if explicit_dsts != 'None': #-> use expkicit_dsts (otherwise just keep going with dsts)
-        	dsts = explicit_dsts
-	if explicit_srcs != 'None': #-> use explicit_srcs (otherwise just keep going with sercs)
-		srcs = explicit_srcs
+            dsts = explicit_dsts
+        if explicit_srcs != 'None': #-> use explicit_srcs (otherwise just keep going with sercs)
+            srcs = explicit_srcs
 
         for container in container_instances:
             for dst in dsts:
@@ -214,11 +214,11 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
                                                                          class_to_networks)
 
     try:
-	explicit_dsts,explicit_srcs = config_params["exfiltration_info"]["explicit_target_src"][originator_class]
+	    explicit_dsts,explicit_srcs = config_params["exfiltration_info"]["explicit_target_src"][originator_class]
     except:
-	explicit_dsts,explicit_srcs = 'None','None'
+	    explicit_dsts,explicit_srcs = 'None','None'
     if explicit_dsts != 'None': 
-	next_instance_ips = explicit_dsts
+	    next_instance_ips = explicit_dsts
 
     print "next ip(s) for the originator to send to", next_instance_ips
     directory_to_exfil = config_params["exfiltration_info"]["folder_to_exfil"]
@@ -729,10 +729,12 @@ def find_corresponding_pod_attribs(cur_container_name):
     # note: this parsing works for wordpress, might not work for others if structure of name is different
     print "cur_container_name", cur_container_name
     part_of_name_shared_by_container_and_pod = '_'.join('-'.join(cur_container_name.split('-')[3:]).split('_')[:-1])
+    print "part_of_name_shared_by_container_and_pod", part_of_name_shared_by_container_and_pod        
     for container in client.containers.list():
         # print "containers", network.containers
-        print "part_of_name_shared_by_container_and_pod", part_of_name_shared_by_container_and_pod
-        if  part_of_name_shared_by_container_and_pod in container.name and 'POD' in container.name:
+        #print "part_of_name_shared_by_container_and_pod", part_of_name_shared_by_container_and_pod
+        if part_of_name_shared_by_container_and_pod in container.name and 'POD' in container.name:
+            print "found container", container.name
             return container.attrs
 
 def install_det_dependencies(orchestrator, container, installer):
@@ -863,7 +865,7 @@ def start_det_proxy_mode(orchestrator, container, srcs, dst, protocol, maxsleep,
         maxsleeptime_switch = "s/MAXTIMELSLEEP/" + "{:.2f}".format(maxsleep) + "/"
         maxbytesread_switch = "s/MAXBYTESREAD/" + str(maxbytesread) + "/"
         minbytesread_switch = "s/MINBYTESREAD/" + str(minbytesread) + "/"
-        sed_command = ["sed", "-i", "\'\'", "-e",  targetip_switch, "-e", proxiesip_switch, "-e", maxsleeptime_switch,
+        sed_command = ["sed", "-i", "-e",  targetip_switch, "-e", proxiesip_switch, "-e", maxsleeptime_switch,
                        "-e", maxbytesread_switch, "-e", minbytesread_switch, "./current_det_config.json"]
         print "sed_command", sed_command
         out = subprocess.check_output(sed_command)
@@ -1183,7 +1185,9 @@ if __name__=="__main__":
         path_to_docker_machine_tls_certs = "/users/jsev/.docker/machine/machines/default"
     elif orchestrator == "kubernetes":
         # note: this assumes that minikube is deployed on my laptop (as opposed to on the cloud)
-        path_to_docker_machine_tls_certs = "/Users/jseverin/.minikube/certs"
+	#path_to_docker_machine_tls_certs = "/Users/jseverin/.minikube/certs"
+    	# note: the below is for cloudlab
+	path_to_docker_machine_tls_certs = "/users/jsev/.minikube/certs"
     else:
         print "orchestrator not recognized"
         exit(11)
