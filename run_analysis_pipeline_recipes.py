@@ -424,7 +424,7 @@ def run_analysis_pipeline_recipes():
                                calc_vals = calc_vals, graph_p = graph_p)
     #'''
 
-    #'''
+    '''
     # Wordpress exp 4 (wordpress w/ HA cluster on cilium that is not configured)
     pcap_paths = ["/mydata/mimir/wordpress_four_default_bridge_0any.pcap"]
     is_swarm = 0
@@ -451,22 +451,22 @@ def run_analysis_pipeline_recipes():
                                calc_vals = calc_vals, graph_p = graph_p, kubernetes_svc_info=kubernetes_svc_info, cilium_config_path=cilium_config_path,
     			       rdpcap_p=True)
     #'''
-    '''
+    #'''
     # Wordpress exp 5 (wordpress w/ HA cluster on cilium that is configured per the yaml files in the experimental_configuration folder)
-    pcap_paths = ["/mydata/mimir/wordpress_five_default_bridge_0any.pcap"]
+    pcap_paths = ["/mydata/mimir/wordpress_six_take_2_default_bridge_0any.pcap"]
     is_swarm = 0
-    basefile_name = '/mydata/mimir/temp_expName/edgefiles/wordpress_five_'
-    basegraph_name = '/mydata/mimir/temp_expName/graphs/wordpress_five_'
-    container_info_path = '/mydata/mimir/wordpress_five_docker_0_network_configs.txt'
-    cilium_config_path = '/mydata/mimir/wordpress_five_0_cilium_network_configs.txt'
-    kubernetes_svc_info = '/mydata/mimir/wordpress_five_svc_config_0.txt'
+    basefile_name = '/mydata/mimir/temp_expName/edgefiles/wordpress_six_take_2_dns_'
+    basegraph_name = '/mydata/mimir/temp_expName/graphs/wordpress_six_take_2_dns_'
+    container_info_path = '/mydata/mimir/wordpress_six_take_2_docker_0_network_configs.txt'
+    cilium_config_path = '/mydata/mimir/wordpress_six_take_2_0_cilium_network_configs.txt'
+    kubernetes_svc_info = '/mydata/mimir/wordpress_six_take_2_svc_config_0.txt'
     time_interval_lengths = [50, 30, 10, 1] #, 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
     ms_s =  ["my-release-pxc", "wwwppp-wordpress"]
     make_edgefiles = True
     start_time = None
     end_time = None
-    exfil_start_time = 100
-    exfil_end_time = 150
+    exfil_start_time = 250
+    exfil_end_time = 300
     calc_vals = True
     window_size = 6
     graph_p = True # should I make graphs?
@@ -477,7 +477,36 @@ def run_analysis_pipeline_recipes():
                                exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
                                calc_vals = calc_vals, graph_p = graph_p, kubernetes_svc_info=kubernetes_svc_info, cilium_config_path=cilium_config_path,
                                rdpcap_p=True)
+    #'''
+
     '''
+    # Wordpress, DNSCAT2 test
+    pcap_paths = ["/mydata/mimir/dnscat_test_default_bridge_0any.pcap"]
+    is_swarm = 0
+    basefile_name = '/mydata/mimir/temp_expName/edgefiles/dnscat_test_'
+    basegraph_name = '/mydata/mimir/temp_expName/graphs/dnscat_test_'
+    container_info_path = '/mydata/mimir/dnscat_test_docker_0_network_configs.txt'
+    cilium_config_path = '/mydata/mimir/dnscat_test_0_cilium_network_configs.txt'
+    kubernetes_svc_info = '/mydata/mimir/dnscat_test_svc_config_0.txt'
+    time_interval_lengths = [50, 30, 10, 1] #, 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
+    ms_s =  ["my-release-pxc", "wwwppp-wordpress"] 
+    make_edgefiles = True
+    start_time = None
+    end_time = None
+    exfil_start_time = None
+    exfil_end_time = None
+    calc_vals = True
+    window_size = 6
+    graph_p = True # should I make graphs?
+    colors = ['b', 'r']
+    wiggle_room = 2 # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
+    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
+                               ms_s, make_edgefiles, basegraph_name, window_size, colors,
+                               exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
+                               calc_vals = calc_vals, graph_p = graph_p, kubernetes_svc_info=kubernetes_svc_info, cilium_config_path=cilium_config_path,
+                               rdpcap_p=True)
+    #'''
+
 if __name__=="__main__":
     print "RUNNING"
     run_analysis_pipeline_recipes()
