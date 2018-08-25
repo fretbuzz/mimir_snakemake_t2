@@ -4,7 +4,7 @@
     "NOTE": "USES DNS EXFIL VIA DNSCAT (so all the DET configs do not mean anything)",
     "Note": "dnscat delay is 15 sec",
     "application_name": "wordpress",
-    "experiment_name": "wordpress_six",
+    "experiment_name": "wordpress_seven",
     "orchestrator": "kubernetes",
     "network_plugin": "cilium",
     "networks_to_tcpdump_on": ["bridge"],
