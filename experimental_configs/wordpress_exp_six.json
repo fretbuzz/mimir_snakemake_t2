@@ -1,0 +1,37 @@
+{
+    "NOTE": "this deployment uses a proper HA db cluster (not a replication cluster)",
+    "NOTE": "this experiment does NOT involve any of the restrictions imposed by configuring cilium",
+    "NOTE": "USES DNS EXFIL VIA DNSCAT (so all the DET configs do not mean anything)",
+    "Note": "dnscat delay is 5 sec",
+    "application_name": "wordpress",
+    "experiment_name": "wordpress_six",
+    "orchestrator": "kubernetes",
+    "network_plugin": "cilium",
+    "networks_to_tcpdump_on": ["bridge"],
+    "class_to_networks": "None",
+    "setup" : "None",
+    "experiment" : {
+      "number_background_locusts": "85",
+      "background_locust_spawn_rate": "10",
+      "experiment_length_sec": "1200",
+      "traffic_type" : "normal",
+      "number_of_trials": "1"
+    },
+    "exfiltration_info" : {
+      "exfiltration_path_class":["wwwppp-wordpress-585fd5bd99-2v", "my-release-pxc-2" ],
+      "exfiltration_path_how_many_instances_for_each_class":[ "1", "1" ],
+      "exfiltration_path_class_which_installer": {"wwwppp-wordpress-585fd5bd99-2v": "apt", "my-release-pxc-1":"apt"},
+      "exfil_protocol": "tcp",
+      "folder_to_exfil": "/var/lib/mysql/",
+      "regex_of_file_to_exfil": "\"galera.cach*\"",
+      "exfil_start_time": "600",
+      "exfil_end_time": "650",
+      "min_exfil_data_per_packet_bytes": 300,
+      "max_exfil_data_per_packet_bytes": 400,
+      "avg_exfiltration_rate_KB_per_sec": "1"
+    },
+    "scale" :{
+      "wordpress": 7,
+      "HA-db-cluster": 3
+    }
+}
