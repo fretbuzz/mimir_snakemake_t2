@@ -16,30 +16,38 @@ import json
 # this file creates edgefiles passed on the packet array. each edgefile lasts for a certain length of time.
 def parse_pcap(a, time_intervals, mapping, basefile_name, start_time, dont_delete_old_edgefiles):
     time_to_graphs = {}
+    time_to_packet_graphs = {}
 
     current_time_interval = 0
     time_to_graphs[current_time_interval] = {}
+    time_to_packet_graphs[current_time_interval] = {}
     weird_timing_pkts = []
     unidentified_pkts = []
+
     for a_pkt in a:
         # I don't think the belwo code is needed b/c it'll break anyway once all of the packets are processed
         #if a_pkt.time > end_time:
         #    break
 
+        #if a_pkt.time - (start_time + current_time_interval * time_intervals) > time_intervals:
+        #    current_time_interval += 1
+        #    time_to_graphs[current_time_interval] = {}
+
         pkt_messed_up = False
-        while (a_pkt.time - (start_time + current_time_interval * time_intervals) > time_intervals):
+        while(a_pkt.time - (start_time + current_time_interval * time_intervals) > time_intervals):
             if (a_pkt.time - (start_time + current_time_interval * time_intervals)) > 900:
                 a_pkt.show()
                 weird_timing_pkts.append(a_pkt)
                 pkt_messed_up = True
                 print "about to break", a_pkt.time, current_time_interval, start_time + current_time_interval * time_intervals
                 break
-            print a_pkt.time, current_time_interval, start_time + current_time_interval * time_intervals
             current_time_interval += 1
             time_to_graphs[current_time_interval] = {}
-        if pkt_messed_up:
-            continue # move onto the next one
+            time_to_packet_graphs[current_time_interval] = {}
+            print "current time interval", current_time_interval
 
+        if pkt_messed_up:
+            continue
         #a_pkt.show()
         #print len(a_pkt)
         #print "#####"
@@ -58,9 +66,12 @@ def parse_pcap(a, time_intervals, mapping, basefile_name, start_time, dont_delet
         else:
             print "so this is not an IP/ARP packet..."
             print a_pkt.show()
+            #exit(105)
             unidentified_pkts.append(a_pkt)
         if 'TCP' in a_pkt:
             src_dst_ports = (a_pkt['TCP'].sport, a_pkt['TCP'].dport)
+            if a_pkt['TCP'].flags & 0x02: # check if it is a syn packet
+                pass
         if src_dst == ():
             continue
 
@@ -70,14 +81,18 @@ def parse_pcap(a, time_intervals, mapping, basefile_name, start_time, dont_delet
         if src_dst in time_to_graphs[current_time_interval]:
             if 'IP' in a_pkt:
                 time_to_graphs[current_time_interval][src_dst] += a_pkt['IP'].len
+                time_to_packet_graphs[current_time_interval][src_dst] += 1
         else:
             if 'IP' in a_pkt:
                 time_to_graphs[current_time_interval][src_dst] = a_pkt['IP'].len
+                time_to_packet_graphs[current_time_interval][src_dst] = 1
         #str_payload = ''.join(["".join(n) if n != '\x08' else '' for n in pkt.load])
         #print str_payload
     time_to_parsed_mapping = {}
+    time_to_parsed_packet_mapping = {}
     for time in time_to_graphs:
         time_to_parsed_mapping[time] = {}
+        time_to_parsed_packet_mapping[time] = {}
 
     no_mapping_found = []
     for time,graph_dictionary in time_to_graphs.iteritems():
@@ -99,30 +114,43 @@ def parse_pcap(a, time_intervals, mapping, basefile_name, start_time, dont_delet
                 no_mapping_found.append(dst)
             print "index stuff", time, src_ms, dst_ms
             time_to_parsed_mapping[time][src_ms, dst_ms] = weight
+            time_to_parsed_packet_mapping[time][src_ms, dst_ms] = time_to_packet_graphs[time][item]
         for item, weight in time_to_parsed_mapping[time].iteritems():
             print item, weight
 
     time_counter = 0
     filesnames = []
+    filesnames_packets = []
     for interval in range(0,current_time_interval):
         ending = '_' + '%.2f' % (time_counter) + '_' + '%.2f' % (time_intervals)
         filename = basefile_name + ending + '.txt'
+        filename_packets = basefile_name + '_packets' + ending + '.txt'
         # first time through, want to delete the old edgefiles
         if not dont_delete_old_edgefiles:
             try:
                 os.remove(filename)
             except:
                 print filename, "   ", "does not exist"
+            try:
+                os.remove(filename_packets)
+            except:
+                print filename_packets, "   ", "does not exist"
         with open(filename, 'ab') as csvfile:
             spamwriter = csv.writer(csvfile, delimiter=',',
                                     quotechar='|', quoting=csv.QUOTE_MINIMAL)
             for item, weight in time_to_parsed_mapping[interval].iteritems():
                 spamwriter.writerow([item[0], item[1], weight])
+        with open(filename_packets, 'ab') as csvfile:
+            spamwriter = csv.writer(csvfile, delimiter=',',
+                                    quotechar='|', quoting=csv.QUOTE_MINIMAL)
+            for item, weight in time_to_parsed_packet_mapping[interval].iteritems():
+                spamwriter.writerow([item[0], item[1],weight])
         time_counter += time_intervals
         filesnames.append(filename)
+        filesnames_packets.append(filename_packets)
 
     print "unidentified IPs present", list(set(no_mapping_found))
-    return list(set(no_mapping_found)), filesnames, time_counter, unidentified_pkts, weird_timing_pkts
+    return list(set(no_mapping_found)), filesnames, filesnames_packets,  time_counter, unidentified_pkts, weird_timing_pkts
 
 # creates a file w/ some features that only exist in relation to the sensitive-DB
 def parse_pcap_sensitive_db_only(a, time_intervals, mapping, basefile_name, start_time, dont_delete_old_edgefiles, exfil_start_time, exfil_end_time, wiggle_room):
@@ -399,9 +427,9 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
         kubernetes_service_VIPs = parse_kubernetes_svc_info(kubernetes_svc_info)
         mapping.update(kubernetes_service_VIPs)
 
-        #if cilium_config_path:
-        #    cilium_mapping = parse_cilium(cilium_config_path)
-        #    mapping.update(cilium_mapping)
+        if cilium_config_path:
+            cilium_mapping = parse_cilium(cilium_config_path)
+            mapping.update(cilium_mapping)
     try:
         del mapping['<nil>'] # sometimes this nonsense value shows up b/c of the host Docker network (no IP = just noise)
     except:
@@ -419,6 +447,7 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
 
     print "start_time: ", start_time, "<- that is the start time"
     interval_to_filenames = {}
+    interval_to_filenames_packets = {}
 
     total_unidentified_pkts = []
     total_weird_timing_pkts = []
@@ -435,12 +464,13 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
                     current_pcap = rdpcap(current_pcap_path)
                 else:
                     current_pcap = PcapReader(current_pcap_path)
-                unmapped_ips, filenames, end_time, unidentified_pkts, weird_timing_pkts = parse_pcap(current_pcap, time_interval_length, mapping,
+                unmapped_ips, filenames, filenames_packets, end_time, unidentified_pkts, weird_timing_pkts = parse_pcap(current_pcap, time_interval_length, mapping,
                                                             basefile_name, start_time, pcaps_processed_at_time_interval)#,
                                                             #exfil_start_time, exfil_end_time, wiggle_room)
                 print "unmapped ips", unmapped_ips
                 if current_pcap_path == pcap_paths[0]:
                     interval_to_filenames[str(time_interval_length)] = filenames
+                    interval_to_filenames_packets[str(time_interval_length)] = filenames_packets
             pcaps_processed_at_time_interval += 1
             total_unidentified_pkts.extend(unidentified_pkts)
             total_weird_timing_pkts.extend(weird_timing_pkts)
@@ -448,6 +478,8 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
             # write this to a file, so I can refer to it later.
             with open(basefile_name + 'edgefile_dict.txt', "w+") as f:
                 f.write(json.dumps(interval_to_filenames))
+            with open(basefile_name + 'packets_edgefile_dict.txt', "w+") as f:
+                f.write(json.dumps(interval_to_filenames_packets))
         total_unidentified_pkts = list(set(total_unidentified_pkts))
         total_weird_timing_pkts = list(set(total_weird_timing_pkts))
         #with open(basefile_name + 'unidentified_pkts.txt', "w+") as f:
