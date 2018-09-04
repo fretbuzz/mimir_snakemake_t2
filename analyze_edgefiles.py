@@ -345,6 +345,7 @@ def create_graphs(total_calculated_vals, basegraph_name, window_size, colors, ti
         node_grans.append(container_or_class)
         metrics.extend(calculated_values.keys())
     metrics = list(set(metrics))
+    print "metrics", metrics
 
     # okay, so later on I am going to want to group by class/node granularity via color
     # and by time granularity via spacing... so each time granularity should be a seperatae
@@ -378,6 +379,7 @@ def create_graphs(total_calculated_vals, basegraph_name, window_size, colors, ti
             for node_gran in node_grans:
                 try:
                     current_metric = total_calculated_vals[(time_gran, node_gran )][metric]
+                    print "current_metric", current_metric
                 except:
                     current_metric = []
                 metrics_to_time_to_granularity_lists[metric][time_gran].append( current_metric )
@@ -926,6 +928,9 @@ def make_multi_time_boxplots(metrics_to_time_to_granularity_lists, time_grans, m
     fig = plt.figure()
     fig.clf()
     ax = plt.axis()
+    #print "\n", metric
+    #print "metrics_to_time_to_granularity_lists", metrics_to_time_to_granularity_lists
+    #print "time_grans", time_grans
 
     max_yaxis = -1000000 # essentially -infinity
     min_yaxis = 1000000 # essentially infinity
@@ -935,6 +940,7 @@ def make_multi_time_boxplots(metrics_to_time_to_granularity_lists, time_grans, m
         current_vals = metrics_to_time_to_granularity_lists[metric][time_gran]
         current_vals = [[x for x in i if x is not None and not math.isnan(x)] for i in current_vals]
         number_nested_lists = len(current_vals)
+        print "number_nested_lists", number_nested_lists
         number_positions_on_graph = range(cur_pos, cur_pos+number_nested_lists)
         tick_position = (float(number_positions_on_graph[0]) + float(number_positions_on_graph[-1])) / number_nested_lists
         tick_position_list.append( tick_position )

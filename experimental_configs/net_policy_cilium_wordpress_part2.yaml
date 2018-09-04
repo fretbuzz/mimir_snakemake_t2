@@ -1,0 +1,14 @@
+apiVersion: "cilium.io/v2"
+kind: CiliumNetworkPolicy
+metadata:
+  name: "l3-rule-egress"
+spec:
+  endpointSelector:
+    matchLabels:
+      app: wwwppp-wordpress
+  egress:
+  - toEndpoints:
+    - matchLabels:
+        app: my-release-pxc
+  - toEntities:
+    - world

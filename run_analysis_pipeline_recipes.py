@@ -285,7 +285,7 @@ def run_analysis_pipeline_recipes():
     #'''
 
     # sockshop exp 8 (no exfil, on k8s, using cilium network plguin) [rep2 = I stopped those wierd load-balancer containers]
-    #'''
+    '''
     pcap_paths = ["/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/sockshop_eight_rep2_noloadtest_default_bridge_0any.pcap"]
     is_swarm = 0
     basefile_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/edgefiles/sockshop_exp_eight_rep2'
@@ -425,8 +425,90 @@ def run_analysis_pipeline_recipes():
                                ms_s, make_edgefiles, basegraph_name, window_size, colors,
                                exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
                                calc_vals = calc_vals, graph_p = graph_p)
-    '''
+    #'''
 
+    '''
+    # Wordpress exp 4 (wordpress w/ HA cluster on cilium that is not configured)
+    pcap_paths = ["/mydata/mimir/wordpress_four_default_bridge_0any.pcap"]
+    is_swarm = 0
+    basefile_name = '/mydata/mimir/temp_expName/edgefiles/wordpress_four_'
+    basegraph_name = '/mydata/mimir/temp_expName/graphs/wordpress_four_'
+    container_info_path = '/mydata/mimir/wordpress_four_docker_0_network_configs.txt'
+    cilium_config_path = '/mydata/mimir/wordpress_four_0_cilium_network_configs.txt'
+    kubernetes_svc_info = '/mydata/mimir/wordpress_four_svc_config_0.txt'
+    time_interval_lengths = [50, 30, 10, 1] #, 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
+    ms_s =  ["my-release-pxc", "wwwppp-wordpress"] 
+    make_edgefiles = False
+    start_time = None
+    end_time = None
+    exfil_start_time = 100
+    exfil_end_time = 150
+    calc_vals = True
+    window_size = 6
+    graph_p = True # should I make graphs?
+    colors = ['b', 'r']
+    wiggle_room = 2 # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
+    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
+                               ms_s, make_edgefiles, basegraph_name, window_size, colors,
+                               exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
+                               calc_vals = calc_vals, graph_p = graph_p, kubernetes_svc_info=kubernetes_svc_info, cilium_config_path=cilium_config_path,
+    			       rdpcap_p=True)
+    #'''
+    '''
+    # Wordpress exp 5 (wordpress w/ HA cluster on cilium that is configured per the yaml files in the experimental_configuration folder)
+    pcap_paths = ["/mydata/mimir/wordpress_six_take_2_default_bridge_0any.pcap"]
+    is_swarm = 0
+    basefile_name = '/mydata/mimir/temp_expName/edgefiles/wordpress_six_take_2_dns_'
+    basegraph_name = '/mydata/mimir/temp_expName/graphs/wordpress_six_take_2_dns_'
+    container_info_path = '/mydata/mimir/wordpress_six_take_2_docker_0_network_configs.txt'
+    cilium_config_path = '/mydata/mimir/wordpress_six_take_2_0_cilium_network_configs.txt'
+    kubernetes_svc_info = '/mydata/mimir/wordpress_six_take_2_svc_config_0.txt'
+    time_interval_lengths = [50, 30, 10, 1] #, 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
+    ms_s =  ["my-release-pxc", "wwwppp-wordpress"]
+    make_edgefiles = True
+    start_time = None
+    end_time = None
+    exfil_start_time = 250
+    exfil_end_time = 300
+    calc_vals = True
+    window_size = 6
+    graph_p = True # should I make graphs?
+    colors = ['b', 'r']
+    wiggle_room = 2 # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
+    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
+                               ms_s, make_edgefiles, basegraph_name, window_size, colors,
+                               exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
+                               calc_vals = calc_vals, graph_p = graph_p, kubernetes_svc_info=kubernetes_svc_info, cilium_config_path=cilium_config_path,
+                               rdpcap_p=True)
+    #'''
+
+    '''
+    # Wordpress, DNSCAT2 test
+    pcap_paths = ["/mydata/mimir/dnscat_test_default_bridge_0any.pcap"]
+    is_swarm = 0
+    basefile_name = '/mydata/mimir/temp_expName/edgefiles/dnscat_test_'
+    basegraph_name = '/mydata/mimir/temp_expName/graphs/dnscat_test_'
+    container_info_path = '/mydata/mimir/dnscat_test_docker_0_network_configs.txt'
+    cilium_config_path = '/mydata/mimir/dnscat_test_0_cilium_network_configs.txt'
+    kubernetes_svc_info = '/mydata/mimir/dnscat_test_svc_config_0.txt'
+    time_interval_lengths = [50, 30, 10, 1] #, 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
+    ms_s =  ["my-release-pxc", "wwwppp-wordpress"] 
+    make_edgefiles = True
+    start_time = None
+    end_time = None
+    exfil_start_time = None
+    exfil_end_time = None
+    calc_vals = True
+    window_size = 6
+    graph_p = True # should I make graphs?
+    colors = ['b', 'r']
+    wiggle_room = 2 # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
+    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
+                               ms_s, make_edgefiles, basegraph_name, window_size, colors,
+                               exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
+                               calc_vals = calc_vals, graph_p = graph_p, kubernetes_svc_info=kubernetes_svc_info, cilium_config_path=cilium_config_path,
+                               rdpcap_p=True)
+    #'''
 
     # atsea exp6 -- send exfil data through VIP (note that only a portion of the data sent from the DB pod actually
     # made it to the outside of them deployment
@@ -521,10 +603,146 @@ def run_analysis_pipeline_recipes():
                                calc_vals = calc_vals, graph_p = graph_p, kubernetes_svc_info = kubernetes_svc_info)
     #'''
 
+    '''
+    # Wordpress exp 4 (wordpress w/ HA cluster on cilium that is not configured)
+    pcap_paths = ["/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_four_default_bridge_0any.pcap"]
+    is_swarm = 0
+    basefile_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/edgefiles/wordpress_four_'
+    basegraph_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/graphs/wordpress_four_'
+    container_info_path = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_four_docker_0_network_configs.txt'
+    cilium_config_path = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_four_0_cilium_network_configs.txt'
+    kubernetes_svc_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_four_svc_config_0.txt'
+    time_interval_lengths = [50, 30, 10, 1] #, 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
+    ms_s =  ["my-release-pxc", "wwwppp-wordpress"]
+    make_edgefiles = False
+    start_time = None
+    end_time = None
+    exfil_start_time = 100
+    exfil_end_time = 150
+    calc_vals = True
+    window_size = 6
+    graph_p = True # should I make graphs?
+    colors = ['b', 'r']
+    wiggle_room = 2 # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
+    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
+                               ms_s, make_edgefiles, basegraph_name, window_size, colors,
+                               exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
+                               calc_vals = calc_vals, graph_p = graph_p, kubernetes_svc_info=kubernetes_svc_info, cilium_config_path=cilium_config_path)
+    #'''
+    '''
+    # Wordpress exp 5 (wordpress w/ HA cluster on cilium that is configured per the yaml files in the experimental_configuration folder)
+    pcap_paths = ["/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_five_default_bridge_0any.pcap"]
+    is_swarm = 0
+    basefile_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/edgefiles/wordpress_five_'
+    basegraph_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/graphs/wordpress_five_'
+    container_info_path = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_five_docker_0_network_configs.txt'
+    cilium_config_path = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_five_0_cilium_network_configs.txt'
+    kubernetes_svc_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_five_svc_config_0.txt'
+    time_interval_lengths = [50, 30, 10, 1] #, 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
+    ms_s =  ["my-release-pxc", "wwwppp-wordpress"]
+    make_edgefiles = False
+    start_time = None
+    end_time = None
+    exfil_start_time = 100
+    exfil_end_time = 150
+    calc_vals = True
+    window_size = 6
+    graph_p = True # should I make graphs?
+    colors = ['b', 'r']
+    wiggle_room = 2 # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
+    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
+                               ms_s, make_edgefiles, basegraph_name, window_size, colors,
+                               exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
+                               calc_vals = calc_vals, graph_p = graph_p, kubernetes_svc_info=kubernetes_svc_info, cilium_config_path=cilium_config_path)
+    #'''
 
+    '''
+    # Wordpress exp 6 (wordpress w/ HA cluster on cilium w/o security config, dnscat exfil from single db w/ 10 sec delay)
+    pcap_paths = [
+        "/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_six_full_scaled_default_bridge_0any.pcap"]
+    is_swarm = 0
+    basefile_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/edgefiles/wordpress_six_full_scaled_'
+    basegraph_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/graphs/wordpress_six_full_scaled_'
+    container_info_path = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_six_full_scaled_docker_0_network_configs.txt'
+    cilium_config_path = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_six_full_scaled_0_cilium_network_configs.txt'
+    kubernetes_svc_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_six_full_scaled_svc_config_0.txt'
+    time_interval_lengths = [50, 30, 10]#,
+                             #1]  # , 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
+    ms_s = ["my-release-pxc", "wwwppp-wordpress"]
+    make_edgefiles = False
+    start_time = None
+    end_time = None
+    exfil_start_time = 600
+    exfil_end_time = 650
+    calc_vals = False
+    window_size = 6
+    graph_p = True  # should I make graphs?
+    colors = ['b', 'r']
+    wiggle_room = 2  # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
+    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
+                               ms_s, make_edgefiles, basegraph_name, window_size, colors,
+                               exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
+                               calc_vals=calc_vals, graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
+                               cilium_config_path=cilium_config_path, rdpcap_p=False)
+    #'''
 
+    '''
+    # Wordpress exp 7 (wordpress w/ HA cluster on cilium w/o security config, dnscat exfil from single WP w/ 15 sec delay)
+    pcap_paths = [
+        "/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_seven_default_bridge_0any.pcap"]
+    is_swarm = 0
+    basefile_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/edgefiles/wordpress_seven_'
+    basegraph_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/graphs/wordpress_seven_'
+    container_info_path = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_seven_docker_0_network_configs.txt'
+    cilium_config_path = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_seven_0_cilium_network_configs.txt'
+    kubernetes_svc_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_seven_svc_config_0.txt'
+    time_interval_lengths = [50, 30, 10,
+                             1]  # , 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
+    ms_s = ["my-release-pxc", "wwwppp-wordpress"]
+    make_edgefiles = True
+    start_time = None
+    end_time = None
+    exfil_start_time = 600
+    exfil_end_time = 650
+    calc_vals = True
+    window_size = 6
+    graph_p = True  # should I make graphs?
+    colors = ['b', 'r']
+    wiggle_room = 2  # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
+    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
+                               ms_s, make_edgefiles, basegraph_name, window_size, colors,
+                               exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
+                               calc_vals=calc_vals, graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
+                               cilium_config_path=cilium_config_path, rdpcap_p=False)
+    #'''
+    '''
+    pcap_paths = [
+        "/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_six_default_bridge_0any.pcap"]
+    is_swarm = 0
+    basefile_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/edgefiles/wordpress_six_syn_inter_packets_'
+    basegraph_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/graphs/wordpress_six_syn_inter_packets_'
+    container_info_path = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_six_docker_0_network_configs.txt'
+    cilium_config_path = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_six_0_cilium_network_configs.txt'
+    kubernetes_svc_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_six_svc_config_0.txt'
+    time_interval_lengths = [50, 30, 10,
+                             1]  # , 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
+    ms_s = ["my-release-pxc", "wwwppp-wordpress"]
+    make_edgefiles = True
+    start_time = None
+    end_time = None
+    exfil_start_time = 600
+    exfil_end_time = 650
+    calc_vals = True
+    window_size = 6
+    graph_p = True  # should I make graphs?
+    colors = ['b', 'r']
+    wiggle_room = 2  # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
+    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
+                               ms_s, make_edgefiles, basegraph_name, window_size, colors,
+                               exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
+                               calc_vals=calc_vals, graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
+                               cilium_config_path=cilium_config_path, rdpcap_p=False)
+    #'''
 if __name__=="__main__":
     print "RUNNING"
-    # todo: REMOVE!!!!!
-    time.sleep(600)
     run_analysis_pipeline_recipes()

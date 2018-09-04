@@ -26,7 +26,8 @@ highest_id = 994
 
 # I'm just having the admin modify everything ATM
 #app_pass = 'a1tA u1Rc 6j5h 2NKc 90Hu COeo'
-app_pass = 'vKhE 9Uv4 8gZX lrXS vFtl 3DJU'
+#app_pass = 'vKhE 9Uv4 8gZX lrXS vFtl 3DJU'
+app_pass = "uvHn 8pEf T5Hi yryL knwi zs5b"
 user = 'user'
 token = base64.standard_b64encode(user + ':' + app_pass)
 headers = {'Authorization': 'Basic ' + token}
