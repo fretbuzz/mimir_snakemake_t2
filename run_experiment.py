@@ -316,11 +316,11 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
             print "about to tcpdump on:", current_network_name
             filename = experiment_name + '_' + current_network_name + '_' + str(i)
             if orchestrator == 'docker_swarm':
-                thread.start_new_thread(start_tcpdump, (None, network_namespace, str(int(experiment_length)), filename + '.pcap'))
+                thread.start_new_thread(start_tcpdump, (None, network_namespace, str(int(experiment_length)), filename + '.pcap', orchestrator))
             elif orchestrator == 'kubernetes':
                 interfaces = ['any'] #['docker0', 'eth0', 'eth1']
                 for interface in interfaces:
-                    thread.start_new_thread(start_tcpdump, (interface, network_namespace, str(int(experiment_length)), filename + interface + '.pcap'))
+                    thread.start_new_thread(start_tcpdump, (interface, network_namespace, str(int(experiment_length)), filename + interface + '.pcap', orchestrator))
             else:
                 pass
 
@@ -552,10 +552,7 @@ def get_IP(orchestrator):
     return "-1"
 
 
-# note this may need to be impflemented as a seperate thread
-# in which case it'll also need experimental time + will not need
-# to reset the bash situation
-def start_tcpdump(interface, network_namespace, tcpdump_time, filename):
+def start_tcpdump(interface, network_namespace, tcpdump_time, filename, orchestrator):
     #if orchestrator == "kubernetes":
     #    pass
     #elif orchestrator == "docker_swarm":
@@ -568,6 +565,7 @@ def start_tcpdump(interface, network_namespace, tcpdump_time, filename):
     #args = ['docker-machine', 'ssh', 'default', '-t', "sudo ls /var/run/docker/netns"]
 
     start_netshoot = "docker run -it --rm -v /var/run/docker/netns:/var/run/docker/netns -v /home/docker:/outside --privileged=true nicolaka/netshoot"
+    tcpdump_time = str(int(tcpdump_time) / 10) # dividing by 10 b/c going to rotate
     print network_namespace, tcpdump_time
     switch_namespace =  'nsenter --net=/var/run/docker/netns/' + network_namespace + ' ' 'sh'
 
@@ -583,7 +581,9 @@ def start_tcpdump(interface, network_namespace, tcpdump_time, filename):
             # this is stuff that arrives on the routing mesh
         else:
             interface = "br0"
-    start_tcpdum = "tcpdump -G " + tcpdump_time + ' -W 1 -i ' + interface + ' -w /outside/' + filename + ' -n'
+    start_tcpdum = "tcpdump -G " + tcpdump_time + ' -W 10 -i ' + interface + ' -w /outside/\'' + filename \
+                   + '_%Y-%m-%d_%H:%M:%S.pcap\''+ ' -n' + ' -z gzip '
+
     cmd_to_send = start_netshoot + ';' + switch_namespace + ';' + start_tcpdum
     print "cmd_to_send", cmd_to_send
     print "start_netshoot", start_netshoot
@@ -1260,7 +1260,8 @@ if __name__=="__main__":
         # note: this assumes that minikube is deployed on my laptop (as opposed to on the cloud)
 	#path_to_docker_machine_tls_certs = "/Users/jseverin/.minikube/certs"
     	# note: the below is for cloudlab
-	path_to_docker_machine_tls_certs = "/mydata/.minikube/certs"
+	#path_to_docker_machine_tls_certs = "/users/jsev/.minikube/certs"
+        path_to_docker_machine_tls_certs = "/mydata/.minikube/certs"
     else:
         print "orchestrator not recognized"
         exit(11)
