@@ -1,0 +1,38 @@
+{
+    "application_name": "sockshop",
+    "experiment_name": "sockshop_nine",
+    "orchestrator": "kubernetes",
+    "exfil_method": "DET",
+    "networks_to_tcpdump_on": ["bridge"],
+    "setup" : "None",
+    "class_to_networks": "None",
+    "network_plugin": "none",
+    "setup" : {
+      "number_customer_records": "10000",
+      "number_background_locusts": "10",
+      "background_locust_spawn_rate": "10"
+    },
+    "experiment" : {
+      "number_background_locusts": "300",
+      "background_locust_spawn_rate": "50",
+      "experiment_length_sec": "3600",
+      "traffic_type" : "normal",
+      "number_of_trials": "1"
+    },
+    "exfiltration_info" : {
+      "exfiltration_path_class":[ "front-end-869bc585fb-c9vxz",  "user-6c4cf49694-8v9cn", "user-db" ],
+      "exfiltration_path_how_many_instances_for_each_class":[ "1", "1", "1" ],
+      "exfiltration_path_class_which_installer": {"front-end-869bc585fb-c9vxz": "apk", "user-6c4cf49694-8v9cn":"apk", "user-db":"apt"},
+      "exfil_protocol": "tcp",
+      "folder_to_exfil": "/data/db-users/",
+      "regex_of_file_to_exfil": "\"index-0*\"",
+      "exfil_start_time": "2100",
+      "exfil_end_time": "3000",
+      "min_exfil_data_per_packet_bytes": 300,
+      "max_exfil_data_per_packet_bytes": 400,
+      "avg_exfiltration_rate_KB_per_sec": "1"
+    },
+    "scale" :{
+    }
+
+}
