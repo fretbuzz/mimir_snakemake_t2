@@ -391,12 +391,13 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
             subprocess.call(['truncate', '-s', '0' ,'./' + experiment_name + '_det_server_local_output.txt'])
 
         #''' # enable if you are using cilium as the network plugin
-        cilium_endpoint_args = ["kubectl", "-n", "kube-system", "exec", "cilium-6lffs", "--", "cilium", "endpoint", "list",
+        if network_plugin == 'cilium':
+		cilium_endpoint_args = ["kubectl", "-n", "kube-system", "exec", "cilium-6lffs", "--", "cilium", "endpoint", "list",
                                 "-o", "json"]
-        out = subprocess.check_output(cilium_endpoint_args)
-        container_config_file = experiment_name + '_' + str(i) + '_cilium_network_configs.txt'
-        with open(container_config_file, 'w') as f:
-            f.write(out)
+        	out = subprocess.check_output(cilium_endpoint_args)
+        	container_config_file = experiment_name + '_' + str(i) + '_cilium_network_configs.txt'
+        	with open(container_config_file, 'w') as f:
+          		  f.write(out)
         #'''
 
     # stopping the proxies can be done the same way (useful if e.g., switching
@@ -415,7 +416,7 @@ def prepare_app(app_name, config_params, ip, port):
         print request_url
         prepare_cmds = ["locust", "-f", "./sockshop_config/pop_db.py", request_url, "--no-web", "-c",
              config_params["number_background_locusts"], "-r", config_params["background_locust_spawn_rate"],
-             "-n", config_params["number_customer_records"]]
+             "-t", "10min"]
         print prepare_cmds
         out = subprocess.check_output(prepare_cmds)
 
@@ -714,7 +715,7 @@ def map_container_instances_to_ips(orchestrator, class_to_instances, class_to_ne
     print "class_to_instance_names", class_to_instances.keys()
     print class_to_instances
     ice = 0
-    if network_plugin == 'cilium':
+    if network_plugin =='cilium':
     	pod_to_ip = get_cilium_mapping()
     	print "pod to ip", pod_to_ip
     for class_name, containers in class_to_instances.iteritems():
