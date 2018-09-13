@@ -567,6 +567,7 @@ def start_tcpdump(interface, network_namespace, tcpdump_time, filename):
     #args = ['docker-machine', 'ssh', 'default', '-t', "sudo ls /var/run/docker/netns"]
 
     start_netshoot = "docker run -it --rm -v /var/run/docker/netns:/var/run/docker/netns -v /home/docker:/outside --privileged=true nicolaka/netshoot"
+    tcpdump_time = str(int(tcpdump_time) / 5) # dividing by 5 b/c going to rotate
     print network_namespace, tcpdump_time
     switch_namespace =  'nsenter --net=/var/run/docker/netns/' + network_namespace + ' ' 'sh'
 
@@ -582,7 +583,8 @@ def start_tcpdump(interface, network_namespace, tcpdump_time, filename):
             # this is stuff that arrives on the routing mesh
         else:
             interface = "br0"
-    start_tcpdum = "tcpdump -G " + tcpdump_time + ' -W 1 -i ' + interface + ' -w /outside/' + filename + ' -n'
+    start_tcpdum = "tcpdump -G " + tcpdump_time + ' -W 5 -i ' + interface + ' -w /outside/\'' + filename \
+                   + '_%Y-%m-%d_%H:%M:%S.pcap\''+ ' -n' + ' -z gzip '
     cmd_to_send = start_netshoot + ';' + switch_namespace + ';' + start_tcpdum
     print "cmd_to_send", cmd_to_send
     print "start_netshoot", start_netshoot

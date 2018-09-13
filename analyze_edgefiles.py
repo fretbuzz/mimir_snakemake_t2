@@ -16,6 +16,12 @@ import csv
 import ast
 import itertools
 
+# okay, it looks like this is what I got to do next... not read the whole set of files into memory
+# right off the bat (wanna load in, use, and then replace w/ updated)
+# (1) wanna refactor graph processing into its own function
+# (2) wanna calc_graph_metrics to take the fileneames list and call the function to read it in / process
+# (3) I think that that is it???
+
 def pipeline_analysis_step(filenames, ms_s, time_interval, basegraph_name, calc_vals_p, window_size, container_to_ip,
                            is_swarm, make_net_graphs_p, ):
     list_of_graphs = []
@@ -27,6 +33,7 @@ def pipeline_analysis_step(filenames, ms_s, time_interval, basegraph_name, calc_
 
     svcs = get_svc_equivalents(is_swarm, container_to_ip)
     print "these services were found:", svcs
+    
     if make_net_graphs_p or calc_vals_p:
         for file_path in filenames:
             G = nx.DiGraph()
@@ -353,6 +360,7 @@ def create_graphs(total_calculated_vals, basegraph_name, window_size, colors, ti
     # right now: (time gran, node gran) -> metrics -> vals
 
     node_grans = list(set(node_grans))
+    print "node_grans", node_grans
     time_grans = list(set(time_grans))
     time_grans.sort()
     # okay, so what I want to do here is (time gran, node gran, metric) -> vals
@@ -940,9 +948,11 @@ def make_multi_time_boxplots(metrics_to_time_to_granularity_lists, time_grans, m
         current_vals = metrics_to_time_to_granularity_lists[metric][time_gran]
         current_vals = [[x for x in i if x is not None and not math.isnan(x)] for i in current_vals]
         number_nested_lists = len(current_vals)
+        print "current_vals", current_vals
         print "number_nested_lists", number_nested_lists
+        print "cur_pos", cur_pos
         number_positions_on_graph = range(cur_pos, cur_pos+number_nested_lists)
-        tick_position = (float(number_positions_on_graph[0]) + float(number_positions_on_graph[-1])) / number_nested_lists
+        tick_position = (float(number_positions_on_graph[0]) + float(number_positions_on_graph[-1])) / 2
         tick_position_list.append( tick_position )
         bp = plt.boxplot(current_vals, positions = number_positions_on_graph, widths = 0.6, sym='k.', showfliers=False)
         #print "number of boxplots just added:", len(metrics_to_time_to_granularity_lists[metric][time_gran]), " , ", number_nested_lists
@@ -1000,6 +1010,7 @@ def make_multi_time_boxplots(metrics_to_time_to_granularity_lists, time_grans, m
 
             i += 1
 
+    print "tick_position_list", tick_position_list
     yaxis_range = max_yaxis - min_yaxis
     #print "old min yaxis", min_yaxis
     #print "old max yaxis", max_yaxis
@@ -1119,6 +1130,7 @@ def get_non_exfil_points_to_plot(vals, start_index_ptp, end_index_ptp):
     return vals[:start_index_ptp] + vals[end_index_ptp + 1:]
 
 def process_graph(G, is_swarm, container_to_ip, ms_s):
+    G = G.copy()
     svcs = None
     if is_swarm:
         # okay, here is the deal. I probably want to have an unprocessed and a processed version
@@ -1380,3 +1392,57 @@ def calc_service_specific_graph_metrics(G_list, svcs, calc_vals_p, basegraph_nam
     print "service specific calculated values", calculated_values
     #time.sleep(20)
     return calculated_values
+
+# okay, so G is already a network, read in from an edgefile
+# level_of_processing is one of (app_only, none, class)
+# where none = no other processing except aggregating outside entries (container granularity)
+# where app_only = 1-step induced subgraph of the application containers (so leaving out infrastructure)
+# where class = aggregate all containers of the same class into a single node
+# func returns a new graph (so doesn't modify the input graph)
+def prepare_graph(G, svcs, level_of_processing, is_swarm, counter, file_path, ms_s, container_to_ip):
+        if level_of_processing == 'none':
+            unprocessed_G = G.copy()
+            if is_swarm:
+                mapping = {'192.168.99.1': 'outside'}
+                try:
+                    nx.relabel_nodes(unprocessed_G, mapping, copy=False)
+                except KeyError:
+                    pass  # maybe it's not in the graph?
+            else:
+                pass  # note: I am not really processing the k8s case anyway (except to consolidate the outside nodes)
+
+            containers_to_ms = map_nodes_to_svcs(unprocessed_G, svcs)
+            #print "container to service mapping: ", containers_to_ms
+            nx.set_node_attributes(unprocessed_G, containers_to_ms, 'svc')
+
+            filename = file_path.replace('.txt', '') + 'unprocessed_network_graph_container.png'
+            make_network_graph(unprocessed_G, edge_label_p=True, filename=filename, figsize=(54,32),
+                               node_color_p=False, ms_s=ms_s)
+
+            return unprocessed_G
+
+        elif level_of_processing == 'app_only':
+            # TODO: this is not really at the level of doing application-only processing ATM
+            # it just does some processing
+            G, svcs = process_graph(G, is_swarm, container_to_ip, ms_s)
+
+            containers_to_ms = map_nodes_to_svcs(G, svcs)
+            #print "container to service mapping: ", containers_to_ms
+            nx.set_node_attributes(G, containers_to_ms, 'svc')
+
+            if counter < 50:  # keep # of network graphs to a reasonable amount
+                filename = file_path.replace('.txt', '') + '_network_graph_container.png'
+                make_network_graph(G, edge_label_p=True, filename=filename, figsize=(54, 32), node_color_p=False,
+                                   ms_s=ms_s)
+            return G
+        elif level_of_processing == 'class':
+            aggreg_multi_G, aggreg_simple_G = aggregate_graph(G, ms_s)
+            if counter < 50:
+                filename = file_path.replace('.txt', '') + '_network_graph_class.png'
+                make_network_graph(aggreg_simple_G, edge_label_p=True, filename=filename, figsize=(16, 10),
+                                   node_color_p=False,
+                                   ms_s=ms_s)
+            return aggreg_simple_G
+        else:
+            print "that type of processing not recognized"
+            exit(1)

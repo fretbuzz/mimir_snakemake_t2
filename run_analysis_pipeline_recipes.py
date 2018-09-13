@@ -696,18 +696,18 @@ def run_analysis_pipeline_recipes():
     container_info_path = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_seven_docker_0_network_configs.txt'
     cilium_config_path = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_seven_0_cilium_network_configs.txt'
     kubernetes_svc_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_seven_svc_config_0.txt'
-    time_interval_lengths = [50, 30, 10,
-                             1]  # , 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
+    time_interval_lengths = [50, 30, 10]#,
+                             #1]  # , 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
     ms_s = ["my-release-pxc", "wwwppp-wordpress"]
-    make_edgefiles = True
+    make_edgefiles = False
     start_time = None
     end_time = None
     exfil_start_time = 600
     exfil_end_time = 650
-    calc_vals = True
+    calc_vals = False
     window_size = 6
     graph_p = True  # should I make graphs?
-    colors = ['b', 'r']
+    colors = ['b', 'r', 'y']
     wiggle_room = 2  # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
     run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
                                ms_s, make_edgefiles, basegraph_name, window_size, colors,
@@ -727,12 +727,12 @@ def run_analysis_pipeline_recipes():
     time_interval_lengths = [50, 30, 10,
                              1]  # , 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
     ms_s = ["my-release-pxc", "wwwppp-wordpress"]
-    make_edgefiles = True
+    make_edgefiles = False
     start_time = None
     end_time = None
     exfil_start_time = 600
     exfil_end_time = 650
-    calc_vals = True
+    calc_vals = False
     window_size = 6
     graph_p = True  # should I make graphs?
     colors = ['b', 'r']
@@ -742,6 +742,112 @@ def run_analysis_pipeline_recipes():
                                exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
                                calc_vals=calc_vals, graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
                                cilium_config_path=cilium_config_path, rdpcap_p=False)
+    #'''
+    '''
+    # 20 min of scaled-up wordpress (wordpress_eight)
+    pcap_paths = [
+        "/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_eight_default_bridge_0any.pcap"]
+    is_swarm = 0
+    basefile_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/edgefiles/wordpress_eight_'
+    basegraph_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/graphs/wordpress_eight_'
+    container_info_path = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_eight_docker_0_network_configs.txt'
+    kubernetes_svc_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_eight_svc_config_0.txt'
+    time_interval_lengths = [50, 30, 10,
+                             1]  # , 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
+    ms_s = ["my-release-pxc", "wwwppp-wordpress"]
+    make_edgefiles = True
+    start_time = None
+    end_time = None
+    exfil_start_time = 600
+    exfil_end_time = 900
+    calc_vals = True
+    window_size = 6
+    graph_p = True  # should I make graphs?
+    colors = ['b', 'r']
+    wiggle_room = 2  # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
+    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
+                               ms_s, make_edgefiles, basegraph_name, window_size, colors,
+                               exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
+                               calc_vals=calc_vals, graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
+                               rdpcap_p=False)
+    #'''
+    '''
+    ## sockshop experiment 9 (an hour of scaled-up activity w/ exfil along normal path)
+    pcap_paths = ["/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/sockshop_nine_better_exfil_default_bridge_0any.pcap"]
+    is_swarm = 0
+    basefile_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/edgefiles/sockshop_nine_better_exfil_'
+    basegraph_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/graphs/sockshop_nine_better_exfil_'
+    container_info_path = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/sockshop_nine_better_exfil_docker_0_network_configs.txt'
+    kubernetes_svc_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/sockshop_nine_better_exfil_svc_config_0.txt'
+    time_interval_lengths = [50, 30, 10, 1] #, 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
+    ms_s = microservices_sockshop
+    make_edgefiles = True
+    start_time = None
+    end_time = None
+    exfil_start_time = 2100
+    exfil_end_time = 3000
+    calc_vals = True
+    window_size = 6
+    graph_p = True # should I make graphs?
+    colors = ['b', 'r']
+    wiggle_room = 2 # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
+    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
+                               ms_s, make_edgefiles, basegraph_name, window_size, colors,
+                               exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
+                               calc_vals = calc_vals, graph_p = graph_p, kubernetes_svc_info=kubernetes_svc_info,
+                               rdpcap_p=False)
+    #'''
+    '''
+    ## sockshop experiment 11 (an hour of scaled-up activity w/ exfil NOT on normal path)
+    pcap_paths = ["/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/sockshop_eleven_default_bridge_0any.pcap"]
+    is_swarm = 0
+    basefile_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/edgefiles/sockshop_eleven_'
+    basegraph_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/graphs/sockshop_eleven_'
+    container_info_path = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/sockshop_eleven_docker_0_network_configs.txt'
+    kubernetes_svc_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/sockshop_eleven_svc_config_0.txt'
+    time_interval_lengths = [50, 30, 10, 1] #, 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
+    ms_s = microservices_sockshop
+    make_edgefiles = True
+    start_time = None
+    end_time = None
+    exfil_start_time = 2100
+    exfil_end_time = 3000
+    calc_vals = False
+    window_size = 6
+    graph_p = True # should I make graphs?
+    colors = ['b', 'r']
+    wiggle_room = 2 # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
+    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
+                               ms_s, make_edgefiles, basegraph_name, window_size, colors,
+                               exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
+                               calc_vals = calc_vals, graph_p = graph_p, kubernetes_svc_info=kubernetes_svc_info,
+                               rdpcap_p=False)
+    #'''
+    #'''
+    ## sockshop experiment 12 (an hour of scaled-up activity w/ exfil going straight out)
+    pcap_paths = ["/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/sockshop_twelve_default_bridge_0any.pcap"]
+    is_swarm = 0
+    basefile_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/edgefiles/sockshop_twelve_'
+    basegraph_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/graphs/sockshop_twelve_'
+    container_info_path = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/sockshop_twelve_docker_0_network_configs.txt'
+    kubernetes_svc_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/sockshop_twelve_svc_config_0.txt'
+    time_interval_lengths = [50, 30, 10, 1] #, 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
+    ms_s = microservices_sockshop
+    make_edgefiles = False
+    start_time = None
+    end_time = None
+    exfil_start_time = 2100
+    exfil_end_time = 3000
+    calc_vals = True
+    window_size = 6
+    graph_p = True # should I make graphs?
+    colors = ['b', 'r']
+    wiggle_room = 2 # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
+    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
+                               ms_s, make_edgefiles, basegraph_name, window_size, colors,
+                               exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
+                               calc_vals = calc_vals, graph_p = graph_p, kubernetes_svc_info=kubernetes_svc_info,
+                               rdpcap_p=False)
     #'''
 if __name__=="__main__":
     print "RUNNING"
