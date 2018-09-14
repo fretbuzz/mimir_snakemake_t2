@@ -188,7 +188,10 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
     # start the endpoint (assuming the pre-reqs are installed prior to the running of this script)
     # todo: modify this for the k8s scaneario
     # todo: modify for 1-n, n-1, n-n
-    print "ex", exfil_path[0], proxy_instance_to_networks_to_ip[ selected_proxies[exfil_path[0]][0] ]
+    try:
+        print "ex", exfil_path[0], proxy_instance_to_networks_to_ip[ selected_proxies[exfil_path[0]][0] ]
+    except:
+        pass
     srcs = []
     if orchestrator == "docker_swarm":
         for proxy_instance in selected_proxies[exfil_path[0]]:
@@ -565,7 +568,7 @@ def start_tcpdump(interface, network_namespace, tcpdump_time, filename, orchestr
     #args = ['docker-machine', 'ssh', 'default', '-t', "sudo ls /var/run/docker/netns"]
 
     start_netshoot = "docker run -it --rm -v /var/run/docker/netns:/var/run/docker/netns -v /home/docker:/outside --privileged=true nicolaka/netshoot"
-    tcpdump_time = str(int(tcpdump_time) / 10) # dividing by 10 b/c going to rotate
+    #tcpdump_time = str(int(tcpdump_time) / 10) # dividing by 10 b/c going to rotate
     print network_namespace, tcpdump_time
     switch_namespace =  'nsenter --net=/var/run/docker/netns/' + network_namespace + ' ' 'sh'
 
@@ -581,8 +584,12 @@ def start_tcpdump(interface, network_namespace, tcpdump_time, filename, orchestr
             # this is stuff that arrives on the routing mesh
         else:
             interface = "br0"
-    start_tcpdum = "tcpdump -G " + tcpdump_time + ' -W 10 -i ' + interface + ' -w /outside/\'' + filename \
-                   + '_%Y-%m-%d_%H:%M:%S.pcap\''+ ' -n' + ' -z gzip '
+    # TODO: re-enable if you want rotation and compression!
+    #tcpdump_time = str(int(tcpdump_time) / 10) # dividing by 10 b/c going to rotate
+    #start_tcpdum = "tcpdump -G " + tcpdump_time + ' -W 10 -i ' + interface + ' -w /outside/\'' + filename \
+    #               + '_%Y-%m-%d_%H:%M:%S.pcap\''+ ' -n' + ' -z gzip '
+    start_tcpdum = "tcpdump -G " + tcpdump_time + ' -W 1 -i ' + interface + ' -w /outside/' + filename + ' -n'
+
 
     cmd_to_send = start_netshoot + ';' + switch_namespace + ';' + start_tcpdum
     print "cmd_to_send", cmd_to_send
