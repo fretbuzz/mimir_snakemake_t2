@@ -24,16 +24,16 @@ import itertools
 
 def pipeline_analysis_step(filenames, ms_s, time_interval, basegraph_name, calc_vals_p, window_size, container_to_ip,
                            is_swarm, make_net_graphs_p, ):
+    total_calculated_values = {}
+    '''
     list_of_graphs = []
     list_of_aggregated_graphs = [] # all nodes of the same class aggregated into a single node
     list_of_aggregated_graphs_multi = [] # the above w/ multiple edges
-    total_calculated_values = {}
     list_of_unprocessed_graphs = []
     counter= 0 # let's not make more than 50 images of graphs (per time_interval)
 
     svcs = get_svc_equivalents(is_swarm, container_to_ip)
     print "these services were found:", svcs
-    
     if make_net_graphs_p or calc_vals_p:
         for file_path in filenames:
             G = nx.DiGraph()
@@ -79,19 +79,24 @@ def pipeline_analysis_step(filenames, ms_s, time_interval, basegraph_name, calc_
                 make_network_graph(aggreg_simple_G, edge_label_p=True, filename=filename, figsize=(16,10), node_color_p=False,
                                    ms_s=ms_s)
             counter += 1
+    '''
+    svcs = get_svc_equivalents(is_swarm, container_to_ip)
 
-    total_calculated_values[(time_interval, 'container')] = calc_graph_metrics(list_of_graphs, time_interval,
+    total_calculated_values[(time_interval, 'container')] = calc_graph_metrics(filenames, time_interval,
                                                                                basegraph_name + '_container_', 'container',
-                                                                               calc_vals_p, window_size)
+                                                                               calc_vals_p, window_size, 'app_only',
+                                                                               ms_s, container_to_ip, is_swarm, svcs)
 
-    total_calculated_values[(time_interval, 'class')] = calc_graph_metrics(list_of_aggregated_graphs, time_interval,
+    total_calculated_values[(time_interval, 'class')] = calc_graph_metrics(filenames, time_interval,
                                                                            basegraph_name + '_class_', 'class', calc_vals_p,
-                                                                           window_size)
+                                                                           window_size, 'class', ms_s, container_to_ip,
+                                                                           is_swarm, svcs)
 
-    total_calculated_values[(time_interval, 'unprocessed_container')] = calc_graph_metrics(list_of_unprocessed_graphs,
+    total_calculated_values[(time_interval, 'unprocessed_container')] = calc_graph_metrics(filenames,
                                                         time_interval, basegraph_name + '_unprocessed_container_',
-                                                       'unprocessed_container', calc_vals_p, window_size)
-    #''' # todo: re-enable
+                                                       'unprocessed_container', calc_vals_p, window_size, 'none',
+                                                        ms_s, container_to_ip, is_swarm, svcs)
+    ''' # todo: re-enable
     if is_swarm:
         print "about to calculate the expected structural characteristics for docker swarm..."
         total_calculated_values[(time_interval, 'container')].update(calc_service_specific_graph_metrics(list_of_graphs,
@@ -103,7 +108,12 @@ def pipeline_analysis_step(filenames, ms_s, time_interval, basegraph_name, calc_
 
     return total_calculated_values
 
-def calc_graph_metrics(G_list, time_interval, basegraph_name, container_or_class, calc_vals_p, window_size):
+# gotta keep the order of the nodes consistent when converting from a dictionary to a list
+def get_total_node_list():
+    pass
+
+def calc_graph_metrics(filenames, time_interval, basegraph_name, container_or_class, calc_vals_p, window_size,
+                       level_of_processing, ms_s, container_to_ip, is_swarm, svcs):
 
     if calc_vals_p:
         average_path_lengths = []
@@ -120,13 +130,28 @@ def calc_graph_metrics(G_list, time_interval, basegraph_name, container_or_class
         non_reciprocated_out_weight_dicts = []
         non_reciprocated_in_weight_dicts = []
 
+        '''
         total_node_list = []
         for cur_g in G_list:
             for node in cur_g.nodes():
                 total_node_list.append(node)
         total_node_list = list(set(total_node_list))
+        '''
 
-        for cur_G in G_list:
+        current_total_node_list = []
+
+        #for cur_G in G_list:
+        for counter, file_path in enumerate(filenames):
+            G = nx.DiGraph()
+            print "path to file is ", file_path
+            nx.read_edgelist(file_path,
+                            create_using=G, delimiter=',', data=(('weight', float),))
+            cur_G = prepare_graph(G, svcs, level_of_processing, is_swarm, counter, file_path, ms_s, container_to_ip)
+
+            for node in cur_G.nodes():
+                if node not in current_total_node_list:
+                    current_total_node_list.append(node)
+
             # okay, so this is where to calculate those metrics from the excel document
 
             # first, let's do the graph-wide metrics (b/c it is simple) (these are only single values)
@@ -228,48 +253,48 @@ def calc_graph_metrics(G_list, time_interval, basegraph_name, container_or_class
         print "About to perform vector-angle analysis methods (i.e. DOING ANGLES)"
 
         # out degrees analysis
-        node_degrees = turn_into_list(degree_dicts, total_node_list)
+        node_degrees = turn_into_list(degree_dicts, current_total_node_list)
         angles_degrees = find_angles(node_degrees, window_size) #change_point_detection(degree_dicts, window_size=window_size)  # setting window size arbitrarily for now...
         #print "angles degrees", type(angles_degrees), angles_degrees, node_degrees
-        angles_degrees_eigenvector = change_point_detection(degree_dicts, window_size, total_node_list)
+        angles_degrees_eigenvector = change_point_detection(degree_dicts, window_size, current_total_node_list)
         #print "angles degrees eigenvector", angles_degrees_eigenvector
 
         # outstrength analysis
-        node_outstrengths = turn_into_list(outstrength_dicts, total_node_list)
+        node_outstrengths = turn_into_list(outstrength_dicts, current_total_node_list)
         print "node_outstrengths", node_outstrengths
         outstrength_degrees = find_angles(node_outstrengths, window_size)
-        outstrength_degrees_eigenvector = change_point_detection(outstrength_dicts, window_size, total_node_list)
+        outstrength_degrees_eigenvector = change_point_detection(outstrength_dicts, window_size, current_total_node_list)
 
         # instrength analysis
-        node_instrengths = turn_into_list(instrength_dicts, total_node_list)
+        node_instrengths = turn_into_list(instrength_dicts, current_total_node_list)
         print "node_instrengths", node_instrengths
         instrengths_degrees = find_angles(node_instrengths, window_size)
-        instrengths_degrees_eigenvector = change_point_detection(instrength_dicts, window_size, total_node_list)
+        instrengths_degrees_eigenvector = change_point_detection(instrength_dicts, window_size, current_total_node_list)
 
         # eigenvector centrality analysis
-        node_eigenvector_centrality = turn_into_list(eigenvector_centrality_dicts, total_node_list)
+        node_eigenvector_centrality = turn_into_list(eigenvector_centrality_dicts, current_total_node_list)
         eigenvector_centrality_degrees = find_angles(node_eigenvector_centrality, window_size)
-        eigenvector_centrality_degrees_eigenvector = change_point_detection(eigenvector_centrality_dicts, window_size, total_node_list)
+        eigenvector_centrality_degrees_eigenvector = change_point_detection(eigenvector_centrality_dicts, window_size, current_total_node_list)
 
         # betweeness centrality analysis
-        node_betweeness_centrality = turn_into_list(betweeness_centrality_dicts, total_node_list)
+        node_betweeness_centrality = turn_into_list(betweeness_centrality_dicts, current_total_node_list)
         betweeness_centrality_degrees = find_angles(node_betweeness_centrality, window_size)
-        betweeness_centrality_degrees_eigenvector = change_point_detection(betweeness_centrality_dicts, window_size, total_node_list)
+        betweeness_centrality_degrees_eigenvector = change_point_detection(betweeness_centrality_dicts, window_size, current_total_node_list)
 
         # load centrality analysis
-        node_load_centrality = turn_into_list(load_centrality_dicts, total_node_list)
+        node_load_centrality = turn_into_list(load_centrality_dicts, current_total_node_list)
         load_centrality_degrees = find_angles(node_load_centrality, window_size)
-        load_centrality_degrees_eigenvector = change_point_detection(load_centrality_dicts, window_size, total_node_list)
+        load_centrality_degrees_eigenvector = change_point_detection(load_centrality_dicts, window_size, current_total_node_list)
 
         # non_reciprocated_out_weight analysis
-        node_non_reciprocated_out_weight = turn_into_list(non_reciprocated_out_weight_dicts, total_node_list)
+        node_non_reciprocated_out_weight = turn_into_list(non_reciprocated_out_weight_dicts, current_total_node_list)
         non_reciprocated_out_weight_degrees = find_angles(node_non_reciprocated_out_weight, window_size)
-        non_reciprocated_out_weight_degrees_eigenvector = change_point_detection(non_reciprocated_out_weight_dicts, window_size, total_node_list)
+        non_reciprocated_out_weight_degrees_eigenvector = change_point_detection(non_reciprocated_out_weight_dicts, window_size, current_total_node_list)
 
         # non_reciprocated_in_weight analysis
-        node_non_reciprocated_in_weight = turn_into_list(non_reciprocated_in_weight_dicts, total_node_list)
+        node_non_reciprocated_in_weight = turn_into_list(non_reciprocated_in_weight_dicts, current_total_node_list)
         non_reciprocated_in_weight_degrees = find_angles(node_non_reciprocated_in_weight, window_size)
-        non_reciprocated_in_weight_degrees_eigenvector = change_point_detection(non_reciprocated_in_weight_dicts, window_size, total_node_list)
+        non_reciprocated_in_weight_degrees_eigenvector = change_point_detection(non_reciprocated_in_weight_dicts, window_size, current_total_node_list)
 
         appserver_sum_degrees = []
         for degree_dict in degree_dicts:
@@ -1394,7 +1419,7 @@ def calc_service_specific_graph_metrics(G_list, svcs, calc_vals_p, basegraph_nam
     return calculated_values
 
 # okay, so G is already a network, read in from an edgefile
-# level_of_processing is one of (app_only, none, class)
+# level_of_processing is one of ('app_only', 'none', 'class')
 # where none = no other processing except aggregating outside entries (container granularity)
 # where app_only = 1-step induced subgraph of the application containers (so leaving out infrastructure)
 # where class = aggregate all containers of the same class into a single node

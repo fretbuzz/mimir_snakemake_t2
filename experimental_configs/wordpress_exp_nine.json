@@ -1,0 +1,34 @@
+{
+    "experiment_name": "wordpress_nine",
+    "application_name": "wordpress",
+    "orchestrator": "kubernetes",
+    "network_plugin": "none",
+    "exfil_method": "DET",
+    "networks_to_tcpdump_on": ["bridge"],
+    "class_to_networks": "None",
+    "setup" : "None",
+    "experiment" : {
+      "number_background_locusts": "500",
+      "background_locust_spawn_rate": "100",
+      "experiment_length_sec": "4800",
+      "traffic_type" : "normal",
+      "number_of_trials": "1"
+    },
+    "exfiltration_info" : {
+      "exfiltration_path_class":["wwwppp-wordpress-745c95688-kvfwd", "my-release-pxc-9" ],
+      "exfiltration_path_how_many_instances_for_each_class":[ "1", "1" ],
+      "exfiltration_path_class_which_installer": {"wwwppp-wordpress-745c95688-kvfwd": "apt", "my-release-pxc-9": "apt"},
+      "exfil_protocol": "tcp",
+      "folder_to_exfil": "/var/lib/mysql/",
+      "regex_of_file_to_exfil": "\"galera.cach*\"",
+      "exfil_start_time": "2700",
+      "exfil_end_time": "3600",
+      "min_exfil_data_per_packet_bytes": 300,
+      "max_exfil_data_per_packet_bytes": 400,
+      "avg_exfiltration_rate_KB_per_sec": "1"
+    },
+    "scale" :{
+      "wordpress": 41,
+      "HA-db-cluster": 15
+    }
+}
