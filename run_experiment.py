@@ -348,7 +348,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
                     if exfil_method == 'DET':
                         thread.start_new_thread(start_det_client, (file_to_exfil, exfil_protocol, container))
                     elif exfil_method == 'dnscat':
-                        thread.start_new_thread(start_dnscat_client, (container))
+                        thread.start_new_thread(start_dnscat_client, (container,))
                     else:
                         print "that exfiltration method was not recognized!"
 
