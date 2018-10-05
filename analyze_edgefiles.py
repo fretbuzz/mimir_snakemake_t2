@@ -15,15 +15,13 @@ import pandas
 import csv
 import ast
 import itertools
+import copy
 
-# okay, it looks like this is what I got to do next... not read the whole set of files into memory
-# right off the bat (wanna load in, use, and then replace w/ updated)
-# (1) wanna refactor graph processing into its own function
-# (2) wanna calc_graph_metrics to take the fileneames list and call the function to read it in / process
-# (3) I think that that is it???
+# okay, so things to be aware of:
+# (a) we are assuming that if we cannot label the node and it is not loopback or in the '10.X.X.X' subnet, then it is outside
 
 def pipeline_analysis_step(filenames, ms_s, time_interval, basegraph_name, calc_vals_p, window_size, container_to_ip,
-                           is_swarm, make_net_graphs_p, ):
+                           is_swarm, make_net_graphs_p, infra_service):
     total_calculated_values = {}
     '''
     list_of_graphs = []
@@ -80,22 +78,26 @@ def pipeline_analysis_step(filenames, ms_s, time_interval, basegraph_name, calc_
                                    ms_s=ms_s)
             counter += 1
     '''
-    svcs = get_svc_equivalents(is_swarm, container_to_ip)
+    if is_swarm:
+        svcs = get_svc_equivalents(is_swarm, container_to_ip)
+    else:
+        print "this is k8s, so using these sevices", ms_s
+        svcs = ms_s
 
     total_calculated_values[(time_interval, 'container')] = calc_graph_metrics(filenames, time_interval,
                                                                                basegraph_name + '_container_', 'container',
                                                                                calc_vals_p, window_size, 'app_only',
-                                                                               ms_s, container_to_ip, is_swarm, svcs)
+                                                                               ms_s, container_to_ip, is_swarm, svcs, infra_service)
 
     total_calculated_values[(time_interval, 'class')] = calc_graph_metrics(filenames, time_interval,
                                                                            basegraph_name + '_class_', 'class', calc_vals_p,
                                                                            window_size, 'class', ms_s, container_to_ip,
-                                                                           is_swarm, svcs)
+                                                                           is_swarm, svcs, infra_service)
 
     total_calculated_values[(time_interval, 'unprocessed_container')] = calc_graph_metrics(filenames,
                                                         time_interval, basegraph_name + '_unprocessed_container_',
                                                        'unprocessed_container', calc_vals_p, window_size, 'none',
-                                                        ms_s, container_to_ip, is_swarm, svcs)
+                                                        ms_s, container_to_ip, is_swarm, svcs, infra_service)
     ''' # todo: re-enable
     if is_swarm:
         print "about to calculate the expected structural characteristics for docker swarm..."
@@ -113,7 +115,7 @@ def get_total_node_list():
     pass
 
 def calc_graph_metrics(filenames, time_interval, basegraph_name, container_or_class, calc_vals_p, window_size,
-                       level_of_processing, ms_s, container_to_ip, is_swarm, svcs):
+                       level_of_processing, ms_s, container_to_ip, is_swarm, svcs, infra_service):
 
     if calc_vals_p:
         average_path_lengths = []
@@ -129,7 +131,8 @@ def calc_graph_metrics(filenames, time_interval, basegraph_name, container_or_cl
         load_centrality_dicts = []
         non_reciprocated_out_weight_dicts = []
         non_reciprocated_in_weight_dicts = []
-
+        pod_comm_but_not_VIP_comms = []
+        fraction_pod_comm_but_not_VIP_comms = []
         '''
         total_node_list = []
         for cur_g in G_list:
@@ -146,14 +149,21 @@ def calc_graph_metrics(filenames, time_interval, basegraph_name, container_or_cl
             print "path to file is ", file_path
             nx.read_edgelist(file_path,
                             create_using=G, delimiter=',', data=(('weight', float),))
-            cur_G = prepare_graph(G, svcs, level_of_processing, is_swarm, counter, file_path, ms_s, container_to_ip)
+            cur_G = prepare_graph(G, svcs, level_of_processing, is_swarm, counter, file_path, ms_s, container_to_ip, infra_service)
+            #print "right after graph is prepared", level_of_processing, list(cur_G.nodes(data=True))
 
             for node in cur_G.nodes():
                 if node not in current_total_node_list:
                     current_total_node_list.append(node)
 
-            # okay, so this is where to calculate those metrics from the excel document
+            #print "right before calc_VIP_metric", level_of_processing
+            pod_comm_but_not_VIP_comm, fraction_pod_comm_but_not_VIP_comm = calc_VIP_metric(cur_G)
+            pod_comm_but_not_VIP_comms.append(pod_comm_but_not_VIP_comm)
+            fraction_pod_comm_but_not_VIP_comms.append(fraction_pod_comm_but_not_VIP_comm)
+            # TODO: remove lower line!!
+            #continue
 
+            # okay, so this is where to calculate those metrics from the excel document
             # first, let's do the graph-wide metrics (b/c it is simple) (these are only single values)
             try:
                 avg_path_length = nx.average_shortest_path_length(cur_G) #
@@ -314,6 +324,8 @@ def calc_graph_metrics(filenames, time_interval, basegraph_name, container_or_cl
         calculated_values['Weighted Overall Reciprocity'] = weighted_reciprocities
         calculated_values['Density'] = densities
         calculated_values['Sum of Appserver Node Degrees'] = appserver_sum_degrees
+        calculated_values['Fraction of Communication Between Pods not through VIPs'] = fraction_pod_comm_but_not_VIP_comms
+        calculated_values['Communication Between Pods not through VIPs'] = pod_comm_but_not_VIP_comms
         # delta values:
         calculated_values['Simple Angle Between Node Degree Vectors'] = angles_degrees
         calculated_values['Change-Point Detection Node Degree'] = angles_degrees_eigenvector
@@ -777,7 +789,7 @@ def network_weidge_weighted_reciprocity(G):
                 #print "edge!!!", edge
                 #node_to_nodeTwo = G.out_edges(nbunch=[node, node_two])
                 #nodeTwo_to_node = G.in_edges(nbunch=[node, node_two])
-                print "len edges",  node_to_nodeTwo, nodeTwo_to_node
+                #print "len edges",  node_to_nodeTwo, nodeTwo_to_node
                 reciprocated_weight[node] = min(node_to_nodeTwo, nodeTwo_to_node)
                 non_reciprocated_out_weight[node] = max(node_to_nodeTwo - reciprocated_weight[node], 0)
                 non_reciprocated_in_weight[node] = max(nodeTwo_to_node - reciprocated_weight[node], 0 )
@@ -1216,14 +1228,16 @@ def process_graph(G, is_swarm, container_to_ip, ms_s):
                         if not G.has_edge(u, v) and not G.has_edge(u, v):
                             G = nx.contracted_nodes(G, v, u, self_loops=False)
 
+        # this section below is now outdated
         # this is misleading for k8s b/c it talks to other outside IPs too
         # 192.168.99.1 is really just the generic 'outside' here
+        '''
         mapping = {'192.168.99.1': 'outside'}
         try:
             nx.relabel_nodes(G, mapping, copy=False)
         except KeyError:
             pass  # maybe it's not in the graph?
-
+        '''
         svcs = get_svc_equivalents(is_swarm, container_to_ip)
         print "these services were found:", svcs
         containers_to_ms = map_nodes_to_svcs(G, svcs)
@@ -1246,12 +1260,13 @@ def process_graph(G, is_swarm, container_to_ip, ms_s):
                                 print u, "and", v, "have probably been merged already"
         # note: this is not necessarily the case, but it seems like should more or less
         # hold for all the minikube deployments that I'd do
-        '''
+        
         mapping = {'10.0.2.15': 'default-http-backend(NAT)'}
         try:
             nx.relabel_nodes(G, mapping, copy=False)
         except KeyError:
             pass  # maybe it's not in the graph?
+        '''
     return G, svcs
 
 def generate_network_graph_colormap(color_map, ms_s, G):
@@ -1331,6 +1346,102 @@ def map_nodes_to_svcs(G, svcs):
                 containers_to_ms[u] = svc
                 break
     return containers_to_ms
+
+# okay, so this is a metric that applies only to kubernetes
+# it says that if a container in service X sends data to a container in service Y
+# then that data SHOULD go through either the VIP of X or VIP of Y (b/c NATing)
+# so taking the DIFFERENCE has the potential to be a USEFUL metric
+def calc_VIP_metric(G):
+    # okay, for now let's do a relatively simple, naive implementation
+    pod_to_containers_in_other_svc = {}
+    service_VIP_and_pod_comm = {} # in either direction (each direction seperately tho)
+    print "calc_VIP_metric"
+    attribs = nx.get_node_attributes(G, 'svc')
+    print "calc_VIP_attribs", attribs
+    for (node1, node2, data) in G.edges(data=True):
+        #print node1#, nx.get_node_attributes(G, node1)
+        #or node1 in G.nodes(data=True):
+        #    for node2 in G.nodes(data=True):
+        #        if node1 != node2:
+        try:
+            service1 = attribs[node1]
+            service2 = attribs[node2] #node2[1]['svc']
+            #print "calc_VIP_metric, svc to svc:", service1, service2
+            #print node1, node2, '\n'
+
+            data = data['weight']
+
+            #print "services found!"
+
+            if '_VIP' in node1 and '_VIP' in node2:
+                print 'VIPs communicating??'
+                exit(10)
+
+            if '_VIP' in node1:
+                service_VIP_and_pod_comm[service1, node2] = data
+            elif '_VIP' in node2:
+                service_VIP_and_pod_comm[node1, service2] = data
+            else:
+                # okay, so now we now it is pod-to-pod communication
+                # I think I want to include both getting and recieving?? (so double-counting to a certain extent)
+                #print "pod_to_containers_going", data
+                if (node1, service2) in pod_to_containers_in_other_svc.keys():
+                    #print "pod_to_containers entry found to exist"
+                    pod_to_containers_in_other_svc[node1, service2] += data
+                    #pod_to_containers_in_other_svc[node1, node2] += data
+                else:
+                    #print "pod_to_containers entry found to NOT exist"
+                    pod_to_containers_in_other_svc[node1, service2] = data
+                    #pod_to_containers_in_other_svc[node1, node2] = data
+
+                if (service1, node2) in pod_to_containers_in_other_svc.keys():
+                    #print "pod_to_containers entry2 found to exist"
+                    pod_to_containers_in_other_svc[service1, node2] += data
+                    #pod_to_containers_in_other_svc[node1, node2] += data
+                else:
+                    #print "pod_to_containers entry2 found to NOT exist"
+                    pod_to_containers_in_other_svc[service1, node2] = data
+                    #pod_to_containers_in_other_svc[node1, node2] = data
+
+        except Exception as e:
+            print "calc_VIP_metric exception flagged!", node1, node2, e
+            pass
+    print "service_VIP_and_pod_comm", service_VIP_and_pod_comm
+    print "pod_to_containers_in_other_svc", pod_to_containers_in_other_svc
+
+    difference_between_pod_and_VIP = {}
+    # okay, so now I'd like to calculate the difference.
+    for comm_pair, bytes in service_VIP_and_pod_comm.iteritems():
+        src = comm_pair[0]
+        dest = comm_pair[1]
+        print comm_pair
+
+        #try:
+        pod_to_service_VIP = service_VIP_and_pod_comm[src,dest]
+        #except:
+        #    pod_to_service_VIP = 0
+        print pod_to_service_VIP
+
+        try:
+            pod_to_container =  pod_to_containers_in_other_svc[src,dest]
+        except:
+            # this is something that can happen (tho should only happen rarely)
+            pod_to_container = 0
+        print pod_to_container
+
+
+        difference_between_pod_and_VIP[src,dest] = pod_to_service_VIP - pod_to_container
+    print "difference_between_pod_and_VIP", difference_between_pod_and_VIP
+    total_difference_between_pod_and_VIP = 0
+    for _, data in difference_between_pod_and_VIP.iteritems():
+        total_difference_between_pod_and_VIP += abs(data)
+    sum_of_all_pod_to_container = sum(i for i in pod_to_containers_in_other_svc.values())
+    print "total_difference_between_pod_and_VIP", total_difference_between_pod_and_VIP, "total pod_to_container", sum_of_all_pod_to_container
+    if sum_of_all_pod_to_container > 0:
+        fraction_of_total_difference_between_pod_and_VIP = float(total_difference_between_pod_and_VIP) / sum_of_all_pod_to_container
+    else:
+        fraction_of_total_difference_between_pod_and_VIP = float('NaN')
+    return total_difference_between_pod_and_VIP, fraction_of_total_difference_between_pod_and_VIP
 
 # calc_service_specific_graph_metrics : ??
 # this function calculates some graph metrics that are specific to each service or pair of services. These metrics are
@@ -1424,9 +1535,12 @@ def calc_service_specific_graph_metrics(G_list, svcs, calc_vals_p, basegraph_nam
 # where app_only = 1-step induced subgraph of the application containers (so leaving out infrastructure)
 # where class = aggregate all containers of the same class into a single node
 # func returns a new graph (so doesn't modify the input graph)
-def prepare_graph(G, svcs, level_of_processing, is_swarm, counter, file_path, ms_s, container_to_ip):
+def prepare_graph(G, svcs, level_of_processing, is_swarm, counter, file_path, ms_s, container_to_ip, infra_service):
+        G = copy.deepcopy(G)
+        G = aggregate_outside_nodes(G)
         if level_of_processing == 'none':
             unprocessed_G = G.copy()
+            ''' # outdates
             if is_swarm:
                 mapping = {'192.168.99.1': 'outside'}
                 try:
@@ -1435,10 +1549,12 @@ def prepare_graph(G, svcs, level_of_processing, is_swarm, counter, file_path, ms
                     pass  # maybe it's not in the graph?
             else:
                 pass  # note: I am not really processing the k8s case anyway (except to consolidate the outside nodes)
-
-            containers_to_ms = map_nodes_to_svcs(unprocessed_G, svcs)
+            '''
+            containers_to_ms = map_nodes_to_svcs(unprocessed_G, svcs)# + infra_service)
             #print "container to service mapping: ", containers_to_ms
+            #print "graph before attribs", list(G.nodes(data=True))
             nx.set_node_attributes(unprocessed_G, containers_to_ms, 'svc')
+            #print "graph after attribs", list(G.nodes(data=True))
 
             filename = file_path.replace('.txt', '') + 'unprocessed_network_graph_container.png'
             make_network_graph(unprocessed_G, edge_label_p=True, filename=filename, figsize=(54,32),
@@ -1447,21 +1563,44 @@ def prepare_graph(G, svcs, level_of_processing, is_swarm, counter, file_path, ms
             return unprocessed_G
 
         elif level_of_processing == 'app_only':
-            # TODO: this is not really at the level of doing application-only processing ATM
-            # it just does some processing
-            G, svcs = process_graph(G, is_swarm, container_to_ip, ms_s)
+            if is_swarm:
+                G, svcs = process_graph(G, is_swarm, container_to_ip, ms_s)
+            else:
+                G,_ = process_graph(G, is_swarm, container_to_ip, ms_s)
 
             containers_to_ms = map_nodes_to_svcs(G, svcs)
+            #print "services to map for", svcs
             #print "container to service mapping: ", containers_to_ms
+            #print "graph before attribs", list(G.nodes(data=True))
             nx.set_node_attributes(G, containers_to_ms, 'svc')
+            #print "graph after attribs", list(G.nodes(data=True))
+
+            # okay, we also want to include nodes that are a single hop away
+            application_nodes = containers_to_ms.keys()
+            one_hop_away_nodes = []
+            for (u, v, data) in G.edges(data=True):
+                if u in application_nodes:
+                    if v not in application_nodes and v not in one_hop_away_nodes:
+                        one_hop_away_nodes.append(v)
+                if v in application_nodes:
+                    if u not in application_nodes and u not in one_hop_away_nodes:
+                        one_hop_away_nodes.append(u)
+            #print "app nodes and one hop away", application_nodes + one_hop_away_nodes
+            induced_graph = G.subgraph(G.subgraph(application_nodes+one_hop_away_nodes)).copy()
+            print "graph after induced", list(induced_graph.nodes(data=True))
+
+            # need to relabel again, so we can get the infrastructure services labeled
+            # actually don't wanna b/c inter-system stuff seems to handle VIPs differently
+            #containers_to_ms = map_nodes_to_svcs(G, svcs + infra_service)
+            #nx.set_node_attributes(G, containers_to_ms, 'svc')
 
             if counter < 50:  # keep # of network graphs to a reasonable amount
-                filename = file_path.replace('.txt', '') + '_network_graph_container.png'
-                make_network_graph(G, edge_label_p=True, filename=filename, figsize=(54, 32), node_color_p=False,
+                filename = file_path.replace('.txt', '') + '_app_only_network_graph_container.png'
+                make_network_graph(induced_graph, edge_label_p=True, filename=filename, figsize=(54, 32), node_color_p=False,
                                    ms_s=ms_s)
-            return G
+            return induced_graph
         elif level_of_processing == 'class':
-            aggreg_multi_G, aggreg_simple_G = aggregate_graph(G, ms_s)
+            aggreg_multi_G, aggreg_simple_G = aggregate_graph(G, ms_s)# + infra_service)
             if counter < 50:
                 filename = file_path.replace('.txt', '') + '_network_graph_class.png'
                 make_network_graph(aggreg_simple_G, edge_label_p=True, filename=filename, figsize=(16, 10),
@@ -1471,3 +1610,58 @@ def prepare_graph(G, svcs, level_of_processing, is_swarm, counter, file_path, ms
         else:
             print "that type of processing not recognized"
             exit(1)
+# aggregate_outside_nodes: Graph -> Graph
+# this function combines all the nodes that correspond to outside entities into a single
+# node, with the name 'outside'
+# it identifies outside nodes by assuming that all in-cluster nodes either labeled, loopback,
+# or in the '10.X.X.X' subnet
+def aggregate_outside_nodes(G):
+    outside_nodes = []
+
+    for node in G.nodes():
+        # okay, now check if the node is in the outside
+        #print "aggregate_outside_nodes", node
+        addr_bytes = is_ip(node)
+        if ( addr_bytes ):
+            if (not is_private_ip(addr_bytes)):
+                outside_nodes.append( node )
+                print "new outside node!", node
+    print "outside nodes", outside_nodes
+    first_node = outside_nodes[0]
+    for cur_node in outside_nodes[1:]:
+        G = nx.contracted_nodes(G, first_node, cur_node, self_loops=False)
+    mapping = {first_node: 'outside'}
+    nx.relabel_nodes(G, mapping, copy=False)
+    return G
+
+def is_ip(node_str):
+    addr_bytes = node_str.split('.')
+    if len(addr_bytes) != 4:
+        return None
+    # if any actual ip, then should be composed of numbers
+    for addr_byte in addr_bytes:
+        try:
+            float(addr_byte)
+        except ValueError:
+            return None
+    return addr_bytes
+
+def is_private_ip(addr_bytes):
+    # note: i am going to assume that if the ip is not loopback or in the  '10.X.X.X' subnet, then it is outside
+
+    # private_subnet_one = ('10.0.0.0', '10.255.255.255') # so if 10.XX.XX.XX
+    # private_subnet_two = ('172.16.0.0', '172.31.255.255') # so if
+    # private_subnet_three = ('192.168.0.0', '192.168.255.255') # so if 192.168.XX.XX
+
+    if addr_bytes[0] == '10':
+        return True
+    #elif addr_bytes[0] == '172' and int(addr_bytes[1]) >= 16 and int(addr_bytes[1]) <= 31:
+    #    return True
+    # NOTE: it looks like this range normally used by the VM, so it is NOT fair game
+    # to be used in cluster, since it'd have a different meaning
+    #elif  addr_bytes[0] == '192' and addr_bytes[1] == '168':
+    #    return True
+    elif addr_bytes[0] == '127' and addr_bytes[1] == '0' and addr_bytes[2] == '0' and addr_bytes[3] == '1':
+        return True
+    else:
+        return False

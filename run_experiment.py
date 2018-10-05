@@ -18,6 +18,7 @@ import docker
 import random
 import re
 import pexpect
+import shutil
 
 
 #Locust contemporary client count.  Calculated from the function f(x) = 1/25*(-1/2*sin(pi*x/12) + 1.1), 
@@ -42,8 +43,6 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
     # step (1) read in the config file
     with open(config_file + '.json') as f:
         config_params = json.load(f)
-    if not experiment_name:
-        experiment_name = config_params["experiment_name"]
     orchestrator = config_params["orchestrator"]
     class_to_installer = config_params["exfiltration_info"]["exfiltration_path_class_which_installer"]
     network_plugin = 'none'
@@ -402,6 +401,9 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
             with open(container_config_file, 'w') as f:
                 f.write(out)
         #'''
+        filename = experiment_name + '_' + 'default_bridge' + '_' + str(i) # note: will need to redo this if I want to go
+                                                                           # back to using Docker Swarm at some point
+        recover_pcap(orchestrator, filename + 'any' + '.pcap')
 
     # stopping the proxies can be done the same way (useful if e.g., switching
     # protocols between experiments, etc.)
@@ -409,6 +411,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
         for class_name, container_instances in selected_proxies.iteritems():
             for container in container_instances:
                 stop_det_client(container)
+    copy_experimental_info_to_experimental_folder(exp_name)
 
 
 def prepare_app(app_name, config_params, ip, port):
@@ -631,17 +634,28 @@ def start_tcpdump(interface, network_namespace, tcpdump_time, filename, orchestr
     child.sendline('exit')
     child.sendline('exit')
 
+def recover_pcap(orchestrator, filename):
+    print "okay, about to remove the pcap file from minikube"
     if orchestrator == 'docker_swarm':
         args2 = ["docker-machine", "scp",
                  "docker@default:/home/docker/" + filename, filename]
     elif orchestrator == 'kubernetes':
-        args2 = ["scp", "-i", "$(minikube ssh-key)", '-o', 'StrictHostKeyChecking=no',
-                 '-o', 'UserKnownHostsFile=/dev/null', "docker@$(minikube ip):/home/docker/" + filename,
+        minikube_ssh_key_cmd = ["minikube", "ssh-key"]
+        minikube_ssh_key = subprocess.check_output(minikube_ssh_key_cmd)
+        minikube_ip_cmd = ["minikube", "ip"]
+        minikube_ip = subprocess.check_output(minikube_ip_cmd)
+        minikube_ssh_key= minikube_ssh_key.rstrip('\n')
+        minikube_ip = minikube_ip.rstrip('\n')
+        print minikube_ssh_key
+        print minikube_ip
+        args2 = ["scp", "-i", minikube_ssh_key, '-o', 'StrictHostKeyChecking=no',
+                 '-o', 'UserKnownHostsFile=/dev/null', "docker@"+minikube_ip+":/home/docker/" + filename,
                  filename]
     else:
         print "orchestrator not recognized"
         exit(23)
     # tcpdump file is safely on minikube but we might wanna move it all the way to localhost
+    print "going to remove pcap file with this command", args2
     out = subprocess.check_output(args2)
     print out
 
@@ -1219,6 +1233,95 @@ def setup_experiment(config_file):
         # use the value for the # of replicas. Also, need to test when/if ready
         pass
 
+# note: this function exists b/c there are lots of staments scattered around that print stuff to current
+# directory, and I want to move all of that info into the experimental folder. Probably easiest just to check
+# if the experiment name is in the file name and then move it accordingly
+def copy_experimental_info_to_experimental_folder(exp_name):
+    for filename in os.listdir('./'):
+        if exp_name in filename:
+            shutil.move("./"+filename, './experimental_data/' + exp_name + '/' + filename)
+
+# def generate_analysis_json ??? -> ??
+# this function generates the json that will be used be the analysis pipeline
+def generate_analysis_json(path_to_exp_folder, analysis_json_name, exp_config_json, exp_name):
+    # okay, so what I want is just a dict with the relevant values...
+    analysis_dict = {}
+    if exp_config_json["orchestrator"] == "docker_swarm":
+        analysis_dict['is_swarm'] = str(1)
+    else:
+        analysis_dict['is_swarm'] = str(0)
+
+    pcap_path = exp_name + '_default_bridge_0any.pcap'
+    analysis_dict["pcap_paths"] = [path_to_exp_folder + pcap_path]
+
+    analysis_dict["basefile_name"] = 'edgefiles/' + exp_name + '_'
+    analysis_dict["basegraph_name"] = 'graphs/' + exp_name + '_'
+    analysis_dict["container_info_path"] = exp_name + "_docker_0_network_configs.txt"
+    analysis_dict["container_info_path"] = exp_name + "_docker_0_network_configs.txt"
+
+    using_cilium_p = True if exp_config_json['network_plugin'] == 'cilium' else False
+    if using_cilium_p:
+        cilium_config_path = exp_name + '_0_cilium_network_configs.txt'
+    else:
+        cilium_config_path = None
+    analysis_dict["cilium_config_path"] = cilium_config_path
+
+    analysis_dict["kubernetes_svc_info"] = exp_name + '_svc_config_0.txt'
+    analysis_dict["kubernetes_pod_info"] = exp_name + '_pod_config_0.txt'
+
+    if exp_config_json["application_name"] == 'wordpress':
+        ms_s = ['carts-db', 'carts', 'catalogue-db', 'catalogue', 'front-end', 'orders-db', 'orders',
+                              'payment', 'queue-master', 'rabbitmq', 'session-db', 'shipping', 'user-db', 'user',
+                              'load-test']
+    elif exp_config_json["application_name"] == 'sockshop':
+        ms_s = ["my-release-pxc", "wwwppp-wordpress"]
+    else:
+        print "unrecognzied application"
+        exit(1)
+    analysis_dict["ms_s"] = ms_s
+    analysis_dict["make_edgefiles"] = True
+    analysis_dict["start_time"] = None
+    analysis_dict["end_time"] = None
+    analysis_dict["exfil_start_time"] = exp_config_json["exfiltration_info"]["exfil_start_time"]
+    analysis_dict["exfil_end_time"] = exp_config_json["exfiltration_info"]["exfil_end_time"]
+    analysis_dict["time_interval_lengths"] = [60, 30, 10]
+
+    analysis_dict['calc_vals'] = True
+    analysis_dict['window_size'] = 6
+    analysis_dict['graph_p'] = True
+    analysis_dict['colors'] = ['b', 'r']
+    analysis_dict['wiggle_room'] = 2
+    analysis_dict['percentile_thresholds'] = [25, 35, 45, 50, 60, 75, 85, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100]
+    analysis_dict['anomaly_window'] = 4
+    analysis_dict['anom_num_outlier_vals_in_window'] = 2
+    analysis_dict['alert_file'] = 'alerts/' + exp_name + '_'
+    analysis_dict['ROC_curve_p'] = True
+    analysis_dict['calc_tpr_fpr_p'] = True
+
+    json_path = path_to_exp_folder + analysis_json_name
+    r = json.dumps(analysis_dict)
+    with open(json_path, 'w') as f:
+        f.write(r)
+
+def setup_directories(exp_name):
+    # first want an ./experimental_data directory
+    try:
+        os.makedirs('./experimental_data')
+    except OSError:
+        if not os.path.isdir('./experimental_data'):
+            raise
+
+    # then want the directory to store the results of this experiment in
+    # but if it already exists, we'd want to delete it, so that we don't get
+    # overlapping results confused
+    if os.path.isdir('./experimental_data/' + exp_name):
+        shutil.rmtree('./experimental_data/' + exp_name)
+    os.makedirs('./experimental_data/'+exp_name)
+    os.makedirs('./experimental_data/'+exp_name+'/edgefiles/')
+    os.makedirs('./experimental_data/'+exp_name+'/graphs/')
+    os.makedirs('./experimental_data/'+exp_name+'/alerts')
+    print "Just setup directories!"
+
 if __name__=="__main__":
     print "RUNNING"
 
@@ -1261,14 +1364,22 @@ if __name__=="__main__":
     else:
         ip = args.vm_ip
 
+    if os.path.isdir('/mydata/'):
+        on_cloudlab=True
+    else:
+        on_cloudlab=False
+
+
     if orchestrator == "docker_swarm":
         path_to_docker_machine_tls_certs = "/users/jsev/.docker/machine/machines/default"
     elif orchestrator == "kubernetes":
         # note: this assumes that minikube is deployed on my laptop (as opposed to on the cloud)
-	#path_to_docker_machine_tls_certs = "/Users/jseverin/.minikube/certs"
-    	# note: the below is for cloudlab
-	#path_to_docker_machine_tls_certs = "/users/jsev/.minikube/certs"
-        path_to_docker_machine_tls_certs = "/mydata/.minikube/certs"
+        if not on_cloudlab:
+            path_to_docker_machine_tls_certs = "/Users/jseverin/.minikube/certs"
+        # note: the below is for cloudlab
+        #path_to_docker_machine_tls_certs = "/users/jsev/.minikube/certs"
+        else:
+            path_to_docker_machine_tls_certs = "/mydata/.minikube/certs"
     else:
         print "orchestrator not recognized"
         exit(11)
@@ -1283,4 +1394,17 @@ if __name__=="__main__":
     os.environ['DOCKER_CERT_PATH'] = path_to_docker_machine_tls_certs
     client =docker.from_env()
 
-    main(args.exp_name, args.config_file, args.prepare_app_p, int(args.port_number), ip, args.localhostip, args.install_det_depen_p, args.exfil_p)
+    if args.exp_name:
+        setup_directories(args.exp_name)
+        exp_name = args.exp_name
+    else:
+        with open(args.config_file + '.json') as f:
+            config_params = json.load(f)
+            setup_directories(config_params['experiment_name'])
+            exp_name = config_params['experiment_name']
+
+    with open(args.config_file + '.json') as f:
+        config_params = json.load(f)
+        generate_analysis_json('./experimental_data/' + exp_name + '/', exp_name + '_analysis.json', config_params, exp_name)
+
+    main(exp_name, args.config_file, args.prepare_app_p, int(args.port_number), ip, args.localhostip, args.install_det_depen_p, args.exfil_p)

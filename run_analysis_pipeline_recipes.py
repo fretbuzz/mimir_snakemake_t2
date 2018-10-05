@@ -1,4 +1,5 @@
 import time
+import json
 
 from pcap_parser import run_data_anaylsis_pipeline
 
@@ -281,7 +282,8 @@ def run_analysis_pipeline_recipes():
     run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
                                ms_s, make_edgefiles, basegraph_name, window_size, colors,
                                exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
-                               calc_vals = calc_vals, graph_p = graph_p, kubernetes_svc_info=kubernetes_svc_info, cilium_config_path=cilium_config_path)
+                               calc_vals = calc_vals, graph_p = graph_p, kubernetes_svc_info=kubernetes_svc_info, 
+                               cilium_config_path=cilium_config_path)
     #'''
 
     # sockshop exp 8 (no exfil, on k8s, using cilium network plguin) [rep2 = I stopped those wierd load-balancer containers]
@@ -666,6 +668,7 @@ def run_analysis_pipeline_recipes():
     container_info_path = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_six_full_scaled_docker_0_network_configs.txt'
     cilium_config_path = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_six_full_scaled_0_cilium_network_configs.txt'
     kubernetes_svc_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_six_full_scaled_svc_config_0.txt'
+    kubernetes_pod_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_six_full_scaled_pod_config_0.txt'
     time_interval_lengths = [50, 30, 10]#,
                              #1]  # , 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
     ms_s = ["my-release-pxc", "wwwppp-wordpress"]
@@ -676,15 +679,138 @@ def run_analysis_pipeline_recipes():
     exfil_end_time = 650
     calc_vals = False
     window_size = 6
-    graph_p = True  # should I make graphs?
+    graph_p = False  # should I make graphs?
     colors = ['b', 'r']
     wiggle_room = 2  # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
+    percentile_thresholds = [50, 75, 85, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100]
+    anomaly_window = 4
+    anom_num_outlier_vals_in_window = 2
+    alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_six_'
     run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
                                ms_s, make_edgefiles, basegraph_name, window_size, colors,
                                exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
                                calc_vals=calc_vals, graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
-                               cilium_config_path=cilium_config_path, rdpcap_p=False)
+                               cilium_config_path=cilium_config_path, rdpcap_p=False, calc_alerts_p=True,
+                               percentile_thresholds=percentile_thresholds, anomaly_window = anomaly_window,
+                               anom_num_outlier_vals_in_window = anom_num_outlier_vals_in_window,
+                               alert_file = alert_file, ROC_curve_p=True, calc_tpr_fpr_p=True,
+                               kubernetes_pod_info=kubernetes_pod_info)
     #'''
+    #'''
+    pcap_paths = [
+        "/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_six_rep_2_default_bridge_0any.pcap"]
+    is_swarm = 0
+    basefile_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/edgefiles/wordpress_six_rep_2_'
+    basegraph_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/graphs/wordpress_six_rep_2_'
+    container_info_path = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_six_rep_2_docker_0_network_configs.txt'
+    cilium_config_path = None # does NOT sue cilium on reps 2-4
+    kubernetes_svc_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_six_rep_2_svc_config_0.txt'
+    kubernetes_pod_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_six_rep_2_pod_config_0.txt'
+    time_interval_lengths = [50, 30, 10]#,
+                             #1]  # , 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
+    ms_s = ["my-release-pxc", "wwwppp-wordpress"]
+    make_edgefiles = Falsee
+    start_time = None
+    end_time = None
+    exfil_start_time = 600
+    exfil_end_time = 650
+    calc_vals = False
+    window_size = 6
+    graph_p = False  # should I make graphs?
+    colors = ['b', 'r']
+    wiggle_room = 2  # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
+    percentile_thresholds = [50, 75, 85, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100]
+    anomaly_window = 4
+    anom_num_outlier_vals_in_window = 2
+    alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_six_rep_2_'
+    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
+                               ms_s, make_edgefiles, basegraph_name, window_size, colors,
+                               exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
+                               calc_vals=calc_vals, graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
+                               cilium_config_path=cilium_config_path, rdpcap_p=False, calc_alerts_p=True,
+                               percentile_thresholds=percentile_thresholds, anomaly_window = anomaly_window,
+                               anom_num_outlier_vals_in_window = anom_num_outlier_vals_in_window,
+                               alert_file = alert_file, ROC_curve_p=True, calc_tpr_fpr_p=True,
+                               kubernetes_pod_info=kubernetes_pod_info)
+    #'''
+
+    #'''
+    # Wordpress exp 6 rep3 (wordpress w/ HA cluster on cilium w/o security config, dnscat exfil from single db w/ 15 sec delay)
+    pcap_paths = [
+        "/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_six_rep_3_default_bridge_0any.pcap"]
+    is_swarm = 0
+    basefile_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/edgefiles/wordpress_six_rep_3_'
+    basegraph_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/graphs/wordpress_six_rep_3_'
+    container_info_path = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_six_rep_3_docker_0_network_configs.txt'
+    cilium_config_path = None # does NOT sue cilium on reps 2-4
+    kubernetes_svc_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_six_rep_3_svc_config_0.txt'
+    kubernetes_pod_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_six_rep_3_pod_config_0.txt'
+    time_interval_lengths = [50, 30, 10]#,
+                             #1]  # , 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
+    ms_s = ["my-release-pxc", "wwwppp-wordpress"]
+    make_edgefiles = False
+    start_time = None
+    end_time = None
+    exfil_start_time = 600
+    exfil_end_time = 650
+    calc_vals = True
+    window_size = 6
+    graph_p = True  # should I make graphs?
+    colors = ['b', 'r']
+    wiggle_room = 2  # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
+    percentile_thresholds = [50, 75, 85, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100]
+    anomaly_window = 4
+    anom_num_outlier_vals_in_window = 2
+    alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_six_rep_3_'
+    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
+                               ms_s, make_edgefiles, basegraph_name, window_size, colors,
+                               exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
+                               calc_vals=calc_vals, graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
+                               cilium_config_path=cilium_config_path, rdpcap_p=False, calc_alerts_p=True,
+                               percentile_thresholds=percentile_thresholds, anomaly_window = anomaly_window,
+                               anom_num_outlier_vals_in_window = anom_num_outlier_vals_in_window,
+                               alert_file = alert_file, ROC_curve_p=True, calc_tpr_fpr_p=True,
+                               kubernetes_pod_info=kubernetes_pod_info)
+    #'''
+
+    #'''
+    # Wordpress exp 6 rep4 (wordpress w/ HA cluster on cilium w/o security config, dnscat exfil from single db w/ 15 sec delay)
+    pcap_paths = [
+        "/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_six_rep_4_default_bridge_0any.pcap"]
+    is_swarm = 0
+    basefile_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/edgefiles/wordpress_six_rep_4_'
+    basegraph_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/graphs/wordpress_six_rep_4_'
+    container_info_path = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_six_rep_4_docker_0_network_configs.txt'
+    cilium_config_path = None  # does NOT sue cilium on reps 2-4
+    kubernetes_svc_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_six_rep_4_svc_config_0.txt'
+    kubernetes_pod_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_six_rep_4_pod_config_0.txt'
+    time_interval_lengths = [50, 30, 10]  # ,
+    # 1]  # , 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
+    ms_s = ["my-release-pxc", "wwwppp-wordpress"]
+    make_edgefiles = False
+    start_time = None
+    end_time = None
+    exfil_start_time = 600
+    exfil_end_time = 650
+    calc_vals = True
+    window_size = 6
+    graph_p = True  # should I make graphs?
+    colors = ['b', 'r']
+    wiggle_room = 2  # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
+    percentile_thresholds = [50, 75, 85, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100]
+    anomaly_window = 4
+    anom_num_outlier_vals_in_window = 2
+    alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_six_rep_4_'
+    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
+                               ms_s, make_edgefiles, basegraph_name, window_size, colors,
+                               exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
+                               calc_vals=calc_vals, graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
+                               cilium_config_path=cilium_config_path, rdpcap_p=False, calc_alerts_p=True,
+                               percentile_thresholds=percentile_thresholds, anomaly_window=anomaly_window,
+                               anom_num_outlier_vals_in_window=anom_num_outlier_vals_in_window,
+                               alert_file=alert_file, ROC_curve_p=True, calc_tpr_fpr_p=True,
+                               kubernetes_pod_info=kubernetes_pod_info)
+    # '''
 
     '''
     # Wordpress exp 7 (wordpress w/ HA cluster on cilium w/o security config, dnscat exfil from single WP w/ 15 sec delay)
@@ -696,6 +822,7 @@ def run_analysis_pipeline_recipes():
     container_info_path = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_seven_docker_0_network_configs.txt'
     cilium_config_path = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_seven_0_cilium_network_configs.txt'
     kubernetes_svc_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_seven_svc_config_0.txt'
+    kubernetes_pod_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_seven_pod_config_0.txt'
     time_interval_lengths = [50, 30, 10]#,
                              #1]  # , 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
     ms_s = ["my-release-pxc", "wwwppp-wordpress"]
@@ -706,15 +833,102 @@ def run_analysis_pipeline_recipes():
     exfil_end_time = 650
     calc_vals = False
     window_size = 6
-    graph_p = True  # should I make graphs?
+    graph_p = False  # should I make graphs?
     colors = ['b', 'r', 'y']
     wiggle_room = 2  # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
+    percentile_thresholds = [50, 75, 85, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100]
+    anomaly_window = 4
+    anom_num_outlier_vals_in_window = 2
+    alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_seven_'
     run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
                                ms_s, make_edgefiles, basegraph_name, window_size, colors,
                                exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
                                calc_vals=calc_vals, graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
-                               cilium_config_path=cilium_config_path, rdpcap_p=False)
+                               cilium_config_path=cilium_config_path, rdpcap_p=False, calc_alerts_p=True,
+                               percentile_thresholds=percentile_thresholds, anomaly_window = anomaly_window,
+                               anom_num_outlier_vals_in_window = anom_num_outlier_vals_in_window,
+                               alert_file = alert_file, ROC_curve_p=True, calc_tpr_fpr_p=True,
+                               kubernetes_pod_info=kubernetes_pod_info)
     #'''
+
+    #'''
+    # Wordpress exp 7 rep 2(wordpress w/ HA cluster on cilium w/o security config, dnscat exfil from single WP w/ 15 sec delay)
+    pcap_paths = [
+        "/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_seven_rep_2_default_bridge_0any.pcap.pcap"]
+    is_swarm = 0
+    basefile_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/edgefiles/wordpress_seven_rep_2_'
+    basegraph_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/graphs/wordpress_seven_rep_2_'
+    container_info_path = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_seven_rep_2_docker_0_network_configs.txt'
+    cilium_config_path = None
+    kubernetes_svc_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_seven_rep_2_svc_config_0.txt'
+    kubernetes_pod_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_seven_rep_2_pod_config_0.txt'
+    time_interval_lengths = [50, 30, 10]#,
+                             #1]  # , 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
+    ms_s = ["my-release-pxc", "wwwppp-wordpress"]
+    make_edgefiles = True
+    start_time = None
+    end_time = None
+    exfil_start_time = 600
+    exfil_end_time = 650
+    calc_vals = True
+    window_size = 6
+    graph_p = True  # should I make graphs?
+    colors = ['b', 'r', 'y']
+    wiggle_room = 2  # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
+    percentile_thresholds = [50, 75, 85, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100]
+    anomaly_window = 4
+    anom_num_outlier_vals_in_window = 2
+    alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_seven_rep_2_'
+    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
+                               ms_s, make_edgefiles, basegraph_name, window_size, colors,
+                               exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
+                               calc_vals=calc_vals, graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
+                               cilium_config_path=cilium_config_path, rdpcap_p=False, calc_alerts_p=True,
+                               percentile_thresholds=percentile_thresholds, anomaly_window = anomaly_window,
+                               anom_num_outlier_vals_in_window = anom_num_outlier_vals_in_window,
+                               alert_file = alert_file, ROC_curve_p=True, calc_tpr_fpr_p=True,
+                               kubernetes_pod_info=kubernetes_pod_info)
+    #'''
+
+    # '''
+    # Wordpress exp 7 rep 3(wordpress w/ HA cluster on cilium w/o security config, dnscat exfil from single WP w/ 15 sec delay)
+    pcap_paths = [
+        "/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_seven_rep_3_default_bridge_0any.pcap.pcap"]
+    is_swarm = 0
+    basefile_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/edgefiles/wordpress_seven_rep_3_'
+    basegraph_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/graphs/wordpress_seven_rep_3_'
+    container_info_path = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_seven_rep_3_docker_0_network_configs.txt'
+    cilium_config_path = None
+    kubernetes_svc_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_seven_rep_3_svc_config_0.txt'
+    kubernetes_pod_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_seven_rep_3_pod_config_0.txt'
+    time_interval_lengths = [50, 30, 10]  # ,
+    # 1]  # , 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
+    ms_s = ["my-release-pxc", "wwwppp-wordpress"]
+    make_edgefiles = True
+    start_time = None
+    end_time = None
+    exfil_start_time = 600
+    exfil_end_time = 650
+    calc_vals = True
+    window_size = 6
+    graph_p = True  # should I make graphs?
+    colors = ['b', 'r', 'y']
+    wiggle_room = 2  # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
+    percentile_thresholds = [50, 75, 85, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100]
+    anomaly_window = 4
+    anom_num_outlier_vals_in_window = 2
+    alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_seven_rep_3_'
+    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
+                               ms_s, make_edgefiles, basegraph_name, window_size, colors,
+                               exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
+                               calc_vals=calc_vals, graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
+                               cilium_config_path=cilium_config_path, rdpcap_p=False, calc_alerts_p=True,
+                               percentile_thresholds=percentile_thresholds, anomaly_window=anomaly_window,
+                               anom_num_outlier_vals_in_window=anom_num_outlier_vals_in_window,
+                               alert_file=alert_file, ROC_curve_p=True, calc_tpr_fpr_p=True,
+                               kubernetes_pod_info=kubernetes_pod_info)
+    # '''
+
     '''
     pcap_paths = [
         "/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_six_default_bridge_0any.pcap"]
@@ -752,24 +966,33 @@ def run_analysis_pipeline_recipes():
     basegraph_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/graphs/wordpress_eight_'
     container_info_path = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_eight_docker_0_network_configs.txt'
     kubernetes_svc_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_eight_svc_config_0.txt'
-    time_interval_lengths = [50, 30, 10,
-                             1]  # , 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
+    kubernetes_pod_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_eight_pod_config_0.txt'
+    time_interval_lengths = [50, 30, 10]#,
+                             #1]  # , 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
     ms_s = ["my-release-pxc", "wwwppp-wordpress"]
-    make_edgefiles = True
+    make_edgefiles = False
     start_time = None
     end_time = None
     exfil_start_time = 600
     exfil_end_time = 900
-    calc_vals = True
+    calc_vals = False
     window_size = 6
-    graph_p = True  # should I make graphs?
+    graph_p = False  # should I make graphs?
     colors = ['b', 'r']
     wiggle_room = 2  # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
+    percentile_thresholds = [50, 75, 85, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100]
+    anomaly_window = 4
+    anom_num_outlier_vals_in_window = 2
+    alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_eight_'
     run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
                                ms_s, make_edgefiles, basegraph_name, window_size, colors,
                                exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
                                calc_vals=calc_vals, graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
-                               rdpcap_p=False)
+                               rdpcap_p=False, calc_alerts_p=True,
+                               percentile_thresholds=percentile_thresholds, anomaly_window = anomaly_window,
+                               anom_num_outlier_vals_in_window = anom_num_outlier_vals_in_window,
+                               alert_file = alert_file, ROC_curve_p=True, calc_tpr_fpr_p=True,
+                               kubernetes_pod_info=kubernetes_pod_info)
     #'''
     '''
     ## sockshop experiment 9 (an hour of scaled-up activity w/ exfil along normal path)
@@ -779,23 +1002,31 @@ def run_analysis_pipeline_recipes():
     basegraph_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/graphs/sockshop_nine_better_exfil_'
     container_info_path = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/sockshop_nine_better_exfil_docker_0_network_configs.txt'
     kubernetes_svc_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/sockshop_nine_better_exfil_svc_config_0.txt'
-    time_interval_lengths = [50, 30, 10, 1] #, 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
+    kubernetes_pod_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/sockshop_nine_better_exfil_pod_config_0.txt'
+    time_interval_lengths = [50, 30, 10]#, 1] #, 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
     ms_s = microservices_sockshop
-    make_edgefiles = True
+    make_edgefiles = False
     start_time = None
     end_time = None
     exfil_start_time = 2100
     exfil_end_time = 3000
-    calc_vals = True
+    calc_vals = False
     window_size = 6
-    graph_p = True # should I make graphs?
+    graph_p = False # should I make graphs?
     colors = ['b', 'r']
+    percentile_thresholds = [50, 75, 85, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100]
+    anomaly_window = 4
+    anom_num_outlier_vals_in_window = 2
+    alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/alerts/sockshop_nine_better_exfil_'
     wiggle_room = 2 # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
     run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
                                ms_s, make_edgefiles, basegraph_name, window_size, colors,
                                exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
                                calc_vals = calc_vals, graph_p = graph_p, kubernetes_svc_info=kubernetes_svc_info,
-                               rdpcap_p=False)
+                               rdpcap_p=False, calc_alerts_p=True,
+                               percentile_thresholds=percentile_thresholds, anomaly_window = anomaly_window,
+                               anom_num_outlier_vals_in_window = anom_num_outlier_vals_in_window,
+                               alert_file = alert_file, ROC_curve_p=True, calc_tpr_fpr_p=True, kubernetes_pod_info=kubernetes_pod_info)
     #'''
     '''
     ## sockshop experiment 11 (an hour of scaled-up activity w/ exfil NOT on normal path)
@@ -805,25 +1036,34 @@ def run_analysis_pipeline_recipes():
     basegraph_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/graphs/sockshop_eleven_'
     container_info_path = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/sockshop_eleven_docker_0_network_configs.txt'
     kubernetes_svc_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/sockshop_eleven_svc_config_0.txt'
-    time_interval_lengths = [50, 30, 10, 1] #, 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
+    kubernetes_pod_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/sockshop_eleven_pod_config_0.txt'
+    time_interval_lengths = [50, 30, 10]#, 1]#, 1] #, 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
     ms_s = microservices_sockshop
-    make_edgefiles = True
+    make_edgefiles = False
     start_time = None
     end_time = None
     exfil_start_time = 2100
     exfil_end_time = 3000
     calc_vals = False
     window_size = 6
-    graph_p = True # should I make graphs?
+    graph_p = False # should I make graphs?
     colors = ['b', 'r']
+    percentile_thresholds = [50, 75, 85, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100]
+    anomaly_window = 4
+    anom_num_outlier_vals_in_window = 2
+    alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/alerts/sockshop_eleven_'
     wiggle_room = 2 # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
     run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
                                ms_s, make_edgefiles, basegraph_name, window_size, colors,
                                exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
                                calc_vals = calc_vals, graph_p = graph_p, kubernetes_svc_info=kubernetes_svc_info,
-                               rdpcap_p=False)
+                               rdpcap_p=False, calc_alerts_p=True,
+                               percentile_thresholds=percentile_thresholds, anomaly_window = anomaly_window,
+                               anom_num_outlier_vals_in_window = anom_num_outlier_vals_in_window,
+                               alert_file = alert_file, ROC_curve_p=True, calc_tpr_fpr_p=True,
+                               kubernetes_pod_info=kubernetes_pod_info)
     #'''
-    #'''
+    '''
     ## sockshop experiment 12 (an hour of scaled-up activity w/ exfil going straight out)
     pcap_paths = ["/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/sockshop_twelve_default_bridge_0any.pcap"]
     is_swarm = 0
@@ -831,24 +1071,80 @@ def run_analysis_pipeline_recipes():
     basegraph_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/graphs/sockshop_twelve_'
     container_info_path = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/sockshop_twelve_docker_0_network_configs.txt'
     kubernetes_svc_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/sockshop_twelve_svc_config_0.txt'
-    time_interval_lengths = [50, 30, 10, 1] #, 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
+    time_interval_lengths = [50, 30, 10]#, 1] #, 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
     ms_s = microservices_sockshop
     make_edgefiles = False
     start_time = None
     end_time = None
     exfil_start_time = 2100
     exfil_end_time = 3000
-    calc_vals = True
+    calc_vals = False
     window_size = 6
-    graph_p = True # should I make graphs?
+    graph_p = False # should I make graphs?
     colors = ['b', 'r']
+    percentile_thresholds = [50, 75, 85, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100]
+    anomaly_window = 4
+    anom_num_outlier_vals_in_window = 2
+    alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/alerts/sockshop_twelve_'
+    kubernetes_pod_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/sockshop_twelve_pod_config_0.txt'
     wiggle_room = 2 # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
     run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
                                ms_s, make_edgefiles, basegraph_name, window_size, colors,
                                exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
                                calc_vals = calc_vals, graph_p = graph_p, kubernetes_svc_info=kubernetes_svc_info,
-                               rdpcap_p=False)
+                               rdpcap_p=False, calc_alerts_p=True,
+                               percentile_thresholds=percentile_thresholds, anomaly_window = anomaly_window,
+                               anom_num_outlier_vals_in_window = anom_num_outlier_vals_in_window,
+                               alert_file = alert_file, ROC_curve_p=True, calc_tpr_fpr_p=True,
+                               kubernetes_pod_info = kubernetes_pod_info)
     #'''
+
+def run_analysis_pipeline_recipes_json(json_file, path_to_experimental_data):
+    with open(path_to_experimental_data + json_file) as f:
+        data = json.load(f)
+        pcap_paths = data["pcap_paths"]
+        is_swarm = int(data["is_swarm"])
+        basefile_name = path_to_experimental_data + data["basefile_name"]
+        basegraph_name = path_to_experimental_data + data["basegraph_name"]
+        container_info_path =  path_to_experimental_data + data["container_info_path"]
+        cilium_config_path = (path_to_experimental_data + data["cilium_config_path"])[0] if (data["cilium_config_path"] and data["cilium_config_path"] != "None") else None
+        kubernetes_svc_info = path_to_experimental_data + data["kubernetes_svc_info"]
+        kubernetes_pod_info = path_to_experimental_data + data["kubernetes_pod_info"]
+        time_interval_lengths = data["time_interval_lengths"]
+        ms_s = data["ms_s"]
+        make_edgefiles =  data["make_edgefiles"]
+        start_time = data["start_time"]
+        end_time = data["end_time"]
+        exfil_start_time = data["exfil_start_time"]
+        exfil_end_time = data["exfil_end_time"]
+        calc_vals = data["calc_vals"]
+        window_size = data["window_size"]
+        graph_p = data["graph_p"]
+        colors = data["colors"]
+        wiggle_room = data["wiggle_room"] # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
+        percentile_thresholds = data["percentile_thresholds"]
+        anomaly_window = data["anomaly_window"]
+        anom_num_outlier_vals_in_window = data["anom_num_outlier_vals_in_window"]
+        alert_file = path_to_experimental_data + data["alert_file"]
+        ROC_curve_p =  data["ROC_curve_p"]
+        calc_tpr_fpr_p =  data["calc_tpr_fpr_p"]
+
+        run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
+                                   ms_s, make_edgefiles, basegraph_name, window_size, colors,
+                                   exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
+                                   calc_vals=calc_vals, graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
+                                   cilium_config_path=cilium_config_path, rdpcap_p=False, calc_alerts_p=True,
+                                   percentile_thresholds=percentile_thresholds, anomaly_window=anomaly_window,
+                                   anom_num_outlier_vals_in_window=anom_num_outlier_vals_in_window,
+                                   alert_file=alert_file, ROC_curve_p=ROC_curve_p, calc_tpr_fpr_p=calc_tpr_fpr_p,
+                                   kubernetes_pod_info=kubernetes_pod_info)
+
 if __name__=="__main__":
     print "RUNNING"
-    run_analysis_pipeline_recipes()
+    #run_analysis_pipeline_recipes()
+    local_machine_experimental_data_location = '/Volumes/Seagate Backup Plus Drive/experimental_data/'
+    #run_analysis_pipeline_recipes_json('/Users/jseverin/Documents/Microservices/munnin/analysis_json/wordpress_six_rep2.json',
+    #                                   local_machine_experimental_data_location)
+
+    run_analysis_pipeline_recipes_json( 'wp_testing_new_file_setup_analysis.json',
+                            '/Users/jseverin/Documents/Microservices/munnin/experimental_data/wp_testing_new_file_setup/')

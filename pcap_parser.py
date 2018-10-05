@@ -10,6 +10,7 @@ import analyze_edgefiles
 import gc
 import ast
 import json
+import alert_triggers
 
 # parse_pcap : packet_array seconds_per_time_interval ip_to_container_and_network, basename_of_output pcap_start_time
 #    shouldnt_delete_old_edgefiles_p  -> unidentified_IPs list_of_filenames endtime (+ filenames filled w/ edgelists)
@@ -381,6 +382,7 @@ def ips_on_docker_networks(path):
 # returns the virtual IPs for the kubernetes services
 def parse_kubernetes_svc_info(kubernetes_svc_info_path):
     mapping = {}
+    list_of_svcs = []
     with open(kubernetes_svc_info_path, 'r') as svc_f:
         line = svc_f.readlines()
         for l in line[1:]:
@@ -388,8 +390,9 @@ def parse_kubernetes_svc_info(kubernetes_svc_info_path):
             print l_pieces[1], l_pieces[3]
             #mapping[l_pieces[1]] = l_pieces[3]
             mapping[l_pieces[3]] = (l_pieces[1] + '_VIP', 'svc')
+            list_of_svcs.append( l_pieces[1] )
     print "these service mappings were found", mapping
-    return mapping
+    return mapping, list_of_svcs
 
 def parse_cilium(cilium_config_path):
     mapping = {}
@@ -403,6 +406,19 @@ def parse_cilium(cilium_config_path):
         mapping[ipv6_addr] = (pod_name, 'cilium')
     return mapping
 
+def parse_kubernetes_pod_info(kubernetes_pod_info):
+    pod_ip_info = {}
+    with open(kubernetes_pod_info) as f:
+        lines = f.readlines()
+        for line in lines:
+            split_line = line.split()
+            #print line.split()[1], line.split()[6]
+            if split_line[6] in pod_ip_info:
+                pod_ip_info[split_line[6]] = (pod_ip_info[split_line[6]][0] + ';' + split_line[1],'pod')
+            else:
+                pod_ip_info[split_line[6]] = (split_line[1], 'pod')
+    return pod_ip_info
+
 # run_data_anaylsis_pipeline : runs the whole analysis pipeline (or a part of it)
 # (1) creates edgefiles, (2) creates communication graphs from edgefiles, (3) calculates (and stores) graph metrics
 # (4) makes graphs of the graph metrics
@@ -411,17 +427,38 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
                                ms_s, make_edgefiles_p, basegraph_name, window_size, colors,
                                exfil_start_time, exfil_end_time, wiggle_room, start_time = None, end_time = None, calc_vals=True,
                                graph_p = True, kubernetes_svc_info=None, make_net_graphs_p=False, cilium_config_path=None,
-                               rdpcap_p=False):
+                               rdpcap_p=False, kubernetes_pod_info=None, calc_alerts_p=False,
+                               percentile_thresholds=None, anomaly_window = None, anom_num_outlier_vals_in_window = None,
+                               alert_file = None, ROC_curve_p=False, calc_tpr_fpr_p=False, calc_packet_vals_p = False,
+                               training_window_size=50):
+                                # <--- training window size is going to be forty somewhat arbitrarily
 
     # First, get a mapping of IPs to (container_name, network_name)
     mapping = ips_on_docker_networks(container_info_path)
+    list_of_infra_services = []
+    kubernetes_services = None
     if not is_swarm:
         # if it is kubernetes, then it is also necessary to read in that file with all the
         # info about the svc's, b/c kubernetes service VIPs don't show up in the docker configs
         #pass
         #'''
-        kubernetes_service_VIPs = parse_kubernetes_svc_info(kubernetes_svc_info)
+        kubernetes_service_VIPs, total_list_of_services = parse_kubernetes_svc_info(kubernetes_svc_info)
         mapping.update(kubernetes_service_VIPs)
+        list_of_infra_services = []
+        for total_svc in total_list_of_services:
+            if total_svc not in ms_s:
+                list_of_infra_services.append(total_svc)
+        print "list_of_infra_services", list_of_infra_services
+        #print [i for i in kubernetes_service_VIPs.items() ]
+        #kubernetes_services = [i[1][0].split('_')[0] for i in kubernetes_service_VIPs.items()]
+        #print "kubernetes_services", kubernetes_services
+
+        if kubernetes_pod_info:
+            kubernetes_pod_VIPS = parse_kubernetes_pod_info(kubernetes_pod_info)
+            for ip, name_and_network in kubernetes_pod_VIPS.iteritems():
+                if ip not in mapping:
+                    mapping[ip] = name_and_network
+            print "mapping updated with kubernetes_pod_info", mapping
 
         if cilium_config_path:
             cilium_mapping = parse_cilium(cilium_config_path)
@@ -491,13 +528,17 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
             interval_to_filenames = json.loads(a)
             #print "interval_to_filenames", interval_to_filenames
 
+        with open(basefile_name + 'packets_edgefile_dict.txt', "r") as f:
+            a = f.read()
+            interval_to_packet_filenames = json.loads(a)
+
+    # okay, so where do we put the packet stuff in???
     total_calculated_vals = {}
     for time_interval_length in time_interval_lengths:
         print "analyzing edgefiles..."
         newly_calculated_values = analyze_edgefiles.pipeline_analysis_step(interval_to_filenames[str(time_interval_length)], ms_s,
                                                                            time_interval_length, basegraph_name, calc_vals, window_size,
-                                                                           mapping, is_swarm, make_net_graphs_p)
-
+                                                                           mapping, is_swarm, make_net_graphs_p, list_of_infra_services)
         total_calculated_vals.update(newly_calculated_values)
     if graph_p:
         # (time gran) -> (node gran) -> metrics -> vals
@@ -505,3 +546,16 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
         #time.sleep(20)
         analyze_edgefiles.create_graphs(total_calculated_vals, basegraph_name, window_size, colors, time_interval_lengths,
                                         exfil_start_time, exfil_end_time, wiggle_room)
+
+    print "about to calculate some alerts!"
+    if calc_tpr_fpr_p:
+        params_to_alerts = alert_triggers.compute_alerts(total_calculated_vals, percentile_thresholds, anomaly_window, anom_num_outlier_vals_in_window,
+                   time_interval_lengths, alert_file, calc_alerts_p, training_window_size)
+        params_to_tpr_fpr = alert_triggers.calc_all_fp_and_tps(params_to_alerts, exfil_start_time, exfil_end_time, wiggle_room)
+        params_to_method_to_tpr_fpr = alert_triggers.organize_tpr_fpr_results(params_to_tpr_fpr, percentile_thresholds)
+        alert_triggers.store_organized_tpr_fpr_results(params_to_method_to_tpr_fpr, alert_file + 'tpr_fpr.csv', percentile_thresholds)
+    if ROC_curve_p:
+        params_to_method_to_tpr_fpr = alert_triggers.read_organized_tpr_fpr_file(alert_file + 'tpr_fpr.csv')
+        alert_triggers.make_roc_graphs(params_to_method_to_tpr_fpr, alert_file + '_ROC')
+    print "and analysis pipeline is all done!"
+    print "recall that this was the list of alert percentiles", percentile_thresholds
