@@ -5,5 +5,6 @@ curl --ipv4 https://bootstrap.pypa.io/get-pip.py -o get-pip.py
 python get-pip.py
 git clone https://github.com/fretbuzz/DET /DET
 pip install -r /DET/requirements.txt --user
-cd /dnscat2/client
+git clone https://github.com/iagox86/dnscat2.git
+cd dnscat2/client/
 make

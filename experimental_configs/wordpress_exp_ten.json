@@ -1,5 +1,5 @@
 {
-    "experiment_name": "wordpress_eight",
+    "experiment_name": "wordpress_ten",
     "application_name": "wordpress",
     "orchestrator": "kubernetes",
     "network_plugin": "none",
@@ -15,9 +15,9 @@
       "number_of_trials": "1"
     },
     "exfiltration_info" : {
-      "exfiltration_path_class":["wwwppp-wordpress-586bbd865d-4kgdf", "my-release-pxc-2" ],
-      "exfiltration_path_how_many_instances_for_each_class":[ "1", "1" ],
-      "exfiltration_path_class_which_installer": {"wwwppp-wordpress-586bbd865d-4kgdf": "apt", "my-release-pxc-2": "apt"},
+      "exfiltration_path_class":["my-release-pxc-2" ],
+      "exfiltration_path_how_many_instances_for_each_class":["1" ],
+      "exfiltration_path_class_which_installer": {"my-release-pxc-2": "apt"},
       "exfil_protocol": "tcp",
       "folder_to_exfil": "/var/lib/mysql/",
       "regex_of_file_to_exfil": "\"galera.cach*\"",
@@ -28,13 +28,9 @@
       "avg_exfiltration_rate_KB_per_sec": "1"
     },
     "scale" :{
-      "rep1: wordpress": 41,
-      "rep1: HA-db-cluster": 15,
-      "rep1: number_of_background_locusts": "600",
-      "rep1: background_locust_spawn_rate": "100",
-      "rep2: wordpress": 3,
-      "rep2: HA-db-cluster": 7,
-      "rep2: number_of_background_locusts": "85",
-      "rep2: background_locust_spawn_rate": "10"
+      "rep: wordpress": 3,
+      "rep: HA-db-cluster": 7,
+      "rep: number_of_background_locusts": "85",
+      "rep: background_locust_spawn_rate": "10"
     }
 }
