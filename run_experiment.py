@@ -1292,11 +1292,19 @@ def generate_analysis_json(path_to_exp_folder, analysis_json_name, exp_config_js
     analysis_dict['colors'] = ['b', 'r']
     analysis_dict['wiggle_room'] = 2
     analysis_dict['percentile_thresholds'] = [25, 35, 45, 50, 60, 75, 85, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100]
-    analysis_dict['anomaly_window'] = 4
-    analysis_dict['anom_num_outlier_vals_in_window'] = 2
+    analysis_dict['anomaly_window'] = [1, 4]
+    analysis_dict['anom_num_outlier_vals_in_window'] = [1, 2]
     analysis_dict['alert_file'] = 'alerts/' + exp_name + '_'
     analysis_dict['ROC_curve_p'] = True
     analysis_dict['calc_tpr_fpr_p'] = True
+
+    analysis_dict['exfil_methods'] = exp_config_json["exfil_method"]
+
+    if 'dnscat' in exp_config_json["exfil_method"]:
+        analysis_dict['sec_between_exfil_events'] = exp_config_json["seconds_per_dns_packet"]
+    else:
+        analysis_dict['sec_between_exfil_events'] = 1
+
 
     json_path = path_to_exp_folder + analysis_json_name
     r = json.dumps(analysis_dict)

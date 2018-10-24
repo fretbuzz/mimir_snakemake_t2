@@ -7,10 +7,11 @@ import csv
 import math
 import yaml
 import analyze_edgefiles
-import gc
 import ast
 import json
 import alert_triggers
+import gc
+import pyximport; pyximport.install() # am I sure that I want this???
 
 # parse_pcap : packet_array seconds_per_time_interval ip_to_container_and_network, basename_of_output pcap_start_time
 #    shouldnt_delete_old_edgefiles_p  -> unidentified_IPs list_of_filenames endtime (+ filenames filled w/ edgelists)
@@ -430,8 +431,10 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
                                rdpcap_p=False, kubernetes_pod_info=None, calc_alerts_p=False,
                                percentile_thresholds=None, anomaly_window = None, anom_num_outlier_vals_in_window = None,
                                alert_file = None, ROC_curve_p=False, calc_tpr_fpr_p=False, calc_packet_vals_p = False,
-                               training_window_size=50):
+                               training_window_size=50, minimum_training_window=5, sec_between_exfil_events=1):
                                 # <--- training window size is going to be forty somewhat arbitrarily
+
+    gc.collect()
 
     # First, get a mapping of IPs to (container_name, network_name)
     mapping = ips_on_docker_networks(container_info_path)
@@ -540,6 +543,7 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
                                                                            time_interval_length, basegraph_name, calc_vals, window_size,
                                                                            mapping, is_swarm, make_net_graphs_p, list_of_infra_services)
         total_calculated_vals.update(newly_calculated_values)
+        gc.collect()
     if graph_p:
         # (time gran) -> (node gran) -> metrics -> vals
         print "total_calculated_vals", total_calculated_vals
@@ -549,13 +553,27 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
 
     print "about to calculate some alerts!"
     if calc_tpr_fpr_p:
-        params_to_alerts = alert_triggers.compute_alerts(total_calculated_vals, percentile_thresholds, anomaly_window, anom_num_outlier_vals_in_window,
-                   time_interval_lengths, alert_file, calc_alerts_p, training_window_size)
-        params_to_tpr_fpr = alert_triggers.calc_all_fp_and_tps(params_to_alerts, exfil_start_time, exfil_end_time, wiggle_room)
+        csv_path = alert_file + 'features_'
+        params_to_alerts, time_gran_to_feature_dataframe, time_gran_to_mod_zscore_df = alert_triggers.compute_alerts(total_calculated_vals,
+                                        percentile_thresholds, anomaly_window, anom_num_outlier_vals_in_window,
+                                        time_interval_lengths, alert_file, calc_alerts_p, training_window_size, csv_path,
+                                        minimum_training_window)
+        time_gran_to_attack_labels = alert_triggers.generate_time_gran_to_attack_labels(time_gran_to_feature_dataframe,
+                                                        exfil_start_time, exfil_end_time, sec_between_exfil_events)
+        alert_triggers.save_feature_datafames(time_gran_to_feature_dataframe, alert_file, time_gran_to_attack_labels)
+        alert_triggers.save_feature_datafames(time_gran_to_mod_zscore_df, alert_file + 'mod_z_score_', time_gran_to_attack_labels)
+        alert_triggers.save_alerts_to_csv(params_to_alerts, alert_file, time_gran_to_attack_labels)
+        params_to_tpr_fpr = alert_triggers.calc_all_fp_and_tps(params_to_alerts, exfil_start_time, exfil_end_time,
+                                                               wiggle_room, time_gran_to_attack_labels)
+
+        #print "params_to_tpr_fpr", params_to_tpr_fpr
+        #time.sleep(300)
         params_to_method_to_tpr_fpr = alert_triggers.organize_tpr_fpr_results(params_to_tpr_fpr, percentile_thresholds)
-        alert_triggers.store_organized_tpr_fpr_results(params_to_method_to_tpr_fpr, alert_file + 'tpr_fpr.csv', percentile_thresholds)
+        alert_triggers.store_organized_tpr_fpr_results(params_to_method_to_tpr_fpr, alert_file,
+                                                       percentile_thresholds)
     if ROC_curve_p:
         params_to_method_to_tpr_fpr = alert_triggers.read_organized_tpr_fpr_file(alert_file + 'tpr_fpr.csv')
         alert_triggers.make_roc_graphs(params_to_method_to_tpr_fpr, alert_file + '_ROC')
+
     print "and analysis pipeline is all done!"
     print "recall that this was the list of alert percentiles", percentile_thresholds

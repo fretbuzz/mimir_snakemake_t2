@@ -16,6 +16,11 @@ import csv
 import ast
 import itertools
 import copy
+import gc
+from pympler import asizeof
+import sys
+from next_gen_metrics import calc_neighbor_metric,generate_neig_dict,create_dict_for_dns_metric,\
+    calc_dns_metric,find_angles,turn_into_list,calc_outside_inside_ratio_dns_metric
 
 # okay, so things to be aware of:
 # (a) we are assuming that if we cannot label the node and it is not loopback or in the '10.X.X.X' subnet, then it is outside
@@ -133,6 +138,10 @@ def calc_graph_metrics(filenames, time_interval, basegraph_name, container_or_cl
         non_reciprocated_in_weight_dicts = []
         pod_comm_but_not_VIP_comms = []
         fraction_pod_comm_but_not_VIP_comms = []
+        pod_comm_but_not_VIP_comms_no_abs = []
+        fraction_pod_comm_but_not_VIP_comms_no_abs = []
+        neighbor_dicts = []
+        dns_metric_dicts = []
         '''
         total_node_list = []
         for cur_g in G_list:
@@ -145,6 +154,7 @@ def calc_graph_metrics(filenames, time_interval, basegraph_name, container_or_cl
 
         #for cur_G in G_list:
         for counter, file_path in enumerate(filenames):
+            gc.collect()
             G = nx.DiGraph()
             print "path to file is ", file_path
             nx.read_edgelist(file_path,
@@ -156,10 +166,17 @@ def calc_graph_metrics(filenames, time_interval, basegraph_name, container_or_cl
                 if node not in current_total_node_list:
                     current_total_node_list.append(node)
 
+            neighbor_dicts.append( generate_neig_dict(cur_G) )
+            dns_metric_dicts.append( create_dict_for_dns_metric(G, 'kube-dns_VIP') )
+
             #print "right before calc_VIP_metric", level_of_processing
-            pod_comm_but_not_VIP_comm, fraction_pod_comm_but_not_VIP_comm = calc_VIP_metric(cur_G)
+            pod_comm_but_not_VIP_comm, fraction_pod_comm_but_not_VIP_comm = calc_VIP_metric(cur_G, True)
             pod_comm_but_not_VIP_comms.append(pod_comm_but_not_VIP_comm)
             fraction_pod_comm_but_not_VIP_comms.append(fraction_pod_comm_but_not_VIP_comm)
+            pod_comm_but_not_VIP_comm_no_abs, fraction_pod_comm_but_not_VIP_comm_no_abs = calc_VIP_metric(cur_G, False)
+            pod_comm_but_not_VIP_comms_no_abs.append( pod_comm_but_not_VIP_comm_no_abs )
+            fraction_pod_comm_but_not_VIP_comms_no_abs.append( fraction_pod_comm_but_not_VIP_comm_no_abs )
+
             # TODO: remove lower line!!
             #continue
 
@@ -253,6 +270,13 @@ def calc_graph_metrics(filenames, time_interval, basegraph_name, container_or_cl
             average_path_lengths.append(avg_path_length)
             densities.append(density)
             degree_dicts.append(degree_dict)
+            print "size of betweeness centrality dicts", asizeof.asized(betweeness_centrality_dicts)
+            print "size_of_cur_G", sys.getsizeof(cur_G.edges) + sys.getsizeof(cur_G.nodes)
+
+            # TODO: would probably be a good idea to store these vals somewhere safe or something (I think
+            # the program is holding all of the graphs in memory, which is leading to massive memory bloat)
+            del G
+            del cur_G
 
         #print "degrees", degree_dicts
         #print "weighted recips", weight_recips
@@ -306,6 +330,17 @@ def calc_graph_metrics(filenames, time_interval, basegraph_name, container_or_cl
         non_reciprocated_in_weight_degrees = find_angles(node_non_reciprocated_in_weight, window_size)
         non_reciprocated_in_weight_degrees_eigenvector = change_point_detection(non_reciprocated_in_weight_dicts, window_size, current_total_node_list)
 
+        # TODO TODO TODO
+        # which_nodes can be ['all', 'outside', or 'kube-dns_VIP']
+        # let's make the training time 5 minutes
+        size_of_training_window = (5 * 60) / time_interval
+        num_new_neighbors_outside = calc_neighbor_metric(neighbor_dicts, size_of_training_window, 'outside')
+        num_new_neighbors_dns = calc_neighbor_metric(neighbor_dicts, size_of_training_window, 'kube-dns_VIP')
+        num_new_neighbors_all = calc_neighbor_metric(neighbor_dicts, size_of_training_window, 'all')
+
+        dns_angles = calc_dns_metric(dns_metric_dicts, current_total_node_list, window_size)
+        dns_outside_inside_ratios = calc_outside_inside_ratio_dns_metric(dns_metric_dicts)
+
         appserver_sum_degrees = []
         for degree_dict in degree_dicts:
             appserver_degrees = []
@@ -317,6 +352,15 @@ def calc_graph_metrics(filenames, time_interval, basegraph_name, container_or_cl
         #########
 
         calculated_values = {}
+
+        calculated_values['New Class-Class Edges'] = num_new_neighbors_all
+        calculated_values['New Class-Class Edges with Outside'] = num_new_neighbors_outside
+        calculated_values['New Class-Class Edges with DNS'] = num_new_neighbors_dns
+        calculated_values['Angle of DNS edge weight vectors'] = dns_angles
+        calculated_values['Fraction of Communication Between Pods not through VIPs (no abs)'] = fraction_pod_comm_but_not_VIP_comms_no_abs
+        calculated_values['Communication Between Pods not through VIPs (no abs)'] = pod_comm_but_not_VIP_comms_no_abs
+        calculated_values['DNS outside-to-inside ratio'] = dns_outside_inside_ratios
+
         # abs values:
         calculated_values['Unweighted Average Path Length'] = average_path_lengths
         calculated_values['Weighted Average Path Length'] = weighted_average_path_lengths
@@ -668,88 +712,6 @@ def change_point_detection(tensor, window_size, nodes_in_tensor):
 
     return angles
 
-# looks like it returns a vector of size ( len(list_of_vectors) - window_size )
-# I'm going to make it return a vector of size len(list_of_vectors)
-def find_angles(list_of_vectors, window_size):
-
-    angles = []
-    for i in range(window_size, len(list_of_vectors)):
-        print "angles is", angles
-        start_of_window = i - window_size
-        # compute average window (with what we have available)
-        print "list slice window", list_of_vectors[start_of_window: i]
-        # note: we also need to take care of size problems here, but putting zeros in the missing dimension
-        max_size = max([x.shape[0] for x in list_of_vectors[start_of_window: i]])
-        list_of_size_adjusted_vectors = []
-        for vector in list_of_vectors[start_of_window : i]:
-            size_difference =  max_size - vector.shape[0]
-            for j in range(0, size_difference):
-                vector = np.append(vector, [0.0])
-            list_of_size_adjusted_vectors.append(vector)
-        print "list slice window size adjusted", list_of_size_adjusted_vectors
-        # NOTE: THIS IS THE ARITHMETIC AVERAGE OF THE NON-UNIT EIGENVECTORS
-        # THIS MEANS THAT IT *WILL* BE MORE HEAVILY WEIGHTED TO THE LARGER ONES
-        window_average = np.mean([x for x in list_of_size_adjusted_vectors if x != []], axis=0)
-        #print "start of window", start_of_window, "window average", window_average
-
-        # to compare angles, we should use unit vectors (and then calc the angle)
-        # from https://stackoverflow.com/questions/2827393/angles-between-two-n-dimensional-vectors-in-python/13849249#13849249
-        window_average_unit_vector = find_unit_vector(window_average)
-        print "window_average_unit_vector", window_average_unit_vector
-        print "window_average", window_average
-        current_value_unit_vector = find_unit_vector(list_of_vectors[i])
-        #print "window_average_unit_vector", window_average_unit_vector, "current_value_unit_vector", current_value_unit_vector
-
-        # sometimes the first time interval has no activity
-        if window_average_unit_vector.size == 0 or current_value_unit_vector.size == 0:
-            #window_average_unit_vector = np.zeros(len(current_value_unit_vector))
-            print "angle was", float('nan')
-            angles.append(float('nan'))
-            continue
-
-        try:
-            if math.isnan(window_average_unit_vector):
-                angles.append(float('nan'))
-                continue
-        except:
-            pass
-
-        try:
-            if math.isnan(current_value_unit_vector):
-                angles.append(float('nan'))
-                continue
-        except:
-            pass
-
-        # ok, let's take care of the situation where the vectors are different
-        # sizes. It sees to me that we can just extend the smaller one w/ a zero
-        # value in the 'missing' dimension?
-        size_difference = window_average_unit_vector.shape[0] - current_value_unit_vector.shape[0]
-        print "size_difference", size_difference
-        for i in range(0,abs(size_difference)):
-            if size_difference > 0:
-                # append to current_value_unit_vector
-                current_value_unit_vector = np.append(current_value_unit_vector,[0])
-            else:
-                # append to window_average_unit_vector
-                window_average_unit_vector = np.append(window_average_unit_vector,[0])
-
-        print "window_average_unit_vector", window_average_unit_vector
-        print "current_value_unit_vector", current_value_unit_vector
-
-        angle = np.arccos( np.clip(np.dot(window_average_unit_vector, current_value_unit_vector), -1.0, 1.0)  )
-        print "the angle was found to be ", angle
-        angles.append(angle)
-
-    for i in range(0, window_size):
-        angles.insert(0, float('nan'))
-
-    print "angles", angles
-    return angles
-
-def find_unit_vector(vector):
-    return vector / np.linalg.norm(vector)
-
 def graph_distance(starting_point, ending_point, dictionary_of_edge_attribs):
     return float(1) / dictionary_of_edge_attribs['weight']
 
@@ -815,20 +777,6 @@ def network_weidge_weighted_reciprocity(G):
         weighted_reciprocity = float(total_reicp_weight) / float(total_weight)
 
     return weighted_reciprocity, non_reciprocated_out_weight, non_reciprocated_in_weight
-
-# note: this works b/c items do not change order in lists
-def turn_into_list(dicts, node_list):
-    node_vals= []
-    for dict in dicts:
-        current_nodes = []
-        # print G_list, len(G_list)
-        for node in node_list:
-            try:
-                current_nodes.append(float(dict[node]))
-            except:
-                current_nodes.append(float('nan'))  # the current dict must not have an entry for node -> zero val
-        node_vals.append(np.array(current_nodes))
-    return node_vals
 
 # i think correlation matrix must be a pandas dataframe (with the appropriate labels)
 def plot_correlogram(delta_covariance_dataframe, abs_covariance_dataframe, basegraph_name):
@@ -1351,7 +1299,7 @@ def map_nodes_to_svcs(G, svcs):
 # it says that if a container in service X sends data to a container in service Y
 # then that data SHOULD go through either the VIP of X or VIP of Y (b/c NATing)
 # so taking the DIFFERENCE has the potential to be a USEFUL metric
-def calc_VIP_metric(G):
+def calc_VIP_metric(G, abs_val_p):
     # okay, for now let's do a relatively simple, naive implementation
     pod_to_containers_in_other_svc = {}
     service_VIP_and_pod_comm = {} # in either direction (each direction seperately tho)
@@ -1434,7 +1382,10 @@ def calc_VIP_metric(G):
     print "difference_between_pod_and_VIP", difference_between_pod_and_VIP
     total_difference_between_pod_and_VIP = 0
     for _, data in difference_between_pod_and_VIP.iteritems():
-        total_difference_between_pod_and_VIP += abs(data)
+        if abs_val_p:
+            total_difference_between_pod_and_VIP += abs(data)
+        else:
+            total_difference_between_pod_and_VIP += data
     sum_of_all_pod_to_container = sum(i for i in pod_to_containers_in_other_svc.values())
     print "total_difference_between_pod_and_VIP", total_difference_between_pod_and_VIP, "total pod_to_container", sum_of_all_pod_to_container
     if sum_of_all_pod_to_container > 0:

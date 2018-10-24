@@ -11,6 +11,7 @@
     "network_plugin": "none",
     "networks_to_tcpdump_on": ["bridge"],
     "class_to_networks": "None",
+    "seconds_per_dns_packet" : 15,
     "setup" : "None",
     "experiment" : {
       "number_background_locusts": "85",

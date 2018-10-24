@@ -12,6 +12,7 @@
     "networks_to_tcpdump_on": ["bridge"],
     "class_to_networks": "None",
     "setup" : "None",
+    "seconds_per_dns_packet" : 15,
     "experiment" : {
       "number_background_locusts": "85",
       "background_locust_spawn_rate": "10",

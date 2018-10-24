@@ -4,6 +4,7 @@ import networkx as nx
 from analyze_edgefiles import change_point_detection, find_angles, get_points_to_plot
 import numpy as np
 import math
+from alert_triggers import calc_modified_z_score
 
 '''
 def mathTestSuite():
@@ -488,7 +489,46 @@ class TestChangePoint(unittest.TestCase):
         vals = get_points_to_plot(time_grand, vals, exfil_start, exfil_end, wiggle_room)
         # expect vals to be [30]
         print "vals for test_get_points_to_plot", vals
-        self.assertEquals(vals, [19, 30, 20])
+        self.assertEquals(vals, ([19, 30, 20],4,6))
+
+    def test_modified_z_score_normal(self):
+        test_array = [0.271052632, 0.326797386, 0.268421053, 0.292397661, 0.320261438, 0.304093567, 0.298245614,
+                      0.307189542, 0.263157895, 0.287581699, 0.294117647, 0.287581699, 0.287581699, 0.307189542,
+                      0.278947368, 0.292397661, 0.320261438, 0.298245614, 0.274853801, 0.326797386]
+
+        mod_z_scores = calc_modified_z_score(test_array, 10, 5)
+        print "mod_z_scores", mod_z_scores,len(mod_z_scores)
+        for i in range(0,5):
+            self.assertTrue(math.isnan(mod_z_scores[i]))
+        #self.assertEquals(mod_z_scores[0:5], [float('nan') for i in range(0,5)])
+        for i in range(5, len(test_array)):
+            #self.assertNotEqual(mod_z_scores[i], float('nan'))
+            self.assertFalse(math.isnan(mod_z_scores[i]))
+            self.assertNotEqual(mod_z_scores[i], float('inf'))
+            self.assertNotEqual(mod_z_scores[i], float('-inf'))
+            #self.assertNotEqual(mod_z_scores[i], 0.0)
+
+
+    def test_modified_z_score_all_zeroes(self):
+        test_array = [0 for i in range(0,20)]
+        mod_z_scores = calc_modified_z_score(test_array, 10, 5)
+        print "mod_z_scores_zeroes", mod_z_scores,len(mod_z_scores)
+        for i in range(0,5):
+            self.assertTrue(math.isnan(mod_z_scores[i]))
+        #self.assertEquals(mod_z_scores[0:5], [float('nan') for i in range(0,5)])
+        self.assertEquals(mod_z_scores[5:], [0.0 for i in range(0,15)])
+
+    def test_modified_z_score_min_bigger_than_ts(self):
+        test_array = [float('nan') for i in range(0,10)] + [0.320261438, 0.298245614, 0.274853801, 0.326797386]
+        mod_z_scores = calc_modified_z_score(test_array, 10, 15)
+        print "mod_z_scores_zeroes_too_small", mod_z_scores, len(mod_z_scores)
+        #self.assertEquals(mod_z_scores, [float('nan') for i in range(0,len(test_array))])
+        for i in range(0,len(test_array)):
+            self.assertTrue(math.isnan(mod_z_scores[i]))
+
+    # TODO: think of some more tests...
+
+
 
 if __name__ == "__main__":
     unittest.main()
