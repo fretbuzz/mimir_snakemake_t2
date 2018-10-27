@@ -22,14 +22,15 @@ with open('wordpress_users.csv', 'rb') as csvfile:
 
 # id's refer to posts
 lowest_id = 1
-highest_id = 994
+highest_id = 100
 
 # I'm just having the admin modify everything ATM
 #app_pass = 'a1tA u1Rc 6j5h 2NKc 90Hu COeo'
 #app_pass = 'vKhE 9Uv4 8gZX lrXS vFtl 3DJU'
 #app_pass = "6grp jHjj eEg2 HvrE lp9G UgLN"
-app_pass = "bDfT vPNx encm 6Cc7 JWXX 8RZo"
+app_pass = "Somv XGRh FStO U0wq uACo x4s2"
 user = 'user'
+#user = 'mimir2'
 token = base64.standard_b64encode(user + ':' + app_pass)
 headers = {'Authorization': 'Basic ' + token}
 
