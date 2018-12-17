@@ -7,7 +7,8 @@ list_of_per_container = []
 for i in range(0, 570, 30):
      #print "time:", str(i)
      per_container = {}
-     with open('wordpress_six_take_2__' + '%.2f' % float(i) + '_30.00.txt',  'r') as csvfile:
+     path = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/edgefiles/'
+     with open(path + 'wordpress_six_take_2__' + '%.2f' % float(i) + '_30.00.txt',  'r') as csvfile:
         csvread = csv.reader(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
         a,b = 0,0
         for row in csvread:
@@ -42,7 +43,7 @@ print len(x_vals), len(a_list)
 print a_list
 print b_list
 print list_of_per_container
-
+print len(a_list), len(b_list)
 
 #'''
 plt.scatter(x_vals[0:99], [a for a,b in zip(a_list, b_list)][0:249], color='black')

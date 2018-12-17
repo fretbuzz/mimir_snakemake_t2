@@ -1,4 +1,8 @@
 import numpy as np
+import time
+import math
+from functools import partial
+import alert_triggers
 
 # takes a graph and returns a dictionary, where each key is the name of a node and each
 # value is a list of the nodes that have eedges incident on the key node
@@ -88,18 +92,23 @@ def calc_dns_metric(list_of_dicts, node_list, window_size):
 
 # this function calculates the ratio of traffic going outside the cluster to traffic going inside
 # the cluster
-def calc_outside_inside_ratio_dns_metric(list_of_dns_dicts):
+def calc_outside_inside_ratio_dns_metric(dns_in_metric_dicts,dns_out_metric_dicts):
     list_of_outside_inside_ratios = []
-    for dict in list_of_dns_dicts:
-        print dict
+    list_outside = []
+    list_inside = []
+    for counter,dict in enumerate(dns_in_metric_dicts):
+        print "outside_inside_ratio_dict", dict
+        #time.sleep(10)
         try:
-            outside_weight = dict['outside']
+            outside_weight = dns_out_metric_dicts[counter]['outside'] #dict['outside']
         except:
             outside_weight = 0
         inside_wieght = 0.0
         for key,val in dict.iteritems():
             if key != 'outside':
                 inside_wieght += val
+        list_inside.append(inside_wieght)
+        list_outside.append(outside_weight)
         if inside_wieght:
             ratio = float(outside_weight) / inside_wieght
         else:
@@ -108,15 +117,24 @@ def calc_outside_inside_ratio_dns_metric(list_of_dns_dicts):
             else:
                 ratio = float('nan')
         list_of_outside_inside_ratios.append( ratio )
-    return list_of_outside_inside_ratios
+    return list_of_outside_inside_ratios,list_outside,list_inside
 
 def create_dict_for_dns_metric(G, name_of_of_dns_node):
     return_dict = {}
+    return_dict_two = {}
     # okay, so the end-goal is to get a dict that can be aggreated into a list and fed into calc_dns_metric
     print "create_dict_for_dns_metric nodes", G.nodes()
     try:
-        for node,edge_attribs in G[name_of_of_dns_node].iteritems():
+        # note: this will give edges that start at DNS and go other places...
+        # what I probably want the edges that arrive at the DNS node??
+        #for node,edge_attribs in G[name_of_of_dns_node].iteritems():
+        for edge_tuple in G.in_edges(name_of_of_dns_node, data=True):
+            node = edge_tuple[0]
+            edge_attribs = edge_tuple[2]
             return_dict[node] = edge_attribs['weight']
+
+        for node,edge_attribs in G[name_of_of_dns_node].iteritems():
+            return_dict_two[node] = edge_attribs['weight']
     except: # no activity with DNS node...
         pass
     # looks like you'd be done... but not yet! we gotta make sure that all nodes in the graph are represented
@@ -124,7 +142,9 @@ def create_dict_for_dns_metric(G, name_of_of_dns_node):
     for node in G.nodes():
         if node not in return_dict:
             return_dict[node] = 0
-    return return_dict
+        if node not in return_dict_two:
+            return_dict_two[node] = 0
+    return return_dict,return_dict_two
 
 # note: this works b/c items do not change order in lists
 def turn_into_list(dicts, node_list):
@@ -141,8 +161,36 @@ def turn_into_list(dicts, node_list):
         node_vals.append(np.array(current_nodes))
     return node_vals
 
-def find_angles(list_of_vectors, window_size):
 
+def reverse_svc_to_pod_dict(svc_to_pod):
+    pod_to_svc = {}
+    for svc,list_of_pods in svc_to_pod.iteritems():
+        for pod in list_of_pods:
+            pod_to_svc[pod] = svc
+    return pod_to_svc
+
+def sum_max_pod_to_dns_from_each_svc(dns_in_metric_dicts, pod_to_svc, svcs):
+    list_of_sums = []
+    for into_dns_dict in dns_in_metric_dicts:
+        svc_to_max = {}
+        for svc in svcs:
+            svc_to_max[svc] = 0
+        for pod,weight in into_dns_dict.iteritems():
+            try:
+                cur_svc = pod_to_svc[pod]
+                if weight > svc_to_max[cur_svc]:
+                    print "old weight", svc_to_max[cur_svc], "new weight", weight, "svc", cur_svc
+                    svc_to_max[cur_svc] = weight
+            except:
+                pass
+        print "svc_to_max", svc_to_max
+        sum = 0
+        for svc,weight in svc_to_max.iteritems():
+            sum += weight
+        list_of_sums.append(sum)
+    return list_of_sums
+
+def find_angles(list_of_vectors, window_size):
     angles = []
     for i in range(window_size, len(list_of_vectors)):
         print "angles is", angles
@@ -220,3 +268,51 @@ def find_angles(list_of_vectors, window_size):
 
 def find_unit_vector(vector):
     return vector / np.linalg.norm(vector)
+
+def find_dns_node_name(G):
+    for node in G.nodes():
+        if 'kube-dns' in node and 'POD' in node:
+            return node
+    return "foobar" # doesn't matter because it is not present anyway
+
+def alert_fuction(weights, features_to_use, bias, row_from_csv):
+    alert_score = 0
+    #print "row_from_csv",row_from_csv
+    for feature in features_to_use:
+        cur_contrib_to_alert_score = row_from_csv[feature] * weights[feature]
+        #print feature, row_from_csv
+        #print cur_contrib_to_alert_score
+        if not math.isnan(cur_contrib_to_alert_score):
+            alert_score += cur_contrib_to_alert_score
+        else:
+            alert_score += 0 # could also just pass
+    return alert_score + bias
+
+def next_gen_ROCS(df_with_anom_features, time_gran, alert_file, sub_path):
+    '''
+      0.0041 * Communication Between Pods not through VIPs (no abs)200_5__mod_z_score +
+      0.0008 * DNS outside-to-inside ratio200_5__mod_z_score +
+      0.0009 * New Class-Class Edges200_5__mod_z_score +
+      0      * DNS_eigenval_angles200_5__mod_z_score +
+     -0.0109
+    '''
+    features_to_use = ['New Class-Class Edges200_5__mod_z_score',
+                       'Communication Between Pods not through VIPs (no abs)200_5__mod_z_score',
+                       'DNS outside-to-inside ratio200_5__mod_z_score']
+    weights = {'New Class-Class Edges200_5__mod_z_score': 0.0009,
+               'Communication Between Pods not through VIPs (no abs)200_5__mod_z_score': 0.0041,
+               'DNS outside-to-inside ratio200_5__mod_z_score': 0.0008}
+    ROC_path = alert_file + sub_path + '_good_roc_'
+    bias = -0.0109
+    cur_alert_function = partial(alert_fuction, weights, features_to_use, bias)
+    title = 'ROC Linear Combination of Features at ' + str(time_gran)
+    plot_name = 'sub_roc_lin_comb_features_' + str(time_gran)
+    alert_triggers.create_ROC_of_anom_score(df_with_anom_features, time_gran, ROC_path, cur_alert_function, title,
+                                            plot_name)
+
+    for feature in features_to_use:
+        title = 'ROC ' + feature + ' at ' + str(time_gran)
+        plot_name = 'sub_roc_' + feature + '_' + str(time_gran)
+        cur_alert_function = partial(alert_fuction, weights, [feature], 0.0)
+        alert_triggers.create_ROC_of_anom_score(df_with_anom_features, time_gran, ROC_path, cur_alert_function,
+                                                title, plot_name)

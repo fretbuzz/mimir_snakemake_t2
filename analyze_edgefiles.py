@@ -339,7 +339,7 @@ def calc_graph_metrics(filenames, time_interval, basegraph_name, container_or_cl
         num_new_neighbors_all = calc_neighbor_metric(neighbor_dicts, size_of_training_window, 'all')
 
         dns_angles = calc_dns_metric(dns_metric_dicts, current_total_node_list, window_size)
-        dns_outside_inside_ratios = calc_outside_inside_ratio_dns_metric(dns_metric_dicts)
+        dns_outside_inside_ratios,_,_ = calc_outside_inside_ratio_dns_metric(dns_metric_dicts)
 
         appserver_sum_degrees = []
         for degree_dict in degree_dicts:
@@ -948,7 +948,7 @@ def make_multi_time_boxplots(metrics_to_time_to_granularity_lists, time_grans, m
         else:
             plt.ylabel(metric)
         cur_pos += number_nested_lists + 1 # the +1 is so that there is extra space between the groups
-        set_boxplot_colors(bp, colors)
+        #set_boxplot_colors(bp, colors) # TODO: maybe wanna add back in at some point
         #print metric
         try:
             max_yaxis = max( max_yaxis, max([max(x) for x in current_vals]))
@@ -1381,11 +1381,13 @@ def calc_VIP_metric(G, abs_val_p):
         difference_between_pod_and_VIP[src,dest] = pod_to_service_VIP - pod_to_container
     print "difference_between_pod_and_VIP", difference_between_pod_and_VIP
     total_difference_between_pod_and_VIP = 0
-    for _, data in difference_between_pod_and_VIP.iteritems():
+    for pair, data in difference_between_pod_and_VIP.iteritems():
         if abs_val_p:
             total_difference_between_pod_and_VIP += abs(data)
         else:
             total_difference_between_pod_and_VIP += data
+        if abs(data) > 0:
+            print "pod_VIP_difference_not_zero", pair, data
     sum_of_all_pod_to_container = sum(i for i in pod_to_containers_in_other_svc.values())
     print "total_difference_between_pod_and_VIP", total_difference_between_pod_and_VIP, "total pod_to_container", sum_of_all_pod_to_container
     if sum_of_all_pod_to_container > 0:
@@ -1597,6 +1599,8 @@ def is_ip(node_str):
             return None
     return addr_bytes
 
+# TODO: at some point, what I probably want to do is pass in the hosting machine's IP addresses, b/c I'm justing using heuristics
+# to identify it ATM
 def is_private_ip(addr_bytes):
     # note: i am going to assume that if the ip is not loopback or in the  '10.X.X.X' subnet, then it is outside
 
@@ -1614,5 +1618,8 @@ def is_private_ip(addr_bytes):
     #    return True
     elif addr_bytes[0] == '127' and addr_bytes[1] == '0' and addr_bytes[2] == '0' and addr_bytes[3] == '1':
         return True
+    # todo: this is a heuristic way to identify the host machine's IP
+    elif addr_bytes[0] == '192' and addr_bytes[1] == '168'  and addr_bytes[3] != '1':
+       return True # assuming that the only 192.168.XX.1 addresses will be the hosting computer
     else:
         return False

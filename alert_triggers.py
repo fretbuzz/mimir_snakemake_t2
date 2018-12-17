@@ -5,6 +5,7 @@ import ast
 import matplotlib.pyplot as plt
 import pandas
 import time
+import scipy.stats
 from pyod.models.hbos import HBOS
 
 
@@ -108,7 +109,9 @@ def calc_modified_z_score(time_series, window_size, min_training_window):
             #print "No ZeroDivisionError!"
         else:
             #print "ZeroDivisionError!"
-            if (next_val - median) == 0:
+            if str(next_val) == 'nan':
+                next_modified_z_score = float('nan')
+            elif (next_val - median) == 0:
                 next_modified_z_score = 0.0
             else:
                 next_modified_z_score = float('inf')
@@ -117,7 +120,29 @@ def calc_modified_z_score(time_series, window_size, min_training_window):
         next_modified_z_score = min(next_modified_z_score, 1000)
         print "median", median, "MAD", MAD,"next_modified_z_score",next_modified_z_score, "val", next_val, type(median), type(MAD), type(next_val)
         modified_z_scores.append(next_modified_z_score)
+    #time.sleep(2)
     return modified_z_scores
+
+def z_score(time_series, window_size, min_training_window):
+    if len(time_series) < min_training_window:
+        return [float('nan') for i in range(0,len(time_series))]
+    z_scores = [float('nan') for i in range(0,min_training_window)]
+    for i in range(0,min_training_window):
+        print time_series[i]
+    for i in range(min_training_window, len(time_series)):
+        start_training_window = max(0, i - window_size)
+        training_window = time_series[start_training_window:i]
+        next_val = time_series[i]
+
+        # now let's actually calculate the modified z-score
+        mean = np.nanmean(training_window)
+        stddev = np.nanstd(training_window)
+        next_z_score = (next_val - mean) / stddev
+
+        next_z_score = next_z_score
+        ## behavior is funny if there are inf's so, let's put an upper bound of 1000
+        z_scores.append(next_z_score)
+    return z_scores
 
 # okay, cool, so what should I do now... well we need the actual function that'd go through these
 # (making one of those curves would also be nice)... so it'd take our big ol' dictionary of vals,
@@ -183,13 +208,25 @@ def compute_alerts(calculated_vals, percentile_thresholds_to_try, window_sizes, 
                 sigma_values = [i/float(10) for i in range(0,60,5)]
                 sigma_min_training_window = minimum_training_window
                 sigma_window_size = training_window_size
-                number_nans_in_this_time_series = [str(i) for i in current_metric_time_series].count('nan')
+                # TODO: modify: I want nan's up until the first non-NAN value...
+                first_non_NAN_index = 0
+                for item in current_metric_time_series:
+                    if str(item) != 'nan':
+                        break
+                    else:
+                        first_non_NAN_index += 1
+                number_nans_in_this_time_series = [str(i) for i in current_metric_time_series[0:first_non_NAN_index]].count('nan')
                 modified_min_z_score_training_window = number_nans_in_this_time_series + minimum_training_window
 
                 #print "current_metric_time_series", len(current_metric_time_series)
                 print '----'
                 #if 'Density' not in current_metric_name:
                 #    continue
+
+                # for the VIP metric, we only want to look at the non-zero values...
+                if 'VIP' in current_metric_name:
+                    current_metric_time_series = [h if h else float('nan') for h in current_metric_time_series]
+
                 modified_z_scorese = calc_modified_z_score(current_metric_time_series, sigma_window_size,
                                                            modified_min_z_score_training_window)
                 ## TODO: this function does not seem to work. I need to get the dataframe to be correctly created
@@ -200,7 +237,7 @@ def compute_alerts(calculated_vals, percentile_thresholds_to_try, window_sizes, 
                 ## TODO on monday: fix the z-score thing (probably want to start  with more training data) and
                 ## then do the thing above [[ i think this note is from the week of 10/15)
                 ## okie...
-                if 'Density' in current_metric_name:
+                if 'ratio' in current_metric_name:
                     print current_metric_name, modified_z_scorese
                     #time.sleep(30)
 
@@ -249,6 +286,7 @@ def compute_alerts(calculated_vals, percentile_thresholds_to_try, window_sizes, 
                 if len(series) < 90:
                     print series
                 p+=1
+            print mod_z_score_array.shape
             times = [i * time_gran for i in range(0, len(mod_z_score_array[:, 0]))]
             mod_z_score_dataframe = pandas.DataFrame(data=mod_z_score_array, columns=list_of_anom_metrics_applied, index=times)
             time_gran_to_mod_z_score_dataframe[time_gran] = mod_z_score_dataframe
@@ -371,6 +409,7 @@ def calc_fp_and_tp(alert_times, exfil_start, exfil_end, wiggle_room, time_granul
     try:
         tpr = float(true_positives) / (true_positives + false_negatives)
     except ZeroDivisionError:
+        #print "ZeroDivisionError!", true_positives, false_positives, true_negatives, false_negatives
         tpr = float('nan')
 
     # fpr = FP / (FP + TN)
@@ -378,6 +417,8 @@ def calc_fp_and_tp(alert_times, exfil_start, exfil_end, wiggle_room, time_granul
         fpr = float(false_positives) / (true_negatives + false_positives )
     except ZeroDivisionError:
         fpr = float('nan')
+    #print (tpr,fpr), (true_positives, false_positives), (false_positives, true_negatives), (total_actual_negs, alerts_not_during_exfiltration),(len(attack_labels), sum(attack_labels))
+    #print sum(attack_labels), attack_labels
     #print '----'
     #print alert_times
     #print attack_labels
@@ -551,6 +592,8 @@ def make_roc_graphs(params_to_method_to_tpr_fpr, base_ROC_name):
 # y_vals should be TPR
 def construct_ROC_curve(x_vals, y_vals, title, plot_name):
     plt.figure()
+    plt.ylim(-0.05,1.05)
+    plt.xlim(-0.05,1.05)
     plt.xlabel('FPR')
     plt.ylabel('TPR')
     plt.title(title)
@@ -795,12 +838,19 @@ def actually_construct_tables(params_to_attacks_to_method_tpr_fpr, base_table_na
 
 # exfil_rate used to determine if there should be a gap between exfil labels
 def generate_attack_labels(time_gran, exfil_start, exfil_end, exp_length, sec_between_exfil_events=1):
-    attack_labels = [0 for i in range(0, exfil_start / time_gran -1)]
+    #attack_labels = [0 for i in range(0, exfil_start / time_gran -1)]
     #attack_labels.extend([1 for i in range(0, (exfil_end - exfil_start)/time_gran)])
 
     # let's find the specific time intervals during the exfil period (note: potentially not all of the time intervals
     # actually have exfil occur during them)
-    time_intervals_during_potential_exfil = [exfil_start + i * time_gran for i in range(0, int(math.ceil((exfil_end - exfil_start)/float(time_gran))) + 2)]
+    if exfil_start % time_gran == 0:
+        # in this case, going to count the time interval right before too, since
+        attack_labels = [0 for i in range(0, exfil_start / time_gran - 1)]
+        time_intervals_during_potential_exfil = [exfil_start - time_gran] + [exfil_start + i * time_gran for i in range(0, int(math.ceil((exfil_end - exfil_start)/float(time_gran))) + 2)]
+    else:
+        attack_labels = [0 for i in range(0, exfil_start / time_gran)]
+        time_intervals_during_potential_exfil = [exfil_start + i * time_gran for i in range(0, int(math.ceil((exfil_end - exfil_start)/float(time_gran))) + 2)]
+
     # okay now let's find which ones to include/not-include
     specific_times_when_exfil_occurs = [exfil_start + i * sec_between_exfil_events for i in range(0, int(math.ceil((exfil_end - exfil_start)/sec_between_exfil_events)) + 1)]
     # okay, now we want to make sure that those specific exfil times occur during a time interval during the exfil period
@@ -822,12 +872,14 @@ def generate_attack_labels(time_gran, exfil_start, exfil_end, exp_length, sec_be
                 found = True
                 break
         if found:
+            print "attack found to occur at", start_of_interval, '-', end_of_interval
             attack_labels_during_exfil_period.append(1)
         else:
             attack_labels_during_exfil_period.append(0)
 
+    print "attack_labels_during_exfil_period",attack_labels_during_exfil_period
     attack_labels.extend(attack_labels_during_exfil_period)
-    attack_labels.extend([0 for i in range(0, (exp_length - exfil_end)/time_gran)])
+    attack_labels.extend([0 for i in range(0, (exp_length - exfil_end)/time_gran - 1)])
 
     return attack_labels
 
@@ -955,12 +1007,14 @@ def calc_anomaly_score_sixty_gran(row):
       0.0007 * float(row['Density50_5_class_mod_z_score']) +\
      -0.0566 * float(row['Change-Point Detection Node Betweeness Centrality50_5_class_mod_z_score'])
 
-def create_ROC_of_joint_data(csv_path, time_gran,ROC_path):
-    jointDF = pandas.read_csv(csv_path,na_values='?')
+def create_ROC_of_anom_score(jointDF, time_gran, ROC_path, calc_anom_score, title, plot_name):
     aggregated_anomly_scores = []
     attack_labels = []
+    #print "###", jointDF, "###"
+    print "\n", title
     for index,row in jointDF.iterrows():
         # this is the model that I want to calculate
+        '''
         if time_gran == 10:
             aggregated_anomly_score = calc_anomaly_score(row)
         elif time_gran == 30:
@@ -969,7 +1023,11 @@ def create_ROC_of_joint_data(csv_path, time_gran,ROC_path):
             aggregated_anomly_score = calc_anomaly_score_sixty_gran(row)
         else:
             return "give a valid time gran!"
-        aggregated_anomly_scores.append(aggregated_anomly_score)
+        '''
+        #print row
+        anomaly_score_results = calc_anom_score(row)
+        print (index, anomaly_score_results, row[0]),
+        aggregated_anomly_scores.append(anomaly_score_results)
         attack_labels.append(row['labels'])
 
     tprs = []
@@ -977,23 +1035,26 @@ def create_ROC_of_joint_data(csv_path, time_gran,ROC_path):
 
     thresholds_to_try = [i/10.0 for i in range(0, -100, -1)] + [i/100.0 for i in range(0,50,5)] +\
                         [i/100.0 for i in range(50,100,2)] + [i/10 for i in range(10,100,5)]
+    print "\nthreshold_to_try", thresholds_to_try
+    print '---\n'
     for threshold in thresholds_to_try:
         current_alerts = [int(i>=threshold) for i in aggregated_anomly_scores]
         time_gran_to_attack_labels = {}
         #print "time_gran", time_gran
         time_gran_to_attack_labels[time_gran] = attack_labels
+        #print "current_attack_labels", time_gran_to_attack_labels[time_gran]
         current_tpr, current_fpr = calc_fp_and_tp(current_alerts, None, None, None, time_gran, time_gran_to_attack_labels)
         tprs.append(current_tpr)
         fprs.append(current_fpr)
+        print (current_tpr, current_fpr),
 
-    # todo sort the tprs/fprs like before...
     tprs, fprs = zip(*sorted(zip(tprs, fprs)))
 
     x_vals = fprs
     y_vals = tprs
-    title = 'Ensemble ROC curve at ' + str(time_gran) + ' Sec Granularity'
-    plot_name = ROC_path + 'aggreg_ROC_curve_' + str(time_gran) + '.csv'
-    construct_ROC_curve(x_vals, y_vals, title, plot_name)
+    #title = 'Ensemble ROC curve at ' + str(time_gran) + ' Sec Granularity'
+    #plot_name = ROC_path + 'aggreg_ROC_curve_' + str(time_gran) + '.csv'
+    construct_ROC_curve(x_vals, y_vals, title, ROC_path + plot_name)
 
 def aggregate_csv_recipe():
     # okay, so what I am going to want to do here is loop through
@@ -1003,14 +1064,71 @@ def aggregate_csv_recipe():
         '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_eight_',
         '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/alerts/sockshop_eleven_',
         '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/alerts/sockshop_nine_better_exfil_']
-    aggregate_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/aggregate_z_mod_'
-    second_part_of_file_name = 'mod_z_score_'
+
+    paths_to_csvs = [
+        '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_six_rep_4_',
+        '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/alerts/sockshop_twelve_',
+    ]
+
+    paths_to_csvs = [
+        '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_eight_',
+        '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/alerts/sockshop_nine_better_exfil_'
+    ]
+
+    paths_to_csvs = [
+        '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_eleven_dns_1sec/alerts/wordpress_eleven_dns_1sec_',
+        '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_eleven/alerts/wordpress_eleven_',
+        '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_eight_',
+        '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/alerts/sockshop_nine_better_exfil_',
+        '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_six_rep_4_',
+        '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/alerts/sockshop_twelve_',
+        '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/alerts/sockshop_eleven_'
+    ]
+
+    #aggregate_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/aggregate_on_path_'
+    aggregate_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/aggregate_dns_path_'
+    aggregate_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/aggregate_dns_1sec_2sec_'
+    aggregate_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/aggregate_all_exps_'
+    second_part_of_file_name = 'mod_z_score_sub_'
     time_grans = [10, 30, 60]
     for time_gran in time_grans:
         current_paths_to_csvs = [i + second_part_of_file_name +  str(time_gran) + '.csv' for i in paths_to_csvs]
         print current_paths_to_csvs
         current_aggregate_file = aggregate_file + str(time_gran) + '.csv'
         aggregate_feature_csvs(current_paths_to_csvs, current_aggregate_file)
+
+def time_gran_feature_dataframe_to_time_gran_z_score_dataframe(time_gran_to_feature_dataframe, training_window_size,
+                                                               minimum_training_window):
+    time_gran_z_score_dataframe = {}
+    for time_interval, df in time_gran_to_feature_dataframe.iteritems():
+        cols = cols = list(df.columns)
+        df_zscore = pandas.DataFrame()
+        for col in cols:
+            current_metric_time_series = df[col]
+
+            # TODO: for the case of the VIP I only wanna consider non-zero vals. Easy enough, just replace the 0s
+            # with NANs. The problem, however, is that the thing will output Nan's, not 0s, cause 0 is defnitely not
+            # an alarm worthy case. So what I'd probably have to do is run the damn thing and then replace the nan's
+            # with 0's... though since I'm not going to trigger an alarm on a nan anyway (i think), maybe it doesn't
+            # even matter...
+
+            first_non_NAN_index = 0
+            for item in current_metric_time_series:
+                if str(item) != 'nan':
+                    break
+                else:
+                    first_non_NAN_index += 1
+            number_nans_in_this_time_series = [str(i) for i in current_metric_time_series[0:first_non_NAN_index]].count(
+                'nan')
+            mod_min_training_window = number_nans_in_this_time_series + minimum_training_window
+            #print "current_metric_time_series",current_metric_time_series
+            current_metric_time_series_list = current_metric_time_series.tolist()
+            if 'ratio' in col:
+                current_metric_time_series_list = [i if i else float('nan') for i in current_metric_time_series_list]
+            current_col_z_scores = z_score(current_metric_time_series_list, training_window_size, mod_min_training_window)
+            df_zscore[col + 'z_score'] = current_col_z_scores
+        time_gran_z_score_dataframe[time_interval] = df_zscore
+    return time_gran_z_score_dataframe
 
 ###### ------ ####### -------- ####### -------- ######## -------- ######## -------- #######
 #  [blank], and provided the [blank] are correct.okay, step for after lunch:
