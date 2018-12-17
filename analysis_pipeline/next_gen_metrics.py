@@ -1,10 +1,6 @@
 import math
-import time
-from functools import partial
 
 import numpy as np
-
-from analysis_pipeline import alert_triggers
 
 
 # takes a graph and returns a dictionary, where each key is the name of a node and each
@@ -277,45 +273,3 @@ def find_dns_node_name(G):
         if 'kube-dns' in node and 'POD' in node:
             return node
     return "foobar" # doesn't matter because it is not present anyway
-
-def alert_fuction(weights, features_to_use, bias, row_from_csv):
-    alert_score = 0
-    #print "row_from_csv",row_from_csv
-    for feature in features_to_use:
-        cur_contrib_to_alert_score = row_from_csv[feature] * weights[feature]
-        #print feature, row_from_csv
-        #print cur_contrib_to_alert_score
-        if not math.isnan(cur_contrib_to_alert_score):
-            alert_score += cur_contrib_to_alert_score
-        else:
-            alert_score += 0 # could also just pass
-    return alert_score + bias
-
-def next_gen_ROCS(df_with_anom_features, time_gran, alert_file, sub_path):
-    '''
-      0.0041 * Communication Between Pods not through VIPs (no abs)200_5__mod_z_score +
-      0.0008 * DNS outside-to-inside ratio200_5__mod_z_score +
-      0.0009 * New Class-Class Edges200_5__mod_z_score +
-      0      * DNS_eigenval_angles200_5__mod_z_score +
-     -0.0109
-    '''
-    features_to_use = ['New Class-Class Edges200_5__mod_z_score',
-                       'Communication Between Pods not through VIPs (no abs)200_5__mod_z_score',
-                       'DNS outside-to-inside ratio200_5__mod_z_score']
-    weights = {'New Class-Class Edges200_5__mod_z_score': 0.0009,
-               'Communication Between Pods not through VIPs (no abs)200_5__mod_z_score': 0.0041,
-               'DNS outside-to-inside ratio200_5__mod_z_score': 0.0008}
-    ROC_path = alert_file + sub_path + '_good_roc_'
-    bias = -0.0109
-    cur_alert_function = partial(alert_fuction, weights, features_to_use, bias)
-    title = 'ROC Linear Combination of Features at ' + str(time_gran)
-    plot_name = 'sub_roc_lin_comb_features_' + str(time_gran)
-    alert_triggers.create_ROC_of_anom_score(df_with_anom_features, time_gran, ROC_path, cur_alert_function, title,
-                                            plot_name)
-
-    for feature in features_to_use:
-        title = 'ROC ' + feature + ' at ' + str(time_gran)
-        plot_name = 'sub_roc_' + feature + '_' + str(time_gran)
-        cur_alert_function = partial(alert_fuction, weights, [feature], 0.0)
-        alert_triggers.create_ROC_of_anom_score(df_with_anom_features, time_gran, ROC_path, cur_alert_function,
-                                                title, plot_name)

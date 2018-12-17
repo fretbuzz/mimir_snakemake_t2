@@ -1,12 +1,17 @@
-import numpy as np
+import ast
 import csv
 import math
-import ast
-import matplotlib.pyplot as plt
+
+import numpy as np
 import pandas
-import time
-import scipy.stats
 from pyod.models.hbos import HBOS
+
+# func: multiple_outliers_in_window: time_series window_size num_outlier_vals_in_window -> list_of_alert_times
+# time_series : 1-D list of 0/1, with 0 = no alert, 1 = alert
+# window_size : number of values over which to sum outliers
+# num_outlier_vals_in_window : must be >= this number of values in the window in order for an alert to be triggered
+# note: cannot do node attribution here b/c we only have the 1-D time series, node attribution would need to be done seperately
+from analysis_pipeline.generate_alerts import calc_fp_and_tp
 
 
 # okay, so this file is going to contain some functions that actually trigger the alerts.
@@ -14,12 +19,6 @@ from pyod.models.hbos import HBOS
 # and making some (rather nice looking) graphs. But we end up with, essentially, several 1-D time series.
 # we need to actually trigger alerts based on these time series. That's where the methods in this file
 # come into play.
-
-# func: multiple_outliers_in_window: time_series window_size num_outlier_vals_in_window -> list_of_alert_times
-# time_series : 1-D list of 0/1, with 0 = no alert, 1 = alert
-# window_size : number of values over which to sum outliers
-# num_outlier_vals_in_window : must be >= this number of values in the window in order for an alert to be triggered
-# note: cannot do node attribution here b/c we only have the 1-D time series, node attribution would need to be done seperately
 def multiple_outliers_in_window(time_series, window_size, num_outlier_vals_in_window):
     alerts = [float('nan') for i in range(1,window_size)]
     for i in range(window_size, len(time_series)):
@@ -89,271 +88,12 @@ def compute_sigma_alerts(sigma_vals, sigma_value):
             alerts.append(0)
     return alerts
 
-def calc_modified_z_score(time_series, window_size, min_training_window):
-    if len(time_series) < min_training_window:
-        return [float('nan') for i in range(0,len(time_series))]
-    modified_z_scores = [float('nan') for i in range(0,min_training_window)]
-    for i in range(0,min_training_window):
-        print time_series[i]
-    for i in range(min_training_window, len(time_series)):
-        start_training_window = max(0, i - window_size)
-        training_window = time_series[start_training_window:i]
-        next_val = time_series[i]
-
-        # now let's actually calculate the modified z-score
-        median = np.nanmedian(training_window)
-        # MAD = mean absolute deviation
-        MAD = np.nanmedian([np.abs(val - median) for val in training_window])
-        if MAD:
-            next_modified_z_score = 0.6754 * (next_val - median) / MAD
-            #print "No ZeroDivisionError!"
-        else:
-            #print "ZeroDivisionError!"
-            if str(next_val) == 'nan':
-                next_modified_z_score = float('nan')
-            elif (next_val - median) == 0:
-                next_modified_z_score = 0.0
-            else:
-                next_modified_z_score = float('inf')
-        next_modified_z_score = abs(next_modified_z_score) ## TODO: remove???
-        ## behavior is funny if there are inf's so, let's put an upper bound of 1000
-        next_modified_z_score = min(next_modified_z_score, 1000)
-        print "median", median, "MAD", MAD,"next_modified_z_score",next_modified_z_score, "val", next_val, type(median), type(MAD), type(next_val)
-        modified_z_scores.append(next_modified_z_score)
-    #time.sleep(2)
-    return modified_z_scores
-
-def z_score(time_series, window_size, min_training_window):
-    if len(time_series) < min_training_window:
-        return [float('nan') for i in range(0,len(time_series))]
-    z_scores = [float('nan') for i in range(0,min_training_window)]
-    for i in range(0,min_training_window):
-        print time_series[i]
-    for i in range(min_training_window, len(time_series)):
-        start_training_window = max(0, i - window_size)
-        training_window = time_series[start_training_window:i]
-        next_val = time_series[i]
-
-        # now let's actually calculate the modified z-score
-        mean = np.nanmean(training_window)
-        stddev = np.nanstd(training_window)
-        next_z_score = (next_val - mean) / stddev
-
-        next_z_score = next_z_score
-        ## behavior is funny if there are inf's so, let's put an upper bound of 1000
-        z_scores.append(next_z_score)
-    return z_scores
-
-# okay, cool, so what should I do now... well we need the actual function that'd go through these
-# (making one of those curves would also be nice)... so it'd take our big ol' dictionary of vals,
-# along with the params for our anomaly functions, and maybe whether or not to make graphs? then
-# we can just crank through them (let's fix the window_size and number for now, b/c otherwise
-# I feel like it'd take forever...)
-# (also, there's some modification that's going to be needed earlier in the pipeline, but don't worry
-# about it for now)
-
-# def compute_alerts : calculated_vals, percentile_thresholds_to_try, window_size, num_outlier_vals_in_window,
-#                   time_interval_lengths, alert_file, calc_alerts_p -> set of vals
-# calculated_vals : dict mapping (time_gran, node_gran) to a dict of (metric name) -> (time series of metric vals)
-# percentile_thresholds_to_try : list of percentile thresholds to give to the anom detection methods (see above)
-# window_size : a param for the anom detection methods (see above funcs)
-# num_outlier_vals_in_window : a param for the anom detection methods (see above funcs)
-# time_interval_lengths : only perform calcs on these time granularities
-# alert_file : file to save alert results to
-# calc_alerts_p : should we calculate the results or just read them from the file
-def compute_alerts(calculated_vals, percentile_thresholds_to_try, window_sizes, list_num_outlier_vals_in_window,
-                   time_interval_lengths, alert_file, calc_alerts_p, training_window_size, csv_path, minimum_training_window):
-    alert_file = alert_file + 'alerts.csv'
-    time_gran_to_feature_dataframe = {}
-    time_gran_to_mod_z_score_dataframe = {}
-
-    if calc_alerts_p:
-        params_to_alerts = {}
-        time_grans = []
-        time_gran_to_list_of_anom_metrics_applied = {}
-        time_gran_to_list_of_anom_values = {}
-
-        for label, metric_time_series in calculated_vals.iteritems():
-            container_or_class = label[1]
-            time_interval = int(label[0])
-            list_of_anom_metrics_applied = []
-            list_of_anom_values = []
-            if time_interval not in time_gran_to_list_of_anom_metrics_applied:
-                time_gran_to_list_of_anom_metrics_applied[time_interval] = []
-            if time_interval not in time_gran_to_list_of_anom_values:
-                time_gran_to_list_of_anom_values[time_interval] = []
-
-            if time_interval not in time_grans:
-                time_grans.append(time_interval)
-            if time_interval not in time_interval_lengths:
-                continue
-
-            # okay, now let's feed the beast
-            for current_metric_name, current_metric_time_series in calculated_vals[label].iteritems():
-                for percentile_threshold in percentile_thresholds_to_try:
-                    # this is where the different anoamly detection methods could be tried.
-                    for i in range(0,len(window_sizes)):
-                        # these two vals are just params for the 'exceeds_threshold_in_window' anom. detec. algo.
-                        window_size = window_sizes[i]
-                        num_outlier_vals_in_window = list_num_outlier_vals_in_window[i]
-
-                        alert_series = computer_outliers_via_percentile(current_metric_time_series, percentile_threshold,
-                                                                        window_size, training_window_size)
-                        alerts = multiple_outliers_in_window(alert_series, window_size, num_outlier_vals_in_window)
-
-                        anomaly_detection_algo = 'exceeds_threshold_in_window'
-                        params_to_alerts[(current_metric_name, container_or_class, time_interval, percentile_threshold, window_size,
-                                          num_outlier_vals_in_window,anomaly_detection_algo)] = alerts # anomaly_detection_algo
-
-                sigma_values = [i/float(10) for i in range(0,60,5)]
-                sigma_min_training_window = minimum_training_window
-                sigma_window_size = training_window_size
-                # TODO: modify: I want nan's up until the first non-NAN value...
-                first_non_NAN_index = 0
-                for item in current_metric_time_series:
-                    if str(item) != 'nan':
-                        break
-                    else:
-                        first_non_NAN_index += 1
-                number_nans_in_this_time_series = [str(i) for i in current_metric_time_series[0:first_non_NAN_index]].count('nan')
-                modified_min_z_score_training_window = number_nans_in_this_time_series + minimum_training_window
-
-                #print "current_metric_time_series", len(current_metric_time_series)
-                print '----'
-                #if 'Density' not in current_metric_name:
-                #    continue
-
-                # for the VIP metric, we only want to look at the non-zero values...
-                if 'VIP' in current_metric_name:
-                    current_metric_time_series = [h if h else float('nan') for h in current_metric_time_series]
-
-                modified_z_scorese = calc_modified_z_score(current_metric_time_series, sigma_window_size,
-                                                           modified_min_z_score_training_window)
-                ## TODO: this function does not seem to work. I need to get the dataframe to be correctly created
-                ## and stored. Then use aggregator function to make the training file and then use weka to test
-                ## the linear combination. Then integrate the linear combination in here somehow, so that I can
-                ## generate the relevant ROC curve... (for now, I gotta do a quick detour to meeting prep, then
-                ## meeting with ray, then meeting with istio, then class, and then I can hopefully finish this...)
-                ## TODO on monday: fix the z-score thing (probably want to start  with more training data) and
-                ## then do the thing above [[ i think this note is from the week of 10/15)
-                ## okie...
-                if 'ratio' in current_metric_name:
-                    print current_metric_name, modified_z_scorese
-                    #time.sleep(30)
-
-                list_of_anom_metrics_applied.append(current_metric_name + str(sigma_window_size) + '_' + \
-                                                    str(sigma_min_training_window) + '_'+ container_or_class +\
-                                                    '_mod_z_score')
-                list_of_anom_values.append(modified_z_scorese)
-                if 'New' in current_metric_name:
-                    print current_metric_name, "raw_time_series", current_metric_time_series, len(current_metric_time_series)
 
 
-                sigma_vals = compute_sigma_normalized_vals(current_metric_time_series, sigma_window_size,
-                                                             sigma_min_training_window)
-                for sigma_value in sigma_values:
-                    # okay, maybe integrate the three-sigma thing here???
-                    sigma_threshold = sigma_value
-                    sigma_alerts = compute_sigma_alerts(sigma_vals, sigma_value)
-                    params_to_alerts[(current_metric_name, container_or_class, time_interval, sigma_threshold, '',
-                                      '','sigma_normalized')] = sigma_alerts # anomaly_detection_algo
 
-            time_gran_to_list_of_anom_metrics_applied[time_interval].extend(list_of_anom_metrics_applied)
-            time_gran_to_list_of_anom_values[time_interval].extend(list_of_anom_values)
 
-        for time_gran in time_grans:
-            #print "list_of_anom_values",len(list_of_anom_values),len(list_of_anom_values[0]), list_of_anom_values
-            list_of_anom_values = time_gran_to_list_of_anom_values[time_gran]
-            list_of_anom_metrics_applied = time_gran_to_list_of_anom_metrics_applied[time_gran]
-            print "list_of_anom_values", list_of_anom_values
-            print "list_of_anom_metrics_applied",list_of_anom_metrics_applied
-            mod_z_score_array = np.array(list_of_anom_values)
-            #print "pre_rotate_shape", mod_z_score_array.shape,mod_z_score_array
-            mod_z_score_array = mod_z_score_array.T
-            #print "mod_z_score_array",mod_z_score_array,mod_z_score_array.shape
-            #print list_of_anom_metrics_applied
-            #print "mod_z_score_array", mod_z_score_array
-            #print list_of_anom_metrics_applied
-            #print mod_z_score_array.shape
-            #print mod_z_score_array[0]
-            p = 0
-            for series in mod_z_score_array:
-                print len(series),
-                try:
-                    print list_of_anom_metrics_applied[p]
-                except:
-                    print ''
-                if len(series) < 90:
-                    print series
-                p+=1
-            print mod_z_score_array.shape
-            times = [i * time_gran for i in range(0, len(mod_z_score_array[:, 0]))]
-            mod_z_score_dataframe = pandas.DataFrame(data=mod_z_score_array, columns=list_of_anom_metrics_applied, index=times)
-            time_gran_to_mod_z_score_dataframe[time_gran] = mod_z_score_dataframe
 
-        for time_gran in time_grans:
-            list_of_metric_val_lists = []
-            list_of_metric_names = []
-            for label, metric_time_series in calculated_vals.iteritems():
-                container_or_class = label[1]
-                time_interval = int(label[0])
-                if time_interval != time_gran:
-                    continue
-
-                # okay, so I think it might be a better idea to make a new 'detour' in the pipeline for the new methods...
-                for current_metric_name, current_metric_time_series in calculated_vals[label].iteritems():
-                    # okay, so I want to construct a matrix, where the row is the times and the columns are the
-                    # feature values at those times
-                    # let's make an array and then transpose it b/c if we transpose, then the rows are the feature vals
-                    # and the columns are the times... this lends itself to being easily constructed... I think...
-
-                    # TODO: problem: this supposes that a particular (node_gran, time_gran)... well, the time gran is fine
-                    # but the node gran isn't... we want them to all be here but to embed the information in the names...
-                    # okay, so now we are only considering values of a particular time granularity...
-                    # now, we just need to make the matrix and to store the names
-                    # let's start with storing the names and vals... then later we can actually make a matrix
-                    list_of_metric_names.append(current_metric_name + '_' + container_or_class)
-                    list_of_metric_val_lists.append(current_metric_time_series)
-
-            # okay, so now that we have the lists with the values, we can make some matrixes (And then tranpose them :))
-            feature_array = np.array(list_of_metric_val_lists)
-            feature_array = feature_array.T
-
-            # okay, so now we have the matrix along with the list we can do what we actually wanted to do:
-            # (1) run some anom detection algos
-            # (2) save in handy-csv format for processing by other software, potentially
-            # okay, let's start with (2). Columns should be times
-            times = [i * time_gran for i in range(0,len(feature_array[:,0]))]
-            print feature_array
-            feature_dataframe = pandas.DataFrame(data=feature_array, columns=list_of_metric_names, index=times)
-            # okay, after lunch, save this dataframe as a csv and then sanity-check it and then start whipping through
-            # the pyod functions. try to msg ray @ like 2
-            #feature_dataframe.to_csv(csv_path + str(time_gran) + '.csv')
-            time_gran_to_feature_dataframe[time_gran] = feature_dataframe
-            ##hbos_alert_series = hbos_anomaly_detection(feature_array) ## TODO: give it the rest of the params
-            # TODO: also note: I could probably do the other anom detection methods just by sending in the specific
-            # model as a param and then calling it
-            #print list_of_metric_val_lists
-            #print feature_dataframe
-            #time.sleep(300)
-
-        # okay, so let's save these vals to a file, so I can calc TP/FP and make graphs without re-running all of them
-        with open(alert_file, 'w') as csvfile:
-            spamwriter = csv.writer(csvfile, delimiter=',',
-                                    quotechar='|', quoting=csv.QUOTE_MINIMAL)
-            for value_name, value in params_to_alerts.iteritems():
-                spamwriter.writerow([value_name, [i if not math.isnan(i) else (None) for i in value]])
-
-        return params_to_alerts, time_gran_to_feature_dataframe, time_gran_to_mod_z_score_dataframe
-    else:
-        params_to_alerts = {}
-        with open(alert_file, 'r') as csvfile:
-            csvread = csv.reader(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
-            for row in csvread:
-                #print row
-                params_to_alerts[row[0]] = [i if i != (None) else float('nan') for i in ast.literal_eval(row[1])]
-                print row[0], params_to_alerts[row[0]]
-        return params_to_alerts, None
+###---
 
 def hbos_anomaly_detection(feature_array, training_window_size, initial_training_vals):
     clf_hbos = HBOS()
@@ -369,62 +109,6 @@ def hbos_anomaly_detection(feature_array, training_window_size, initial_training
         next_value_test_pred = clf_hbos.predict_proba(next_time_slice)
         anomaly_scores.append(next_value_test_pred)
     return anomaly_scores
-
-
-# def calc_fp_and_tp : ??? -> (TP, FP)_for_every_step, (TP, FP)_for_the_entire_interval
-# this function calcuates the tp/fp. Okay, cool, but what counts as a TP/FP. Detecting once it the range?
-# detecting at every time stamp (seperately). Detecting @ each time step, every time? What does it mean???
-# oh, yah... this is kinda a tricky thing to ask...
-# well, how about we take an afraid-to-commit approach... let's compute two vals: one for every time step and
-# one for that period in general (I think maybe like that stratosphere IPS guys might be useful too??)
-# actually lets only do (TP, FP)_for_every_step
-def calc_fp_and_tp(alert_times, exfil_start, exfil_end, wiggle_room, time_granularity, time_gran_to_attack_labels):
-
-    alerts_during_exfiltration = 0.0
-    alerts_not_during_exfiltration = 0.0
-    attack_labels = time_gran_to_attack_labels[time_granularity]
-    #print "attack_labels", attack_labels
-    for i in range(0,len(alert_times)):
-        #print i, alert_times[i], attack_labels[i], '|',
-        if alert_times[i]:
-            if attack_labels[i]:
-                alerts_during_exfiltration += 1.0
-            else:
-                alerts_not_during_exfiltration += 1.0
-    #print '\n'
-
-    #start_alert_time_index = exfil_start / time_granularity - int(math.floor( wiggle_room / time_granularity))
-    #end_alert_time_index = exfil_end / time_granularity + int(math.floor( wiggle_room / time_granularity))
-    #alerts_during_exfiltration = alert_times[start_alert_time_index:end_alert_time_index]
-    #alerts_not_during_exfiltration = alert_times[0:start_alert_time_index] + alert_times[end_alert_time_index:]
-
-    true_positives = alerts_during_exfiltration #sum(alerts_during_exfiltration)
-    false_negatives = sum(attack_labels) - true_positives
-    false_positives = alerts_not_during_exfiltration #sum(alerts_not_during_exfiltration)
-    # number of negative vals in the experiment
-    total_actual_negs = len(attack_labels) - sum(attack_labels)
-    true_negatives = total_actual_negs - alerts_not_during_exfiltration # if alert[i] == 0 and attack_labels[i] == 0
-
-    # tpr (a.k.a sensitivity) = proportion of actual positives that we succesfully identifies
-    try:
-        tpr = float(true_positives) / (true_positives + false_negatives)
-    except ZeroDivisionError:
-        #print "ZeroDivisionError!", true_positives, false_positives, true_negatives, false_negatives
-        tpr = float('nan')
-
-    # fpr = FP / (FP + TN)
-    try:
-        fpr = float(false_positives) / (true_negatives + false_positives )
-    except ZeroDivisionError:
-        fpr = float('nan')
-    #print (tpr,fpr), (true_positives, false_positives), (false_positives, true_negatives), (total_actual_negs, alerts_not_during_exfiltration),(len(attack_labels), sum(attack_labels))
-    #print sum(attack_labels), attack_labels
-    #print '----'
-    #print alert_times
-    #print attack_labels
-    #print "tpr,fpr",tpr,fpr
-
-    return tpr, fpr
 
 # calc_fp_and_tp calcs (TP,FP) for a stream of alerts. We need to calculate it for all alerts
 # okay, so it clearly needs a a set of alert times, plus ability to extract time_granularity,
@@ -586,20 +270,6 @@ def make_roc_graphs(params_to_method_to_tpr_fpr, base_ROC_name):
                 print "new tpr_fpr", tpr,fpr
 
                 construct_ROC_curve(list(fpr), list(tpr), title, plot_name)
-
-# okay, what we want to do here is to construct
-# x_vals should be FPR
-# y_vals should be TPR
-def construct_ROC_curve(x_vals, y_vals, title, plot_name):
-    plt.figure()
-    plt.ylim(-0.05,1.05)
-    plt.xlim(-0.05,1.05)
-    plt.xlabel('FPR')
-    plt.ylabel('TPR')
-    plt.title(title)
-    plt.plot(x_vals, y_vals)
-    plt.savefig( plot_name + '.png', format='png', dpi=1000)
-    plt.close()
 
 def read_organized_tpr_fpr_file(alert_file):
     params_to_method_to_tpr_fpr = {}
@@ -836,70 +506,6 @@ def actually_construct_tables(params_to_attacks_to_method_tpr_fpr, base_table_na
 
     # okay, well let's keep deciding which metric is best via Youden's J statistic (TPR - FPR)
 
-# exfil_rate used to determine if there should be a gap between exfil labels
-def generate_attack_labels(time_gran, exfil_start, exfil_end, exp_length, sec_between_exfil_events=1):
-    #attack_labels = [0 for i in range(0, exfil_start / time_gran -1)]
-    #attack_labels.extend([1 for i in range(0, (exfil_end - exfil_start)/time_gran)])
-
-    # let's find the specific time intervals during the exfil period (note: potentially not all of the time intervals
-    # actually have exfil occur during them)
-    if exfil_start % time_gran == 0:
-        # in this case, going to count the time interval right before too, since
-        attack_labels = [0 for i in range(0, exfil_start / time_gran - 1)]
-        time_intervals_during_potential_exfil = [exfil_start - time_gran] + [exfil_start + i * time_gran for i in range(0, int(math.ceil((exfil_end - exfil_start)/float(time_gran))) + 2)]
-    else:
-        attack_labels = [0 for i in range(0, exfil_start / time_gran)]
-        time_intervals_during_potential_exfil = [exfil_start + i * time_gran for i in range(0, int(math.ceil((exfil_end - exfil_start)/float(time_gran))) + 2)]
-
-    # okay now let's find which ones to include/not-include
-    specific_times_when_exfil_occurs = [exfil_start + i * sec_between_exfil_events for i in range(0, int(math.ceil((exfil_end - exfil_start)/sec_between_exfil_events)) + 1)]
-    # okay, now we want to make sure that those specific exfil times occur during a time interval during the exfil period
-    # before marking it as one in which exfil occurs
-    attack_labels_during_exfil_period = []
-    print "time_intervals_during_potential_exfil",time_intervals_during_potential_exfil
-    print "specific_times_when_exfil_occurs",specific_times_when_exfil_occurs
-    for i in range(0,len(time_intervals_during_potential_exfil)-1):
-        start_of_interval = time_intervals_during_potential_exfil[i]
-        end_of_interval = time_intervals_during_potential_exfil[i+1]
-        found = False
-        for specific_times in specific_times_when_exfil_occurs:
-            # why geater-than-or-equal-to and less-than-or-equal-to? B/c it should happen slightly earlier (due to
-            # timing mismatch of tcpdump) but it should get a response from the DNS server slightly later, which would
-            # put it in the next camp. (This is really only meaningful for dnscat exfil, since using DET won't cause
-            # gaps in the exfil line, necessarily)
-            print start_of_interval, specific_times, end_of_interval, start_of_interval <= specific_times <= end_of_interval
-            if start_of_interval <= specific_times <= end_of_interval:
-                found = True
-                break
-        if found:
-            print "attack found to occur at", start_of_interval, '-', end_of_interval
-            attack_labels_during_exfil_period.append(1)
-        else:
-            attack_labels_during_exfil_period.append(0)
-
-    print "attack_labels_during_exfil_period",attack_labels_during_exfil_period
-    attack_labels.extend(attack_labels_during_exfil_period)
-    attack_labels.extend([0 for i in range(0, (exp_length - exfil_end)/time_gran - 1)])
-
-    return attack_labels
-
-def generate_time_gran_to_attack_labels(time_gran_to_feature_dataframe, exfil_start, exfil_end, sec_between_exfil_events):
-    time_gran_to_attack_lables = {}
-    for time_gran, feature_dataframe in time_gran_to_feature_dataframe.iteritems():
-        exp_length = feature_dataframe.shape[0] * time_gran
-        attack_labels = generate_attack_labels(time_gran, exfil_start, exfil_end, exp_length, sec_between_exfil_events)
-        time_gran_to_attack_lables[time_gran] = attack_labels
-    return time_gran_to_attack_lables
-
-def save_feature_datafames(time_gran_to_feature_dataframe, csv_path, time_gran_to_attack_labels):
-    print "time_gran_to_feature_dataframe",time_gran_to_feature_dataframe.keys()
-    for time_gran, feature_dataframe in time_gran_to_feature_dataframe.iteritems():
-        attack_labels = time_gran_to_attack_labels[time_gran]
-        print "feature_dataframe",feature_dataframe,feature_dataframe.index
-        print "attack_labels",attack_labels
-        feature_dataframe['labels'] = pandas.Series(attack_labels, index=feature_dataframe.index)
-        feature_dataframe.to_csv(csv_path + str(time_gran) + '.csv', na_rep='?')
-
 def save_alerts_to_csv(params_to_alerts, alert_file, time_gran_to_attack_labels):
     # okay, let's just construct a dataframe here and then we can save that.
     # okay, but how many dataframes/csv files do we actaully want???
@@ -1007,55 +613,6 @@ def calc_anomaly_score_sixty_gran(row):
       0.0007 * float(row['Density50_5_class_mod_z_score']) +\
      -0.0566 * float(row['Change-Point Detection Node Betweeness Centrality50_5_class_mod_z_score'])
 
-def create_ROC_of_anom_score(jointDF, time_gran, ROC_path, calc_anom_score, title, plot_name):
-    aggregated_anomly_scores = []
-    attack_labels = []
-    #print "###", jointDF, "###"
-    print "\n", title
-    for index,row in jointDF.iterrows():
-        # this is the model that I want to calculate
-        '''
-        if time_gran == 10:
-            aggregated_anomly_score = calc_anomaly_score(row)
-        elif time_gran == 30:
-            aggregated_anomly_score = calc_anomaly_score_thirty_gran(row)
-        elif time_gran == 60:
-            aggregated_anomly_score = calc_anomaly_score_sixty_gran(row)
-        else:
-            return "give a valid time gran!"
-        '''
-        #print row
-        anomaly_score_results = calc_anom_score(row)
-        print (index, anomaly_score_results, row[0]),
-        aggregated_anomly_scores.append(anomaly_score_results)
-        attack_labels.append(row['labels'])
-
-    tprs = []
-    fprs = []
-
-    thresholds_to_try = [i/10.0 for i in range(0, -100, -1)] + [i/100.0 for i in range(0,50,5)] +\
-                        [i/100.0 for i in range(50,100,2)] + [i/10 for i in range(10,100,5)]
-    print "\nthreshold_to_try", thresholds_to_try
-    print '---\n'
-    for threshold in thresholds_to_try:
-        current_alerts = [int(i>=threshold) for i in aggregated_anomly_scores]
-        time_gran_to_attack_labels = {}
-        #print "time_gran", time_gran
-        time_gran_to_attack_labels[time_gran] = attack_labels
-        #print "current_attack_labels", time_gran_to_attack_labels[time_gran]
-        current_tpr, current_fpr = calc_fp_and_tp(current_alerts, None, None, None, time_gran, time_gran_to_attack_labels)
-        tprs.append(current_tpr)
-        fprs.append(current_fpr)
-        print (current_tpr, current_fpr),
-
-    tprs, fprs = zip(*sorted(zip(tprs, fprs)))
-
-    x_vals = fprs
-    y_vals = tprs
-    #title = 'Ensemble ROC curve at ' + str(time_gran) + ' Sec Granularity'
-    #plot_name = ROC_path + 'aggreg_ROC_curve_' + str(time_gran) + '.csv'
-    construct_ROC_curve(x_vals, y_vals, title, ROC_path + plot_name)
-
 def aggregate_csv_recipe():
     # okay, so what I am going to want to do here is loop through
     paths_to_csvs = [
@@ -1096,39 +653,6 @@ def aggregate_csv_recipe():
         print current_paths_to_csvs
         current_aggregate_file = aggregate_file + str(time_gran) + '.csv'
         aggregate_feature_csvs(current_paths_to_csvs, current_aggregate_file)
-
-def time_gran_feature_dataframe_to_time_gran_z_score_dataframe(time_gran_to_feature_dataframe, training_window_size,
-                                                               minimum_training_window):
-    time_gran_z_score_dataframe = {}
-    for time_interval, df in time_gran_to_feature_dataframe.iteritems():
-        cols = cols = list(df.columns)
-        df_zscore = pandas.DataFrame()
-        for col in cols:
-            current_metric_time_series = df[col]
-
-            # TODO: for the case of the VIP I only wanna consider non-zero vals. Easy enough, just replace the 0s
-            # with NANs. The problem, however, is that the thing will output Nan's, not 0s, cause 0 is defnitely not
-            # an alarm worthy case. So what I'd probably have to do is run the damn thing and then replace the nan's
-            # with 0's... though since I'm not going to trigger an alarm on a nan anyway (i think), maybe it doesn't
-            # even matter...
-
-            first_non_NAN_index = 0
-            for item in current_metric_time_series:
-                if str(item) != 'nan':
-                    break
-                else:
-                    first_non_NAN_index += 1
-            number_nans_in_this_time_series = [str(i) for i in current_metric_time_series[0:first_non_NAN_index]].count(
-                'nan')
-            mod_min_training_window = number_nans_in_this_time_series + minimum_training_window
-            #print "current_metric_time_series",current_metric_time_series
-            current_metric_time_series_list = current_metric_time_series.tolist()
-            if 'ratio' in col:
-                current_metric_time_series_list = [i if i else float('nan') for i in current_metric_time_series_list]
-            current_col_z_scores = z_score(current_metric_time_series_list, training_window_size, mod_min_training_window)
-            df_zscore[col + 'z_score'] = current_col_z_scores
-        time_gran_z_score_dataframe[time_interval] = df_zscore
-    return time_gran_z_score_dataframe
 
 ###### ------ ####### -------- ####### -------- ######## -------- ######## -------- #######
 #  [blank], and provided the [blank] are correct.okay, step for after lunch:

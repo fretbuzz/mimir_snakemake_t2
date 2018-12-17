@@ -28,7 +28,7 @@ import copy
 import gc
 #from pympler import asizeof
 import sys
-from next_gen_metrics import calc_neighbor_metric,generate_neig_dict,create_dict_for_dns_metric,\
+from analysis_pipeline.next_gen_metrics import calc_neighbor_metric,generate_neig_dict,create_dict_for_dns_metric,\
     calc_dns_metric,find_angles,turn_into_list,calc_outside_inside_ratio_dns_metric
 
 # okay, so things to be aware of:

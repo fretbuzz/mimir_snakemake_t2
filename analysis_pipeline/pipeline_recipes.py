@@ -795,7 +795,7 @@ def process_wordpress6():
                                cilium_config_path=cilium_config_path, rdpcap_p=False, calc_alerts_p=True,
                                percentile_thresholds=percentile_thresholds, anomaly_window = anomaly_window,
                                anom_num_outlier_vals_in_window = anom_num_outlier_vals_in_window,
-                               alert_file = alert_file, ROC_curve_p=True, calc_tpr_fpr_p=True,
+                               alert_file = alert_file, ROC_curve_p=True, calc_zscore_p=True,
                                kubernetes_pod_info=kubernetes_pod_info, sec_between_exfil_events=sec_between_exfil_events)
     #'''
 
@@ -836,8 +836,8 @@ def process_wordpress6_rep2():
                                cilium_config_path=cilium_config_path, rdpcap_p=False, calc_alerts_p=True,
                                percentile_thresholds=percentile_thresholds, anomaly_window = anomaly_window,
                                anom_num_outlier_vals_in_window = anom_num_outlier_vals_in_window,
-                               alert_file = alert_file, ROC_curve_p=True, calc_tpr_fpr_p=True,
-                               kubernetes_pod_info=kubernetes_pod_info,sec_between_exfil_events=sec_between_exfil_events)
+                               alert_file = alert_file, ROC_curve_p=True, calc_zscore_p=True,
+                               kubernetes_pod_info=kubernetes_pod_info, sec_between_exfil_events=sec_between_exfil_events)
     #'''
 
 def process_wordpress6_rep3():
@@ -877,8 +877,8 @@ def process_wordpress6_rep3():
                                cilium_config_path=cilium_config_path, rdpcap_p=False, calc_alerts_p=True,
                                percentile_thresholds=percentile_thresholds, anomaly_window = anomaly_window,
                                anom_num_outlier_vals_in_window = anom_num_outlier_vals_in_window,
-                               alert_file = alert_file, ROC_curve_p=True, calc_tpr_fpr_p=True,
-                               kubernetes_pod_info=kubernetes_pod_info,sec_between_exfil_events=sec_between_exfil_events)
+                               alert_file = alert_file, ROC_curve_p=True, calc_zscore_p=True,
+                               kubernetes_pod_info=kubernetes_pod_info, sec_between_exfil_events=sec_between_exfil_events)
     #'''
 
 
@@ -919,8 +919,8 @@ def process_wordpress6_rep4():
                                 cilium_config_path=cilium_config_path, rdpcap_p=False, calc_alerts_p=True,
                                 percentile_thresholds=percentile_thresholds, anomaly_window=anomaly_window,
                                 anom_num_outlier_vals_in_window=anom_num_outlier_vals_in_window,
-                                alert_file=alert_file, ROC_curve_p=True, calc_tpr_fpr_p=True,
-                                kubernetes_pod_info=kubernetes_pod_info,sec_between_exfil_events=sec_between_exfil_events)
+                                alert_file=alert_file, ROC_curve_p=True, calc_zscore_p=True,
+                                kubernetes_pod_info=kubernetes_pod_info, sec_between_exfil_events=sec_between_exfil_events)
      # '''
 
 def process_wordpress7_rep3():
@@ -959,8 +959,8 @@ def process_wordpress7_rep3():
                                cilium_config_path=cilium_config_path, rdpcap_p=False, calc_alerts_p=True,
                                percentile_thresholds=percentile_thresholds, anomaly_window=anomaly_window,
                                anom_num_outlier_vals_in_window=anom_num_outlier_vals_in_window,
-                               alert_file=alert_file, ROC_curve_p=True, calc_tpr_fpr_p=True,
-                               kubernetes_pod_info=kubernetes_pod_info,sec_between_exfil_events=sec_between_exfil_events)
+                               alert_file=alert_file, ROC_curve_p=True, calc_zscore_p=True,
+                               kubernetes_pod_info=kubernetes_pod_info, sec_between_exfil_events=sec_between_exfil_events)
    # '''
 
 # Wordpress exp 7 (wordpress w/ HA cluster on cilium w/o security config, dnscat exfil from single WP w/ 15 sec delay)
@@ -1001,7 +1001,7 @@ def process_wordpress7():
                                cilium_config_path=cilium_config_path, rdpcap_p=False, calc_alerts_p=True,
                                percentile_thresholds=percentile_thresholds, anomaly_window = anomaly_window,
                                anom_num_outlier_vals_in_window = anom_num_outlier_vals_in_window,
-                               alert_file = alert_file, ROC_curve_p=True, calc_tpr_fpr_p=True,
+                               alert_file = alert_file, ROC_curve_p=True, calc_zscore_p=True,
                                kubernetes_pod_info=kubernetes_pod_info)
     #'''
 
@@ -1042,8 +1042,8 @@ def process_wordpress7_rep2():
                                cilium_config_path=cilium_config_path, rdpcap_p=False, calc_alerts_p=True,
                                percentile_thresholds=percentile_thresholds, anomaly_window = anomaly_window,
                                anom_num_outlier_vals_in_window = anom_num_outlier_vals_in_window,
-                               alert_file = alert_file, ROC_curve_p=True, calc_tpr_fpr_p=True,
-                               kubernetes_pod_info=kubernetes_pod_info,sec_between_exfil_events=sec_between_exfil_events)
+                               alert_file = alert_file, ROC_curve_p=True, calc_zscore_p=True,
+                               kubernetes_pod_info=kubernetes_pod_info, sec_between_exfil_events=sec_between_exfil_events)
     #'''
 
 # 20 min of scaled-up wordpress (wordpress_eight) (dnscat exfil)
@@ -1084,8 +1084,8 @@ def process_wordpress8():
                                rdpcap_p=False, calc_alerts_p=True,
                                percentile_thresholds=percentile_thresholds, anomaly_window = anomaly_window,
                                anom_num_outlier_vals_in_window = anom_num_outlier_vals_in_window,
-                               alert_file = alert_file, ROC_curve_p=True, calc_tpr_fpr_p=True,
-                               kubernetes_pod_info=kubernetes_pod_info,sec_between_exfil_events=sec_between_exfil_events)
+                               alert_file = alert_file, ROC_curve_p=True, calc_zscore_p=True,
+                               kubernetes_pod_info=kubernetes_pod_info, sec_between_exfil_events=sec_between_exfil_events)
     #'''
 
 def process_wordpress8_rep_2():
@@ -1125,8 +1125,8 @@ def process_wordpress8_rep_2():
                                rdpcap_p=False, calc_alerts_p=True,
                                percentile_thresholds=percentile_thresholds, anomaly_window = anomaly_window,
                                anom_num_outlier_vals_in_window = anom_num_outlier_vals_in_window,
-                               alert_file = alert_file, ROC_curve_p=True, calc_tpr_fpr_p=True,
-                               kubernetes_pod_info=kubernetes_pod_info,sec_between_exfil_events=sec_between_exfil_events)
+                               alert_file = alert_file, ROC_curve_p=True, calc_zscore_p=True,
+                               kubernetes_pod_info=kubernetes_pod_info, sec_between_exfil_events=sec_between_exfil_events)
     #'''
 
 def process_wordpress8_rep_3():
@@ -1166,8 +1166,8 @@ def process_wordpress8_rep_3():
                                rdpcap_p=False, calc_alerts_p=True,
                                percentile_thresholds=percentile_thresholds, anomaly_window = anomaly_window,
                                anom_num_outlier_vals_in_window = anom_num_outlier_vals_in_window,
-                               alert_file = alert_file, ROC_curve_p=True, calc_tpr_fpr_p=True,
-                               kubernetes_pod_info=kubernetes_pod_info,sec_between_exfil_events=sec_between_exfil_events)
+                               alert_file = alert_file, ROC_curve_p=True, calc_zscore_p=True,
+                               kubernetes_pod_info=kubernetes_pod_info, sec_between_exfil_events=sec_between_exfil_events)
     #'''
 
 ## sockshop experiment 9 (an hour of scaled-up activity w/ exfil along normal path)
@@ -1205,7 +1205,7 @@ def process_sockshop9():
                                rdpcap_p=False, calc_alerts_p=True,
                                percentile_thresholds=percentile_thresholds, anomaly_window = anomaly_window,
                                anom_num_outlier_vals_in_window = anom_num_outlier_vals_in_window,
-                               alert_file = alert_file, ROC_curve_p=True, calc_tpr_fpr_p=True, kubernetes_pod_info=kubernetes_pod_info)
+                               alert_file = alert_file, ROC_curve_p=True, calc_zscore_p=True, kubernetes_pod_info=kubernetes_pod_info)
     #'''
 
 ## sockshop experiment 11 (an hour of scaled-up activity w/ exfil NOT on normal path)
@@ -1243,7 +1243,7 @@ def process_sockshop11():
                                rdpcap_p=False, calc_alerts_p=True,
                                percentile_thresholds=percentile_thresholds, anomaly_window = anomaly_window,
                                anom_num_outlier_vals_in_window = anom_num_outlier_vals_in_window,
-                               alert_file = alert_file, ROC_curve_p=True, calc_tpr_fpr_p=True,
+                               alert_file = alert_file, ROC_curve_p=True, calc_zscore_p=True,
                                kubernetes_pod_info=kubernetes_pod_info)
     #'''
 
@@ -1282,7 +1282,7 @@ def process_sockshop12():
                                rdpcap_p=False, calc_alerts_p=True,
                                percentile_thresholds=percentile_thresholds, anomaly_window = anomaly_window,
                                anom_num_outlier_vals_in_window = anom_num_outlier_vals_in_window,
-                               alert_file = alert_file, ROC_curve_p=True, calc_tpr_fpr_p=True,
+                               alert_file = alert_file, ROC_curve_p=True, calc_zscore_p=True,
                                kubernetes_pod_info = kubernetes_pod_info) 
     #'''
 
@@ -1324,8 +1324,8 @@ def run_analysis_pipeline_recipes_json(json_file, path_to_experimental_data):
                                    cilium_config_path=cilium_config_path, rdpcap_p=False, calc_alerts_p=True,
                                    percentile_thresholds=percentile_thresholds, anomaly_window=anomaly_window,
                                    anom_num_outlier_vals_in_window=anom_num_outlier_vals_in_window,
-                                   alert_file=alert_file, ROC_curve_p=ROC_curve_p, calc_tpr_fpr_p=calc_tpr_fpr_p,
-                                   kubernetes_pod_info=kubernetes_pod_info,sec_between_exfil_events=sec_between_exfil_events)
+                                   alert_file=alert_file, ROC_curve_p=ROC_curve_p, calc_zscore_p=calc_tpr_fpr_p,
+                                   kubernetes_pod_info=kubernetes_pod_info, sec_between_exfil_events=sec_between_exfil_events)
 
 if __name__=="__main__":
     print "RUNNING"
