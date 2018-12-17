@@ -1,3 +1,7 @@
+from scapy.all import *
+import json
+import yaml
+
 # parse_pcap : packet_array seconds_per_time_interval ip_to_container_and_network, basename_of_output pcap_start_time
 #    shouldnt_delete_old_edgefiles_p  -> unidentified_IPs list_of_filenames endtime (+ filenames filled w/ edgelists)
 # this file creates edgefiles passed on the packet array. each edgefile lasts for a certain length of time.
@@ -124,8 +128,8 @@ def parse_pcap(a, time_intervals, mapping, basefile_name, start_time, dont_delet
 
 
         with open(filename, 'ab') as csvfile:
-            spamwriter = csv.writer(csvfile, delimiter=',',
-                                    quotechar='|', quoting=csv.QUOTE_MINIMAL)
+            #spamwriter = csv.writer(csvfile, delimiter=',',
+            #                        quotechar='|', quoting=csv.QUOTE_MINIMAL)
             for item, weight in time_to_parsed_mapping[interval].iteritems():
                 #spamwriter.writerow([item[0], item[1], weight])
                 # going to dump a value dictinoary, so that the edgefiles have more info
@@ -226,7 +230,7 @@ def parse_kubernetes_pod_info(kubernetes_pod_info):
 
 
 def create_edgelists(pcap_paths, is_swarm, ms_s, kubernetes_pod_info, cilium_config_path, start_time, make_edgefiles_p,
-                     time_interval_lengths, rdpcap_p, basefile_name):
+                     time_interval_lengths, rdpcap_p, basefile_name,kubernetes_svc_info,container_info_path):
     #First, get a mapping of IPs to(container_name, network_name)
     mapping = ips_on_docker_networks(container_info_path)
     list_of_infra_services = []

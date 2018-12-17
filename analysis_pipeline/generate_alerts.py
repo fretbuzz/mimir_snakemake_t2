@@ -68,9 +68,9 @@ def generate_all_anom_ROCs(df_with_anom_features, time_gran, alert_file, sub_pat
     for feature in features_to_use:
         title = 'ROC ' + feature + ' at ' + str(time_gran)
         plot_name = 'sub_roc_' + feature + '_' + str(time_gran)
-        c#ur_alert_function = partial(alert_fuction, weights, [feature], 0.0)
+        #ur_alert_function = partial(alert_fuction, weights, [feature], 0.0)
         df_with_only_one_anom_feature = pd.DataFrame(0, index=df_with_anom_features.index, columns=df_with_anom_features.columns)
-        df_with_only_one_anom_feature[feature] = df_with_anom_features[features]
+        df_with_only_one_anom_feature[feature] = df_with_anom_features[feature]
         create_ROC_of_anom_score(df_with_only_one_anom_feature, time_gran, ROC_path, cur_alert_function,
                                                 title, plot_name)
 

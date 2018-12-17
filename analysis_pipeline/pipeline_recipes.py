@@ -788,15 +788,13 @@ def process_wordpress6():
     percentile_thresholds = [30, 40, 50, 60, 70, 75, 85, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100]
     anomaly_window = [1, 4]
     anom_num_outlier_vals_in_window = [1, 2] # note: these vals correspond to anoamly_window (so the first vals get matched, etc.)
-    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
-                               ms_s, make_edgefiles, basegraph_name, window_size, colors,
-                               exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
-                               calc_vals=calc_vals, graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
-                               cilium_config_path=cilium_config_path, rdpcap_p=False, calc_alerts_p=True,
-                               percentile_thresholds=percentile_thresholds, anomaly_window = anomaly_window,
-                               anom_num_outlier_vals_in_window = anom_num_outlier_vals_in_window,
-                               alert_file = alert_file, ROC_curve_p=True, calc_zscore_p=True,
-                               kubernetes_pod_info=kubernetes_pod_info, sec_between_exfil_events=sec_between_exfil_events)
+    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
+                               make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
+                               wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,
+                               graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
+                               cilium_config_path=cilium_config_path, rdpcap_p=False,
+                               kubernetes_pod_info=kubernetes_pod_info, alert_file=alert_file, ROC_curve_p=True,
+                               calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events)
     #'''
 
 def process_wordpress6_rep2():
@@ -829,15 +827,13 @@ def process_wordpress6_rep2():
     sec_between_exfil_events = 15
     anom_num_outlier_vals_in_window = [1, 2] # note: these vals correspond to anoamly_window (so the first vals get matched, etc.)
     alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_six_rep_2_'
-    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
-                               ms_s, make_edgefiles, basegraph_name, window_size, colors,
-                               exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
-                               calc_vals=calc_vals, graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
-                               cilium_config_path=cilium_config_path, rdpcap_p=False, calc_alerts_p=True,
-                               percentile_thresholds=percentile_thresholds, anomaly_window = anomaly_window,
-                               anom_num_outlier_vals_in_window = anom_num_outlier_vals_in_window,
-                               alert_file = alert_file, ROC_curve_p=True, calc_zscore_p=True,
-                               kubernetes_pod_info=kubernetes_pod_info, sec_between_exfil_events=sec_between_exfil_events)
+    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
+                               make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
+                               wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,
+                               graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
+                               cilium_config_path=cilium_config_path, rdpcap_p=False,
+                               kubernetes_pod_info=kubernetes_pod_info, alert_file=alert_file, ROC_curve_p=True,
+                               calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events)
     #'''
 
 def process_wordpress6_rep3():
@@ -870,15 +866,13 @@ def process_wordpress6_rep3():
     anom_num_outlier_vals_in_window = [1, 2] # note: these vals correspond to anoamly_window (so the first vals get matched, etc.)
     alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_six_rep_3_'
     sec_between_exfil_events = 15
-    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
-                               ms_s, make_edgefiles, basegraph_name, window_size, colors,
-                               exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
-                               calc_vals=calc_vals, graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
-                               cilium_config_path=cilium_config_path, rdpcap_p=False, calc_alerts_p=True,
-                               percentile_thresholds=percentile_thresholds, anomaly_window = anomaly_window,
-                               anom_num_outlier_vals_in_window = anom_num_outlier_vals_in_window,
-                               alert_file = alert_file, ROC_curve_p=True, calc_zscore_p=True,
-                               kubernetes_pod_info=kubernetes_pod_info, sec_between_exfil_events=sec_between_exfil_events)
+    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
+                               make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
+                               wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,
+                               graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
+                               cilium_config_path=cilium_config_path, rdpcap_p=False,
+                               kubernetes_pod_info=kubernetes_pod_info, alert_file=alert_file, ROC_curve_p=True,
+                               calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events)
     #'''
 
 
@@ -912,15 +906,13 @@ def process_wordpress6_rep4():
      anom_num_outlier_vals_in_window = [1, 2] # note: these vals correspond to anoamly_window (so the first vals get matched, etc.)
      alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_six_rep_4_'
      sec_between_exfil_events = 15
-     run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
-                                ms_s, make_edgefiles, basegraph_name, window_size, colors,
-                                exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
-                                calc_vals=calc_vals, graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
-                                cilium_config_path=cilium_config_path, rdpcap_p=False, calc_alerts_p=True,
-                                percentile_thresholds=percentile_thresholds, anomaly_window=anomaly_window,
-                                anom_num_outlier_vals_in_window=anom_num_outlier_vals_in_window,
-                                alert_file=alert_file, ROC_curve_p=True, calc_zscore_p=True,
-                                kubernetes_pod_info=kubernetes_pod_info, sec_between_exfil_events=sec_between_exfil_events)
+     run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
+                                make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
+                                wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,
+                                graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
+                                cilium_config_path=cilium_config_path, rdpcap_p=False,
+                                kubernetes_pod_info=kubernetes_pod_info, alert_file=alert_file, ROC_curve_p=True,
+                                calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events)
      # '''
 
 def process_wordpress7_rep3():
@@ -952,15 +944,13 @@ def process_wordpress7_rep3():
     anom_num_outlier_vals_in_window = [1, 2]
     sec_between_exfil_events = 15
     alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_seven_rep_3_'
-    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
-                               ms_s, make_edgefiles, basegraph_name, window_size, colors,
-                               exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
-                               calc_vals=calc_vals, graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
-                               cilium_config_path=cilium_config_path, rdpcap_p=False, calc_alerts_p=True,
-                               percentile_thresholds=percentile_thresholds, anomaly_window=anomaly_window,
-                               anom_num_outlier_vals_in_window=anom_num_outlier_vals_in_window,
-                               alert_file=alert_file, ROC_curve_p=True, calc_zscore_p=True,
-                               kubernetes_pod_info=kubernetes_pod_info, sec_between_exfil_events=sec_between_exfil_events)
+    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
+                               make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
+                               wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,
+                               graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
+                               cilium_config_path=cilium_config_path, rdpcap_p=False,
+                               kubernetes_pod_info=kubernetes_pod_info, alert_file=alert_file, ROC_curve_p=True,
+                               calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events)
    # '''
 
 # Wordpress exp 7 (wordpress w/ HA cluster on cilium w/o security config, dnscat exfil from single WP w/ 15 sec delay)
@@ -994,15 +984,13 @@ def process_wordpress7():
     anomaly_window = [1, 4]
     anom_num_outlier_vals_in_window = [1, 2] # note: these vals correspond to anoamly_window (so the first vals get matched, etc.)
     alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_seven_'
-    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
-                               ms_s, make_edgefiles, basegraph_name, window_size, colors,
-                               exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
-                               calc_vals=calc_vals, graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
-                               cilium_config_path=cilium_config_path, rdpcap_p=False, calc_alerts_p=True,
-                               percentile_thresholds=percentile_thresholds, anomaly_window = anomaly_window,
-                               anom_num_outlier_vals_in_window = anom_num_outlier_vals_in_window,
-                               alert_file = alert_file, ROC_curve_p=True, calc_zscore_p=True,
-                               kubernetes_pod_info=kubernetes_pod_info)
+    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
+                               make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
+                               wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,
+                               graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
+                               cilium_config_path=cilium_config_path, rdpcap_p=False,
+                               kubernetes_pod_info=kubernetes_pod_info, alert_file=alert_file, ROC_curve_p=True,
+                               calc_zscore_p=True)
     #'''
 
 def process_wordpress7_rep2():
@@ -1035,15 +1023,13 @@ def process_wordpress7_rep2():
     sec_between_exfil_events = 15
     anom_num_outlier_vals_in_window = [1, 2]
     alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_seven_rep_2_'
-    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
-                               ms_s, make_edgefiles, basegraph_name, window_size, colors,
-                               exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
-                               calc_vals=calc_vals, graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
-                               cilium_config_path=cilium_config_path, rdpcap_p=False, calc_alerts_p=True,
-                               percentile_thresholds=percentile_thresholds, anomaly_window = anomaly_window,
-                               anom_num_outlier_vals_in_window = anom_num_outlier_vals_in_window,
-                               alert_file = alert_file, ROC_curve_p=True, calc_zscore_p=True,
-                               kubernetes_pod_info=kubernetes_pod_info, sec_between_exfil_events=sec_between_exfil_events)
+    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
+                               make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
+                               wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,
+                               graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
+                               cilium_config_path=cilium_config_path, rdpcap_p=False,
+                               kubernetes_pod_info=kubernetes_pod_info, alert_file=alert_file, ROC_curve_p=True,
+                               calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events)
     #'''
 
 # 20 min of scaled-up wordpress (wordpress_eight) (dnscat exfil)
@@ -1077,15 +1063,12 @@ def process_wordpress8():
     anom_num_outlier_vals_in_window = [1, 2] # note: these vals correspond to anoamly_window (so the first vals get matched, etc.)
     sec_between_exfil_events = 1
     alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_eight_'
-    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
-                               ms_s, make_edgefiles, basegraph_name, window_size, colors,
-                               exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
-                               calc_vals=calc_vals, graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
-                               rdpcap_p=False, calc_alerts_p=True,
-                               percentile_thresholds=percentile_thresholds, anomaly_window = anomaly_window,
-                               anom_num_outlier_vals_in_window = anom_num_outlier_vals_in_window,
-                               alert_file = alert_file, ROC_curve_p=True, calc_zscore_p=True,
-                               kubernetes_pod_info=kubernetes_pod_info, sec_between_exfil_events=sec_between_exfil_events)
+    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
+                               make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
+                               wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,
+                               graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info, rdpcap_p=False,
+                               kubernetes_pod_info=kubernetes_pod_info, alert_file=alert_file, ROC_curve_p=True,
+                               calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events)
     #'''
 
 def process_wordpress8_rep_2():
@@ -1118,15 +1101,12 @@ def process_wordpress8_rep_2():
     anom_num_outlier_vals_in_window = [1, 2] # note: these vals correspond to anoamly_window (so the first vals get matched, etc.)
     sec_between_exfil_events = 1
     alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_eight_rep_2_'
-    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
-                               ms_s, make_edgefiles, basegraph_name, window_size, colors,
-                               exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
-                               calc_vals=calc_vals, graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
-                               rdpcap_p=False, calc_alerts_p=True,
-                               percentile_thresholds=percentile_thresholds, anomaly_window = anomaly_window,
-                               anom_num_outlier_vals_in_window = anom_num_outlier_vals_in_window,
-                               alert_file = alert_file, ROC_curve_p=True, calc_zscore_p=True,
-                               kubernetes_pod_info=kubernetes_pod_info, sec_between_exfil_events=sec_between_exfil_events)
+    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
+                               make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
+                               wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,
+                               graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info, rdpcap_p=False,
+                               kubernetes_pod_info=kubernetes_pod_info, alert_file=alert_file, ROC_curve_p=True,
+                               calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events)
     #'''
 
 def process_wordpress8_rep_3():
@@ -1159,15 +1139,12 @@ def process_wordpress8_rep_3():
     anom_num_outlier_vals_in_window = [1, 2] # note: these vals correspond to anoamly_window (so the first vals get matched, etc.)
     sec_between_exfil_events = 1
     alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_eight_rep_3_'
-    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
-                               ms_s, make_edgefiles, basegraph_name, window_size, colors,
-                               exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
-                               calc_vals=calc_vals, graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
-                               rdpcap_p=False, calc_alerts_p=True,
-                               percentile_thresholds=percentile_thresholds, anomaly_window = anomaly_window,
-                               anom_num_outlier_vals_in_window = anom_num_outlier_vals_in_window,
-                               alert_file = alert_file, ROC_curve_p=True, calc_zscore_p=True,
-                               kubernetes_pod_info=kubernetes_pod_info, sec_between_exfil_events=sec_between_exfil_events)
+    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
+                               make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
+                               wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,
+                               graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info, rdpcap_p=False,
+                               kubernetes_pod_info=kubernetes_pod_info, alert_file=alert_file, ROC_curve_p=True,
+                               calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events)
     #'''
 
 ## sockshop experiment 9 (an hour of scaled-up activity w/ exfil along normal path)
@@ -1198,14 +1175,12 @@ def process_sockshop9():
     anom_num_outlier_vals_in_window = [1, 2] # note: these vals correspond to anoamly_window (so the first vals get matched, etc.)
     alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/alerts/sockshop_nine_better_exfil_'
     wiggle_room = 2 # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
-    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
-                               ms_s, make_edgefiles, basegraph_name, window_size, colors,
-                               exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
-                               calc_vals = calc_vals, graph_p = graph_p, kubernetes_svc_info=kubernetes_svc_info,
-                               rdpcap_p=False, calc_alerts_p=True,
-                               percentile_thresholds=percentile_thresholds, anomaly_window = anomaly_window,
-                               anom_num_outlier_vals_in_window = anom_num_outlier_vals_in_window,
-                               alert_file = alert_file, ROC_curve_p=True, calc_zscore_p=True, kubernetes_pod_info=kubernetes_pod_info)
+    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
+                               make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
+                               wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,
+                               graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info, rdpcap_p=False,
+                               kubernetes_pod_info=kubernetes_pod_info, alert_file=alert_file, ROC_curve_p=True,
+                               calc_zscore_p=True)
     #'''
 
 ## sockshop experiment 11 (an hour of scaled-up activity w/ exfil NOT on normal path)
@@ -1236,15 +1211,12 @@ def process_sockshop11():
     anom_num_outlier_vals_in_window = [1, 2] # note: these vals correspond to anoamly_window (so the first vals get matched, etc.)
     alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/alerts/sockshop_eleven_'
     wiggle_room = 2 # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
-    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
-                               ms_s, make_edgefiles, basegraph_name, window_size, colors,
-                               exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
-                               calc_vals = calc_vals, graph_p = graph_p, kubernetes_svc_info=kubernetes_svc_info,
-                               rdpcap_p=False, calc_alerts_p=True,
-                               percentile_thresholds=percentile_thresholds, anomaly_window = anomaly_window,
-                               anom_num_outlier_vals_in_window = anom_num_outlier_vals_in_window,
-                               alert_file = alert_file, ROC_curve_p=True, calc_zscore_p=True,
-                               kubernetes_pod_info=kubernetes_pod_info)
+    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
+                               make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
+                               wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,
+                               graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info, rdpcap_p=False,
+                               kubernetes_pod_info=kubernetes_pod_info, alert_file=alert_file, ROC_curve_p=True,
+                               calc_zscore_p=True)
     #'''
 
 ## sockshop experiment 12 (an hour of scaled-up activity w/ exfil going straight out)
@@ -1275,15 +1247,12 @@ def process_sockshop12():
     alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/alerts/sockshop_twelve_'
     kubernetes_pod_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/sockshop_twelve_pod_config_0.txt'
     wiggle_room = 2 # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
-    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
-                               ms_s, make_edgefiles, basegraph_name, window_size, colors,
-                               exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
-                               calc_vals = calc_vals, graph_p = graph_p, kubernetes_svc_info=kubernetes_svc_info,
-                               rdpcap_p=False, calc_alerts_p=True,
-                               percentile_thresholds=percentile_thresholds, anomaly_window = anomaly_window,
-                               anom_num_outlier_vals_in_window = anom_num_outlier_vals_in_window,
-                               alert_file = alert_file, ROC_curve_p=True, calc_zscore_p=True,
-                               kubernetes_pod_info = kubernetes_pod_info) 
+    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
+                               make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
+                               wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,
+                               graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info, rdpcap_p=False,
+                               kubernetes_pod_info=kubernetes_pod_info, alert_file=alert_file, ROC_curve_p=True,
+                               calc_zscore_p=True)
     #'''
 
 def run_analysis_pipeline_recipes_json(json_file, path_to_experimental_data):
@@ -1309,23 +1278,22 @@ def run_analysis_pipeline_recipes_json(json_file, path_to_experimental_data):
         graph_p = data["graph_p"]
         colors = data["colors"]
         wiggle_room = data["wiggle_room"] # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
-        percentile_thresholds = data["percentile_thresholds"]
-        anomaly_window = data["anomaly_window"]
-        anom_num_outlier_vals_in_window = data["anom_num_outlier_vals_in_window"]
+        #percentile_thresholds = data["percentile_thresholds"]
+        #anomaly_window = data["anomaly_window"]
+        #anom_num_outlier_vals_in_window = data["anom_num_outlier_vals_in_window"]
         alert_file = path_to_experimental_data + data["alert_file"]
         ROC_curve_p =  data["ROC_curve_p"]
         calc_tpr_fpr_p =  data["calc_tpr_fpr_p"]
         sec_between_exfil_events = data['sec_between_exfil_events']
 
         run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
-                                   ms_s, make_edgefiles, basegraph_name, window_size, colors,
-                                   exfil_start_time, exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
+                                   ms_s, make_edgefiles, basegraph_name, window_size, colors, exfil_start_time,
+                                   exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
                                    calc_vals=calc_vals, graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
-                                   cilium_config_path=cilium_config_path, rdpcap_p=False, calc_alerts_p=True,
-                                   percentile_thresholds=percentile_thresholds, anomaly_window=anomaly_window,
-                                   anom_num_outlier_vals_in_window=anom_num_outlier_vals_in_window,
-                                   alert_file=alert_file, ROC_curve_p=ROC_curve_p, calc_zscore_p=calc_tpr_fpr_p,
-                                   kubernetes_pod_info=kubernetes_pod_info, sec_between_exfil_events=sec_between_exfil_events)
+                                   cilium_config_path=cilium_config_path, rdpcap_p=False,
+                                   kubernetes_pod_info=kubernetes_pod_info, alert_file=alert_file,
+                                   ROC_curve_p=ROC_curve_p, calc_zscore_p=calc_tpr_fpr_p,
+                                   sec_between_exfil_events=sec_between_exfil_events)
 
 if __name__=="__main__":
     print "RUNNING"
