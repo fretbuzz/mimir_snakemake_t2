@@ -6,7 +6,8 @@ import networkx as nx
 import numpy as np
 from alert_triggers import calc_modified_z_score
 
-from analysis_pipeline.analyze_edgefiles import change_point_detection, find_angles, get_points_to_plot
+from analysis_pipeline.analyze_edgefiles import change_point_detection, find_angles
+from analysis_pipeline.generate_graphs import get_points_to_plot
 
 '''
 def mathTestSuite():

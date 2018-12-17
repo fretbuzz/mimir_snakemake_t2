@@ -7,10 +7,10 @@ pyximport.install() # am I sure that I want this???
 import sys
 import gc
 
-from analysis_pipeline.pcap_parser import run_data_anaylsis_pipeline
+from analysis_pipeline.pipeline_coordinator import run_data_anaylsis_pipeline
 
 '''
-This file is essentially just sets of parameters for the run_data_analysis_pipeline function in pcap_parser.py
+This file is essentially just sets of parameters for the run_data_analysis_pipeline function in pipeline_coordinator.py
 There are a lot of parameters, and some of them are rather long, so I decided to make a function to store them in
 '''
 
