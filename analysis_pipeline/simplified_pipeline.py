@@ -9,9 +9,9 @@ import math
 import csv
 import ast
 import gc
-from next_gen_metrics import calc_neighbor_metric, generate_neig_dict, create_dict_for_dns_metric, \
+from analysis_pipeline.next_gen_metrics import calc_neighbor_metric, generate_neig_dict, create_dict_for_dns_metric, \
     calc_dns_metric, calc_outside_inside_ratio_dns_metric, find_dns_node_name, sum_max_pod_to_dns_from_each_svc,reverse_svc_to_pod_dict
-from analyze_edgefiles import prepare_graph, calc_VIP_metric, get_svc_equivalents,change_point_detection
+from analysis_pipeline.analyze_edgefiles import prepare_graph, calc_VIP_metric, get_svc_equivalents,change_point_detection
 
 # okay, so things to be aware of:
 # (a) we are assuming that if we cannot label the node and it is not loopback or in the '10.X.X.X' subnet, then it is outside

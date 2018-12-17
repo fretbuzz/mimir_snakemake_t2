@@ -1242,7 +1242,7 @@ def copy_experimental_info_to_experimental_folder(exp_name):
             shutil.move("./"+filename, './experimental_data/' + exp_name + '/' + filename)
 
 # def generate_analysis_json ??? -> ??
-# this function generates the json that will be used be the analysis pipeline
+# this function generates the json that will be used be the analysis_pipeline pipeline
 def generate_analysis_json(path_to_exp_folder, analysis_json_name, exp_config_json, exp_name):
     # okay, so what I want is just a dict with the relevant values...
     analysis_dict = {}

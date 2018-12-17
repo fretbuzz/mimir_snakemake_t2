@@ -1,3 +1,13 @@
+#######################
+# NOTE: I really really really do not like this file.
+# try to adapt the simplified_pipeline as needed, b/c this is horrible.
+#
+#
+#
+#########################
+
+
+
 import networkx as nx
 import seaborn as sns; sns.set()
 import scipy.stats
@@ -17,7 +27,7 @@ import ast
 import itertools
 import copy
 import gc
-from pympler import asizeof
+#from pympler import asizeof
 import sys
 from next_gen_metrics import calc_neighbor_metric,generate_neig_dict,create_dict_for_dns_metric,\
     calc_dns_metric,find_angles,turn_into_list,calc_outside_inside_ratio_dns_metric
@@ -158,7 +168,7 @@ def calc_graph_metrics(filenames, time_interval, basegraph_name, container_or_cl
             G = nx.DiGraph()
             print "path to file is ", file_path
             nx.read_edgelist(file_path,
-                            create_using=G, delimiter=',', data=(('weight', float),))
+                            create_using=G, delimiter=',')
             cur_G = prepare_graph(G, svcs, level_of_processing, is_swarm, counter, file_path, ms_s, container_to_ip, infra_service)
             #print "right after graph is prepared", level_of_processing, list(cur_G.nodes(data=True))
 
@@ -284,48 +294,48 @@ def calc_graph_metrics(filenames, time_interval, basegraph_name, container_or_cl
 
         #######
 
-        print "About to perform vector-angle analysis methods (i.e. DOING ANGLES)"
+        print "About to perform vector-angle analysis_pipeline methods (i.e. DOING ANGLES)"
 
-        # out degrees analysis
+        # out degrees analysis_pipeline
         node_degrees = turn_into_list(degree_dicts, current_total_node_list)
         angles_degrees = find_angles(node_degrees, window_size) #change_point_detection(degree_dicts, window_size=window_size)  # setting window size arbitrarily for now...
         #print "angles degrees", type(angles_degrees), angles_degrees, node_degrees
         angles_degrees_eigenvector = change_point_detection(degree_dicts, window_size, current_total_node_list)
         #print "angles degrees eigenvector", angles_degrees_eigenvector
 
-        # outstrength analysis
+        # outstrength analysis_pipeline
         node_outstrengths = turn_into_list(outstrength_dicts, current_total_node_list)
         print "node_outstrengths", node_outstrengths
         outstrength_degrees = find_angles(node_outstrengths, window_size)
         outstrength_degrees_eigenvector = change_point_detection(outstrength_dicts, window_size, current_total_node_list)
 
-        # instrength analysis
+        # instrength analysis_pipeline
         node_instrengths = turn_into_list(instrength_dicts, current_total_node_list)
         print "node_instrengths", node_instrengths
         instrengths_degrees = find_angles(node_instrengths, window_size)
         instrengths_degrees_eigenvector = change_point_detection(instrength_dicts, window_size, current_total_node_list)
 
-        # eigenvector centrality analysis
+        # eigenvector centrality analysis_pipeline
         node_eigenvector_centrality = turn_into_list(eigenvector_centrality_dicts, current_total_node_list)
         eigenvector_centrality_degrees = find_angles(node_eigenvector_centrality, window_size)
         eigenvector_centrality_degrees_eigenvector = change_point_detection(eigenvector_centrality_dicts, window_size, current_total_node_list)
 
-        # betweeness centrality analysis
+        # betweeness centrality analysis_pipeline
         node_betweeness_centrality = turn_into_list(betweeness_centrality_dicts, current_total_node_list)
         betweeness_centrality_degrees = find_angles(node_betweeness_centrality, window_size)
         betweeness_centrality_degrees_eigenvector = change_point_detection(betweeness_centrality_dicts, window_size, current_total_node_list)
 
-        # load centrality analysis
+        # load centrality analysis_pipeline
         node_load_centrality = turn_into_list(load_centrality_dicts, current_total_node_list)
         load_centrality_degrees = find_angles(node_load_centrality, window_size)
         load_centrality_degrees_eigenvector = change_point_detection(load_centrality_dicts, window_size, current_total_node_list)
 
-        # non_reciprocated_out_weight analysis
+        # non_reciprocated_out_weight analysis_pipeline
         node_non_reciprocated_out_weight = turn_into_list(non_reciprocated_out_weight_dicts, current_total_node_list)
         non_reciprocated_out_weight_degrees = find_angles(node_non_reciprocated_out_weight, window_size)
         non_reciprocated_out_weight_degrees_eigenvector = change_point_detection(non_reciprocated_out_weight_dicts, window_size, current_total_node_list)
 
-        # non_reciprocated_in_weight analysis
+        # non_reciprocated_in_weight analysis_pipeline
         node_non_reciprocated_in_weight = turn_into_list(non_reciprocated_in_weight_dicts, current_total_node_list)
         non_reciprocated_in_weight_degrees = find_angles(node_non_reciprocated_in_weight, window_size)
         non_reciprocated_in_weight_degrees_eigenvector = change_point_detection(non_reciprocated_in_weight_dicts, window_size, current_total_node_list)
@@ -656,7 +666,7 @@ def change_point_detection(tensor, window_size, nodes_in_tensor):
                 #print "node_one_time_series", node_one_time_series
                 #print "node_two_time_series", node_two_time_series
 
-                # remove Nan's from array before doing pearson analysis
+                # remove Nan's from array before doing pearson analysis_pipeline
                 # note: np.isfinite will crash if there's a None in the arraay, but that's fine
                 # cause I there shouldn't be any None's...
                 #print "node_one_time_series", node_one_time_series
@@ -880,8 +890,8 @@ def calc_covaraiance_matrix(calculated_values):
     # step 5: modify the thingee that actually calculates the covariance matrixes
     # step 6: modify graphing fuctions...
 
-    # I want to remove all of the simple angle analysis here (but keep the
-    # eigenvector analysis!)
+    # I want to remove all of the simple angle analysis_pipeline here (but keep the
+    # eigenvector analysis_pipeline!)
     # todo: am I sure I don't these vals?
     parsed_calculated_values = {}
     for item, val in calculated_values.iteritems():

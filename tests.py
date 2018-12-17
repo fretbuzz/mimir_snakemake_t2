@@ -1,10 +1,12 @@
-import unittest
 import json
-import networkx as nx
-from analyze_edgefiles import change_point_detection, find_angles, get_points_to_plot
-import numpy as np
 import math
+import unittest
+
+import networkx as nx
+import numpy as np
 from alert_triggers import calc_modified_z_score
+
+from analysis_pipeline.analyze_edgefiles import change_point_detection, find_angles, get_points_to_plot
 
 '''
 def mathTestSuite():

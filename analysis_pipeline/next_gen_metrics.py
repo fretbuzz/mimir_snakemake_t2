@@ -1,8 +1,11 @@
-import numpy as np
-import time
 import math
+import time
 from functools import partial
-import alert_triggers
+
+import numpy as np
+
+from analysis_pipeline import alert_triggers
+
 
 # takes a graph and returns a dictionary, where each key is the name of a node and each
 # value is a list of the nodes that have eedges incident on the key node

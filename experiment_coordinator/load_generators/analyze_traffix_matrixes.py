@@ -593,7 +593,7 @@ def svc_pair_lin_reg_coef(cur_svc_pair_traffic_vector, prev_step_lin_reg_stats, 
         for denom_svc_pair in ratio_denoms:
             current_denom_svc_pair_entry = cur_svc_pair_traffic_vector[denom_svc_pair[0], denom_svc_pair[1]]
 
-            # now I need to do some analysis on these values (i.e. series)
+            # now I need to do some analysis_pipeline on these values (i.e. series)
             # for now, it will suffice to do linear regression on them
 
             #print current_entry
