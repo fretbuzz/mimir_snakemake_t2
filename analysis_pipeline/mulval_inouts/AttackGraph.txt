@@ -1,0 +1,68 @@
+<1>||--execCode(fileServer_pod,_)
+   (2) RULE 2 : remote exploit of a server program
+      <3>|--netAccess(fileServer_pod,_,80)
+         (4) RULE 5 : multi-hop access
+            [5]-hacl(fileServer_vip,fileServer_pod,_,80)
+            <6>|--execCode(fileServer_vip,_)
+               (7) RULE 2 : remote exploit of a server program
+                  <8>||--netAccess(fileServer_vip,_,67)
+                     (9) RULE 5 : multi-hop access
+                        [10]-hacl(fileServer_pod,fileServer_vip,_,67)
+                        execCode(fileServer_pod,_)==><1>
+                     (11) RULE 5 : multi-hop access
+                        [12]-hacl(webServer_pod,fileServer_vip,_,67)
+                        <13>||--execCode(webServer_pod,_)
+                           (14) RULE 2 : remote exploit of a server program
+                              <15>|--netAccess(webServer_pod,_,80)
+                                 (16) RULE 5 : multi-hop access
+                                    [17]-hacl(webServer_vip,webServer_pod,_,80)
+                                    <18>|--execCode(webServer_vip,_)
+                                       (19) RULE 2 : remote exploit of a server program
+                                          <20>||--netAccess(webServer_vip,_,87)
+                                             (21) RULE 5 : multi-hop access
+                                                [22]-hacl(fileServer_pod,webServer_vip,_,87)
+                                                execCode(fileServer_pod,_)==><1>
+                                             (23) RULE 5 : multi-hop access
+                                                [24]-hacl(webServer_pod,webServer_vip,_,87)
+                                                execCode(webServer_pod,_)==><13>
+                                             (25) RULE 6 : direct network access
+                                                [26]-hacl(internet,webServer_vip,_,87)
+                                                [27]-attackerLocated(internet)
+                                          [28]-networkServiceInfo(webServer_vip,is_vip,_,87,_)
+                                          [29]-vulExists(webServer_vip,is_a_vip,is_vip,remoteExploit,privEscalation)
+                              [30]-networkServiceInfo(webServer_pod,is_computer,_,80,_)
+                              [31]-vulExists(webServer_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+                           (32) RULE 2 : remote exploit of a server program
+                              <33>||--netAccess(webServer_pod,_,_)
+                                 (34) RULE 5 : multi-hop access
+                                    [35]-hacl(fileServer_pod,webServer_pod,_,_)
+                                    execCode(fileServer_pod,_)==><1>
+                                 (36) RULE 5 : multi-hop access
+                                    [37]-hacl(webServer_pod,webServer_pod,_,_)
+                                    execCode(webServer_pod,_)==><13>
+                                 (38) RULE 6 : direct network access
+                                    [39]-hacl(internet,webServer_pod,_,_)
+                                    [27]-attackerLocated(internet)
+                              [40]-networkServiceInfo(webServer_pod,is_computer,_,_,_)
+                              [31]-vulExists(webServer_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+                     (41) RULE 6 : direct network access
+                        [42]-hacl(internet,fileServer_vip,_,67)
+                        [27]-attackerLocated(internet)
+                  [43]-networkServiceInfo(fileServer_vip,is_vip,_,67,_)
+                  [44]-vulExists(fileServer_vip,is_a_vip,is_vip,remoteExploit,privEscalation)
+      [45]-networkServiceInfo(fileServer_pod,is_computer,_,80,_)
+      [46]-vulExists(fileServer_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+   (47) RULE 2 : remote exploit of a server program
+      <48>||--netAccess(fileServer_pod,_,_)
+         (49) RULE 5 : multi-hop access
+            [50]-hacl(fileServer_pod,fileServer_pod,_,_)
+            execCode(fileServer_pod,_)==><1>
+         (51) RULE 5 : multi-hop access
+            [52]-hacl(webServer_pod,fileServer_pod,_,_)
+            execCode(webServer_pod,_)==><13>
+         (53) RULE 6 : direct network access
+            [54]-hacl(internet,fileServer_pod,_,_)
+            [27]-attackerLocated(internet)
+      [55]-networkServiceInfo(fileServer_pod,is_computer,_,_,_)
+      [46]-vulExists(fileServer_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+

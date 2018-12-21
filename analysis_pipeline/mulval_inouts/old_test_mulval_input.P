@@ -1,0 +1,12 @@
+attackerLocated(internet).
+attackGoal(execCode(fileServer, _)).
+
+hacl(internet, _, _, _).
+hacl(webServer, _, _, _).
+hacl(fileServer, _, _, _).
+
+vulExists(fileServer, 'attacker_can_access_anything', is_computer).
+vulProperty('attacker_can_access_anything', remoteExploit, privEscalation).
+networkServiceInfo(fileServer, is_computer, _ , _ , _).
+vulExists(webServer, 'attacker_can_access_anything', is_computer).
+networkServiceInfo(webServer , is_computer, _ , _ , _).

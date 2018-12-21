@@ -182,8 +182,8 @@ def generate_mod_z_score_dataframes(time_gran_to_list_of_anom_values, time_gran_
 def generate_feature_dfs(calculated_vals, time_interval_lengths):
     time_gran_to_feature_dataframe = {}
     #for time_gran in time_grans:
-    list_of_metric_val_lists = []
-    list_of_metric_names = []
+    list_of_metric_val_lists = {}
+    list_of_metric_names = {}
     time_grans = []
     for label, metric_time_series in calculated_vals.iteritems():
         container_or_class = label[1]
@@ -194,23 +194,33 @@ def generate_feature_dfs(calculated_vals, time_interval_lengths):
             continue
         else:
             time_grans.append(time_interval)
+            if time_interval not in list_of_metric_val_lists:
+                list_of_metric_val_lists[time_interval] = []
+                list_of_metric_names[time_interval] = []
 
         for current_metric_name, current_metric_time_series in calculated_vals[label].iteritems():
-            list_of_metric_names.append(current_metric_name + '_' + container_or_class)
-            list_of_metric_val_lists.append(current_metric_time_series)
+            list_of_metric_names[time_interval].append(current_metric_name + '_' + container_or_class)
+            list_of_metric_val_lists[time_interval].append(current_metric_time_series)
 
-    # okay, so now that we have the lists with the values, we can make some matrixes (And then tranpose them :))
-    feature_array = np.array(list_of_metric_val_lists)
-    feature_array = feature_array.T
+    for time_gran, metric_val_lists in list_of_metric_val_lists:
+        metric_names = list_of_metric_names[time_gran]
+        # okay, so now that we have the lists with the values, we can make some matrixes (And then tranpose them :))
+        feature_array = np.array(metric_val_lists)
+        feature_array = feature_array.T
 
-    # okay, so now we have the matrix along with the list we can do what we actually wanted to do:
-    # (1) run some anom detection algos
-    # (2) save in handy-csv format for processing by other software, potentially
-    # let's start start with (2). Columns should be times
-    for time_gran in time_grans:
+        # okay, so now we have the matrix along with the list we can do what we actually wanted to do:
+        # (1) run some anom detection algos
+        # (2) save in handy-csv format for processing by other software, potentially
+        # let's start start with (2). Columns should be times
+
+        #print feature_array
+        #print list_of_metric_names
+        for counter, feature_vector in enumerate(metric_val_lists):
+            print metric_names[counter], feature_vector, len(feature_vector)
+
         times = [i * time_gran for i in range(0,len(feature_array[:,0]))]
         print feature_array
-        feature_dataframe = pandas.DataFrame(data=feature_array, columns=list_of_metric_names, index=times)
+        feature_dataframe = pandas.DataFrame(data=feature_array, columns=metric_names, index=times)
         time_gran_to_feature_dataframe[time_gran] = feature_dataframe
     return time_gran_to_feature_dataframe
 

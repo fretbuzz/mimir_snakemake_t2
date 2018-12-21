@@ -1232,7 +1232,7 @@ def process_sockshop12():
     kubernetes_svc_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/sockshop_twelve_svc_config_0.txt'
     time_interval_lengths = [60, 30, 10]#,
     ms_s = microservices_sockshop
-    make_edgefiles = False
+    make_edgefiles = True
     start_time = None
     end_time = None
     exfil_start_time = 2100

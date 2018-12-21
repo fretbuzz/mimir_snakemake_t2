@@ -1,6 +1,7 @@
-from scapy.all import *
+from scapy.all import rdpcap,PcapReader,wrpcap
 import json
 import yaml
+import os
 
 # parse_pcap : packet_array seconds_per_time_interval ip_to_container_and_network, basename_of_output pcap_start_time
 #    shouldnt_delete_old_edgefiles_p  -> unidentified_IPs list_of_filenames endtime (+ filenames filled w/ edgelists)
@@ -228,9 +229,7 @@ def parse_kubernetes_pod_info(kubernetes_pod_info):
                 pod_ip_info[split_line[6]] = (split_line[1], 'pod')
     return pod_ip_info
 
-
-def create_edgelists(pcap_paths, is_swarm, ms_s, kubernetes_pod_info, cilium_config_path, start_time, make_edgefiles_p,
-                     time_interval_lengths, rdpcap_p, basefile_name,kubernetes_svc_info,container_info_path):
+def create_mappings(is_swarm, container_info_path, kubernetes_svc_info, kubernetes_pod_info, cilium_config_path, ms_s):
     #First, get a mapping of IPs to(container_name, network_name)
     mapping = ips_on_docker_networks(container_info_path)
     list_of_infra_services = []
@@ -239,7 +238,6 @@ def create_edgelists(pcap_paths, is_swarm, ms_s, kubernetes_pod_info, cilium_con
         # if it is kubernetes, then it is also necessary to read in that file with all the
         # info about the svc's, b/c kubernetes service VIPs don't show up in the docker configs
         # pass
-        # '''
         kubernetes_service_VIPs, total_list_of_services = parse_kubernetes_svc_info(kubernetes_svc_info)
         mapping.update(kubernetes_service_VIPs)
         list_of_infra_services = []
@@ -262,8 +260,7 @@ def create_edgelists(pcap_paths, is_swarm, ms_s, kubernetes_pod_info, cilium_con
             cilium_mapping = parse_cilium(cilium_config_path)
             mapping.update(cilium_mapping)
     try:
-        del mapping[
-            '<nil>']  # sometimes this nonsense value shows up b/c of the host Docker network (no IP = just noise)
+        del mapping['<nil>'] # sometimes this nonsense value shows up b/c of the host Docker network (no IP = just noise)
     except:
         pass
     try:
@@ -271,6 +268,15 @@ def create_edgelists(pcap_paths, is_swarm, ms_s, kubernetes_pod_info, cilium_con
     except:
         pass
     print "container to ip mapping", mapping
+
+    print "mapping", mapping
+    print "list_of_infra_services", list_of_infra_services
+    print "ms_s",ms_s
+    #exit()
+    return mapping, list_of_infra_services
+
+def create_edgelists(pcap_paths, start_time, make_edgefiles_p, time_interval_lengths, rdpcap_p, basefile_name,
+                     mapping):
 
     if start_time == None:  # or make_edgefiles_p:
         for pkt in PcapReader(pcap_paths[0]):
@@ -284,6 +290,7 @@ def create_edgelists(pcap_paths, is_swarm, ms_s, kubernetes_pod_info, cilium_con
     total_unidentified_pkts = []
     total_weird_timing_pkts = []
     if make_edgefiles_p:
+        print "going to make some edgefiles!"
         pcaps_processed_at_time_interval = 0
         for current_pcap_path in pcap_paths:
             # if current_pcap_path != pcap_paths[0]: #already loaded the first one in order to perform time interval calcs
@@ -323,8 +330,9 @@ def create_edgelists(pcap_paths, is_swarm, ms_s, kubernetes_pod_info, cilium_con
         wrpcap(basefile_name + 'weird_timing_pkts.txt', total_weird_timing_pkts)
     else:
         # I guess I am going to need to store the filenames in another file or something? b/c if I
+        print "NOT going to make some edgefiles!"
         with open(basefile_name + 'edgefile_dict.txt', "r") as f:
             a = f.read()
             interval_to_filenames = json.loads(a)
             # print "interval_to_filenames", interval_to_filenames
-    return interval_to_filenames, mapping, list_of_infra_services
+    return interval_to_filenames

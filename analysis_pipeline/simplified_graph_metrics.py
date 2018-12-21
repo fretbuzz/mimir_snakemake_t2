@@ -53,8 +53,13 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
             gc.collect()
             G = nx.DiGraph()
             print "path to file is ", file_path
-            nx.read_edgelist(file_path,
-                             create_using=G, delimiter=',', data=(('weight', float),))
+
+            f = open(file_path, 'r')
+            lines = f.readlines()
+            G = nx.parse_edgelist(lines, delimiter=' ')
+
+            #nx.read_edgelist(file_path,
+            #                 create_using=G, delimiter=',', data=(('weight', float),))
             cur_1si_G = prepare_graph(G, svcs, 'app_only', is_swarm, counter, file_path, ms_s, container_to_ip,
                                   infra_service)
 

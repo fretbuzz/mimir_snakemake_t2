@@ -3,11 +3,12 @@ import pyximport
 
 import analysis_pipeline.generate_alerts
 import analysis_pipeline.generate_graphs
-from pcap_to_edgelists import create_edgelists
+from pcap_to_edgelists import create_edgelists,create_mappings
 import process_graph_metrics
 import generate_alerts
 pyximport.install() # to leverage cpython
 import simplified_graph_metrics
+import process_pcap
 
 def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms_s, basegraph_name, calc_vals, window_size,
                                 mapping, is_swarm, make_net_graphs_p, list_of_infra_services):
@@ -15,7 +16,7 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
     for time_interval_length in time_interval_lengths:
         print "analyzing edgefiles..."
         ### TODO: change back to analyze_edgefiles.pipeline_analysis_step if you want to use the whole pipeline
-        newly_calculated_values = simplified_graph_metrics.pipeline_subset_analysis_step(interval_to_filenames[str(time_interval_length)], ms_s,
+        newly_calculated_values = simplified_graph_metrics.pipeline_subset_analysis_step(interval_to_filenames[time_interval_length], ms_s,
                                                                                          time_interval_length, basegraph_name, calc_vals, window_size,
                                                                                          mapping, is_swarm, make_net_graphs_p, list_of_infra_services)
         total_calculated_vals.update(newly_calculated_values)
@@ -50,9 +51,6 @@ def generate_rocs(time_gran_to_anom_score_df, alert_file, sub_path):
 
 ## TODO: this function is an atrocity and should be converted into a snakemake spec so we can use that instead...###
 ## todo (aim to get it done today...) : change  run_data_analysis_pipeline signature plus the feeder...
-## it'd be really good if I could get the snakemake thing going... as I nice side benifit, all these falgs would
-## not really be necessarly anymore... which'll be so nice... okay: signature/feeder followed by tutorial
-## and then I'm done... let's aim for 2:15 pm... also maybe start integrating the runner into here???
 
 # run_data_anaylsis_pipeline : runs the whole analysis_pipeline pipeline (or a part of it)
 # (1) creates edgefiles, (2) creates communication graphs from edgefiles, (3) calculates (and stores) graph metrics
@@ -67,19 +65,30 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
                                sec_between_exfil_events=1):
     gc.collect()
 
-    # TODO: no reason for mapping/list _of_infra_services to be coupled like this... should split it up ASAP
-    interval_to_filenames, mapping, list_of_infra_services = create_edgelists(pcap_paths, is_swarm, ms_s, kubernetes_pod_info,
-                                                                              cilium_config_path,  start_time, make_edgefiles_p,
-                                                                              time_interval_lengths, rdpcap_p, basefile_name,
-                                                                              kubernetes_svc_info, container_info_path)
+    mapping,list_of_infra_services = create_mappings(is_swarm, container_info_path, kubernetes_svc_info,
+                                                     kubernetes_pod_info, cilium_config_path, ms_s)
+    #interval_to_filenames = create_edgelists(pcap_paths, start_time, make_edgefiles_p, time_interval_lengths, rdpcap_p,
+    #                                         basefile_name, mapping)
+
+    experiment_folder_path = basefile_name.split('edgefiles')[0]
+    pcap_file = pcap_paths[0].split('/')[-1] # NOTE: assuming only a single pcap file...
+    exp_name = basefile_name.split('/')[-1]
+    interval_to_filenames = process_pcap.process_pcap(experiment_folder_path, pcap_file, time_interval_lengths,
+                                                      exp_name, make_edgefiles_p, mapping)
 
     # TODO: 90% sure that there is a problem with this function...
     time_gran_to_attack_labels = process_graph_metrics.generate_time_gran_to_attack_labels(time_interval_lengths,
                                                                                            exfil_start_time, exfil_end_time,
                                                                                             sec_between_exfil_events)
 
-    ### TODO: this is where I'd prbobably want to create the synethic data... the plan would probably be to make copies
+    #######
+    ### TODO: this is where I'd prbobably want to create the synthetic data... the plan would probably be to make copies
     ### of the given sequence, and then inject attacks into it, and I could use a loop over the code below to make it work...
+    ########
+    ### next steps: build synthetic attacks (leveraging existing work on mulval) and fix time_gran to attack labels
+    ### and THEN (waay after): going to want to probably do a big rewrite of the graph metrics calculation stuff...
+    ########
+
 
     total_calculated_vals = calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms_s, basegraph_name, calc_vals,
                                                         window_size, mapping, is_swarm, make_net_graphs_p, list_of_infra_services)
