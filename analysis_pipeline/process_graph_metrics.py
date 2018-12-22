@@ -202,7 +202,7 @@ def generate_feature_dfs(calculated_vals, time_interval_lengths):
             list_of_metric_names[time_interval].append(current_metric_name + '_' + container_or_class)
             list_of_metric_val_lists[time_interval].append(current_metric_time_series)
 
-    for time_gran, metric_val_lists in list_of_metric_val_lists:
+    for time_gran, metric_val_lists in list_of_metric_val_lists.iteritems():
         metric_names = list_of_metric_names[time_gran]
         # okay, so now that we have the lists with the values, we can make some matrixes (And then tranpose them :))
         feature_array = np.array(metric_val_lists)

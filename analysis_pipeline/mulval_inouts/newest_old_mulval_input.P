@@ -1,0 +1,53 @@
+attackerLocated(fileServer_pod).
+attackGoal(execCode(internet, _)).
+
+% note: when existing security policy configs are taken into account,
+% all these wildcards will need to be replaced w/ a tighter specification...
+hacl(internet, _, _, _).
+% like in other cases, the wildcard in the sending location is problematic
+% and unnecessary...
+%% hacl(_, internet, _, _).
+%hacl(internet, _, TCP, 87).
+%hacl(internet, _, TCP, 67).
+%hacl(_, internet, TCP, 67).
+
+% pods can send traffic to anywhere... no receiving rules b/c overspecified and has
+% the potential to intefere with the rules for VIPs...
+hacl(webServer_pod, _, _, _).
+hacl(fileServer_pod, _,  _, _).
+
+% okay, so I'm going to explain what is happening here...
+% essentially, you can't use the wildcard as a source b/c thne
+% then the other vip can send traffic to this vip. This is true even
+% if you restrict who the VIP can send to (I guess wildcard overrides or something)
+hacl(webServer_pod, fileServer_vip, TCP, 67).
+hacl(fileServer_pod, fileServer_vip, TCP, 67).
+% and then you gotta obviously manually specify the corresponding pod, b/c it should only be able
+% to talk to that entity (obviously)
+hacl(fileServer_vip, fileServer_pod, TCP, 80).
+
+hacl(fileServer_pod, webServer_pod, _, _). %% TEST
+
+% same logic as in the previous block...
+hacl(webServer_pod, webServer_vip,  TCP, 87).
+hacl(fileServer_pod, webServer_vip,  TCP, 87).
+hacl(webServer_vip, webServer_pod,  TCP, 80).
+
+vulExists(fileServer_pod, 'attacker_can_access_anything', is_computer).
+vulProperty('attacker_can_access_anything', remoteExploit, privEscalation).
+networkServiceInfo(fileServer_pod, is_computer,  _, _ , _).
+vulExists(webServer_pod, 'attacker_can_access_anything', is_computer).
+networkServiceInfo(webServer_pod , is_computer,  _, _, _).
+
+% note: would need to add this part to the auto..
+vulExists(internet, 'attacker_can_access_anything', is_computer).
+networkServiceInfo(internet , is_computer,  _, _, _).
+
+vulExists(webServer_vip, 'is_a_vip', is_vip).
+vulProperty('is_a_vip', remoteExploit, privEscalation).
+networkServiceInfo(webServer_vip, is_vip,  TCP, 87 , _).
+
+% Q: is this a comment?? A: yes
+vulExists(fileServer_vip, 'is_a_vip', is_vip).
+vulProperty('is_a_vip', remoteExploit, privEscalation).
+networkServiceInfo(fileServer_vip, is_vip,  TCP, 67 , _).

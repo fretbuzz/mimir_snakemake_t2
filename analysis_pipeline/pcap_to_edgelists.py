@@ -1,8 +1,9 @@
-from scapy.all import rdpcap,PcapReader,wrpcap
 import json
 import yaml
 import os
 
+'''
+from scapy.all import rdpcap,PcapReader,wrpcap
 # parse_pcap : packet_array seconds_per_time_interval ip_to_container_and_network, basename_of_output pcap_start_time
 #    shouldnt_delete_old_edgefiles_p  -> unidentified_IPs list_of_filenames endtime (+ filenames filled w/ edgelists)
 # this file creates edgefiles passed on the packet array. each edgefile lasts for a certain length of time.
@@ -144,6 +145,7 @@ def parse_pcap(a, time_intervals, mapping, basefile_name, start_time, dont_delet
 
     print "unidentified IPs present", list(set(no_mapping_found))
     return list(set(no_mapping_found)), filesnames,  time_counter, unidentified_pkts, weird_timing_pkts
+'''
 
 # swarm_container_ips : file_path -> dictionary mapping IPs to (container_name, network_name)
 # parses file containing all docker network -v output to find out the container that each IP refers to
@@ -197,10 +199,27 @@ def parse_kubernetes_svc_info(kubernetes_svc_info_path):
         line = svc_f.readlines()
         for l in line[1:]:
             l_pieces = l.split()
-            print l_pieces[1], l_pieces[3]
+            print 'l_pieces', l_pieces
+            print 'l_pieces', l_pieces[1], l_pieces[3]
             #mapping[l_pieces[1]] = l_pieces[3]
-            mapping[l_pieces[3]] = (l_pieces[1] + '_VIP', 'svc')
+            ## TODO: get ports + protos
+            ports = []
+            protos = []
+            for port_proto in l_pieces[5].split(','):
+                port, proto = port_proto.split('/')
+
+                # need to consider the mapping case...
+                port_in_out = port.split(':')
+                if len(port_in_out) > 1:
+                    port_in,port_out = port_in_out[0], port_in_out[1]
+                else:
+                    port_in, port_out = port_in_out[0], port_in_out[0]
+                ports.append((port_in,port_out))
+
+                protos.append(proto)
+            mapping[l_pieces[3]] = (l_pieces[1] + '_VIP', 'svc', ports, protos)
             list_of_svcs.append( l_pieces[1] )
+
     print "these service mappings were found", mapping
     return mapping, list_of_svcs
 
@@ -222,6 +241,7 @@ def parse_kubernetes_pod_info(kubernetes_pod_info):
         lines = f.readlines()
         for line in lines:
             split_line = line.split()
+            print "split_line", split_line
             #print line.split()[1], line.split()[6]
             if split_line[6] in pod_ip_info:
                 pod_ip_info[split_line[6]] = (pod_ip_info[split_line[6]][0] + ';' + split_line[1],'pod')

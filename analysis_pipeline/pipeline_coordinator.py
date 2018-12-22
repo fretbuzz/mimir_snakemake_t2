@@ -9,6 +9,8 @@ import generate_alerts
 pyximport.install() # to leverage cpython
 import simplified_graph_metrics
 import process_pcap
+import gen_attack_templates
+
 
 def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms_s, basegraph_name, calc_vals, window_size,
                                 mapping, is_swarm, make_net_graphs_p, list_of_infra_services):
@@ -16,7 +18,7 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
     for time_interval_length in time_interval_lengths:
         print "analyzing edgefiles..."
         ### TODO: change back to analyze_edgefiles.pipeline_analysis_step if you want to use the whole pipeline
-        newly_calculated_values = simplified_graph_metrics.pipeline_subset_analysis_step(interval_to_filenames[time_interval_length], ms_s,
+        newly_calculated_values = simplified_graph_metrics.pipeline_subset_analysis_step(interval_to_filenames[str(time_interval_length)], ms_s,
                                                                                          time_interval_length, basegraph_name, calc_vals, window_size,
                                                                                          mapping, is_swarm, make_net_graphs_p, list_of_infra_services)
         total_calculated_vals.update(newly_calculated_values)
@@ -64,6 +66,7 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
                                calc_zscore_p=False, training_window_size=200, minimum_training_window=5,
                                sec_between_exfil_events=1):
     gc.collect()
+    print "starting pipeline..."
 
     mapping,list_of_infra_services = create_mappings(is_swarm, container_info_path, kubernetes_svc_info,
                                                      kubernetes_pod_info, cilium_config_path, ms_s)
@@ -81,6 +84,15 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
                                                                                            exfil_start_time, exfil_end_time,
                                                                                             sec_between_exfil_events)
 
+    print interval_to_filenames, type(interval_to_filenames), 'stufff', interval_to_filenames.keys()
+
+    # todo: might wanna specify this is in the attack descriptions...
+    for ms in ms_s:
+        if 'User' in ms:
+            sensitive_ms = ms
+        if 'my-release' in ms:
+            sensitive_ms = ms
+    gen_attack_templates.generate_synthetic_attack_templates(mapping, ms_s, sensitive_ms)
     #######
     ### TODO: this is where I'd prbobably want to create the synthetic data... the plan would probably be to make copies
     ### of the given sequence, and then inject attacks into it, and I could use a loop over the code below to make it work...
@@ -88,7 +100,8 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
     ### next steps: build synthetic attacks (leveraging existing work on mulval) and fix time_gran to attack labels
     ### and THEN (waay after): going to want to probably do a big rewrite of the graph metrics calculation stuff...
     ########
-
+    ########################
+    exit() ## TODO: <--- get rid of obviously...
 
     total_calculated_vals = calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms_s, basegraph_name, calc_vals,
                                                         window_size, mapping, is_swarm, make_net_graphs_p, list_of_infra_services)
