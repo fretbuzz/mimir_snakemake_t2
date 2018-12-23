@@ -16,7 +16,8 @@ from analysis_pipeline.src.analyze_edgefiles import prepare_graph, calc_VIP_metr
 # (a) we are assuming that if we cannot label the node and it is not loopback or in the '10.X.X.X' subnet, then it is outside
 
 def pipeline_subset_analysis_step(filenames, ms_s, time_interval, basegraph_name, calc_vals_p, window_size, container_to_ip,
-                           is_swarm, make_net_graphs_p, infra_service):
+                           is_swarm, make_net_graphs_p, infra_service, synthetic_exfil_paths, initiator_info_for_paths,
+                                  attacks_to_times):
     total_calculated_values = {}
     if is_swarm:
         svcs = get_svc_equivalents(is_swarm, container_to_ip)
@@ -29,11 +30,13 @@ def pipeline_subset_analysis_step(filenames, ms_s, time_interval, basegraph_name
                                                                                basegraph_name + '_subset_',
                                                                                calc_vals_p, window_size,
                                                                                ms_s, container_to_ip, is_swarm, svcs,
-                                                                               infra_service)
+                                                                               infra_service, synthetic_exfil_paths,
+                                                                               initiator_info_for_paths,
+                                                                               attacks_to_times)
     return total_calculated_values
 
 def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_vals_p, window_size, ms_s, container_to_ip,
-                              is_swarm, svcs, infra_service):
+                              is_swarm, svcs, infra_service, synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times):
     if calc_vals_p:
         pod_comm_but_not_VIP_comms = []
         fraction_pod_comm_but_not_VIP_comms = []
@@ -65,6 +68,14 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
 
             cur_class_G = prepare_graph(G, svcs, 'class', is_swarm, counter, file_path, ms_s, container_to_ip,
                                   infra_service)
+
+            ### NOTE: I think this is where we'd want to inject the synthetic attacks...
+            cur_1si_G = inject_synthetic_attacks(cur_1si_G, synthetic_exfil_paths,initiator_info_for_paths,
+                                                 attacks_to_times,'app_only')
+            cur_class_G = inject_synthetic_attacks(cur_class_G, synthetic_exfil_paths,initiator_info_for_paths,
+                                                 attacks_to_times,'class')
+
+            exit() #### <----- TODO: remove!!
 
             name_of_dns_pod_node = find_dns_node_name(G)
             print "name_of_dns_pod_node",name_of_dns_pod_node
@@ -207,3 +218,6 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
                 print row[0], calculated_values[row[0]]
 
     return calculated_values
+
+def inject_synthetic_attacks(graph, synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times, granularity):
+    return graph

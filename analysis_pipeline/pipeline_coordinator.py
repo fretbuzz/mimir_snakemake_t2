@@ -13,14 +13,17 @@ import gen_attack_templates
 
 
 def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms_s, basegraph_name, calc_vals, window_size,
-                                mapping, is_swarm, make_net_graphs_p, list_of_infra_services):
+                                mapping, is_swarm, make_net_graphs_p, list_of_infra_services,synthetic_exfil_paths,
+                                initiator_info_for_paths, time_gran_to_attacks_to_times):
     total_calculated_vals = {}
     for time_interval_length in time_interval_lengths:
         print "analyzing edgefiles..."
         ### TODO: change back to analyze_edgefiles.pipeline_analysis_step if you want to use the whole pipeline
         newly_calculated_values = simplified_graph_metrics.pipeline_subset_analysis_step(interval_to_filenames[str(time_interval_length)], ms_s,
                                                                                          time_interval_length, basegraph_name, calc_vals, window_size,
-                                                                                         mapping, is_swarm, make_net_graphs_p, list_of_infra_services)
+                                                                                         mapping, is_swarm, make_net_graphs_p, list_of_infra_services,
+                                                                                         synthetic_exfil_paths, initiator_info_for_paths,
+                                                                                         time_gran_to_attacks_to_times[time_interval_length])
         total_calculated_vals.update(newly_calculated_values)
         gc.collect()
     return total_calculated_vals
@@ -50,6 +53,10 @@ def generate_rocs(time_gran_to_anom_score_df, alert_file, sub_path):
         generate_alerts.generate_all_anom_ROCs(df_with_anom_features, time_gran, alert_file, sub_path, cur_alert_function,
                                features_to_use)
 
+#### TODO: THIS FUNCTION ####
+def determine_attacks_to_times(time_gran_to_attack_labels, synthetic_exfil_paths):
+    time_gran_to_attacks_to_times = {}
+    return time_gran_to_attack_labels
 
 ## TODO: this function is an atrocity and should be converted into a snakemake spec so we can use that instead...###
 ## todo (aim to get it done today...) : change  run_data_analysis_pipeline signature plus the feeder...
@@ -92,7 +99,7 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
             sensitive_ms = ms
         if 'my-release' in ms:
             sensitive_ms = ms
-    gen_attack_templates.generate_synthetic_attack_templates(mapping, ms_s, sensitive_ms)
+    synthetic_exfil_paths, initiator_info_for_paths = gen_attack_templates.generate_synthetic_attack_templates(mapping, ms_s, sensitive_ms)
     #######
     ### TODO: this is where I'd prbobably want to create the synthetic data... the plan would probably be to make copies
     ### of the given sequence, and then inject attacks into it, and I could use a loop over the code below to make it work...
@@ -101,10 +108,12 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
     ### and THEN (waay after): going to want to probably do a big rewrite of the graph metrics calculation stuff...
     ########
     ########################
-    exit() ## TODO: <--- get rid of obviously...
+    #exit() ## TODO: <--- get rid of obviously... (note: there's now an exist in calc_subset_graph_metrics in simplified_graph_metrics
 
+    time_gran_to_attacks_to_times = determine_attacks_to_times(time_gran_to_attack_labels, synthetic_exfil_paths)
     total_calculated_vals = calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms_s, basegraph_name, calc_vals,
-                                                        window_size, mapping, is_swarm, make_net_graphs_p, list_of_infra_services)
+                                                        window_size, mapping, is_swarm, make_net_graphs_p, list_of_infra_services,
+                                                        synthetic_exfil_paths, initiator_info_for_paths, time_gran_to_attacks_to_times)
 
     sub_path = 'sub_'  # NOTE: make this an empty string if using the full pipeline (and not the subset)
 
