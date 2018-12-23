@@ -98,6 +98,7 @@ def prepare_mulval_input(ms_s, mapping, sensitive_ms):
             if svc_two != svc:
                 print svc_two[0], svc[1],proto,port
                 lines.append(  'hacl(' + svc_two[0] +',' + svc[1] + ', ' + proto +', ' + port[0] + ').'  )
+                lines.append(  'hacl(' + svc_two[1] +',' + svc[0] + ', ' + proto +', ' + port[0] + ').'  )
                 #          e.g. hacl(webServer_pod, fileServer_vip, TCP, 67).
 
         print svc, svc[2]
@@ -182,8 +183,10 @@ def post_process_mulval_result(sensitive_node):
     nx.draw_networkx(G, pos, with_labels=True, arrows=True)
 
     # okay, so let's generate all the paths using this...
+    paths=[]
     for path in nx.all_simple_paths(G, source=sensitive_node, target='internet'):
         print "a_path:", path
+        paths.append(path)
     #print "paths", nx.all_simple_paths(G, source=sensitive_node, target='internet')
     # ^^ TODO:src,trgt (src is sensitive pod, dest is internet)
 
@@ -191,14 +194,52 @@ def post_process_mulval_result(sensitive_node):
     #for cycle in nx.simple_cycles(G):
     #    print "a_cycle", cycle
 
+    initiator_info = determine_initator(paths)
+    print "initiator_info",initiator_info
     plt.show()
 
     print "has the graph been drawn???? yes, yes they have"
+    return paths, initiator_info
 
 def generate_synthetic_attack_templates(mapping, ms_s,sensitive_ms):
     sensitive_node = prepare_mulval_input(ms_s, mapping, sensitive_ms)
     run_mulval()
-    post_process_mulval_result(sensitive_node)
+    paths, initiator_info = post_process_mulval_result(sensitive_node)
+    return paths, initiator_info
+
+def determine_initator(paths):
+    initiator_info = {} # a dict mapping (first_node,second_node) -> (initiator, 'initiator'),
+                        # where 'initiator' exists to reading this code later on more clear
+    for path in paths:
+        for i in range(0, len(path)-1):
+            first,second=path[i],path[i+1]
+            if (first,second) not in initiator_info:
+                # this if exists b/c initiator info is a property of the names, so won't very if shows up
+                # multiple times...
+
+                # okay, so there are three rules that we need to observe here...
+                # rule 1: if both are pods / internet, then either can be the initiator
+                if 'vip' not in first and 'vip' not in second: #pod,pod
+                    initiator_info[(first,second)] = ('?', 'initiator')
+                elif 'vip' not in first and 'vip' in second: #pod,vip
+                    first_basename = first.replace('_pod', '') # recall, could also be internet
+                    second_basename = second.replace('_vip', '')
+                    if first_basename == second_basename:
+                        initiator_info[(first, second)] = (second, 'initiator')
+                    else:
+                        initiator_info[(first, second)] = (first, 'initiator')
+                elif 'vip' in first and 'vip' not in second: #vip,pod
+                    first_basename = first.replace('_vip', '')
+                    second_basename = second.replace('_pod', '')
+                    if first_basename == second_basename:
+                        initiator_info[(first, second)] = (first, 'initiator')
+                    else:
+                        initiator_info[(first, second)] = (second, 'initiator')
+                else:
+                    exit(12) # ERROR, should not be possible, need to check the mulval component thoroughly...
+
+    return initiator_info
+
 
 if __name__ == "__main__":
     generate_synthetic_attack_templates([], [])
