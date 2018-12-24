@@ -8,6 +8,7 @@ import math
 import csv
 import ast
 import gc
+import numpy as np
 from analysis_pipeline.next_gen_metrics import calc_neighbor_metric, generate_neig_dict, create_dict_for_dns_metric, \
     calc_dns_metric, calc_outside_inside_ratio_dns_metric, find_dns_node_name, sum_max_pod_to_dns_from_each_svc,reverse_svc_to_pod_dict
 from analysis_pipeline.src.analyze_edgefiles import prepare_graph, calc_VIP_metric, get_svc_equivalents,change_point_detection
@@ -52,6 +53,8 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
         svc_to_pod = {}
 
         # for cur_G in G_list:
+        node_attack_mapping = {}
+        class_attack_mapping = {}
         for counter, file_path in enumerate(filenames):
             gc.collect()
             G = nx.DiGraph()
@@ -70,10 +73,10 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
                                   infra_service)
 
             ### NOTE: I think this is where we'd want to inject the synthetic attacks...
-            cur_1si_G = inject_synthetic_attacks(cur_1si_G, synthetic_exfil_paths,initiator_info_for_paths,
-                                                 attacks_to_times,'app_only')
-            cur_class_G = inject_synthetic_attacks(cur_class_G, synthetic_exfil_paths,initiator_info_for_paths,
-                                                 attacks_to_times,'class')
+            cur_1si_G, node_attack_mapping = inject_synthetic_attacks(cur_1si_G, synthetic_exfil_paths,initiator_info_for_paths,
+                                                 attacks_to_times,'app_only',time_interval,counter,node_attack_mapping)
+            cur_class_G, class_attack_mapping = inject_synthetic_attacks(cur_class_G, synthetic_exfil_paths,initiator_info_for_paths,
+                                                 attacks_to_times,'class',time_interval,counter,class_attack_mapping)
 
             exit() #### <----- TODO: remove!!
 
@@ -219,5 +222,77 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
 
     return calculated_values
 
-def inject_synthetic_attacks(graph, synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times, granularity):
-    return graph
+def inject_synthetic_attacks(graph, synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
+                             node_granularity, time_granularity,graph_number, attack_number_to_mapping):
+    for counter, synthetic_exfil_path in enumerate(synthetic_exfil_paths):
+        attack_range = attacks_to_times[time_granularity][counter]
+        ## TODO: we have the times and the theoretical attacks... we just have to modify the graph
+        ## accordingly... NO WAIT!! we don't have, like, an array of graphs here... we have a single graph.
+        ## this means we can't just make a bunch of changes at once... we gotta:
+        # (1) identify whether a synthetic attack is injected here
+        # (2) identify whether this is the first occurence of injection... if it was injected
+        ## earlier, then we need to re-use the mappings...
+        # (3) add the weights...
+
+        # okay, so how should we do this??? (1) should be easy enough. Just iterate through
+        # attacks_to_times[time_granularity] and check if it falls within the range. If it does,
+        # remember it.
+        # okay so what about 2??? (2) can be done by performing the mapping step and then returning
+        # a dictinoary, which maps attacks to the specific mappings. It can be indexed by the number
+        # of attack and then passed around. We can tell if this is the first occurence b/c it won't show
+        # up in the dictionary...
+        pass
+
+    # first, perform (1)
+    current_time = graph_number * time_granularity
+    attack_occuring = None
+    for counter, attack_ranges in enumerate(attacks_to_times[time_granularity]):
+        if current_time >= attack_ranges[0] and current_time < attack_ranges[1]:
+            # then the attack occurs during this interval....
+            attack_occuring = counter
+            break
+    if attack_occuring:
+        # second, perform (2)
+        if attack_occuring in attack_number_to_mapping.keys():
+            ## TODO: then use the existing mapping (so finish this func.)
+            all_weights_in_exfil_path = []
+            all_pkts_in_exfil_path = []
+            for node_one_loc in range(0, len(synthetic_exfil_paths[attack_occuring]) -1 ):
+                abstract_node_pair = (synthetic_exfil_paths[attack_occuring][node_one_loc],
+                                      synthetic_exfil_paths[attack_occuring][node_one_loc+1])
+                concrete_node_src = attack_number_to_mapping[attack_occuring][abstract_node_pair[0]]
+                concrete_node_dst = attack_number_to_mapping[attack_occuring][abstract_node_pair[1]]
+
+                # TODO: so would wanna determine the relevant weight and then add it.
+                # (so in actualuality, this is #3 from below)
+                all_weights_in_exfil_path.append(graph.get_edge_data(concrete_node_src, concrete_node_dst)['weight'])
+                all_pkts_in_exfil_path.append( graph.get_edge_data(concrete_node_src, concrete_node_dst)['packets'] )
+
+                # so let's choose the weight/packets... let's maybe go w/ some fraction of the medium... let's
+                # say 10 percent of the median value ATM... TODO: pass fraction all the way from the coordinator
+                pkt_np_array = np.array(all_pkts_in_exfil_path)
+                weight_np_array = np.array(all_weights_in_exfil_path)
+                pkt_median = np.median(pkt_np_array)
+                weight_median = np.median(weight_np_array)
+
+                fraction_of_pkt_median = pkt_median * 0.1 # TODO: replace w/ parametrization
+                fraction_of_weight_median = weight_median * 0.1 # TODO: replace w/ parameterization
+
+                # TODO : actually add the weights to the graph now...
+                pass
+            pass
+        else:
+            ## TODO: we need to determine our own mapping then... this is where the fancy regex's will
+            ## be happening, I think...
+            pass
+
+        # once a mapping exists, then we need to determine the corresponding weight that should
+        # be added onto the relevant edge... for existing edges, we can just add some fraction of the
+        # existing edge. For new edges, probably wanna find an equivalent and then add a fraction of
+        # that (should be easy enough b/c this only happens in a very limited number of scenarios...)
+        # to be specific, we should choose, like, the lowest or mean weight edge and then like 10% of
+        # that to all the edges in the path (b/c we're assuming that we're going straight out...)
+        ## TODO: the part explained above... (note: this'll probably actually be implemented up
+        ## in the above section....)
+
+    return graph,attack_number_to_mapping
