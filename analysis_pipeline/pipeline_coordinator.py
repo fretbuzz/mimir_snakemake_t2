@@ -12,10 +12,12 @@ import process_pcap
 import gen_attack_templates
 import random
 import math
+import time
 
 def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms_s, basegraph_name, calc_vals, window_size,
                                 mapping, is_swarm, make_net_graphs_p, list_of_infra_services,synthetic_exfil_paths,
-                                initiator_info_for_paths, time_gran_to_attacks_to_times):
+                                initiator_info_for_paths, time_gran_to_attacks_to_times, fraction_of_edge_weights,
+                                fraction_of_edge_pkts):
     total_calculated_vals = {}
     for time_interval_length in time_interval_lengths:
         print "analyzing edgefiles..."
@@ -24,9 +26,12 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
                                                                                          time_interval_length, basegraph_name, calc_vals, window_size,
                                                                                          mapping, is_swarm, make_net_graphs_p, list_of_infra_services,
                                                                                          synthetic_exfil_paths, initiator_info_for_paths,
-                                                                                         time_gran_to_attacks_to_times[time_interval_length])
+                                                                                         time_gran_to_attacks_to_times[time_interval_length],
+                                                                                         fraction_of_edge_weights,
+                                                                                         fraction_of_edge_pkts)
         total_calculated_vals.update(newly_calculated_values)
         gc.collect()
+    exit() ### TODO <---- remove!!!
     return total_calculated_vals
 
 def calc_zscores(total_calculated_vals, time_interval_lengths, alert_file, training_window_size, minimum_training_window,
@@ -134,7 +139,8 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
                                kubernetes_svc_info=None, make_net_graphs_p=False, cilium_config_path=None,
                                rdpcap_p=False, kubernetes_pod_info=None, alert_file=None, ROC_curve_p=False,
                                calc_zscore_p=False, training_window_size=200, minimum_training_window=5,
-                               sec_between_exfil_events=1, time_of_synethic_exfil=60):
+                               sec_between_exfil_events=1, time_of_synethic_exfil=60,
+                               fraction_of_edge_weights=0.1, fraction_of_edge_pkts=0.1):
     gc.collect()
     print "starting pipeline..."
 
@@ -182,11 +188,13 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
                                                                                         min_starting=training_window_size)
     print "time_gran_to_attack_labels",time_gran_to_attack_labels
     print "time_gran_to_attack_ranges", time_gran_to_attack_ranges
+    #time.sleep(50)
 
     # OKAY, let's verify that this determine_attacks_to_times function is wokring before moving on to the next one...
     total_calculated_vals = calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms_s, basegraph_name, calc_vals,
                                                         window_size, mapping, is_swarm, make_net_graphs_p, list_of_infra_services,
-                                                        synthetic_exfil_paths, initiator_info_for_paths, time_gran_to_attack_ranges)
+                                                        synthetic_exfil_paths, initiator_info_for_paths, time_gran_to_attack_ranges,
+                                                        fraction_of_edge_weights, fraction_of_edge_pkts)
 
     exit() ### <<<----- TODO REMOVE
     sub_path = 'sub_'  # NOTE: make this an empty string if using the full pipeline (and not the subset)

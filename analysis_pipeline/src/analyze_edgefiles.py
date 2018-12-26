@@ -432,13 +432,16 @@ def aggregate_graph(G, ms_s):
                 mapping[ms].append(node)
                 mapping_node_to_ms[node] = ms
                 break
-    print mapping_node_to_ms
+    # note: might wanna re-enable the below line...
+    #print mapping_node_to_ms
     for (u,v,data) in G.edges(data=True):
         #print (u,v,data)
         try:
-            H.add_edge(mapping_node_to_ms[u], mapping_node_to_ms[v], weight=data['weight'])
+            H.add_edge(mapping_node_to_ms[u], mapping_node_to_ms[v], weight=data['weight'], frames=data['frames'])
         except:
-            print "this edge did NOT show up in the map!", (u,v,data)
+            # might wanna put back in vvv
+            #print "this edge did NOT show up in the map!", (u,v,data)
+
             # this happens when the outside talking to the 'gateway' shows up in our pcaps
             #if  u == "1" and v == "1":
             #    H.add_edge("outside", 'outside', weight=data['weight'])
@@ -453,7 +456,7 @@ def aggregate_graph(G, ms_s):
                 u = mapping_node_to_ms[u]
             if v in mapping_node_to_ms:
                 v = mapping_node_to_ms[v]
-            H.add_edge(u, v, weight=data['weight'])
+            H.add_edge(u, v, weight=data['weight'],frames=data['frames'])
 
     pos = graphviz_layout(H)
     nx.draw_networkx(H, pos, with_labels = True, arrows=True)
@@ -463,18 +466,22 @@ def aggregate_graph(G, ms_s):
     # the multigraph but with all the edges aggregated together
     M = nx.DiGraph()
     mapping_edge_to_weight = {}
+    mapping_edge_to_frames = {}
     for node_one in H.nodes():
         for node_two in H.nodes():
-            mapping_edge_to_weight[ (node_one, node_two)  ] = 0
+            mapping_edge_to_weight[ (node_one, node_two) ] = 0
+            mapping_edge_to_frames[ (node_one, node_two) ] = 0
 
     for (u,v,data) in H.edges.data(data=True):
         mapping_edge_to_weight[(u,v)] += data['weight']
+        mapping_edge_to_frames[(u,v)] += data['frames']
 
-    print "mapping_edge_to_weight", mapping_edge_to_weight
+    # might wanna put back in vvv
+    #print "mapping_edge_to_weight", mapping_edge_to_weight
 
     for edges, weights in mapping_edge_to_weight.iteritems():
         if weights:
-            M.add_edge(edges[0], edges[1], weight=weights)
+            M.add_edge(edges[0], edges[1], weight=weights, frames=mapping_edge_to_frames[edges])
 
     pos = graphviz_layout(M)
     nx.draw_networkx(M, pos, with_labels = True, arrows=True)
@@ -987,7 +994,8 @@ def make_network_graph(G, edge_label_p, filename, figsize, node_color_p, ms_s):
         pos[key] = (pos[key][0] * 4, pos[key][1] * 4)  # too close otherwise
     nx.draw_networkx(G, pos, with_labels=True, arrows=True, font_size=8, font_color='b')
     edge_labels = nx.get_edge_attributes(G, 'weight')
-    print "edge_labels", edge_labels
+    # might wanna put the below line back in...
+    #print "edge_labels", edge_labels
     if edge_label_p:
         nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=7, label_pos=0.3)
     plt.savefig(filename, format='png')
@@ -1271,7 +1279,8 @@ def prepare_graph(G, svcs, level_of_processing, is_swarm, counter, file_path, ms
                         one_hop_away_nodes.append(u)
             #print "app nodes and one hop away", application_nodes + one_hop_away_nodes
             induced_graph = G.subgraph(G.subgraph(application_nodes+one_hop_away_nodes)).copy()
-            print "graph after induced", list(induced_graph.nodes(data=True))
+            # might want to put back in vvv
+            #print "graph after induced", list(induced_graph.nodes(data=True))
 
             # need to relabel again, so we can get the infrastructure services labeled
             # actually don't wanna b/c inter-system stuff seems to handle VIPs differently
@@ -1309,8 +1318,10 @@ def aggregate_outside_nodes(G):
         if ( addr_bytes ):
             if (not is_private_ip(addr_bytes)):
                 outside_nodes.append( node )
-                print "new outside node!", node
-    print "outside nodes", outside_nodes
+                # might wanna put below line back in...
+                #print "new outside node!", node
+    # might wanna put below line back in...
+    #print "outside nodes", outside_nodes
     first_node = outside_nodes[0]
     for cur_node in outside_nodes[1:]:
         G = nx.contracted_nodes(G, first_node, cur_node, self_loops=False)

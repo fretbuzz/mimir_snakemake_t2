@@ -196,7 +196,9 @@ def post_process_mulval_result(sensitive_node):
 
     initiator_info = determine_initator(paths)
     print "initiator_info",initiator_info
-    plt.show()
+
+    ## TODO: might wanna include the line below again...
+    #plt.show()
 
     print "has the graph been drawn???? yes, yes they have"
     return paths, initiator_info
