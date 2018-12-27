@@ -61,8 +61,7 @@ def generate_all_anom_ROCs(df_with_anom_features, time_gran, alert_file, sub_pat
     ROC_path = alert_file + sub_path + '_good_roc_'
     title = 'ROC Linear Combination of Features at ' + str(time_gran)
     plot_name = 'sub_roc_lin_comb_features_' + str(time_gran)
-    create_ROC_of_anom_score(df_with_anom_features, time_gran, ROC_path, cur_alert_function, title,
-                                            plot_name)
+    create_ROC_of_anom_score(df_with_anom_features, time_gran, ROC_path, cur_alert_function, title, plot_name)
 
     # let's also try using each feature seperately
     for feature in features_to_use:
@@ -76,6 +75,8 @@ def generate_all_anom_ROCs(df_with_anom_features, time_gran, alert_file, sub_pat
 
 def determine_alert_function(df_anom_score_with_labels):
     ### TODO: this is going to actually determine the function, rather than just have one hardcoded in, eventually
+
+
     weights = {'New Class-Class Edges200_5__mod_z_score': 0.0009,
                'Communication Between Pods not through VIPs (no abs)200_5__mod_z_score': 0.0041,
                'DNS outside-to-inside ratio200_5__mod_z_score': 0.0008}

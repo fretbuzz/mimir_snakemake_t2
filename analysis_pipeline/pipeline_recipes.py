@@ -7,7 +7,7 @@ pyximport.install() # am I sure that I want this???
 import sys
 import gc
 
-from analysis_pipeline.pipeline_coordinator import run_data_anaylsis_pipeline
+from analysis_pipeline.pipeline_coordinator import run_data_anaylsis_pipeline, multi_experiment_pipeline
 
 '''
 This file is essentially just sets of parameters for the run_data_analysis_pipeline function in pipeline_coordinator.py
@@ -866,13 +866,15 @@ def process_wordpress6_rep3():
     anom_num_outlier_vals_in_window = [1, 2] # note: these vals correspond to anoamly_window (so the first vals get matched, etc.)
     alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_six_rep_3_'
     sec_between_exfil_events = 15
-    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
+    time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe = \
+        run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
                                make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
                                wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,
                                graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
                                cilium_config_path=cilium_config_path, rdpcap_p=False,
                                kubernetes_pod_info=kubernetes_pod_info, alert_file=alert_file, ROC_curve_p=True,
                                calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events)
+    return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe
     #'''
 
 
@@ -891,7 +893,7 @@ def process_wordpress6_rep4():
      time_interval_lengths = [60, 30, 10]  # ,
      # 1]  # , 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
      ms_s = ["my-release-pxc", "wwwppp-wordpress"]
-     make_edgefiles = False
+     make_edgefiles = True
      start_time = None
      end_time = None
      exfil_start_time = 600
@@ -906,13 +908,15 @@ def process_wordpress6_rep4():
      anom_num_outlier_vals_in_window = [1, 2] # note: these vals correspond to anoamly_window (so the first vals get matched, etc.)
      alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_six_rep_4_'
      sec_between_exfil_events = 15
-     run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
+     time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe =\
+         run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
                                 make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
                                 wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,
                                 graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
                                 cilium_config_path=cilium_config_path, rdpcap_p=False,
                                 kubernetes_pod_info=kubernetes_pod_info, alert_file=alert_file, ROC_curve_p=True,
                                 calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events)
+     return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe
      # '''
 
 def process_wordpress7_rep3():
@@ -929,7 +933,7 @@ def process_wordpress7_rep3():
     time_interval_lengths = [60, 30, 10]#,
     # 1]  # , 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
     ms_s = ["my-release-pxc", "wwwppp-wordpress"]
-    make_edgefiles = False
+    make_edgefiles = True
     start_time = None
     end_time = None
     exfil_start_time = 600
@@ -944,13 +948,15 @@ def process_wordpress7_rep3():
     anom_num_outlier_vals_in_window = [1, 2]
     sec_between_exfil_events = 15
     alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_seven_rep_3_'
-    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
+    time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe = \
+        run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
                                make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
                                wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,
                                graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
                                cilium_config_path=cilium_config_path, rdpcap_p=False,
                                kubernetes_pod_info=kubernetes_pod_info, alert_file=alert_file, ROC_curve_p=True,
                                calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events)
+    return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe
    # '''
 
 # Wordpress exp 7 (wordpress w/ HA cluster on cilium w/o security config, dnscat exfil from single WP w/ 15 sec delay)
@@ -1008,12 +1014,12 @@ def process_wordpress7_rep2():
     time_interval_lengths = [60, 30, 10]#,
                              #1]  # , 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
     ms_s = ["my-release-pxc", "wwwppp-wordpress"]
-    make_edgefiles = False
+    make_edgefiles = True
     start_time = None
     end_time = None
     exfil_start_time = 600
     exfil_end_time = 650
-    calc_vals = False
+    calc_vals = True
     window_size = 6
     graph_p = True  # should I make graphs?
     colors = ['b', 'r', 'y']
@@ -1023,13 +1029,15 @@ def process_wordpress7_rep2():
     sec_between_exfil_events = 15
     anom_num_outlier_vals_in_window = [1, 2]
     alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_seven_rep_2_'
-    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
+    time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe = \
+        run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
                                make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
                                wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,
                                graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
                                cilium_config_path=cilium_config_path, rdpcap_p=False,
                                kubernetes_pod_info=kubernetes_pod_info, alert_file=alert_file, ROC_curve_p=True,
                                calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events)
+    return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe
     #'''
 
 # 20 min of scaled-up wordpress (wordpress_eight) (dnscat exfil)
@@ -1086,7 +1094,7 @@ def process_wordpress8_rep_2():
     time_interval_lengths = [60, 30, 10]#,
                              #1]  # , 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
     ms_s = ["my-release-pxc", "wwwppp-wordpress"]
-    make_edgefiles = False
+    make_edgefiles = True
     start_time = None
     end_time = None
     exfil_start_time = 600
@@ -1101,12 +1109,14 @@ def process_wordpress8_rep_2():
     anom_num_outlier_vals_in_window = [1, 2] # note: these vals correspond to anoamly_window (so the first vals get matched, etc.)
     sec_between_exfil_events = 1
     alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_eight_rep_2_'
-    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
+    time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe = \
+        run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
                                make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
                                wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,
                                graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info, rdpcap_p=False,
                                kubernetes_pod_info=kubernetes_pod_info, alert_file=alert_file, ROC_curve_p=True,
                                calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events)
+    return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe
     #'''
 
 def process_wordpress8_rep_3():
@@ -1139,12 +1149,14 @@ def process_wordpress8_rep_3():
     anom_num_outlier_vals_in_window = [1, 2] # note: these vals correspond to anoamly_window (so the first vals get matched, etc.)
     sec_between_exfil_events = 1
     alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_eight_rep_3_'
-    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
+    time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe = \
+        run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
                                make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
                                wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,
                                graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info, rdpcap_p=False,
                                kubernetes_pod_info=kubernetes_pod_info, alert_file=alert_file, ROC_curve_p=True,
                                calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events)
+    return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe
     #'''
 
 ## sockshop experiment 9 (an hour of scaled-up activity w/ exfil along normal path)
@@ -1295,12 +1307,28 @@ def run_analysis_pipeline_recipes_json(json_file, path_to_experimental_data):
                                    ROC_curve_p=ROC_curve_p, calc_zscore_p=calc_tpr_fpr_p,
                                    sec_between_exfil_events=sec_between_exfil_events)
 
+# this function feeds a set of wordpress experiments into the multi_experiment_pipeline() function found in the
+# pipeline_coordinator
+def multi_experiment_wordpress_recipe():
+    function_list = [process_wordpress6_rep3, process_wordpress6_rep4, process_wordpress7_rep2, process_wordpress7_rep3,
+                     process_wordpress8_rep_2, process_wordpress8_rep_3]
+    base_output_location = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_summary/' + 'lasso_roc'
+    multi_experiment_pipeline(function_list, base_output_location, True) ## TODO: missing parameters... (last two are just nonsense)
+
+## TODO: make a list and stuff...
+def multi_experiment_sockshop_recipe():
+    pass
+
 if __name__=="__main__":
     print "RUNNING"
     print sys.argv
 
     if len(sys.argv) == 1:
-        run_analysis_pipeline_recipes()
+        multi_experiment_wordpress_recipe()
+
+        # TODO: might wanna re-enable the function below...
+        #run_analysis_pipeline_recipes()
+
         #run_analysis_pipeline_recipes_json('wordpress_eleven_dns_1sec_analysis.json',
         #                               '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_eleven_dns_1sec/')
 

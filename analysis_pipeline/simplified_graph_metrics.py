@@ -22,6 +22,9 @@ import copy
 ## exps + training/testing data...
 ## plus more metrics... (which'll probably be tomorrow-- but if I can make it non-nonsensical today + structure for a
 ## set of experiments + setup the lasso, we'll be in very good shape...)
+## okay, so I've kinda setup the structure to be decently comprehensible. Next steps:
+## (a) setup for multiple experiments, with an integration point for the LASSO
+## (b) do I wanna re-arrange where the graph_metrics are calculated...
 
 '''
 def pipeline_subset_analysis_step(filenames, ms_s, time_interval, basegraph_name, calc_vals_p, window_size, container_to_ip,
@@ -91,7 +94,7 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
                                                  attacks_to_times,'class',time_interval,counter,class_attack_mapping,
                                                                         fraction_of_edge_weights, fraction_of_edge_pkts,
                                                                         pre_specified_data_attribs)
-            continue ### <<<----- TODO: remove!
+            #continue ### <<<----- TODO: remove!
             #exit() #### <----- TODO: remove!!
 
             name_of_dns_pod_node = find_dns_node_name(G)
@@ -149,7 +152,7 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
             del cur_class_G
 
         #######
-        return #exit() ### <<<<----- TODO : remove!
+        #return #exit() ### <<<<----- TODO : remove!
         #######
         # which_nodes can be ['all', 'outside', or 'kube-dns_VIP']
         # let's make the training time 5 minutes

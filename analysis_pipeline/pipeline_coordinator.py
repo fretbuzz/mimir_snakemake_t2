@@ -14,6 +14,10 @@ import gen_attack_templates
 import random
 import math
 import time
+#from sklearn.model_selection import train_test_split
+from sklearn.model_selection import KFold, cross_validate
+from sklearn.linear_model import LassoCV, Lasso
+import sklearn
 
 def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms_s, basegraph_name, calc_vals, window_size,
                                 mapping, is_swarm, make_net_graphs_p, list_of_infra_services,synthetic_exfil_paths,
@@ -48,7 +52,7 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
 
         #total_calculated_vals.update(newly_calculated_values)
         gc.collect()
-    exit() ### TODO <---- remove!!!
+    #exit() ### TODO <---- remove!!!
     return total_calculated_vals
 
 def calc_zscores(total_calculated_vals, time_interval_lengths, alert_file, training_window_size, minimum_training_window,
@@ -204,7 +208,7 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
                                                         synthetic_exfil_paths, initiator_info_for_paths, time_gran_to_attack_ranges,
                                                         fraction_of_edge_weights, fraction_of_edge_pkts)
 
-    exit() ### <<<----- TODO REMOVE
+    #exit() ### <<<----- TODO REMOVE
     sub_path = 'sub_'  # NOTE: make this an empty string if using the full pipeline (and not the subset)
 
     time_gran_to_feature_dataframe = process_graph_metrics.generate_feature_dfs( total_calculated_vals, time_interval_lengths)
@@ -214,18 +218,102 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
     if graph_p:
         analysis_pipeline.generate_graphs.generate_feature_multitime_boxplots(total_calculated_vals, basegraph_name, window_size, colors, time_interval_lengths,
                                                                               exfil_start_time, exfil_end_time, wiggle_room)
-
     print "about to calculate some alerts!"
 
-    if calc_zscore_p:
-        time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe = \
-            calc_zscores(total_calculated_vals, time_interval_lengths, alert_file, training_window_size,
-                         minimum_training_window, sub_path, time_gran_to_attack_labels, time_gran_to_feature_dataframe)
+    #if calc_zscore_p:
+    time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe = \
+        calc_zscores(total_calculated_vals, time_interval_lengths, alert_file, training_window_size,
+                     minimum_training_window, sub_path, time_gran_to_attack_labels, time_gran_to_feature_dataframe)
 
-    if calc_zscore_p and ROC_curve_p:
-        generate_rocs(time_gran_to_mod_zscore_df, alert_file, sub_path)
+    print "analysis_pipeline about to return!"
 
-    print "and analysis_pipeline pipeline is all done!"
+    # okay, so can return it here...
+    return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe
+
+# this function loops through multiple experiments (or even just a single experiment), accumulates the relevant
+# feature dataframes, and then performs LASSO regression to determine a concise graphical model that can detect
+# the injected synthetic attacks
+def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p):
+    ### Okay, so what is needed here??? We need, like, a list of sets of input (appropriate for run_data_analysis_pipeline),
+    ### followed by the LASSO stuff, and finally the ROC stuff... okay, let's do this!!!
+
+    ## step (1) : iterate through individual experiments...
+    ##  # 1a. list of inputs [done]
+    ##  # 1b. acculate DFs
+    list_time_gran_to_mod_zscore_df = []
+    list_time_gran_to_zscore_dataframe = []
+    list_time_gran_to_feature_dataframe = []
+    for func in function_list:
+        time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe = func()
+        list_time_gran_to_mod_zscore_df.append(time_gran_to_mod_zscore_df)
+        list_time_gran_to_zscore_dataframe.append(list_time_gran_to_zscore_dataframe)
+        list_time_gran_to_feature_dataframe.append(time_gran_to_feature_dataframe)
+
+    # step (2) :  take the dataframes and feed them into the LASSO component...
+    ### 2a. split into training and testing data
+    ###### at the moment, we'll make the simplfying assumption to only use the modified z-scores...
+    ######## 2a.I. get aggregate dfs for each time granularity...
+    time_gran_to_aggregate_mod_score_dfs = {}
+    for time_gran_to_mod_zscore_df in list_time_gran_to_mod_zscore_df:
+        for time_gran,mod_zscore_df in time_gran_to_mod_zscore_df.iteritems():
+            if time_gran not in time_gran_to_aggregate_mod_score_dfs.keys():
+                time_gran_to_aggregate_mod_score_dfs[time_gran] = mod_zscore_df
+            else:
+                time_gran_to_aggregate_mod_score_dfs[time_gran].append(mod_zscore_df)
+
+    ######### 2a.II. do the actual splitting
+    # note: labels have the column name 'labels' (noice)
+    time_gran_to_model = {}
+    for time_gran,aggregate_mod_score_dfs in time_gran_to_aggregate_mod_score_dfs.iteritems():
+        X = aggregate_mod_score_dfs.loc[:, aggregate_mod_score_dfs.columns != 'labels']
+        y = aggregate_mod_score_dfs.loc[:, aggregate_mod_score_dfs.columns == 'labels']
+        X_train, X_test, y_train, y_test =  sklearn.model_selection.train_test_split(X, y, test_size = 0.3, random_state = 42)
+
+        ### 2b. feed the lasso to get the high-impact features...
+        ## NOTE: THIS IS ALL VERY CONFUSING. I'M GOING TO WORRY ABOUT DOING ANYTHING FANCY LATER ON JUST MAKE IT SIMPLE NOW
+        ###### okay, this is the current step ^^ feed the LASSO
+        ######## 2b.I. Use LassoCV to find the alpha value
+        #cv_outer = KFold(len(X))
+        #lasso = LassoCV(cv=3)  # cv=3 makes a KFold inner splitting with 3 folds
+        #reg = LassoCV(cv=3, random_state=42).fit(X_train, y_train)
+        #alpha = reg.alpha_
+
+        ######## 2b.II. then use Lasso to find the fit and parameters
+        #scores = cross_validate(lasso, X, y, return_estimator=True, cv=cv_outer)
+        clf = Lasso(alpha=0.8) ## Okay, this value was just chosen by me somewhat randomly (knew that I wanted it v strong)
+        clf.fit(X_train, y_train)
+        score_val = clf.score(X_test, y_test)
+        test_predictions = clf.predict(X_test)
+        print "LASSO model", clf.get_params()
+        print "score_val", score_val
+        time_gran_to_model[time_gran] = clf
+        ##print "time_gran", time_gran, "scores", scores
+
+        ### 2c. turn the features back into functions... so that makes this actually step (3)....
+        ###### how the heck is this going to work??????
+        ## TODO: literally no clue how to do this... well, the obvious thing would be to look at the remaining parameter
+        ## names; these can be used to index into the dataframe and then the coefficients can be used to make the value
+        ## WAIT! Can't I just the sklearn function???? Yah, it seems like it... new goal: use the sklearn function to generate
+        ## an ROC....
+        if ROC_curve_p:
+            fpr, tpr, thresholds = sklearn.metrics.roc_curve(y_test, test_predictions, pos_label=2)
+            x_vals = fpr
+            y_vals = tpr
+            ROC_path = base_output_name + '_good_roc_'
+            title = 'ROC Linear Combination of Features at ' + str(time_gran)
+            plot_name = 'sub_roc_lin_comb_features_' + str(time_gran)
+            generate_alerts.construct_ROC_curve(x_vals, y_vals, title, ROC_path + plot_name)
+
+
+    ## NOTE: I think I might not need this part... b/c I'm trying to do it all above...
+    # step (3) : take the resulting function and use it to generate the ROCs
+    #### ??? how this'll actually work is still kinda unclear to me... there
+    ## note: this'll require the some kinda conversion process, which I'm not sure how to do exactly...
+    #if ROC_curve_p:
+    #    ## need to get these parameters going and stuff...
+    #    generate_rocs(time_gran_to_mod_zscore_df, alert_file, sub_path)
+
+    print "multi_experiment_pipeline is all done!"
     #print "recall that this was the list of alert percentiles", percentile_thresholds
 
 if __name__ == "__main__":
