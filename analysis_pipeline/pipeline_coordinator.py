@@ -1,9 +1,10 @@
 import gc
 import pyximport
-
 import analysis_pipeline.generate_alerts
 import analysis_pipeline.generate_graphs
-from pcap_to_edgelists import create_edgelists,create_mappings
+import analysis_pipeline.prepare_graph
+from pcap_to_edgelists import create_mappings
+import analysis_pipeline.src.analyze_edgefiles
 import process_graph_metrics
 import generate_alerts
 pyximport.install() # to leverage cpython
@@ -20,16 +21,32 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
                                 fraction_of_edge_pkts):
     total_calculated_vals = {}
     for time_interval_length in time_interval_lengths:
-        print "analyzing edgefiles..."
-        ### TODO: change back to analyze_edgefiles.pipeline_analysis_step if you want to use the whole pipeline
-        newly_calculated_values = simplified_graph_metrics.pipeline_subset_analysis_step(interval_to_filenames[str(time_interval_length)], ms_s,
-                                                                                         time_interval_length, basegraph_name, calc_vals, window_size,
-                                                                                         mapping, is_swarm, make_net_graphs_p, list_of_infra_services,
-                                                                                         synthetic_exfil_paths, initiator_info_for_paths,
-                                                                                         time_gran_to_attacks_to_times[time_interval_length],
-                                                                                         fraction_of_edge_weights,
-                                                                                         fraction_of_edge_pkts)
-        total_calculated_vals.update(newly_calculated_values)
+        print "analyzing edgefiles...", "timer_interval...", time_interval_length
+
+        #newly_calculated_values = simplified_graph_metrics.pipeline_subset_analysis_step(interval_to_filenames[str(time_interval_length)], ms_s,
+        #                                                                                 time_interval_length, basegraph_name, calc_vals, window_size,
+        #                                                                                 mapping, is_swarm, make_net_graphs_p, list_of_infra_services,
+        #                                                                                 synthetic_exfil_paths, initiator_info_for_paths,
+        #                                                                                 time_gran_to_attacks_to_times[time_interval_length],
+        #                                                                                 fraction_of_edge_weights,
+        #                                                                                 fraction_of_edge_pkts)
+
+        if is_swarm:
+            svcs = analysis_pipeline.prepare_graph.get_svc_equivalents(is_swarm, mapping)
+        else:
+            print "this is k8s, so using these sevices", ms_s
+            svcs = ms_s
+
+        total_calculated_vals[(time_interval_length, '')] = \
+            simplified_graph_metrics.calc_subset_graph_metrics(interval_to_filenames[str(time_interval_length)],
+                                                               time_interval_length, basegraph_name + '_subset_',
+                                                               calc_vals, window_size, ms_s, mapping, is_swarm, svcs,
+                                                               list_of_infra_services, synthetic_exfil_paths,
+                                                               initiator_info_for_paths,
+                                                               time_gran_to_attacks_to_times[time_interval_length],
+                                                               fraction_of_edge_weights, fraction_of_edge_pkts)
+
+        #total_calculated_vals.update(newly_calculated_values)
         gc.collect()
     exit() ### TODO <---- remove!!!
     return total_calculated_vals
@@ -146,8 +163,6 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
 
     mapping,list_of_infra_services = create_mappings(is_swarm, container_info_path, kubernetes_svc_info,
                                                      kubernetes_pod_info, cilium_config_path, ms_s)
-    #interval_to_filenames = create_edgelists(pcap_paths, start_time, make_edgefiles_p, time_interval_lengths, rdpcap_p,
-    #                                         basefile_name, mapping)
 
     experiment_folder_path = basefile_name.split('edgefiles')[0]
     pcap_file = pcap_paths[0].split('/')[-1] # NOTE: assuming only a single pcap file...
@@ -169,14 +184,7 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
         if 'my-release' in ms:
             sensitive_ms = ms
     synthetic_exfil_paths, initiator_info_for_paths = gen_attack_templates.generate_synthetic_attack_templates(mapping, ms_s, sensitive_ms)
-    #######
-    ### TODO: this is where I'd prbobably want to create the synthetic data... the plan would probably be to make copies
-    ### of the given sequence, and then inject attacks into it, and I could use a loop over the code below to make it work...
-    ########
-    ### next steps: build synthetic attacks (leveraging existing work on mulval) and fix time_gran to attack labels
-    ### and THEN (waay after): going to want to probably do a big rewrite of the graph metrics calculation stuff...
-    ########
-    ########################
+
 
     # most of the parameters are kinda arbitrary ATM...
     print "INITIAL time_gran_to_attack_labels", time_gran_to_attack_labels

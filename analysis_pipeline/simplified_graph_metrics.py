@@ -1,6 +1,5 @@
 import networkx as nx
 import seaborn as sns;
-
 sns.set()
 import seaborn as sns;
 sns.set()
@@ -11,13 +10,20 @@ import gc
 import numpy as np
 from analysis_pipeline.next_gen_metrics import calc_neighbor_metric, generate_neig_dict, create_dict_for_dns_metric, \
     calc_dns_metric, calc_outside_inside_ratio_dns_metric, find_dns_node_name, sum_max_pod_to_dns_from_each_svc,reverse_svc_to_pod_dict
-from analysis_pipeline.src.analyze_edgefiles import prepare_graph, calc_VIP_metric, get_svc_equivalents,change_point_detection
+from analysis_pipeline.src.analyze_edgefiles import calc_VIP_metric, change_point_detection
+from analysis_pipeline.prepare_graph import prepare_graph, get_svc_equivalents
 import random
 import copy
 
 # okay, so things to be aware of:
 # (a) we are assuming that if we cannot label the node and it is not loopback or in the '10.X.X.X' subnet, then it is outside
 
+## next steps: extract relevant parts of prepare_graph... it'll be messy. + How exactly to handle multiple
+## exps + training/testing data...
+## plus more metrics... (which'll probably be tomorrow-- but if I can make it non-nonsensical today + structure for a
+## set of experiments + setup the lasso, we'll be in very good shape...)
+
+'''
 def pipeline_subset_analysis_step(filenames, ms_s, time_interval, basegraph_name, calc_vals_p, window_size, container_to_ip,
                            is_swarm, make_net_graphs_p, infra_service, synthetic_exfil_paths, initiator_info_for_paths,
                                   attacks_to_times, fraction_of_edge_weights, fraction_of_edge_pkts):
@@ -38,6 +44,7 @@ def pipeline_subset_analysis_step(filenames, ms_s, time_interval, basegraph_name
                                                                                attacks_to_times,fraction_of_edge_weights,
                                                                                 fraction_of_edge_pkts)
     return total_calculated_values
+'''
 
 def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_vals_p, window_size, ms_s, container_to_ip,
                               is_swarm, svcs, infra_service, synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
@@ -85,7 +92,7 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
                                                                         fraction_of_edge_weights, fraction_of_edge_pkts,
                                                                         pre_specified_data_attribs)
             continue ### <<<----- TODO: remove!
-            exit() #### <----- TODO: remove!!
+            #exit() #### <----- TODO: remove!!
 
             name_of_dns_pod_node = find_dns_node_name(G)
             print "name_of_dns_pod_node",name_of_dns_pod_node
