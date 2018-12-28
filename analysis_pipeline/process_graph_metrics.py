@@ -51,24 +51,27 @@ def generate_attack_labels(time_gran, exfil_start, exfil_end, exp_length, sec_be
 
     print "attack_labels_during_exfil_period",attack_labels_during_exfil_period
     attack_labels.extend(attack_labels_during_exfil_period)
+    print type(exp_length), type(exfil_end), type(time_gran)
     attack_labels.extend([0 for i in range(0, (exp_length - exfil_end)/time_gran - 1)])
 
     return attack_labels
 
-def generate_time_gran_to_attack_labels(time_interval_lengths, exfil_start, exfil_end, sec_between_exfil_events):
+def generate_time_gran_to_attack_labels(time_interval_lengths, exfil_start, exfil_end, sec_between_exfil_events, exp_length):
     time_gran_to_attack_lables = {}
     for time_gran in time_interval_lengths:
-        exp_length = exfil_end - exfil_start
+        #exp_length = exfil_end - exfil_start
         attack_labels = generate_attack_labels(time_gran, exfil_start, exfil_end, exp_length, sec_between_exfil_events)
         time_gran_to_attack_lables[time_gran] = attack_labels
     return time_gran_to_attack_lables
 
 def calc_modified_z_score(time_series, window_size, min_training_window):
+    print "---- new call for calc_modified_z_score -----"
     if len(time_series) < min_training_window:
         return [float('nan') for i in range(0,len(time_series))]
     modified_z_scores = [float('nan') for i in range(0,min_training_window)]
     for i in range(0,min_training_window):
-        print time_series[i]
+        pass
+        #print time_series[i]
     for i in range(min_training_window, len(time_series)):
         start_training_window = max(0, i - window_size)
         training_window = time_series[start_training_window:i]
@@ -92,7 +95,7 @@ def calc_modified_z_score(time_series, window_size, min_training_window):
         next_modified_z_score = abs(next_modified_z_score) ## TODO: remove???
         ## behavior is funny if there are inf's so, let's put an upper bound of 1000
         next_modified_z_score = min(next_modified_z_score, 1000)
-        print "median", median, "MAD", MAD,"next_modified_z_score",next_modified_z_score, "val", next_val, type(median), type(MAD), type(next_val)
+        print "median", median, "MAD", MAD,"next_modified_z_score",next_modified_z_score, "val"#, next_val, type(median), type(MAD), type(next_val)
         modified_z_scores.append(next_modified_z_score)
     #time.sleep(2)
     return modified_z_scores
@@ -102,7 +105,8 @@ def z_score(time_series, window_size, min_training_window):
         return [float('nan') for i in range(0,len(time_series))]
     z_scores = [float('nan') for i in range(0,min_training_window)]
     for i in range(0,min_training_window):
-        print time_series[i]
+        pass
+        #print time_series[i]
     for i in range(min_training_window, len(time_series)):
         start_training_window = max(0, i - window_size)
         training_window = time_series[start_training_window:i]
@@ -257,10 +261,12 @@ def calculate_mod_zscores_dfs(calculated_vals, minimum_training_window, training
 
 def save_feature_datafames(time_gran_to_feature_dataframe, csv_path, time_gran_to_attack_labels):
     print "time_gran_to_feature_dataframe",time_gran_to_feature_dataframe.keys()
+    for time_gran, attack_labels in time_gran_to_attack_labels.iteritems():
+        print "time_gran", time_gran, "len of attack labels", len(attack_labels)
     for time_gran, feature_dataframe in time_gran_to_feature_dataframe.iteritems():
         attack_labels = time_gran_to_attack_labels[time_gran]
-        print "feature_dataframe",feature_dataframe,feature_dataframe.index
-        print "attack_labels",attack_labels
+        #print "feature_dataframe",feature_dataframe,feature_dataframe.index
+        #print "attack_labels",attack_labels, len(attack_labels), "time_gran", time_gran
         feature_dataframe['labels'] = pandas.Series(attack_labels, index=feature_dataframe.index)
         feature_dataframe.to_csv(csv_path + str(time_gran) + '.csv', na_rep='?')
 
@@ -268,7 +274,7 @@ def calc_time_gran_to_zscore_dfs(time_gran_to_feature_dataframe, training_window
                                  minimum_training_window):
     time_gran_z_score_dataframe = {}
     for time_interval, df in time_gran_to_feature_dataframe.iteritems():
-        cols = cols = list(df.columns)
+        cols = list(df.columns)
         df_zscore = pandas.DataFrame()
         for col in cols:
             current_metric_time_series = df[col]
@@ -296,3 +302,36 @@ def calc_time_gran_to_zscore_dfs(time_gran_to_feature_dataframe, training_window
             df_zscore[col + 'z_score'] = current_col_z_scores
         time_gran_z_score_dataframe[time_interval] = df_zscore
     return time_gran_z_score_dataframe
+
+
+def calc_time_gran_to_mod_zscore_dfs(time_gran_to_feature_dataframe, training_window_size, minimum_training_window):
+    time_gran_mod_z_score_dataframe = {}
+    for time_interval, df in time_gran_to_feature_dataframe.iteritems():
+        cols = list(df.columns)
+        df_mod_zscore = pandas.DataFrame()
+        for col in cols:
+            current_metric_time_series = df[col]
+
+            # TODO: for the case of the VIP I only wanna consider non-zero vals. Easy enough, just replace the 0s
+            # with NANs. The problem, however, is that the thing will output Nan's, not 0s, cause 0 is defnitely not
+            # an alarm worthy case. So what I'd probably have to do is run the damn thing and then replace the nan's
+            # with 0's... though since I'm not going to trigger an alarm on a nan anyway (i think), maybe it doesn't
+            # even matter...
+
+            first_non_NAN_index = 0
+            for item in current_metric_time_series:
+                if str(item) != 'nan':
+                    break
+                else:
+                    first_non_NAN_index += 1
+            number_nans_in_this_time_series = [str(i) for i in current_metric_time_series[0:first_non_NAN_index]].count(
+                'nan')
+            mod_min_training_window = number_nans_in_this_time_series + minimum_training_window
+            #print "current_metric_time_series",current_metric_time_series
+            current_metric_time_series_list = current_metric_time_series.tolist()
+            if 'ratio' in col:
+                current_metric_time_series_list = [i if i else float('nan') for i in current_metric_time_series_list]
+            current_col_mod_z_scores = calc_modified_z_score(current_metric_time_series_list, training_window_size, mod_min_training_window)
+            df_mod_zscore[col + 'mod_z_score'] = current_col_mod_z_scores
+        time_gran_mod_z_score_dataframe[time_interval] = df_mod_zscore
+    return time_gran_mod_z_score_dataframe

@@ -165,7 +165,7 @@ def process_pcap(experiment_folder_path, pcap_file, intervals, exp_name, make_ed
                 print "result of deleting split pcap file ", split_pcap_file, "...", out
 
             # probably wanna return a mapping of granularity to filepaths+nanes, just like I do in the current system...
-            interval_to_files[interval] = edgefiles
+            interval_to_files[str(interval)] = edgefiles
 
         with open(interval_to_edgefile_path, 'w') as f:
             f.write(json.dumps(interval_to_files))

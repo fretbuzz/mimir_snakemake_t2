@@ -123,8 +123,8 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
                     current_total_node_list.append(node)
 
             density = nx.density(cur_1si_G)
-            print "cur_class_G",cur_class_G.nodes()
-            print "cur_1si_G", cur_1si_G.nodes()
+            #print "cur_class_G",cur_class_G.nodes()
+            #print "cur_1si_G", cur_1si_G.nodes()
             pod_1si_density_list.append(density)
             neighbor_dicts.append(generate_neig_dict(cur_class_G))
             weight_into_dns_dict, weight_outof_dns_dict = create_dict_for_dns_metric(cur_1si_G, name_of_dns_pod_node)

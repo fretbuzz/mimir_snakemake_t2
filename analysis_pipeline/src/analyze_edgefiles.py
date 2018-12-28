@@ -852,14 +852,14 @@ def calc_VIP_metric(G, abs_val_p):
         pod_to_service_VIP = service_VIP_and_pod_comm[src,dest]
         #except:
         #    pod_to_service_VIP = 0
-        print pod_to_service_VIP
+        #print pod_to_service_VIP
 
         try:
             pod_to_container =  pod_to_containers_in_other_svc[src,dest]
         except:
             # this is something that can happen (tho should only happen rarely)
             pod_to_container = 0
-        print pod_to_container
+        #print pod_to_container
 
 
         difference_between_pod_and_VIP[src,dest] = pod_to_service_VIP - pod_to_container

@@ -13,6 +13,7 @@ import process_pcap
 import gen_attack_templates
 import random
 import math
+import pandas as pd
 import time
 #from sklearn.model_selection import train_test_split
 from sklearn.model_selection import KFold, cross_validate
@@ -55,22 +56,35 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
     #exit() ### TODO <---- remove!!!
     return total_calculated_vals
 
-def calc_zscores(total_calculated_vals, time_interval_lengths, alert_file, training_window_size, minimum_training_window,
-                 sub_path, time_gran_to_attack_labels, time_gran_to_feature_dataframe):
+def calc_zscores(alert_file, training_window_size, minimum_training_window,
+                 sub_path, time_gran_to_attack_labels, time_gran_to_feature_dataframe, calc_zscore_p):
 
-    time_gran_to_mod_zscore_df = process_graph_metrics.calculate_mod_zscores_dfs(total_calculated_vals, minimum_training_window,
-                                                                                 training_window_size, time_interval_lengths)
+    #time_gran_to_mod_zscore_df = process_graph_metrics.calculate_mod_zscores_dfs(total_calculated_vals, minimum_training_window,
+    #                                                                             training_window_size, time_interval_lengths)
 
-    process_graph_metrics.save_feature_datafames(time_gran_to_mod_zscore_df, alert_file + 'mod_z_score_' + sub_path,
-                                                 time_gran_to_attack_labels)
+    mod_z_score_df_basefile_name = alert_file + 'mod_z_score_' + sub_path
+    z_score_df_basefile_name = alert_file + 'norm_z_score_' + sub_path
 
-    time_gran_to_zscore_dataframe = process_graph_metrics.calc_time_gran_to_zscore_dfs(time_gran_to_feature_dataframe,
-                                                                                       training_window_size,
-                                                                                       minimum_training_window)
+    if calc_zscore_p:
+        time_gran_to_mod_zscore_df = process_graph_metrics.calc_time_gran_to_mod_zscore_dfs(time_gran_to_feature_dataframe,
+                                                                                            training_window_size,
+                                                                                            minimum_training_window)
 
-    process_graph_metrics.save_feature_datafames(time_gran_to_zscore_dataframe, alert_file + 'norm_z_score_' + sub_path,
-                                                 time_gran_to_attack_labels)
+        process_graph_metrics.save_feature_datafames(time_gran_to_mod_zscore_df, mod_z_score_df_basefile_name,
+                                                     time_gran_to_attack_labels)
 
+        time_gran_to_zscore_dataframe = process_graph_metrics.calc_time_gran_to_zscore_dfs(time_gran_to_feature_dataframe,
+                                                                                           training_window_size,
+                                                                                           minimum_training_window)
+
+        process_graph_metrics.save_feature_datafames(time_gran_to_zscore_dataframe, z_score_df_basefile_name,
+                                                     time_gran_to_attack_labels)
+    else:
+        time_gran_to_zscore_dataframe = {}
+        time_gran_to_mod_zscore_df = {}
+        for interval in time_gran_to_feature_dataframe.keys():
+            time_gran_to_zscore_dataframe[interval] = pd.read_csv(z_score_df_basefile_name + str(interval) + '.csv', na_values='?')
+            time_gran_to_mod_zscore_df[interval] = pd.read_csv(mod_z_score_df_basefile_name + str(interval) + '.csv', na_values='?')
 
     return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe
 
@@ -112,8 +126,9 @@ def determine_attacks_to_times(time_gran_to_attack_labels, synthetic_exfil_paths
         if number_free_spots < time_periods_attack:
             exit(1244) # should break now b/c infinite loop (note: we're not handling the case where it is fragmented...)
         while not attack_spot_found:
+            ## NOTE: not sure if the -1 is necessary...
             potential_starting_point = random.randint(time_periods_startup,
-                                            len(time_gran_to_attack_labels[largest_time_gran]) - time_periods_attack)
+                                            len(time_gran_to_attack_labels[largest_time_gran]) - time_periods_attack - 1)
             attack_spot_found = exfil_time_valid(potential_starting_point, time_periods_attack,
                                                  time_gran_to_attack_labels[largest_time_gran])
             if attack_spot_found:
@@ -144,6 +159,7 @@ def determine_attacks_to_times(time_gran_to_attack_labels, synthetic_exfil_paths
             time_gran_to_attack_ranges[time_gran].append( (current_start_of_attack, current_end_of_attack) )
             # also, modify the attack_labels
             for z in range(current_start_of_attack, current_end_of_attack):
+                #print "z",z
                 attack_labels[z] = 1
     return time_gran_to_attack_labels, time_gran_to_attack_ranges
 
@@ -163,8 +179,10 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
                                sec_between_exfil_events=1, time_of_synethic_exfil=60,
                                fraction_of_edge_weights=0.1, fraction_of_edge_pkts=0.1):
     gc.collect()
+
     print "starting pipeline..."
 
+    sub_path = 'sub_'  # NOTE: make this an empty string if using the full pipeline (and not the subset)
     mapping,list_of_infra_services = create_mappings(is_swarm, container_info_path, kubernetes_svc_info,
                                                      kubernetes_pod_info, cilium_config_path, ms_s)
 
@@ -174,56 +192,73 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
     interval_to_filenames = process_pcap.process_pcap(experiment_folder_path, pcap_file, time_interval_lengths,
                                                       exp_name, make_edgefiles_p, mapping)
 
-    # TODO: 90% sure that there is a problem with this function...
-    time_gran_to_attack_labels = process_graph_metrics.generate_time_gran_to_attack_labels(time_interval_lengths,
-                                                                                           exfil_start_time, exfil_end_time,
-                                                                                            sec_between_exfil_events)
+    if calc_vals or graph_p:
+        # TODO: 90% sure that there is a problem with this function...
+        largest_interval = int(max(interval_to_filenames.keys()))
+        exp_length = len(interval_to_filenames[str(largest_interval)]) * largest_interval
+        print "exp_length_ZZZ", exp_length, type(exp_length)
+        time_gran_to_attack_labels = process_graph_metrics.generate_time_gran_to_attack_labels(time_interval_lengths,
+                                                                                               exfil_start_time, exfil_end_time,
+                                                                                                sec_between_exfil_events,
+                                                                                               exp_length)
 
-    print interval_to_filenames, type(interval_to_filenames), 'stufff', interval_to_filenames.keys()
+        #print "interval_to_filenames_ZZZ",interval_to_filenames
+        for interval, filenames in interval_to_filenames.iteritems():
+            print "interval_ZZZ", interval, len(filenames)
+        for time_gran, attack_labels in time_gran_to_attack_labels.iteritems():
+            print "time_gran_right_after_creation", time_gran, "len of attack labels", len(attack_labels)
 
-    # todo: might wanna specify this is in the attack descriptions...
-    for ms in ms_s:
-        if 'User' in ms:
-            sensitive_ms = ms
-        if 'my-release' in ms:
-            sensitive_ms = ms
-    synthetic_exfil_paths, initiator_info_for_paths = gen_attack_templates.generate_synthetic_attack_templates(mapping, ms_s, sensitive_ms)
+        print interval_to_filenames, type(interval_to_filenames), 'stufff', interval_to_filenames.keys()
 
 
-    # most of the parameters are kinda arbitrary ATM...
-    print "INITIAL time_gran_to_attack_labels", time_gran_to_attack_labels
-    ## okay, I'll probably wanna write tests for the below function, but it seems to be working pretty well on my
-    # informal tests...
-    time_gran_to_attack_labels, time_gran_to_attack_ranges = determine_attacks_to_times(time_gran_to_attack_labels,
-                                                                                        synthetic_exfil_paths,
-                                                                                        time_of_synethic_exfil=time_of_synethic_exfil,
-                                                                                        min_starting=training_window_size)
-    print "time_gran_to_attack_labels",time_gran_to_attack_labels
-    print "time_gran_to_attack_ranges", time_gran_to_attack_ranges
-    #time.sleep(50)
+        # todo: might wanna specify this is in the attack descriptions...
+        for ms in ms_s:
+            if 'User' in ms:
+                sensitive_ms = ms
+            if 'my-release' in ms:
+                sensitive_ms = ms
+        synthetic_exfil_paths, initiator_info_for_paths = gen_attack_templates.generate_synthetic_attack_templates(mapping, ms_s, sensitive_ms)
 
-    # OKAY, let's verify that this determine_attacks_to_times function is wokring before moving on to the next one...
-    total_calculated_vals = calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms_s, basegraph_name, calc_vals,
-                                                        window_size, mapping, is_swarm, make_net_graphs_p, list_of_infra_services,
-                                                        synthetic_exfil_paths, initiator_info_for_paths, time_gran_to_attack_ranges,
-                                                        fraction_of_edge_weights, fraction_of_edge_pkts)
 
-    #exit() ### <<<----- TODO REMOVE
-    sub_path = 'sub_'  # NOTE: make this an empty string if using the full pipeline (and not the subset)
+        # most of the parameters are kinda arbitrary ATM...
+        print "INITIAL time_gran_to_attack_labels", time_gran_to_attack_labels
+        ## okay, I'll probably wanna write tests for the below function, but it seems to be working pretty well on my
+        # informal tests...
+        time_gran_to_attack_labels, time_gran_to_attack_ranges = determine_attacks_to_times(time_gran_to_attack_labels,
+                                                                                            synthetic_exfil_paths,
+                                                                                            time_of_synethic_exfil=time_of_synethic_exfil,
+                                                                                            min_starting=training_window_size)
+        print "time_gran_to_attack_labels",time_gran_to_attack_labels
+        print "time_gran_to_attack_ranges", time_gran_to_attack_ranges
+        #time.sleep(50)
 
-    time_gran_to_feature_dataframe = process_graph_metrics.generate_feature_dfs( total_calculated_vals, time_interval_lengths)
+        # OKAY, let's verify that this determine_attacks_to_times function is wokring before moving on to the next one...
+        total_calculated_vals = calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms_s, basegraph_name, calc_vals,
+                                                            window_size, mapping, is_swarm, make_net_graphs_p, list_of_infra_services,
+                                                            synthetic_exfil_paths, initiator_info_for_paths, time_gran_to_attack_ranges,
+                                                            fraction_of_edge_weights, fraction_of_edge_pkts)
 
-    process_graph_metrics.save_feature_datafames(time_gran_to_feature_dataframe, alert_file + sub_path, time_gran_to_attack_labels)
+        time_gran_to_feature_dataframe = process_graph_metrics.generate_feature_dfs( total_calculated_vals, time_interval_lengths)
 
-    if graph_p:
-        analysis_pipeline.generate_graphs.generate_feature_multitime_boxplots(total_calculated_vals, basegraph_name, window_size, colors, time_interval_lengths,
+        process_graph_metrics.save_feature_datafames(time_gran_to_feature_dataframe, alert_file + sub_path, time_gran_to_attack_labels)
+
+        analysis_pipeline.generate_graphs.generate_feature_multitime_boxplots(total_calculated_vals, basegraph_name,
+                                                                              window_size, colors, time_interval_lengths,
                                                                               exfil_start_time, exfil_end_time, wiggle_room)
+
+    else:
+        time_gran_to_feature_dataframe = {}
+        time_gran_to_attack_labels = {}
+        for interval in interval_to_filenames.keys():
+            time_gran_to_feature_dataframe[interval] = pd.read_csv(alert_file + sub_path + str(interval) + '.csv', na_values='?')
+            time_gran_to_attack_labels[interval] = time_gran_to_feature_dataframe[interval]['labels']
+
     print "about to calculate some alerts!"
 
-    #if calc_zscore_p:
     time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe = \
-        calc_zscores(total_calculated_vals, time_interval_lengths, alert_file, training_window_size,
-                     minimum_training_window, sub_path, time_gran_to_attack_labels, time_gran_to_feature_dataframe)
+        calc_zscores(alert_file, training_window_size, minimum_training_window, sub_path, time_gran_to_attack_labels,
+                     time_gran_to_feature_dataframe, calc_zscore_p)
+
 
     print "analysis_pipeline about to return!"
 

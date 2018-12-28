@@ -851,12 +851,12 @@ def process_wordpress6_rep3():
     time_interval_lengths = [60, 30, 10]#,
                              #1]  # , 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
     ms_s = ["my-release-pxc", "wwwppp-wordpress"]
-    make_edgefiles = True
+    make_edgefiles = False ## already done!
     start_time = False
     end_time = None
     exfil_start_time = 600
     exfil_end_time = 650
-    calc_vals = True
+    calc_vals = False
     window_size = 6
     graph_p = False  # should I make graphs?
     colors = ['b', 'r']
@@ -893,7 +893,7 @@ def process_wordpress6_rep4():
      time_interval_lengths = [60, 30, 10]  # ,
      # 1]  # , 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
      ms_s = ["my-release-pxc", "wwwppp-wordpress"]
-     make_edgefiles = True
+     make_edgefiles = False
      start_time = None
      end_time = None
      exfil_start_time = 600
@@ -933,7 +933,7 @@ def process_wordpress7_rep3():
     time_interval_lengths = [60, 30, 10]#,
     # 1]  # , 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
     ms_s = ["my-release-pxc", "wwwppp-wordpress"]
-    make_edgefiles = True
+    make_edgefiles = False
     start_time = None
     end_time = None
     exfil_start_time = 600
@@ -1014,7 +1014,7 @@ def process_wordpress7_rep2():
     time_interval_lengths = [60, 30, 10]#,
                              #1]  # , 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
     ms_s = ["my-release-pxc", "wwwppp-wordpress"]
-    make_edgefiles = True
+    make_edgefiles = False
     start_time = None
     end_time = None
     exfil_start_time = 600
@@ -1094,7 +1094,7 @@ def process_wordpress8_rep_2():
     time_interval_lengths = [60, 30, 10]#,
                              #1]  # , 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
     ms_s = ["my-release-pxc", "wwwppp-wordpress"]
-    make_edgefiles = True
+    make_edgefiles = False
     start_time = None
     end_time = None
     exfil_start_time = 600
@@ -1134,7 +1134,7 @@ def process_wordpress8_rep_3():
     time_interval_lengths = [60, 30, 10]#,
                              #1]  # , 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
     ms_s = ["my-release-pxc", "wwwppp-wordpress"]
-    make_edgefiles = True
+    make_edgefiles = False
     start_time = None
     end_time = None
     exfil_start_time = 600
