@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import pandas
 import time
 import scipy.stats
+import logging
 
 # TODO: NOTE: I'm 90% sure that this function is wrong...
 # exfil_rate used to determine if there should be a gap between exfil labels
@@ -65,7 +66,7 @@ def generate_time_gran_to_attack_labels(time_interval_lengths, exfil_start, exfi
     return time_gran_to_attack_lables
 
 def calc_modified_z_score(time_series, window_size, min_training_window):
-    print "---- new call for calc_modified_z_score -----"
+    logging.info("---- new call for calc_modified_z_score -----")
     if len(time_series) < min_training_window:
         return [float('nan') for i in range(0,len(time_series))]
     modified_z_scores = [float('nan') for i in range(0,min_training_window)]
@@ -95,7 +96,8 @@ def calc_modified_z_score(time_series, window_size, min_training_window):
         next_modified_z_score = abs(next_modified_z_score) ## TODO: remove???
         ## behavior is funny if there are inf's so, let's put an upper bound of 1000
         next_modified_z_score = min(next_modified_z_score, 1000)
-        print "median", median, "MAD", MAD,"next_modified_z_score",next_modified_z_score, "val"#, next_val, type(median), type(MAD), type(next_val)
+        logging.info("median", median, "MAD", MAD,"next_modified_z_score",next_modified_z_score,
+                     "val", next_val, type(median), type(MAD), type(next_val))
         modified_z_scores.append(next_modified_z_score)
     #time.sleep(2)
     return modified_z_scores

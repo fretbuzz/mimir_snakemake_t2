@@ -19,6 +19,7 @@ import time
 from sklearn.model_selection import KFold, cross_validate
 from sklearn.linear_model import LassoCV, Lasso
 import sklearn
+import logging
 
 def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms_s, basegraph_name, calc_vals, window_size,
                                 mapping, is_swarm, make_net_graphs_p, list_of_infra_services,synthetic_exfil_paths,
@@ -178,6 +179,11 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
                                calc_zscore_p=False, training_window_size=200, minimum_training_window=5,
                                sec_between_exfil_events=1, time_of_synethic_exfil=60,
                                fraction_of_edge_weights=0.1, fraction_of_edge_pkts=0.1):
+
+    print "log file can be found at: " + str(basefile_name) + '_logfile.log'
+    logging.basicConfig(filename=basefile_name + '_logfile.log', level=logging.INFO)
+    logging.info('run_data_anaylsis_pipeline Started')
+
     gc.collect()
 
     print "starting pipeline..."

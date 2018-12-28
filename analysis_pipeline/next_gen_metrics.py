@@ -1,6 +1,7 @@
 import math
 
 import numpy as np
+import logging
 
 
 # takes a graph and returns a dictionary, where each key is the name of a node and each
@@ -122,7 +123,7 @@ def create_dict_for_dns_metric(G, name_of_of_dns_node):
     return_dict = {}
     return_dict_two = {}
     # okay, so the end-goal is to get a dict that can be aggreated into a list and fed into calc_dns_metric
-    print "create_dict_for_dns_metric nodes", G.nodes()
+    logging.info("create_dict_for_dns_metric nodes, " + str(G.nodes()))
     try:
         # note: this will give edges that start at DNS and go other places...
         # what I probably want the edges that arrive at the DNS node??

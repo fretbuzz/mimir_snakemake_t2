@@ -856,7 +856,7 @@ def process_wordpress6_rep3():
     end_time = None
     exfil_start_time = 600
     exfil_end_time = 650
-    calc_vals = False
+    calc_vals = True
     window_size = 6
     graph_p = False  # should I make graphs?
     colors = ['b', 'r']

@@ -14,6 +14,7 @@ from analysis_pipeline.src.analyze_edgefiles import calc_VIP_metric, change_poin
 from analysis_pipeline.prepare_graph import prepare_graph, get_svc_equivalents
 import random
 import copy
+import logging
 
 # okay, so things to be aware of:
 # (a) we are assuming that if we cannot label the node and it is not loopback or in the '10.X.X.X' subnet, then it is outside
@@ -98,12 +99,12 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
             #exit() #### <----- TODO: remove!!
 
             name_of_dns_pod_node = find_dns_node_name(G)
-            print "name_of_dns_pod_node",name_of_dns_pod_node
+            logging.info("name_of_dns_pod_node, " + str(name_of_dns_pod_node))
 
             # print "right after graph is prepared", level_of_processing, list(cur_G.nodes(data=True))
-            print "svcs",svcs
+            logging.info("svcs, " + str(svcs))
             for thing in cur_1si_G.nodes(data=True):
-                print thing
+                logging.info(thing)
                 try:
                     #print thing[1]['svc']
                     cur_svc = thing[1]['svc']
@@ -133,9 +134,9 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
                 into_dns_from_outside_list.append(weight_into_dns_dict['outside'])
             except:
                 into_dns_from_outside_list.append(0.0)
-            print "weight_into_dns_dict",weight_into_dns_dict
+            logging.info("weight_into_dns_dict, " + str(weight_into_dns_dict))
             dns_out_metric_dicts.append(weight_outof_dns_dict)
-            print "weight_outof_dns_dict",weight_outof_dns_dict
+            logging.info("weight_outof_dns_dict, " + str(weight_outof_dns_dict))
 
             # print "right before calc_VIP_metric", level_of_processing
             pod_comm_but_not_VIP_comm, fraction_pod_comm_but_not_VIP_comm = calc_VIP_metric(cur_1si_G, True)

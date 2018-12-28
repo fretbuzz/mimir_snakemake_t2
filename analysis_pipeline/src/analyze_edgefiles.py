@@ -26,6 +26,7 @@ import scipy.sparse.linalg
 import pandas
 import csv
 import ast
+import logging
 import itertools
 import gc
 #from pympler import asizeof
@@ -789,7 +790,7 @@ def calc_VIP_metric(G, abs_val_p):
     service_VIP_and_pod_comm = {} # in either direction (each direction seperately tho)
     print "calc_VIP_metric"
     attribs = nx.get_node_attributes(G, 'svc')
-    print "calc_VIP_attribs", attribs
+    logging.info("calc_VIP_attribs, " + str(attribs))
     for (node1, node2, data) in G.edges(data=True):
         #print node1#, nx.get_node_attributes(G, node1)
         #or node1 in G.nodes(data=True):
@@ -836,17 +837,16 @@ def calc_VIP_metric(G, abs_val_p):
                     #pod_to_containers_in_other_svc[node1, node2] = data
 
         except Exception as e:
-            print "calc_VIP_metric exception flagged!", node1, node2, e
-            pass
-    print "service_VIP_and_pod_comm", service_VIP_and_pod_comm
-    print "pod_to_containers_in_other_svc", pod_to_containers_in_other_svc
+            logging.info("calc_VIP_metric exception flagged!, " + str(node1) + ' ' + str(node2)+ ' ' + str(e))
+    logging.info("service_VIP_and_pod_comm", service_VIP_and_pod_comm)
+    logging.info("pod_to_containers_in_other_svc", pod_to_containers_in_other_svc)
 
     difference_between_pod_and_VIP = {}
     # okay, so now I'd like to calculate the difference.
     for comm_pair, bytes in service_VIP_and_pod_comm.iteritems():
         src = comm_pair[0]
         dest = comm_pair[1]
-        print comm_pair
+        logging.info(comm_pair)
 
         #try:
         pod_to_service_VIP = service_VIP_and_pod_comm[src,dest]
@@ -863,7 +863,7 @@ def calc_VIP_metric(G, abs_val_p):
 
 
         difference_between_pod_and_VIP[src,dest] = pod_to_service_VIP - pod_to_container
-    print "difference_between_pod_and_VIP", difference_between_pod_and_VIP
+    logging.info("difference_between_pod_and_VIP", difference_between_pod_and_VIP)
     total_difference_between_pod_and_VIP = 0
     for pair, data in difference_between_pod_and_VIP.iteritems():
         if abs_val_p:
@@ -871,9 +871,10 @@ def calc_VIP_metric(G, abs_val_p):
         else:
             total_difference_between_pod_and_VIP += data
         if abs(data) > 0:
-            print "pod_VIP_difference_not_zero", pair, data
+            logging.info("pod_VIP_difference_not_zero " +  str(pair) + ' ' + str(data))
     sum_of_all_pod_to_container = sum(i for i in pod_to_containers_in_other_svc.values())
-    print "total_difference_between_pod_and_VIP", total_difference_between_pod_and_VIP, "total pod_to_container", sum_of_all_pod_to_container
+    logging.info("total_difference_between_pod_and_VIP, " +  str(total_difference_between_pod_and_VIP) + ', ' +
+                 "total pod_to_container, " +  str(sum_of_all_pod_to_container))
     if sum_of_all_pod_to_container > 0:
         fraction_of_total_difference_between_pod_and_VIP = float(total_difference_between_pod_and_VIP) / sum_of_all_pod_to_container
     else:
