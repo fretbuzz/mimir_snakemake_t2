@@ -20,11 +20,14 @@ from sklearn.model_selection import KFold, cross_validate
 from sklearn.linear_model import LassoCV, Lasso
 import sklearn
 import logging
+from sklearn.impute import SimpleImputer, MissingIndicator
+import numpy as np
+import matplotlib.pyplot as plt
 
 def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms_s, basegraph_name, calc_vals, window_size,
                                 mapping, is_swarm, make_net_graphs_p, list_of_infra_services,synthetic_exfil_paths,
                                 initiator_info_for_paths, time_gran_to_attacks_to_times, fraction_of_edge_weights,
-                                fraction_of_edge_pkts):
+                                fraction_of_edge_pkts, size_of_neighbor_training_window):
     total_calculated_vals = {}
     for time_interval_length in time_interval_lengths:
         print "analyzing edgefiles...", "timer_interval...", time_interval_length
@@ -50,7 +53,8 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
                                                                list_of_infra_services, synthetic_exfil_paths,
                                                                initiator_info_for_paths,
                                                                time_gran_to_attacks_to_times[time_interval_length],
-                                                               fraction_of_edge_weights, fraction_of_edge_pkts)
+                                                               fraction_of_edge_weights, fraction_of_edge_pkts,
+                                                               int(size_of_neighbor_training_window/time_interval_length))
 
         #total_calculated_vals.update(newly_calculated_values)
         gc.collect()
@@ -126,10 +130,15 @@ def determine_attacks_to_times(time_gran_to_attack_labels, synthetic_exfil_paths
         number_free_spots = time_gran_to_attack_labels[largest_time_gran][int(time_periods_startup):].count(0)
         if number_free_spots < time_periods_attack:
             exit(1244) # should break now b/c infinite loop (note: we're not handling the case where it is fragmented...)
+        counter = 0
         while not attack_spot_found:
             ## NOTE: not sure if the -1 is necessary...
-            potential_starting_point = random.randint(time_periods_startup,
-                                            len(time_gran_to_attack_labels[largest_time_gran]) - time_periods_attack - 1)
+            # NOTE: this random thing causes all types of problems. Let's just ignore it and do it right after startup??, maybe?
+            #potential_starting_point = random.randint(time_periods_startup,
+            #                                len(time_gran_to_attack_labels[largest_time_gran]) - time_periods_attack - 1)
+            potential_starting_point = int(time_periods_startup + counter)
+
+            print "potential_starting_point", potential_starting_point
             attack_spot_found = exfil_time_valid(potential_starting_point, time_periods_attack,
                                                  time_gran_to_attack_labels[largest_time_gran])
             if attack_spot_found:
@@ -142,6 +151,7 @@ def determine_attacks_to_times(time_gran_to_attack_labels, synthetic_exfil_paths
                     #print i, time_gran_to_attack_labels[largest_time_gran]
                     time_gran_to_attack_labels[largest_time_gran][i] = 1
             #print "this starting point failed", potential_starting_point
+            counter += 1
 
     # okay, so now we have the times selected for the largest time granularity... we have to make sure
     # that the other granularities agree...
@@ -178,7 +188,8 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
                                rdpcap_p=False, kubernetes_pod_info=None, alert_file=None, ROC_curve_p=False,
                                calc_zscore_p=False, training_window_size=200, minimum_training_window=5,
                                sec_between_exfil_events=1, time_of_synethic_exfil=60,
-                               fraction_of_edge_weights=0.1, fraction_of_edge_pkts=0.1):
+                               fraction_of_edge_weights=0.1, fraction_of_edge_pkts=0.1,
+                               size_of_neighbor_training_window=300):
 
     print "log file can be found at: " + str(basefile_name) + '_logfile.log'
     logging.basicConfig(filename=basefile_name + '_logfile.log', level=logging.INFO)
@@ -233,7 +244,7 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
         time_gran_to_attack_labels, time_gran_to_attack_ranges = determine_attacks_to_times(time_gran_to_attack_labels,
                                                                                             synthetic_exfil_paths,
                                                                                             time_of_synethic_exfil=time_of_synethic_exfil,
-                                                                                            min_starting=training_window_size)
+                                                                                            min_starting=training_window_size+size_of_neighbor_training_window)
         print "time_gran_to_attack_labels",time_gran_to_attack_labels
         print "time_gran_to_attack_ranges", time_gran_to_attack_ranges
         #time.sleep(50)
@@ -242,7 +253,7 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
         total_calculated_vals = calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms_s, basegraph_name, calc_vals,
                                                             window_size, mapping, is_swarm, make_net_graphs_p, list_of_infra_services,
                                                             synthetic_exfil_paths, initiator_info_for_paths, time_gran_to_attack_ranges,
-                                                            fraction_of_edge_weights, fraction_of_edge_pkts)
+                                                            fraction_of_edge_weights, fraction_of_edge_pkts, size_of_neighbor_training_window)
 
         time_gran_to_feature_dataframe = process_graph_metrics.generate_feature_dfs( total_calculated_vals, time_interval_lengths)
 
@@ -265,7 +276,6 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
         calc_zscores(alert_file, training_window_size, minimum_training_window, sub_path, time_gran_to_attack_labels,
                      time_gran_to_feature_dataframe, calc_zscore_p)
 
-
     print "analysis_pipeline about to return!"
 
     # okay, so can return it here...
@@ -287,7 +297,7 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p):
     for func in function_list:
         time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe = func()
         list_time_gran_to_mod_zscore_df.append(time_gran_to_mod_zscore_df)
-        list_time_gran_to_zscore_dataframe.append(list_time_gran_to_zscore_dataframe)
+        list_time_gran_to_zscore_dataframe.append(time_gran_to_zscore_dataframe)
         list_time_gran_to_feature_dataframe.append(time_gran_to_feature_dataframe)
 
     # step (2) :  take the dataframes and feed them into the LASSO component...
@@ -296,19 +306,40 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p):
     ######## 2a.I. get aggregate dfs for each time granularity...
     time_gran_to_aggregate_mod_score_dfs = {}
     for time_gran_to_mod_zscore_df in list_time_gran_to_mod_zscore_df:
-        for time_gran,mod_zscore_df in time_gran_to_mod_zscore_df.iteritems():
+        for time_gran, mod_zscore_df in time_gran_to_mod_zscore_df.iteritems():
             if time_gran not in time_gran_to_aggregate_mod_score_dfs.keys():
                 time_gran_to_aggregate_mod_score_dfs[time_gran] = mod_zscore_df
+                print "post_initializing_aggregate_dataframe", len(time_gran_to_aggregate_mod_score_dfs[time_gran]), \
+                    type(time_gran_to_aggregate_mod_score_dfs[time_gran]), time_gran
+
             else:
-                time_gran_to_aggregate_mod_score_dfs[time_gran].append(mod_zscore_df)
+                time_gran_to_aggregate_mod_score_dfs[time_gran] = \
+                    time_gran_to_aggregate_mod_score_dfs[time_gran].append(mod_zscore_df, sort=True)
+                print "should_be_appending_mod_z_scores", len(time_gran_to_aggregate_mod_score_dfs[time_gran]), \
+                    type(time_gran_to_aggregate_mod_score_dfs[time_gran]), time_gran
+
+
+    #print time_gran_to_aggregate_mod_score_dfs['60']
 
     ######### 2a.II. do the actual splitting
     # note: labels have the column name 'labels' (noice)
     time_gran_to_model = {}
+    #images = 0
     for time_gran,aggregate_mod_score_dfs in time_gran_to_aggregate_mod_score_dfs.iteritems():
+        #try:
+        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='timemod_z_score')   # might wanna just stop these from being generated...
+        #except:
+        #    pass
+        #try:
+        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='labelsmod_z_score') # might wanna just stop these from being generaetd
+        print aggregate_mod_score_dfs.columns
+        #except:
+        #    pass
         X = aggregate_mod_score_dfs.loc[:, aggregate_mod_score_dfs.columns != 'labels']
         y = aggregate_mod_score_dfs.loc[:, aggregate_mod_score_dfs.columns == 'labels']
+        print X.shape, "X.shape"
         X_train, X_test, y_train, y_test =  sklearn.model_selection.train_test_split(X, y, test_size = 0.3, random_state = 42)
+        print X_train.shape, "X_train.shape"
 
         ### 2b. feed the lasso to get the high-impact features...
         ## NOTE: THIS IS ALL VERY CONFUSING. I'M GOING TO WORRY ABOUT DOING ANYTHING FANCY LATER ON JUST MAKE IT SIMPLE NOW
@@ -321,40 +352,59 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p):
 
         ######## 2b.II. then use Lasso to find the fit and parameters
         #scores = cross_validate(lasso, X, y, return_estimator=True, cv=cv_outer)
-        clf = Lasso(alpha=0.8) ## Okay, this value was just chosen by me somewhat randomly (knew that I wanted it v strong)
+        clf = Lasso(alpha=20) ## Okay, this value was just chosen by me somewhat randomly (knew that I wanted it v strong)
+
+        # need to replace the missing values in the data w/ meaningful values...
+        imp = SimpleImputer(missing_values=np.nan, strategy='median')
+        imp = imp.fit(X_train)
+        X_train = imp.transform(X_train)
+        X_test = imp.transform(X_test)
+
+        #print "X_train", X_train
+        #print "y_train", y_train, len(y_train)
+        #print "y_test", y_test, len(y_test)
+        #print "-- y_train", len(y_train), "y_test", len(y_test), "time_gran", time_gran, "--"
         clf.fit(X_train, y_train)
         score_val = clf.score(X_test, y_test)
-        test_predictions = clf.predict(X_test)
+        print "score_val", score_val
+        test_predictions = clf.predict(X=X_test)
         print "LASSO model", clf.get_params()
+        print '----------------------'
+        print "Coefficients: "
+        #coefficients = pd.DataFrame({"Feature": X.columns, "Coefficients": np.transpose(clf.coef_)})
+        #print coefficients
+        #clf.coef_, "intercept", clf.intercept_
+        coef_dict = {}
+        for coef, feat in zip(clf.coef_, list(X.columns.values)):
+            coef_dict[feat] = coef
+        coef_dict['intercept'] = clf.intercept_[0]
+        for coef,feature in coef_dict.iteritems():
+            print coef,feature
+        print '--------------------------'
+        '''
+        print X_train
+        coefficients = clf.coef_
+        print len(coefficients), "<- len coefficients,", len(list(X.columns.values))
+        for counter,column in enumerate(list(X.columns.values)):
+            print counter
+            print column, coefficients[counter]
         print "score_val", score_val
         time_gran_to_model[time_gran] = clf
         ##print "time_gran", time_gran, "scores", scores
+        '''
 
-        ### 2c. turn the features back into functions... so that makes this actually step (3)....
-        ###### how the heck is this going to work??????
-        ## TODO: literally no clue how to do this... well, the obvious thing would be to look at the remaining parameter
-        ## names; these can be used to index into the dataframe and then the coefficients can be used to make the value
-        ## WAIT! Can't I just the sklearn function???? Yah, it seems like it... new goal: use the sklearn function to generate
-        ## an ROC....
+        ### step (3)
+        ## use the generate sklearn model to create the detection ROC
         if ROC_curve_p:
-            fpr, tpr, thresholds = sklearn.metrics.roc_curve(y_test, test_predictions, pos_label=2)
+            fpr, tpr, thresholds = sklearn.metrics.roc_curve(y_true=y_test, y_score=test_predictions, pos_label=1)
             x_vals = fpr
             y_vals = tpr
             ROC_path = base_output_name + '_good_roc_'
             title = 'ROC Linear Combination of Features at ' + str(time_gran)
             plot_name = 'sub_roc_lin_comb_features_' + str(time_gran)
-            generate_alerts.construct_ROC_curve(x_vals, y_vals, title, ROC_path + plot_name)
+            ax = generate_alerts.construct_ROC_curve(x_vals, y_vals, title, ROC_path + plot_name, show_p=True)
 
-
-    ## NOTE: I think I might not need this part... b/c I'm trying to do it all above...
-    # step (3) : take the resulting function and use it to generate the ROCs
-    #### ??? how this'll actually work is still kinda unclear to me... there
-    ## note: this'll require the some kinda conversion process, which I'm not sure how to do exactly...
-    #if ROC_curve_p:
-    #    ## need to get these parameters going and stuff...
-    #    generate_rocs(time_gran_to_mod_zscore_df, alert_file, sub_path)
-
-    print "multi_experiment_pipeline is all done!"
+    print "multi_experiment_pipeline is all done! (NO ERROR DURING RUNNING)"
     #print "recall that this was the list of alert percentiles", percentile_thresholds
 
 if __name__ == "__main__":

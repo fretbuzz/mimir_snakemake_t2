@@ -856,7 +856,7 @@ def process_wordpress6_rep3():
     end_time = None
     exfil_start_time = 600
     exfil_end_time = 650
-    calc_vals = True
+    calc_vals = False
     window_size = 6
     graph_p = False  # should I make graphs?
     colors = ['b', 'r']
@@ -898,7 +898,7 @@ def process_wordpress6_rep4():
      end_time = None
      exfil_start_time = 600
      exfil_end_time = 650
-     calc_vals = True
+     calc_vals = False
      window_size = 6
      graph_p = False  # should I make graphs?
      colors = ['b', 'r']
@@ -938,10 +938,10 @@ def process_wordpress7_rep3():
     end_time = None
     exfil_start_time = 600
     exfil_end_time = 650
-    calc_vals = True
+    calc_vals = False
     window_size = 6
     graph_p = False  # should I make graphs?
-    colors = ['b', 'r', 'y', 'g', 'p']
+    colors = ['b', 'r']
     wiggle_room = 2  # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
     percentile_thresholds = [30, 40, 50, 60, 70, 75, 85, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100]
     anomaly_window = [1, 4]
@@ -1019,9 +1019,9 @@ def process_wordpress7_rep2():
     end_time = None
     exfil_start_time = 600
     exfil_end_time = 650
-    calc_vals = True
+    calc_vals = False
     window_size = 6
-    graph_p = True  # should I make graphs?
+    graph_p = False  # should I make graphs?
     colors = ['b', 'r', 'y']
     wiggle_room = 2  # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
     percentile_thresholds = [30, 40, 50, 60, 70, 75, 85, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100]
@@ -1099,7 +1099,7 @@ def process_wordpress8_rep_2():
     end_time = None
     exfil_start_time = 600
     exfil_end_time = 900
-    calc_vals = True
+    calc_vals = False
     window_size = 6
     graph_p = False  # should I make graphs?
     colors = ['b', 'r']
@@ -1139,7 +1139,7 @@ def process_wordpress8_rep_3():
     end_time = None
     exfil_start_time = 600
     exfil_end_time = 900
-    calc_vals = True
+    calc_vals = False
     window_size = 6
     graph_p = False  # should I make graphs?
     colors = ['b', 'r']

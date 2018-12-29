@@ -96,8 +96,8 @@ def calc_modified_z_score(time_series, window_size, min_training_window):
         next_modified_z_score = abs(next_modified_z_score) ## TODO: remove???
         ## behavior is funny if there are inf's so, let's put an upper bound of 1000
         next_modified_z_score = min(next_modified_z_score, 1000)
-        logging.info("median", median, "MAD", MAD,"next_modified_z_score",next_modified_z_score,
-                     "val", next_val, type(median), type(MAD), type(next_val))
+        logging.info("median, " + str(median) +", MAD, " + str(MAD) +", next_modified_z_score, " + str(next_modified_z_score) +
+                     ", val" + str(next_val) + ' ' + str(type(median)) + ' ' + str(type(MAD)) + ' ' + str(type(next_val)))
         modified_z_scores.append(next_modified_z_score)
     #time.sleep(2)
     return modified_z_scores
@@ -227,6 +227,7 @@ def generate_feature_dfs(calculated_vals, time_interval_lengths):
         times = [i * time_gran for i in range(0,len(feature_array[:,0]))]
         print feature_array
         feature_dataframe = pandas.DataFrame(data=feature_array, columns=metric_names, index=times)
+        feature_dataframe.index.name = 'time' ## i think this should solve the problem of the time column not being labeled
         time_gran_to_feature_dataframe[time_gran] = feature_dataframe
     return time_gran_to_feature_dataframe
 

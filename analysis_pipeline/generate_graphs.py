@@ -202,6 +202,7 @@ def make_multi_time_boxplots(metrics_to_time_to_granularity_lists, time_grans, m
     invisible_lines = []
     z = 0
     for color in colors:
+        print z,color
         cur_line, = plt.plot([1,1], color, label=time_grans[z])
         invisible_lines.append(cur_line)
         z += 1

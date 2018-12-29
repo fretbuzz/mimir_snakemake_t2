@@ -15,6 +15,8 @@ from analysis_pipeline.prepare_graph import prepare_graph, get_svc_equivalents
 import random
 import copy
 import logging
+from matplotlib import pyplot as plt
+from networkx.drawing.nx_agraph import graphviz_layout
 
 # okay, so things to be aware of:
 # (a) we are assuming that if we cannot label the node and it is not loopback or in the '10.X.X.X' subnet, then it is outside
@@ -52,7 +54,7 @@ def pipeline_subset_analysis_step(filenames, ms_s, time_interval, basegraph_name
 
 def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_vals_p, window_size, ms_s, container_to_ip,
                               is_swarm, svcs, infra_service, synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
-                              fraction_of_edge_weights, fraction_of_edge_pkts):
+                              fraction_of_edge_weights, fraction_of_edge_pkts, size_of_neighbor_training_window):
     if calc_vals_p:
         pod_comm_but_not_VIP_comms = []
         fraction_pod_comm_but_not_VIP_comms = []
@@ -77,7 +79,12 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
 
             f = open(file_path, 'r')
             lines = f.readlines()
-            G = nx.parse_edgelist(lines, delimiter=' ')
+            nx.parse_edgelist(lines, delimiter=' ', create_using=G)
+
+            logging.info("straight_G_edges")
+            for edge in G.edges(data=True):
+                logging.info(edge)
+            logging.info("end straight_G_edges")
 
             #nx.read_edgelist(file_path,
             #                 create_using=G, delimiter=',', data=(('weight', float),))
@@ -86,6 +93,11 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
 
             cur_class_G = prepare_graph(G, svcs, 'class', is_swarm, counter, file_path, ms_s, container_to_ip,
                                   infra_service)
+
+            logging.info("cur_1si_G edges")
+            for edge in cur_1si_G.edges(data=True):
+                logging.info(edge)
+            logging.info("end cur_1si_G edges")
 
             ### NOTE: I think this is where we'd want to inject the synthetic attacks...
             cur_1si_G, node_attack_mapping,pre_specified_data_attribs = inject_synthetic_attacks(cur_1si_G, synthetic_exfil_paths,initiator_info_for_paths,
@@ -98,8 +110,30 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
             #continue ### <<<----- TODO: remove!
             #exit() #### <----- TODO: remove!!
 
+            '''
+            plt.figure(figsize=(12,12))  # todo: turn back to (27, 16)
+            plt.title('after processing')
+            pos = graphviz_layout(cur_1si_G)
+            for key in pos.keys():
+                pos[key] = (pos[key][0] * 4, pos[key][1] * 4)  # too close otherwise
+            nx.draw_networkx(cur_1si_G, pos, with_labels=True, arrows=True, font_size=8, font_color='b')
+            edge_labels = nx.get_edge_attributes(cur_1si_G, 'weight')
+            nx.draw_networkx_edge_labels(cur_1si_G, pos, edge_labels=edge_labels, font_size=7, label_pos=0.3)
+
+            plt.figure(figsize=(12,12))  # todo: turn back to (27, 16)
+            plt.title('before processing')
+            pos = graphviz_layout(G)
+            for key in pos.keys():
+                pos[key] = (pos[key][0] * 4, pos[key][1] * 4)  # too close otherwise
+            nx.draw_networkx(G, pos, with_labels=True, arrows=True, font_size=8, font_color='b')
+            edge_labels = nx.get_edge_attributes(G, 'weight')
+            nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=7, label_pos=0.3)
+            plt.show()
+            '''
+
             name_of_dns_pod_node = find_dns_node_name(G)
             logging.info("name_of_dns_pod_node, " + str(name_of_dns_pod_node))
+            print "name_of_dns_pod_node", name_of_dns_pod_node
 
             # print "right after graph is prepared", level_of_processing, list(cur_G.nodes(data=True))
             logging.info("svcs, " + str(svcs))
@@ -157,14 +191,13 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
         #######
         # which_nodes can be ['all', 'outside', or 'kube-dns_VIP']
         # let's make the training time 5 minutes
-        size_of_training_window = (5 * 60) / time_interval
-        num_new_neighbors_outside = calc_neighbor_metric(neighbor_dicts, size_of_training_window, 'outside')
-        num_new_neighbors_dns = calc_neighbor_metric(neighbor_dicts, size_of_training_window, 'kube-dns_VIP')
-        num_new_neighbors_all = calc_neighbor_metric(neighbor_dicts, size_of_training_window, 'all')
+        #size_of_neighbor_training_window = (5 * 60) / time_interval
+        num_new_neighbors_outside = calc_neighbor_metric(neighbor_dicts, size_of_neighbor_training_window, 'outside')
+        num_new_neighbors_dns = calc_neighbor_metric(neighbor_dicts, size_of_neighbor_training_window, 'kube-dns_VIP')
+        num_new_neighbors_all = calc_neighbor_metric(neighbor_dicts, size_of_neighbor_training_window, 'all')
 
         dns_angles = calc_dns_metric(dns_in_metric_dicts, current_total_node_list, window_size)
         dns_outside_inside_ratios,dns_list_outside,dns_list_inside = calc_outside_inside_ratio_dns_metric(dns_in_metric_dicts,
-
                                                                                                           dns_out_metric_dicts)
 
         into_dns_ratio, into_dns_from_outside,into_dns_from_indeside = calc_outside_inside_ratio_dns_metric(dns_in_metric_dicts,
@@ -199,6 +232,10 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
         into_dns_eigenval_angles12 = into_dns_eigenval_angles12[0:len(into_dns_eigenval_angles)]
 
         calculated_values = {}
+
+        ### TODO::: REMOVE!!!
+        ### exit(999)
+
 
         calculated_values['New Class-Class Edges'] = num_new_neighbors_all
         calculated_values['New Class-Class Edges with Outside'] = num_new_neighbors_outside

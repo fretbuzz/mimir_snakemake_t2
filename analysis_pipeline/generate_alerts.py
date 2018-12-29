@@ -6,8 +6,9 @@ import math
 # okay, what we want to do here is to construct
 # x_vals should be FPR
 # y_vals should be TPR
-def construct_ROC_curve(x_vals, y_vals, title, plot_name):
-    plt.figure()
+def construct_ROC_curve(x_vals, y_vals, title, plot_name, show_p=False):
+    #plt.figure()
+    fig, axs = plt.subplots(1,1)
     plt.ylim(-0.05,1.05)
     plt.xlim(-0.05,1.05)
     plt.xlabel('FPR')
@@ -15,7 +16,10 @@ def construct_ROC_curve(x_vals, y_vals, title, plot_name):
     plt.title(title)
     plt.plot(x_vals, y_vals)
     plt.savefig( plot_name + '.png', format='png', dpi=1000)
+    if show_p:
+        plt.show()
     plt.close()
+    return axs
 
 def create_ROC_of_anom_score(jointDF, time_gran, ROC_path, calc_anom_score, title, plot_name):
     aggregated_anomly_scores = []
