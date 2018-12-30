@@ -24,6 +24,8 @@ from sklearn.impute import SimpleImputer, MissingIndicator
 import numpy as np
 import matplotlib.pyplot as plt
 import generate_report
+import os
+import errno
 
 def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms_s, basegraph_name, calc_vals, window_size,
                                 mapping, is_swarm, make_net_graphs_p, list_of_infra_services,synthetic_exfil_paths,
@@ -417,6 +419,13 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p):
             ROC_path = base_output_name + '_good_roc_'
             title = 'ROC Linear Combination of Features at ' + str(time_gran)
             plot_name = 'sub_roc_lin_comb_features_' + str(time_gran)
+
+            try:
+                os.makedirs('./temp_outputs')
+            except OSError as e:
+                if e.errno != errno.EEXIST:
+                    raise
+
             ax, _, plot_path = generate_alerts.construct_ROC_curve(x_vals, y_vals, title, ROC_path + plot_name, show_p=False)
             list_of_rocs.append(plot_path)
 

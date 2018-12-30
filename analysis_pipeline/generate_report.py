@@ -4,6 +4,11 @@ import pandas as pd
 import pdfkit
 import subprocess
 
+#####
+## NOTE: this portion of the code is heavily influenced by:
+## https://dev.to/goyder/automatic-reporting-in-python---part-2-from-hello-world-to-real-insights-8p3
+###
+
 def generate_report(list_of_rocs, list_of_feat_coef, list_of_attacks_found_dfs, recipes_used,
                     output_location, time_grans):
     # setup jinga and the associated template
@@ -38,9 +43,9 @@ def generate_report(list_of_rocs, list_of_feat_coef, list_of_attacks_found_dfs, 
     ))
 
     print "about to render the template..."
-    print sections
-    print base_template
-    print table_section_template
+    #print sections
+    #print base_template
+    #print table_section_template
 
     date = str(datetime.datetime.now()) ### TODO: is this the right timezone?
 
