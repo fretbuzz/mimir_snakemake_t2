@@ -23,6 +23,7 @@ import logging
 from sklearn.impute import SimpleImputer, MissingIndicator
 import numpy as np
 import matplotlib.pyplot as plt
+import generate_report
 
 def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms_s, basegraph_name, calc_vals, window_size,
                                 mapping, is_swarm, make_net_graphs_p, list_of_infra_services,synthetic_exfil_paths,
@@ -325,7 +326,11 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p):
     # note: labels have the column name 'labels' (noice)
     time_gran_to_model = {}
     #images = 0
+    list_of_rocs = []
+    list_of_feat_coefs_dfs = []
+    time_grans = []
     for time_gran,aggregate_mod_score_dfs in time_gran_to_aggregate_mod_score_dfs.iteritems():
+        time_grans.append(time_gran)
         #try:
         aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='timemod_z_score')   # might wanna just stop these from being generated...
         #except:
@@ -380,7 +385,17 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p):
         coef_dict['intercept'] = clf.intercept_[0]
         for coef,feature in coef_dict.iteritems():
             print coef,feature
+
+        #print "COEF_DICT", coef_dict
+        coef_feature_df = pd.DataFrame.from_dict(coef_dict, orient='index')
+        #print coef_feature_df.columns.values
+        #coef_feature_df.index.name = 'Features'
+        coef_feature_df.columns = ['Coefficient']
+
+        list_of_feat_coefs_dfs.append(coef_feature_df)
         print '--------------------------'
+
+
         '''
         print X_train
         coefficients = clf.coef_
@@ -402,7 +417,19 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p):
             ROC_path = base_output_name + '_good_roc_'
             title = 'ROC Linear Combination of Features at ' + str(time_gran)
             plot_name = 'sub_roc_lin_comb_features_' + str(time_gran)
-            ax = generate_alerts.construct_ROC_curve(x_vals, y_vals, title, ROC_path + plot_name, show_p=True)
+            ax, _, plot_path = generate_alerts.construct_ROC_curve(x_vals, y_vals, title, ROC_path + plot_name, show_p=False)
+            list_of_rocs.append(plot_path)
+
+    recipes_used = [recipe.__name__ for recipe in function_list]
+    for recipe in function_list:
+        print "recipe_in_functon_list", recipe.__name__
+    list_of_attacks_found_dfs = []  ## TODO::  <<<<------- THIS IS GOING TO BE NEEDED FOR THE REPORTS TO BE COMPRHENSIBLE!!
+    list_of_attacks_found_dfs.append( pd.DataFrame([1,2]) )
+    list_of_attacks_found_dfs.append( pd.DataFrame([4,5]) )
+    list_of_attacks_found_dfs.append( pd.DataFrame([8,9]) )
+
+    generate_report.generate_report(list_of_rocs, list_of_feat_coefs_dfs, list_of_attacks_found_dfs,
+                                    recipes_used, base_output_name, time_grans)
 
     print "multi_experiment_pipeline is all done! (NO ERROR DURING RUNNING)"
     #print "recall that this was the list of alert percentiles", percentile_thresholds

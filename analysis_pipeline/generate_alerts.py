@@ -16,10 +16,15 @@ def construct_ROC_curve(x_vals, y_vals, title, plot_name, show_p=False):
     plt.title(title)
     plt.plot(x_vals, y_vals)
     plt.savefig( plot_name + '.png', format='png', dpi=1000)
+
+    local_graph_loc = './temp_outputs/' + title + '.png'
+    local_graph_loc = local_graph_loc.replace(' ', '_')
+    plt.savefig( local_graph_loc, format='png', dpi=1000)
+
     if show_p:
         plt.show()
     plt.close()
-    return axs
+    return axs, plot_name + '.png', '../' + local_graph_loc[2:]
 
 def create_ROC_of_anom_score(jointDF, time_gran, ROC_path, calc_anom_score, title, plot_name):
     aggregated_anomly_scores = []
