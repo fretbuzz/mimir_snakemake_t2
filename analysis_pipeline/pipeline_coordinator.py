@@ -359,7 +359,8 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p):
 
         ######## 2b.II. then use Lasso to find the fit and parameters
         #scores = cross_validate(lasso, X, y, return_estimator=True, cv=cv_outer)
-        clf = Lasso(alpha=20) ## Okay, this value was just chosen by me somewhat randomly (knew that I wanted it v strong)
+        ##clf = Lasso(alpha=20) ## Okay, this value was just chosen by me somewhat randomly (knew that I wanted it v strong)
+        clf = LassoCV(cv=5) ## <<-- choosing the alpha is magic ATM, so let's use cross validation to choose it instead...
 
         # need to replace the missing values in the data w/ meaningful values...
         imp = SimpleImputer(missing_values=np.nan, strategy='median')
@@ -384,7 +385,8 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p):
         coef_dict = {}
         for coef, feat in zip(clf.coef_, list(X.columns.values)):
             coef_dict[feat] = coef
-        coef_dict['intercept'] = clf.intercept_[0]
+        print "intercept...", clf.intercept_
+        coef_dict['intercept'] = clf.intercept_
         for coef,feature in coef_dict.iteritems():
             print coef,feature
 
