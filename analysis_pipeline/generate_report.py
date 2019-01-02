@@ -10,7 +10,7 @@ import subprocess
 ###
 
 def generate_report(list_of_rocs, list_of_feat_coef, list_of_attacks_found_dfs, recipes_used,
-                    output_location, time_grans):
+                    output_location, time_grans, list_of_model_parameters):
     # setup jinga and the associated template
     env = Environment(
         loader=FileSystemLoader(searchpath="src")
@@ -27,19 +27,22 @@ def generate_report(list_of_rocs, list_of_feat_coef, list_of_attacks_found_dfs, 
         time_gran= str(time_grans[0]) + " sec granularity",
         roc=list_of_rocs[0],
         feature_table=list_of_feat_coef[0].to_html(),
-        attacks_found=list_of_attacks_found_dfs[0].to_html()
+        attacks_found=list_of_attacks_found_dfs[0].to_html(),
+        model_params=list_of_model_parameters[0]
     ))
     sections.append(table_section_template.render(
         time_gran= str(time_grans[1]) + " sec granularity",
         roc=list_of_rocs[1],
         feature_table=list_of_feat_coef[1].to_html(),
-        attacks_found=list_of_attacks_found_dfs[1].to_html()
+        attacks_found=list_of_attacks_found_dfs[1].to_html(),
+        model_params=list_of_model_parameters[1]
     ))
     sections.append(table_section_template.render(
         time_gran= str(time_grans[2]) + " sec granularity",
         roc=list_of_rocs[2],
         feature_table=list_of_feat_coef[2].to_html(),
-        attacks_found=list_of_attacks_found_dfs[2].to_html()
+        attacks_found=list_of_attacks_found_dfs[2].to_html(),
+        model_params=list_of_model_parameters[2]
     ))
 
     print "about to render the template..."
@@ -76,5 +79,6 @@ if __name__ == "__main__":
     recipes_used = recipes_used[:-1]
     output_location = '.'
     time_grans = [1,2,3]
+    list_of_model_parameters = [None, None, None]
     generate_report(list_of_rocs, [df_one, df_two, df_three], [df_three, df_two, df_one],
-                    recipes_used, output_location, time_grans)
+                    recipes_used, output_location, time_grans, list_of_model_parameters)

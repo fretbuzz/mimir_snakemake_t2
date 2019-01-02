@@ -227,7 +227,7 @@ def generate_feature_dfs(calculated_vals, time_interval_lengths):
         times = [i * time_gran for i in range(0,len(feature_array[:,0]))]
         print feature_array
         feature_dataframe = pandas.DataFrame(data=feature_array, columns=metric_names, index=times)
-        feature_dataframe.index.name = 'time' ## i think this should solve the problem of the time column not being labeled
+        ##feature_dataframe.index.name = 'time' ## i think this should solve the problem of the time column not being labeled
         time_gran_to_feature_dataframe[time_gran] = feature_dataframe
     return time_gran_to_feature_dataframe
 

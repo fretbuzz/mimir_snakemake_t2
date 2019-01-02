@@ -1312,7 +1312,7 @@ def run_analysis_pipeline_recipes_json(json_file, path_to_experimental_data):
 def multi_experiment_wordpress_recipe():
     function_list = [process_wordpress6_rep3, process_wordpress6_rep4, process_wordpress7_rep2, process_wordpress7_rep3,
                      process_wordpress8_rep_2, process_wordpress8_rep_3]
-    base_output_location = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_summary/' + 'lasso_roc'
+    base_output_location = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_summary/'# + 'lasso_roc'
     multi_experiment_pipeline(function_list, base_output_location, True) ## TODO: missing parameters... (last two are just nonsense)
 
 ## TODO: make a list and stuff...

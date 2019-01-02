@@ -308,19 +308,14 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p):
     ###### at the moment, we'll make the simplfying assumption to only use the modified z-scores...
     ######## 2a.I. get aggregate dfs for each time granularity...
     time_gran_to_aggregate_mod_score_dfs = {}
-    for time_gran_to_mod_zscore_df in list_time_gran_to_mod_zscore_df:
-        for time_gran, mod_zscore_df in time_gran_to_mod_zscore_df.iteritems():
-            if time_gran not in time_gran_to_aggregate_mod_score_dfs.keys():
-                time_gran_to_aggregate_mod_score_dfs[time_gran] = mod_zscore_df
-                print "post_initializing_aggregate_dataframe", len(time_gran_to_aggregate_mod_score_dfs[time_gran]), \
-                    type(time_gran_to_aggregate_mod_score_dfs[time_gran]), time_gran
+    time_gran_to_feature_dfs = {}
+    time_gran_to_aggregate_mod_score_dfs = aggregate_dfs(list_time_gran_to_mod_zscore_df)
+    time_gran_to_aggreg_feature_dfs = aggregate_dfs(list_time_gran_to_feature_dataframe)
 
-            else:
-                time_gran_to_aggregate_mod_score_dfs[time_gran] = \
-                    time_gran_to_aggregate_mod_score_dfs[time_gran].append(mod_zscore_df, sort=True)
-                print "should_be_appending_mod_z_scores", len(time_gran_to_aggregate_mod_score_dfs[time_gran]), \
-                    type(time_gran_to_aggregate_mod_score_dfs[time_gran]), time_gran
-
+    ## TODO: save DFs
+    for time_gran, aggregate_feature_df in time_gran_to_aggreg_feature_dfs.iteritems():
+        aggregate_feature_df.to_csv(base_output_name + 'aggregate_feature_df_at_time_gran_of_' + str(time_gran) + '_sec.csv',
+                                    na_rep='?')
 
     #print time_gran_to_aggregate_mod_score_dfs['60']
 
@@ -331,6 +326,7 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p):
     list_of_rocs = []
     list_of_feat_coefs_dfs = []
     time_grans = []
+    list_of_model_parameters = []
     for time_gran,aggregate_mod_score_dfs in time_gran_to_aggregate_mod_score_dfs.iteritems():
         time_grans.append(time_gran)
         #try:
@@ -349,18 +345,7 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p):
         print X_train.shape, "X_train.shape"
 
         ### 2b. feed the lasso to get the high-impact features...
-        ## NOTE: THIS IS ALL VERY CONFUSING. I'M GOING TO WORRY ABOUT DOING ANYTHING FANCY LATER ON JUST MAKE IT SIMPLE NOW
-        ###### okay, this is the current step ^^ feed the LASSO
-        ######## 2b.I. Use LassoCV to find the alpha value
-        #cv_outer = KFold(len(X))
-        #lasso = LassoCV(cv=3)  # cv=3 makes a KFold inner splitting with 3 folds
-        #reg = LassoCV(cv=3, random_state=42).fit(X_train, y_train)
-        #alpha = reg.alpha_
-
-        ######## 2b.II. then use Lasso to find the fit and parameters
-        #scores = cross_validate(lasso, X, y, return_estimator=True, cv=cv_outer)
-        ##clf = Lasso(alpha=20) ## Okay, this value was just chosen by me somewhat randomly (knew that I wanted it v strong)
-        clf = LassoCV(cv=5) ## <<-- choosing the alpha is magic ATM, so let's use cross validation to choose it instead...
+        clf = LassoCV(cv=3, max_iter=8000) ## <<-- instead of having choosing the alpha be magic, let's use cross validation to choose it instead...
 
         # need to replace the missing values in the data w/ meaningful values...
         imp = SimpleImputer(missing_values=np.nan, strategy='median')
@@ -399,6 +384,9 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p):
         list_of_feat_coefs_dfs.append(coef_feature_df)
         print '--------------------------'
 
+        model_params = clf.get_params()
+        model_params['alpha_val'] = clf.alpha_
+        list_of_model_parameters.append(model_params)
 
         '''
         print X_train
@@ -440,10 +428,26 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p):
     list_of_attacks_found_dfs.append( pd.DataFrame([8,9]) )
 
     generate_report.generate_report(list_of_rocs, list_of_feat_coefs_dfs, list_of_attacks_found_dfs,
-                                    recipes_used, base_output_name, time_grans)
+                                    recipes_used, base_output_name, time_grans, list_of_model_parameters)
 
     print "multi_experiment_pipeline is all done! (NO ERROR DURING RUNNING)"
     #print "recall that this was the list of alert percentiles", percentile_thresholds
+
+def aggregate_dfs(list_time_gran_to_mod_zscore_df):
+    time_gran_to_aggregate_mod_score_dfs = {}
+    for time_gran_to_mod_zscore_df in list_time_gran_to_mod_zscore_df:
+        for time_gran, mod_zscore_df in time_gran_to_mod_zscore_df.iteritems():
+            if time_gran not in time_gran_to_aggregate_mod_score_dfs.keys():
+                time_gran_to_aggregate_mod_score_dfs[time_gran] = mod_zscore_df
+                print "post_initializing_aggregate_dataframe", len(time_gran_to_aggregate_mod_score_dfs[time_gran]), \
+                    type(time_gran_to_aggregate_mod_score_dfs[time_gran]), time_gran
+
+            else:
+                time_gran_to_aggregate_mod_score_dfs[time_gran] = \
+                    time_gran_to_aggregate_mod_score_dfs[time_gran].append(mod_zscore_df, sort=True)
+                print "should_be_appending_mod_z_scores", len(time_gran_to_aggregate_mod_score_dfs[time_gran]), \
+                    type(time_gran_to_aggregate_mod_score_dfs[time_gran]), time_gran
+    return time_gran_to_aggregate_mod_score_dfs
 
 if __name__ == "__main__":
     time_gran_to_attack_labels = {1: [0, 0, 1, 1, 0, 0, 0, 0, 0, 0], 2: [0, 1, 0, 0, 0]}
