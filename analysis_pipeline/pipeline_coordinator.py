@@ -114,26 +114,14 @@ def exfil_time_valid(potential_starting_point, time_slots_attack, attack_labels)
             break
     return not attack_found
 
-##### the goal needs to be some mapping of times to attacks to time (ranges) + updated attack labels
-##### so, in effect, there are TWO outputs... and it makes a lot more sense to pick the range then modify
-##### the labels
-def determine_attacks_to_times(time_gran_to_attack_labels, synthetic_exfil_paths, time_of_synethic_exfil, min_starting):
-    time_grans = time_gran_to_attack_labels.keys()
-    largest_time_gran = sorted(time_grans)[-1]
-    print "LARGEST_TIME_GRAN", largest_time_gran
-    time_periods_attack = float(time_of_synethic_exfil) / float(largest_time_gran)
-    time_periods_startup = math.ceil(float(min_starting) / float(largest_time_gran))
-    time_gran_to_attack_ranges = {} # a list that'll correspond w/ the synthetic exfil paths
-    for time_gran in time_gran_to_attack_labels.keys():
-        time_gran_to_attack_ranges[time_gran] = []
-
+def assign_attacks_to_first_available_spots(time_gran_to_attack_labels, largest_time_gran, time_periods_startup, time_periods_attack,
+                                            counter, time_gran_to_attack_ranges):
     for synthetic_exfil_path in synthetic_exfil_paths:
         # randomly choose ranges using highest granularity (then after this we'll choose for the smaller granularities...)
         attack_spot_found = False
         number_free_spots = time_gran_to_attack_labels[largest_time_gran][int(time_periods_startup):].count(0)
         if number_free_spots < time_periods_attack:
             exit(1244) # should break now b/c infinite loop (note: we're not handling the case where it is fragmented...)
-        counter = 0
         while not attack_spot_found:
             ## NOTE: not sure if the -1 is necessary...
             # NOTE: this random thing causes all types of problems. Let's just ignore it and do it right after startup??, maybe?
@@ -155,6 +143,32 @@ def determine_attacks_to_times(time_gran_to_attack_labels, synthetic_exfil_paths
                     time_gran_to_attack_labels[largest_time_gran][i] = 1
             #print "this starting point failed", potential_starting_point
             counter += 1
+    return time_gran_to_attack_labels, time_gran_to_attack_ranges
+
+##### the goal needs to be some mapping of times to attacks to time (ranges) + updated attack labels
+##### so, in effect, there are TWO outputs... and it makes a lot more sense to pick the range then modify
+##### the labels
+## NOTE: portion_for_training is the percentage to devote to using for the training period (b/c attacks will be injected
+## into both the training period and the testing period)
+def determine_attacks_to_times(time_gran_to_attack_labels, synthetic_exfil_paths, time_of_synethic_exfil, min_starting,
+                               portion_for_training):
+    time_grans = time_gran_to_attack_labels.keys()
+    largest_time_gran = sorted(time_grans)[-1]
+    print "LARGEST_TIME_GRAN", largest_time_gran
+    time_periods_attack = float(time_of_synethic_exfil) / float(largest_time_gran)
+    time_periods_startup = math.ceil(float(min_starting) / float(largest_time_gran))
+    time_gran_to_attack_ranges = {} # a list that'll correspond w/ the synthetic exfil paths
+    for time_gran in time_gran_to_attack_labels.keys():
+        time_gran_to_attack_ranges[time_gran] = []
+
+    # first, let's assign for the training period...
+    counter = 0
+    time_gran_to_attack_labels, time_gran_to_attack_ranges = assign_attacks_to_first_available_spots(time_gran_to_attack_labels, largest_time_gran, time_periods_startup,
+                                            time_periods_attack, counter, time_gran_to_attack_ranges)
+    # second, let's assign for the testing period...
+    counter = math.ceil(len(time_gran_to_attack_labels[largest_time_gran]) * largest_time_gran * portion_for_training - time_periods_startup)
+    time_gran_to_attack_labels, time_gran_to_attack_ranges = assign_attacks_to_first_available_spots(time_gran_to_attack_labels, largest_time_gran, time_periods_startup,
+                                            time_periods_attack, counter, time_gran_to_attack_ranges)
 
     # okay, so now we have the times selected for the largest time granularity... we have to make sure
     # that the other granularities agree...
@@ -190,9 +204,10 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
                                kubernetes_svc_info=None, make_net_graphs_p=False, cilium_config_path=None,
                                rdpcap_p=False, kubernetes_pod_info=None, alert_file=None, ROC_curve_p=False,
                                calc_zscore_p=False, training_window_size=200, minimum_training_window=5,
-                               sec_between_exfil_events=1, time_of_synethic_exfil=60,
+                               sec_between_exfil_events=1, time_of_synethic_exfil=30,
                                fraction_of_edge_weights=0.1, fraction_of_edge_pkts=0.1,
-                               size_of_neighbor_training_window=300):
+                               size_of_neighbor_training_window=300,
+                               portion_for_training=0.7):
 
     print "log file can be found at: " + str(basefile_name) + '_logfile.log'
     logging.basicConfig(filename=basefile_name + '_logfile.log', level=logging.INFO)
@@ -211,7 +226,6 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
     exp_name = basefile_name.split('/')[-1]
     interval_to_filenames = process_pcap.process_pcap(experiment_folder_path, pcap_file, time_interval_lengths,
                                                       exp_name, make_edgefiles_p, mapping)
-
 
     if calc_vals or graph_p:
         # TODO: 90% sure that there is a problem with this function...
@@ -243,10 +257,12 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
         print "INITIAL time_gran_to_attack_labels", time_gran_to_attack_labels
         ## okay, I'll probably wanna write tests for the below function, but it seems to be working pretty well on my
         # informal tests...
+        portion_for_training = portion_for_training
         time_gran_to_attack_labels, time_gran_to_attack_ranges = determine_attacks_to_times(time_gran_to_attack_labels,
                                                                                             synthetic_exfil_paths,
                                                                                             time_of_synethic_exfil=time_of_synethic_exfil,
-                                                                                            min_starting=training_window_size+size_of_neighbor_training_window)
+                                                                                            min_starting=training_window_size+size_of_neighbor_training_window,
+                                                                                            portion_for_training=portion_for_training)
         print "time_gran_to_attack_labels",time_gran_to_attack_labels
         print "time_gran_to_attack_ranges", time_gran_to_attack_ranges
         #time.sleep(50)
@@ -271,6 +287,7 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
         time_gran_to_attack_labels = {}
         for interval in interval_to_filenames.keys():
             time_gran_to_feature_dataframe[interval] = pd.read_csv(alert_file + sub_path + str(interval) + '.csv', na_values='?')
+            ## todo extract paths and store in variable
             time_gran_to_attack_labels[interval] = time_gran_to_feature_dataframe[interval]['labels']
 
     print "about to calculate some alerts!"
