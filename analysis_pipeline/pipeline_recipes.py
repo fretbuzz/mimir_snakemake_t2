@@ -848,7 +848,7 @@ def process_wordpress6_rep3():
     cilium_config_path = None # does NOT sue cilium on reps 2-4
     kubernetes_svc_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_six_rep_3_svc_config_0.txt'
     kubernetes_pod_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_six_rep_3_pod_config_0.txt'
-    time_interval_lengths = [60, 30, 10]#,
+    time_interval_lengths = [30, 10]#,
                              #1]  # , 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
     ms_s = ["my-release-pxc", "wwwppp-wordpress"]
     make_edgefiles = False ## already done!
@@ -890,7 +890,7 @@ def process_wordpress6_rep4():
      cilium_config_path = None  # does NOT sue cilium on reps 2-4
      kubernetes_svc_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_six_rep_4_svc_config_0.txt'
      kubernetes_pod_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_six_rep_4_pod_config_0.txt'
-     time_interval_lengths = [60, 30, 10]  # ,
+     time_interval_lengths = [30, 10]  # ,
      # 1]  # , 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
      ms_s = ["my-release-pxc", "wwwppp-wordpress"]
      make_edgefiles = False
@@ -930,7 +930,7 @@ def process_wordpress7_rep3():
     cilium_config_path = None
     kubernetes_svc_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_seven_rep_3_svc_config_0.txt'
     kubernetes_pod_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_seven_rep_3_pod_config_0.txt'
-    time_interval_lengths = [60, 30, 10]#,
+    time_interval_lengths = [30, 10]#,
     # 1]  # , 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
     ms_s = ["my-release-pxc", "wwwppp-wordpress"]
     make_edgefiles = False
@@ -1011,7 +1011,7 @@ def process_wordpress7_rep2():
     cilium_config_path = None
     kubernetes_svc_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_seven_rep_2_svc_config_0.txt'
     kubernetes_pod_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_seven_rep_2_pod_config_0.txt'
-    time_interval_lengths = [60, 30, 10]#,
+    time_interval_lengths = [30, 10]#,
                              #1]  # , 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
     ms_s = ["my-release-pxc", "wwwppp-wordpress"]
     make_edgefiles = False
@@ -1091,7 +1091,7 @@ def process_wordpress8_rep_2():
     container_info_path = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_eight_rep_2_docker_0_network_configs.txt'
     kubernetes_svc_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_eight_rep_2_svc_config_0.txt'
     kubernetes_pod_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_eight_rep_2_pod_config_0.txt'
-    time_interval_lengths = [60, 30, 10]#,
+    time_interval_lengths = [30, 10]#,
                              #1]  # , 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
     ms_s = ["my-release-pxc", "wwwppp-wordpress"]
     make_edgefiles = False
@@ -1131,7 +1131,7 @@ def process_wordpress8_rep_3():
     container_info_path = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_eight_rep_3_docker_0_network_configs.txt'
     kubernetes_svc_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_eight_rep_3_svc_config_0.txt'
     kubernetes_pod_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_eight_rep_3_pod_config_0.txt'
-    time_interval_lengths = [60, 30, 10]#,
+    time_interval_lengths = [30, 10]#,
                              #1]  # , 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
     ms_s = ["my-release-pxc", "wwwppp-wordpress"]
     make_edgefiles = False
