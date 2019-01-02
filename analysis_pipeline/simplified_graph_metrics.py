@@ -300,7 +300,7 @@ def inject_synthetic_attacks(graph, synthetic_exfil_paths, initiator_info_for_pa
         #print "SWAZG", counter, attacks_to_times, len(attacks_to_times)
         if current_time >= attack_ranges[0] and current_time < attack_ranges[1]:
             # then the attack occurs during this interval....
-            attack_occuring = counter
+            attack_occuring = counter % len(synthetic_exfil_paths)
             print "attack in range found!"
             break
     if attack_occuring:

@@ -856,7 +856,7 @@ def process_wordpress6_rep3():
     end_time = None
     exfil_start_time = 600
     exfil_end_time = 650
-    calc_vals = False
+    calc_vals = True
     window_size = 6
     graph_p = False  # should I make graphs?
     colors = ['b', 'r']
@@ -898,7 +898,7 @@ def process_wordpress6_rep4():
      end_time = None
      exfil_start_time = 600
      exfil_end_time = 650
-     calc_vals = False
+     calc_vals = True
      window_size = 6
      graph_p = False  # should I make graphs?
      colors = ['b', 'r']
@@ -938,7 +938,7 @@ def process_wordpress7_rep3():
     end_time = None
     exfil_start_time = 600
     exfil_end_time = 650
-    calc_vals = False
+    calc_vals = True
     window_size = 6
     graph_p = False  # should I make graphs?
     colors = ['b', 'r']
@@ -1019,7 +1019,7 @@ def process_wordpress7_rep2():
     end_time = None
     exfil_start_time = 600
     exfil_end_time = 650
-    calc_vals = False
+    calc_vals = True
     window_size = 6
     graph_p = False  # should I make graphs?
     colors = ['b', 'r', 'y']
@@ -1099,7 +1099,7 @@ def process_wordpress8_rep_2():
     end_time = None
     exfil_start_time = 600
     exfil_end_time = 900
-    calc_vals = False
+    calc_vals = True
     window_size = 6
     graph_p = False  # should I make graphs?
     colors = ['b', 'r']
@@ -1139,7 +1139,7 @@ def process_wordpress8_rep_3():
     end_time = None
     exfil_start_time = 600
     exfil_end_time = 900
-    calc_vals = False
+    calc_vals = True
     window_size = 6
     graph_p = False  # should I make graphs?
     colors = ['b', 'r']

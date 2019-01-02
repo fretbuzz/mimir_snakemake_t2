@@ -262,7 +262,7 @@ def calculate_mod_zscores_dfs(calculated_vals, minimum_training_window, training
                                                                          time_gran_to_list_of_anom_metrics_applied, time_grans)
     return time_gran_to_mod_z_score_dataframe
 
-def save_feature_datafames(time_gran_to_feature_dataframe, csv_path, time_gran_to_attack_labels):
+def save_feature_datafames(time_gran_to_feature_dataframe, csv_path, time_gran_to_attack_labels, time_gran_to_synthetic_exfil_paths_series):
     print "time_gran_to_feature_dataframe",time_gran_to_feature_dataframe.keys()
     for time_gran, attack_labels in time_gran_to_attack_labels.iteritems():
         print "time_gran", time_gran, "len of attack labels", len(attack_labels)
@@ -271,7 +271,10 @@ def save_feature_datafames(time_gran_to_feature_dataframe, csv_path, time_gran_t
         #print "feature_dataframe",feature_dataframe,feature_dataframe.index
         #print "attack_labels",attack_labels, len(attack_labels), "time_gran", time_gran
         feature_dataframe['labels'] = pandas.Series(attack_labels, index=feature_dataframe.index)
-        ## TODO: need to save
+        print "time_gran_to_synthetic_exfil_paths_series[time_gran]", time_gran_to_synthetic_exfil_paths_series[time_gran]
+        time_gran_to_synthetic_exfil_paths_series[time_gran].index = feature_dataframe.index
+        feature_dataframe['exfil_path'] = pandas.Series(time_gran_to_synthetic_exfil_paths_series[time_gran], index=feature_dataframe.index)
+        print "feature_dataframe", feature_dataframe
 
         feature_dataframe.to_csv(csv_path + str(time_gran) + '.csv', na_rep='?')
 

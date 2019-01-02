@@ -65,7 +65,7 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
     return total_calculated_vals
 
 def calc_zscores(alert_file, training_window_size, minimum_training_window,
-                 sub_path, time_gran_to_attack_labels, time_gran_to_feature_dataframe, calc_zscore_p):
+                 sub_path, time_gran_to_attack_labels, time_gran_to_feature_dataframe, calc_zscore_p, time_gran_to_synthetic_exfil_paths_series):
 
     #time_gran_to_mod_zscore_df = process_graph_metrics.calculate_mod_zscores_dfs(total_calculated_vals, minimum_training_window,
     #                                                                             training_window_size, time_interval_lengths)
@@ -79,20 +79,22 @@ def calc_zscores(alert_file, training_window_size, minimum_training_window,
                                                                                             minimum_training_window)
 
         process_graph_metrics.save_feature_datafames(time_gran_to_mod_zscore_df, mod_z_score_df_basefile_name,
-                                                     time_gran_to_attack_labels)
+                                                     time_gran_to_attack_labels, time_gran_to_synthetic_exfil_paths_series)
 
         time_gran_to_zscore_dataframe = process_graph_metrics.calc_time_gran_to_zscore_dfs(time_gran_to_feature_dataframe,
                                                                                            training_window_size,
                                                                                            minimum_training_window)
 
         process_graph_metrics.save_feature_datafames(time_gran_to_zscore_dataframe, z_score_df_basefile_name,
-                                                     time_gran_to_attack_labels)
+                                                     time_gran_to_attack_labels, time_gran_to_synthetic_exfil_paths_series)
     else:
         time_gran_to_zscore_dataframe = {}
         time_gran_to_mod_zscore_df = {}
         for interval in time_gran_to_feature_dataframe.keys():
             time_gran_to_zscore_dataframe[interval] = pd.read_csv(z_score_df_basefile_name + str(interval) + '.csv', na_values='?')
             time_gran_to_mod_zscore_df[interval] = pd.read_csv(mod_z_score_df_basefile_name + str(interval) + '.csv', na_values='?')
+            del time_gran_to_zscore_dataframe[interval]['exfil_path']
+            del time_gran_to_mod_zscore_df[interval]['exfil_path']
 
     return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe
 
@@ -115,7 +117,7 @@ def exfil_time_valid(potential_starting_point, time_slots_attack, attack_labels)
     return not attack_found
 
 def assign_attacks_to_first_available_spots(time_gran_to_attack_labels, largest_time_gran, time_periods_startup, time_periods_attack,
-                                            counter, time_gran_to_attack_ranges):
+                                            counter, time_gran_to_attack_ranges, synthetic_exfil_paths):
     for synthetic_exfil_path in synthetic_exfil_paths:
         # randomly choose ranges using highest granularity (then after this we'll choose for the smaller granularities...)
         attack_spot_found = False
@@ -164,17 +166,18 @@ def determine_attacks_to_times(time_gran_to_attack_labels, synthetic_exfil_paths
     # first, let's assign for the training period...
     counter = 0
     time_gran_to_attack_labels, time_gran_to_attack_ranges = assign_attacks_to_first_available_spots(time_gran_to_attack_labels, largest_time_gran, time_periods_startup,
-                                            time_periods_attack, counter, time_gran_to_attack_ranges)
+                                            time_periods_attack, counter, time_gran_to_attack_ranges, synthetic_exfil_paths)
     # second, let's assign for the testing period...
-    counter = math.ceil(len(time_gran_to_attack_labels[largest_time_gran]) * largest_time_gran * portion_for_training - time_periods_startup)
+    counter = int(math.ceil(len(time_gran_to_attack_labels[largest_time_gran]) * portion_for_training - time_periods_startup))
+    print "second_counter!!", counter
     time_gran_to_attack_labels, time_gran_to_attack_ranges = assign_attacks_to_first_available_spots(time_gran_to_attack_labels, largest_time_gran, time_periods_startup,
-                                            time_periods_attack, counter, time_gran_to_attack_ranges)
+                                            time_periods_attack, counter, time_gran_to_attack_ranges, synthetic_exfil_paths)
 
     # okay, so now we have the times selected for the largest time granularity... we have to make sure
     # that the other granularities agree...
 
     print "HIGHEST GRAN SYNTHETIC ATTACKS CHOSEN -- START MAPPING TO LOWER GRAN NOW!"
-    for j in range(0, len(synthetic_exfil_paths)):
+    for j in range(0, len(time_gran_to_attack_ranges[largest_time_gran])):
         for time_gran, attack_labels in time_gran_to_attack_labels.iteritems():
             if time_gran == largest_time_gran:
                 continue
@@ -190,6 +193,23 @@ def determine_attacks_to_times(time_gran_to_attack_labels, synthetic_exfil_paths
                 #print "z",z
                 attack_labels[z] = 1
     return time_gran_to_attack_labels, time_gran_to_attack_ranges
+
+def determine_time_gran_to_synthetic_exfil_paths_series(time_gran_to_attack_ranges, synthetic_exfil_paths, interval_to_filenames):
+    time_gran_to_synthetic_exfil_paths_series = {}
+    for time_gran, attack_ranges in time_gran_to_attack_ranges.iteritems():
+        print interval_to_filenames.keys()
+        time_steps = len(interval_to_filenames[str(time_gran)])
+        current_exfil_path_series = pd.Series([0 for i in range(0,time_steps)])
+        print "time_gran_attack_ranges", time_gran, attack_ranges
+        for attack_counter, attack_range in enumerate(attack_ranges):
+            for i in range(attack_range[0], attack_range[1]):
+                current_exfil_path_series[i] = synthetic_exfil_paths[attack_counter % len(synthetic_exfil_paths)]
+        #current_exfil_path_series.index *= 10
+        time_gran_to_synthetic_exfil_paths_series[time_gran] = current_exfil_path_series
+    #print "time_gran_to_synthetic_exfil_paths_series", time_gran_to_synthetic_exfil_paths_series
+
+    #time.sleep(60)
+    return time_gran_to_synthetic_exfil_paths_series
 
 ## TODO: this function is an atrocity and should be converted into a snakemake spec so we can use that instead...###
 ## todo (aim to get it done today...) : change  run_data_analysis_pipeline signature plus the feeder...
@@ -267,6 +287,12 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
         print "time_gran_to_attack_ranges", time_gran_to_attack_ranges
         #time.sleep(50)
 
+        time_gran_to_synthetic_exfil_paths_series = determine_time_gran_to_synthetic_exfil_paths_series(time_gran_to_attack_ranges,
+                                                                            synthetic_exfil_paths, interval_to_filenames)
+
+        print "time_gran_to_synthetic_exfil_paths_series", time_gran_to_synthetic_exfil_paths_series
+        #time.sleep(50)
+
         # OKAY, let's verify that this determine_attacks_to_times function is wokring before moving on to the next one...
         total_calculated_vals = calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms_s, basegraph_name, calc_vals,
                                                             window_size, mapping, is_swarm, make_net_graphs_p, list_of_infra_services,
@@ -275,7 +301,8 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
 
         time_gran_to_feature_dataframe = process_graph_metrics.generate_feature_dfs( total_calculated_vals, time_interval_lengths)
 
-        process_graph_metrics.save_feature_datafames(time_gran_to_feature_dataframe, alert_file + sub_path, time_gran_to_attack_labels)
+        process_graph_metrics.save_feature_datafames(time_gran_to_feature_dataframe, alert_file + sub_path,
+                                                     time_gran_to_attack_labels,time_gran_to_synthetic_exfil_paths_series)
 
         analysis_pipeline.generate_graphs.generate_feature_multitime_boxplots(total_calculated_vals, basegraph_name,
                                                                               window_size, colors, time_interval_lengths,
@@ -285,21 +312,27 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
     else:
         time_gran_to_feature_dataframe = {}
         time_gran_to_attack_labels = {}
+        time_gran_to_synthetic_exfil_paths_series = {}
         for interval in interval_to_filenames.keys():
             time_gran_to_feature_dataframe[interval] = pd.read_csv(alert_file + sub_path + str(interval) + '.csv', na_values='?')
-            ## todo extract paths and store in variable
             time_gran_to_attack_labels[interval] = time_gran_to_feature_dataframe[interval]['labels']
+            time_gran_to_synthetic_exfil_paths_series[interval] = time_gran_to_feature_dataframe[interval]['exfil_path']
+
 
     print "about to calculate some alerts!"
 
+    for time_gran, feature_dataframe in time_gran_to_feature_dataframe.iteritems():
+        del feature_dataframe['exfil_path']
+
     time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe = \
         calc_zscores(alert_file, training_window_size, minimum_training_window, sub_path, time_gran_to_attack_labels,
-                     time_gran_to_feature_dataframe, calc_zscore_p)
+                     time_gran_to_feature_dataframe, calc_zscore_p, time_gran_to_synthetic_exfil_paths_series)
 
     print "analysis_pipeline about to return!"
 
     # okay, so can return it here...
-    return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe
+
+    return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, time_gran_to_synthetic_exfil_paths_series
 
 # this function loops through multiple experiments (or even just a single experiment), accumulates the relevant
 # feature dataframes, and then performs LASSO regression to determine a concise graphical model that can detect
@@ -315,7 +348,7 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p):
     list_time_gran_to_zscore_dataframe = []
     list_time_gran_to_feature_dataframe = []
     for func in function_list:
-        time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe = func()
+        time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, _ = func()
         list_time_gran_to_mod_zscore_df.append(time_gran_to_mod_zscore_df)
         list_time_gran_to_zscore_dataframe.append(time_gran_to_zscore_dataframe)
         list_time_gran_to_feature_dataframe.append(time_gran_to_feature_dataframe)
