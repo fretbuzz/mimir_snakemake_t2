@@ -83,6 +83,7 @@ def calc_modified_z_score(time_series, window_size, min_training_window):
         # MAD = mean absolute deviation
         MAD = np.nanmedian([np.abs(val - median) for val in training_window])
         if MAD:
+            print next_val, type(next_val), median, type(median)
             next_modified_z_score = 0.6754 * (next_val - median) / MAD
             #print "No ZeroDivisionError!"
         else:
@@ -262,7 +263,8 @@ def calculate_mod_zscores_dfs(calculated_vals, minimum_training_window, training
                                                                          time_gran_to_list_of_anom_metrics_applied, time_grans)
     return time_gran_to_mod_z_score_dataframe
 
-def save_feature_datafames(time_gran_to_feature_dataframe, csv_path, time_gran_to_attack_labels, time_gran_to_synthetic_exfil_paths_series):
+def save_feature_datafames(time_gran_to_feature_dataframe, csv_path, time_gran_to_attack_labels, time_gran_to_synthetic_exfil_paths_series,
+                           time_gran_to_list_of_concrete_exfil_paths, time_gran_to_list_of_exfil_amts):
     print "time_gran_to_feature_dataframe",time_gran_to_feature_dataframe.keys()
     for time_gran, attack_labels in time_gran_to_attack_labels.iteritems():
         print "time_gran", time_gran, "len of attack labels", len(attack_labels)
@@ -274,10 +276,12 @@ def save_feature_datafames(time_gran_to_feature_dataframe, csv_path, time_gran_t
         print "time_gran_to_synthetic_exfil_paths_series[time_gran]", time_gran_to_synthetic_exfil_paths_series[time_gran]
         time_gran_to_synthetic_exfil_paths_series[time_gran].index = feature_dataframe.index
         feature_dataframe['exfil_path'] = pandas.Series(time_gran_to_synthetic_exfil_paths_series[time_gran], index=feature_dataframe.index)
+        feature_dataframe['concrete_exfil_path'] = pandas.Series(time_gran_to_list_of_concrete_exfil_paths[time_gran], index=feature_dataframe.index)
+        feature_dataframe['exfil_weight'] = pandas.Series([i['weight'] for i in time_gran_to_list_of_exfil_amts[time_gran]], index=feature_dataframe.index)
+        feature_dataframe['exfil_pkts'] = pandas.Series([i['frames'] for i in time_gran_to_list_of_exfil_amts[time_gran]], index=feature_dataframe.index)
         print "feature_dataframe", feature_dataframe
 
         feature_dataframe.to_csv(csv_path + str(time_gran) + '.csv', na_rep='?')
-
 
 def calc_time_gran_to_zscore_dfs(time_gran_to_feature_dataframe, training_window_size,
                                  minimum_training_window):

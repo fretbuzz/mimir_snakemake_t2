@@ -259,6 +259,7 @@ def create_mappings(is_swarm, container_info_path, kubernetes_svc_info, kubernet
         # info about the svc's, b/c kubernetes service VIPs don't show up in the docker configs
         # pass
         kubernetes_service_VIPs, total_list_of_services = parse_kubernetes_svc_info(kubernetes_svc_info)
+        print "kubernetes_service_VIPs", kubernetes_service_VIPs
         mapping.update(kubernetes_service_VIPs)
         list_of_infra_services = []
         for total_svc in total_list_of_services:

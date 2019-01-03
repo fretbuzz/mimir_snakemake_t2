@@ -122,6 +122,8 @@ def calc_outside_inside_ratio_dns_metric(dns_in_metric_dicts,dns_out_metric_dict
 def create_dict_for_dns_metric(G, name_of_of_dns_node):
     return_dict = {}
     return_dict_two = {}
+    return_dict_packets = {}
+    return_dict_two_packets = {}
     # okay, so the end-goal is to get a dict that can be aggreated into a list and fed into calc_dns_metric
     logging.info("create_dict_for_dns_metric nodes, " + str(G.nodes()))
     try:
@@ -132,9 +134,11 @@ def create_dict_for_dns_metric(G, name_of_of_dns_node):
             node = edge_tuple[0]
             edge_attribs = edge_tuple[2]
             return_dict[node] = edge_attribs['weight']
+            return_dict_packets[node] = edge_attribs['frames']
 
         for node,edge_attribs in G[name_of_of_dns_node].iteritems():
             return_dict_two[node] = edge_attribs['weight']
+            return_dict_two_packets[node] = edge_attribs['frames']
     except: # no activity with DNS node...
         pass
     # looks like you'd be done... but not yet! we gotta make sure that all nodes in the graph are represented
@@ -142,9 +146,11 @@ def create_dict_for_dns_metric(G, name_of_of_dns_node):
     for node in G.nodes():
         if node not in return_dict:
             return_dict[node] = 0
+            return_dict_packets[node] = 0
         if node not in return_dict_two:
             return_dict_two[node] = 0
-    return return_dict,return_dict_two
+            return_dict_two_packets[node] = 0
+    return return_dict,return_dict_two,return_dict_packets,return_dict_two_packets
 
 # note: this works b/c items do not change order in lists
 def turn_into_list(dicts, node_list):
@@ -273,4 +279,4 @@ def find_dns_node_name(G):
     for node in G.nodes():
         if 'kube-dns' in node and 'POD' in node:
             return node
-    return "foobar" # doesn't matter because it is not present anyway
+    return None # doesn't matter because it is not present anyway

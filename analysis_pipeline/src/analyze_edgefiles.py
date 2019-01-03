@@ -807,6 +807,7 @@ def calc_VIP_metric(G, abs_val_p):
             #print "services found!"
 
             if '_VIP' in node1 and '_VIP' in node2:
+                print (node1, node2, data)
                 print 'VIPs communicating??'
                 exit(10)
 
