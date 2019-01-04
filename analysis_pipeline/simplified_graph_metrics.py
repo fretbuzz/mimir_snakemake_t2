@@ -303,6 +303,7 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
 
     return calculated_values, list_of_concrete_container_exfil_paths, list_of_exfil_amts
 
+
 def inject_synthetic_attacks(graph, synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
                              node_granularity, time_granularity,graph_number, attack_number_to_mapping,
                              fraction_of_edge_weights, fraction_of_edge_pkts, pre_specified_data_attribs,
@@ -450,23 +451,23 @@ def inject_synthetic_attacks(graph, synthetic_exfil_paths, initiator_info_for_pa
                 print "concrete_node_path", node_one_loc, concrete_node_path
                 graph = add_edge_weight_graph(graph, concrete_node_src_one, concrete_node_dst,
                                       fraction_of_weight_median, fraction_of_pkt_median)
-                if concrete_node_path == []:
-                    concrete_node_path.append(concrete_node_src_one)
+                #if concrete_node_path == []:
+                #    concrete_node_path.append(concrete_node_src_one)
                 print "concrete_node_path", node_one_loc, concrete_node_path
                 graph = add_edge_weight_graph(graph, concrete_node_src_two, concrete_node_dst,
                                       fraction_of_weight_median, fraction_of_pkt_median)
                 node_one_loc += 1 # b/c we're modifying two edges here, we need to increment the counter one more time...
-                concrete_node_path.append(concrete_node_src_two)
-                concrete_node_path.append(concrete_node_dst)
+                concrete_node_path.append((concrete_node_src_one,concrete_node_dst))
+                concrete_node_path.append((concrete_node_src_two,concrete_node_dst))
                 print "concrete_node_path", node_one_loc, concrete_node_path
             else:
                 # this case does not involve any redirection via the kubernetes network model, so it is simple
                 concrete_node_src = attack_number_to_mapping[attack_occuring][abstract_node_pair[0]]
                 concrete_node_dst = attack_number_to_mapping[attack_occuring][abstract_node_pair[1]]
 
-                if concrete_node_path == []:
-                    concrete_node_path.append(concrete_node_src)
-                concrete_node_path.append(concrete_node_dst)
+                #if concrete_node_path == []:
+                #    concrete_node_path.append(concrete_node_src)
+                concrete_node_path.append((concrete_node_src,concrete_node_dst))
 
                 graph = add_edge_weight_graph(graph, concrete_node_src, concrete_node_dst,
                                                                   fraction_of_weight_median,

@@ -22,6 +22,7 @@ def determine_optimal_threshold(y_true, test_predictions, thresholds):
 def determine_categorical_labels(y_test, optimal_predictions, exfil_paths):
     attack_type_to_predictions = {}
     attack_type_to_truth = {}
+    print exfil_paths
     types_of_exfil_paths = list(set(exfil_paths.tolist()))
     print "types_of_exfil_paths", types_of_exfil_paths
     types_of_exfil_paths = [ast.literal_eval(i) for i in types_of_exfil_paths]
@@ -31,13 +32,14 @@ def determine_categorical_labels(y_test, optimal_predictions, exfil_paths):
     attack_type_to_index = {}
     for exfil_type in types_of_exfil_paths:
         print "exfil_type",exfil_type, type(exfil_type), "tuple(exfil_type)",tuple(exfil_type), type(tuple(exfil_type))
-        current_indexes = []
-        ## TODO: this function is all kinds of broken.... VVVV .... VVV ... the == is never true b/c I'm messing w/ exfil paths
-        #for i,j in enumerate(exfil_paths):
-        #    if j == exfil_type
         current_indexes = [i for i, j in enumerate(exfil_paths) if j == str(exfil_type)]
         print "current_indexes", current_indexes
         attack_type_to_index[tuple(exfil_type)] = current_indexes
+    number_of_found_exfils = len(attack_type_to_index.values())
+    number_of_existing_times = len(y_test)
+    if number_of_found_exfils == number_of_existing_times:
+        print number_of_found_exfils, number_of_existing_times
+        exit(312)
     print "optimal_predictions", len(optimal_predictions)
     print "attack_type_to_index",attack_type_to_index
     #print "y_test", y_test['labels'], type(y_test['labels'])

@@ -404,6 +404,7 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p):
         list_time_gran_to_mod_zscore_df.append(time_gran_to_mod_zscore_df)
         list_time_gran_to_zscore_dataframe.append(time_gran_to_zscore_dataframe)
         list_time_gran_to_feature_dataframe.append(time_gran_to_feature_dataframe)
+        gc.collect()
 
     # step (2) :  take the dataframes and feed them into the LASSO component...
     ### 2a. split into training and testing data
