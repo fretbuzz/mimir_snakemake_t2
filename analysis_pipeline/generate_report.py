@@ -10,7 +10,7 @@ import subprocess
 ###
 
 def generate_report(list_of_rocs, list_of_feat_coef, list_of_attacks_found_dfs, recipes_used,
-                    output_location, time_grans, list_of_model_parameters):
+                    output_location, time_grans, list_of_model_parameters, list_of_optimal_fone_scores):
     # setup jinga and the associated template
     env = Environment(
         loader=FileSystemLoader(searchpath="src")
@@ -23,27 +23,34 @@ def generate_report(list_of_rocs, list_of_feat_coef, list_of_attacks_found_dfs, 
     #feature_table_placeholder = 'TABLE_OF_FEATURES_AND_COEFS_GOES_HERE'
     #attacks_found_placeholder = 'WHICH_RESULTS_FOUND_GO_HERE'
     sections = list()
-    sections.append(table_section_template.render(
-        time_gran= str(time_grans[0]) + " sec granularity",
-        roc=list_of_rocs[0],
-        feature_table=list_of_feat_coef[0].to_html(),
-        attacks_found=list_of_attacks_found_dfs[0].to_html(),
-        model_params=list_of_model_parameters[0]
-    ))
+    print "time_grans", time_grans
+    for i in range(0, len(time_grans)):
+        sections.append(table_section_template.render(
+            time_gran= str(time_grans[i]) + " sec granularity",
+            roc=list_of_rocs[i],
+            feature_table=list_of_feat_coef[i].to_html(),
+            attacks_found=list_of_attacks_found_dfs[i].to_html(),
+            model_params=list_of_model_parameters[i],
+            optimal_fOne = list_of_optimal_fone_scores[i]
+        ))
+    '''
     sections.append(table_section_template.render(
         time_gran= str(time_grans[1]) + " sec granularity",
         roc=list_of_rocs[1],
         feature_table=list_of_feat_coef[1].to_html(),
         attacks_found=list_of_attacks_found_dfs[1].to_html(),
-        model_params=list_of_model_parameters[1]
+        model_params=list_of_model_parameters[1],
+    optimal_fOne = list_of_optimal_fone_scores[1]
     ))
     sections.append(table_section_template.render(
         time_gran= str(time_grans[2]) + " sec granularity",
         roc=list_of_rocs[2],
         feature_table=list_of_feat_coef[2].to_html(),
         attacks_found=list_of_attacks_found_dfs[2].to_html(),
-        model_params=list_of_model_parameters[2]
+        model_params=list_of_model_parameters[2],
+    optimal_fOne = list_of_optimal_fone_scores[2]
     ))
+    '''
 
     print "about to render the template..."
     #print sections
@@ -80,5 +87,7 @@ if __name__ == "__main__":
     output_location = '.'
     time_grans = [1,2,3]
     list_of_model_parameters = [None, None, None]
+    list_of_optimal_fone_scores = [0, 0, 0]
     generate_report(list_of_rocs, [df_one, df_two, df_three], [df_three, df_two, df_one],
-                    recipes_used, output_location, time_grans, list_of_model_parameters)
+                    recipes_used, output_location, time_grans, list_of_model_parameters,
+                    list_of_optimal_fone_scores)

@@ -26,6 +26,8 @@ import matplotlib.pyplot as plt
 import generate_report
 import os
 import errno
+import process_roc
+import ast
 
 def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms_s, basegraph_name, calc_vals, window_size,
                                 mapping, is_swarm, make_net_graphs_p, list_of_infra_services,synthetic_exfil_paths,
@@ -102,14 +104,17 @@ def calc_zscores(alert_file, training_window_size, minimum_training_window,
         for interval in time_gran_to_feature_dataframe.keys():
             time_gran_to_zscore_dataframe[interval] = pd.read_csv(z_score_df_basefile_name + str(interval) + '.csv', na_values='?')
             time_gran_to_mod_zscore_df[interval] = pd.read_csv(mod_z_score_df_basefile_name + str(interval) + '.csv', na_values='?')
-            del time_gran_to_zscore_dataframe[interval]['exfil_path']
-            del time_gran_to_mod_zscore_df[interval]['exfil_path']
-            del time_gran_to_zscore_dataframe[interval]['concrete_exfil_path']
-            del time_gran_to_mod_zscore_df[interval]['concrete_exfil_path']
-            del time_gran_to_zscore_dataframe[interval]['exfil_weight']
-            del time_gran_to_mod_zscore_df[interval]['exfil_weight']
-            del time_gran_to_zscore_dataframe[interval]['exfil_pkts']
-            del time_gran_to_mod_zscore_df[interval]['exfil_pkts']
+            try:
+                del time_gran_to_zscore_dataframe[interval]['exfil_path']
+                del time_gran_to_mod_zscore_df[interval]['exfil_path']
+                del time_gran_to_zscore_dataframe[interval]['concrete_exfil_path']
+                del time_gran_to_mod_zscore_df[interval]['concrete_exfil_path']
+                del time_gran_to_zscore_dataframe[interval]['exfil_weight']
+                del time_gran_to_mod_zscore_df[interval]['exfil_weight']
+                del time_gran_to_zscore_dataframe[interval]['exfil_pkts']
+                del time_gran_to_mod_zscore_df[interval]['exfil_pkts']
+            except:
+                pass
 
     return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe
 
@@ -335,7 +340,10 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
         time_gran_to_synthetic_exfil_paths_series = {}
         time_gran_to_list_of_concrete_exfil_paths = {}
         time_gran_to_list_of_exfil_amts = {}
-        for interval in interval_to_filenames.keys():
+        for interval in time_interval_lengths:
+            #if interval in time_interval_lengths:
+            print "time_interval_lengths",time_interval_lengths, "interval", interval
+            print "feature_df_path", alert_file + sub_path + str(interval) + '.csv'
             time_gran_to_feature_dataframe[interval] = pd.read_csv(alert_file + sub_path + str(interval) + '.csv', na_values='?')
             time_gran_to_attack_labels[interval] = time_gran_to_feature_dataframe[interval]['labels']
             time_gran_to_synthetic_exfil_paths_series[interval] = time_gran_to_feature_dataframe[interval]['exfil_path']
@@ -354,7 +362,14 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
     print "about to calculate some alerts!"
 
     for time_gran, feature_dataframe in time_gran_to_feature_dataframe.iteritems():
-        del feature_dataframe['exfil_path']
+        try:
+            del feature_dataframe['exfil_path']
+            del feature_dataframe['exfil_weight']
+            del feature_dataframe['exfil_pkts']
+            del feature_dataframe['concrete_exfil_path']
+        except:
+            pass
+
 
     time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe = \
         calc_zscores(alert_file, training_window_size, minimum_training_window, sub_path, time_gran_to_attack_labels,
@@ -367,6 +382,8 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
     ## TODO
     #### exit(121)
 
+    #for time_gran, mod_zscore_df in time_gran_to_mod_zscore_df.iteritems():
+    #    mod_zscore_df['exfil_paths'] = time_gran_to_synthetic_exfil_paths_series[time_gran]
     return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, time_gran_to_synthetic_exfil_paths_series
 
 # this function loops through multiple experiments (or even just a single experiment), accumulates the relevant
@@ -414,22 +431,46 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p):
     list_of_feat_coefs_dfs = []
     time_grans = []
     list_of_model_parameters = []
+    list_of_attacks_found_dfs = []
+    list_of_optimal_fone_scores = []
     for time_gran,aggregate_mod_score_dfs in time_gran_to_aggregate_mod_score_dfs.iteritems():
         time_grans.append(time_gran)
-        #try:
-        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='timemod_z_score')   # might wanna just stop these from being generated...
-        #except:
-        #    pass
-        #try:
-        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='labelsmod_z_score') # might wanna just stop these from being generaetd
-        print aggregate_mod_score_dfs.columns
-        #except:
-        #    pass
+        try:
+            aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='timemod_z_score')   # might wanna just stop these from being generated...
+        except:
+            pass
+        try:
+            aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='labelsmod_z_score') # might wanna just stop these from being generaetd
+            print aggregate_mod_score_dfs.columns
+        except:
+            pass
+        try:
+            aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='Unnamed: 0mod_z_score') # might wanna just stop these from being generaetd
+        except:
+            pass
         X = aggregate_mod_score_dfs.loc[:, aggregate_mod_score_dfs.columns != 'labels']
         y = aggregate_mod_score_dfs.loc[:, aggregate_mod_score_dfs.columns == 'labels']
         print X.shape, "X.shape"
         X_train, X_test, y_train, y_test =  sklearn.model_selection.train_test_split(X, y, test_size = 0.3, random_state = 42)
         print X_train.shape, "X_train.shape"
+
+        exfil_paths = X_test['exfil_path'].replace('0','[]')
+        #print "----"
+        print "exfil_path_pre_literal_eval", exfil_paths, type(exfil_paths)
+        #exfil_paths = ast.literal_eval(exfil_paths)
+        #print "----"
+
+        X_train = X_train.drop(columns='exfil_path')
+        X_train = X_train.drop(columns='concrete_exfil_path')
+        X_train = X_train.drop(columns='exfil_weight')
+        X_train = X_train.drop(columns='exfil_pkts')
+        X_test = X_test.drop(columns='exfil_path')
+        X_test = X_test.drop(columns='concrete_exfil_path')
+        X_test = X_test.drop(columns='exfil_weight')
+        X_test = X_test.drop(columns='exfil_pkts')
+
+        print "columns", X_train.columns
+        print "columns", X_test.columns
 
         ### 2b. feed the lasso to get the high-impact features...
         clf = LassoCV(cv=3, max_iter=8000) ## <<-- instead of having choosing the alpha be magic, let's use cross validation to choose it instead...
@@ -506,16 +547,35 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p):
             ax, _, plot_path = generate_alerts.construct_ROC_curve(x_vals, y_vals, title, ROC_path + plot_name, show_p=False)
             list_of_rocs.append(plot_path)
 
+            ### determination of the optimal operating point goes here (take all the thresh vals and predictions,
+            ### find the corresponding f1 scores (using sklearn func), and then return the best.
+            optimal_f1_score, optimal_thresh = process_roc.determine_optimal_threshold(y_test, test_predictions, thresholds)
+            print "optimal_f1_score", optimal_f1_score, "optimal_thresh",optimal_thresh
+            list_of_optimal_fone_scores.append(optimal_f1_score)
+            ### get confusion matrix... take predictions from classifer. THreshold
+            ### using optimal threshold determined previously. Extract the labels too. This gives two lists, appropriate
+            ### for using the confusion_matrix function of sklearn. However, this does NOT handle the different
+            ### categories... (for display will probably want to make a df)
+            optimal_predictions = [int(i > optimal_thresh) for i in test_predictions]
+            print "optimal_predictions", optimal_predictions
+            ### determine categorical-level behavior... Split the two lists from the previous step into 2N lists,
+            ### where N is the # of categories, and then can just do the confusion matrix function on them...
+            ### (and then display the results somehow...)
+            y_test = y_test['labels'].tolist()
+            print "new_y_test", y_test
+            attack_type_to_predictions, attack_type_to_truth = process_roc.determine_categorical_labels(y_test, optimal_predictions, exfil_paths)
+            attack_type_to_confusion_matrix_values = process_roc.determine_cm_vals_for_categories(attack_type_to_predictions, attack_type_to_truth)
+            categorical_cm_df = process_roc.determine_categorical_cm_df(attack_type_to_confusion_matrix_values)
+            list_of_attacks_found_dfs.append(categorical_cm_df)
+
     recipes_used = [recipe.__name__ for recipe in function_list]
     for recipe in function_list:
         print "recipe_in_functon_list", recipe.__name__
-    list_of_attacks_found_dfs = []  ## TODO::  <<<<------- THIS IS GOING TO BE NEEDED FOR THE REPORTS TO BE COMPRHENSIBLE!!
-    list_of_attacks_found_dfs.append( pd.DataFrame([1,2]) )
-    list_of_attacks_found_dfs.append( pd.DataFrame([4,5]) )
-    list_of_attacks_found_dfs.append( pd.DataFrame([8,9]) )
 
+    print "list_of_rocs", list_of_rocs
     generate_report.generate_report(list_of_rocs, list_of_feat_coefs_dfs, list_of_attacks_found_dfs,
-                                    recipes_used, base_output_name, time_grans, list_of_model_parameters)
+                                    recipes_used, base_output_name, time_grans, list_of_model_parameters,
+                                    list_of_optimal_fone_scores)
 
     print "multi_experiment_pipeline is all done! (NO ERROR DURING RUNNING)"
     #print "recall that this was the list of alert percentiles", percentile_thresholds
