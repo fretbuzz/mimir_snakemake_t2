@@ -28,6 +28,8 @@ import os
 import errno
 import process_roc
 import ast
+from itertools import groupby
+from operator import itemgetter
 
 def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms_s, basegraph_name, calc_vals, window_size,
                                 mapping, is_swarm, make_net_graphs_p, list_of_infra_services,synthetic_exfil_paths,
@@ -183,6 +185,13 @@ def determine_attacks_to_times(time_gran_to_attack_labels, synthetic_exfil_paths
     for time_gran in time_gran_to_attack_labels.keys():
         time_gran_to_attack_ranges[time_gran] = []
 
+    ## assign injected attacks to times here...
+    ### (a) add to time_gran_to_attack_ranges... just put the existing ranges w/ 'injection' as the marker'
+    time_gran_to_physical_attack_ranges = {}
+    for time_gran in time_gran_to_attack_labels.keys():
+        time_gran_to_physical_attack_ranges[time_gran] = determine_physical_attack_ranges(time_gran_to_attack_labels[time_gran])
+        print "physical_attack_ranges", time_gran_to_physical_attack_ranges[time_gran]
+
     # first, let's assign for the training period...
     counter = 0
     time_gran_to_attack_labels, time_gran_to_attack_ranges = assign_attacks_to_first_available_spots(time_gran_to_attack_labels, largest_time_gran, time_periods_startup,
@@ -212,15 +221,40 @@ def determine_attacks_to_times(time_gran_to_attack_labels, synthetic_exfil_paths
             for z in range(current_start_of_attack, current_end_of_attack):
                 #print "z",z
                 attack_labels[z] = 1
-    return time_gran_to_attack_labels, time_gran_to_attack_ranges
+    return time_gran_to_attack_labels, time_gran_to_attack_ranges, time_gran_to_physical_attack_ranges
 
-def determine_time_gran_to_synthetic_exfil_paths_series(time_gran_to_attack_ranges, synthetic_exfil_paths, interval_to_filenames):
+def determine_physical_attack_ranges(physical_attack_labels):
+    ## determine the indexes of contiguous sets of 1's...
+    # step 1: find indexes of all the ones (using list comprehension)
+    indexes_of_attack_labels = [i for i,j in enumerate(physical_attack_labels) if j == 1]
+    print "indexes_of_attack_labels", indexes_of_attack_labels
+    # step 2: find contiguous size of contigous numbers
+    ### a solution to this is in the docs, so let's just
+    #### do it that way: https://docs.python.org/2.6/library/itertools.html#examples
+    physical_attack_ranges = []
+    for k, g in groupby(enumerate(indexes_of_attack_labels), lambda (i, x): i - x):
+        attack_grp =  map(itemgetter(1), g) #groupby, itemgetter
+        physical_attack_ranges.append((attack_grp[0], attack_grp[-1]))
+    #print "physical_attack_ranges", physical_attack_ranges
+    return physical_attack_ranges
+
+def determine_time_gran_to_synthetic_exfil_paths_series(time_gran_to_attack_ranges, synthetic_exfil_paths,
+                                                        interval_to_filenames, time_gran_to_physical_attack_ranges,
+                                                        injected_exfil_path):
     time_gran_to_synthetic_exfil_paths_series = {}
     for time_gran, attack_ranges in time_gran_to_attack_ranges.iteritems():
         print interval_to_filenames.keys()
         time_steps = len(interval_to_filenames[str(time_gran)])
         current_exfil_path_series = pd.Series([0 for i in range(0,time_steps)])
         print "time_gran_attack_ranges", time_gran, attack_ranges
+
+        # first add the physical attacks
+        physical_attack_ranges = time_gran_to_physical_attack_ranges[time_gran]
+        for attack_counter, attack_range in enumerate(physical_attack_ranges):
+            for i in range(attack_range[0], attack_range[1]):
+                current_exfil_path_series[i] = ['injected:'] + injected_exfil_path
+
+        # then add the injected attacks
         for attack_counter, attack_range in enumerate(attack_ranges):
             for i in range(attack_range[0], attack_range[1]):
                 current_exfil_path_series[i] = synthetic_exfil_paths[attack_counter % len(synthetic_exfil_paths)]
@@ -247,7 +281,7 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
                                sec_between_exfil_events=1, time_of_synethic_exfil=30,
                                fraction_of_edge_weights=0.1, fraction_of_edge_pkts=0.1,
                                size_of_neighbor_training_window=300,
-                               portion_for_training=0.7):
+                               portion_for_training=0.7, injected_exfil_path='None'):
 
     print "log file can be found at: " + str(basefile_name) + '_logfile.log'
     logging.basicConfig(filename=basefile_name + '_logfile.log', level=logging.INFO)
@@ -301,20 +335,21 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
         ## okay, I'll probably wanna write tests for the below function, but it seems to be working pretty well on my
         # informal tests...
         portion_for_training = portion_for_training
-        time_gran_to_attack_labels, time_gran_to_attack_ranges = determine_attacks_to_times(time_gran_to_attack_labels,
-                                                                                            synthetic_exfil_paths,
-                                                                                            time_of_synethic_exfil=time_of_synethic_exfil,
-                                                                                            min_starting=training_window_size+size_of_neighbor_training_window,
-                                                                                            portion_for_training=portion_for_training)
+        time_gran_to_attack_labels, time_gran_to_attack_ranges, time_gran_to_physical_attack_ranges = \
+            determine_attacks_to_times(time_gran_to_attack_labels, synthetic_exfil_paths, time_of_synethic_exfil=time_of_synethic_exfil,
+                                       min_starting=training_window_size+size_of_neighbor_training_window, portion_for_training=portion_for_training)
         print "time_gran_to_attack_labels",time_gran_to_attack_labels
         print "time_gran_to_attack_ranges", time_gran_to_attack_ranges
         #time.sleep(50)
 
         time_gran_to_synthetic_exfil_paths_series = determine_time_gran_to_synthetic_exfil_paths_series(time_gran_to_attack_ranges,
-                                                                            synthetic_exfil_paths, interval_to_filenames)
+                                                                            synthetic_exfil_paths, interval_to_filenames,
+                                                                            time_gran_to_physical_attack_ranges, injected_exfil_path)
 
         print "time_gran_to_synthetic_exfil_paths_series", time_gran_to_synthetic_exfil_paths_series
         #time.sleep(50)
+
+        #####exit(200) ## TODO ::: <<<---- remove!!
 
         # OKAY, let's verify that this determine_attacks_to_times function is wokring before moving on to the next one...
         total_calculated_vals, time_gran_to_list_of_concrete_exfil_paths, time_gran_to_list_of_exfil_amts = \
@@ -603,8 +638,9 @@ if __name__ == "__main__":
     synthetic_exfil_paths = [['a', 'b'], ['b', 'c']]
     time_of_synethic_exfil = 2
     startup_time_before_injection = 4
-    time_gran_to_attack_labels, time_gran_to_attack_ranges = \
+    time_gran_to_attack_labels, time_gran_to_attack_ranges, time_gran_to_physical_attack_ranges = \
         determine_attacks_to_times(time_gran_to_attack_labels, synthetic_exfil_paths,
                                   time_of_synethic_exfil, startup_time_before_injection)
     print "time_gran_to_attack_labels", time_gran_to_attack_labels
     print "time_gran_to_attack_ranges", time_gran_to_attack_ranges
+    print "time_gran_to_physical_attack_ranges", time_gran_to_physical_attack_ranges

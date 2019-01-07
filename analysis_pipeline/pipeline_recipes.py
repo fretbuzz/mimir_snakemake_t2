@@ -856,7 +856,7 @@ def process_wordpress6_rep3():
     end_time = None
     exfil_start_time = 600
     exfil_end_time = 650
-    calc_vals = False #
+    calc_vals = True #
     window_size = 6
     graph_p = False  # should I make graphs?
     colors = ['b', 'r']
@@ -866,6 +866,7 @@ def process_wordpress6_rep3():
     anom_num_outlier_vals_in_window = [1, 2] # note: these vals correspond to anoamly_window (so the first vals get matched, etc.)
     alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_six_rep_3_'
     sec_between_exfil_events = 15
+    injected_exfil_path = ['my_release_pxc_pod', 'kube_dns_vip', 'kube_dns_pod', 'internet']
     time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe,fourth_return_val = \
         run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
                                make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
@@ -873,7 +874,8 @@ def process_wordpress6_rep3():
                                graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
                                cilium_config_path=cilium_config_path, rdpcap_p=False,
                                kubernetes_pod_info=kubernetes_pod_info, alert_file=alert_file, ROC_curve_p=True,
-                               calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events)
+                               calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events,
+                               injected_exfil_path = injected_exfil_path)
     return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe,fourth_return_val
     #'''
 
@@ -898,7 +900,7 @@ def process_wordpress6_rep4():
      end_time = None
      exfil_start_time = 600
      exfil_end_time = 650
-     calc_vals = False
+     calc_vals = True
      window_size = 6
      graph_p = False  # should I make graphs?
      colors = ['b', 'r']
@@ -908,6 +910,7 @@ def process_wordpress6_rep4():
      anom_num_outlier_vals_in_window = [1, 2] # note: these vals correspond to anoamly_window (so the first vals get matched, etc.)
      alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_six_rep_4_'
      sec_between_exfil_events = 15
+     injected_exfil_path = ['my_release_pxc_pod', 'kube_dns_vip', 'kube_dns_pod', 'internet']
      time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe,fourth_return_val =\
          run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
                                 make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
@@ -915,7 +918,8 @@ def process_wordpress6_rep4():
                                 graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
                                 cilium_config_path=cilium_config_path, rdpcap_p=False,
                                 kubernetes_pod_info=kubernetes_pod_info, alert_file=alert_file, ROC_curve_p=True,
-                                calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events)
+                                calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events,
+                                    injected_exfil_path=injected_exfil_path)
      return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe,fourth_return_val
      # '''
 
@@ -938,7 +942,7 @@ def process_wordpress7_rep3():
     end_time = None
     exfil_start_time = 600
     exfil_end_time = 650
-    calc_vals = False
+    calc_vals = True
     window_size = 6
     graph_p = False  # should I make graphs?
     colors = ['b', 'r']
@@ -947,6 +951,7 @@ def process_wordpress7_rep3():
     anomaly_window = [1, 4]
     anom_num_outlier_vals_in_window = [1, 2]
     sec_between_exfil_events = 15
+    injected_exfil_path = ['wwwppp_wordpress_pod', 'kube_dns_vip', 'kube_dns_pod', 'internet']
     alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_seven_rep_3_'
     time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val = \
         run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
@@ -955,7 +960,8 @@ def process_wordpress7_rep3():
                                graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
                                cilium_config_path=cilium_config_path, rdpcap_p=False,
                                kubernetes_pod_info=kubernetes_pod_info, alert_file=alert_file, ROC_curve_p=True,
-                               calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events)
+                               calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events,
+                                   injected_exfil_path=injected_exfil_path)
     return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val
    # '''
 
@@ -1019,7 +1025,7 @@ def process_wordpress7_rep2():
     end_time = None
     exfil_start_time = 600
     exfil_end_time = 650
-    calc_vals = False
+    calc_vals = True
     window_size = 6
     graph_p = False  # should I make graphs?
     colors = ['b', 'r']
@@ -1028,6 +1034,7 @@ def process_wordpress7_rep2():
     anomaly_window = [1, 4]
     sec_between_exfil_events = 15
     anom_num_outlier_vals_in_window = [1, 2]
+    injected_exfil_path = ['wwwppp_wordpress_pod', 'kube_dns_vip', 'kube_dns_pod', 'internet']
     alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_seven_rep_2_'
     time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val = \
         run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
@@ -1036,7 +1043,8 @@ def process_wordpress7_rep2():
                                graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
                                cilium_config_path=cilium_config_path, rdpcap_p=False,
                                kubernetes_pod_info=kubernetes_pod_info, alert_file=alert_file, ROC_curve_p=True,
-                               calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events)
+                               calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events,
+                                   injected_exfil_path=injected_exfil_path)
     return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val
     #'''
 
@@ -1070,6 +1078,7 @@ def process_wordpress8():
     anomaly_window = [1, 4]
     anom_num_outlier_vals_in_window = [1, 2] # note: these vals correspond to anoamly_window (so the first vals get matched, etc.)
     sec_between_exfil_events = 1
+    injected_exfil_path = '(my_release_pxc_pod, wwwppp_wordpress_pod, internet)'
     alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_eight_'
     run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
                                make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
@@ -1099,7 +1108,7 @@ def process_wordpress8_rep_2():
     end_time = None
     exfil_start_time = 600
     exfil_end_time = 900
-    calc_vals = False
+    calc_vals = True
     window_size = 6
     graph_p = False  # should I make graphs?
     colors = ['b', 'r']
@@ -1109,13 +1118,15 @@ def process_wordpress8_rep_2():
     anom_num_outlier_vals_in_window = [1, 2] # note: these vals correspond to anoamly_window (so the first vals get matched, etc.)
     sec_between_exfil_events = 1
     alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_eight_rep_2_'
+    injected_exfil_path = ['my_release_pxc_pod', 'wwwppp_wordpress_pod', 'internet']
     time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val = \
         run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
                                make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
                                wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,
                                graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info, rdpcap_p=False,
                                kubernetes_pod_info=kubernetes_pod_info, alert_file=alert_file, ROC_curve_p=True,
-                               calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events)
+                               calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events,
+                                   injected_exfil_path = injected_exfil_path)
     return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val
     #'''
 
@@ -1139,7 +1150,7 @@ def process_wordpress8_rep_3():
     end_time = None
     exfil_start_time = 600
     exfil_end_time = 900
-    calc_vals = False
+    calc_vals = True
     window_size = 6
     graph_p = False  # should I make graphs?
     colors = ['b', 'r']
@@ -1148,6 +1159,7 @@ def process_wordpress8_rep_3():
     anomaly_window = [1, 4]
     anom_num_outlier_vals_in_window = [1, 2] # note: these vals correspond to anoamly_window (so the first vals get matched, etc.)
     sec_between_exfil_events = 1
+    injected_exfil_path = ['my_release_pxc_pod', 'wwwppp_wordpress_pod', 'internet']
     alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_eight_rep_3_'
     time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val = \
         run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
@@ -1155,7 +1167,8 @@ def process_wordpress8_rep_3():
                                wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,
                                graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info, rdpcap_p=False,
                                kubernetes_pod_info=kubernetes_pod_info, alert_file=alert_file, ROC_curve_p=True,
-                               calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events)
+                               calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events,
+                                   injected_exfil_path=injected_exfil_path)
     return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val
     #'''
 
@@ -1312,6 +1325,9 @@ def run_analysis_pipeline_recipes_json(json_file, path_to_experimental_data):
 def multi_experiment_wordpress_recipe():
     function_list = [process_wordpress6_rep3, process_wordpress6_rep4, process_wordpress7_rep2, process_wordpress7_rep3,
                      process_wordpress8_rep_2, process_wordpress8_rep_3]
+    ## NOTE: process_wordpress8 could be here too, but I'm for the moment I'm keeping each kind of injected
+    ## attack w/ two different experiments in which it occurss...
+
     base_output_location = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_summary/'# + 'lasso_roc'
     multi_experiment_pipeline(function_list, base_output_location, True) ## TODO: missing parameters... (last two are just nonsense)
 
