@@ -281,7 +281,9 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
                                sec_between_exfil_events=1, time_of_synethic_exfil=30,
                                fraction_of_edge_weights=0.1, fraction_of_edge_pkts=0.1,
                                size_of_neighbor_training_window=300,
-                               portion_for_training=0.7, injected_exfil_path='None'):
+                               portion_for_training=0.7, injected_exfil_path='None',
+                               only_exp_info=False,
+                               synthetic_exfil_paths=None, initiator_info_for_paths=None):
 
     print "log file can be found at: " + str(basefile_name) + '_logfile.log'
     logging.basicConfig(filename=basefile_name + '_logfile.log', level=logging.INFO)
@@ -293,6 +295,7 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
     gc.collect()
 
     print "starting pipeline..."
+    system_startup_time = training_window_size+size_of_neighbor_training_window
 
     sub_path = 'sub_'  # NOTE: make this an empty string if using the full pipeline (and not the subset)
     mapping,list_of_infra_services = create_mappings(is_swarm, container_info_path, kubernetes_svc_info,
@@ -301,8 +304,24 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
     experiment_folder_path = basefile_name.split('edgefiles')[0]
     pcap_file = pcap_paths[0].split('/')[-1] # NOTE: assuming only a single pcap file...
     exp_name = basefile_name.split('/')[-1]
+    make_edgefiles_p = make_edgefiles_p and only_exp_info
     interval_to_filenames = process_pcap.process_pcap(experiment_folder_path, pcap_file, time_interval_lengths,
                                                       exp_name, make_edgefiles_p, mapping)
+    if only_exp_info:
+        time_grans = [int(i) for i in interval_to_filenames.keys()]
+        smallest_time_gran = min(time_grans)
+        total_experiment_length = len(interval_to_filenames[str(smallest_time_gran)]) * smallest_time_gran
+        return total_experiment_length, exfil_start_time, exfil_end_time, system_startup_time
+
+    if not synthetic_exfil_paths or not initiator_info_for_paths:
+        # todo: might wanna specify this is in the attack descriptions...
+        for ms in ms_s:
+            if 'User' in ms:
+                sensitive_ms = ms
+            if 'my-release' in ms:
+                sensitive_ms = ms
+        synthetic_exfil_paths, initiator_info_for_paths = gen_attack_templates.generate_synthetic_attack_templates(mapping, ms_s, sensitive_ms)
+        return synthetic_exfil_paths, initiator_info_for_paths, None, None
 
     if calc_vals or graph_p:
         # TODO: 90% sure that there is a problem with this function...
@@ -322,14 +341,6 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
 
         print interval_to_filenames, type(interval_to_filenames), 'stufff', interval_to_filenames.keys()
 
-        # todo: might wanna specify this is in the attack descriptions...
-        for ms in ms_s:
-            if 'User' in ms:
-                sensitive_ms = ms
-            if 'my-release' in ms:
-                sensitive_ms = ms
-        synthetic_exfil_paths, initiator_info_for_paths = gen_attack_templates.generate_synthetic_attack_templates(mapping, ms_s, sensitive_ms)
-
         # most of the parameters are kinda arbitrary ATM...
         print "INITIAL time_gran_to_attack_labels", time_gran_to_attack_labels
         ## okay, I'll probably wanna write tests for the below function, but it seems to be working pretty well on my
@@ -337,7 +348,7 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
         portion_for_training = portion_for_training
         time_gran_to_attack_labels, time_gran_to_attack_ranges, time_gran_to_physical_attack_ranges = \
             determine_attacks_to_times(time_gran_to_attack_labels, synthetic_exfil_paths, time_of_synethic_exfil=time_of_synethic_exfil,
-                                       min_starting=training_window_size+size_of_neighbor_training_window, portion_for_training=portion_for_training)
+                                       min_starting=system_startup_time, portion_for_training=portion_for_training)
         print "time_gran_to_attack_labels",time_gran_to_attack_labels
         print "time_gran_to_attack_ranges", time_gran_to_attack_ranges
         #time.sleep(50)
@@ -420,12 +431,142 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
     #    mod_zscore_df['exfil_paths'] = time_gran_to_synthetic_exfil_paths_series[time_gran]
     return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, time_gran_to_synthetic_exfil_paths_series
 
+# this function determines how much time to is available for injection attacks in each experiment.
+# it takes into account when the physical attack starts (b/c need to split into training/testing set
+# temporally before the physical attack starts) and the goal percentage of split that we are aiming for.
+# I think we're going to aim for the desired split in each experiment, but we WON'T try  to compensate
+# not meeting one experiment's goal by modifying how we handle another experiment.
+def determine_injection_times(exps_info, goal_train_test_split, goal_attack_NoAttack_split):
+    ### TODO:::: this is a good start, but what we really want is to know when to start injecting
+    ### AND the amt of time that we can inject for...
+    #time_splits = []
+    exp_injection_info = []
+    for exp_info in exps_info:
+        time_split = exp_info['total_experiment_length'] * float(goal_train_test_split)
+        if time_split > exp_info['exfil_start_time']:
+            time_split = exp_info['exfil_start_time']
+        ## now to find how much time to spending injecting during training and testing...
+        ## okay, let's do testing first b/c it should be relatively straightforward...
+        testing_time = exp_info['total_experiment_length'] - time_split
+        physical_attack_time = exp_info['exfil_end_time'] - exp_info['exfil_start_time']
+        testing_time_without_physical_attack = testing_time - physical_attack_time
+        testing_time_for_attack_injection = testing_time_without_physical_attack * goal_attack_NoAttack_split
+
+        # now let's find the time to inject during training... this'll be a percentage of the time between
+        # system startup and the training/testing split point...
+        training_time_after_startup = time_split - exp_info["startup_time"]
+        training_time_for_attack_injection = training_time_after_startup * goal_attack_NoAttack_split
+
+        exp_injection_info.append({'testing': testing_time_for_attack_injection,
+                                   "training": training_time_for_attack_injection})
+        #time_splits.append(time_split)
+    return exp_injection_info
+
 # this function loops through multiple experiments (or even just a single experiment), accumulates the relevant
 # feature dataframes, and then performs LASSO regression to determine a concise graphical model that can detect
 # the injected synthetic attacks
-def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p):
+def multi_experiment_pipeline(function_list_exp_info, function_list, base_output_name, ROC_curve_p, time_each_synthetic_exfil,
+                              goal_train_test_split, goal_attack_NoAttack_split):
     ### Okay, so what is needed here??? We need, like, a list of sets of input (appropriate for run_data_analysis_pipeline),
     ### followed by the LASSO stuff, and finally the ROC stuff... okay, let's do this!!!
+
+    # step(0): need to find out the  meta-data for each experiment so we can coordinate the
+    # synthetic attack injections between experiments
+    print function_list_exp_info
+    exp_infos = []
+    for func_exp_info in function_list_exp_info:
+        total_experiment_length, exfil_start_time, exfil_end_time, system_startup_time = func_exp_info()
+        print "func_exp_info", total_experiment_length, exfil_start_time, exfil_end_time
+        exp_infos.append({"total_experiment_length":total_experiment_length, "exfil_start_time":exfil_start_time,
+                         "exfil_end_time":exfil_end_time, "startup_time": system_startup_time})
+
+    ## now perform the actual assignment portion...
+    # first, find the amt of time available for attack injections in each experiments training/testing phase...
+    inject_times = determine_injection_times(exp_infos, goal_train_test_split, goal_attack_NoAttack_split)
+    # second, find how many exfil_paths can be injected into each experiments training/testing
+    possible_exfil_path_injections = []
+    total_training_injections_possible = 0
+    total_testing_injections_possible = 0
+    for inject_time in inject_times:
+        training_exfil_path_injections = math.floor(inject_time['training'] / time_each_synthetic_exfil)
+        total_training_injections_possible += training_exfil_path_injections
+        testing_exfil_path_injections = math.floor(inject_time['testing'] /  time_each_synthetic_exfil)
+        total_testing_injections_possible += testing_exfil_path_injections
+        possible_exfil_path_injections.append({"testing": testing_exfil_path_injections,
+                                               "training": training_exfil_path_injections})
+    # third, get the exfil_paths that were generated using the mulval component...
+    ## this'll require passing a parameter to the single-experiment pipeline and then getting the set of paths
+    exps_exfil_paths = []
+    exps_initiator_info = []
+    for func in function_list:
+        synthetic_exfil_paths, initiator_info_for_paths, _, _ = func()
+        exps_exfil_paths.append(synthetic_exfil_paths)
+        exps_initiator_info.append(initiator_info_for_paths)
+    flat_exps_exfil_paths = [tuple(exfil_path) for exp_exfil_paths in exps_exfil_paths for exfil_path in exp_exfil_paths]
+
+    print "flat_exps_exfil_paths",flat_exps_exfil_paths
+    possible_exfil_paths = list(set(flat_exps_exfil_paths))
+
+    exfil_path_to_occurences = {}
+    for possible_exfil_path in possible_exfil_paths:
+        exfil_path_to_occurences[tuple(possible_exfil_path)] = flat_exps_exfil_paths.count(tuple(possible_exfil_path))
+    # fourth, actually perform exfil_path assignments to each experiment
+    ## if different exfil paths were allowed for each experiment, this would be rather difficult. However,
+    ## at the moment, we'll implicitly that all exfil paths are allowed by each experiment. This'll keep the assignment code
+    ## very simple. (b/c theoretically we could have a linear proogramming assignment problem on our hands here...)
+    #### 4.a. determine how many times we could inject all the exfil paths
+    training_exfil_paths = []
+    testing_exfil_paths = []
+    testing_number_times_inject_all_paths = math.floor(total_testing_injections_possible / float(len(possible_exfil_paths)))
+    training_number_times_inject_all_paths = math.floor(total_training_injections_possible / float(len(possible_exfil_paths)))
+    if training_number_times_inject_all_paths < 1.0:
+        print "can't inject all exfil paths in training set... "
+        exit(33)
+    if testing_number_times_inject_all_paths < 1.0:
+        print "can't inject all exfil paths in testing set..."
+        exit(34)
+
+    exfil_paths_to_test_injection_counts = {}
+    exfil_paths_to_train_injection_counts = {}
+    for exfil_path in possible_exfil_paths:
+        exfil_paths_to_test_injection_counts[tuple(exfil_path)] = testing_number_times_inject_all_paths
+        exfil_paths_to_train_injection_counts[tuple(exfil_path)] = training_number_times_inject_all_paths
+    for possible_exfil_path_injection in possible_exfil_path_injections:
+        ## note: this ^^ variable contains the number of times can inject training/testing exfil paths here...
+        ## let's NOT do this stochastically... let's just iterate through the dict and assign stuff whenever we can
+        ## (NOTE: this WILL NEED TO BE MODIFIED LATER...)
+        current_training_exfil_paths = []
+        training_times_to_inject_this_exp = possible_exfil_path_injection['training']
+        for path,count_left_to_inject in exfil_paths_to_train_injection_counts.iteritems():
+            if count_left_to_inject > 0:
+                current_training_exfil_paths.append(list(path))
+                training_times_to_inject_this_exp -= 1
+                exfil_paths_to_train_injection_counts[path] -= 1
+            if training_times_to_inject_this_exp == 0:
+                break
+        training_exfil_paths.append(current_training_exfil_paths)
+
+        current_testing_exfil_paths = []
+        testing_times_to_inject_this_exp = possible_exfil_path_injection['testing']
+        for path,count_left_to_inject in exfil_paths_to_test_injection_counts.iteritems():
+            if count_left_to_inject > 0:
+                current_testing_exfil_paths.append(list(path))
+                testing_times_to_inject_this_exp -= 1
+                exfil_paths_to_test_injection_counts[path] -= 1
+            if testing_times_to_inject_this_exp == 0:
+                break
+        testing_exfil_paths.append(current_testing_exfil_paths)
+
+    print "training_exfil_paths", training_exfil_paths
+    print "testing_exfil_paths", testing_exfil_paths
+
+    remaining_testing_injections = sum(exfil_paths_to_test_injection_counts.values())
+    remaining_training_injections = sum(exfil_paths_to_train_injection_counts.values())
+    print "remaining_testing_injections", remaining_testing_injections, "remaining_training_injections",remaining_training_injections
+    print "testing_number_times_inject_all_paths",testing_number_times_inject_all_paths, \
+        "training_number_times_inject_all_paths",training_number_times_inject_all_paths
+    print "total_training_injections_possible",total_training_injections_possible, "total_testing_injections_possible",total_testing_injections_possible
+    exit(122) ### TODO::: <--- remove!!!
 
     ## step (1) : iterate through individual experiments...
     ##  # 1a. list of inputs [done]
@@ -433,8 +574,14 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p):
     list_time_gran_to_mod_zscore_df = []
     list_time_gran_to_zscore_dataframe = []
     list_time_gran_to_feature_dataframe = []
-    for func in function_list:
-        time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, _ = func()
+
+
+    ### TODO: modiy the single-experiment pipeline to take different training/testing exfil sets.
+    ### AND also need to modify it to use them appropriately
+    for counter,func in enumerate(function_list):
+        #time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, _ = func()
+        time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, _ = \
+            func(synthetic_exfil_paths= exps_exfil_paths[counter],initiator_info_for_paths=exps_initiator_info[counter])
         list_time_gran_to_mod_zscore_df.append(time_gran_to_mod_zscore_df)
         list_time_gran_to_zscore_dataframe.append(time_gran_to_zscore_dataframe)
         list_time_gran_to_feature_dataframe.append(time_gran_to_feature_dataframe)
@@ -601,7 +748,7 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p):
             attack_type_to_predictions, attack_type_to_truth = process_roc.determine_categorical_labels(y_test, optimal_predictions, exfil_paths)
             attack_type_to_confusion_matrix_values = process_roc.determine_cm_vals_for_categories(attack_type_to_predictions, attack_type_to_truth)
             categorical_cm_df = process_roc.determine_categorical_cm_df(attack_type_to_confusion_matrix_values)
-            ## TODO: re-name row
+            ## re-name the row without any attacks in it...
             print "categorical_cm_df.index", categorical_cm_df.index
             categorical_cm_df = categorical_cm_df.rename({(): 'No Attack'}, axis='index')
             list_of_attacks_found_dfs.append(categorical_cm_df)

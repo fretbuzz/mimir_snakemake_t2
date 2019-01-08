@@ -6,6 +6,7 @@ import pyximport;
 pyximport.install() # am I sure that I want this???
 import sys
 import gc
+import functools
 
 from analysis_pipeline.pipeline_coordinator import run_data_anaylsis_pipeline, multi_experiment_pipeline
 
@@ -836,7 +837,7 @@ def process_wordpress6_rep2():
                                calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events)
     #'''
 
-def process_wordpress6_rep3():
+def process_wordpress6_rep3(time_of_synethic_exfil, only_exp_info=False, synthetic_exfil_paths=None, initiator_info_for_paths=None):
     #'''
     # Wordpress exp 6 rep3 (wordpress w/ HA cluster on cilium w/o security config, dnscat exfil from single db w/ 15 sec delay)
     pcap_paths = [
@@ -845,7 +846,7 @@ def process_wordpress6_rep3():
     basefile_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/edgefiles/wordpress_six_rep_3_'
     basegraph_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/graphs/wordpress_six_rep_3_'
     container_info_path = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_six_rep_3_docker_0_network_configs.txt'
-    cilium_config_path = None # does NOT sue cilium on reps 2-4
+    cilium_config_path = None # does NOT use cilium on reps 2-4
     kubernetes_svc_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_six_rep_3_svc_config_0.txt'
     kubernetes_pod_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_six_rep_3_pod_config_0.txt'
     time_interval_lengths = [30, 10]#,
@@ -866,7 +867,7 @@ def process_wordpress6_rep3():
     anom_num_outlier_vals_in_window = [1, 2] # note: these vals correspond to anoamly_window (so the first vals get matched, etc.)
     alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_six_rep_3_'
     sec_between_exfil_events = 15
-    injected_exfil_path = ['my_release_pxc_pod', 'kube_dns_vip', 'kube_dns_pod', 'internet']
+    physical_exfil_path = ['my_release_pxc_pod', 'kube_dns_vip', 'kube_dns_pod', 'internet']
     time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe,fourth_return_val = \
         run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
                                make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
@@ -875,12 +876,14 @@ def process_wordpress6_rep3():
                                cilium_config_path=cilium_config_path, rdpcap_p=False,
                                kubernetes_pod_info=kubernetes_pod_info, alert_file=alert_file, ROC_curve_p=True,
                                calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events,
-                               injected_exfil_path = injected_exfil_path)
+                               injected_exfil_path = physical_exfil_path, only_exp_info=only_exp_info,
+                               time_of_synethic_exfil=time_of_synethic_exfil,
+                               synthetic_exfil_paths=synthetic_exfil_paths, initiator_info_for_paths=initiator_info_for_paths)
     return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe,fourth_return_val
     #'''
 
 
-def process_wordpress6_rep4():
+def process_wordpress6_rep4(time_of_synethic_exfil, only_exp_info=False, synthetic_exfil_paths=None, initiator_info_for_paths=None):
      #'''
      # Wordpress exp 6 rep4 (wordpress w/ HA cluster on cilium w/o security config, dnscat exfil from single db w/ 15 sec delay)
      pcap_paths = [
@@ -910,7 +913,7 @@ def process_wordpress6_rep4():
      anom_num_outlier_vals_in_window = [1, 2] # note: these vals correspond to anoamly_window (so the first vals get matched, etc.)
      alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_six_rep_4_'
      sec_between_exfil_events = 15
-     injected_exfil_path = ['my_release_pxc_pod', 'kube_dns_vip', 'kube_dns_pod', 'internet']
+     physical_exfil_path = ['my_release_pxc_pod', 'kube_dns_vip', 'kube_dns_pod', 'internet']
      time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe,fourth_return_val =\
          run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
                                 make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
@@ -919,11 +922,13 @@ def process_wordpress6_rep4():
                                 cilium_config_path=cilium_config_path, rdpcap_p=False,
                                 kubernetes_pod_info=kubernetes_pod_info, alert_file=alert_file, ROC_curve_p=True,
                                 calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events,
-                                    injected_exfil_path=injected_exfil_path)
+                                injected_exfil_path=physical_exfil_path, only_exp_info=only_exp_info,
+                                time_of_synethic_exfil=time_of_synethic_exfil,
+                                synthetic_exfil_paths = synthetic_exfil_paths, initiator_info_for_paths = initiator_info_for_paths)
      return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe,fourth_return_val
      # '''
 
-def process_wordpress7_rep3():
+def process_wordpress7_rep3(time_of_synethic_exfil, only_exp_info=False, synthetic_exfil_paths=None, initiator_info_for_paths=None):
     #''' # here
     # Wordpress exp 7 rep 3(wordpress w/ HA cluster on cilium w/o security config, dnscat exfil from single WP w/ 15 sec delay)
     pcap_paths = ["/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_seven_rep_3_default_bridge_0any.pcap"]
@@ -951,7 +956,7 @@ def process_wordpress7_rep3():
     anomaly_window = [1, 4]
     anom_num_outlier_vals_in_window = [1, 2]
     sec_between_exfil_events = 15
-    injected_exfil_path = ['wwwppp_wordpress_pod', 'kube_dns_vip', 'kube_dns_pod', 'internet']
+    physical_exfil_path = ['wwwppp_wordpress_pod', 'kube_dns_vip', 'kube_dns_pod', 'internet']
     alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_seven_rep_3_'
     time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val = \
         run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
@@ -961,7 +966,9 @@ def process_wordpress7_rep3():
                                cilium_config_path=cilium_config_path, rdpcap_p=False,
                                kubernetes_pod_info=kubernetes_pod_info, alert_file=alert_file, ROC_curve_p=True,
                                calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events,
-                                   injected_exfil_path=injected_exfil_path)
+                                injected_exfil_path=physical_exfil_path, only_exp_info=only_exp_info,
+                                time_of_synethic_exfil=time_of_synethic_exfil,
+                                synthetic_exfil_paths = synthetic_exfil_paths, initiator_info_for_paths = initiator_info_for_paths)
     return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val
    # '''
 
@@ -1005,7 +1012,7 @@ def process_wordpress7():
                                calc_zscore_p=True)
     #'''
 
-def process_wordpress7_rep2():
+def process_wordpress7_rep2(time_of_synethic_exfil, only_exp_info=False, synthetic_exfil_paths=None, initiator_info_for_paths=None):
     #'''
     # Wordpress exp 7 rep 2(wordpress w/ HA cluster on cilium w/o security config, dnscat exfil from single WP w/ 15 sec delay)
     pcap_paths = [
@@ -1034,7 +1041,7 @@ def process_wordpress7_rep2():
     anomaly_window = [1, 4]
     sec_between_exfil_events = 15
     anom_num_outlier_vals_in_window = [1, 2]
-    injected_exfil_path = ['wwwppp_wordpress_pod', 'kube_dns_vip', 'kube_dns_pod', 'internet']
+    physical_exfil_path = ['wwwppp_wordpress_pod', 'kube_dns_vip', 'kube_dns_pod', 'internet']
     alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_seven_rep_2_'
     time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val = \
         run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
@@ -1044,7 +1051,9 @@ def process_wordpress7_rep2():
                                cilium_config_path=cilium_config_path, rdpcap_p=False,
                                kubernetes_pod_info=kubernetes_pod_info, alert_file=alert_file, ROC_curve_p=True,
                                calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events,
-                                   injected_exfil_path=injected_exfil_path)
+                                   injected_exfil_path=physical_exfil_path, only_exp_info=only_exp_info,
+                                   time_of_synethic_exfil=time_of_synethic_exfil,
+                                   synthetic_exfil_paths=synthetic_exfil_paths, initiator_info_for_paths=initiator_info_for_paths)
     return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val
     #'''
 
@@ -1078,17 +1087,18 @@ def process_wordpress8():
     anomaly_window = [1, 4]
     anom_num_outlier_vals_in_window = [1, 2] # note: these vals correspond to anoamly_window (so the first vals get matched, etc.)
     sec_between_exfil_events = 1
-    injected_exfil_path = '(my_release_pxc_pod, wwwppp_wordpress_pod, internet)'
+    physical_exfil_path = '(my_release_pxc_pod, wwwppp_wordpress_pod, internet)'
     alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_eight_'
     run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
                                make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
                                wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,
                                graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info, rdpcap_p=False,
                                kubernetes_pod_info=kubernetes_pod_info, alert_file=alert_file, ROC_curve_p=True,
-                               calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events)
+                               calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events,
+                               injected_exfil_path=physical_exfil_path)
     #'''
 
-def process_wordpress8_rep_2():
+def process_wordpress8_rep_2(time_of_synethic_exfil, only_exp_info=False, synthetic_exfil_paths=None, initiator_info_for_paths=None):
     #time.sleep(27000)
     #'''
     # 20 min of scaled-up wordpress (wordpress_eight)
@@ -1118,7 +1128,7 @@ def process_wordpress8_rep_2():
     anom_num_outlier_vals_in_window = [1, 2] # note: these vals correspond to anoamly_window (so the first vals get matched, etc.)
     sec_between_exfil_events = 1
     alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_eight_rep_2_'
-    injected_exfil_path = ['my_release_pxc_pod', 'wwwppp_wordpress_pod', 'internet']
+    physical_exfil_path = ['my_release_pxc_pod', 'wwwppp_wordpress_pod', 'internet']
     time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val = \
         run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
                                make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
@@ -1126,11 +1136,13 @@ def process_wordpress8_rep_2():
                                graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info, rdpcap_p=False,
                                kubernetes_pod_info=kubernetes_pod_info, alert_file=alert_file, ROC_curve_p=True,
                                calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events,
-                                   injected_exfil_path = injected_exfil_path)
+                                injected_exfil_path = physical_exfil_path, only_exp_info=only_exp_info,
+                                time_of_synethic_exfil=time_of_synethic_exfil,
+                                synthetic_exfil_paths = synthetic_exfil_paths, initiator_info_for_paths = initiator_info_for_paths)
     return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val
     #'''
 
-def process_wordpress8_rep_3():
+def process_wordpress8_rep_3(time_of_synethic_exfil,only_exp_info=False,synthetic_exfil_paths=None, initiator_info_for_paths=None):
     #time.sleep(27000)
     #'''
     # 20 min of scaled-up wordpress (wordpress_eight)
@@ -1159,7 +1171,7 @@ def process_wordpress8_rep_3():
     anomaly_window = [1, 4]
     anom_num_outlier_vals_in_window = [1, 2] # note: these vals correspond to anoamly_window (so the first vals get matched, etc.)
     sec_between_exfil_events = 1
-    injected_exfil_path = ['my_release_pxc_pod', 'wwwppp_wordpress_pod', 'internet']
+    physical_exfil_path = ['my_release_pxc_pod', 'wwwppp_wordpress_pod', 'internet']
     alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_eight_rep_3_'
     time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val = \
         run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
@@ -1168,7 +1180,9 @@ def process_wordpress8_rep_3():
                                graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info, rdpcap_p=False,
                                kubernetes_pod_info=kubernetes_pod_info, alert_file=alert_file, ROC_curve_p=True,
                                calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events,
-                                   injected_exfil_path=injected_exfil_path)
+                                injected_exfil_path=physical_exfil_path, only_exp_info=only_exp_info,
+                                time_of_synethic_exfil=time_of_synethic_exfil,
+                                synthetic_exfil_paths = None, initiator_info_for_paths = None)
     return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val
     #'''
 
@@ -1323,13 +1337,20 @@ def run_analysis_pipeline_recipes_json(json_file, path_to_experimental_data):
 # this function feeds a set of wordpress experiments into the multi_experiment_pipeline() function found in the
 # pipeline_coordinator
 def multi_experiment_wordpress_recipe():
-    function_list = [process_wordpress6_rep3, process_wordpress6_rep4, process_wordpress7_rep2, process_wordpress7_rep3,
+    time_of_synethic_exfil = 30 # sec
+    goal_train_test_split = 0.6
+    goal_attack_NoAttack_split = 0.5
+    raw_function_list = [process_wordpress6_rep3, process_wordpress6_rep4, process_wordpress7_rep2, process_wordpress7_rep3,
                      process_wordpress8_rep_2, process_wordpress8_rep_3]
     ## NOTE: process_wordpress8 could be here too, but I'm for the moment I'm keeping each kind of injected
     ## attack w/ two different experiments in which it occurss...
 
+    function_list = [functools.partial(i,time_of_synethic_exfil=time_of_synethic_exfil) for i in raw_function_list]
+    function_list_exp_info = [functools.partial(i,time_of_synethic_exfil=time_of_synethic_exfil, only_exp_info=True) for i in function_list]
+
     base_output_location = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_summary/'# + 'lasso_roc'
-    multi_experiment_pipeline(function_list, base_output_location, True) ## TODO: missing parameters... (last two are just nonsense)
+    multi_experiment_pipeline(function_list_exp_info, function_list, base_output_location, True, time_of_synethic_exfil,
+                              goal_train_test_split, goal_attack_NoAttack_split)
 
 ## TODO: make a list and stuff...
 def multi_experiment_sockshop_recipe():
