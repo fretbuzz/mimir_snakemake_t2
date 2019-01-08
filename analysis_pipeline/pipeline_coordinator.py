@@ -414,7 +414,6 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
     print "analysis_pipeline about to return!"
 
     # okay, so can return it here...
-    ## TODO
     #### exit(121)
 
     #for time_gran, mod_zscore_df in time_gran_to_mod_zscore_df.iteritems():
@@ -602,6 +601,9 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p):
             attack_type_to_predictions, attack_type_to_truth = process_roc.determine_categorical_labels(y_test, optimal_predictions, exfil_paths)
             attack_type_to_confusion_matrix_values = process_roc.determine_cm_vals_for_categories(attack_type_to_predictions, attack_type_to_truth)
             categorical_cm_df = process_roc.determine_categorical_cm_df(attack_type_to_confusion_matrix_values)
+            ## TODO: re-name row
+            print "categorical_cm_df.index", categorical_cm_df.index
+            categorical_cm_df = categorical_cm_df.rename({(): 'No Attack'}, axis='index')
             list_of_attacks_found_dfs.append(categorical_cm_df)
 
     recipes_used = [recipe.__name__ for recipe in function_list]

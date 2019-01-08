@@ -23,6 +23,7 @@ def determine_categorical_labels(y_test, optimal_predictions, exfil_paths):
     attack_type_to_predictions = {}
     attack_type_to_truth = {}
     print exfil_paths
+    print exfil_paths.tolist()
     types_of_exfil_paths = list(set(exfil_paths.tolist()))
     print "types_of_exfil_paths", types_of_exfil_paths
     types_of_exfil_paths = [ast.literal_eval(i) for i in types_of_exfil_paths]
