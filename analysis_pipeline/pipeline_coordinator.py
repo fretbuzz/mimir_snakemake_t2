@@ -528,7 +528,9 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
         for exp_exfil_path in exp_exfil_paths:
             if exp_exfil_path not in possible_exps_exfil_paths:
                 possible_exps_exfil_paths.append(exp_exfil_path)
-    print "possible_exps_exfil_paths", possible_exps_exfil_paths
+    print "possible_exps_exfil_paths:"
+    for possible_exp_exfil_path in possible_exps_exfil_paths:
+        print possible_exp_exfil_path
     exit(122) ### TODO::: <--- remove!!!
 
     ## step (1) : iterate through individual experiments...

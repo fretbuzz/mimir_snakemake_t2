@@ -12,6 +12,7 @@ hacl(wwwppp_wordpress_pod,my_release_pxc_vip, TCP, 4567).
 hacl(wwwppp_wordpress_vip,my_release_pxc_pod, TCP, 4567).
 hacl(my_release_pxc_pod,wwwppp_wordpress_vip, TCP, 4567).
 hacl(my_release_pxc_pod,wwwppp_wordpress_pod, TCP, 4567).
+hacl(my_release_pxc_pod,kube_dns_vip, TCP, 4567).
 hacl(my_release_pxc_pod,my_release_pxc_vip, TCP, 4567).
 hacl(my_release_pxc_vip,my_release_pxc_pod, _, _).
 vulExists(my_release_pxc_pod, 'attacker_can_access_anything', is_computer).
@@ -24,6 +25,7 @@ hacl(my_release_pxc_pod,wwwppp_wordpress_vip, TCP, 80).
 hacl(my_release_pxc_vip,wwwppp_wordpress_pod, TCP, 80).
 hacl(wwwppp_wordpress_pod,my_release_pxc_vip, TCP, 80).
 hacl(wwwppp_wordpress_pod,my_release_pxc_pod, TCP, 80).
+hacl(wwwppp_wordpress_pod,kube_dns_vip, TCP, 80).
 hacl(wwwppp_wordpress_pod,wwwppp_wordpress_vip, TCP, 80).
 hacl(wwwppp_wordpress_vip,wwwppp_wordpress_pod, _, _).
 vulExists(wwwppp_wordpress_pod, 'attacker_can_access_anything', is_computer).
@@ -33,6 +35,7 @@ networkServiceInfo(wwwppp_wordpress_vip, is_vip, TCP, 80, _).
 
 hacl(kube_dns_pod, internet, _, _).
 hacl(my_release_pxc_pod,kube_dns_vip, UDP, 53).
+hacl(wwwppp_wordpress_pod,kube_dns_vip, UDP, 53).
 hacl(kube_dns_pod,kube_dns_vip, UDP, 53).
 hacl(kube_dns_vip,kube_dns_pod, _, _).
 vulExists(kube_dns_pod, 'attacker_can_access_anything', is_computer).

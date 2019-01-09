@@ -104,22 +104,22 @@ def prepare_mulval_input(ms_s, mapping, sensitive_ms):
                 print "svc_two", svc_two[0], svc[1],proto,port
                 if 'dns_pod' not in svc_two[0] and 'dns_vip' not in svc_two[0]:
                     ## TODO: remove lower if-statement when we want to re-enable the full range of exfil possibilities
-                    if 'dns_vip' not in svc[1] or svc_two[0] == sensitive_node:
-                        lines.append(  'hacl(' + svc_two[0] +',' + svc[1] + ', ' + proto +', ' + port[0] + ').'  )
+                    #if 'dns_vip' not in svc[1] or svc_two[0] == sensitive_node:
+                    lines.append(  'hacl(' + svc_two[0] +',' + svc[1] + ', ' + proto +', ' + port[0] + ').'  )
                 if 'dns_pod' not in svc[0] and 'dns_vip' not in svc_two[1]:
                     ## TODO: remove lower if-statement when we want to re-enable the full range of exfil possibilities
-                    if 'dns_vip' not in svc[0] or svc_two[1] == sensitive_node:
-                        lines.append(  'hacl(' + svc_two[1] +',' + svc[0] + ', ' + proto +', ' + port[0] + ').'  )
+                    #if 'dns_vip' not in svc[0] or svc_two[1] == sensitive_node:
+                    lines.append(  'hacl(' + svc_two[1] +',' + svc[0] + ', ' + proto +', ' + port[0] + ').'  )
                 #          e.g. hacl(webServer_pod, fileServer_vip, TCP, 67).
                 if 'dns_pod' not in svc[0]:
                     if 'dns_pod' not in svc_two[1]:
                         ## TODO: remove lower if-statement when we want to re-enable the full range of exfil possibilities
-                        if 'dns_vip' not in svc_two[1]:
-                            lines.append(  'hacl(' + svc[0] +',' + svc_two[1] + ', ' + proto +', ' + port[0] + ').'  )
+                        #if 'dns_vip' not in svc_two[1]:
+                        lines.append(  'hacl(' + svc[0] +',' + svc_two[1] + ', ' + proto +', ' + port[0] + ').'  )
                     if 'dns_pod' not in svc_two[0]:
                         ## TODO: remove lower if-statement when we want to re-enable the full range of exfil possibilities
-                        if 'dns_vip' not in svc_two[1]:
-                            lines.append(  'hacl(' + svc[0] +',' + svc_two[0] + ', ' + proto +', ' + port[0] + ').'  )
+                        #if 'dns_vip' not in svc_two[1]:
+                        lines.append(  'hacl(' + svc[0] +',' + svc_two[0] + ', ' + proto +', ' + port[0] + ').'  )
 
         print svc, svc[2]
         lines.append( 'hacl(' + svc[0] +',' + svc[1] + ', ' +proto + ', ' + port[0] + ').')

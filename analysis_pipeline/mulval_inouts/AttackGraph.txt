@@ -111,22 +111,25 @@
                                                 [44]-attackerLocated(my_release_pxc_pod)
                                           [88]-networkServiceInfo(my_release_pxc_pod,is_computer,_,_,_)
                                           [75]-vulExists(my_release_pxc_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-                                 (89) RULE 6 : direct network access
+                                 (89) RULE 5 : multi-hop access
+                                    [90]-hacl(wwwppp_wordpress_pod,kube_dns_vip,_,53)
+                                    execCode(wwwppp_wordpress_pod,_)==><38>
+                                 (91) RULE 6 : direct network access
                                     [23]-hacl(my_release_pxc_pod,kube_dns_vip,_,53)
                                     [44]-attackerLocated(my_release_pxc_pod)
-                              [90]-networkServiceInfo(kube_dns_vip,is_vip,_,53,_)
-                              [91]-vulExists(kube_dns_vip,is_a_vip,is_vip,remoteExploit,privEscalation)
-                  [92]-networkServiceInfo(kube_dns_pod,is_computer,_,_,_)
-                  [93]-vulExists(kube_dns_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-         (94) RULE 5 : multi-hop access
-            [95]-hacl(my_release_pxc_pod,internet,_,_)
-            execCode(my_release_pxc_pod,_)==><24>
+                              [92]-networkServiceInfo(kube_dns_vip,is_vip,_,53,_)
+                              [93]-vulExists(kube_dns_vip,is_a_vip,is_vip,remoteExploit,privEscalation)
+                  [94]-networkServiceInfo(kube_dns_pod,is_computer,_,_,_)
+                  [95]-vulExists(kube_dns_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
          (96) RULE 5 : multi-hop access
-            [97]-hacl(wwwppp_wordpress_pod,internet,_,_)
+            [97]-hacl(my_release_pxc_pod,internet,_,_)
+            execCode(my_release_pxc_pod,_)==><24>
+         (98) RULE 5 : multi-hop access
+            [99]-hacl(wwwppp_wordpress_pod,internet,_,_)
             execCode(wwwppp_wordpress_pod,_)==><38>
-         (98) RULE 6 : direct network access
-            [95]-hacl(my_release_pxc_pod,internet,_,_)
+         (100) RULE 6 : direct network access
+            [97]-hacl(my_release_pxc_pod,internet,_,_)
             [44]-attackerLocated(my_release_pxc_pod)
-      [99]-networkServiceInfo(internet,is_computer,_,_,_)
-      [100]-vulExists(internet,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+      [101]-networkServiceInfo(internet,is_computer,_,_,_)
+      [102]-vulExists(internet,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
 
