@@ -140,34 +140,39 @@ def exfil_time_valid(potential_starting_point, time_slots_attack, attack_labels)
     return not attack_found
 
 def assign_attacks_to_first_available_spots(time_gran_to_attack_labels, largest_time_gran, time_periods_startup, time_periods_attack,
-                                            counter, time_gran_to_attack_ranges, synthetic_exfil_paths):
+                                            counter, time_gran_to_attack_ranges, synthetic_exfil_paths, current_exfil_paths):
     for synthetic_exfil_path in synthetic_exfil_paths:
-        # randomly choose ranges using highest granularity (then after this we'll choose for the smaller granularities...)
-        attack_spot_found = False
-        number_free_spots = time_gran_to_attack_labels[largest_time_gran][int(time_periods_startup):].count(0)
-        if number_free_spots < time_periods_attack:
-            exit(1244) # should break now b/c infinite loop (note: we're not handling the case where it is fragmented...)
-        while not attack_spot_found:
-            ## NOTE: not sure if the -1 is necessary...
-            # NOTE: this random thing causes all types of problems. Let's just ignore it and do it right after startup??, maybe?
-            #potential_starting_point = random.randint(time_periods_startup,
-            #                                len(time_gran_to_attack_labels[largest_time_gran]) - time_periods_attack - 1)
-            potential_starting_point = int(time_periods_startup + counter)
+        if synthetic_exfil_path in current_exfil_paths:
+            # randomly choose ranges using highest granularity (then after this we'll choose for the smaller granularities...)
+            attack_spot_found = False
+            number_free_spots = time_gran_to_attack_labels[largest_time_gran][int(time_periods_startup):].count(0)
+            if number_free_spots < time_periods_attack:
+                exit(1244) # should break now b/c infinite loop (note: we're not handling the case where it is fragmented...)
+            while not attack_spot_found:
+                ## NOTE: not sure if the -1 is necessary...
+                # NOTE: this random thing causes all types of problems. Let's just ignore it and do it right after startup??, maybe?
+                #potential_starting_point = random.randint(time_periods_startup,
+                #                                len(time_gran_to_attack_labels[largest_time_gran]) - time_periods_attack - 1)
+                potential_starting_point = int(time_periods_startup + counter)
 
-            print "potential_starting_point", potential_starting_point
-            attack_spot_found = exfil_time_valid(potential_starting_point, time_periods_attack,
-                                                 time_gran_to_attack_labels[largest_time_gran])
-            if attack_spot_found:
-                # if the time range is valid, we gotta store it...
-                time_gran_to_attack_ranges[largest_time_gran].append((int(potential_starting_point),
-                                                                      int(potential_starting_point + time_periods_attack)))
-                # and also modify the attack labels
-                print "RANGE", potential_starting_point, int(potential_starting_point + time_periods_attack)
-                for i in range(potential_starting_point, int(potential_starting_point + time_periods_attack)):
-                    #print i, time_gran_to_attack_labels[largest_time_gran]
-                    time_gran_to_attack_labels[largest_time_gran][i] = 1
-            #print "this starting point failed", potential_starting_point
-            counter += 1
+                print "potential_starting_point", potential_starting_point
+                attack_spot_found = exfil_time_valid(potential_starting_point, time_periods_attack,
+                                                     time_gran_to_attack_labels[largest_time_gran])
+                if attack_spot_found:
+                    # if the time range is valid, we gotta store it...
+                    time_gran_to_attack_ranges[largest_time_gran].append((int(potential_starting_point),
+                                                                          int(potential_starting_point + time_periods_attack)))
+                    # and also modify the attack labels
+                    print "RANGE", potential_starting_point, int(potential_starting_point + time_periods_attack)
+                    for i in range(potential_starting_point, int(potential_starting_point + time_periods_attack)):
+                        #print i, time_gran_to_attack_labels[largest_time_gran]
+                        time_gran_to_attack_labels[largest_time_gran][i] = 1
+                #print "this starting point failed", potential_starting_point
+                counter += 1
+            else:
+                ### by making these two points the same, this value will be 'passed over' by the other functions...
+                potential_starting_point = int(time_periods_startup + counter)
+                time_gran_to_attack_ranges[largest_time_gran].append((potential_starting_point,potential_starting_point))
     return time_gran_to_attack_labels, time_gran_to_attack_ranges
 
 ##### the goal needs to be some mapping of times to attacks to time (ranges) + updated attack labels
@@ -176,7 +181,7 @@ def assign_attacks_to_first_available_spots(time_gran_to_attack_labels, largest_
 ## NOTE: portion_for_training is the percentage to devote to using for the training period (b/c attacks will be injected
 ## into both the training period and the testing period)
 def determine_attacks_to_times(time_gran_to_attack_labels, synthetic_exfil_paths, time_of_synethic_exfil, min_starting,
-                               end_of_train):
+                               end_of_train, synthetic_exfil_paths_train, synthetic_exfil_paths_test):
     time_grans = time_gran_to_attack_labels.keys()
     largest_time_gran = sorted(time_grans)[-1]
     print "LARGEST_TIME_GRAN", largest_time_gran
@@ -196,12 +201,12 @@ def determine_attacks_to_times(time_gran_to_attack_labels, synthetic_exfil_paths
     # first, let's assign for the training period...
     counter = 0
     time_gran_to_attack_labels, time_gran_to_attack_ranges = assign_attacks_to_first_available_spots(time_gran_to_attack_labels, largest_time_gran, time_periods_startup,
-                                            time_periods_attack, counter, time_gran_to_attack_ranges, synthetic_exfil_paths)
+                                            time_periods_attack, counter, time_gran_to_attack_ranges, synthetic_exfil_paths, synthetic_exfil_paths_train)
     # second, let's assign for the testing period...
     counter = int(math.ceil(end_of_train/largest_time_gran)) #int(math.ceil(len(time_gran_to_attack_labels[largest_time_gran]) * end_of_train - time_periods_startup))
     print "second_counter!!", counter
     time_gran_to_attack_labels, time_gran_to_attack_ranges = assign_attacks_to_first_available_spots(time_gran_to_attack_labels, largest_time_gran, time_periods_startup,
-                                            time_periods_attack, counter, time_gran_to_attack_ranges, synthetic_exfil_paths)
+                                            time_periods_attack, counter, time_gran_to_attack_ranges, synthetic_exfil_paths, synthetic_exfil_paths_test)
 
     # okay, so now we have the times selected for the largest time granularity... we have to make sure
     # that the other granularities agree...
@@ -220,7 +225,7 @@ def determine_attacks_to_times(time_gran_to_attack_labels, synthetic_exfil_paths
             time_gran_to_attack_ranges[time_gran].append( (current_start_of_attack, current_end_of_attack) )
             # also, modify the attack_labels
             for z in range(current_start_of_attack, current_end_of_attack):
-                #print "z",z
+                # print "z",z
                 attack_labels[z] = 1
     return time_gran_to_attack_labels, time_gran_to_attack_ranges, time_gran_to_physical_attack_ranges
 
@@ -282,9 +287,9 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
                                sec_between_exfil_events=1, time_of_synethic_exfil=30,
                                fraction_of_edge_weights=0.1, fraction_of_edge_pkts=0.1,
                                size_of_neighbor_training_window=300,
-                               end_of_training=None, injected_exfil_path='None',
-                               only_exp_info=False,
-                               synthetic_exfil_paths=None, initiator_info_for_paths=None):
+                               end_of_training=None, injected_exfil_path='None', only_exp_info=False,
+                               initiator_info_for_paths=None,
+                               synthetic_exfil_paths_train=None, synthetic_exfil_paths_test=None):
 
     print "log file can be found at: " + str(basefile_name) + '_logfile.log'
     logging.basicConfig(filename=basefile_name + '_logfile.log', level=logging.INFO)
@@ -302,8 +307,10 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
     mapping,list_of_infra_services = create_mappings(is_swarm, container_info_path, kubernetes_svc_info,
                                                      kubernetes_pod_info, cilium_config_path, ms_s)
 
-    if (not synthetic_exfil_paths or not initiator_info_for_paths) and not only_exp_info:
-        print "about_to_return_synthetic_exfil_paths", not synthetic_exfil_paths, not initiator_info_for_paths
+
+    if (synthetic_exfil_paths_train is None or initiator_info_for_paths is None or synthetic_exfil_paths_test is None) and not only_exp_info:
+        print "about_to_return_synthetic_exfil_paths", not synthetic_exfil_paths_train, not initiator_info_for_paths,\
+                not synthetic_exfil_paths_test
         # todo: might wanna specify this is in the attack descriptions...
         for ms in ms_s:
             if 'User' in ms:
@@ -351,9 +358,18 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
         ## okay, I'll probably wanna write tests for the below function, but it seems to be working pretty well on my
         # informal tests...
         end_of_training = end_of_training
+        ### TODO: the line below!!!! VVVVV ..... vVVV
+        synthetic_exfil_paths = []
+        for path in synthetic_exfil_paths_train + synthetic_exfil_paths_test:
+            if path not in synthetic_exfil_paths:
+                synthetic_exfil_paths.append(path)
+        ####synthetic_exfil_paths = list(set(synthetic_exfil_paths_train + synthetic_exfil_paths_test))
+
         time_gran_to_attack_labels, time_gran_to_attack_ranges, time_gran_to_physical_attack_ranges = \
             determine_attacks_to_times(time_gran_to_attack_labels, synthetic_exfil_paths, time_of_synethic_exfil=time_of_synethic_exfil,
-                                       min_starting=system_startup_time, end_of_train=end_of_training)
+                                       min_starting=system_startup_time, end_of_train=end_of_training,
+                                       synthetic_exfil_paths_train=synthetic_exfil_paths_train,
+                                       synthetic_exfil_paths_test=synthetic_exfil_paths_test)
         print "time_gran_to_attack_labels",time_gran_to_attack_labels
         print "time_gran_to_attack_ranges", time_gran_to_attack_ranges
         #time.sleep(50)
@@ -519,10 +535,13 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
         #time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, _ = func()
         print "exps_exfil_paths[counter]_to_func",exps_exfil_paths[counter], exps_initiator_info
         time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, _ = \
-            func(time_of_synethic_exfil=time_each_synthetic_exfil, synthetic_exfil_paths= exps_exfil_paths[counter],
+            func(time_of_synethic_exfil=time_each_synthetic_exfil,
                  initiator_info_for_paths=exps_initiator_info[counter],
-                 training_window_size=training_window_size, size_of_neighbor_training_window=size_of_neighbor_training_window,
-                 portion_for_training=end_of_train_portions[counter])
+                 training_window_size=training_window_size,
+                 size_of_neighbor_training_window=size_of_neighbor_training_window,
+                 portion_for_training=end_of_train_portions[counter],
+                 synthetic_exfil_paths_train = training_exfil_paths[counter],
+                 synthetic_exfil_paths_test = testing_exfil_paths[counter])
         print "exps_exfil_pathas[time_gran_to_mod_zscore_df]", time_gran_to_mod_zscore_df
         list_time_gran_to_mod_zscore_df.append(time_gran_to_mod_zscore_df)
         list_time_gran_to_zscore_dataframe.append(time_gran_to_zscore_dataframe)

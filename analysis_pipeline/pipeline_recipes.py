@@ -837,8 +837,10 @@ def process_wordpress6_rep2():
                                calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events)
     #'''
 
-def process_wordpress6_rep3(time_of_synethic_exfil=None, only_exp_info=False, synthetic_exfil_paths=None, initiator_info_for_paths=None,
-                            portion_for_training=None, training_window_size=None, size_of_neighbor_training_window=None):
+def process_wordpress6_rep3(time_of_synethic_exfil=None, only_exp_info=False, initiator_info_for_paths=None,
+                            portion_for_training=None, training_window_size=None, size_of_neighbor_training_window=None,
+                            synthetic_exfil_paths_train=None,
+                            synthetic_exfil_paths_test=None):
     #'''
     # Wordpress exp 6 rep3 (wordpress w/ HA cluster on cilium w/o security config, dnscat exfil from single db w/ 15 sec delay)
     pcap_paths = [
@@ -879,15 +881,18 @@ def process_wordpress6_rep3(time_of_synethic_exfil=None, only_exp_info=False, sy
                                    calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events,
                                    injected_exfil_path = physical_exfil_path, only_exp_info=only_exp_info,
                                    time_of_synethic_exfil=time_of_synethic_exfil,
-                                   synthetic_exfil_paths=synthetic_exfil_paths, initiator_info_for_paths=initiator_info_for_paths,
+                                   initiator_info_for_paths=initiator_info_for_paths,
                                    end_of_training=portion_for_training,
-                                   training_window_size=training_window_size, size_of_neighbor_training_window=size_of_neighbor_training_window)
+                                   training_window_size=training_window_size, size_of_neighbor_training_window=size_of_neighbor_training_window,
+                                   synthetic_exfil_paths_train=synthetic_exfil_paths_train, synthetic_exfil_paths_test=synthetic_exfil_paths_test)
     return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe,fourth_return_val
     #'''
 
 
-def process_wordpress6_rep4(time_of_synethic_exfil=None, only_exp_info=False, synthetic_exfil_paths=None, initiator_info_for_paths=None,
-                            portion_for_training=None, training_window_size=None, size_of_neighbor_training_window=None):
+def process_wordpress6_rep4(time_of_synethic_exfil=None, only_exp_info=False, initiator_info_for_paths=None,
+                            portion_for_training=None, training_window_size=None, size_of_neighbor_training_window=None,
+                            synthetic_exfil_paths_train=None,
+                            synthetic_exfil_paths_test=None):
      #'''
      # Wordpress exp 6 rep4 (wordpress w/ HA cluster on cilium w/o security config, dnscat exfil from single db w/ 15 sec delay)
      pcap_paths = [
@@ -928,15 +933,19 @@ def process_wordpress6_rep4(time_of_synethic_exfil=None, only_exp_info=False, sy
                                     calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events,
                                     injected_exfil_path=physical_exfil_path, only_exp_info=only_exp_info,
                                     time_of_synethic_exfil=time_of_synethic_exfil,
-                                    synthetic_exfil_paths = synthetic_exfil_paths, initiator_info_for_paths = initiator_info_for_paths,
+                                    initiator_info_for_paths = initiator_info_for_paths,
                                     end_of_training=portion_for_training,
                                     training_window_size=training_window_size,
-                                    size_of_neighbor_training_window=size_of_neighbor_training_window)
+                                    size_of_neighbor_training_window=size_of_neighbor_training_window,
+                                    synthetic_exfil_paths_train=synthetic_exfil_paths_train,
+                                    synthetic_exfil_paths_test=synthetic_exfil_paths_test)
      return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe,fourth_return_val
      # '''
 
-def process_wordpress7_rep3(time_of_synethic_exfil=None, only_exp_info=False, synthetic_exfil_paths=None, initiator_info_for_paths=None,
-                            portion_for_training=None,training_window_size=None, size_of_neighbor_training_window=None):
+def process_wordpress7_rep3(time_of_synethic_exfil=None, only_exp_info=False, initiator_info_for_paths=None,
+                            portion_for_training=None,training_window_size=None, size_of_neighbor_training_window=None,
+                            synthetic_exfil_paths_train=None,
+                            synthetic_exfil_paths_test=None):
     #''' # here
     # Wordpress exp 7 rep 3(wordpress w/ HA cluster on cilium w/o security config, dnscat exfil from single WP w/ 15 sec delay)
     pcap_paths = ["/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_seven_rep_3_default_bridge_0any.pcap"]
@@ -976,10 +985,12 @@ def process_wordpress7_rep3(time_of_synethic_exfil=None, only_exp_info=False, sy
                                    calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events,
                                    injected_exfil_path=physical_exfil_path, only_exp_info=only_exp_info,
                                    time_of_synethic_exfil=time_of_synethic_exfil,
-                                   synthetic_exfil_paths = synthetic_exfil_paths, initiator_info_for_paths = initiator_info_for_paths,
+                                   initiator_info_for_paths = initiator_info_for_paths,
                                    end_of_training=portion_for_training,
                                    training_window_size=training_window_size,
-                                   size_of_neighbor_training_window=size_of_neighbor_training_window)
+                                   size_of_neighbor_training_window=size_of_neighbor_training_window,
+                                   synthetic_exfil_paths_train=synthetic_exfil_paths_train,
+                                   synthetic_exfil_paths_test=synthetic_exfil_paths_test)
     return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val
    # '''
 
@@ -1023,8 +1034,10 @@ def process_wordpress7():
                                calc_zscore_p=True)
     #'''
 
-def process_wordpress7_rep2(time_of_synethic_exfil=None, only_exp_info=False, synthetic_exfil_paths=None, initiator_info_for_paths=None,
-                            portion_for_training=None, training_window_size=None, size_of_neighbor_training_window=None):
+def process_wordpress7_rep2(time_of_synethic_exfil=None, only_exp_info=False, initiator_info_for_paths=None,
+                            portion_for_training=None, training_window_size=None, size_of_neighbor_training_window=None,
+                            synthetic_exfil_paths_train=None,
+                            synthetic_exfil_paths_test=None):
     #'''
     # Wordpress exp 7 rep 2(wordpress w/ HA cluster on cilium w/o security config, dnscat exfil from single WP w/ 15 sec delay)
     pcap_paths = [
@@ -1065,10 +1078,12 @@ def process_wordpress7_rep2(time_of_synethic_exfil=None, only_exp_info=False, sy
                                    calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events,
                                    injected_exfil_path=physical_exfil_path, only_exp_info=only_exp_info,
                                    time_of_synethic_exfil=time_of_synethic_exfil,
-                                   synthetic_exfil_paths=synthetic_exfil_paths, initiator_info_for_paths=initiator_info_for_paths,
+                                   initiator_info_for_paths=initiator_info_for_paths,
                                    end_of_training=portion_for_training,
                                    training_window_size=training_window_size,
-                                   size_of_neighbor_training_window=size_of_neighbor_training_window)
+                                   size_of_neighbor_training_window=size_of_neighbor_training_window,
+                                   synthetic_exfil_paths_train=synthetic_exfil_paths_train,
+                                   synthetic_exfil_paths_test=synthetic_exfil_paths_test)
     return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val
     #'''
 
@@ -1113,8 +1128,10 @@ def process_wordpress8():
                                injected_exfil_path=physical_exfil_path)
     #'''
 
-def process_wordpress8_rep_2(time_of_synethic_exfil=None, only_exp_info=False, synthetic_exfil_paths=None, initiator_info_for_paths=None,
-                             portion_for_training=None,training_window_size=None, size_of_neighbor_training_window=None):
+def process_wordpress8_rep_2(time_of_synethic_exfil=None, only_exp_info=False, initiator_info_for_paths=None,
+                             portion_for_training=None,training_window_size=None, size_of_neighbor_training_window=None,
+                             synthetic_exfil_paths_train=None,
+                             synthetic_exfil_paths_test=None):
     #time.sleep(27000)
     #'''
     # 20 min of scaled-up wordpress (wordpress_eight)
@@ -1154,15 +1171,19 @@ def process_wordpress8_rep_2(time_of_synethic_exfil=None, only_exp_info=False, s
                                    calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events,
                                    injected_exfil_path = physical_exfil_path, only_exp_info=only_exp_info,
                                    time_of_synethic_exfil=time_of_synethic_exfil,
-                                   synthetic_exfil_paths = synthetic_exfil_paths, initiator_info_for_paths = initiator_info_for_paths,
+                                   initiator_info_for_paths = initiator_info_for_paths,
                                    end_of_training=portion_for_training,
                                    training_window_size=training_window_size,
-                                   size_of_neighbor_training_window=size_of_neighbor_training_window)
+                                   size_of_neighbor_training_window=size_of_neighbor_training_window,
+                                   synthetic_exfil_paths_train=synthetic_exfil_paths_train,
+                                   synthetic_exfil_paths_test=synthetic_exfil_paths_test)
     return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val
     #'''
 
-def process_wordpress8_rep_3(time_of_synethic_exfil=None,only_exp_info=False,synthetic_exfil_paths=None, initiator_info_for_paths=None,
-                             portion_for_training=None,training_window_size=None, size_of_neighbor_training_window=None):
+def process_wordpress8_rep_3(time_of_synethic_exfil=None,only_exp_info=False, initiator_info_for_paths=None,
+                             portion_for_training=None,training_window_size=None, size_of_neighbor_training_window=None,
+                             synthetic_exfil_paths_train=None,
+                             synthetic_exfil_paths_test=None):
     #time.sleep(27000)
     #'''
     # 20 min of scaled-up wordpress (wordpress_eight)
@@ -1202,10 +1223,12 @@ def process_wordpress8_rep_3(time_of_synethic_exfil=None,only_exp_info=False,syn
                                    calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events,
                                    injected_exfil_path=physical_exfil_path, only_exp_info=only_exp_info,
                                    time_of_synethic_exfil=time_of_synethic_exfil,
-                                   synthetic_exfil_paths = synthetic_exfil_paths, initiator_info_for_paths = initiator_info_for_paths,
+                                   initiator_info_for_paths = initiator_info_for_paths,
                                    end_of_training=portion_for_training,
                                    training_window_size=training_window_size,
-                                   size_of_neighbor_training_window=size_of_neighbor_training_window)
+                                   size_of_neighbor_training_window=size_of_neighbor_training_window,
+                                   synthetic_exfil_paths_train=synthetic_exfil_paths_train,
+                                   synthetic_exfil_paths_test=synthetic_exfil_paths_test)
     return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val
     #'''
 
