@@ -426,7 +426,7 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
             time_gran_to_list_of_exfil_amts[interval] = list_of_exfil_amts
             if min_interval:
                 print time_gran_to_feature_dataframe[interval]['is_test'], type(time_gran_to_feature_dataframe[interval]['is_test'])
-                end_of_training = time_gran_to_feature_dataframe[interval]['is_test'].tolist().index(1)
+                end_of_training = time_gran_to_feature_dataframe[interval]['is_test'].tolist().index(1) * min_interval
 
     print "about to calculate some alerts!"
 
@@ -533,6 +533,12 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
         print possible_exp_exfil_path
     ###### exit(122) ### TODO::: <--- remove!!!
 
+    #####################
+    #####  TODO: maybe I could split it here??? B/c before is the coordinator and after is the
+    ###    analysis portion... they are logically quite seperate... also I think I'd need to
+    ##### recalculate all the values together (goodbye seperate...)
+    ######## NOTE: on further examination, probably would want to split below the for loop below
+    #####################
     ## step (1) : iterate through individual experiments...
     ##  # 1a. list of inputs [done]
     ##  # 1b. acculate DFs
@@ -597,6 +603,7 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
     list_of_optimal_fone_scores = []
     for time_gran,aggregate_mod_score_dfs in time_gran_to_aggregate_mod_score_dfs.iteritems():
         time_grans.append(time_gran)
+        #'''
         try:
             aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='timemod_z_score')   # might wanna just stop these from being generated...
         except:
@@ -607,14 +614,22 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
         except:
             pass
         try:
+
             aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='Unnamed: 0mod_z_score') # might wanna just stop these from being generaetd
         except:
             pass
-        X = aggregate_mod_score_dfs.loc[:, aggregate_mod_score_dfs.columns != 'labels']
-        y = aggregate_mod_score_dfs.loc[:, aggregate_mod_score_dfs.columns == 'labels']
-        print X.shape, "X.shape"
-        #X_train, X_test, y_train, y_test =  sklearn.model_selection.train_test_split(X, y, test_size = 0.3, random_state = 42)
-        X_train, X_test, y_train, y_test =  sklearn.model_selection.train_test_split(X, y, test_size = 1-goal_train_test_split, random_state = 42)
+        #'''
+        aggregate_mod_score_dfs_training = aggregate_mod_score_dfs[aggregate_mod_score_dfs['is_test'] == 0]
+        aggregate_mod_score_dfs_testing = aggregate_mod_score_dfs[aggregate_mod_score_dfs['is_test'] == 1]
+        X_train = aggregate_mod_score_dfs_training.loc[:, aggregate_mod_score_dfs_training.columns != 'labels']
+        y_train = aggregate_mod_score_dfs_training.loc[:, aggregate_mod_score_dfs_training.columns == 'labels']
+        X_test = aggregate_mod_score_dfs_testing.loc[:, aggregate_mod_score_dfs_training.columns != 'labels']
+        y_test = aggregate_mod_score_dfs_testing.loc[:, aggregate_mod_score_dfs_training.columns == 'labels']
+
+        print "X_train", X_train
+        print "y_train", y_train
+
+        ##X_train, X_test, y_train, y_test =  sklearn.model_selection.train_test_split(X, y, test_size = 1-goal_train_test_split, random_state = 42)
         print X_train.shape, "X_train.shape"
 
         exfil_paths = X_test['exfil_path'].replace('0','[]')
@@ -632,12 +647,21 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
         X_test = X_test.drop(columns='exfil_weight')
         X_test = X_test.drop(columns='exfil_pkts')
 
+
+
+        print '-------'
+        print type(X_train)
+        print X_train.columns.values
+        X_train_columns = X_train.columns.values
+        ###exit(344) ### TODO TODO TODO <<<----- remove!!!
+
         print "columns", X_train.columns
         print "columns", X_test.columns
 
         ### 2b. feed the lasso to get the high-impact features...
         clf = LassoCV(cv=3, max_iter=8000) ## <<-- instead of having choosing the alpha be magic, let's use cross validation to choose it instead...
 
+        print X_train.dtypes
         # need to replace the missing values in the data w/ meaningful values...
         imp = SimpleImputer(missing_values=np.nan, strategy='median')
         imp = imp.fit(X_train)
@@ -659,7 +683,11 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
         #print coefficients
         #clf.coef_, "intercept", clf.intercept_
         coef_dict = {}
-        for coef, feat in zip(clf.coef_, list(X.columns.values)):
+        print "len(clf.coef_)", len(clf.coef_), "len(X_train_columns)", len(X_train_columns)
+        if len(clf.coef_) != len(X_train_columns):
+            print "coef_ is different length than X_train_columns!"
+            exit(888)
+        for coef, feat in zip(clf.coef_, X_train_columns):
             coef_dict[feat] = coef
         print "intercept...", clf.intercept_
         coef_dict['intercept'] = clf.intercept_
@@ -740,14 +768,15 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
     names = []
     for counter,recipe in enumerate(function_list):
         print "recipe_in_functon_list", recipe.__name__
-        names.append(recipe.__name__)
-        starts_of_testing_dict[recipe] = starts_of_testing[counter]
+        name = recipe.__name__
+        name = '_'.join(name.split('_')[1:])
+        names.append(name)
+        starts_of_testing_dict[name] = starts_of_testing[counter]
     starts_of_testing_df = pd.DataFrame(starts_of_testing_dict, index=['start_of_testing_phase'])
     path_occurence_training_df = generate_exfil_path_occurence_df(list_time_gran_to_mod_zscore_df_training, names)
     path_occurence_testing_df = generate_exfil_path_occurence_df(list_time_gran_to_mod_zscore_df_testing, names)
 
     print "list_of_rocs", list_of_rocs
-    ### TODO: add starts_of_testing_df, path_occurence_training_df, path_occurence_testing_df [[need AT LEAST 2 MORE!!!]]
     generate_report.generate_report(list_of_rocs, list_of_feat_coefs_dfs, list_of_attacks_found_dfs,
                                     recipes_used, base_output_name, time_grans, list_of_model_parameters,
                                     list_of_optimal_fone_scores, starts_of_testing_df, path_occurence_training_df,

@@ -64,8 +64,8 @@ def generate_report(list_of_rocs, list_of_feat_coef, list_of_attacks_found_dfs, 
     ## TODO: let's insert the debugging section of the report here...
     sections.append(debug_section_template.render(
         starts_of_testing_df = starts_of_testing_df.to_html(),
-        path_occurence_training_df = path_occurence_training_df.to_html(),
-        path_occurence_testing_df = path_occurence_testing_df.to_html()
+        path_occurence_training_df = path_occurence_training_df.transpose().to_html(),
+        path_occurence_testing_df = path_occurence_testing_df.transpose().to_html()
     ))
 
     # render the template locally...
