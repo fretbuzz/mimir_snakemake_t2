@@ -382,7 +382,6 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
         #time.sleep(50)
 
         #####exit(200) ## TODO ::: <<<---- remove!!
-
         # OKAY, let's verify that this determine_attacks_to_times function is wokring before moving on to the next one...
         total_calculated_vals, time_gran_to_list_of_concrete_exfil_paths, time_gran_to_list_of_exfil_amts = \
             calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms_s, basegraph_name, calc_vals,
@@ -426,7 +425,8 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
                 list_of_exfil_amts.append( current_exfil_dict )
             time_gran_to_list_of_exfil_amts[interval] = list_of_exfil_amts
             if min_interval:
-                end_of_training = time_gran_to_feature_dataframe[interval]['is_test'].index(1)
+                print time_gran_to_feature_dataframe[interval]['is_test'], type(time_gran_to_feature_dataframe[interval]['is_test'])
+                end_of_training = time_gran_to_feature_dataframe[interval]['is_test'].tolist().index(1)
 
     print "about to calculate some alerts!"
 
@@ -531,15 +531,18 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
     print "possible_exps_exfil_paths:"
     for possible_exp_exfil_path in possible_exps_exfil_paths:
         print possible_exp_exfil_path
-    exit(122) ### TODO::: <--- remove!!!
+    ###### exit(122) ### TODO::: <--- remove!!!
 
     ## step (1) : iterate through individual experiments...
     ##  # 1a. list of inputs [done]
     ##  # 1b. acculate DFs
     list_time_gran_to_mod_zscore_df = []
+    list_time_gran_to_mod_zscore_df_training = []
+    list_time_gran_to_mod_zscore_df_testing = []
     list_time_gran_to_zscore_dataframe = []
     list_time_gran_to_feature_dataframe = []
 
+    experiments_to_exfil_path_time_dicts = []
     starts_of_testing = []
     for counter,func in enumerate(function_list):
         #time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, _ = func()
@@ -556,8 +559,9 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
         list_time_gran_to_mod_zscore_df.append(time_gran_to_mod_zscore_df)
         list_time_gran_to_zscore_dataframe.append(time_gran_to_zscore_dataframe)
         list_time_gran_to_feature_dataframe.append(time_gran_to_feature_dataframe)
+        list_time_gran_to_mod_zscore_df_training.append(generate_time_gran_sub_dataframes(time_gran_to_mod_zscore_df, 'is_test', 0))
+        list_time_gran_to_mod_zscore_df_testing.append(generate_time_gran_sub_dataframes(time_gran_to_mod_zscore_df, 'is_test', 1))
         starts_of_testing.append(start_of_testing)
-        gc.collect()
 
     # step (2) :  take the dataframes and feed them into the LASSO component...
     ### 2a. split into training and testing data
@@ -567,6 +571,8 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
     time_gran_to_feature_dfs = {}
     print "about_to_do_list_time_gran_to_mod_zscore_df"
     time_gran_to_aggregate_mod_score_dfs = aggregate_dfs(list_time_gran_to_mod_zscore_df)
+    time_gran_to_aggregate_mod_score_dfs_training = aggregate_dfs(list_time_gran_to_mod_zscore_df_training)
+    time_gran_to_aggregate_mod_score_dfs_testing = aggregate_dfs(list_time_gran_to_mod_zscore_df_testing)
     print "about_to_do_list_time_gran_to_feature_dataframe"
     time_gran_to_aggreg_feature_dfs = aggregate_dfs(list_time_gran_to_feature_dataframe)
 
@@ -576,9 +582,6 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
     for time_gran, aggregate_feature_df in time_gran_to_aggregate_mod_score_dfs.iteritems():
         aggregate_feature_df.to_csv(base_output_name + 'modz_feat_df_at_time_gran_of_' + str(time_gran) + '_sec.csv',
                                     na_rep='?')
-
-    ## TODO: I want to use those DFs to get the mapping of the logical exfil paths to the experiments (and the number
-    ## of times that this happens...)
 
     #print time_gran_to_aggregate_mod_score_dfs['60']
 
@@ -734,38 +737,54 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
     recipes_used = [recipe.__name__ for recipe in function_list]
 
     starts_of_testing_dict = {}
+    names = []
     for counter,recipe in enumerate(function_list):
         print "recipe_in_functon_list", recipe.__name__
+        names.append(recipe.__name__)
         starts_of_testing_dict[recipe] = starts_of_testing[counter]
-    starts_of_testing_df = pd.DataFrame(starts_of_testing_dict)
-
+    starts_of_testing_df = pd.DataFrame(starts_of_testing_dict, index=['start_of_testing_phase'])
+    path_occurence_training_df = generate_exfil_path_occurence_df(list_time_gran_to_mod_zscore_df_training, names)
+    path_occurence_testing_df = generate_exfil_path_occurence_df(list_time_gran_to_mod_zscore_df_testing, names)
 
     print "list_of_rocs", list_of_rocs
-    ### TODO: add starts_of_testing_df, [[need AT LEAST 2 MORE!!!]]
+    ### TODO: add starts_of_testing_df, path_occurence_training_df, path_occurence_testing_df [[need AT LEAST 2 MORE!!!]]
     generate_report.generate_report(list_of_rocs, list_of_feat_coefs_dfs, list_of_attacks_found_dfs,
                                     recipes_used, base_output_name, time_grans, list_of_model_parameters,
-                                    list_of_optimal_fone_scores)
+                                    list_of_optimal_fone_scores, starts_of_testing_df, path_occurence_training_df,
+                                    path_occurence_testing_df)
 
     print "multi_experiment_pipeline is all done! (NO ERROR DURING RUNNING)"
     #print "recall that this was the list of alert percentiles", percentile_thresholds
 
 def aggregate_dfs(list_time_gran_to_mod_zscore_df):
     time_gran_to_aggregate_mod_score_dfs = {}
+    time_gran_to_aggregate_mod_score_dfs_training = {}
+    time_gran_to_aggregate_mod_score_dfs_testing = {}
     print "list_time_gran_to_mod_zscore_df",list_time_gran_to_mod_zscore_df
     for time_gran_to_mod_zscore_df in list_time_gran_to_mod_zscore_df:
         print "time_gran_to_mod_zscore_df",time_gran_to_mod_zscore_df
         for time_gran, mod_zscore_df in time_gran_to_mod_zscore_df.iteritems():
             if time_gran not in time_gran_to_aggregate_mod_score_dfs.keys():
                 time_gran_to_aggregate_mod_score_dfs[time_gran] = mod_zscore_df
+                '''
+                time_gran_to_aggregate_mod_score_dfs_training[time_gran] = mod_zscore_df[mod_zscore_df['is_exfil'] == 0]
+                time_gran_to_aggregate_mod_score_dfs_testing[time_gran] =  mod_zscore_df[mod_zscore_df['is_exfil'] == 1]
+                '''
                 print "post_initializing_aggregate_dataframe", len(time_gran_to_aggregate_mod_score_dfs[time_gran]), \
                     type(time_gran_to_aggregate_mod_score_dfs[time_gran]), time_gran
 
             else:
                 time_gran_to_aggregate_mod_score_dfs[time_gran] = \
                     time_gran_to_aggregate_mod_score_dfs[time_gran].append(mod_zscore_df, sort=True)
+                '''
+                time_gran_to_aggregate_mod_score_dfs_training[time_gran] = \
+                    time_gran_to_aggregate_mod_score_dfs_training[time_gran].append(mod_zscore_df[mod_zscore_df['is_exfil'] == 0], sort=True)
+                time_gran_to_aggregate_mod_score_dfs_testing[time_gran] = \
+                    time_gran_to_aggregate_mod_score_dfs_training[time_gran].append(mod_zscore_df[mod_zscore_df['is_exfil'] == 1], sort=True)
+                '''
                 print "should_be_appending_mod_z_scores", len(time_gran_to_aggregate_mod_score_dfs[time_gran]), \
                     type(time_gran_to_aggregate_mod_score_dfs[time_gran]), time_gran
-    return time_gran_to_aggregate_mod_score_dfs
+    return time_gran_to_aggregate_mod_score_dfs#, time_gran_to_aggregate_mod_score_dfs_training, time_gran_to_aggregate_mod_score_dfs_testing
 
 # this function determines which experiments should have which synthetic exfil paths injected into them
 def assign_exfil_paths_to_experiments(exp_infos, goal_train_test_split, goal_attack_NoAttack_split,time_each_synthetic_exfil,
@@ -868,6 +887,26 @@ def assign_exfil_paths_to_experiments(exp_infos, goal_train_test_split, goal_att
     print "total_training_injections_possible", total_training_injections_possible, "total_testing_injections_possible", total_testing_injections_possible
 
     return training_exfil_paths,testing_exfil_paths,end_of_train_portions
+
+# generates a df indicating how long each logical exfil path occurs during each experiment, and returns a handle DF
+# for use in the generated report.
+def generate_exfil_path_occurence_df(list_of_time_gran_to_mod_zscore_df, experiment_names):
+    experiments_to_exfil_path_time_dicts = []
+    for time_gran_to_mod_zscore_df in list_of_time_gran_to_mod_zscore_df:
+        min_time_gran = min(time_gran_to_mod_zscore_df.keys())
+        logical_exfil_paths_freq = time_gran_to_mod_zscore_df[min_time_gran]['exfil_path'].value_counts().to_dict()
+        for path, occur in logical_exfil_paths_freq.iteritems():
+            logical_exfil_paths_freq[path] = occur * min_time_gran
+        experiments_to_exfil_path_time_dicts.append(logical_exfil_paths_freq)
+    path_occurence_df = pd.DataFrame(experiments_to_exfil_path_time_dicts, index=experiment_names)
+    return path_occurence_df
+
+def generate_time_gran_sub_dataframes(time_gran_to_df_dataframe, column_name, column_value):
+    time_gran_to_sub_dataframe = {}
+    for time_gran, dataframe in time_gran_to_df_dataframe.iteritems():
+        sub_dataframe = dataframe[dataframe[column_name] == column_value]
+        time_gran_to_sub_dataframe[time_gran] = sub_dataframe
+    return time_gran_to_sub_dataframe
 
 if __name__ == "__main__":
     time_gran_to_attack_labels = {1: [0, 0, 1, 1, 0, 0, 0, 0, 0, 0], 2: [0, 1, 0, 0, 0]}
