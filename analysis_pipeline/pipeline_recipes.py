@@ -837,7 +837,7 @@ def process_wordpress6_rep2():
                                calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events)
     #'''
 
-def process_wordpress6_rep3(time_of_synethic_exfil, only_exp_info=False, synthetic_exfil_paths=None, initiator_info_for_paths=None):
+def process_wordpress6_rep3(time_of_synethic_exfil=None, only_exp_info=False, synthetic_exfil_paths=None, initiator_info_for_paths=None):
     #'''
     # Wordpress exp 6 rep3 (wordpress w/ HA cluster on cilium w/o security config, dnscat exfil from single db w/ 15 sec delay)
     pcap_paths = [
@@ -857,7 +857,7 @@ def process_wordpress6_rep3(time_of_synethic_exfil, only_exp_info=False, synthet
     end_time = None
     exfil_start_time = 600
     exfil_end_time = 650
-    calc_vals = False #
+    calc_vals = True #
     window_size = 6
     graph_p = False  # should I make graphs?
     colors = ['b', 'r']
@@ -883,7 +883,7 @@ def process_wordpress6_rep3(time_of_synethic_exfil, only_exp_info=False, synthet
     #'''
 
 
-def process_wordpress6_rep4(time_of_synethic_exfil, only_exp_info=False, synthetic_exfil_paths=None, initiator_info_for_paths=None):
+def process_wordpress6_rep4(time_of_synethic_exfil=None, only_exp_info=False, synthetic_exfil_paths=None, initiator_info_for_paths=None):
      #'''
      # Wordpress exp 6 rep4 (wordpress w/ HA cluster on cilium w/o security config, dnscat exfil from single db w/ 15 sec delay)
      pcap_paths = [
@@ -903,7 +903,7 @@ def process_wordpress6_rep4(time_of_synethic_exfil, only_exp_info=False, synthet
      end_time = None
      exfil_start_time = 600
      exfil_end_time = 650
-     calc_vals = False
+     calc_vals = True
      window_size = 6
      graph_p = False  # should I make graphs?
      colors = ['b', 'r']
@@ -928,7 +928,7 @@ def process_wordpress6_rep4(time_of_synethic_exfil, only_exp_info=False, synthet
      return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe,fourth_return_val
      # '''
 
-def process_wordpress7_rep3(time_of_synethic_exfil, only_exp_info=False, synthetic_exfil_paths=None, initiator_info_for_paths=None):
+def process_wordpress7_rep3(time_of_synethic_exfil=None, only_exp_info=False, synthetic_exfil_paths=None, initiator_info_for_paths=None):
     #''' # here
     # Wordpress exp 7 rep 3(wordpress w/ HA cluster on cilium w/o security config, dnscat exfil from single WP w/ 15 sec delay)
     pcap_paths = ["/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_seven_rep_3_default_bridge_0any.pcap"]
@@ -947,7 +947,7 @@ def process_wordpress7_rep3(time_of_synethic_exfil, only_exp_info=False, synthet
     end_time = None
     exfil_start_time = 600
     exfil_end_time = 650
-    calc_vals = False
+    calc_vals = True
     window_size = 6
     graph_p = False  # should I make graphs?
     colors = ['b', 'r']
@@ -1012,7 +1012,7 @@ def process_wordpress7():
                                calc_zscore_p=True)
     #'''
 
-def process_wordpress7_rep2(time_of_synethic_exfil, only_exp_info=False, synthetic_exfil_paths=None, initiator_info_for_paths=None):
+def process_wordpress7_rep2(time_of_synethic_exfil=None, only_exp_info=False, synthetic_exfil_paths=None, initiator_info_for_paths=None):
     #'''
     # Wordpress exp 7 rep 2(wordpress w/ HA cluster on cilium w/o security config, dnscat exfil from single WP w/ 15 sec delay)
     pcap_paths = [
@@ -1032,7 +1032,7 @@ def process_wordpress7_rep2(time_of_synethic_exfil, only_exp_info=False, synthet
     end_time = None
     exfil_start_time = 600
     exfil_end_time = 650
-    calc_vals = False
+    calc_vals = True
     window_size = 6
     graph_p = False  # should I make graphs?
     colors = ['b', 'r']
@@ -1098,7 +1098,7 @@ def process_wordpress8():
                                injected_exfil_path=physical_exfil_path)
     #'''
 
-def process_wordpress8_rep_2(time_of_synethic_exfil, only_exp_info=False, synthetic_exfil_paths=None, initiator_info_for_paths=None):
+def process_wordpress8_rep_2(time_of_synethic_exfil=None, only_exp_info=False, synthetic_exfil_paths=None, initiator_info_for_paths=None):
     #time.sleep(27000)
     #'''
     # 20 min of scaled-up wordpress (wordpress_eight)
@@ -1118,7 +1118,7 @@ def process_wordpress8_rep_2(time_of_synethic_exfil, only_exp_info=False, synthe
     end_time = None
     exfil_start_time = 600
     exfil_end_time = 900
-    calc_vals = False
+    calc_vals = True
     window_size = 6
     graph_p = False  # should I make graphs?
     colors = ['b', 'r']
@@ -1142,7 +1142,7 @@ def process_wordpress8_rep_2(time_of_synethic_exfil, only_exp_info=False, synthe
     return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val
     #'''
 
-def process_wordpress8_rep_3(time_of_synethic_exfil,only_exp_info=False,synthetic_exfil_paths=None, initiator_info_for_paths=None):
+def process_wordpress8_rep_3(time_of_synethic_exfil=None,only_exp_info=False,synthetic_exfil_paths=None, initiator_info_for_paths=None):
     #time.sleep(27000)
     #'''
     # 20 min of scaled-up wordpress (wordpress_eight)
@@ -1162,7 +1162,7 @@ def process_wordpress8_rep_3(time_of_synethic_exfil,only_exp_info=False,syntheti
     end_time = None
     exfil_start_time = 600
     exfil_end_time = 900
-    calc_vals = False
+    calc_vals = True
     window_size = 6
     graph_p = False  # should I make graphs?
     colors = ['b', 'r']
@@ -1182,7 +1182,7 @@ def process_wordpress8_rep_3(time_of_synethic_exfil,only_exp_info=False,syntheti
                                calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events,
                                 injected_exfil_path=physical_exfil_path, only_exp_info=only_exp_info,
                                 time_of_synethic_exfil=time_of_synethic_exfil,
-                                synthetic_exfil_paths = None, initiator_info_for_paths = None)
+                                synthetic_exfil_paths = synthetic_exfil_paths, initiator_info_for_paths = initiator_info_for_paths)
     return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val
     #'''
 
@@ -1340,12 +1340,12 @@ def multi_experiment_wordpress_recipe():
     time_of_synethic_exfil = 30 # sec
     goal_train_test_split = 0.6
     goal_attack_NoAttack_split = 0.5
-    raw_function_list = [process_wordpress6_rep3, process_wordpress6_rep4, process_wordpress7_rep2, process_wordpress7_rep3,
+    function_list = [process_wordpress6_rep3, process_wordpress6_rep4, process_wordpress7_rep2, process_wordpress7_rep3,
                      process_wordpress8_rep_2, process_wordpress8_rep_3]
     ## NOTE: process_wordpress8 could be here too, but I'm for the moment I'm keeping each kind of injected
     ## attack w/ two different experiments in which it occurss...
 
-    function_list = [functools.partial(i,time_of_synethic_exfil=time_of_synethic_exfil) for i in raw_function_list]
+    #function_list = [i for i in raw_function_list]
     function_list_exp_info = [functools.partial(i,time_of_synethic_exfil=time_of_synethic_exfil, only_exp_info=True) for i in function_list]
 
     base_output_location = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_summary/'# + 'lasso_roc'

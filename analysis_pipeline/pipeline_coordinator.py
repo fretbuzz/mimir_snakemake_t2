@@ -314,6 +314,7 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
         return total_experiment_length, exfil_start_time, exfil_end_time, system_startup_time
 
     if not synthetic_exfil_paths or not initiator_info_for_paths:
+        print "about_to_return_synthetic_exfil_paths", not synthetic_exfil_paths, not initiator_info_for_paths
         # todo: might wanna specify this is in the attack descriptions...
         for ms in ms_s:
             if 'User' in ms:
@@ -499,7 +500,7 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
     exps_exfil_paths = []
     exps_initiator_info = []
     for func in function_list:
-        synthetic_exfil_paths, initiator_info_for_paths, _, _ = func()
+        synthetic_exfil_paths, initiator_info_for_paths, _, _ = func(time_of_synethic_exfil=time_each_synthetic_exfil)
         exps_exfil_paths.append(synthetic_exfil_paths)
         exps_initiator_info.append(initiator_info_for_paths)
     flat_exps_exfil_paths = [tuple(exfil_path) for exp_exfil_paths in exps_exfil_paths for exfil_path in exp_exfil_paths]
@@ -566,7 +567,7 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
     print "testing_number_times_inject_all_paths",testing_number_times_inject_all_paths, \
         "training_number_times_inject_all_paths",training_number_times_inject_all_paths
     print "total_training_injections_possible",total_training_injections_possible, "total_testing_injections_possible",total_testing_injections_possible
-    exit(122) ### TODO::: <--- remove!!!
+    #### exit(122) ### TODO::: <--- remove!!!
 
     ## step (1) : iterate through individual experiments...
     ##  # 1a. list of inputs [done]
@@ -580,12 +581,15 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
     ### AND also need to modify it to use them appropriately
     for counter,func in enumerate(function_list):
         #time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, _ = func()
+        print "exps_exfil_paths[counter]_to_func",exps_exfil_paths[counter], exps_initiator_info
         time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, _ = \
-            func(synthetic_exfil_paths= exps_exfil_paths[counter],initiator_info_for_paths=exps_initiator_info[counter])
+            func(time_of_synethic_exfil=time_each_synthetic_exfil, synthetic_exfil_paths= exps_exfil_paths[counter],initiator_info_for_paths=exps_initiator_info[counter])
+        print "exps_exfil_pathas[time_gran_to_mod_zscore_df]", time_gran_to_mod_zscore_df
         list_time_gran_to_mod_zscore_df.append(time_gran_to_mod_zscore_df)
         list_time_gran_to_zscore_dataframe.append(time_gran_to_zscore_dataframe)
         list_time_gran_to_feature_dataframe.append(time_gran_to_feature_dataframe)
         gc.collect()
+
 
     # step (2) :  take the dataframes and feed them into the LASSO component...
     ### 2a. split into training and testing data
@@ -593,7 +597,9 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
     ######## 2a.I. get aggregate dfs for each time granularity...
     time_gran_to_aggregate_mod_score_dfs = {}
     time_gran_to_feature_dfs = {}
+    print "about_to_do_list_time_gran_to_mod_zscore_df"
     time_gran_to_aggregate_mod_score_dfs = aggregate_dfs(list_time_gran_to_mod_zscore_df)
+    print "about_to_do_list_time_gran_to_feature_dataframe"
     time_gran_to_aggreg_feature_dfs = aggregate_dfs(list_time_gran_to_feature_dataframe)
 
     for time_gran, aggregate_feature_df in time_gran_to_aggreg_feature_dfs.iteritems():
@@ -633,7 +639,8 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
         X = aggregate_mod_score_dfs.loc[:, aggregate_mod_score_dfs.columns != 'labels']
         y = aggregate_mod_score_dfs.loc[:, aggregate_mod_score_dfs.columns == 'labels']
         print X.shape, "X.shape"
-        X_train, X_test, y_train, y_test =  sklearn.model_selection.train_test_split(X, y, test_size = 0.3, random_state = 42)
+        #X_train, X_test, y_train, y_test =  sklearn.model_selection.train_test_split(X, y, test_size = 0.3, random_state = 42)
+        X_train, X_test, y_train, y_test =  sklearn.model_selection.train_test_split(X, y, test_size = 1-goal_train_test_split, random_state = 42)
         print X_train.shape, "X_train.shape"
 
         exfil_paths = X_test['exfil_path'].replace('0','[]')
@@ -767,7 +774,9 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
 
 def aggregate_dfs(list_time_gran_to_mod_zscore_df):
     time_gran_to_aggregate_mod_score_dfs = {}
+    print "list_time_gran_to_mod_zscore_df",list_time_gran_to_mod_zscore_df
     for time_gran_to_mod_zscore_df in list_time_gran_to_mod_zscore_df:
+        print "time_gran_to_mod_zscore_df",time_gran_to_mod_zscore_df
         for time_gran, mod_zscore_df in time_gran_to_mod_zscore_df.iteritems():
             if time_gran not in time_gran_to_aggregate_mod_score_dfs.keys():
                 time_gran_to_aggregate_mod_score_dfs[time_gran] = mod_zscore_df
