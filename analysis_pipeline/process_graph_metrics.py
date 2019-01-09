@@ -264,7 +264,7 @@ def calculate_mod_zscores_dfs(calculated_vals, minimum_training_window, training
     return time_gran_to_mod_z_score_dataframe
 
 def save_feature_datafames(time_gran_to_feature_dataframe, csv_path, time_gran_to_attack_labels, time_gran_to_synthetic_exfil_paths_series,
-                           time_gran_to_list_of_concrete_exfil_paths, time_gran_to_list_of_exfil_amts):
+                           time_gran_to_list_of_concrete_exfil_paths, time_gran_to_list_of_exfil_amts, end_of_training):
     print "time_gran_to_feature_dataframe",time_gran_to_feature_dataframe.keys()
     for time_gran, attack_labels in time_gran_to_attack_labels.iteritems():
         print "time_gran", time_gran, "len of attack labels", len(attack_labels)
@@ -280,6 +280,13 @@ def save_feature_datafames(time_gran_to_feature_dataframe, csv_path, time_gran_t
         feature_dataframe['exfil_weight'] = pandas.Series([i['weight'] for i in time_gran_to_list_of_exfil_amts[time_gran]], index=feature_dataframe.index)
         feature_dataframe['exfil_pkts'] = pandas.Series([i['frames'] for i in time_gran_to_list_of_exfil_amts[time_gran]], index=feature_dataframe.index)
         print "feature_dataframe", feature_dataframe
+
+        ### now let's store an indicator of when the training set ends... end_of_training indicates the first member
+        ### of the training dataset...
+        test_period_list = [0 for i in range(0,end_of_training/time_gran)] + \
+                           [1 for i in range(end_of_training/time_gran, len(feature_dataframe.index))]
+        test_period_series = pandas.Series(test_period_list, index=feature_dataframe.index)
+        feature_dataframe['is_test'] = test_period_series
 
         feature_dataframe.to_csv(csv_path + str(time_gran) + '.csv', na_rep='?')
 

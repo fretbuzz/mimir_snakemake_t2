@@ -75,7 +75,7 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
 
 def calc_zscores(alert_file, training_window_size, minimum_training_window,
                  sub_path, time_gran_to_attack_labels, time_gran_to_feature_dataframe, calc_zscore_p, time_gran_to_synthetic_exfil_paths_series,
-                 time_gran_to_list_of_concrete_exfil_paths, time_gran_to_list_of_exfil_amts):
+                 time_gran_to_list_of_concrete_exfil_paths, time_gran_to_list_of_exfil_amts, end_of_training):
 
     #time_gran_to_mod_zscore_df = process_graph_metrics.calculate_mod_zscores_dfs(total_calculated_vals, minimum_training_window,
     #                                                                             training_window_size, time_interval_lengths)
@@ -91,7 +91,7 @@ def calc_zscores(alert_file, training_window_size, minimum_training_window,
         process_graph_metrics.save_feature_datafames(time_gran_to_mod_zscore_df, mod_z_score_df_basefile_name,
                                                      time_gran_to_attack_labels, time_gran_to_synthetic_exfil_paths_series,
                                                      time_gran_to_list_of_concrete_exfil_paths,
-                                                     time_gran_to_list_of_exfil_amts)
+                                                     time_gran_to_list_of_exfil_amts, end_of_training)
 
         time_gran_to_zscore_dataframe = process_graph_metrics.calc_time_gran_to_zscore_dfs(time_gran_to_feature_dataframe,
                                                                                            training_window_size,
@@ -100,7 +100,7 @@ def calc_zscores(alert_file, training_window_size, minimum_training_window,
         process_graph_metrics.save_feature_datafames(time_gran_to_zscore_dataframe, z_score_df_basefile_name,
                                                      time_gran_to_attack_labels, time_gran_to_synthetic_exfil_paths_series,
                                                      time_gran_to_list_of_concrete_exfil_paths,
-                                                     time_gran_to_list_of_exfil_amts)
+                                                     time_gran_to_list_of_exfil_amts, end_of_training)
     else:
         time_gran_to_zscore_dataframe = {}
         time_gran_to_mod_zscore_df = {}
@@ -116,6 +116,8 @@ def calc_zscores(alert_file, training_window_size, minimum_training_window,
                 del time_gran_to_mod_zscore_df[interval]['exfil_weight']
                 del time_gran_to_zscore_dataframe[interval]['exfil_pkts']
                 del time_gran_to_mod_zscore_df[interval]['exfil_pkts']
+                del time_gran_to_zscore_dataframe[interval]['is_test']
+                del time_gran_to_mod_zscore_df[interval]['is_test']
             except:
                 pass
 
@@ -318,7 +320,7 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
             if 'my-release' in ms:
                 sensitive_ms = ms
         synthetic_exfil_paths, initiator_info_for_paths = gen_attack_templates.generate_synthetic_attack_templates(mapping, ms_s, sensitive_ms)
-        return synthetic_exfil_paths, initiator_info_for_paths, None, None
+        return synthetic_exfil_paths, initiator_info_for_paths, None, None,None
 
     system_startup_time = training_window_size+size_of_neighbor_training_window
 
@@ -333,7 +335,7 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
     smallest_time_gran = min(time_grans)
     if only_exp_info:
         total_experiment_length = len(interval_to_filenames[str(smallest_time_gran)]) * smallest_time_gran
-        return total_experiment_length, exfil_start_time, exfil_end_time, system_startup_time
+        return total_experiment_length, exfil_start_time, exfil_end_time, system_startup_time,None
 
     if calc_vals or graph_p:
         # TODO: 90% sure that there is a problem with this function...
@@ -358,12 +360,10 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
         ## okay, I'll probably wanna write tests for the below function, but it seems to be working pretty well on my
         # informal tests...
         end_of_training = end_of_training
-        ### TODO: the line below!!!! VVVVV ..... vVVV
         synthetic_exfil_paths = []
         for path in synthetic_exfil_paths_train + synthetic_exfil_paths_test:
             if path not in synthetic_exfil_paths:
                 synthetic_exfil_paths.append(path)
-        ####synthetic_exfil_paths = list(set(synthetic_exfil_paths_train + synthetic_exfil_paths_test))
 
         time_gran_to_attack_labels, time_gran_to_attack_ranges, time_gran_to_physical_attack_ranges = \
             determine_attacks_to_times(time_gran_to_attack_labels, synthetic_exfil_paths, time_of_synethic_exfil=time_of_synethic_exfil,
@@ -394,7 +394,8 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
 
         process_graph_metrics.save_feature_datafames(time_gran_to_feature_dataframe, alert_file + sub_path,
                                                      time_gran_to_attack_labels,time_gran_to_synthetic_exfil_paths_series,
-                                                     time_gran_to_list_of_concrete_exfil_paths, time_gran_to_list_of_exfil_amts)
+                                                     time_gran_to_list_of_concrete_exfil_paths, time_gran_to_list_of_exfil_amts,
+                                                     end_of_training)
 
         analysis_pipeline.generate_graphs.generate_feature_multitime_boxplots(total_calculated_vals, basegraph_name,
                                                                               window_size, colors, time_interval_lengths,
@@ -407,6 +408,7 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
         time_gran_to_synthetic_exfil_paths_series = {}
         time_gran_to_list_of_concrete_exfil_paths = {}
         time_gran_to_list_of_exfil_amts = {}
+        min_interval = min(time_interval_lengths)
         for interval in time_interval_lengths:
             #if interval in time_interval_lengths:
             print "time_interval_lengths",time_interval_lengths, "interval", interval
@@ -423,8 +425,8 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
                 current_exfil_dict = {'weight':weight, 'frames': pkts}
                 list_of_exfil_amts.append( current_exfil_dict )
             time_gran_to_list_of_exfil_amts[interval] = list_of_exfil_amts
-
-
+            if min_interval:
+                end_of_training = time_gran_to_feature_dataframe[interval]['is_test'].index(1)
 
     print "about to calculate some alerts!"
 
@@ -434,6 +436,7 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
             del feature_dataframe['exfil_weight']
             del feature_dataframe['exfil_pkts']
             del feature_dataframe['concrete_exfil_path']
+            del feature_dataframe['is_test']
         except:
             pass
 
@@ -441,7 +444,7 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
     time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe = \
         calc_zscores(alert_file, training_window_size, minimum_training_window, sub_path, time_gran_to_attack_labels,
                      time_gran_to_feature_dataframe, calc_zscore_p, time_gran_to_synthetic_exfil_paths_series,
-                     time_gran_to_list_of_concrete_exfil_paths, time_gran_to_list_of_exfil_amts)
+                     time_gran_to_list_of_concrete_exfil_paths, time_gran_to_list_of_exfil_amts, end_of_training)
 
     print "analysis_pipeline about to return!"
 
@@ -450,7 +453,8 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
 
     #for time_gran, mod_zscore_df in time_gran_to_mod_zscore_df.iteritems():
     #    mod_zscore_df['exfil_paths'] = time_gran_to_synthetic_exfil_paths_series[time_gran]
-    return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, time_gran_to_synthetic_exfil_paths_series
+    return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, \
+           time_gran_to_synthetic_exfil_paths_series, end_of_training
 
 # this function determines how much time to is available for injection attacks in each experiment.
 # it takes into account when the physical attack starts (b/c need to split into training/testing set
@@ -500,7 +504,7 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
     print function_list_exp_info
     exp_infos = []
     for func_exp_info in function_list_exp_info:
-        total_experiment_length, exfil_start_time, exfil_end_time, system_startup_time = \
+        total_experiment_length, exfil_start_time, exfil_end_time, system_startup_time, _ = \
             func_exp_info(training_window_size=training_window_size, size_of_neighbor_training_window=size_of_neighbor_training_window)
         print "func_exp_info", total_experiment_length, exfil_start_time, exfil_end_time
         exp_infos.append({"total_experiment_length":total_experiment_length, "exfil_start_time":exfil_start_time,
@@ -511,7 +515,7 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
     exps_exfil_paths = []
     exps_initiator_info = []
     for func in function_list:
-        synthetic_exfil_paths, initiator_info_for_paths, _, _ = func(time_of_synethic_exfil=time_each_synthetic_exfil)
+        synthetic_exfil_paths, initiator_info_for_paths, _, _,_ = func(time_of_synethic_exfil=time_each_synthetic_exfil)
         exps_exfil_paths.append(synthetic_exfil_paths)
         exps_initiator_info.append(initiator_info_for_paths)
 
@@ -528,13 +532,11 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
     list_time_gran_to_zscore_dataframe = []
     list_time_gran_to_feature_dataframe = []
 
-
-    ### TODO: modiy the single-experiment pipeline to take different training/testing exfil sets.
-    ### AND also need to modify it to use them appropriately
+    starts_of_testing = []
     for counter,func in enumerate(function_list):
         #time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, _ = func()
         print "exps_exfil_paths[counter]_to_func",exps_exfil_paths[counter], exps_initiator_info
-        time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, _ = \
+        time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, _, start_of_testing = \
             func(time_of_synethic_exfil=time_each_synthetic_exfil,
                  initiator_info_for_paths=exps_initiator_info[counter],
                  training_window_size=training_window_size,
@@ -546,6 +548,7 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
         list_time_gran_to_mod_zscore_df.append(time_gran_to_mod_zscore_df)
         list_time_gran_to_zscore_dataframe.append(time_gran_to_zscore_dataframe)
         list_time_gran_to_feature_dataframe.append(time_gran_to_feature_dataframe)
+        starts_of_testing.append(start_of_testing)
         gc.collect()
 
 
