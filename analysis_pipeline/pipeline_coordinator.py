@@ -523,7 +523,13 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
                                                                                   goal_attack_NoAttack_split,time_each_synthetic_exfil,
                                                                                   exps_exfil_paths)
     print "end_of_train_portions", end_of_train_portions
-    #####exit(122) ### TODO::: <--- remove!!!
+    possible_exps_exfil_paths = []
+    for exp_exfil_paths in exps_exfil_paths:
+        for exp_exfil_path in exp_exfil_paths:
+            if exp_exfil_path not in possible_exps_exfil_paths:
+                possible_exps_exfil_paths.append(exp_exfil_path)
+    print "possible_exps_exfil_paths", possible_exps_exfil_paths
+    exit(122) ### TODO::: <--- remove!!!
 
     ## step (1) : iterate through individual experiments...
     ##  # 1a. list of inputs [done]
@@ -551,7 +557,6 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
         starts_of_testing.append(start_of_testing)
         gc.collect()
 
-
     # step (2) :  take the dataframes and feed them into the LASSO component...
     ### 2a. split into training and testing data
     ###### at the moment, we'll make the simplfying assumption to only use the modified z-scores...
@@ -569,6 +574,9 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
     for time_gran, aggregate_feature_df in time_gran_to_aggregate_mod_score_dfs.iteritems():
         aggregate_feature_df.to_csv(base_output_name + 'modz_feat_df_at_time_gran_of_' + str(time_gran) + '_sec.csv',
                                     na_rep='?')
+
+    ## TODO: I want to use those DFs to get the mapping of the logical exfil paths to the experiments (and the number
+    ## of times that this happens...)
 
     #print time_gran_to_aggregate_mod_score_dfs['60']
 
@@ -722,10 +730,16 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
             list_of_attacks_found_dfs.append(categorical_cm_df)
 
     recipes_used = [recipe.__name__ for recipe in function_list]
-    for recipe in function_list:
+
+    starts_of_testing_dict = {}
+    for counter,recipe in enumerate(function_list):
         print "recipe_in_functon_list", recipe.__name__
+        starts_of_testing_dict[recipe] = starts_of_testing[counter]
+    starts_of_testing_df = pd.DataFrame(starts_of_testing_dict)
+
 
     print "list_of_rocs", list_of_rocs
+    ### TODO: add starts_of_testing_df, [[need AT LEAST 2 MORE!!!]]
     generate_report.generate_report(list_of_rocs, list_of_feat_coefs_dfs, list_of_attacks_found_dfs,
                                     recipes_used, base_output_name, time_grans, list_of_model_parameters,
                                     list_of_optimal_fone_scores)

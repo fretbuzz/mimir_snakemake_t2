@@ -17,6 +17,7 @@ def generate_report(list_of_rocs, list_of_feat_coef, list_of_attacks_found_dfs, 
     )
     base_template = env.get_template("report_template.html")
     table_section_template = env.get_template("table_section.html")
+    debug_section_template = env.get_template("debug_section.html")
 
     title = "MIMIR Results Report"
     #roc_placeholder = 'ROCS_GOES_HERE'
@@ -58,6 +59,9 @@ def generate_report(list_of_rocs, list_of_feat_coef, list_of_attacks_found_dfs, 
     #print table_section_template
 
     date = str(datetime.datetime.now()) ### TODO: is this the right timezone?
+
+    ## TODO: let's insert the debugging section of the report here...
+    sections.append(debug_section_template.render())
 
     # render the template locally...
     with open("mulval_inouts/report.html", "w") as f:
