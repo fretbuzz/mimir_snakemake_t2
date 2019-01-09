@@ -683,8 +683,8 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
         #print coefficients
         #clf.coef_, "intercept", clf.intercept_
         coef_dict = {}
-        print "len(clf.coef_)", len(clf.coef_), "len(X_train_columns)", len(X_train_columns)
-        if len(clf.coef_) != len(X_train_columns):
+        print "len(clf.coef_)", len(clf.coef_), "len(X_train_columns)", len(X_train_columns), "time_gran", time_gran
+        if len(clf.coef_) != (len(X_train_columns) + 1): # the plus one is for the intercept
             print "coef_ is different length than X_train_columns!"
             exit(888)
         for coef, feat in zip(clf.coef_, X_train_columns):
