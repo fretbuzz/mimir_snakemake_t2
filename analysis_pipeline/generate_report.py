@@ -11,7 +11,8 @@ import subprocess
 
 def generate_report(list_of_rocs, list_of_feat_coef, list_of_attacks_found_dfs, recipes_used,
                     output_location, time_grans, list_of_model_parameters, list_of_optimal_fone_scores,
-                    starts_of_testing_df, path_occurence_training_df, path_occurence_testing_df):
+                    starts_of_testing_df, path_occurence_training_df, path_occurence_testing_df,
+                    percent_attacks):
     # setup jinga and the associated template
     env = Environment(
         loader=FileSystemLoader(searchpath="src")
@@ -33,7 +34,8 @@ def generate_report(list_of_rocs, list_of_feat_coef, list_of_attacks_found_dfs, 
             feature_table=list_of_feat_coef[i].to_html(),
             attacks_found=list_of_attacks_found_dfs[i].to_html(),
             model_params=list_of_model_parameters[i],
-            optimal_fOne = list_of_optimal_fone_scores[i]
+            optimal_fOne = list_of_optimal_fone_scores[i],
+            percent_attacks = percent_attacks[i]
         ))
     '''
     sections.append(table_section_template.render(
@@ -61,7 +63,6 @@ def generate_report(list_of_rocs, list_of_feat_coef, list_of_attacks_found_dfs, 
 
     date = str(datetime.datetime.now()) ### TODO: is this the right timezone?
 
-    ## TODO: let's insert the debugging section of the report here...
     sections.append(debug_section_template.render(
         starts_of_testing_df = starts_of_testing_df.to_html(),
         path_occurence_training_df = path_occurence_training_df.transpose().to_html(),

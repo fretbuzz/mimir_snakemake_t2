@@ -533,12 +533,6 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
         print possible_exp_exfil_path
     ###### exit(122) ### TODO::: <--- remove!!!
 
-    #####################
-    #####  TODO: maybe I could split it here??? B/c before is the coordinator and after is the
-    ###    analysis portion... they are logically quite seperate... also I think I'd need to
-    ##### recalculate all the values together (goodbye seperate...)
-    ######## NOTE: on further examination, probably would want to split below the for loop below
-    #####################
     ## step (1) : iterate through individual experiments...
     ##  # 1a. list of inputs [done]
     ##  # 1b. acculate DFs
@@ -577,8 +571,8 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
     time_gran_to_feature_dfs = {}
     print "about_to_do_list_time_gran_to_mod_zscore_df"
     time_gran_to_aggregate_mod_score_dfs = aggregate_dfs(list_time_gran_to_mod_zscore_df)
-    time_gran_to_aggregate_mod_score_dfs_training = aggregate_dfs(list_time_gran_to_mod_zscore_df_training)
-    time_gran_to_aggregate_mod_score_dfs_testing = aggregate_dfs(list_time_gran_to_mod_zscore_df_testing)
+    #time_gran_to_aggregate_mod_score_dfs_training = aggregate_dfs(list_time_gran_to_mod_zscore_df_training)
+    #time_gran_to_aggregate_mod_score_dfs_testing = aggregate_dfs(list_time_gran_to_mod_zscore_df_testing)
     print "about_to_do_list_time_gran_to_feature_dataframe"
     time_gran_to_aggreg_feature_dfs = aggregate_dfs(list_time_gran_to_feature_dataframe)
 
@@ -589,12 +583,19 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
         aggregate_feature_df.to_csv(base_output_name + 'modz_feat_df_at_time_gran_of_' + str(time_gran) + '_sec.csv',
                                     na_rep='?')
 
-    #print time_gran_to_aggregate_mod_score_dfs['60']
+    #####################
+    #####  TODO: maybe I could split it here??? B/c before is the coordinator and after is the
+    ###    analysis portion... they are logically quite seperate... also I think I'd need to
+    ##### recalculate all the values together (goodbye seperate...)
+    ######## NOTE: on further examination, probably would want to split below the for loop below
+    #####################
 
+    #print time_gran_to_aggregate_mod_score_dfs['60']
     ######### 2a.II. do the actual splitting
     # note: labels have the column name 'labels' (noice)
     time_gran_to_model = {}
     #images = 0
+    percent_attacks = []
     list_of_rocs = []
     list_of_feat_coefs_dfs = []
     time_grans = []
@@ -626,15 +627,15 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
         X_test = aggregate_mod_score_dfs_testing.loc[:, aggregate_mod_score_dfs_training.columns != 'labels']
         y_test = aggregate_mod_score_dfs_testing.loc[:, aggregate_mod_score_dfs_training.columns == 'labels']
 
-        print "X_train", X_train
-        print "y_train", y_train
+        #print "X_train", X_train
+        #print "y_train", y_train
 
         ##X_train, X_test, y_train, y_test =  sklearn.model_selection.train_test_split(X, y, test_size = 1-goal_train_test_split, random_state = 42)
-        print X_train.shape, "X_train.shape"
+        #print X_train.shape, "X_train.shape"
 
         exfil_paths = X_test['exfil_path'].replace('0','[]')
         #print "----"
-        print "exfil_path_pre_literal_eval", exfil_paths, type(exfil_paths)
+        #print "exfil_path_pre_literal_eval", exfil_paths, type(exfil_paths)
         #exfil_paths = ast.literal_eval(exfil_paths)
         #print "----"
 
@@ -648,8 +649,6 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
         X_test = X_test.drop(columns='exfil_weight')
         X_test = X_test.drop(columns='exfil_pkts')
         X_test = X_test.drop(columns='is_test')
-
-
 
         print '-------'
         print type(X_train)
@@ -679,6 +678,10 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
         X_train_dtypes = X_train.dtypes
         X_train_columns = X_train.columns.values
         X_test_columns = X_test.columns.values
+        print y_test
+        number_attacks_in_test = len(y_test[y_test['labels'] == 1])
+        number_non_attacks_in_test = len(y_test[y_test['labels'] == 0])
+        percent_attacks.append(float(number_attacks_in_test) / (number_non_attacks_in_test + number_attacks_in_test))
 
         #print "X_train", X_train
         #print "y_train", y_train, len(y_train)
@@ -797,7 +800,7 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
     generate_report.generate_report(list_of_rocs, list_of_feat_coefs_dfs, list_of_attacks_found_dfs,
                                     recipes_used, base_output_name, time_grans, list_of_model_parameters,
                                     list_of_optimal_fone_scores, starts_of_testing_df, path_occurence_training_df,
-                                    path_occurence_testing_df)
+                                    path_occurence_testing_df, percent_attacks)
 
     print "multi_experiment_pipeline is all done! (NO ERROR DURING RUNNING)"
     #print "recall that this was the list of alert percentiles", percentile_thresholds
