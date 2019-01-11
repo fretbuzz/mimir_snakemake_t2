@@ -676,11 +676,13 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
 
         X_train = X_train.drop(columns='exfil_path')
         X_train = X_train.drop(columns='concrete_exfil_path')
+        X_train_exfil_weight = X_train['exfil_weight']
         X_train = X_train.drop(columns='exfil_weight')
         X_train = X_train.drop(columns='exfil_pkts')
         X_train = X_train.drop(columns='is_test')
         X_test = X_test.drop(columns='exfil_path')
         X_test = X_test.drop(columns='concrete_exfil_path')
+        X_test_exfil_weight = X_test['exfil_weight']
         X_test = X_test.drop(columns='exfil_weight')
         X_test = X_test.drop(columns='exfil_pkts')
         X_test = X_test.drop(columns='is_test')
@@ -813,11 +815,12 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
             ### where N is the # of categories, and then can just do the confusion matrix function on them...
             ### (and then display the results somehow...)
 
-            categorical_cm_df = determine_categorical_cm_df(y_test, optimal_predictions, exfil_paths)
+            categorical_cm_df = determine_categorical_cm_df(y_test, optimal_predictions, exfil_paths, X_test_exfil_weight)
             list_of_attacks_found_dfs.append(categorical_cm_df)
 
             optimal_train_predictions = [int(i>optimal_thresh) for i in train_predictions]
-            categorical_cm_df_training = determine_categorical_cm_df(y_train, optimal_train_predictions, exfil_paths_train)
+            categorical_cm_df_training = determine_categorical_cm_df(y_train, optimal_train_predictions, exfil_paths_train,
+                                                                     X_train_exfil_weight)
             list_of_attacks_found_training_df.append(categorical_cm_df_training)
 
     starts_of_testing_dict = {}
@@ -836,15 +839,14 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
     print "multi_experiment_pipeline is all done! (NO ERROR DURING RUNNING)"
     #print "recall that this was the list of alert percentiles", percentile_thresholds
 
-def determine_categorical_cm_df(y_test, optimal_predictions, exfil_paths):
+def determine_categorical_cm_df(y_test, optimal_predictions, exfil_paths, exfil_weights):
     y_test = y_test['labels'].tolist()
     print "new_y_test", y_test
-    attack_type_to_predictions, attack_type_to_truth = process_roc.determine_categorical_labels(y_test,
-                                                                                                optimal_predictions,
-                                                                                                exfil_paths)
+    attack_type_to_predictions, attack_type_to_truth, attack_type_to_weights = \
+        process_roc.determine_categorical_labels(y_test, optimal_predictions, exfil_paths, exfil_weights.tolist())
     attack_type_to_confusion_matrix_values = process_roc.determine_cm_vals_for_categories(attack_type_to_predictions,
                                                                                           attack_type_to_truth)
-    categorical_cm_df = process_roc.determine_categorical_cm_df(attack_type_to_confusion_matrix_values)
+    categorical_cm_df = process_roc.determine_categorical_cm_df(attack_type_to_confusion_matrix_values, attack_type_to_weights)
     ## re-name the row without any attacks in it...
     print "categorical_cm_df.index", categorical_cm_df.index
     categorical_cm_df = categorical_cm_df.rename({(): 'No Attack'}, axis='index')
