@@ -840,7 +840,7 @@ def process_wordpress6_rep2():
 def process_wordpress6_rep3(time_of_synethic_exfil=None, only_exp_info=False, initiator_info_for_paths=None,
                             portion_for_training=None, training_window_size=None, size_of_neighbor_training_window=None,
                             synthetic_exfil_paths_train=None,
-                            synthetic_exfil_paths_test=None):
+                            synthetic_exfil_paths_test=None, calc_vals=False):
     #'''
     # Wordpress exp 6 rep3 (wordpress w/ HA cluster on cilium w/o security config, dnscat exfil from single db w/ 15 sec delay)
     pcap_paths = [
@@ -860,7 +860,7 @@ def process_wordpress6_rep3(time_of_synethic_exfil=None, only_exp_info=False, in
     end_time = None
     exfil_start_time = 600
     exfil_end_time = 650
-    calc_vals = False #
+    #calc_vals = False #
     window_size = 6
     graph_p = False  # should I make graphs?
     colors = ['b', 'r']
@@ -892,7 +892,7 @@ def process_wordpress6_rep3(time_of_synethic_exfil=None, only_exp_info=False, in
 def process_wordpress6_rep4(time_of_synethic_exfil=None, only_exp_info=False, initiator_info_for_paths=None,
                             portion_for_training=None, training_window_size=None, size_of_neighbor_training_window=None,
                             synthetic_exfil_paths_train=None,
-                            synthetic_exfil_paths_test=None):
+                            synthetic_exfil_paths_test=None, calc_vals=False):
      #'''
      # Wordpress exp 6 rep4 (wordpress w/ HA cluster on cilium w/o security config, dnscat exfil from single db w/ 15 sec delay)
      pcap_paths = [
@@ -912,7 +912,7 @@ def process_wordpress6_rep4(time_of_synethic_exfil=None, only_exp_info=False, in
      end_time = None
      exfil_start_time = 600
      exfil_end_time = 650
-     calc_vals = False
+     #calc_vals = False
      window_size = 6
      graph_p = False  # should I make graphs?
      colors = ['b', 'r']
@@ -945,7 +945,7 @@ def process_wordpress6_rep4(time_of_synethic_exfil=None, only_exp_info=False, in
 def process_wordpress7_rep3(time_of_synethic_exfil=None, only_exp_info=False, initiator_info_for_paths=None,
                             portion_for_training=None,training_window_size=None, size_of_neighbor_training_window=None,
                             synthetic_exfil_paths_train=None,
-                            synthetic_exfil_paths_test=None):
+                            synthetic_exfil_paths_test=None, calc_vals=False):
     #''' # here
     # Wordpress exp 7 rep 3(wordpress w/ HA cluster on cilium w/o security config, dnscat exfil from single WP w/ 15 sec delay)
     pcap_paths = ["/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_seven_rep_3_default_bridge_0any.pcap"]
@@ -964,7 +964,7 @@ def process_wordpress7_rep3(time_of_synethic_exfil=None, only_exp_info=False, in
     end_time = None
     exfil_start_time = 600
     exfil_end_time = 650
-    calc_vals = False
+    #calc_vals = False
     window_size = 6
     graph_p = False  # should I make graphs?
     colors = ['b', 'r']
@@ -1037,7 +1037,7 @@ def process_wordpress7():
 def process_wordpress7_rep2(time_of_synethic_exfil=None, only_exp_info=False, initiator_info_for_paths=None,
                             portion_for_training=None, training_window_size=None, size_of_neighbor_training_window=None,
                             synthetic_exfil_paths_train=None,
-                            synthetic_exfil_paths_test=None):
+                            synthetic_exfil_paths_test=None, calc_vals=False):
     #'''
     # Wordpress exp 7 rep 2(wordpress w/ HA cluster on cilium w/o security config, dnscat exfil from single WP w/ 15 sec delay)
     pcap_paths = [
@@ -1057,7 +1057,7 @@ def process_wordpress7_rep2(time_of_synethic_exfil=None, only_exp_info=False, in
     end_time = None
     exfil_start_time = 600
     exfil_end_time = 650
-    calc_vals = False
+    #calc_vals = False
     window_size = 6
     graph_p = False  # should I make graphs?
     colors = ['b', 'r']
@@ -1131,7 +1131,7 @@ def process_wordpress8():
 def process_wordpress8_rep_2(time_of_synethic_exfil=None, only_exp_info=False, initiator_info_for_paths=None,
                              portion_for_training=None,training_window_size=None, size_of_neighbor_training_window=None,
                              synthetic_exfil_paths_train=None,
-                             synthetic_exfil_paths_test=None):
+                             synthetic_exfil_paths_test=None, calc_vals=False):
     #time.sleep(27000)
     #'''
     # 20 min of scaled-up wordpress (wordpress_eight)
@@ -1151,7 +1151,7 @@ def process_wordpress8_rep_2(time_of_synethic_exfil=None, only_exp_info=False, i
     end_time = None
     exfil_start_time = 600
     exfil_end_time = 900
-    calc_vals = False
+    #calc_vals = False
     window_size = 6
     graph_p = False  # should I make graphs?
     colors = ['b', 'r']
@@ -1183,7 +1183,7 @@ def process_wordpress8_rep_2(time_of_synethic_exfil=None, only_exp_info=False, i
 def process_wordpress8_rep_3(time_of_synethic_exfil=None,only_exp_info=False, initiator_info_for_paths=None,
                              portion_for_training=None,training_window_size=None, size_of_neighbor_training_window=None,
                              synthetic_exfil_paths_train=None,
-                             synthetic_exfil_paths_test=None):
+                             synthetic_exfil_paths_test=None, calc_vals=False):
     #time.sleep(27000)
     #'''
     # 20 min of scaled-up wordpress (wordpress_eight)
@@ -1203,7 +1203,7 @@ def process_wordpress8_rep_3(time_of_synethic_exfil=None,only_exp_info=False, in
     end_time = None
     exfil_start_time = 600
     exfil_end_time = 900
-    calc_vals = False
+    #calc_vals = False
     window_size = 6
     graph_p = False  # should I make graphs?
     colors = ['b', 'r']
@@ -1388,6 +1388,7 @@ def multi_experiment_wordpress_recipe():
     goal_attack_NoAttack_split = 0.5
     training_window_size = 200
     size_of_neighbor_training_window = 200
+    calc_vals = False
     function_list = [process_wordpress6_rep3, process_wordpress6_rep4, process_wordpress7_rep2, process_wordpress7_rep3,
                      process_wordpress8_rep_2, process_wordpress8_rep_3]
     ## NOTE: process_wordpress8 could be here too, but I'm for the moment I'm keeping each kind of injected
@@ -1398,7 +1399,8 @@ def multi_experiment_wordpress_recipe():
 
     base_output_location = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_summary/'# + 'lasso_roc'
     multi_experiment_pipeline(function_list_exp_info, function_list, base_output_location, True, time_of_synethic_exfil,
-                              goal_train_test_split, goal_attack_NoAttack_split, training_window_size, size_of_neighbor_training_window)
+                              goal_train_test_split, goal_attack_NoAttack_split, training_window_size,
+                              size_of_neighbor_training_window, calc_vals)
 
 ## TODO: make a list and stuff...
 def multi_experiment_sockshop_recipe():

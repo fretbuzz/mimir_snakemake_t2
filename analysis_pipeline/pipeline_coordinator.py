@@ -495,43 +495,61 @@ def determine_injection_times(exps_info, goal_train_test_split, goal_attack_NoAt
 # feature dataframes, and then performs LASSO regression to determine a concise graphical model that can detect
 # the injected synthetic attacks
 def multi_experiment_pipeline(function_list_exp_info, function_list, base_output_name, ROC_curve_p, time_each_synthetic_exfil,
-                              goal_train_test_split, goal_attack_NoAttack_split, training_window_size, size_of_neighbor_training_window):
+                              goal_train_test_split, goal_attack_NoAttack_split, training_window_size,
+                              size_of_neighbor_training_window, calc_vals):
     ### Okay, so what is needed here??? We need, like, a list of sets of input (appropriate for run_data_analysis_pipeline),
     ### followed by the LASSO stuff, and finally the ROC stuff... okay, let's do this!!!
 
     # step(0): need to find out the  meta-data for each experiment so we can coordinate the
     # synthetic attack injections between experiments
-    print function_list_exp_info
-    exp_infos = []
-    for func_exp_info in function_list_exp_info:
-        total_experiment_length, exfil_start_time, exfil_end_time, system_startup_time, _ = \
-            func_exp_info(training_window_size=training_window_size, size_of_neighbor_training_window=size_of_neighbor_training_window)
-        print "func_exp_info", total_experiment_length, exfil_start_time, exfil_end_time
-        exp_infos.append({"total_experiment_length":total_experiment_length, "exfil_start_time":exfil_start_time,
-                         "exfil_end_time":exfil_end_time, "startup_time": system_startup_time})
+    if calc_vals:
+        print function_list_exp_info
+        exp_infos = []
+        for func_exp_info in function_list_exp_info:
+            total_experiment_length, exfil_start_time, exfil_end_time, system_startup_time, _ = \
+                func_exp_info(training_window_size=training_window_size, size_of_neighbor_training_window=size_of_neighbor_training_window,
+                              calc_vals=calc_vals)
+            print "func_exp_info", total_experiment_length, exfil_start_time, exfil_end_time
+            exp_infos.append({"total_experiment_length":total_experiment_length, "exfil_start_time":exfil_start_time,
+                             "exfil_end_time":exfil_end_time, "startup_time": system_startup_time})
 
-    ## get the exfil_paths that were generated using the mulval component...
-    ## this'll require passing a parameter to the single-experiment pipeline and then getting the set of paths
-    exps_exfil_paths = []
-    exps_initiator_info = []
-    for func in function_list:
-        synthetic_exfil_paths, initiator_info_for_paths, _, _,_ = func(time_of_synethic_exfil=time_each_synthetic_exfil)
-        exps_exfil_paths.append(synthetic_exfil_paths)
-        exps_initiator_info.append(initiator_info_for_paths)
+        ## get the exfil_paths that were generated using the mulval component...
+        ## this'll require passing a parameter to the single-experiment pipeline and then getting the set of paths
+        exps_exfil_paths = []
+        exps_initiator_info = []
+        for func in function_list:
+            synthetic_exfil_paths, initiator_info_for_paths, _, _,_ = func(time_of_synethic_exfil=time_each_synthetic_exfil,
+                                                                           calc_vals=calc_vals)
+            exps_exfil_paths.append(synthetic_exfil_paths)
+            exps_initiator_info.append(initiator_info_for_paths)
 
-    training_exfil_paths, testing_exfil_paths, end_of_train_portions = assign_exfil_paths_to_experiments(exp_infos, goal_train_test_split,
-                                                                                  goal_attack_NoAttack_split,time_each_synthetic_exfil,
-                                                                                  exps_exfil_paths)
-    print "end_of_train_portions", end_of_train_portions
-    possible_exps_exfil_paths = []
-    for exp_exfil_paths in exps_exfil_paths:
-        for exp_exfil_path in exp_exfil_paths:
-            if exp_exfil_path not in possible_exps_exfil_paths:
-                possible_exps_exfil_paths.append(exp_exfil_path)
-    print "possible_exps_exfil_paths:"
-    for possible_exp_exfil_path in possible_exps_exfil_paths:
-        print possible_exp_exfil_path
-    ###### exit(122) ### TODO::: <--- remove!!!
+        training_exfil_paths, testing_exfil_paths, end_of_train_portions = assign_exfil_paths_to_experiments(exp_infos, goal_train_test_split,
+                                                                                      goal_attack_NoAttack_split,time_each_synthetic_exfil,
+                                                                                      exps_exfil_paths)
+        print "end_of_train_portions", end_of_train_portions
+        possible_exps_exfil_paths = []
+        for exp_exfil_paths in exps_exfil_paths:
+            for exp_exfil_path in exp_exfil_paths:
+                if exp_exfil_path not in possible_exps_exfil_paths:
+                    possible_exps_exfil_paths.append(exp_exfil_path)
+        print "possible_exps_exfil_paths:"
+        for possible_exp_exfil_path in possible_exps_exfil_paths:
+            print possible_exp_exfil_path
+        ###### exit(122) ### TODO::: <--- remove!!!
+
+    else:
+        exps_exfil_paths = []
+        end_of_train_portions = []
+        training_exfil_paths = []
+        testing_exfil_paths = []
+        exps_initiator_info= []
+        for func in function_list:
+            # just fill these w/ nothing so that the function doesn't think that it needs to calculate them (b/c it doesn't)
+            exps_exfil_paths.append([])
+            end_of_train_portions.append([])
+            training_exfil_paths.append([])
+            testing_exfil_paths.append([])
+            exps_initiator_info.append([])
 
     ## step (1) : iterate through individual experiments...
     ##  # 1a. list of inputs [done]
@@ -554,7 +572,8 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
                  size_of_neighbor_training_window=size_of_neighbor_training_window,
                  portion_for_training=end_of_train_portions[counter],
                  synthetic_exfil_paths_train = training_exfil_paths[counter],
-                 synthetic_exfil_paths_test = testing_exfil_paths[counter])
+                 synthetic_exfil_paths_test = testing_exfil_paths[counter],
+                 calc_vals=calc_vals)
         print "exps_exfil_pathas[time_gran_to_mod_zscore_df]", time_gran_to_mod_zscore_df
         list_time_gran_to_mod_zscore_df.append(time_gran_to_mod_zscore_df)
         list_time_gran_to_zscore_dataframe.append(time_gran_to_zscore_dataframe)
@@ -583,6 +602,9 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
         aggregate_feature_df.to_csv(base_output_name + 'modz_feat_df_at_time_gran_of_' + str(time_gran) + '_sec.csv',
                                     na_rep='?')
 
+
+    ##################################
+    ##################################
     statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, base_output_name,
                                          function_list,
                                          starts_of_testing, list_time_gran_to_mod_zscore_df_training,
