@@ -583,13 +583,14 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
         aggregate_feature_df.to_csv(base_output_name + 'modz_feat_df_at_time_gran_of_' + str(time_gran) + '_sec.csv',
                                     na_rep='?')
 
-    #####################
-    #####  TODO: maybe I could split it here??? B/c before is the coordinator and after is the
-    ###    analysis portion... they are logically quite seperate... also I think I'd need to
-    ##### recalculate all the values together (goodbye seperate...)
-    ######## NOTE: on further examination, probably would want to split below the for loop below
-    #####################
+    statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, base_output_name,
+                                         function_list,
+                                         starts_of_testing, list_time_gran_to_mod_zscore_df_training,
+                                         list_time_gran_to_mod_zscore_df_testing)
 
+def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, base_output_name, function_list,
+                                         starts_of_testing, list_time_gran_to_mod_zscore_df_training,
+                                         list_time_gran_to_mod_zscore_df_testing):
     #print time_gran_to_aggregate_mod_score_dfs['60']
     ######### 2a.II. do the actual splitting
     # note: labels have the column name 'labels' (noice)
