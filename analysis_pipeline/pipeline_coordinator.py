@@ -642,36 +642,50 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
         X_train = X_train.drop(columns='concrete_exfil_path')
         X_train = X_train.drop(columns='exfil_weight')
         X_train = X_train.drop(columns='exfil_pkts')
+        X_train = X_train.drop(columns='is_test')
         X_test = X_test.drop(columns='exfil_path')
         X_test = X_test.drop(columns='concrete_exfil_path')
         X_test = X_test.drop(columns='exfil_weight')
         X_test = X_test.drop(columns='exfil_pkts')
+        X_test = X_test.drop(columns='is_test')
 
 
 
         print '-------'
         print type(X_train)
         print X_train.columns.values
-        X_train_columns = X_train.columns.values
         ###exit(344) ### TODO TODO TODO <<<----- remove!!!
 
         print "columns", X_train.columns
         print "columns", X_test.columns
 
-        ### 2b. feed the lasso to get the high-impact features...
-        clf = LassoCV(cv=3, max_iter=8000) ## <<-- instead of having choosing the alpha be magic, let's use cross validation to choose it instead...
-
         print X_train.dtypes
         # need to replace the missing values in the data w/ meaningful values...
+        ''' ## imputer is dropping a column... let's do this w/ pandas dataframes instead....
         imp = SimpleImputer(missing_values=np.nan, strategy='median')
         imp = imp.fit(X_train)
         X_train = imp.transform(X_train)
         X_test = imp.transform(X_test)
+        '''
+        X_train = X_train.fillna(X_train.median())
+        X_test = X_test.fillna(X_train.median())
+        print "X_train_median", X_train.median()
+
+        X_train = X_train.dropna(axis=1)
+        X_test = X_test.dropna(axis=1)
+        print "columns", X_train.columns
+        print "columns", X_test.columns
+
+        X_train_dtypes = X_train.dtypes
+        X_train_columns = X_train.columns.values
+        X_test_columns = X_test.columns.values
 
         #print "X_train", X_train
         #print "y_train", y_train, len(y_train)
         #print "y_test", y_test, len(y_test)
         #print "-- y_train", len(y_train), "y_test", len(y_test), "time_gran", time_gran, "--"
+        ### 2b. feed the lasso to get the high-impact features...
+        clf = LassoCV(cv=3, max_iter=8000) ## <<-- instead of having choosing the alpha be magic, let's use cross validation to choose it instead...
         clf.fit(X_train, y_train)
         score_val = clf.score(X_test, y_test)
         print "score_val", score_val
@@ -683,9 +697,12 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
         #print coefficients
         #clf.coef_, "intercept", clf.intercept_
         coef_dict = {}
-        print "len(clf.coef_)", len(clf.coef_), "len(X_train_columns)", len(X_train_columns), "time_gran", time_gran
-        if len(clf.coef_) != (len(X_train_columns) + 1): # the plus one is for the intercept
-            print "coef_ is different length than X_train_columns!"
+        print "len(clf.coef_)", len(clf.coef_), "len(X_train_columns)", len(X_train_columns), "time_gran", time_gran, \
+            "len(X_test_columns)", len(X_test_columns), X_train.shape, X_test.shape
+        if len(clf.coef_) != (len(X_train_columns)): # there is no plus one b/c the intercept is stored in clf.intercept_
+            print "coef_ is different length than X_train_columns!", X_train_columns
+            for  counter,i in enumerate(X_train_dtypes):
+                print counter,i, X_train_columns[counter], clf.coef_[counter]
             exit(888)
         for coef, feat in zip(clf.coef_, X_train_columns):
             coef_dict[feat] = coef
