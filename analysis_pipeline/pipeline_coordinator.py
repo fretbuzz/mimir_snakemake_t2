@@ -602,17 +602,26 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
         aggregate_feature_df.to_csv(base_output_name + 'modz_feat_df_at_time_gran_of_' + str(time_gran) + '_sec.csv',
                                     na_rep='?')
 
+    recipes_used = [recipe.__name__ for recipe in function_list]
+    names = []
+    for counter,recipe in enumerate(recipes_used):
+        #print "recipe_in_functon_list", recipe.__name__
+        #name = recipe.__name__
+        name = '_'.join(recipe.split('_')[1:])
+        names.append(name)
+
+    path_occurence_training_df = generate_exfil_path_occurence_df(list_time_gran_to_mod_zscore_df_training, names)
+    path_occurence_testing_df = generate_exfil_path_occurence_df(list_time_gran_to_mod_zscore_df_testing, names)
 
     ##################################
     ##################################
     statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, base_output_name,
-                                         function_list,
-                                         starts_of_testing, list_time_gran_to_mod_zscore_df_training,
-                                         list_time_gran_to_mod_zscore_df_testing)
+                                         names, starts_of_testing, path_occurence_training_df,
+                                         path_occurence_testing_df, recipes_used)
 
-def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, base_output_name, function_list,
-                                         starts_of_testing, list_time_gran_to_mod_zscore_df_training,
-                                         list_time_gran_to_mod_zscore_df_testing):
+def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, base_output_name, names,
+                                         starts_of_testing, path_occurence_training_df, path_occurence_testing_df,
+                                         recipes_used):
     #print time_gran_to_aggregate_mod_score_dfs['60']
     ######### 2a.II. do the actual splitting
     # note: labels have the column name 'labels' (noice)
@@ -805,19 +814,11 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
             categorical_cm_df = categorical_cm_df.rename({(): 'No Attack'}, axis='index')
             list_of_attacks_found_dfs.append(categorical_cm_df)
 
-    recipes_used = [recipe.__name__ for recipe in function_list]
-
     starts_of_testing_dict = {}
-    names = []
-    for counter,recipe in enumerate(function_list):
-        print "recipe_in_functon_list", recipe.__name__
-        name = recipe.__name__
-        name = '_'.join(name.split('_')[1:])
-        names.append(name)
+    for counter,name in enumerate(names):
         starts_of_testing_dict[name] = starts_of_testing[counter]
+
     starts_of_testing_df = pd.DataFrame(starts_of_testing_dict, index=['start_of_testing_phase'])
-    path_occurence_training_df = generate_exfil_path_occurence_df(list_time_gran_to_mod_zscore_df_training, names)
-    path_occurence_testing_df = generate_exfil_path_occurence_df(list_time_gran_to_mod_zscore_df_testing, names)
 
     print "list_of_rocs", list_of_rocs
     generate_report.generate_report(list_of_rocs, list_of_feat_coefs_dfs, list_of_attacks_found_dfs,
