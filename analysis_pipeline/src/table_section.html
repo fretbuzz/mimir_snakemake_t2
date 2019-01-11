@@ -4,7 +4,10 @@
 <img src={{ roc }} style="width:450px;height:375px;">
 <p> Optimal operating point (max f1-score): {{ optimal_fOne }}</p>
 <p>Percent_attacks (in testing phase): {{ percent_attacks }} </p>
+<p>Percent_attacks (in training phase): {{ percent_attacks_training }} </p>
 <p></p>
 {{ feature_table }}
-<p></p>
+<p>Attacks found in <b>testing</b>b> period: </p>
 {{ attacks_found }}
+<p>Attacks found in <b>training</b> period: </p>
+{{ attacks_found_training }}

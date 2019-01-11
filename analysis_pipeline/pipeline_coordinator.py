@@ -628,11 +628,13 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
     time_gran_to_model = {}
     #images = 0
     percent_attacks = []
+    list_percent_attacks_training = []
     list_of_rocs = []
     list_of_feat_coefs_dfs = []
     time_grans = []
     list_of_model_parameters = []
     list_of_attacks_found_dfs = []
+    list_of_attacks_found_training_df = []
     list_of_optimal_fone_scores = []
     for time_gran,aggregate_mod_score_dfs in time_gran_to_aggregate_mod_score_dfs.iteritems():
         time_grans.append(time_gran)
@@ -666,6 +668,7 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         #print X_train.shape, "X_train.shape"
 
         exfil_paths = X_test['exfil_path'].replace('0','[]')
+        exfil_paths_train = X_train['exfil_path'].replace('0','[]')
         #print "----"
         #print "exfil_path_pre_literal_eval", exfil_paths, type(exfil_paths)
         #exfil_paths = ast.literal_eval(exfil_paths)
@@ -715,6 +718,10 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         number_non_attacks_in_test = len(y_test[y_test['labels'] == 0])
         percent_attacks.append(float(number_attacks_in_test) / (number_non_attacks_in_test + number_attacks_in_test))
 
+        number_attacks_in_train = len(y_train[y_train['labels'] == 1])
+        number_non_attacks_in_train = len(y_train[y_train['labels'] == 0])
+        list_percent_attacks_training.append(float(number_attacks_in_train) / (number_non_attacks_in_train + number_attacks_in_train))
+
         #print "X_train", X_train
         #print "y_train", y_train, len(y_train)
         #print "y_test", y_test, len(y_test)
@@ -725,6 +732,7 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         score_val = clf.score(X_test, y_test)
         print "score_val", score_val
         test_predictions = clf.predict(X=X_test)
+        train_predictions = clf.predict(X=X_train)
         print "LASSO model", clf.get_params()
         print '----------------------'
         print "Coefficients: "
@@ -804,15 +812,13 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
             ### determine categorical-level behavior... Split the two lists from the previous step into 2N lists,
             ### where N is the # of categories, and then can just do the confusion matrix function on them...
             ### (and then display the results somehow...)
-            y_test = y_test['labels'].tolist()
-            print "new_y_test", y_test
-            attack_type_to_predictions, attack_type_to_truth = process_roc.determine_categorical_labels(y_test, optimal_predictions, exfil_paths)
-            attack_type_to_confusion_matrix_values = process_roc.determine_cm_vals_for_categories(attack_type_to_predictions, attack_type_to_truth)
-            categorical_cm_df = process_roc.determine_categorical_cm_df(attack_type_to_confusion_matrix_values)
-            ## re-name the row without any attacks in it...
-            print "categorical_cm_df.index", categorical_cm_df.index
-            categorical_cm_df = categorical_cm_df.rename({(): 'No Attack'}, axis='index')
+
+            categorical_cm_df = determine_categorical_cm_df(y_test, optimal_predictions, exfil_paths)
             list_of_attacks_found_dfs.append(categorical_cm_df)
+
+            optimal_train_predictions = [int(i>optimal_thresh) for i in train_predictions]
+            categorical_cm_df_training = determine_categorical_cm_df(y_train, optimal_train_predictions, exfil_paths_train)
+            list_of_attacks_found_training_df.append(categorical_cm_df_training)
 
     starts_of_testing_dict = {}
     for counter,name in enumerate(names):
@@ -824,10 +830,25 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
     generate_report.generate_report(list_of_rocs, list_of_feat_coefs_dfs, list_of_attacks_found_dfs,
                                     recipes_used, base_output_name, time_grans, list_of_model_parameters,
                                     list_of_optimal_fone_scores, starts_of_testing_df, path_occurence_training_df,
-                                    path_occurence_testing_df, percent_attacks)
+                                    path_occurence_testing_df, percent_attacks, list_of_attacks_found_training_df,
+                                    list_percent_attacks_training)
 
     print "multi_experiment_pipeline is all done! (NO ERROR DURING RUNNING)"
     #print "recall that this was the list of alert percentiles", percentile_thresholds
+
+def determine_categorical_cm_df(y_test, optimal_predictions, exfil_paths):
+    y_test = y_test['labels'].tolist()
+    print "new_y_test", y_test
+    attack_type_to_predictions, attack_type_to_truth = process_roc.determine_categorical_labels(y_test,
+                                                                                                optimal_predictions,
+                                                                                                exfil_paths)
+    attack_type_to_confusion_matrix_values = process_roc.determine_cm_vals_for_categories(attack_type_to_predictions,
+                                                                                          attack_type_to_truth)
+    categorical_cm_df = process_roc.determine_categorical_cm_df(attack_type_to_confusion_matrix_values)
+    ## re-name the row without any attacks in it...
+    print "categorical_cm_df.index", categorical_cm_df.index
+    categorical_cm_df = categorical_cm_df.rename({(): 'No Attack'}, axis='index')
+    return categorical_cm_df
 
 def aggregate_dfs(list_time_gran_to_mod_zscore_df):
     time_gran_to_aggregate_mod_score_dfs = {}
