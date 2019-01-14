@@ -31,6 +31,7 @@ import ast
 from itertools import groupby
 from operator import itemgetter
 import operator
+import copy
 
 def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms_s, basegraph_name, calc_vals, window_size,
                                 mapping, is_swarm, make_net_graphs_p, list_of_infra_services,synthetic_exfil_paths,
@@ -627,6 +628,7 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
     # note: labels have the column name 'labels' (noice)
     time_gran_to_model = {}
     #images = 0
+    time_gran_to_debugging_csv = {} # note: going to be used for (shockingly) debugging purposes....
     percent_attacks = []
     list_percent_attacks_training = []
     list_of_rocs = []
@@ -653,6 +655,7 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
             aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='Unnamed: 0mod_z_score') # might wanna just stop these from being generaetd
         except:
             pass
+        time_gran_to_debugging_csv[time_gran] = copy.deepcopy(aggregate_mod_score_dfs)
         #'''
         aggregate_mod_score_dfs_training = aggregate_mod_score_dfs[aggregate_mod_score_dfs['is_test'] == 0]
         aggregate_mod_score_dfs_testing = aggregate_mod_score_dfs[aggregate_mod_score_dfs['is_test'] == 1]
@@ -737,6 +740,8 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         train_predictions = clf.predict(X=X_train)
         print "LASSO model", clf.get_params()
         print '----------------------'
+        print len(time_gran_to_debugging_csv[time_gran]["labels"]), len(np.concatenate([train_predictions, test_predictions]))
+        time_gran_to_debugging_csv[time_gran].loc[:, "aggreg_anom_score"] = np.concatenate([train_predictions, test_predictions])
         print "Coefficients: "
         #coefficients = pd.DataFrame({"Feature": X.columns, "Coefficients": np.transpose(clf.coef_)})
         #print coefficients
@@ -822,6 +827,20 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
             categorical_cm_df_training = determine_categorical_cm_df(y_train, optimal_train_predictions, exfil_paths_train,
                                                                      X_train_exfil_weight)
             list_of_attacks_found_training_df.append(categorical_cm_df_training)
+
+            time_gran_to_debugging_csv[time_gran].loc[:, "anom_val_at_opt_pt"] = \
+                np.concatenate([optimal_train_predictions, optimal_predictions])
+
+            # I don't want the attributes w/ zero coefficients to show up in the debugging csv b/c it makes it hard to read
+            ## TODO
+            for feature,coef in coef_dict.iteritems():
+                print "coef_check", coef, not coef, feature
+                if not coef:
+                    print "just_dropped", feature
+                    time_gran_to_debugging_csv[time_gran] = time_gran_to_debugging_csv[time_gran].drop([feature],axis=1)
+
+            time_gran_to_debugging_csv[time_gran].to_csv(base_output_name + 'DEBUGGING_modz_feat_df_at_time_gran_of_'+\
+                                                         str(time_gran) + '_sec.csv', na_rep='?')
 
     starts_of_testing_dict = {}
     for counter,name in enumerate(names):

@@ -91,7 +91,6 @@ def determine_categorical_cm_df(attack_type_to_confusion_matrix_values, attack_t
             print categorical_cm_df[cm_value_types]
             categorical_cm_df[cm_value_types][attack_type] = cm_values
 
-        ## TODO add the weight part in here....
         print attack_type_to_weights[attack_type]
         categorical_cm_df['exfil_weights'][attack_type] = attack_type_to_weights[attack_type]
     return categorical_cm_df
