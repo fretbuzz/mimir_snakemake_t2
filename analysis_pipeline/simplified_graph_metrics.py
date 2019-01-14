@@ -347,8 +347,8 @@ def inject_synthetic_attacks(graph, synthetic_exfil_paths, initiator_info_for_pa
     concrete_node_path = []
     current_time = graph_number #* time_granularity
     attack_occuring = None
-    fraction_of_pkt_median = 0
-    fraction_of_weight_median = 0
+    fraction_of_pkt_min = 0
+    fraction_of_weight_min = 0
     print "attacks_to_times", attacks_to_times, type(attacks_to_times), current_time, node_granularity
     #print "time_granularity", time_granularity
     for counter, attack_ranges in enumerate(attacks_to_times):
@@ -440,20 +440,20 @@ def inject_synthetic_attacks(graph, synthetic_exfil_paths, initiator_info_for_pa
             # so let's choose the weight/packets... let's maybe go w/ some fraction of the median...
             pkt_np_array = np.array(all_pkts_in_exfil_path)
             weight_np_array = np.array(all_weights_in_exfil_path)
-            pkt_median = np.median(pkt_np_array)
-            weight_median =  np.median(weight_np_array)
+            pkt_min = np.min(pkt_np_array)
+            weight_min =  np.min(weight_np_array)
 
             if not dns_exfil_path:
-                fraction_of_pkt_median = int(pkt_median * fraction_of_edge_pkts)
-                fraction_of_weight_median = int(weight_median * fraction_of_edge_weights)
+                fraction_of_pkt_min = int(pkt_min * fraction_of_edge_pkts)
+                fraction_of_weight_min = int(weight_min * fraction_of_edge_weights)
             else:
-                fraction_of_pkt_median = int(pkt_median * 3) ## TODO: might wanna parametrize...
-                fraction_of_weight_median = int(weight_median * 3) ## TODO: might wanna parametrize...
+                fraction_of_pkt_min = int(pkt_min * 3) ## TODO: might wanna parametrize...
+                fraction_of_weight_min = int(weight_min * 3) ## TODO: might wanna parametrize...
         else:
             ###  we should store the corresponding attribs from the app_only granularity and then just
             # use that (b/c class gran. gives super huge).
-            fraction_of_pkt_median = pre_specified_data_attribs['frames']
-            fraction_of_weight_median = pre_specified_data_attribs['weight']
+            fraction_of_pkt_min = pre_specified_data_attribs['frames']
+            fraction_of_weight_min = pre_specified_data_attribs['weight']
 
         # recall that we'd need to add traffic going both ways... or would we??? acks would be v small... no
         # it's worth it. Let's just assume all acks. Then same # of packets, Let's assume smallest, so 40 bytes.
@@ -477,12 +477,12 @@ def inject_synthetic_attacks(graph, synthetic_exfil_paths, initiator_info_for_pa
                 print attack_number_to_mapping[attack_occuring]
                 print "concrete_node_path", node_one_loc, concrete_node_path
                 graph = add_edge_weight_graph(graph, concrete_node_src_one, concrete_node_dst,
-                                      fraction_of_weight_median, fraction_of_pkt_median)
+                                              fraction_of_weight_min, fraction_of_pkt_min)
                 #if concrete_node_path == []:
                 #    concrete_node_path.append(concrete_node_src_one)
                 print "concrete_node_path", node_one_loc, concrete_node_path
                 graph = add_edge_weight_graph(graph, concrete_node_src_two, concrete_node_dst,
-                                      fraction_of_weight_median, fraction_of_pkt_median)
+                                              fraction_of_weight_min, fraction_of_pkt_min)
                 node_one_loc += 1 # b/c we're modifying two edges here, we need to increment the counter one more time...
                 concrete_node_path.append((concrete_node_src_one,concrete_node_dst))
                 concrete_node_path.append((concrete_node_src_two,concrete_node_dst))
@@ -497,14 +497,14 @@ def inject_synthetic_attacks(graph, synthetic_exfil_paths, initiator_info_for_pa
                 concrete_node_path.append((concrete_node_src,concrete_node_dst))
 
                 graph = add_edge_weight_graph(graph, concrete_node_src, concrete_node_dst,
-                                                                  fraction_of_weight_median,
-                                                                  fraction_of_pkt_median)
+                                              fraction_of_weight_min,
+                                              fraction_of_pkt_min)
                 print "concrete_node_path", node_one_loc, concrete_node_path, concrete_node_src, concrete_node_dst
 
 
-        print "modifications_to_graph...", concrete_node_path, fraction_of_weight_median, fraction_of_pkt_median
+        print "modifications_to_graph...", concrete_node_path, fraction_of_weight_min, fraction_of_pkt_min
 
-    return graph,attack_number_to_mapping,{'weight':fraction_of_weight_median, 'frames': fraction_of_pkt_median}, concrete_node_path
+    return graph, attack_number_to_mapping, {'weight':fraction_of_weight_min, 'frames': fraction_of_pkt_min}, concrete_node_path
 
 # abstract_to_concrete_mapping: abstract_node graph -> concrete_node (in graph)
 def abstract_to_concrete_mapping(abstract_node, graph, node_granularity):
