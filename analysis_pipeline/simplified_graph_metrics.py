@@ -458,12 +458,21 @@ def inject_synthetic_attacks(graph, synthetic_exfil_paths, initiator_info_for_pa
         # recall that we'd need to add traffic going both ways... or would we??? acks would be v small... no
         # it's worth it. Let's just assume all acks. Then same # of packets, Let's assume smallest, so 40 bytes.
         ## two situations: (a) need to modify existing edge weight (or rather, nodes already exist)
-        for node_one_loc in range(0, len(synthetic_exfil_paths[attack_occuring]) -1 ):
+        node_one_loc = 0
+        #for node_one_loc in range(0, len(synthetic_exfil_paths[attack_occuring]) -1 ):
+        while node_one_loc < (len(synthetic_exfil_paths[attack_occuring]) - 1):
             abstract_node_pair = (synthetic_exfil_paths[attack_occuring][node_one_loc],
                                   synthetic_exfil_paths[attack_occuring][node_one_loc+1])
             concrete_possible_dst =  attack_number_to_mapping[attack_occuring][abstract_node_pair[1]]
+            print "abstract_node_pair", abstract_node_pair
             print "concrete_possible_dst", concrete_possible_dst
             #synthetic_exfil_paths[attack_occuring][node_one_loc + 2]
+
+            ### TODO: there are actually two subcases of this first case. 1: first src initiates flow
+            ### 2. dst initiates flow (that is the currently covered case)
+            ### note: for 1: pod (DST) and vip are same service
+            ### note: for 2: pod (src) and vip are same service
+            # note:e I think we can tell which is which by looking at the abstrct node pairs...
             if 'VIP' in concrete_possible_dst:
                 ## in this case, we need to compensate for the VIP re-direction that occurs
                 ## in the Kubernetes VIP.
@@ -500,9 +509,11 @@ def inject_synthetic_attacks(graph, synthetic_exfil_paths, initiator_info_for_pa
                                               fraction_of_weight_min,
                                               fraction_of_pkt_min)
                 print "concrete_node_path", node_one_loc, concrete_node_path, concrete_node_src, concrete_node_dst
-
+            node_one_loc += 1
 
         print "modifications_to_graph...", concrete_node_path, fraction_of_weight_min, fraction_of_pkt_min
+
+        exit(99)###TODO: remove!
 
     return graph, attack_number_to_mapping, {'weight':fraction_of_weight_min, 'frames': fraction_of_pkt_min}, concrete_node_path
 
@@ -652,6 +663,10 @@ def add_edge_weight_graph(graph, concrete_node_src, concrete_node_dst, fraction_
     graph[concrete_node_dst][concrete_node_src]['frames'] += fraction_of_pkt_median
 
     return graph
+
+def abstract_node_pair_same_service_p(abstract_node_one, abstract_node_two):
+    ## okay, well, let's give this a shot
+    pass
 
 def avg_behavior_into_dns_node(pre_injection_weight_into_dns_dict, pre_inject_packets_into_dns_dict):
     avg_dns_weight = 0
