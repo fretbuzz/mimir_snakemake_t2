@@ -478,24 +478,36 @@ def inject_synthetic_attacks(graph, synthetic_exfil_paths, initiator_info_for_pa
                 ## in the Kubernetes VIP.
                 concrete_node_src_one = attack_number_to_mapping[attack_occuring][abstract_node_pair[0]]
                 concrete_node_src_two = attack_number_to_mapping[attack_occuring][abstract_node_pair[1]]
-                abstract_node_dst = synthetic_exfil_paths[attack_occuring][node_one_loc+2]
+                abstract_node_dst = synthetic_exfil_paths[attack_occuring][node_one_loc + 2]
                 concrete_node_dst = attack_number_to_mapping[attack_occuring][abstract_node_dst]
-
-                print "vip_located_xx", concrete_node_src_one, concrete_node_src_two,concrete_node_dst
+                print "vip_located_xx", concrete_node_src_one, concrete_node_src_two, concrete_node_dst
                 print synthetic_exfil_paths[attack_occuring]
                 print attack_number_to_mapping[attack_occuring]
                 print "concrete_node_path", node_one_loc, concrete_node_path
-                graph = add_edge_weight_graph(graph, concrete_node_src_one, concrete_node_dst,
-                                              fraction_of_weight_min, fraction_of_pkt_min)
-                #if concrete_node_path == []:
-                #    concrete_node_path.append(concrete_node_src_one)
-                print "concrete_node_path", node_one_loc, concrete_node_path
-                graph = add_edge_weight_graph(graph, concrete_node_src_two, concrete_node_dst,
-                                              fraction_of_weight_min, fraction_of_pkt_min)
-                node_one_loc += 1 # b/c we're modifying two edges here, we need to increment the counter one more time...
-                concrete_node_path.append((concrete_node_src_one,concrete_node_dst))
-                concrete_node_path.append((concrete_node_src_two,concrete_node_dst))
-                print "concrete_node_path", node_one_loc, concrete_node_path
+                if abstract_node_pair_same_service_p(abstract_node_pair[0], abstract_node_pair[1]):
+                    graph = add_edge_weight_graph(graph, concrete_node_src_one, concrete_node_dst,
+                                                  fraction_of_weight_min, fraction_of_pkt_min)
+                    #if concrete_node_path == []:
+                    #    concrete_node_path.append(concrete_node_src_one)
+                    print "concrete_node_path", node_one_loc, concrete_node_path
+                    graph = add_edge_weight_graph(graph, concrete_node_src_two, concrete_node_dst,
+                                                  fraction_of_weight_min, fraction_of_pkt_min)
+                    node_one_loc += 1 # b/c we're modifying two edges here, we need to increment the counter one more time...
+                    concrete_node_path.append((concrete_node_src_one,concrete_node_dst))
+                    concrete_node_path.append((concrete_node_src_two,concrete_node_dst))
+                    print "concrete_node_path", node_one_loc, concrete_node_path
+                elif abstract_node_pair_same_service_p(abstract_node_dst, abstract_node_pair[1]):
+                    graph = add_edge_weight_graph(graph, concrete_node_src_one, concrete_node_src_two,
+                                                  fraction_of_weight_min, fraction_of_pkt_min)
+                    print "concrete_node_path", concrete_node_src_one, concrete_node_src_two
+                    graph = add_edge_weight_graph(graph, concrete_node_src_one, concrete_node_dst,
+                                                  fraction_of_weight_min, fraction_of_pkt_min)
+                    node_one_loc += 1 # b/c we're modifying two edges here, we need to increment the counter one more time...
+                    concrete_node_path.append((concrete_node_src_one,concrete_node_src_two))
+                    concrete_node_path.append((concrete_node_src_one,concrete_node_dst))
+                else:
+                    print "apparently a vip in the path doesn't belong to either service??"
+                    exit(544)
             else:
                 # this case does not involve any redirection via the kubernetes network model, so it is simple
                 concrete_node_src = attack_number_to_mapping[attack_occuring][abstract_node_pair[0]]
@@ -513,7 +525,7 @@ def inject_synthetic_attacks(graph, synthetic_exfil_paths, initiator_info_for_pa
 
         print "modifications_to_graph...", concrete_node_path, fraction_of_weight_min, fraction_of_pkt_min
 
-        exit(99)###TODO: remove!
+        ###exit(99)###TODO: remove!
 
     return graph, attack_number_to_mapping, {'weight':fraction_of_weight_min, 'frames': fraction_of_pkt_min}, concrete_node_path
 
@@ -666,7 +678,9 @@ def add_edge_weight_graph(graph, concrete_node_src, concrete_node_dst, fraction_
 
 def abstract_node_pair_same_service_p(abstract_node_one, abstract_node_two):
     ## okay, well, let's give this a shot
-    pass
+    abstract_node_one_core = abstract_node_one.replace('_pod', '').replace('_vip', '')
+    abstract_node_two_core = abstract_node_two.replace('_pod', '').replace('_vip', '')
+    return abstract_node_one_core == abstract_node_two_core
 
 def avg_behavior_into_dns_node(pre_injection_weight_into_dns_dict, pre_inject_packets_into_dns_dict):
     avg_dns_weight = 0
