@@ -690,6 +690,15 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         X_test = X_test.drop(columns='exfil_pkts')
         X_test = X_test.drop(columns='is_test')
 
+        ## TODO: might to put these back in...
+        X_train = X_train.drop(columns='New Class-Class Edges with DNS_mod_z_score')
+        X_train = X_train.drop(columns='New Class-Class Edges with Outside_mod_z_score')
+        X_train = X_train.drop(columns='New Class-Class Edges_mod_z_score')
+        X_test = X_test.drop(columns='New Class-Class Edges with DNS_mod_z_score')
+        X_test = X_test.drop(columns='New Class-Class Edges with Outside_mod_z_score')
+        X_test = X_test.drop(columns='New Class-Class Edges_mod_z_score')
+        ##
+
         print '-------'
         print type(X_train)
         print X_train.columns.values

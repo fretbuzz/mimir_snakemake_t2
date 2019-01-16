@@ -19,6 +19,8 @@ import time
 from matplotlib import pyplot as plt
 from networkx.drawing.nx_agraph import graphviz_layout
 import os,errno
+from networkx.algorithms import bipartite
+import copy
 
 # okay, so things to be aware of:
 # (a) we are assuming that if we cannot label the node and it is not loopback or in the '10.X.X.X' subnet, then it is outside
@@ -68,6 +70,8 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
         pod_1si_density_list = []
         list_of_concrete_container_exfil_paths = []
         list_of_exfil_amts = []
+        list_of_svc_pair_to_reciprocity = []
+        list_of_svc_pair_to_density = []
 
         current_total_node_list = []
         into_dns_from_outside_list = []
@@ -232,6 +236,22 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
             pod_comm_but_not_VIP_comms_no_abs.append(pod_comm_but_not_VIP_comm_no_abs)
             fraction_pod_comm_but_not_VIP_comms_no_abs.append(fraction_pod_comm_but_not_VIP_comm_no_abs)
 
+            ### TODO: this is where I want to implement the rest of my (new) graph metrics...
+            ### okay, need to put the new g
+            print cur_1si_G.nodes(data=True)
+            print "svc_to_pod",svc_to_pod
+            svc_to_pod_with_outside = copy.deepcopy(svc_to_pod)
+            svc_to_pod_with_outside['outside'] = ['outside']
+            svc_pair_to_reciprocity, svc_pair_to_density = pairwise_metrics(G, svc_to_pod_with_outside)
+            ## okay, so it appears like we already having a mapping... that's fun...
+            list_of_svc_pair_to_reciprocity.append(svc_pair_to_reciprocity)
+            list_of_svc_pair_to_density.append(svc_pair_to_density)
+            ##
+            print "list_of_svc_pair_to_reciprocity", list_of_svc_pair_to_reciprocity
+            print "list_of_svc_pair_to_density",list_of_svc_pair_to_density
+            ##exit(322) ## TODO::::<---remove!!!
+
+
             # TODO: would probably be a good idea to store these vals somewhere safe or something (I think
             # the program is holding all of the graphs in memory, which is leading to massive memory bloat)
             del G
@@ -288,6 +308,22 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
         ### TODO::: REMOVE!!!
         ### exit(999)
 
+        for service_pair in list_of_svc_pair_to_density[0].keys():
+            calculated_values[service_pair[0] + '_' + service_pair[1] + '_density'] = []
+            calculated_values[service_pair[0] + '_' + service_pair[1] + '_reciprocity'] = []
+
+        for counter,svc_pair_to_density in enumerate(list_of_svc_pair_to_density):
+            for service_pair in list_of_svc_pair_to_density[0].keys():
+                try:
+                    calculated_values[service_pair[0] + '_' + service_pair[1] + '_reciprocity'].append(
+                        list_of_svc_pair_to_reciprocity[counter][service_pair])
+                except:
+                    calculated_values[service_pair[0] + '_' + service_pair[1] + '_reciprocity'].append(0.0)
+                try:
+                    calculated_values[service_pair[0] + '_' + service_pair[1] + '_density'].append(
+                        svc_pair_to_density[service_pair])
+                except:
+                    calculated_values[service_pair[0] + '_' + service_pair[1] + '_density'].append(0.0)
 
         calculated_values['New Class-Class Edges'] = num_new_neighbors_all
         calculated_values['New Class-Class Edges with Outside'] = num_new_neighbors_outside
@@ -696,3 +732,136 @@ def avg_behavior_into_dns_node(pre_injection_weight_into_dns_dict, pre_inject_pa
     avg_dns_weight = avg_dns_weight / non_null_edges
     avg_dns_pkts = avg_dns_pkts / non_null_edges
     return avg_dns_weight, avg_dns_pkts
+
+def pairwise_metrics(G, svc_to_nodes):
+    svc_pair_to_reciprocity = {}
+    svc_pair_to_density = {}
+    for svc_one,nodes_one in svc_to_nodes.iteritems():
+        for svc_two,nodes_two in svc_to_nodes.iteritems():
+            nodes_one_with_vip = nodes_one + [svc_one + '_VIP']
+            nodes_two_with_vip = nodes_two + [svc_two + '_VIP']
+            if svc_one != svc_two:
+                ## okay, so let's calculate the actual  metrics here
+                ## (a) add VIPs to the lists
+                ## (b) make subgraph [done]
+                subgraph = G.subgraph(nodes_one_with_vip + nodes_two_with_vip).copy()
+                subgraph = make_bipartite(subgraph, nodes_one_with_vip, nodes_two_with_vip)
+                ## (c) calculate subgraph values [done]
+                # bipartite_density = bipartite.density(subgraph, nodes_one_with_vip)
+                bipartite_density = nx.density(subgraph)
+                weighted_reciprocity, _, _ = network_weidge_weighted_reciprocity(subgraph)
+                ## (d) store them somewhere accessible and return [done]
+                svc_pair_to_density[(svc_one, svc_two)] = bipartite_density
+                svc_pair_to_reciprocity[(svc_one,svc_two)] = weighted_reciprocity
+                #print "between_stuff", svc_one, svc_two, len(subgraph.edges(data=True)), subgraph.edges(data=True)
+
+                #### TODO: remove when I am done w/ looking at visualizations...
+                ''''
+                plt.figure(figsize=(12, 12))  # todo: turn back to (27, 16)
+                plt.title(svc_one + '_' + svc_two + '___' + str(bipartite_density) + '___' + str(weighted_reciprocity))
+                pos = graphviz_layout(subgraph)
+                for key in pos.keys():
+                    pos[key] = (pos[key][0] * 4, pos[key][1] * 4)  # too close otherwise
+                nx.draw_networkx(subgraph, pos, with_labels=True, arrows=True, font_size=8, font_color='b')
+                edge_labels = nx.get_edge_attributes(subgraph, 'weight')
+                nx.draw_networkx_edge_labels(subgraph, pos, edge_labels=edge_labels, font_size=7, label_pos=0.3)
+                '''
+
+            else:
+                subgraph = G.subgraph(nodes_one_with_vip)
+                svc_pair_to_density[(svc_one, svc_two)] = nx.density(subgraph)
+                weighted_reciprocity, _, _ = network_weidge_weighted_reciprocity(subgraph)
+                svc_pair_to_reciprocity[(svc_one, svc_two)] = weighted_reciprocity
+                #print "self_stuff", svc_one, subgraph.edges(data=True)
+
+    ###plt.show()
+
+    return svc_pair_to_reciprocity, svc_pair_to_density
+
+def make_bipartite(G, node_set_one, node_set_two):
+    for node_one in node_set_one:
+        for node_two in node_set_one:
+            try:
+                G.remove_edge(node_one, node_two)
+            except:
+                pass
+            try:
+                G.remove_edge(node_two, node_one)
+            except:
+                pass
+
+
+    for node_one in node_set_two:
+        for node_two in node_set_two:
+            try:
+                G.remove_edge(node_one, node_two)
+            except:
+                pass
+            try:
+                G.remove_edge(node_two, node_one)
+            except:
+                pass
+
+    return G
+
+# see https://www.nature.com/articles/srep02729
+# note, despite the name, I actually do both vertex-specific and network-wide here...
+# further note, the paper also suggests a way to analyze it, which may be useful (see equation 11 in the paper)
+def network_weidge_weighted_reciprocity(G):
+    in_weights = {}
+    out_weights = {}
+    reciprocated_weight = {}
+    non_reciprocated_out_weight = {}
+    non_reciprocated_in_weight = {}
+
+    for node in nx.nodes(G):
+        reciprocated_weight[node] = 0
+        non_reciprocated_out_weight[node] = 0
+        non_reciprocated_in_weight[node] = 0
+        in_weights[node] = 0
+        out_weights[node] = 0
+
+    for node in nx.nodes(G):
+        for node_two in nx.nodes(G):
+            if node != node_two:
+
+                node_to_nodeTwo = G.get_edge_data(node, node_two)
+                nodeTwo_to_node = G.get_edge_data(node_two, node)
+                if node_to_nodeTwo:
+                    node_to_nodeTwo = node_to_nodeTwo['weight']
+                else:
+                    node_to_nodeTwo = 0
+
+                if nodeTwo_to_node:
+                    nodeTwo_to_node = nodeTwo_to_node['weight']
+                else:
+                    nodeTwo_to_node = 0
+
+                # print "edge!!!", edge
+                # node_to_nodeTwo = G.out_edges(nbunch=[node, node_two])
+                # nodeTwo_to_node = G.in_edges(nbunch=[node, node_two])
+                # print "len edges",  node_to_nodeTwo, nodeTwo_to_node
+                reciprocated_weight[node] = min(node_to_nodeTwo, nodeTwo_to_node)
+                non_reciprocated_out_weight[node] = max(node_to_nodeTwo - reciprocated_weight[node], 0)
+                non_reciprocated_in_weight[node] = max(nodeTwo_to_node - reciprocated_weight[node], 0)
+
+    # only goes through out-edges (so no double counting)
+    total_weight = 0
+    for edge in G.edges(data=True):
+        # print edge
+        # input("Look!!!")
+        try:
+            total_weight += edge[2]['weight']
+        except:
+            pass  # maybe the edge does not exist
+
+    total_reicp_weight = 0
+    for recip_weight in reciprocated_weight.values():
+        total_reicp_weight += recip_weight
+
+    if total_weight == 0:
+        weighted_reciprocity = -1  # sentinal value
+    else:
+        weighted_reciprocity = float(total_reicp_weight) / float(total_weight)
+
+    return weighted_reciprocity, non_reciprocated_out_weight, non_reciprocated_in_weight

@@ -180,6 +180,10 @@ def prepare_graph(G, svcs, level_of_processing, is_swarm, counter, file_path, ms
         # okay, we also want to include nodes that are a single hop away
         application_nodes = containers_to_ms.keys()
         one_hop_away_nodes = []
+
+        #I'm not sure if the whole 1-step induced thing is really necessary....
+        # but changing it will break all types of things later on, so I guess we should keep it for now.
+        # NOTE: should really encorporate finding the DNS thing later....
         for (u, v, data) in G.edges(data=True):
             if u in application_nodes:
                 if v not in application_nodes and v not in one_hop_away_nodes:
@@ -187,6 +191,7 @@ def prepare_graph(G, svcs, level_of_processing, is_swarm, counter, file_path, ms
             if v in application_nodes:
                 if u not in application_nodes and u not in one_hop_away_nodes:
                     one_hop_away_nodes.append(u)
+        #'''
         #print "app nodes and one hop away", application_nodes + one_hop_away_nodes
         induced_graph = G.subgraph(G.subgraph(application_nodes+one_hop_away_nodes)).copy()
         # might want to put back in vvv
