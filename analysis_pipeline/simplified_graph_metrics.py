@@ -72,6 +72,7 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
         list_of_exfil_amts = []
         list_of_svc_pair_to_reciprocity = []
         list_of_svc_pair_to_density = []
+        list_of_svc_pair_to_coef_of_var = []
 
         current_total_node_list = []
         into_dns_from_outside_list = []
@@ -242,10 +243,11 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
             print "svc_to_pod",svc_to_pod
             svc_to_pod_with_outside = copy.deepcopy(svc_to_pod)
             svc_to_pod_with_outside['outside'] = ['outside']
-            svc_pair_to_reciprocity, svc_pair_to_density = pairwise_metrics(G, svc_to_pod_with_outside)
+            svc_pair_to_reciprocity, svc_pair_to_density,svc_pair_to_coef_of_var = pairwise_metrics(G, svc_to_pod_with_outside)
             ## okay, so it appears like we already having a mapping... that's fun...
             list_of_svc_pair_to_reciprocity.append(svc_pair_to_reciprocity)
             list_of_svc_pair_to_density.append(svc_pair_to_density)
+            list_of_svc_pair_to_coef_of_var.append(svc_pair_to_coef_of_var)
             ##
             print "list_of_svc_pair_to_reciprocity", list_of_svc_pair_to_reciprocity
             print "list_of_svc_pair_to_density",list_of_svc_pair_to_density
@@ -324,6 +326,11 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
                         svc_pair_to_density[service_pair])
                 except:
                     calculated_values[service_pair[0] + '_' + service_pair[1] + '_density'].append(0.0)
+                try:
+                    calculated_values[service_pair[0] + '_' + service_pair[1] + '_coef_of_var'].append(
+                        list_of_svc_pair_to_coef_of_var[counter][service_pair])
+                except:
+                    calculated_values[service_pair[0] + '_' + service_pair[1] + '_coef_of_var'].append(0.0)
 
         calculated_values['New Class-Class Edges'] = num_new_neighbors_all
         calculated_values['New Class-Class Edges with Outside'] = num_new_neighbors_outside
@@ -340,7 +347,7 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
         #calculated_values['DNS_eigenval_angles_DoubleWindowSize'] = dns_eigenval_angles12
         calculated_values['into_dns_ratio'] = into_dns_ratio
         calculated_values['into_dns_eigenval_angles'] = into_dns_eigenval_angles
-        calculated_values['into_dns_from_outside_list'] = into_dns_from_outside_list
+        calculated_values['into_dns_from_outside'] = into_dns_from_outside_list
         calculated_values['into_dns_eigenval_angles12'] = into_dns_eigenval_angles12
         calculated_values['sum_of_max_pod_to_dns_from_each_svc'] = sum_of_max_pod_to_dns_from_each_svc
         calculated_values['outside_to_sum_of_max_pod_to_dns_from_each_svc_ratio'] = outside_to_sum_of_max_pod_to_dns_from_each_svc_ratio
@@ -736,6 +743,7 @@ def avg_behavior_into_dns_node(pre_injection_weight_into_dns_dict, pre_inject_pa
 def pairwise_metrics(G, svc_to_nodes):
     svc_pair_to_reciprocity = {}
     svc_pair_to_density = {}
+    svc_pair_to_coef_of_var = {}
     for svc_one,nodes_one in svc_to_nodes.iteritems():
         for svc_two,nodes_two in svc_to_nodes.iteritems():
             nodes_one_with_vip = nodes_one + [svc_one + '_VIP']
@@ -750,10 +758,13 @@ def pairwise_metrics(G, svc_to_nodes):
                 # bipartite_density = bipartite.density(subgraph, nodes_one_with_vip)
                 bipartite_density = nx.density(subgraph)
                 weighted_reciprocity, _, _ = network_weidge_weighted_reciprocity(subgraph)
+                coef_of_var = find_coef_of_variation(subgraph, nodes_one_with_vip)
                 ## (d) store them somewhere accessible and return [done]
                 svc_pair_to_density[(svc_one, svc_two)] = bipartite_density
                 svc_pair_to_reciprocity[(svc_one,svc_two)] = weighted_reciprocity
+                svc_pair_to_coef_of_var[(svc_one,svc_two)] = coef_of_var
                 #print "between_stuff", svc_one, svc_two, len(subgraph.edges(data=True)), subgraph.edges(data=True)
+
 
                 #### TODO: remove when I am done w/ looking at visualizations...
                 ''''
@@ -776,7 +787,7 @@ def pairwise_metrics(G, svc_to_nodes):
 
     ###plt.show()
 
-    return svc_pair_to_reciprocity, svc_pair_to_density
+    return svc_pair_to_reciprocity, svc_pair_to_density,svc_pair_to_coef_of_var
 
 def make_bipartite(G, node_set_one, node_set_two):
     for node_one in node_set_one:
@@ -803,6 +814,19 @@ def make_bipartite(G, node_set_one, node_set_two):
                 pass
 
     return G
+
+# https://en.wikipedia.org/wiki/Coefficient_of_variation
+def find_coef_of_variation(G, start_nodes):
+    edge_weights = []
+    for (u,v,weight) in G.edges(data='weight'):
+        if u in start_nodes:
+            edge_weights.append(weight)
+    # now find the coef of var...
+    # recall: is std_dev / mean
+    stddev_of_edge_weights = np.std(edge_weights)
+    mean_of_edge_weights = np.mean(edge_weights)
+    return stddev_of_edge_weights / mean_of_edge_weights
+
 
 # see https://www.nature.com/articles/srep02729
 # note, despite the name, I actually do both vertex-specific and network-wide here...
