@@ -691,6 +691,8 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         X_test = X_test.drop(columns='is_test')
 
         ## TODO: might to put these back in...
+        dropped_feature_list = ['New Class-Class Edges with DNS_mod_z_score', 'New Class-Class Edges with Outside_mod_z_score',
+                                'New Class-Class Edges_mod_z_score']
         X_train = X_train.drop(columns='New Class-Class Edges with DNS_mod_z_score')
         X_train = X_train.drop(columns='New Class-Class Edges with Outside_mod_z_score')
         X_train = X_train.drop(columns='New Class-Class Edges_mod_z_score')
@@ -847,6 +849,8 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
                 if not coef:
                     print "just_dropped", feature
                     time_gran_to_debugging_csv[time_gran] = time_gran_to_debugging_csv[time_gran].drop([feature],axis=1)
+            for dropped_feature in dropped_feature_list:
+                time_gran_to_debugging_csv[time_gran] = time_gran_to_debugging_csv[time_gran].drop([dropped_feature], axis=1)
 
             time_gran_to_debugging_csv[time_gran].to_csv(base_output_name + 'DEBUGGING_modz_feat_df_at_time_gran_of_'+\
                                                          str(time_gran) + '_sec.csv', na_rep='?')
