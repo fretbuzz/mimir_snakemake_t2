@@ -383,6 +383,15 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
         #time.sleep(50)
 
         #####exit(200) ## TODO ::: <<<---- remove!!
+        ## TODO: let's make the injected edgefiles... we can then loop through everything else....
+        '''
+        list_injection_strength_to_edgefile_path, list_injection_strength_to_edgefile_path_class, \
+        list_of_exfil_params_to_concrete_container_exfil_paths, list_of_exfil_params_to_exfil_amts = \
+            simplified_graph_metrics.generate_injected_graphs(filenames, svcs, is_swarm, ms_s, container_to_ip, infra_service,
+                                 fraction_of_edge_weights, fraction_of_edge_pkts, synthetic_exfil_paths, 
+                                     initiator_info_for_paths, attacks_to_times, time_interval)
+        '''
+
         # OKAY, let's verify that this determine_attacks_to_times function is wokring before moving on to the next one...
         total_calculated_vals, time_gran_to_list_of_concrete_exfil_paths, time_gran_to_list_of_exfil_amts = \
             calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms_s, basegraph_name, calc_vals,

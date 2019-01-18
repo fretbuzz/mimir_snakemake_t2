@@ -78,121 +78,21 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
         into_dns_from_outside_list = []
         svc_to_pod = {}
 
-        avg_dns_weight = 0
-        avg_dns_pkts = 0
+        for counter, injection_strength_to_edgefile_path in enumerate(list_injection_strength_to_edgefile_path):
+            injection_strength_to_edgefile_path_class = list_injection_strength_to_edgefile_path_class[counter]
+            for exfil_params, file_path in injection_strength_to_edgefile_path.iteritems():
+                gc.collect()
+                G = nx.DiGraph()
+                print "path to file is ", file_path
+                f = open(file_path, 'r')
+                lines = f.readlines()
+                nx.parse_edgelist(lines, delimiter=' ', create_using=G)
+                ### TODO TODO TODO ::: this is not the right way to do this...
+                ### TODO
+                ### TODO
+                ### TODO
 
-        # for cur_G in G_list:
-        node_attack_mapping = {}
-        class_attack_mapping = {}
-        name_of_dns_pod_node = None # defining out here so it's accessible across runs
-        list_injection_strength_to_edgefile_path = []
-        list_injection_strength_to_edgefile_path_class = []
-        for counter, file_path in enumerate(filenames):
-            gc.collect()
-            G = nx.DiGraph()
-            print "path to file is ", file_path
-
-            f = open(file_path, 'r')
-            lines = f.readlines()
-            nx.parse_edgelist(lines, delimiter=' ', create_using=G)
-
-            logging.info("straight_G_edges")
-            for edge in G.edges(data=True):
-                logging.info(edge)
-            logging.info("end straight_G_edges")
-
-            #nx.read_edgelist(file_path,
-            #                 create_using=G, delimiter=',', data=(('weight', float),))
-            cur_1si_G = prepare_graph(G, svcs, 'app_only', is_swarm, counter, file_path, ms_s, container_to_ip,
-                                  infra_service)
-
-            # let's save the processed version of the graph in a nested folder for easier comparison during the
-            # debugging process... and some point I could even decouple creating/processing the edgefiles and
-            # calculating the corresponding graph metrics
-            edgefile_folder_path = "/".join(file_path.split('/')[:-1])
-            name_of_file = file_path.split('/')[-1]
-            pre_ending_part_of_filename, ending = name_of_file.split('.')[0], name_of_file.split('.')[1]
-            edgefile_pruned_folder_path = edgefile_folder_path + '/pruned_edgefiles/'
-            ## if the pruned folder directory doesn't currently exist, then we'd want to create it...
-            ## using the technique from https://stackoverflow.com/questions/273192/how-can-i-safely-create-a-nested-directory-in-python
-            try:
-                os.makedirs(edgefile_pruned_folder_path)
-            except OSError as e:
-                if e.errno != errno.EEXIST:
-                    raise
-            nx.write_edgelist(cur_1si_G, edgefile_pruned_folder_path+name_of_file, data=['frames', 'weight'])
-
-            cur_class_G = prepare_graph(G, svcs, 'class', is_swarm, counter, file_path, ms_s, container_to_ip,
-                                  infra_service)
-
-            logging.info("cur_1si_G edges")
-            for edge in cur_1si_G.edges(data=True):
-                logging.info(edge)
-            logging.info("end cur_1si_G edges")
-
-            potential_name_of_dns_pod_node = find_dns_node_name(G)
-            if potential_name_of_dns_pod_node != None:
-                name_of_dns_pod_node = potential_name_of_dns_pod_node
-            logging.info("name_of_dns_pod_node, " + str(name_of_dns_pod_node))
-            print "name_of_dns_pod_node", name_of_dns_pod_node
-
-            ### NOTE: I think this is where we'd want to inject the synthetic attacks...
-            pre_injection_weight_into_dns_dict, pre_injection_weight_outof_dns_dict, pre_inject_packets_into_dns_dict, \
-                pre_inject_packets_outof_dns_dict = create_dict_for_dns_metric(cur_1si_G, name_of_dns_pod_node)
-            cur_avg_dns_weight, cur_avg_dns_pkts = avg_behavior_into_dns_node(pre_injection_weight_into_dns_dict, pre_inject_packets_into_dns_dict)
-            if cur_avg_dns_weight != 0:
-                if avg_dns_weight == 0:
-                    avg_dns_weight = cur_avg_dns_weight
-                    avg_dns_pkts = cur_avg_dns_pkts
-                else:
-                    avg_dns_weight = avg_dns_weight / 2.0 + cur_avg_dns_weight / 2.0
-                    avg_dns_pkts = avg_dns_pkts / 2.0 + cur_avg_dns_pkts / 2.0
-
-            #####
-            # let's save a copy of the edgefile for the graph w/ the injected attack b/c that'll help with debugging
-            # the system...
-            edgefile_injected_folder_path = edgefile_folder_path + '/injected_edgefiles/'
-            ## if the injected folder directory doesn't currently exist, then we'd want to create it...
-            ## using the technique from https://stackoverflow.com/questions/273192/how-can-i-safely-create-a-nested-directory-in-python
-            try:
-                os.makedirs(edgefile_injected_folder_path)
-            except OSError as e:
-                if e.errno != errno.EEXIST:
-                    raise
-
-            injection_strength_to_edgefile_path = {}
-            injection_strength_to_edgefile_path_class = {}
-            for counter, fraction_of_edge_weight in enumerate(fraction_of_edge_weights):
-                fraction_of_edge_pkt = fraction_of_edge_pkts[counter]
-
-                cur_1si_G, node_attack_mapping,pre_specified_data_attribs, concrete_cont_node_path = inject_synthetic_attacks(cur_1si_G, synthetic_exfil_paths,initiator_info_for_paths,
-                                                     attacks_to_times,'app_only',time_interval,counter,node_attack_mapping,
-                                                                         fraction_of_edge_weight, fraction_of_edge_pkt, None,
-                                                                        name_of_dns_pod_node, avg_dns_weight, avg_dns_pkts)
-                list_of_concrete_container_exfil_paths.append(concrete_cont_node_path)
-                list_of_exfil_amts.append(pre_specified_data_attribs)
-                cur_class_G, class_attack_mapping,_,concrete_class_node_path = inject_synthetic_attacks(cur_class_G, synthetic_exfil_paths,initiator_info_for_paths,
-                                                     attacks_to_times,'class',time_interval,counter,class_attack_mapping,
-                                                                            fraction_of_edge_weight, fraction_of_edge_pkt,
-                                                                            pre_specified_data_attribs, name_of_dns_pod_node,
-                                                                               avg_dns_weight, avg_dns_pkts)
-
-                current_edgefile_name = pre_ending_part_of_filename + '_' + fraction_of_edge_weight + '_' + fraction_of_edge_pkt + '.' + ending
-
-                container_edgefile_path = edgefile_injected_folder_path+current_edgefile_name
-                class_edgefile_path = edgefile_injected_folder_path + 'class_' + current_edgefile_name
-                nx.write_edgelist(cur_1si_G, container_edgefile_path, data=['frames', 'weight'])
-                nx.write_edgelist(cur_1si_G, class_edgefile_path, data=['frames', 'weight'])
-                injection_strength_to_edgefile_path[(fraction_of_edge_weight,fraction_of_edge_pkt)] = container_edgefile_path
-                injection_strength_to_edgefile_path_class[(fraction_of_edge_weight,fraction_of_edge_pkt)] = class_edgefile_path
-
-            ###
-            list_injection_strength_to_edgefile_path.append(injection_strength_to_edgefile_path)
-            list_injection_strength_to_edgefile_path_class.append(injection_strength_to_edgefile_path_class)
-
-
-            '''  with open(interval_to_edgefile_path, 'w') as f:
-                  f.write(json.dumps(interval_to_files))      '''
+            ####
 
             ##continue ### <<<----- TODO: remove!
             #exit() #### <----- TODO: remove!!
@@ -922,3 +822,144 @@ def network_weidge_weighted_reciprocity(G):
         weighted_reciprocity = float(total_reicp_weight) / float(total_weight)
 
     return weighted_reciprocity, non_reciprocated_out_weight, non_reciprocated_in_weight
+
+def generate_injected_graphs(filenames, svcs, is_swarm, ms_s, container_to_ip, infra_service, fraction_of_edge_weights,
+                             fraction_of_edge_pkts, synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
+                             time_interval):
+    name_of_dns_pod_node = None  # defining out here so it's accessible across runs
+    list_injection_strength_to_edgefile_path = []
+    list_injection_strength_to_edgefile_path_class = []
+    avg_dns_weight = 0
+    avg_dns_pkts = 0
+    node_attack_mapping = {}
+    class_attack_mapping = {}
+    list_of_exfil_params_to_concrete_container_exfil_paths = []
+    list_of_exfil_params_to_exfil_amts = []
+
+    for counter, file_path in enumerate(filenames):
+        gc.collect()
+        G = nx.DiGraph()
+        print "path to file is ", file_path
+
+        f = open(file_path, 'r')
+        lines = f.readlines()
+        nx.parse_edgelist(lines, delimiter=' ', create_using=G)
+
+        logging.info("straight_G_edges")
+        for edge in G.edges(data=True):
+            logging.info(edge)
+        logging.info("end straight_G_edges")
+
+        # nx.read_edgelist(file_path,
+        #                 create_using=G, delimiter=',', data=(('weight', float),))
+        cur_1si_G = prepare_graph(G, svcs, 'app_only', is_swarm, counter, file_path, ms_s, container_to_ip,
+                                  infra_service)
+
+        # let's save the processed version of the graph in a nested folder for easier comparison during the
+        # debugging process... and some point I could even decouple creating/processing the edgefiles and
+        # calculating the corresponding graph metrics
+        edgefile_folder_path = "/".join(file_path.split('/')[:-1])
+        name_of_file = file_path.split('/')[-1]
+        pre_ending_part_of_filename, ending = name_of_file.split('.')[0], name_of_file.split('.')[1]
+        edgefile_pruned_folder_path = edgefile_folder_path + '/pruned_edgefiles/'
+        ## if the pruned folder directory doesn't currently exist, then we'd want to create it...
+        ## using the technique from https://stackoverflow.com/questions/273192/how-can-i-safely-create-a-nested-directory-in-python
+        try:
+            os.makedirs(edgefile_pruned_folder_path)
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
+        nx.write_edgelist(cur_1si_G, edgefile_pruned_folder_path + name_of_file, data=['frames', 'weight'])
+
+        cur_class_G = prepare_graph(G, svcs, 'class', is_swarm, counter, file_path, ms_s, container_to_ip,
+                                    infra_service)
+
+        logging.info("cur_1si_G edges")
+        for edge in cur_1si_G.edges(data=True):
+            logging.info(edge)
+        logging.info("end cur_1si_G edges")
+
+        potential_name_of_dns_pod_node = find_dns_node_name(G)
+        if potential_name_of_dns_pod_node != None:
+            name_of_dns_pod_node = potential_name_of_dns_pod_node
+        logging.info("name_of_dns_pod_node, " + str(name_of_dns_pod_node))
+        print "name_of_dns_pod_node", name_of_dns_pod_node
+
+        ### NOTE: I think this is where we'd want to inject the synthetic attacks...
+        pre_injection_weight_into_dns_dict, pre_injection_weight_outof_dns_dict, pre_inject_packets_into_dns_dict, \
+        pre_inject_packets_outof_dns_dict = create_dict_for_dns_metric(cur_1si_G, name_of_dns_pod_node)
+        cur_avg_dns_weight, cur_avg_dns_pkts = avg_behavior_into_dns_node(pre_injection_weight_into_dns_dict,
+                                                                          pre_inject_packets_into_dns_dict)
+        if cur_avg_dns_weight != 0:
+            if avg_dns_weight == 0:
+                avg_dns_weight = cur_avg_dns_weight
+                avg_dns_pkts = cur_avg_dns_pkts
+            else:
+                avg_dns_weight = avg_dns_weight / 2.0 + cur_avg_dns_weight / 2.0
+                avg_dns_pkts = avg_dns_pkts / 2.0 + cur_avg_dns_pkts / 2.0
+
+        #####
+        # let's save a copy of the edgefile for the graph w/ the injected attack b/c that'll help with debugging
+        # the system...
+        edgefile_injected_folder_path = edgefile_folder_path + '/injected_edgefiles/'
+        ## if the injected folder directory doesn't currently exist, then we'd want to create it...
+        ## using the technique from https://stackoverflow.com/questions/273192/how-can-i-safely-create-a-nested-directory-in-python
+        try:
+            os.makedirs(edgefile_injected_folder_path)
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
+
+        injection_strength_to_edgefile_path = {}
+        injection_strength_to_edgefile_path_class = {}
+        exfil_params_to_concrete_container_exfil_paths = {}
+        exfil_params_to_exfil_amts = {}
+
+        for counter, fraction_of_edge_weight in enumerate(fraction_of_edge_weights):
+            fraction_of_edge_pkt = fraction_of_edge_pkts[counter]
+
+            cur_1si_G, node_attack_mapping, pre_specified_data_attribs, concrete_cont_node_path = inject_synthetic_attacks(
+                cur_1si_G, synthetic_exfil_paths, initiator_info_for_paths,
+                attacks_to_times, 'app_only', time_interval, counter, node_attack_mapping,
+                fraction_of_edge_weight, fraction_of_edge_pkt, None,
+                name_of_dns_pod_node, avg_dns_weight, avg_dns_pkts)
+            exfil_params_to_concrete_container_exfil_paths[(fraction_of_edge_weight, fraction_of_edge_pkt)] = concrete_cont_node_path
+            exfil_params_to_exfil_amts[(fraction_of_edge_weight, fraction_of_edge_pkt)] = pre_specified_data_attribs
+
+            cur_class_G, class_attack_mapping, _, concrete_class_node_path = inject_synthetic_attacks(cur_class_G,
+                                                                                                      synthetic_exfil_paths,
+                                                                                                      initiator_info_for_paths,
+                                                                                                      attacks_to_times,
+                                                                                                      'class',
+                                                                                                      time_interval,
+                                                                                                      counter,
+                                                                                                      class_attack_mapping,
+                                                                                                      fraction_of_edge_weight,
+                                                                                                      fraction_of_edge_pkt,
+                                                                                                      pre_specified_data_attribs,
+                                                                                                      name_of_dns_pod_node,
+                                                                                                      avg_dns_weight,
+                                                                                                      avg_dns_pkts)
+
+            current_edgefile_name = pre_ending_part_of_filename + '_' + fraction_of_edge_weight + '_' + fraction_of_edge_pkt + '.' + ending
+
+            container_edgefile_path = edgefile_injected_folder_path + current_edgefile_name
+            class_edgefile_path = edgefile_injected_folder_path + 'class_' + current_edgefile_name
+            nx.write_edgelist(cur_1si_G, container_edgefile_path, data=['frames', 'weight'])
+            nx.write_edgelist(cur_1si_G, class_edgefile_path, data=['frames', 'weight'])
+            injection_strength_to_edgefile_path[
+                (fraction_of_edge_weight, fraction_of_edge_pkt)] = container_edgefile_path
+            injection_strength_to_edgefile_path_class[
+                (fraction_of_edge_weight, fraction_of_edge_pkt)] = class_edgefile_path
+
+        ###
+        list_injection_strength_to_edgefile_path.append(injection_strength_to_edgefile_path)
+        list_injection_strength_to_edgefile_path_class.append(injection_strength_to_edgefile_path_class)
+        list_of_exfil_params_to_concrete_container_exfil_paths.append(exfil_params_to_concrete_container_exfil_paths)
+        list_of_exfil_params_to_exfil_amts.append(exfil_params_to_exfil_amts)
+
+
+        '''  with open(interval_to_edgefile_path, 'w') as f:
+              f.write(json.dumps(interval_to_files))      '''
+    return list_injection_strength_to_edgefile_path, list_injection_strength_to_edgefile_path_class,\
+            list_of_exfil_params_to_concrete_container_exfil_paths, list_of_exfil_params_to_exfil_amts
