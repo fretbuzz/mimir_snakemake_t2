@@ -85,6 +85,8 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
         node_attack_mapping = {}
         class_attack_mapping = {}
         name_of_dns_pod_node = None # defining out here so it's accessible across runs
+        list_injection_strength_to_edgefile_path = []
+        list_injection_strength_to_edgefile_path_class = []
         for counter, file_path in enumerate(filenames):
             gc.collect()
             G = nx.DiGraph()
@@ -109,6 +111,7 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
             # calculating the corresponding graph metrics
             edgefile_folder_path = "/".join(file_path.split('/')[:-1])
             name_of_file = file_path.split('/')[-1]
+            pre_ending_part_of_filename, ending = name_of_file.split('.')[0], name_of_file.split('.')[1]
             edgefile_pruned_folder_path = edgefile_folder_path + '/pruned_edgefiles/'
             ## if the pruned folder directory doesn't currently exist, then we'd want to create it...
             ## using the technique from https://stackoverflow.com/questions/273192/how-can-i-safely-create-a-nested-directory-in-python
@@ -157,9 +160,10 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
                 if e.errno != errno.EEXIST:
                     raise
 
+            injection_strength_to_edgefile_path = {}
+            injection_strength_to_edgefile_path_class = {}
             for counter, fraction_of_edge_weight in enumerate(fraction_of_edge_weights):
                 fraction_of_edge_pkt = fraction_of_edge_pkts[counter]
-
 
                 cur_1si_G, node_attack_mapping,pre_specified_data_attribs, concrete_cont_node_path = inject_synthetic_attacks(cur_1si_G, synthetic_exfil_paths,initiator_info_for_paths,
                                                      attacks_to_times,'app_only',time_interval,counter,node_attack_mapping,
@@ -173,9 +177,19 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
                                                                             pre_specified_data_attribs, name_of_dns_pod_node,
                                                                                avg_dns_weight, avg_dns_pkts)
 
-                nx.write_edgelist(cur_1si_G, edgefile_injected_folder_path+name_of_file, data=['frames', 'weight'])
+                current_edgefile_name = pre_ending_part_of_filename + '_' + fraction_of_edge_weight + '_' + fraction_of_edge_pkt + '.' + ending
+
+                container_edgefile_path = edgefile_injected_folder_path+current_edgefile_name
+                class_edgefile_path = edgefile_injected_folder_path + 'class_' + current_edgefile_name
+                nx.write_edgelist(cur_1si_G, container_edgefile_path, data=['frames', 'weight'])
+                nx.write_edgelist(cur_1si_G, class_edgefile_path, data=['frames', 'weight'])
+                injection_strength_to_edgefile_path[(fraction_of_edge_weight,fraction_of_edge_pkt)] = container_edgefile_path
+                injection_strength_to_edgefile_path_class[(fraction_of_edge_weight,fraction_of_edge_pkt)] = class_edgefile_path
 
             ###
+            list_injection_strength_to_edgefile_path.append(injection_strength_to_edgefile_path)
+            list_injection_strength_to_edgefile_path_class.append(injection_strength_to_edgefile_path_class)
+
 
             '''  with open(interval_to_edgefile_path, 'w') as f:
                   f.write(json.dumps(interval_to_files))      '''
