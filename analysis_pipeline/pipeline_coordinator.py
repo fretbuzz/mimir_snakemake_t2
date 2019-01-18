@@ -288,7 +288,7 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
                                rdpcap_p=False, kubernetes_pod_info=None, alert_file=None, ROC_curve_p=False,
                                calc_zscore_p=False, training_window_size=200, minimum_training_window=5,
                                sec_between_exfil_events=1, time_of_synethic_exfil=30,
-                               fraction_of_edge_weights=0.1, fraction_of_edge_pkts=0.1,
+                               fraction_of_edge_weights=[0.1], fraction_of_edge_pkts=[0.1],
                                size_of_neighbor_training_window=300,
                                end_of_training=None, injected_exfil_path='None', only_exp_info=False,
                                initiator_info_for_paths=None,
@@ -497,7 +497,7 @@ def determine_injection_times(exps_info, goal_train_test_split, goal_attack_NoAt
 # the injected synthetic attacks
 def multi_experiment_pipeline(function_list_exp_info, function_list, base_output_name, ROC_curve_p, time_each_synthetic_exfil,
                               goal_train_test_split, goal_attack_NoAttack_split, training_window_size,
-                              size_of_neighbor_training_window, calc_vals):
+                              size_of_neighbor_training_window, calc_vals, fraction_of_edge_weights, fraction_of_edge_pkts):
     ### Okay, so what is needed here??? We need, like, a list of sets of input (appropriate for run_data_analysis_pipeline),
     ### followed by the LASSO stuff, and finally the ROC stuff... okay, let's do this!!!
 
@@ -574,7 +574,9 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
                  portion_for_training=end_of_train_portions[counter],
                  synthetic_exfil_paths_train = training_exfil_paths[counter],
                  synthetic_exfil_paths_test = testing_exfil_paths[counter],
-                 calc_vals=calc_vals)
+                 calc_vals=calc_vals,
+                 fraction_of_edge_weights=fraction_of_edge_weights,
+                 fraction_of_edge_pkts=fraction_of_edge_pkts)
         print "exps_exfil_pathas[time_gran_to_mod_zscore_df]", time_gran_to_mod_zscore_df
         list_time_gran_to_mod_zscore_df.append(time_gran_to_mod_zscore_df)
         list_time_gran_to_zscore_dataframe.append(time_gran_to_zscore_dataframe)

@@ -144,18 +144,8 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
                 else:
                     avg_dns_weight = avg_dns_weight / 2.0 + cur_avg_dns_weight / 2.0
                     avg_dns_pkts = avg_dns_pkts / 2.0 + cur_avg_dns_pkts / 2.0
-            cur_1si_G, node_attack_mapping,pre_specified_data_attribs, concrete_cont_node_path = inject_synthetic_attacks(cur_1si_G, synthetic_exfil_paths,initiator_info_for_paths,
-                                                 attacks_to_times,'app_only',time_interval,counter,node_attack_mapping,
-                                                                      fraction_of_edge_weights, fraction_of_edge_pkts, None,
-                                                                    name_of_dns_pod_node, avg_dns_weight, avg_dns_pkts)
-            list_of_concrete_container_exfil_paths.append(concrete_cont_node_path)
-            list_of_exfil_amts.append(pre_specified_data_attribs)
-            cur_class_G, class_attack_mapping,_,concrete_class_node_path = inject_synthetic_attacks(cur_class_G, synthetic_exfil_paths,initiator_info_for_paths,
-                                                 attacks_to_times,'class',time_interval,counter,class_attack_mapping,
-                                                                        fraction_of_edge_weights, fraction_of_edge_pkts,
-                                                                        pre_specified_data_attribs, name_of_dns_pod_node,
-                                                                           avg_dns_weight, avg_dns_pkts)
 
+            #####
             # let's save a copy of the edgefile for the graph w/ the injected attack b/c that'll help with debugging
             # the system...
             edgefile_injected_folder_path = edgefile_folder_path + '/injected_edgefiles/'
@@ -166,7 +156,29 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
             except OSError as e:
                 if e.errno != errno.EEXIST:
                     raise
-            nx.write_edgelist(cur_1si_G, edgefile_injected_folder_path+name_of_file, data=['frames', 'weight'])
+
+            for counter, fraction_of_edge_weight in enumerate(fraction_of_edge_weights):
+                fraction_of_edge_pkt = fraction_of_edge_pkts[counter]
+
+
+                cur_1si_G, node_attack_mapping,pre_specified_data_attribs, concrete_cont_node_path = inject_synthetic_attacks(cur_1si_G, synthetic_exfil_paths,initiator_info_for_paths,
+                                                     attacks_to_times,'app_only',time_interval,counter,node_attack_mapping,
+                                                                         fraction_of_edge_weight, fraction_of_edge_pkt, None,
+                                                                        name_of_dns_pod_node, avg_dns_weight, avg_dns_pkts)
+                list_of_concrete_container_exfil_paths.append(concrete_cont_node_path)
+                list_of_exfil_amts.append(pre_specified_data_attribs)
+                cur_class_G, class_attack_mapping,_,concrete_class_node_path = inject_synthetic_attacks(cur_class_G, synthetic_exfil_paths,initiator_info_for_paths,
+                                                     attacks_to_times,'class',time_interval,counter,class_attack_mapping,
+                                                                            fraction_of_edge_weight, fraction_of_edge_pkt,
+                                                                            pre_specified_data_attribs, name_of_dns_pod_node,
+                                                                               avg_dns_weight, avg_dns_pkts)
+
+                nx.write_edgelist(cur_1si_G, edgefile_injected_folder_path+name_of_file, data=['frames', 'weight'])
+
+            ###
+
+            '''  with open(interval_to_edgefile_path, 'w') as f:
+                  f.write(json.dumps(interval_to_files))      '''
 
             ##continue ### <<<----- TODO: remove!
             #exit() #### <----- TODO: remove!!

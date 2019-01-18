@@ -1391,6 +1391,8 @@ def multi_experiment_wordpress_recipe():
     calc_vals = True
     function_list = [process_wordpress6_rep3, process_wordpress6_rep4, process_wordpress7_rep2, process_wordpress7_rep3,
                      process_wordpress8_rep_2, process_wordpress8_rep_3]
+    fraction_of_edge_weights = [0.1]
+    fraction_of_edge_pkts = [0.1]
     ## NOTE: process_wordpress8 could be here too, but I'm for the moment I'm keeping each kind of injected
     ## attack w/ two different experiments in which it occurss...
 
@@ -1400,7 +1402,7 @@ def multi_experiment_wordpress_recipe():
     base_output_location = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_summary/'# + 'lasso_roc'
     multi_experiment_pipeline(function_list_exp_info, function_list, base_output_location, True, time_of_synethic_exfil,
                               goal_train_test_split, goal_attack_NoAttack_split, training_window_size,
-                              size_of_neighbor_training_window, calc_vals)
+                              size_of_neighbor_training_window, calc_vals, fraction_of_edge_weights, fraction_of_edge_pkts)
 
 ## TODO: make a list and stuff...
 def multi_experiment_sockshop_recipe():
