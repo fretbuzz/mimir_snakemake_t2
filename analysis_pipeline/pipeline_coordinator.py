@@ -32,6 +32,7 @@ from itertools import groupby
 from operator import itemgetter
 import operator
 import copy
+import multiprocessing
 
 def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms_s, basegraph_name, calc_vals, window_size,
                                 mapping, is_swarm, make_net_graphs_p, list_of_infra_services,synthetic_exfil_paths,
@@ -566,6 +567,9 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
     for counter,func in enumerate(function_list):
         #time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, _ = func()
         print "exps_exfil_paths[counter]_to_func",exps_exfil_paths[counter], exps_initiator_info
+        ## TODO: need to make this use the multiprocessing library (so I can force the
+        ## stupid garbage collector to actually work...)
+        
         time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, _, start_of_testing = \
             func(time_of_synethic_exfil=time_each_synthetic_exfil,
                  initiator_info_for_paths=exps_initiator_info[counter],
