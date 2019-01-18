@@ -313,7 +313,7 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
         for service_pair in list_of_svc_pair_to_density[0].keys():
             calculated_values[service_pair[0] + '_' + service_pair[1] + '_density'] = []
             calculated_values[service_pair[0] + '_' + service_pair[1] + '_reciprocity'] = []
-
+            calculated_values[service_pair[0] + '_' + service_pair[1] + '_coef_of_var'] = []
         for counter,svc_pair_to_density in enumerate(list_of_svc_pair_to_density):
             for service_pair in list_of_svc_pair_to_density[0].keys():
                 try:
@@ -498,6 +498,11 @@ def inject_synthetic_attacks(graph, synthetic_exfil_paths, initiator_info_for_pa
             fraction_of_pkt_min = pre_specified_data_attribs['frames']
             fraction_of_weight_min = pre_specified_data_attribs['weight']
 
+        #########
+        #### TODO: maybe this is actually where'd I'd want to split the whole thing??? I need to split it at some point,
+        #### so that I can loop over the actual injection strenths... well maybe I'd want to return up above, where I still
+        ##########
+
         # recall that we'd need to add traffic going both ways... or would we??? acks would be v small... no
         # it's worth it. Let's just assume all acks. Then same # of packets, Let's assume smallest, so 40 bytes.
         ## two situations: (a) need to modify existing edge weight (or rather, nodes already exist)
@@ -511,7 +516,7 @@ def inject_synthetic_attacks(graph, synthetic_exfil_paths, initiator_info_for_pa
             print "concrete_possible_dst", concrete_possible_dst
             #synthetic_exfil_paths[attack_occuring][node_one_loc + 2]
 
-            ### TODO: there are actually two subcases of this first case. 1: first src initiates flow
+            ### there are actually two subcases of this first case. 1: first src initiates flow
             ### 2. dst initiates flow (that is the currently covered case)
             ### note: for 1: pod (DST) and vip are same service
             ### note: for 2: pod (src) and vip are same service
@@ -760,8 +765,10 @@ def pairwise_metrics(G, svc_to_nodes):
                 weighted_reciprocity, _, _ = network_weidge_weighted_reciprocity(subgraph)
                 coef_of_var = find_coef_of_variation(subgraph, nodes_one_with_vip)
                 ## (d) store them somewhere accessible and return [done]
-                svc_pair_to_density[(svc_one, svc_two)] = bipartite_density
-                svc_pair_to_reciprocity[(svc_one,svc_two)] = weighted_reciprocity
+                '''TODO: don't wan to put the equiv ones both ways...'''
+                if svc_one < svc_two:
+                    svc_pair_to_density[(svc_one, svc_two)] = bipartite_density
+                    svc_pair_to_reciprocity[(svc_one,svc_two)] = weighted_reciprocity
                 svc_pair_to_coef_of_var[(svc_one,svc_two)] = coef_of_var
                 #print "between_stuff", svc_one, svc_two, len(subgraph.edges(data=True)), subgraph.edges(data=True)
 

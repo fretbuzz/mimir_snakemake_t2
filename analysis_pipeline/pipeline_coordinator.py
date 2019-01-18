@@ -582,6 +582,7 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
         list_time_gran_to_mod_zscore_df_training.append(generate_time_gran_sub_dataframes(time_gran_to_mod_zscore_df, 'is_test', 0))
         list_time_gran_to_mod_zscore_df_testing.append(generate_time_gran_sub_dataframes(time_gran_to_mod_zscore_df, 'is_test', 1))
         starts_of_testing.append(start_of_testing)
+        gc.collect()
 
     # step (2) :  take the dataframes and feed them into the LASSO component...
     ### 2a. split into training and testing data
