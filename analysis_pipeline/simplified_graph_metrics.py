@@ -243,7 +243,7 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
             print "svc_to_pod",svc_to_pod
             svc_to_pod_with_outside = copy.deepcopy(svc_to_pod)
             svc_to_pod_with_outside['outside'] = ['outside']
-            svc_pair_to_reciprocity, svc_pair_to_density,svc_pair_to_coef_of_var = pairwise_metrics(G, svc_to_pod_with_outside)
+            svc_pair_to_reciprocity, svc_pair_to_density,svc_pair_to_coef_of_var = pairwise_metrics(cur_1si_G, svc_to_pod_with_outside)
             ## okay, so it appears like we already having a mapping... that's fun...
             list_of_svc_pair_to_reciprocity.append(svc_pair_to_reciprocity)
             list_of_svc_pair_to_density.append(svc_pair_to_density)
@@ -251,7 +251,7 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
             ##
             print "list_of_svc_pair_to_reciprocity", list_of_svc_pair_to_reciprocity
             print "list_of_svc_pair_to_density",list_of_svc_pair_to_density
-            ##exit(322) ## TODO::::<---remove!!!
+            ###exit(322) ## TODO::::<---remove!!!
 
 
             # TODO: would probably be a good idea to store these vals somewhere safe or something (I think

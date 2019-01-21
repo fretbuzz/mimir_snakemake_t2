@@ -317,7 +317,7 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
                 not synthetic_exfil_paths_test
         # todo: might wanna specify this is in the attack descriptions...
         for ms in ms_s:
-            if 'User' in ms:
+            if 'user' in ms:
                 sensitive_ms = ms
             if 'my-release' in ms:
                 sensitive_ms = ms
@@ -336,7 +336,10 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
     time_grans = [int(i) for i in interval_to_filenames.keys()]
     smallest_time_gran = min(time_grans)
     if only_exp_info:
+        print "only_exp_info_section", only_exp_info
         total_experiment_length = len(interval_to_filenames[str(smallest_time_gran)]) * smallest_time_gran
+        print "about to return from only_exp_info section",total_experiment_length, exfil_start_time, exfil_end_time,\
+            system_startup_time,None
         return total_experiment_length, exfil_start_time, exfil_end_time, system_startup_time,None
 
     if calc_vals or graph_p:
@@ -432,6 +435,7 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
 
     print "about to calculate some alerts!"
 
+    time_gran_to_feature_dataframe_copy = copy.deepcopy(time_gran_to_feature_dataframe)
     for time_gran, feature_dataframe in time_gran_to_feature_dataframe.iteritems():
         try:
             del feature_dataframe['exfil_path']
@@ -455,7 +459,17 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
 
     #for time_gran, mod_zscore_df in time_gran_to_mod_zscore_df.iteritems():
     #    mod_zscore_df['exfil_paths'] = time_gran_to_synthetic_exfil_paths_series[time_gran]
-    return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, \
+    '''
+    return_dict = {}
+    return_dict['time_gran_to_mod_zscore_df'] = time_gran_to_mod_zscore_df
+    return_dict['time_gran_to_zscore_dataframe'] = time_gran_to_zscore_dataframe
+    return_dict['time_gran_to_feature_dataframe'] = time_gran_to_feature_dataframe
+    return_dict['time_gran_to_synthetic_exfil_paths_series'] = time_gran_to_synthetic_exfil_paths_series
+    return_dict['end_of_training'] = end_of_training
+    return return_dict
+    '''
+
+    return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe_copy, \
            time_gran_to_synthetic_exfil_paths_series, end_of_training
 
 # this function determines how much time to is available for injection attacks in each experiment.
@@ -508,9 +522,9 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
         print function_list_exp_info
         exp_infos = []
         for func_exp_info in function_list_exp_info:
+            print "calc_vals", calc_vals
             total_experiment_length, exfil_start_time, exfil_end_time, system_startup_time, _ = \
-                func_exp_info(training_window_size=training_window_size, size_of_neighbor_training_window=size_of_neighbor_training_window,
-                              calc_vals=calc_vals)
+                func_exp_info(training_window_size=training_window_size, size_of_neighbor_training_window=size_of_neighbor_training_window,calc_vals=calc_vals)
             print "func_exp_info", total_experiment_length, exfil_start_time, exfil_end_time
             exp_infos.append({"total_experiment_length":total_experiment_length, "exfil_start_time":exfil_start_time,
                              "exfil_end_time":exfil_end_time, "startup_time": system_startup_time})
@@ -569,7 +583,25 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
         print "exps_exfil_paths[counter]_to_func",exps_exfil_paths[counter], exps_initiator_info
         ## TODO: need to make this use the multiprocessing library (so I can force the
         ## stupid garbage collector to actually work...)
-        
+        '''
+        kwards = {'time_of_synethic_exfil':time_each_synthetic_exfil,
+                 'initiator_info_for_paths':exps_initiator_info[counter],
+                 'training_window_size':training_window_size,
+                 'size_of_neighbor_training_window':size_of_neighbor_training_window,
+                 'portion_for_training':end_of_train_portions[counter],
+                 'synthetic_exfil_paths_train' : training_exfil_paths[counter],
+                 'synthetic_exfil_paths_test' : testing_exfil_paths[counter],
+                 'calc_vals':calc_vals}
+
+        manager = multiprocessing.Manager()
+        return_dict = manager.dict()
+        p = multiprocessing.Process(target=func, kwargs=kwards,  args=(return_dict,))
+        p.start()
+        p.join()
+        time_gran_to_mod_zscore_df = return_dict['time_gran_to_mod_zscore_df']
+        time_gran_to_zscore_dataframe = return_dict['time_gran_to_zscore_dataframe']
+        time_gran_to_feature_dataframe = return_dict['time_gran_to_feature_dataframe']
+        '''
         time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, _, start_of_testing = \
             func(time_of_synethic_exfil=time_each_synthetic_exfil,
                  initiator_info_for_paths=exps_initiator_info[counter],
@@ -620,8 +652,22 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
     path_occurence_testing_df = generate_exfil_path_occurence_df(list_time_gran_to_mod_zscore_df_testing, names)
 
     ##################################
+    # todo: okay, I'm going to mess w/ the aggregate mod_score_dfs b/c the vip vals should actually be just raw (instead
+    # of the mod-z score of hte vals)
+    for time_gran, aggregate_mod_df in time_gran_to_aggregate_mod_score_dfs.iteritems():
+        # okay, want to do 2 things:
+        # drop old vip terms
+        # add non-mod-z-score-terms
+        pass
+        ##time_gran_to_aggregate_mod_score_dfs[time_gran] = None ## TODO
+
     ##################################
+    '''
     statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, base_output_name,
+                                         names, starts_of_testing, path_occurence_training_df,
+                                         path_occurence_testing_df, recipes_used)
+    '''
+    statistically_analyze_graph_features(time_gran_to_aggreg_feature_dfs, ROC_curve_p, base_output_name,
                                          names, starts_of_testing, path_occurence_training_df,
                                          path_occurence_testing_df, recipes_used)
 
@@ -660,6 +706,14 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
             aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='Unnamed: 0mod_z_score') # might wanna just stop these from being generaetd
         except:
             pass
+        ### TODO TODO TODO TODO TODO TODO
+        ### todo: might wanna remove? might wanna keep? not sure...
+        ### todo: drop the test physical attacks from the test sets...
+        aggregate_mod_score_dfs = \
+            aggregate_mod_score_dfs[~((aggregate_mod_score_dfs['labels'] == 1) &
+            (aggregate_mod_score_dfs['exfil_pkts'] == 0))]
+        #####
+
         time_gran_to_debugging_csv[time_gran] = copy.deepcopy(aggregate_mod_score_dfs)
         #'''
         aggregate_mod_score_dfs_training = aggregate_mod_score_dfs[aggregate_mod_score_dfs['is_test'] == 0]
@@ -696,6 +750,8 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         X_test = X_test.drop(columns='is_test')
 
         ## TODO: might to put these back in...
+        #dropped_feature_list = []
+
         dropped_feature_list = ['New Class-Class Edges with DNS_mod_z_score', 'New Class-Class Edges with Outside_mod_z_score',
                                 'New Class-Class Edges_mod_z_score']
         X_train = X_train.drop(columns='New Class-Class Edges with DNS_mod_z_score')
@@ -704,7 +760,7 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         X_test = X_test.drop(columns='New Class-Class Edges with DNS_mod_z_score')
         X_test = X_test.drop(columns='New Class-Class Edges with Outside_mod_z_score')
         X_test = X_test.drop(columns='New Class-Class Edges_mod_z_score')
-        ##
+
 
         print '-------'
         print type(X_train)

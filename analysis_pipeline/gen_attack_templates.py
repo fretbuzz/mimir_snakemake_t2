@@ -105,6 +105,8 @@ def prepare_mulval_input(ms_s, mapping, sensitive_ms):
                 if 'dns_pod' not in svc_two[0] and 'dns_vip' not in svc_two[0]:
                     ## TODO: remove lower if-statement when we want to re-enable the full range of exfil possibilities
                     #if 'dns_vip' not in svc[1] or svc_two[0] == sensitive_node:
+                    print svc_two, svc, proto
+                    print 'hacl(', svc_two[0], ',', svc[1], ', ', proto, ', ', port[0], ').'
                     lines.append(  'hacl(' + svc_two[0] +',' + svc[1] + ', ' + proto +', ' + port[0] + ').'  )
                 if 'dns_pod' not in svc[0] and 'dns_vip' not in svc_two[1]:
                     ## TODO: remove lower if-statement when we want to re-enable the full range of exfil possibilities
@@ -201,12 +203,22 @@ def post_process_mulval_result(sensitive_node):
 
     pos = graphviz_layout(G)
     nx.draw_networkx(G, pos, with_labels=True, arrows=True)
+    #plt.show() ## todo: remove!!! <---- <---- <----
 
     # okay, so let's generate all the paths using this...
     paths=[]
+
+    ## TODO: okay, this part is problematic b/c we can move between the servies a bazillion
+    ## times when working with a sizeable # of microservices (e.g., sockshop)
+    ## neeed to define some kinda metric that requires that the attacker doesn't
+    ## just move around a bazillion trillion times before leaving (b/c that's also unrealistic)
     for path in nx.all_simple_paths(G, source=sensitive_node, target='internet'):
-        print "a_path:", path
+        print "a_path:", path ## TODO: put back in!!
         paths.append(path)
+        print len(paths)
+    #print "# of paths present", len(paths)
+    #exit(212)
+
     #print "paths", nx.all_simple_paths(G, source=sensitive_node, target='internet')
     # ^^ TODO:src,trgt (src is sensitive pod, dest is internet)
 

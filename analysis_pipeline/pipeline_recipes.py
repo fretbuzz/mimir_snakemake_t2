@@ -16,9 +16,11 @@ There are a lot of parameters, and some of them are rather long, so I decided to
 '''
 
 # these lists are only need for processing the k8s pod info
+#microservices_sockshop = ['carts-db', 'carts', 'catalogue-db', 'catalogue', 'front-end', 'orders-db', 'orders',
+#                         'payment', 'queue-master', 'rabbitmq', 'session-db', 'shipping', 'user-db', 'user',
+#                          'load-test']
 microservices_sockshop = ['carts-db', 'carts', 'catalogue-db', 'catalogue', 'front-end', 'orders-db', 'orders',
-                          'payment', 'queue-master', 'rabbitmq', 'session-db', 'shipping', 'user-db', 'user',
-                          'load-test']
+                         'payment', 'queue-master', 'rabbitmq', 'shipping', 'user-db', 'user']
 minikube_infrastructure = ['etcd', 'kube-addon-manager', 'kube-apiserver', 'kube-controller-manager',
                            'kube-dns', 'kube-proxy', 'kube-scheduler', 'kubernetes-dashboard', 'metrics-server',
                            'storage-provisioner']
@@ -1247,9 +1249,9 @@ def process_sockshop9(time_of_synethic_exfil=None,only_exp_info=False, initiator
     container_info_path = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/sockshop_nine_better_exfil_docker_0_network_configs.txt'
     kubernetes_svc_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/sockshop_nine_better_exfil_svc_config_0.txt'
     kubernetes_pod_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/sockshop_nine_better_exfil_pod_config_0.txt'
-    time_interval_lengths = [60, 30, 10]#,
+    time_interval_lengths = [30, 10]#,
     ms_s = microservices_sockshop
-    make_edgefiles = True
+    make_edgefiles = False
     start_time = None
     end_time = None
     exfil_start_time = 2100
@@ -1264,7 +1266,8 @@ def process_sockshop9(time_of_synethic_exfil=None,only_exp_info=False, initiator
     wiggle_room = 2 # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
     sec_between_exfil_events = 1
     physical_exfil_path = ['user-db', 'user', 'front-end', 'internet']
-    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
+    time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val, fifth_val = \
+        run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
                                make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
                                wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,
                                graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info, rdpcap_p=False,
@@ -1279,6 +1282,7 @@ def process_sockshop9(time_of_synethic_exfil=None,only_exp_info=False, initiator
                                synthetic_exfil_paths_train=synthetic_exfil_paths_train,
                                synthetic_exfil_paths_test=synthetic_exfil_paths_test)
     #'''
+    return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val, fifth_val
 
 ## sockshop experiment 11 (an hour of scaled-up activity w/ exfil NOT on normal path)
 def process_sockshop11(time_of_synethic_exfil=None,only_exp_info=False, initiator_info_for_paths=None,
@@ -1295,9 +1299,9 @@ def process_sockshop11(time_of_synethic_exfil=None,only_exp_info=False, initiato
     container_info_path = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/sockshop_eleven_docker_0_network_configs.txt'
     kubernetes_svc_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/sockshop_eleven_svc_config_0.txt'
     kubernetes_pod_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/sockshop_eleven_pod_config_0.txt'
-    time_interval_lengths = [60, 30, 10]#,
+    time_interval_lengths = [30, 10]#,
     ms_s = microservices_sockshop
-    make_edgefiles = True
+    make_edgefiles = False
     start_time = None
     end_time = None
     exfil_start_time = 2100
@@ -1312,7 +1316,8 @@ def process_sockshop11(time_of_synethic_exfil=None,only_exp_info=False, initiato
     anom_num_outlier_vals_in_window = [1, 2] # note: these vals correspond to anoamly_window (so the first vals get matched, etc.)
     alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/alerts/sockshop_eleven_'
     wiggle_room = 2 # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
-    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
+    time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val, fifth_val = \
+        run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
                                make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
                                wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,
                                graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info, rdpcap_p=False,
@@ -1327,12 +1332,14 @@ def process_sockshop11(time_of_synethic_exfil=None,only_exp_info=False, initiato
                                synthetic_exfil_paths_train=synthetic_exfil_paths_train,
                                synthetic_exfil_paths_test=synthetic_exfil_paths_test)
     #'''
+    return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val, fifth_val
+
 
 ## sockshop experiment 12 (an hour of scaled-up activity w/ exfil going straight out)
 def process_sockshop12(time_of_synethic_exfil=None,only_exp_info=False, initiator_info_for_paths=None,
                              portion_for_training=None,training_window_size=None, size_of_neighbor_training_window=None,
                              synthetic_exfil_paths_train=None,
-                             synthetic_exfil_paths_test=None):
+                             synthetic_exfil_paths_test=None, calc_vals=False):
     #time.sleep(54000)
     #''' # next-gen
     ## sockshop experiment 12 (an hour of scaled-up activity w/ exfil going straight out)
@@ -1342,9 +1349,9 @@ def process_sockshop12(time_of_synethic_exfil=None,only_exp_info=False, initiato
     basegraph_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/graphs/sockshop_twelve_'
     container_info_path = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/sockshop_twelve_docker_0_network_configs.txt'
     kubernetes_svc_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/sockshop_twelve_svc_config_0.txt'
-    time_interval_lengths = [60, 30, 10]#,
+    time_interval_lengths = [30, 10]#,
     ms_s = microservices_sockshop
-    make_edgefiles = True
+    make_edgefiles = False
     start_time = None
     end_time = None
     exfil_start_time = 2100
@@ -1360,7 +1367,8 @@ def process_sockshop12(time_of_synethic_exfil=None,only_exp_info=False, initiato
     wiggle_room = 2 # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
     sec_between_exfil_events = 1
     physical_exfil_path = ['user-db', 'internet']
-    run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
+    time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val, fifth_val = \
+        run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
                                make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
                                wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,
                                graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info, rdpcap_p=False,
@@ -1375,6 +1383,7 @@ def process_sockshop12(time_of_synethic_exfil=None,only_exp_info=False, initiato
                                synthetic_exfil_paths_train=synthetic_exfil_paths_train,
                                synthetic_exfil_paths_test=synthetic_exfil_paths_test)
     #'''
+    return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val, fifth_val
 
 def run_analysis_pipeline_recipes_json(json_file, path_to_experimental_data):
     with open(path_to_experimental_data + json_file) as f:
@@ -1448,6 +1457,7 @@ def multi_experiment_sockshop_recipe():
     training_window_size = 200
     size_of_neighbor_training_window = 200
     calc_vals = True
+    ### TODO: can add the other reps of 9,11,12 when I get some time...
     function_list = [process_sockshop9, process_sockshop11, process_sockshop12] ## TODO TODO TODO
 
     ## NOTE: process_wordpress8 could be here too, but I'm for the moment I'm keeping each kind of injected
@@ -1466,8 +1476,8 @@ if __name__=="__main__":
     print sys.argv
 
     if len(sys.argv) == 1:
-        #multi_experiment_wordpress_recipe()
-        multi_experiment_sockshop_recipe()
+        multi_experiment_wordpress_recipe()
+        #multi_experiment_sockshop_recipe()
 
         # TODO: might wanna re-enable the function below...
         #run_analysis_pipeline_recipes()
