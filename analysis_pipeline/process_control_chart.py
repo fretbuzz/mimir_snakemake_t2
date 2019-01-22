@@ -12,8 +12,21 @@ def ewma_control_chart_max_val(G, old_dict):
                     old_dict[(node_one, node_two)] = []
                     prev_vals = []
                 prev_vals_df = pd.DataFrame({'vals': prev_vals})
-                ewma_mean,ewma_stddev = prev_vals_df.ewm(span=20).mean()[-1],prev_vals_df.ewm().std()[-1]
-                cur_val = G.get_edge_data(node_one, node_two, default=0)
+                print "prev_vals_df", prev_vals_df
+                print prev_vals_df.ewm(span=20).mean()['vals'], prev_vals_df.ewm(span=20).std()
+                print type(prev_vals_df.ewm(span=20, min_periods=5).mean()['vals']), type(prev_vals_df.ewm(span=20, min_periods=5).std())
+                #print prev_vals_df.ewm(span=20, min_periods=5).mean()['vals'][-1], prev_vals_df.ewm(span=20, min_periods=5).std()
+                try:
+                    ewma_mean = prev_vals_df.ewm(span=20, min_periods=5).mean()['vals'][-1]
+                except:
+                    ewma_mean = float('NaN')
+                try:
+                    ewma_stddev = prev_vals_df.ewm(span=20, min_periods=5).std()['vals'][-1]
+                except:
+                    ewma_stddev = float('NaN')
+                print ewma_mean,ewma_stddev
+
+                cur_val = G.get_edge_data(node_one, node_two, default={'weight':0})['weight']
                 try:
                     anom_score = (cur_val - ewma_mean) / ewma_stddev
                 except:

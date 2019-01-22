@@ -9,7 +9,7 @@ import ast
 import gc
 import numpy as np
 from analysis_pipeline.next_gen_metrics import calc_neighbor_metric, generate_neig_dict, create_dict_for_dns_metric, \
-    calc_dns_metric, calc_outside_inside_ratio_dns_metric, find_dns_node_name, sum_max_pod_to_dns_from_each_svc,reverse_svc_to_pod_dict
+    calc_dns_metric, calc_outside_inside_ratio_dns_metric, find_dns_node_name, sum_max_pod_to_dns_from_each_svc,reverse_svc_to_pod_dict,turn_into_list
 from analysis_pipeline.src.analyze_edgefiles import calc_VIP_metric, change_point_detection
 from analysis_pipeline.prepare_graph import prepare_graph, get_svc_equivalents
 import random
@@ -89,7 +89,8 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
         node_attack_mapping = {}
         class_attack_mapping = {}
         name_of_dns_pod_node = None # defining out here so it's accessible across runs
-        old_dict = None
+        old_dict = {}
+        total_edgelist_nodes = []
         for counter, file_path in enumerate(filenames):
             gc.collect()
             G = nx.DiGraph()
@@ -277,10 +278,31 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
             print "list_of_svc_pair_to_reciprocity", list_of_svc_pair_to_reciprocity
             print "list_of_svc_pair_to_density",list_of_svc_pair_to_density
             ###exit(322) ## TODO::::<---remove!!!
-            adjacency_matrixes.append(nx.to_pandas_adjacency(cur_1si_G.ad, nodelist=current_total_node_list))
-            adjacency_matrixes = adjacency_matrixes[window_size-1:]
-            ide_angle = change_point_detection(adjacency_matrixes, window_size, current_total_node_list)
-            ide_angles.append(ide_angle[-1])
+            ## TODO: the adjacency matrix is NOT IN THE CORRECT FORMAT
+            ## okay, so the current total_node_list should be edges (present in the adjacency matrix) here... so
+            ## also cannot feed it current_total_node_list, well we'll to maintain a seperate list for it...
+            ## so it's probably might not be as a bad...
+
+            total_edgelist_nodes = update_total_edgelist_nodes_if_needed(cur_1si_G, total_edgelist_nodes)
+            adjacency_matrixes.append( make_edgelist_dict(cur_1si_G, total_edgelist_nodes) )
+            num_items_drop_from_list = max(0, len(adjacency_matrixes) - (window_size + 1))
+            adjacency_matrixes = adjacency_matrixes[num_items_drop_from_list:]
+            print "len_adjacency_matrixes",len(adjacency_matrixes)
+            #adjacency_matrixes_list = turn_into_list(adjacency_matrixes, total_edgelist_nodes)
+
+            ##################
+            ## TODO: at some point VVVV
+            #print "adjacency_matrixes_list",adjacency_matrixes_list
+            print "adjacency_matrixes", adjacency_matrixes, adjacency_matrixes[0].keys()
+            ide_angle = change_point_detection(adjacency_matrixes, window_size, total_edgelist_nodes)
+            #ide_angle = 0
+            ##################
+
+            print "ide_angle", ide_angle
+            try:
+                ide_angles.append(ide_angle[-1])
+            except:
+                ide_angles.append(float('NaN'))
 
             # TODO: would probably be a good idea to store these vals somewhere safe or something (I think
             # the program is holding all of the graphs in memory, which is leading to massive memory bloat)
@@ -926,3 +948,22 @@ def network_weidge_weighted_reciprocity(G):
         weighted_reciprocity = float(total_reicp_weight) / float(total_weight)
 
     return weighted_reciprocity, non_reciprocated_out_weight, non_reciprocated_in_weight
+
+def make_edgelist_dict(cur_1si_G, total_edgelist_nodes):
+    edgelist  = nx.to_edgelist(cur_1si_G)
+    edgelist_dict = {}
+    for start,stop,val in edgelist:
+        edgelist_dict[(start,stop)] = val['weight']
+    for edge_pair in total_edgelist_nodes:
+        if edge_pair not in edgelist_dict:
+            edgelist_dict[edge_pair] = 0
+    #print "edgelist_dict",
+    return edgelist_dict
+
+def update_total_edgelist_nodes_if_needed(cur_1si_G, total_edgelist_nodes):
+    for node_one in cur_1si_G.nodes():
+        for node_two in cur_1si_G.nodes():
+            if (node_one,node_two) not in total_edgelist_nodes:
+                total_edgelist_nodes.append( (node_one,node_two) )
+    return total_edgelist_nodes
+

@@ -14,7 +14,7 @@ def construct_ROC_curve(list_of_x_vals, list_of_y_vals, title, plot_name, line_t
     plt.xlabel('FPR')
     plt.ylabel('TPR')
     plt.title(title)
-    for counter,x_vals in list_of_x_vals:
+    for counter,x_vals in enumerate(list_of_x_vals):
         plt.plot(x_vals, list_of_y_vals[counter], label = line_titles[counter])
 
     plt.legend()

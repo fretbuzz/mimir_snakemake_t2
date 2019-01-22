@@ -460,7 +460,8 @@ def change_point_detection(tensor, window_size, nodes_in_tensor):
         # new node shows up -> append to end of list
         nodes_in_tensor_window = []
         for cur_tensor in tensor_window:
-            if cur_tensor:
+            #print "cur_tensor", cur_tensor, type(cur_tensor)
+            if cur_tensor != []:
                 nodes_in_tensor_window.extend(cur_tensor)
         nodes_in_tensor_window = list(set(nodes_in_tensor_window))
         print "nodes_in_tensor_window", nodes_in_tensor_window
@@ -490,6 +491,7 @@ def change_point_detection(tensor, window_size, nodes_in_tensor):
             for node_two in nodes_under_consideration:
                 # compute pearson's rho of the corresponding time series
 
+                #print "node_one", node_one, "tensor_window", tensor_window
                 node_one_time_series = np.array([x[node_one] if x and node_one in x else float('nan') for x in tensor_window])
                 node_two_time_series = np.array([x[node_two] if x and node_two in x else float('nan') for x in tensor_window])
 

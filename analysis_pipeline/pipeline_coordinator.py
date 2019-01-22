@@ -72,7 +72,6 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
 
         #total_calculated_vals.update(newly_calculated_values)
         gc.collect()
-    #exit() ### TODO <---- remove!!!
     return total_calculated_vals, time_gran_to_list_of_concrete_exfil_paths, time_gran_to_list_of_exfil_amts
 
 def calc_zscores(alert_file, training_window_size, minimum_training_window,
@@ -308,7 +307,8 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
 
     print "starting pipeline..."
 
-
+    #sub_path = 'sub_only_eigen_'  # NOTE: make this an empty string if using the full pipeline (and not the subset)
+    ### TODO put VVV back in...
     sub_path = 'sub_'  # NOTE: make this an empty string if using the full pipeline (and not the subset)
     mapping,list_of_infra_services = create_mappings(is_swarm, container_info_path, kubernetes_svc_info,
                                                      kubernetes_pod_info, cilium_config_path, ms_s)
@@ -349,15 +349,15 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
         #largest_interval = int(min(interval_to_filenames.keys()))
         exp_length = len(interval_to_filenames[str(smallest_time_gran)]) * smallest_time_gran
         print "exp_length_ZZZ", exp_length, type(exp_length)
-        if not skip_model_part:
-            time_gran_to_attack_labels = process_graph_metrics.generate_time_gran_to_attack_labels(time_interval_lengths,
+        #if not skip_model_part:
+        time_gran_to_attack_labels = process_graph_metrics.generate_time_gran_to_attack_labels(time_interval_lengths,
                                                                                                exfil_start_time, exfil_end_time,
                                                                                                 sec_between_exfil_events,
                                                                                                exp_length)
-        else:
-            time_gran_to_attack_labels = {}
-            for time_gran in time_interval_lengths:
-                time_gran_to_attack_labels[time_gran] = [(1,1)]
+        #else:
+            #time_gran_to_attack_labels = {}
+            #for time_gran in time_interval_lengths:
+            #    time_gran_to_attack_labels[time_gran] = [(1,1)]
                 #pass
 
         #print "interval_to_filenames_ZZZ",interval_to_filenames
@@ -852,7 +852,7 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         # note: I think this is where I'd need to modify it to make the anomaly-detection using edge correlation work...
 
         clf = LassoCV(cv=3, max_iter=8000) ## TODO TODO TODO <<-- instead of having choosing the alpha be magic, let's use cross validation to choose it instead...
-        #alpha = 5
+        alpha = 5 # note: not used unless the line underneath is un-commented...
         #clf=Lasso(alpha=alpha)
         clf.fit(X_train, y_train)
         score_val = clf.score(X_test, y_test)
