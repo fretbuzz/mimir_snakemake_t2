@@ -1489,8 +1489,8 @@ if __name__=="__main__":
     print sys.argv
 
     if len(sys.argv) == 1:
-        #multi_experiment_wordpress_recipe()
-        multi_experiment_sockshop_recipe()
+        multi_experiment_wordpress_recipe()
+        #multi_experiment_sockshop_recipe()
 
         # TODO: might wanna re-enable the function below...
         #run_analysis_pipeline_recipes()

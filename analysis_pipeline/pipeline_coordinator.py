@@ -764,8 +764,17 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
             X_train = X_train.drop(columns='max_ewma_control_chart_scores')
             X_test = X_test.drop(columns='max_ewma_control_chart_scores')
         except:
-            ewma_train = []
-            ewma_test = []
+            ewma_train = [0 for i in range(0,len(X_train))]
+            ewma_test = [0 for i in range(0,len(X_test))]
+
+        try:
+            ide_train =  X_train['ide_angles']
+            ide_test = X_test['ide_angles']
+            X_train = X_train.drop(columns='ide_angles')
+            X_test = X_test.drop(columns='ide_angles')
+        except:
+            ide_train = [0 for i in range(0,len(X_train))]
+            ide_test = [0 for i in range(0,len(X_test))]
 
 
         X_train = X_train.drop(columns='exfil_path')
@@ -923,10 +932,12 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
             ##  ewma_test = X_test['max_ewma_control_chart_scores']
             # now for the ewma part...
             fpr_ewma, tpr_ewma, thresholds_ewma = sklearn.metrics.roc_curve(y_true=y_test, y_score = ewma_test, pos_label=1)
+            fpr_ide, tpr_ide, thresholds_ide = sklearn.metrics.roc_curve(y_true=y_test, y_score = ide_test, pos_label=1)
 
-            line_titles = ['ensemble model', 'edge correlation']
-            list_of_x_vals = [x_vals, fpr_ewma]
-            list_of_y_vals = [y_vals, tpr_ewma]
+
+            line_titles = ['ensemble model', 'edge correlation', 'ide_angles']
+            list_of_x_vals = [x_vals, fpr_ewma, fpr_ide]
+            list_of_y_vals = [y_vals, tpr_ewma, tpr_ide]
             ax, _, plot_path = generate_alerts.construct_ROC_curve(list_of_x_vals, list_of_y_vals, title, ROC_path + plot_name,\
                                                                    line_titles, show_p=False)
             list_of_rocs.append(plot_path)

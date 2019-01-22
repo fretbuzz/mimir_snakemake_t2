@@ -75,6 +75,8 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
         list_of_svc_pair_to_density = []
         list_of_svc_pair_to_coef_of_var = []
         list_of_max_ewma_control_chart_scores = []
+        adjacency_matrixes = []
+        ide_angles = []
 
         current_total_node_list = []
         into_dns_from_outside_list = []
@@ -275,7 +277,10 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
             print "list_of_svc_pair_to_reciprocity", list_of_svc_pair_to_reciprocity
             print "list_of_svc_pair_to_density",list_of_svc_pair_to_density
             ###exit(322) ## TODO::::<---remove!!!
-
+            adjacency_matrixes.append(nx.to_pandas_adjacency(cur_1si_G.ad, nodelist=current_total_node_list))
+            adjacency_matrixes = adjacency_matrixes[window_size-1:]
+            ide_angle = change_point_detection(adjacency_matrixes, window_size, current_total_node_list)
+            ide_angles.append(ide_angle[-1])
 
             # TODO: would probably be a good idea to store these vals somewhere safe or something (I think
             # the program is holding all of the graphs in memory, which is leading to massive memory bloat)
@@ -375,6 +380,7 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
         calculated_values['sum_of_max_pod_to_dns_from_each_svc'] = sum_of_max_pod_to_dns_from_each_svc
         calculated_values['outside_to_sum_of_max_pod_to_dns_from_each_svc_ratio'] = outside_to_sum_of_max_pod_to_dns_from_each_svc_ratio
         calculated_values['max_ewma_control_chart_scores'] = list_of_max_ewma_control_chart_scores
+        calculated_values['ide_angles'] = ide_angles
 
         with open(basegraph_name + '_processed_vales_' + 'subset' + '_' + '%.2f' % (time_interval) + '.txt',
                   'w') as csvfile:
