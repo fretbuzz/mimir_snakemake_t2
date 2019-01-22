@@ -6,7 +6,7 @@ import math
 # okay, what we want to do here is to construct
 # x_vals should be FPR
 # y_vals should be TPR
-def construct_ROC_curve(x_vals, y_vals, title, plot_name, show_p=False):
+def construct_ROC_curve(list_of_x_vals, list_of_y_vals, title, plot_name, line_titles, show_p=False):
     #plt.figure()
     fig, axs = plt.subplots(1,1)
     plt.ylim(-0.05,1.05)
@@ -14,7 +14,10 @@ def construct_ROC_curve(x_vals, y_vals, title, plot_name, show_p=False):
     plt.xlabel('FPR')
     plt.ylabel('TPR')
     plt.title(title)
-    plt.plot(x_vals, y_vals)
+    for counter,x_vals in list_of_x_vals:
+        plt.plot(x_vals, list_of_y_vals[counter], label = line_titles[counter])
+
+    plt.legend()
     plt.savefig( plot_name + '.png', format='png', dpi=1000)
 
     local_graph_loc = './temp_outputs/' + title + '.png'

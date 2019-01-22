@@ -21,6 +21,7 @@ from networkx.drawing.nx_agraph import graphviz_layout
 import os,errno
 from networkx.algorithms import bipartite
 import copy
+import process_control_chart
 
 # okay, so things to be aware of:
 # (a) we are assuming that if we cannot label the node and it is not loopback or in the '10.X.X.X' subnet, then it is outside
@@ -73,6 +74,7 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
         list_of_svc_pair_to_reciprocity = []
         list_of_svc_pair_to_density = []
         list_of_svc_pair_to_coef_of_var = []
+        list_of_max_ewma_control_chart_scores = []
 
         current_total_node_list = []
         into_dns_from_outside_list = []
@@ -85,6 +87,7 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
         node_attack_mapping = {}
         class_attack_mapping = {}
         name_of_dns_pod_node = None # defining out here so it's accessible across runs
+        old_dict = None
         for counter, file_path in enumerate(filenames):
             gc.collect()
             G = nx.DiGraph()
@@ -192,6 +195,30 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
             plt.show()
             '''
 
+            ### TODO: this is where I need to implement the edge-correlation stuff...
+            ### just consider all pairs of nodes... we're going to want to just make a dict that
+            ### goes (pod1, pod2) -> weight ; and then make a list of these dicts.
+            ### and then going to want to do EWMA control chart on the individual pairs...
+            ### well, okay, how does this integrate into the latter part?? I don't think I'd want to use
+            ## that part... well, if I triggered whenever any way > 3, then I wouldn't get an ROC; yah, but I could
+            ## just vary the value... okay, so I could certaintyl get (pod1, pod2) -> (val - EWMA) / stddev
+            ## but what would I do with those vals???? hmnmm... well, what if we take that and get a list of
+            ## the max val @ each time step... so then in the outside part, we can accumulate these.
+            ## but I'll need to modify the multi-exp looper to make it work...
+            ## statistically_analyze_graph_features is the only thing in the multi-exp looper that must be modified...
+            ## and the only thing I actually need to do is modify the model training part... and I think the only
+            ## thing that I need to do there is return the value of the of the max (which we've already found,
+            ## so literally the only thing that I need to do is return it...)
+            ## okay, let's plan out how to get the joint ROC. essentially, do what I outline above and extract the
+            ## max val. take it out of the dataframe in the statistical analyzing portion. then I can just make a
+            ## seperate roc, utilizing the labels that I've already prepared...
+            max_anom_score, old_dict = process_control_chart.ewma_control_chart_max_val(G, old_dict)
+            list_of_max_ewma_control_chart_scores.append(max_anom_score)
+
+            for node in cur_1si_G.nodes():
+                if node not in current_total_node_list:
+                    current_total_node_list.append(node)
+
             # print "right after graph is prepared", level_of_processing, list(cur_G.nodes(data=True))
             logging.info("svcs, " + str(svcs))
             for thing in cur_1si_G.nodes(data=True):
@@ -209,10 +236,6 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
                     pass
             #print "svc_to_pod", svc_to_pod
             #time.sleep(50)
-
-            for node in cur_1si_G.nodes():
-                if node not in current_total_node_list:
-                    current_total_node_list.append(node)
 
             density = nx.density(cur_1si_G)
             #print "cur_class_G",cur_class_G.nodes()
@@ -351,6 +374,7 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
         calculated_values['into_dns_eigenval_angles12'] = into_dns_eigenval_angles12
         calculated_values['sum_of_max_pod_to_dns_from_each_svc'] = sum_of_max_pod_to_dns_from_each_svc
         calculated_values['outside_to_sum_of_max_pod_to_dns_from_each_svc_ratio'] = outside_to_sum_of_max_pod_to_dns_from_each_svc_ratio
+        calculated_values['max_ewma_control_chart_scores'] = list_of_max_ewma_control_chart_scores
 
         with open(basegraph_name + '_processed_vales_' + 'subset' + '_' + '%.2f' % (time_interval) + '.txt',
                   'w') as csvfile:

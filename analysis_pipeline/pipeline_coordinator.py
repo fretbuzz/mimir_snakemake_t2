@@ -756,6 +756,18 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         #exfil_paths = ast.literal_eval(exfil_paths)
         #print "----"
 
+        ## todo: extract and put in a 'safe' spot...
+        ##calculated_values['max_ewma_control_chart_scores'] = list_of_max_ewma_control_chart_scores
+        try:
+            ewma_train = X_train['max_ewma_control_chart_scores']
+            ewma_test = X_test['max_ewma_control_chart_scores']
+            X_train = X_train.drop(columns='max_ewma_control_chart_scores')
+            X_test = X_test.drop(columns='max_ewma_control_chart_scores')
+        except:
+            ewma_train = []
+            ewma_test = []
+
+
         X_train = X_train.drop(columns='exfil_path')
         X_train = X_train.drop(columns='concrete_exfil_path')
         X_train_exfil_weight = X_train['exfil_weight']
@@ -825,7 +837,11 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         #print "y_train", y_train, len(y_train)
         #print "y_test", y_test, len(y_test)
         #print "-- y_train", len(y_train), "y_test", len(y_test), "time_gran", time_gran, "--"
-        ### 2b. feed the lasso to get the high-impact features...
+
+
+        ### train the model and generate predictions (2B)
+        # note: I think this is where I'd need to modify it to make the anomaly-detection using edge correlation work...
+
         clf = LassoCV(cv=3, max_iter=8000) ## TODO TODO TODO <<-- instead of having choosing the alpha be magic, let's use cross validation to choose it instead...
         #alpha = 5
         #clf=Lasso(alpha=alpha)
@@ -834,14 +850,16 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         print "score_val", score_val
         test_predictions = clf.predict(X=X_test)
         train_predictions = clf.predict(X=X_train)
+        #coefficients = pd.DataFrame({"Feature": X.columns, "Coefficients": np.transpose(clf.coef_)})
+        #print coefficients
+        #clf.coef_, "intercept", clf.intercept_
+
+        ### get the coefficients used in the model...
+        print "Coefficients: "
         print "LASSO model", clf.get_params()
         print '----------------------'
         print len(time_gran_to_debugging_csv[time_gran]["labels"]), len(np.concatenate([train_predictions, test_predictions]))
         time_gran_to_debugging_csv[time_gran].loc[:, "aggreg_anom_score"] = np.concatenate([train_predictions, test_predictions])
-        print "Coefficients: "
-        #coefficients = pd.DataFrame({"Feature": X.columns, "Coefficients": np.transpose(clf.coef_)})
-        #print coefficients
-        #clf.coef_, "intercept", clf.intercept_
         coef_dict = {}
         print "len(clf.coef_)", len(clf.coef_), "len(X_train_columns)", len(X_train_columns), "time_gran", time_gran, \
             "len(X_test_columns)", len(X_test_columns), X_train.shape, X_test.shape
@@ -901,7 +919,16 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
                 if e.errno != errno.EEXIST:
                     raise
 
-            ax, _, plot_path = generate_alerts.construct_ROC_curve(x_vals, y_vals, title, ROC_path + plot_name, show_p=False)
+            ##  ewma_train = X_train['max_ewma_control_chart_scores']
+            ##  ewma_test = X_test['max_ewma_control_chart_scores']
+            # now for the ewma part...
+            fpr_ewma, tpr_ewma, thresholds_ewma = sklearn.metrics.roc_curve(y_true=y_test, y_score = ewma_test, pos_label=1)
+
+            line_titles = ['ensemble model', 'edge correlation']
+            list_of_x_vals = [x_vals, fpr_ewma]
+            list_of_y_vals = [y_vals, tpr_ewma]
+            ax, _, plot_path = generate_alerts.construct_ROC_curve(list_of_x_vals, list_of_y_vals, title, ROC_path + plot_name,\
+                                                                   line_titles, show_p=False)
             list_of_rocs.append(plot_path)
 
             ### determination of the optimal operating point goes here (take all the thresh vals and predictions,
