@@ -207,6 +207,7 @@ def determine_attacks_to_times(time_gran_to_attack_labels, synthetic_exfil_paths
     time_gran_to_attack_labels, time_gran_to_attack_ranges = assign_attacks_to_first_available_spots(time_gran_to_attack_labels, largest_time_gran, time_periods_startup,
                                             time_periods_attack, counter, time_gran_to_attack_ranges, synthetic_exfil_paths, synthetic_exfil_paths_train)
     # second, let's assign for the testing period...
+    print end_of_train, largest_time_gran
     counter = int(math.ceil(end_of_train/largest_time_gran)) #int(math.ceil(len(time_gran_to_attack_labels[largest_time_gran]) * end_of_train - time_periods_startup))
     print "second_counter!!", counter
     time_gran_to_attack_labels, time_gran_to_attack_ranges = assign_attacks_to_first_available_spots(time_gran_to_attack_labels, largest_time_gran, time_periods_startup,
@@ -293,7 +294,8 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
                                size_of_neighbor_training_window=300,
                                end_of_training=None, injected_exfil_path='None', only_exp_info=False,
                                initiator_info_for_paths=None,
-                               synthetic_exfil_paths_train=None, synthetic_exfil_paths_test=None):
+                               synthetic_exfil_paths_train=None, synthetic_exfil_paths_test=None,
+                               skip_model_part=False):
 
     print "log file can be found at: " + str(basefile_name) + '_logfile.log'
     logging.basicConfig(filename=basefile_name + '_logfile.log', level=logging.INFO)
@@ -347,10 +349,16 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
         #largest_interval = int(min(interval_to_filenames.keys()))
         exp_length = len(interval_to_filenames[str(smallest_time_gran)]) * smallest_time_gran
         print "exp_length_ZZZ", exp_length, type(exp_length)
-        time_gran_to_attack_labels = process_graph_metrics.generate_time_gran_to_attack_labels(time_interval_lengths,
+        if not skip_model_part:
+            time_gran_to_attack_labels = process_graph_metrics.generate_time_gran_to_attack_labels(time_interval_lengths,
                                                                                                exfil_start_time, exfil_end_time,
                                                                                                 sec_between_exfil_events,
                                                                                                exp_length)
+        else:
+            time_gran_to_attack_labels = {}
+            for time_gran in time_interval_lengths:
+                time_gran_to_attack_labels[time_gran] = [(1,1)]
+                #pass
 
         #print "interval_to_filenames_ZZZ",interval_to_filenames
         for interval, filenames in interval_to_filenames.iteritems():
@@ -512,13 +520,13 @@ def determine_injection_times(exps_info, goal_train_test_split, goal_attack_NoAt
 # the injected synthetic attacks
 def multi_experiment_pipeline(function_list_exp_info, function_list, base_output_name, ROC_curve_p, time_each_synthetic_exfil,
                               goal_train_test_split, goal_attack_NoAttack_split, training_window_size,
-                              size_of_neighbor_training_window, calc_vals):
+                              size_of_neighbor_training_window, calc_vals, skip_model_part):
     ### Okay, so what is needed here??? We need, like, a list of sets of input (appropriate for run_data_analysis_pipeline),
     ### followed by the LASSO stuff, and finally the ROC stuff... okay, let's do this!!!
 
     # step(0): need to find out the  meta-data for each experiment so we can coordinate the
     # synthetic attack injections between experiments
-    if calc_vals:
+    if calc_vals and not skip_model_part:
         print function_list_exp_info
         exp_infos = []
         for func_exp_info in function_list_exp_info:
@@ -562,7 +570,7 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
         for func in function_list:
             # just fill these w/ nothing so that the function doesn't think that it needs to calculate them (b/c it doesn't)
             exps_exfil_paths.append([])
-            end_of_train_portions.append([])
+            end_of_train_portions.append(0)
             training_exfil_paths.append([])
             testing_exfil_paths.append([])
             exps_initiator_info.append([])
@@ -610,7 +618,8 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
                  portion_for_training=end_of_train_portions[counter],
                  synthetic_exfil_paths_train = training_exfil_paths[counter],
                  synthetic_exfil_paths_test = testing_exfil_paths[counter],
-                 calc_vals=calc_vals)
+                 calc_vals=calc_vals,
+                 skip_model_part=skip_model_part)
         print "exps_exfil_pathas[time_gran_to_mod_zscore_df]", time_gran_to_mod_zscore_df
         list_time_gran_to_mod_zscore_df.append(time_gran_to_mod_zscore_df)
         list_time_gran_to_zscore_dataframe.append(time_gran_to_zscore_dataframe)
@@ -669,11 +678,11 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
     '''
     statistically_analyze_graph_features(time_gran_to_aggreg_feature_dfs, ROC_curve_p, base_output_name,
                                          names, starts_of_testing, path_occurence_training_df,
-                                         path_occurence_testing_df, recipes_used)
+                                         path_occurence_testing_df, recipes_used, skip_model_part)
 
 def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, base_output_name, names,
                                          starts_of_testing, path_occurence_training_df, path_occurence_testing_df,
-                                         recipes_used):
+                                         recipes_used, skip_model_part):
     #print time_gran_to_aggregate_mod_score_dfs['60']
     ######### 2a.II. do the actual splitting
     # note: labels have the column name 'labels' (noice)
@@ -706,18 +715,29 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
             aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='Unnamed: 0mod_z_score') # might wanna just stop these from being generaetd
         except:
             pass
-        ### TODO TODO TODO TODO TODO TODO
-        ### todo: might wanna remove? might wanna keep? not sure...
-        ### todo: drop the test physical attacks from the test sets...
-        aggregate_mod_score_dfs = \
-            aggregate_mod_score_dfs[~((aggregate_mod_score_dfs['labels'] == 1) &
-            (aggregate_mod_score_dfs['exfil_pkts'] == 0))]
-        #####
+
+        #'''
+        if not skip_model_part:
+            ### TODO TODO TODO TODO TODO TODO
+            ### todo: might wanna remove? might wanna keep? not sure...
+            ### todo: drop the test physical attacks from the test sets...
+            aggregate_mod_score_dfs = \
+                aggregate_mod_score_dfs[~((aggregate_mod_score_dfs['labels'] == 1) &
+                                          (aggregate_mod_score_dfs['exfil_pkts'] == 0))]
+            #####
+
+            aggregate_mod_score_dfs_training = aggregate_mod_score_dfs[aggregate_mod_score_dfs['is_test'] == 0]
+            aggregate_mod_score_dfs_testing = aggregate_mod_score_dfs[aggregate_mod_score_dfs['is_test'] == 1]
+        else:
+            ## note: generally you'd want to split into test and train sets, but if we're not doing logic
+            ## part anyway, we just want quick-and-dirty results, so don't bother (note: so for formal purposes,
+            ## DO NOT USE WITHOUT LOGIC CHECKING OR SOLVE THE TRAINING-TESTING split problem)
+            aggregate_mod_score_dfs_training = aggregate_mod_score_dfs
+            aggregate_mod_score_dfs_testing = aggregate_mod_score_dfs
 
         time_gran_to_debugging_csv[time_gran] = copy.deepcopy(aggregate_mod_score_dfs)
-        #'''
-        aggregate_mod_score_dfs_training = aggregate_mod_score_dfs[aggregate_mod_score_dfs['is_test'] == 0]
-        aggregate_mod_score_dfs_testing = aggregate_mod_score_dfs[aggregate_mod_score_dfs['is_test'] == 1]
+
+
         X_train = aggregate_mod_score_dfs_training.loc[:, aggregate_mod_score_dfs_training.columns != 'labels']
         y_train = aggregate_mod_score_dfs_training.loc[:, aggregate_mod_score_dfs_training.columns == 'labels']
         X_test = aggregate_mod_score_dfs_testing.loc[:, aggregate_mod_score_dfs_training.columns != 'labels']
@@ -750,8 +770,10 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         X_test = X_test.drop(columns='is_test')
 
         ## TODO: might to put these back in...
-        #dropped_feature_list = []
+        dropped_feature_list = []
 
+
+        '''
         dropped_feature_list = ['New Class-Class Edges with DNS_mod_z_score', 'New Class-Class Edges with Outside_mod_z_score',
                                 'New Class-Class Edges_mod_z_score']
         X_train = X_train.drop(columns='New Class-Class Edges with DNS_mod_z_score')
@@ -760,7 +782,7 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         X_test = X_test.drop(columns='New Class-Class Edges with DNS_mod_z_score')
         X_test = X_test.drop(columns='New Class-Class Edges with Outside_mod_z_score')
         X_test = X_test.drop(columns='New Class-Class Edges_mod_z_score')
-
+        '''
 
         print '-------'
         print type(X_train)
@@ -804,7 +826,9 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         #print "y_test", y_test, len(y_test)
         #print "-- y_train", len(y_train), "y_test", len(y_test), "time_gran", time_gran, "--"
         ### 2b. feed the lasso to get the high-impact features...
-        clf = LassoCV(cv=3, max_iter=8000) ## <<-- instead of having choosing the alpha be magic, let's use cross validation to choose it instead...
+        clf = LassoCV(cv=3, max_iter=8000) ## TODO TODO TODO <<-- instead of having choosing the alpha be magic, let's use cross validation to choose it instead...
+        #alpha = 5
+        #clf=Lasso(alpha=alpha)
         clf.fit(X_train, y_train)
         score_val = clf.score(X_test, y_test)
         print "score_val", score_val
@@ -843,7 +867,10 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         print '--------------------------'
 
         model_params = clf.get_params()
-        model_params['alpha_val'] = clf.alpha_
+        try:
+            model_params['alpha_val'] = clf.alpha_
+        except:
+            model_params['alpha_val'] = alpha
         list_of_model_parameters.append(model_params)
 
         '''

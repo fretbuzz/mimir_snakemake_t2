@@ -842,7 +842,8 @@ def process_wordpress6_rep2():
 def process_wordpress6_rep3(time_of_synethic_exfil=None, only_exp_info=False, initiator_info_for_paths=None,
                             portion_for_training=None, training_window_size=None, size_of_neighbor_training_window=None,
                             synthetic_exfil_paths_train=None,
-                            synthetic_exfil_paths_test=None, calc_vals=False):
+                            synthetic_exfil_paths_test=None, calc_vals=False,
+                            skip_model_part=False):
     #'''
     # Wordpress exp 6 rep3 (wordpress w/ HA cluster on cilium w/o security config, dnscat exfil from single db w/ 15 sec delay)
     pcap_paths = [
@@ -886,7 +887,8 @@ def process_wordpress6_rep3(time_of_synethic_exfil=None, only_exp_info=False, in
                                    initiator_info_for_paths=initiator_info_for_paths,
                                    end_of_training=portion_for_training,
                                    training_window_size=training_window_size, size_of_neighbor_training_window=size_of_neighbor_training_window,
-                                   synthetic_exfil_paths_train=synthetic_exfil_paths_train, synthetic_exfil_paths_test=synthetic_exfil_paths_test)
+                                   synthetic_exfil_paths_train=synthetic_exfil_paths_train, synthetic_exfil_paths_test=synthetic_exfil_paths_test,
+                                   skip_model_part=skip_model_part)
     return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe,fourth_return_val, fifth_val
     #'''
 
@@ -894,7 +896,7 @@ def process_wordpress6_rep3(time_of_synethic_exfil=None, only_exp_info=False, in
 def process_wordpress6_rep4(time_of_synethic_exfil=None, only_exp_info=False, initiator_info_for_paths=None,
                             portion_for_training=None, training_window_size=None, size_of_neighbor_training_window=None,
                             synthetic_exfil_paths_train=None,
-                            synthetic_exfil_paths_test=None, calc_vals=False):
+                            synthetic_exfil_paths_test=None, calc_vals=False, skip_model_part=False):
      #'''
      # Wordpress exp 6 rep4 (wordpress w/ HA cluster on cilium w/o security config, dnscat exfil from single db w/ 15 sec delay)
      pcap_paths = [
@@ -940,14 +942,15 @@ def process_wordpress6_rep4(time_of_synethic_exfil=None, only_exp_info=False, in
                                     training_window_size=training_window_size,
                                     size_of_neighbor_training_window=size_of_neighbor_training_window,
                                     synthetic_exfil_paths_train=synthetic_exfil_paths_train,
-                                    synthetic_exfil_paths_test=synthetic_exfil_paths_test)
+                                    synthetic_exfil_paths_test=synthetic_exfil_paths_test,
+                                    skip_model_part=skip_model_part)
      return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe,fourth_return_val,fifth_val
      # '''
 
 def process_wordpress7_rep3(time_of_synethic_exfil=None, only_exp_info=False, initiator_info_for_paths=None,
                             portion_for_training=None,training_window_size=None, size_of_neighbor_training_window=None,
                             synthetic_exfil_paths_train=None,
-                            synthetic_exfil_paths_test=None, calc_vals=False):
+                            synthetic_exfil_paths_test=None, calc_vals=False, skip_model_part=False):
     #''' # here
     # Wordpress exp 7 rep 3(wordpress w/ HA cluster on cilium w/o security config, dnscat exfil from single WP w/ 15 sec delay)
     pcap_paths = ["/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_seven_rep_3_default_bridge_0any.pcap"]
@@ -992,7 +995,8 @@ def process_wordpress7_rep3(time_of_synethic_exfil=None, only_exp_info=False, in
                                    training_window_size=training_window_size,
                                    size_of_neighbor_training_window=size_of_neighbor_training_window,
                                    synthetic_exfil_paths_train=synthetic_exfil_paths_train,
-                                   synthetic_exfil_paths_test=synthetic_exfil_paths_test)
+                                   synthetic_exfil_paths_test=synthetic_exfil_paths_test,
+                                   skip_model_part=skip_model_part)
     return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val, fifth_val
    # '''
 
@@ -1039,7 +1043,7 @@ def process_wordpress7():
 def process_wordpress7_rep2(time_of_synethic_exfil=None, only_exp_info=False, initiator_info_for_paths=None,
                             portion_for_training=None, training_window_size=None, size_of_neighbor_training_window=None,
                             synthetic_exfil_paths_train=None,
-                            synthetic_exfil_paths_test=None, calc_vals=False):
+                            synthetic_exfil_paths_test=None, calc_vals=False, skip_model_part=False):
     #'''
     # Wordpress exp 7 rep 2(wordpress w/ HA cluster on cilium w/o security config, dnscat exfil from single WP w/ 15 sec delay)
     pcap_paths = [
@@ -1085,7 +1089,8 @@ def process_wordpress7_rep2(time_of_synethic_exfil=None, only_exp_info=False, in
                                    training_window_size=training_window_size,
                                    size_of_neighbor_training_window=size_of_neighbor_training_window,
                                    synthetic_exfil_paths_train=synthetic_exfil_paths_train,
-                                   synthetic_exfil_paths_test=synthetic_exfil_paths_test)
+                                   synthetic_exfil_paths_test=synthetic_exfil_paths_test,
+                                   skip_model_part=skip_model_part)
     return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val, fifth_val
     #'''
 
@@ -1133,7 +1138,7 @@ def process_wordpress8():
 def process_wordpress8_rep_2(time_of_synethic_exfil=None, only_exp_info=False, initiator_info_for_paths=None,
                              portion_for_training=None,training_window_size=None, size_of_neighbor_training_window=None,
                              synthetic_exfil_paths_train=None,
-                             synthetic_exfil_paths_test=None, calc_vals=False):
+                             synthetic_exfil_paths_test=None, calc_vals=False, skip_model_part=False):
     #time.sleep(27000)
     #'''
     # 20 min of scaled-up wordpress (wordpress_eight)
@@ -1178,14 +1183,15 @@ def process_wordpress8_rep_2(time_of_synethic_exfil=None, only_exp_info=False, i
                                    training_window_size=training_window_size,
                                    size_of_neighbor_training_window=size_of_neighbor_training_window,
                                    synthetic_exfil_paths_train=synthetic_exfil_paths_train,
-                                   synthetic_exfil_paths_test=synthetic_exfil_paths_test)
+                                   synthetic_exfil_paths_test=synthetic_exfil_paths_test,
+                                   skip_model_part=skip_model_part)
     return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val, fifth_val
     #'''
 
 def process_wordpress8_rep_3(time_of_synethic_exfil=None,only_exp_info=False, initiator_info_for_paths=None,
                              portion_for_training=None,training_window_size=None, size_of_neighbor_training_window=None,
                              synthetic_exfil_paths_train=None,
-                             synthetic_exfil_paths_test=None, calc_vals=False):
+                             synthetic_exfil_paths_test=None, calc_vals=False, skip_model_part=False):
     #time.sleep(27000)
     #'''
     # 20 min of scaled-up wordpress (wordpress_eight)
@@ -1230,7 +1236,8 @@ def process_wordpress8_rep_3(time_of_synethic_exfil=None,only_exp_info=False, in
                                    training_window_size=training_window_size,
                                    size_of_neighbor_training_window=size_of_neighbor_training_window,
                                    synthetic_exfil_paths_train=synthetic_exfil_paths_train,
-                                   synthetic_exfil_paths_test=synthetic_exfil_paths_test)
+                                   synthetic_exfil_paths_test=synthetic_exfil_paths_test,
+                                   skip_model_part=skip_model_part)
     return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val, fifth_val
     #'''
 
@@ -1238,7 +1245,7 @@ def process_wordpress8_rep_3(time_of_synethic_exfil=None,only_exp_info=False, in
 def process_sockshop9(time_of_synethic_exfil=None,only_exp_info=False, initiator_info_for_paths=None,
                              portion_for_training=None,training_window_size=None, size_of_neighbor_training_window=None,
                              synthetic_exfil_paths_train=None,
-                             synthetic_exfil_paths_test=None, calc_vals=False):
+                             synthetic_exfil_paths_test=None, calc_vals=False,skip_model_part=False):
     #time.sleep(36000)
     #''' # next-gen
     ## sockshop experiment 9 (an hour of scaled-up activity w/ exfil along normal path)
@@ -1280,7 +1287,8 @@ def process_sockshop9(time_of_synethic_exfil=None,only_exp_info=False, initiator
                                training_window_size=training_window_size,
                                size_of_neighbor_training_window=size_of_neighbor_training_window,
                                synthetic_exfil_paths_train=synthetic_exfil_paths_train,
-                               synthetic_exfil_paths_test=synthetic_exfil_paths_test)
+                               synthetic_exfil_paths_test=synthetic_exfil_paths_test,
+                                   skip_model_part=skip_model_part)
     #'''
     return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val, fifth_val
 
@@ -1288,7 +1296,7 @@ def process_sockshop9(time_of_synethic_exfil=None,only_exp_info=False, initiator
 def process_sockshop11(time_of_synethic_exfil=None,only_exp_info=False, initiator_info_for_paths=None,
                              portion_for_training=None,training_window_size=None, size_of_neighbor_training_window=None,
                              synthetic_exfil_paths_train=None,
-                             synthetic_exfil_paths_test=None, calc_vals=False):
+                             synthetic_exfil_paths_test=None, calc_vals=False, skip_model_part=False):
     #time.sleep(45000)
     #''' # next-gen
     ## sockshop experiment 11 (an hour of scaled-up activity w/ exfil NOT on normal path)
@@ -1330,7 +1338,8 @@ def process_sockshop11(time_of_synethic_exfil=None,only_exp_info=False, initiato
                                training_window_size=training_window_size,
                                size_of_neighbor_training_window=size_of_neighbor_training_window,
                                synthetic_exfil_paths_train=synthetic_exfil_paths_train,
-                               synthetic_exfil_paths_test=synthetic_exfil_paths_test)
+                               synthetic_exfil_paths_test=synthetic_exfil_paths_test,
+                                   skip_model_part=skip_model_part)
     #'''
     return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val, fifth_val
 
@@ -1339,7 +1348,8 @@ def process_sockshop11(time_of_synethic_exfil=None,only_exp_info=False, initiato
 def process_sockshop12(time_of_synethic_exfil=None,only_exp_info=False, initiator_info_for_paths=None,
                              portion_for_training=None,training_window_size=None, size_of_neighbor_training_window=None,
                              synthetic_exfil_paths_train=None,
-                             synthetic_exfil_paths_test=None, calc_vals=False):
+                             synthetic_exfil_paths_test=None, calc_vals=False,
+                            skip_model_part=False):
     #time.sleep(54000)
     #''' # next-gen
     ## sockshop experiment 12 (an hour of scaled-up activity w/ exfil going straight out)
@@ -1381,7 +1391,8 @@ def process_sockshop12(time_of_synethic_exfil=None,only_exp_info=False, initiato
                                training_window_size=training_window_size,
                                size_of_neighbor_training_window=size_of_neighbor_training_window,
                                synthetic_exfil_paths_train=synthetic_exfil_paths_train,
-                               synthetic_exfil_paths_test=synthetic_exfil_paths_test)
+                               synthetic_exfil_paths_test=synthetic_exfil_paths_test,
+                                   skip_model_part=skip_model_part)
     #'''
     return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val, fifth_val
 
@@ -1433,9 +1444,10 @@ def multi_experiment_wordpress_recipe():
     goal_attack_NoAttack_split = 0.5
     training_window_size = 200
     size_of_neighbor_training_window = 200
-    calc_vals = True
+    calc_vals = False
     function_list = [process_wordpress6_rep3, process_wordpress6_rep4, process_wordpress7_rep2, process_wordpress7_rep3,
                      process_wordpress8_rep_2, process_wordpress8_rep_3]
+    skip_model_part = False
     ## NOTE: process_wordpress8 could be here too, but I'm for the moment I'm keeping each kind of injected
     ## attack w/ two different experiments in which it occurss...
 
@@ -1445,7 +1457,7 @@ def multi_experiment_wordpress_recipe():
     base_output_location = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_summary/'# + 'lasso_roc'
     multi_experiment_pipeline(function_list_exp_info, function_list, base_output_location, True, time_of_synethic_exfil,
                               goal_train_test_split, goal_attack_NoAttack_split, training_window_size,
-                              size_of_neighbor_training_window, calc_vals)
+                              size_of_neighbor_training_window, calc_vals, skip_model_part)
 
 ## TODO TODO TODO TODO
 # this function feeds a set of wordpress experiments into the multi_experiment_pipeline() function found in the
@@ -1457,6 +1469,7 @@ def multi_experiment_sockshop_recipe():
     training_window_size = 200
     size_of_neighbor_training_window = 200
     calc_vals = True
+    skip_model_part = True
     ### TODO: can add the other reps of 9,11,12 when I get some time...
     function_list = [process_sockshop9, process_sockshop11, process_sockshop12] ## TODO TODO TODO
 
@@ -1469,15 +1482,15 @@ def multi_experiment_sockshop_recipe():
     base_output_location = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_summary/'# + 'lasso_roc'
     multi_experiment_pipeline(function_list_exp_info, function_list, base_output_location, True, time_of_synethic_exfil,
                               goal_train_test_split, goal_attack_NoAttack_split, training_window_size,
-                              size_of_neighbor_training_window, calc_vals)
+                              size_of_neighbor_training_window, calc_vals, skip_model_part)
 
 if __name__=="__main__":
     print "RUNNING"
     print sys.argv
 
     if len(sys.argv) == 1:
-        multi_experiment_wordpress_recipe()
-        #multi_experiment_sockshop_recipe()
+        #multi_experiment_wordpress_recipe()
+        multi_experiment_sockshop_recipe()
 
         # TODO: might wanna re-enable the function below...
         #run_analysis_pipeline_recipes()
