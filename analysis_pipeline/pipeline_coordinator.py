@@ -17,7 +17,7 @@ import pandas as pd
 import time
 #from sklearn.model_selection import train_test_split
 from sklearn.model_selection import KFold, cross_validate
-from sklearn.linear_model import LassoCV, Lasso, RidgeCV, Ridge
+from sklearn.linear_model import LassoCV, Lasso, RidgeCV, Ridge, ElasticNetCV
 import sklearn
 from sklearn import tree
 import logging
@@ -729,6 +729,11 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         # drop columns with all identical values b/c they are useless and too many of them makes LASSO wierd
         aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(aggregate_mod_score_dfs.std()[(aggregate_mod_score_dfs.std() == 0)].index, axis=1)
 
+        for column in aggregate_mod_score_dfs.columns:
+            if 'coef_of_var_' in column or '': # todo
+                aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(column)
+
+
         time_grans.append(time_gran)
         #'''
         try:
@@ -825,7 +830,6 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         ## TODO: might to put these back in...
         dropped_feature_list = []
 
-
         '''
         try:
             dropped_feature_list = ['New Class-Class Edges with DNS_mod_z_score', 'New Class-Class Edges with Outside_mod_z_score',
@@ -893,11 +897,12 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         ### train the model and generate predictions (2B)
         # note: I think this is where I'd need to modify it to make the anomaly-detection using edge correlation work...
 
-        clf = sklearn.tree.DecisionTreeClassifier()
+        #clf = sklearn.tree.DecisionTreeClassifier()
         #clf = RandomForestClassifier(n_estimators=10)
         #clf = clf.fit(X_train, y_train)
 
-        #clf = LassoCV(cv=3, max_iter=8000) ## TODO TODO TODO <<-- instead of having choosing the alpha be magic, let's use cross validation to choose it instead...
+        #clf = ElasticNetCV()
+        clf = LassoCV(cv=3, max_iter=8000) ## TODO TODO TODO <<-- instead of having choosing the alpha be magic, let's use cross validation to choose it instead...
         #clf = RidgeCV(cv=10) ## TODO TODO TODO <<-- instead of having choosing the alpha be magic, let's use cross validation to choose it instead...
         #alpha = 5 # note: not used unless the line underneath is un-commented...
         #clf=Lasso(alpha=alpha)
@@ -911,8 +916,8 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         #clf.coef_, "intercept", clf.intercept_
 
         coef_dict = {}
-        coef_feature_df = pd.DataFrame() # TODO: remove if we go back to LASSO
-        '''
+        #coef_feature_df = pd.DataFrame() # TODO: remove if we go back to LASSO
+        #'''
         ### get the coefficients used in the model...
         print "Coefficients: "
         print "LASSO model", clf.get_params()
