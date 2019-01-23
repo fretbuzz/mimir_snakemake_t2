@@ -17,8 +17,9 @@ import pandas as pd
 import time
 #from sklearn.model_selection import train_test_split
 from sklearn.model_selection import KFold, cross_validate
-from sklearn.linear_model import LassoCV, Lasso
+from sklearn.linear_model import LassoCV, Lasso, RidgeCV, Ridge
 import sklearn
+from sklearn import tree
 import logging
 from sklearn.impute import SimpleImputer, MissingIndicator
 import numpy as np
@@ -33,6 +34,7 @@ from operator import itemgetter
 import operator
 import copy
 import multiprocessing
+from sklearn.ensemble import RandomForestClassifier
 
 def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms_s, basegraph_name, calc_vals, window_size,
                                 mapping, is_swarm, make_net_graphs_p, list_of_infra_services,synthetic_exfil_paths,
@@ -80,7 +82,7 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
         list_of_concrete_container_exfil_paths = out_q.get()
         list_of_exfil_amts = out_q.get()
         '''
-        total_calculated_vals[(time_interval_length, '')], list_of_concrete_container_exfil_paths, list_of_exfil_amts, injected_filenames = \
+        total_calculated_vals[(time_interval_length, '')], list_of_concrete_container_exfil_paths, list_of_exfil_amts = \
             simplified_graph_metrics.calc_subset_graph_metrics(interval_to_filenames[str(time_interval_length)],
                                                                time_interval_length, basegraph_name + '_subset_',
                                                                calc_vals, window_size, ms_s, mapping, is_swarm, svcs,
@@ -700,6 +702,7 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
                                          names, starts_of_testing, path_occurence_training_df,
                                          path_occurence_testing_df, recipes_used)
     '''
+    #time_gran_to_aggreg_feature_dfs
     statistically_analyze_graph_features(time_gran_to_aggreg_feature_dfs, ROC_curve_p, base_output_name,
                                          names, starts_of_testing, path_occurence_training_df,
                                          path_occurence_testing_df, recipes_used, skip_model_part)
@@ -723,6 +726,9 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
     list_of_attacks_found_training_df = []
     list_of_optimal_fone_scores = []
     for time_gran,aggregate_mod_score_dfs in time_gran_to_aggregate_mod_score_dfs.iteritems():
+        # drop columns with all identical values b/c they are useless and too many of them makes LASSO wierd
+        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(aggregate_mod_score_dfs.std()[(aggregate_mod_score_dfs.std() == 0)].index, axis=1)
+
         time_grans.append(time_gran)
         #'''
         try:
@@ -736,7 +742,7 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
             pass
         try:
 
-            aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='Unnamed: 0mod_z_score') # might wanna just stop these from being generaetd
+            aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='Unnamed: 0') # might wanna just stop these from being generaetd
         except:
             pass
 
@@ -745,9 +751,11 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
             ### TODO TODO TODO TODO TODO TODO
             ### todo: might wanna remove? might wanna keep? not sure...
             ### todo: drop the test physical attacks from the test sets...
+            #'''
             aggregate_mod_score_dfs = \
                 aggregate_mod_score_dfs[~((aggregate_mod_score_dfs['labels'] == 1) &
                                           (aggregate_mod_score_dfs['exfil_pkts'] == 0))]
+            #'''
             #####
 
             aggregate_mod_score_dfs_training = aggregate_mod_score_dfs[aggregate_mod_score_dfs['is_test'] == 0]
@@ -819,15 +827,25 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
 
 
         '''
-        dropped_feature_list = ['New Class-Class Edges with DNS_mod_z_score', 'New Class-Class Edges with Outside_mod_z_score',
-                                'New Class-Class Edges_mod_z_score']
-        X_train = X_train.drop(columns='New Class-Class Edges with DNS_mod_z_score')
-        X_train = X_train.drop(columns='New Class-Class Edges with Outside_mod_z_score')
-        X_train = X_train.drop(columns='New Class-Class Edges_mod_z_score')
-        X_test = X_test.drop(columns='New Class-Class Edges with DNS_mod_z_score')
-        X_test = X_test.drop(columns='New Class-Class Edges with Outside_mod_z_score')
-        X_test = X_test.drop(columns='New Class-Class Edges_mod_z_score')
-        '''
+        try:
+            dropped_feature_list = ['New Class-Class Edges with DNS_mod_z_score', 'New Class-Class Edges with Outside_mod_z_score',
+                                    'New Class-Class Edges_mod_z_score']
+            X_train = X_train.drop(columns='New Class-Class Edges with DNS_mod_z_score')
+            X_train = X_train.drop(columns='New Class-Class Edges with Outside_mod_z_score')
+            X_train = X_train.drop(columns='New Class-Class Edges_mod_z_score')
+            X_test = X_test.drop(columns='New Class-Class Edges with DNS_mod_z_score')
+            X_test = X_test.drop(columns='New Class-Class Edges with Outside_mod_z_score')
+            X_test = X_test.drop(columns='New Class-Class Edges_mod_z_score')
+        except:
+            dropped_feature_list = ['New Class-Class Edges with DNS_', 'New Class-Class Edges with Outside_',
+                                    'New Class-Class Edges_']
+            X_train = X_train.drop(columns='New Class-Class Edges with DNS_')
+            X_train = X_train.drop(columns='New Class-Class Edges with Outside_')
+            X_train = X_train.drop(columns='New Class-Class Edges_')
+            X_test = X_test.drop(columns='New Class-Class Edges with DNS_')
+            X_test = X_test.drop(columns='New Class-Class Edges with Outside_')
+            X_test = X_test.drop(columns='New Class-Class Edges_')
+        #'''
 
         print '-------'
         print type(X_train)
@@ -875,8 +893,13 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         ### train the model and generate predictions (2B)
         # note: I think this is where I'd need to modify it to make the anomaly-detection using edge correlation work...
 
-        clf = LassoCV(cv=3, max_iter=8000) ## TODO TODO TODO <<-- instead of having choosing the alpha be magic, let's use cross validation to choose it instead...
-        alpha = 5 # note: not used unless the line underneath is un-commented...
+        clf = sklearn.tree.DecisionTreeClassifier()
+        #clf = RandomForestClassifier(n_estimators=10)
+        #clf = clf.fit(X_train, y_train)
+
+        #clf = LassoCV(cv=3, max_iter=8000) ## TODO TODO TODO <<-- instead of having choosing the alpha be magic, let's use cross validation to choose it instead...
+        #clf = RidgeCV(cv=10) ## TODO TODO TODO <<-- instead of having choosing the alpha be magic, let's use cross validation to choose it instead...
+        #alpha = 5 # note: not used unless the line underneath is un-commented...
         #clf=Lasso(alpha=alpha)
         clf.fit(X_train, y_train)
         score_val = clf.score(X_test, y_test)
@@ -887,6 +910,9 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         #print coefficients
         #clf.coef_, "intercept", clf.intercept_
 
+        coef_dict = {}
+        coef_feature_df = pd.DataFrame() # TODO: remove if we go back to LASSO
+        '''
         ### get the coefficients used in the model...
         print "Coefficients: "
         print "LASSO model", clf.get_params()
@@ -898,13 +924,14 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         else:
             time_gran_to_debugging_csv[time_gran].loc[:, "aggreg_anom_score"] = test_predictions
 
-        coef_dict = {}
         print "len(clf.coef_)", len(clf.coef_), "len(X_train_columns)", len(X_train_columns), "time_gran", time_gran, \
             "len(X_test_columns)", len(X_test_columns), X_train.shape, X_test.shape
         if len(clf.coef_) != (len(X_train_columns)): # there is no plus one b/c the intercept is stored in clf.intercept_
             print "coef_ is different length than X_train_columns!", X_train_columns
             for  counter,i in enumerate(X_train_dtypes):
-                print counter,i, X_train_columns[counter], clf.coef_[counter]
+                print counter,i, X_train_columns[counter]
+                print clf.coef_#[counter]
+                print len(clf.coef_)
             exit(888)
         for coef, feat in zip(clf.coef_, X_train_columns):
             coef_dict[feat] = coef
@@ -914,10 +941,13 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
             print coef,feature
 
         #print "COEF_DICT", coef_dict
+
         coef_feature_df = pd.DataFrame.from_dict(coef_dict, orient='index')
         #print coef_feature_df.columns.values
         #coef_feature_df.index.name = 'Features'
         coef_feature_df.columns = ['Coefficient']
+        #'''
+
 
         list_of_feat_coefs_dfs.append(coef_feature_df)
         print '--------------------------'
@@ -926,9 +956,12 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         try:
             model_params['alpha_val'] = clf.alpha_
         except:
-            model_params['alpha_val'] = alpha
+            try:
+                model_params['alpha_val'] = alpha
+            except:
+                tree.export_graphviz(clf,out_file = 'tree.dot')
+                #pass
         list_of_model_parameters.append(model_params)
-
         '''
         print X_train
         coefficients = clf.coef_
@@ -994,8 +1027,11 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
                                                                      X_train_exfil_weight)
             list_of_attacks_found_training_df.append(categorical_cm_df_training)
 
-            time_gran_to_debugging_csv[time_gran].loc[:, "anom_val_at_opt_pt"] = \
-                np.concatenate([optimal_train_predictions, optimal_predictions])
+            if not skip_model_part:
+                time_gran_to_debugging_csv[time_gran].loc[:, "anom_val_at_opt_pt"] = \
+                    np.concatenate([optimal_train_predictions, optimal_predictions])
+            else:
+                time_gran_to_debugging_csv[time_gran].loc[:, "anom_val_at_opt_pt"] = optimal_predictions
 
             # I don't want the attributes w/ zero coefficients to show up in the debugging csv b/c it makes it hard to read
             ## TODO
@@ -1009,6 +1045,7 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
 
             time_gran_to_debugging_csv[time_gran].to_csv(base_output_name + 'DEBUGGING_modz_feat_df_at_time_gran_of_'+\
                                                          str(time_gran) + '_sec.csv', na_rep='?')
+            print "ide_angles", ide_train, ide_test
 
     starts_of_testing_dict = {}
     for counter,name in enumerate(names):

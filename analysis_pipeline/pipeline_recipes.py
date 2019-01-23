@@ -845,6 +845,7 @@ def process_wordpress6_rep3(time_of_synethic_exfil=None, only_exp_info=False, in
                             synthetic_exfil_paths_test=None, calc_vals=False,
                             skip_model_part=False):
     #'''
+    calc_vals=False
     # Wordpress exp 6 rep3 (wordpress w/ HA cluster on cilium w/o security config, dnscat exfil from single db w/ 15 sec delay)
     pcap_paths = [
         "/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_six_rep_3_default_bridge_0any.pcap"]
@@ -898,6 +899,7 @@ def process_wordpress6_rep4(time_of_synethic_exfil=None, only_exp_info=False, in
                             synthetic_exfil_paths_train=None,
                             synthetic_exfil_paths_test=None, calc_vals=False, skip_model_part=False):
      #'''
+     calc_vals = False
      # Wordpress exp 6 rep4 (wordpress w/ HA cluster on cilium w/o security config, dnscat exfil from single db w/ 15 sec delay)
      pcap_paths = [
          "/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_six_rep_4_default_bridge_0any.pcap"]
@@ -952,6 +954,8 @@ def process_wordpress7_rep3(time_of_synethic_exfil=None, only_exp_info=False, in
                             synthetic_exfil_paths_train=None,
                             synthetic_exfil_paths_test=None, calc_vals=False, skip_model_part=False):
     #''' # here
+    calc_vals=False
+
     # Wordpress exp 7 rep 3(wordpress w/ HA cluster on cilium w/o security config, dnscat exfil from single WP w/ 15 sec delay)
     pcap_paths = ["/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_seven_rep_3_default_bridge_0any.pcap"]
     is_swarm = 0
@@ -1045,6 +1049,8 @@ def process_wordpress7_rep2(time_of_synethic_exfil=None, only_exp_info=False, in
                             synthetic_exfil_paths_train=None,
                             synthetic_exfil_paths_test=None, calc_vals=False, skip_model_part=False):
     #'''
+    calc_vals=False
+
     # Wordpress exp 7 rep 2(wordpress w/ HA cluster on cilium w/o security config, dnscat exfil from single WP w/ 15 sec delay)
     pcap_paths = [
         "/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_seven_rep_2_default_bridge_0any.pcap"]
@@ -1141,6 +1147,8 @@ def process_wordpress8_rep_2(time_of_synethic_exfil=None, only_exp_info=False, i
                              synthetic_exfil_paths_test=None, calc_vals=False, skip_model_part=False):
     #time.sleep(27000)
     #'''
+    calc_vals=False
+
     # 20 min of scaled-up wordpress (wordpress_eight)
     pcap_paths = [
         "/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/wordpress_eight_rep_2_default_bridge_0any.pcap"]
@@ -1450,7 +1458,7 @@ def multi_experiment_wordpress_recipe():
     goal_attack_NoAttack_split = 0.5
     training_window_size = 200
     size_of_neighbor_training_window = 200
-    calc_vals = True
+    calc_vals = False
     function_list = [process_wordpress6_rep3, process_wordpress6_rep4, process_wordpress7_rep2, process_wordpress7_rep3,
                      process_wordpress8_rep_2, process_wordpress8_rep_3]
     skip_model_part = False
@@ -1495,8 +1503,8 @@ if __name__=="__main__":
     print sys.argv
 
     if len(sys.argv) == 1:
-        #multi_experiment_wordpress_recipe()
-        multi_experiment_sockshop_recipe()
+        multi_experiment_wordpress_recipe()
+        #multi_experiment_sockshop_recipe()
 
         # TODO: might wanna re-enable the function below...
         #run_analysis_pipeline_recipes()
