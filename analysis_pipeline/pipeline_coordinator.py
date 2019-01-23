@@ -80,7 +80,7 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
         list_of_concrete_container_exfil_paths = out_q.get()
         list_of_exfil_amts = out_q.get()
         '''
-        total_calculated_vals[(time_interval_length, '')], list_of_concrete_container_exfil_paths, list_of_exfil_amts = \
+        total_calculated_vals[(time_interval_length, '')], list_of_concrete_container_exfil_paths, list_of_exfil_amts, injected_filenames = \
             simplified_graph_metrics.calc_subset_graph_metrics(interval_to_filenames[str(time_interval_length)],
                                                                time_interval_length, basegraph_name + '_subset_',
                                                                calc_vals, window_size, ms_s, mapping, is_swarm, svcs,
