@@ -1302,6 +1302,8 @@ def process_sockshop11(time_of_synethic_exfil=None,only_exp_info=False, initiato
                              synthetic_exfil_paths_train=None,
                              synthetic_exfil_paths_test=None, calc_vals=False, skip_model_part=False):
     #time.sleep(45000)
+    calc_vals=False
+
     #''' # next-gen
     ## sockshop experiment 11 (an hour of scaled-up activity w/ exfil NOT on normal path)
     pcap_paths = ["/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/sockshop_eleven_default_bridge_0any.pcap"]
@@ -1472,10 +1474,10 @@ def multi_experiment_sockshop_recipe():
     goal_attack_NoAttack_split = 0.5
     training_window_size = 200
     size_of_neighbor_training_window = 200
-    calc_vals = True
+    calc_vals = False
     skip_model_part = True
     ### TODO: can add the other reps of 9,11,12 when I get some time...
-    function_list = [process_sockshop9, process_sockshop11, process_sockshop12] ## TODO TODO TODO
+    function_list = [process_sockshop9, process_sockshop11]#, process_sockshop12] ## TODO TODO TODO
 
     ## NOTE: process_wordpress8 could be here too, but I'm for the moment I'm keeping each kind of injected
     ## attack w/ two different experiments in which it occurss...

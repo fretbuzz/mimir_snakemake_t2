@@ -590,7 +590,7 @@ def ide_angles(tensor, window_size, nodes_in_tensor):
     adjacency_matrix_eigenvectors = []
     # let's iterate through the times, pulling out slices that correspond to windows
     ####smallest_slice = 3 # 2 is guaranteed to get a pearson value of 1, even smaller breaks it
-    for i in range( window_size, len(tensor) + 1):
+    for i in range( window_size, len(tensor)):
         start_of_window =  i - window_size # no +1 b/c of the slicing
         # compute average window (with what we have available)
         print "start_of_window", start_of_window
@@ -624,7 +624,7 @@ def ide_angles(tensor, window_size, nodes_in_tensor):
     angles = find_angles(adjacency_matrix_eigenvectors, window_size)
 
     # note: padding front so that alignment is maintained
-    for i in range(0, window_size - 1): # first window_size values becomes one value, hence want to add bakc window_size -1 vals
+    for i in range(0, window_size): # first window_size values becomes one value, hence want to add bakc window_size -1 vals
         angles.insert(0, float('nan'))
 
     return angles

@@ -22,6 +22,7 @@ import os,errno
 from networkx.algorithms import bipartite
 import copy
 import process_control_chart
+#plt.switch_backend('gtkagg')
 
 # okay, so things to be aware of:
 # (a) we are assuming that if we cannot label the node and it is not loopback or in the '10.X.X.X' subnet, then it is outside
@@ -59,7 +60,7 @@ def pipeline_subset_analysis_step(filenames, ms_s, time_interval, basegraph_name
 
 def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_vals_p, window_size, ms_s, container_to_ip,
                               is_swarm, svcs, infra_service, synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
-                              fraction_of_edge_weights, fraction_of_edge_pkts, size_of_neighbor_training_window, out_q):
+                              fraction_of_edge_weights, fraction_of_edge_pkts, size_of_neighbor_training_window):#, out_q):
     if calc_vals_p:
         pod_comm_but_not_VIP_comms = []
         fraction_pod_comm_but_not_VIP_comms = []
@@ -76,7 +77,7 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
         list_of_svc_pair_to_coef_of_var = []
         list_of_max_ewma_control_chart_scores = []
         adjacency_matrixes = []
-        ide_angles = []
+        #ide_angles = []
 
         current_total_node_list = []
         into_dns_from_outside_list = []
@@ -226,6 +227,7 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
             list_of_max_ewma_control_chart_scores.append(max_anom_score)
 
             #'''
+            '''
             density = nx.density(cur_1si_G)
             #print "cur_class_G",cur_class_G.nodes()
             #print "cur_1si_G", cur_1si_G.nodes()
@@ -269,7 +271,7 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
             ## also cannot feed it current_total_node_list, well we'll to maintain a seperate list for it...
             ## so it's probably might not be as a bad...
             #'''
-            '''
+            #'''
             total_edgelist_nodes = update_total_edgelist_nodes_if_needed(cur_1si_G, total_edgelist_nodes)
             #adjacency_matrixes.append( make_edgelist_dict(cur_1si_G, total_edgelist_nodes) )
             adjacency_matrixes.append( nx.to_pandas_adjacency(cur_1si_G,nodelist=current_total_node_list))
@@ -310,9 +312,10 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
         # print "adjacency_matrixes_list",adjacency_matrixes_list
         #print "adjacency_matrixes", adjacency_matrixes, adjacency_matrixes[0].keys()
         ## ide_angles = change_point_detection(adjacency_matrixes, window_size, total_edgelist_nodes)
+        ide_angles_results = ide_angles(adjacency_matrixes, 6, total_edgelist_nodes)
         # ide_angle = 0
         ##################
-        #'''
+        '''
         num_new_neighbors_outside = calc_neighbor_metric(neighbor_dicts, size_of_neighbor_training_window, 'outside')
         num_new_neighbors_dns = calc_neighbor_metric(neighbor_dicts, size_of_neighbor_training_window, 'kube-dns_VIP')
         num_new_neighbors_all = calc_neighbor_metric(neighbor_dicts, size_of_neighbor_training_window, 'all')
@@ -356,7 +359,7 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
         #'''
         ### TODO::: REMOVE!!!
         ### exit(999)
-
+        '''
         for service_pair in list_of_svc_pair_to_density[0].keys():
             calculated_values[service_pair[0] + '_' + service_pair[1] + '_density'] = []
             calculated_values[service_pair[0] + '_' + service_pair[1] + '_reciprocity'] = []
@@ -401,7 +404,8 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
         #'''
         #calculated_values['max_ewma_control_chart_scores'] = list_of_max_ewma_control_chart_scores
         #'''
-        #calculated_values['ide_angles'] = ide_angles
+        print "ide_angles", ide_angles_results
+        calculated_values['ide_angles'] = ide_angles_results
 
         with open(basegraph_name + '_processed_vales_' + 'subset' + '_' + '%.2f' % (time_interval) + '.txt',
                   'w') as csvfile:
@@ -422,10 +426,10 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
                 calculated_values[row[0]] = [i if i != (None) else float('nan') for i in ast.literal_eval(row[1])]
                 print row[0], calculated_values[row[0]]
 
-    out_q.put(calculated_values)
-    out_q.put(list_of_concrete_container_exfil_paths)
-    out_q.put(list_of_exfil_amts)
-    #return calculated_values, list_of_concrete_container_exfil_paths, list_of_exfil_amts
+    #out_q.put(calculated_values)
+    #out_q.put(list_of_concrete_container_exfil_paths)
+    #out_q.put(list_of_exfil_amts)
+    return calculated_values, list_of_concrete_container_exfil_paths, list_of_exfil_amts
 
 
 def inject_synthetic_attacks(graph, synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,

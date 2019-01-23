@@ -60,6 +60,7 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
 
         # TODO: THIS IS WHERE I ACTUALLY WANT TO PUT THE MULTIPROCESSING PART.... so this should actually be really
         # easy I think... since we can just put a join after...
+        '''
         out_q = multiprocessing.Queue()
         args = (interval_to_filenames[str(time_interval_length)],
                time_interval_length, basegraph_name + '_subset_',
@@ -88,7 +89,7 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
                                                                time_gran_to_attacks_to_times[time_interval_length],
                                                                fraction_of_edge_weights, fraction_of_edge_pkts,
                                                                int(size_of_neighbor_training_window/time_interval_length))
-        '''
+        #'''
         time_gran_to_list_of_concrete_exfil_paths[time_interval_length] = list_of_concrete_container_exfil_paths
         time_gran_to_list_of_exfil_amts[time_interval_length] = list_of_exfil_amts
 
@@ -330,7 +331,7 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
     print "starting pipeline..."
 
     #sub_path = 'sub_only_edge_corr_'  # NOTE: make this an empty string if using the full pipeline (and not the subset)
-    #sub_path = 'sub_only_eigen_'  # NOTE: make this an empty string if using the full pipeline (and not the subset)
+    #sub_path = 'sub_only_ide_'  # NOTE: make this an empty string if using the full pipeline (and not the subset)
     ### TODO put VVV back in...
     sub_path = 'sub_'  # NOTE: make this an empty string if using the full pipeline (and not the subset)
     mapping,list_of_infra_services = create_mappings(is_swarm, container_info_path, kubernetes_svc_info,
@@ -891,7 +892,12 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         print "LASSO model", clf.get_params()
         print '----------------------'
         print len(time_gran_to_debugging_csv[time_gran]["labels"]), len(np.concatenate([train_predictions, test_predictions]))
-        time_gran_to_debugging_csv[time_gran].loc[:, "aggreg_anom_score"] = np.concatenate([train_predictions, test_predictions])
+        print len(time_gran_to_debugging_csv[time_gran].index)
+        if not skip_model_part:
+            time_gran_to_debugging_csv[time_gran].loc[:, "aggreg_anom_score"] = np.concatenate([train_predictions, test_predictions])
+        else:
+            time_gran_to_debugging_csv[time_gran].loc[:, "aggreg_anom_score"] = test_predictions
+
         coef_dict = {}
         print "len(clf.coef_)", len(clf.coef_), "len(X_train_columns)", len(X_train_columns), "time_gran", time_gran, \
             "len(X_test_columns)", len(X_test_columns), X_train.shape, X_test.shape
