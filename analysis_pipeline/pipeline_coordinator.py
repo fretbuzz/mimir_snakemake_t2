@@ -60,8 +60,25 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
 
         # TODO: THIS IS WHERE I ACTUALLY WANT TO PUT THE MULTIPROCESSING PART.... so this should actually be really
         # easy I think... since we can just put a join after...
-
-        
+        out_q = multiprocessing.Queue()
+        args = (interval_to_filenames[str(time_interval_length)],
+               time_interval_length, basegraph_name + '_subset_',
+               calc_vals, window_size, ms_s, mapping, is_swarm, svcs,
+               list_of_infra_services, synthetic_exfil_paths,
+               initiator_info_for_paths,
+               time_gran_to_attacks_to_times[time_interval_length],
+               fraction_of_edge_weights, fraction_of_edge_pkts,
+               int(size_of_neighbor_training_window/time_interval_length),
+               out_q)
+        p = multiprocessing.Process(
+            target=simplified_graph_metrics.calc_subset_graph_metrics,
+            args=args)
+        p.start()
+        p.join()
+        total_calculated_vals[(time_interval_length, '')] = out_q.get()
+        list_of_concrete_container_exfil_paths = out_q.get()
+        list_of_exfil_amts = out_q.get()
+        '''
         total_calculated_vals[(time_interval_length, '')], list_of_concrete_container_exfil_paths, list_of_exfil_amts = \
             simplified_graph_metrics.calc_subset_graph_metrics(interval_to_filenames[str(time_interval_length)],
                                                                time_interval_length, basegraph_name + '_subset_',
@@ -71,6 +88,7 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
                                                                time_gran_to_attacks_to_times[time_interval_length],
                                                                fraction_of_edge_weights, fraction_of_edge_pkts,
                                                                int(size_of_neighbor_training_window/time_interval_length))
+        '''
         time_gran_to_list_of_concrete_exfil_paths[time_interval_length] = list_of_concrete_container_exfil_paths
         time_gran_to_list_of_exfil_amts[time_interval_length] = list_of_exfil_amts
 
