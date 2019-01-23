@@ -1247,6 +1247,10 @@ def process_sockshop9(time_of_synethic_exfil=None,only_exp_info=False, initiator
                              synthetic_exfil_paths_train=None,
                              synthetic_exfil_paths_test=None, calc_vals=False,skip_model_part=False):
     #time.sleep(36000)
+
+    ## TODO: REMOVE
+    calc_vals=False
+
     #''' # next-gen
     ## sockshop experiment 9 (an hour of scaled-up activity w/ exfil along normal path)
     pcap_paths = ["/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/sockshop_nine_better_exfil_default_bridge_0any.pcap"]
@@ -1489,8 +1493,8 @@ if __name__=="__main__":
     print sys.argv
 
     if len(sys.argv) == 1:
-        multi_experiment_wordpress_recipe()
-        #multi_experiment_sockshop_recipe()
+        #multi_experiment_wordpress_recipe()
+        multi_experiment_sockshop_recipe()
 
         # TODO: might wanna re-enable the function below...
         #run_analysis_pipeline_recipes()

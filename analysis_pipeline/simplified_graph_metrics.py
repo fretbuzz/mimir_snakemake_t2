@@ -10,7 +10,7 @@ import gc
 import numpy as np
 from analysis_pipeline.next_gen_metrics import calc_neighbor_metric, generate_neig_dict, create_dict_for_dns_metric, \
     calc_dns_metric, calc_outside_inside_ratio_dns_metric, find_dns_node_name, sum_max_pod_to_dns_from_each_svc,reverse_svc_to_pod_dict,turn_into_list
-from analysis_pipeline.src.analyze_edgefiles import calc_VIP_metric, change_point_detection
+from analysis_pipeline.src.analyze_edgefiles import calc_VIP_metric, change_point_detection, ide_angles
 from analysis_pipeline.prepare_graph import prepare_graph, get_svc_equivalents
 import random
 import copy
@@ -198,26 +198,6 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
             plt.show()
             '''
 
-            ### TODO: this is where I need to implement the edge-correlation stuff...
-            ### just consider all pairs of nodes... we're going to want to just make a dict that
-            ### goes (pod1, pod2) -> weight ; and then make a list of these dicts.
-            ### and then going to want to do EWMA control chart on the individual pairs...
-            ### well, okay, how does this integrate into the latter part?? I don't think I'd want to use
-            ## that part... well, if I triggered whenever any way > 3, then I wouldn't get an ROC; yah, but I could
-            ## just vary the value... okay, so I could certaintyl get (pod1, pod2) -> (val - EWMA) / stddev
-            ## but what would I do with those vals???? hmnmm... well, what if we take that and get a list of
-            ## the max val @ each time step... so then in the outside part, we can accumulate these.
-            ## but I'll need to modify the multi-exp looper to make it work...
-            ## statistically_analyze_graph_features is the only thing in the multi-exp looper that must be modified...
-            ## and the only thing I actually need to do is modify the model training part... and I think the only
-            ## thing that I need to do there is return the value of the of the max (which we've already found,
-            ## so literally the only thing that I need to do is return it...)
-            ## okay, let's plan out how to get the joint ROC. essentially, do what I outline above and extract the
-            ## max val. take it out of the dataframe in the statistical analyzing portion. then I can just make a
-            ## seperate roc, utilizing the labels that I've already prepared...
-            max_anom_score, old_dict = process_control_chart.ewma_control_chart_max_val(G, old_dict)
-            list_of_max_ewma_control_chart_scores.append(max_anom_score)
-
             for node in cur_1si_G.nodes():
                 if node not in current_total_node_list:
                     current_total_node_list.append(node)
@@ -240,6 +220,12 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
             #print "svc_to_pod", svc_to_pod
             #time.sleep(50)
 
+            '''
+            ### this is where I need to implement the edge-correlation stuff...
+            max_anom_score, old_dict = process_control_chart.ewma_control_chart_max_val(G, old_dict)
+            list_of_max_ewma_control_chart_scores.append(max_anom_score)
+
+            #'''
             density = nx.density(cur_1si_G)
             #print "cur_class_G",cur_class_G.nodes()
             #print "cur_1si_G", cur_1si_G.nodes()
@@ -282,19 +268,22 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
             ## okay, so the current total_node_list should be edges (present in the adjacency matrix) here... so
             ## also cannot feed it current_total_node_list, well we'll to maintain a seperate list for it...
             ## so it's probably might not be as a bad...
-
+            #'''
+            '''
             total_edgelist_nodes = update_total_edgelist_nodes_if_needed(cur_1si_G, total_edgelist_nodes)
-            adjacency_matrixes.append( make_edgelist_dict(cur_1si_G, total_edgelist_nodes) )
-            num_items_drop_from_list = max(0, len(adjacency_matrixes) - (window_size + 1))
-            adjacency_matrixes = adjacency_matrixes[num_items_drop_from_list:]
+            #adjacency_matrixes.append( make_edgelist_dict(cur_1si_G, total_edgelist_nodes) )
+            adjacency_matrixes.append( nx.to_pandas_adjacency(cur_1si_G,nodelist=current_total_node_list))
+            #num_items_drop_from_list = max(0, len(adjacency_matrixes) - (window_size + 1))
+            #adjacency_matrixes = adjacency_matrixes[num_items_drop_from_list:]
             print "len_adjacency_matrixes",len(adjacency_matrixes)
             #adjacency_matrixes_list = turn_into_list(adjacency_matrixes, total_edgelist_nodes)
-
+            #'''
             ##################
+            '''
             ## TODO: at some point VVVV
             #print "adjacency_matrixes_list",adjacency_matrixes_list
             print "adjacency_matrixes", adjacency_matrixes, adjacency_matrixes[0].keys()
-            ide_angle = change_point_detection(adjacency_matrixes, window_size, total_edgelist_nodes)
+            ide_angle = ide_angles(adjacency_matrixes, 50, total_edgelist_nodes)
             #ide_angle = 0
             ##################
 
@@ -303,6 +292,7 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
                 ide_angles.append(ide_angle[-1])
             except:
                 ide_angles.append(float('NaN'))
+            '''
 
             # TODO: would probably be a good idea to store these vals somewhere safe or something (I think
             # the program is holding all of the graphs in memory, which is leading to massive memory bloat)
@@ -316,6 +306,13 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
         # which_nodes can be ['all', 'outside', or 'kube-dns_VIP']
         # let's make the training time 5 minutes
         #size_of_neighbor_training_window = (5 * 60) / time_interval
+        ## TODO: at some point VVVV
+        # print "adjacency_matrixes_list",adjacency_matrixes_list
+        #print "adjacency_matrixes", adjacency_matrixes, adjacency_matrixes[0].keys()
+        ## ide_angles = change_point_detection(adjacency_matrixes, window_size, total_edgelist_nodes)
+        # ide_angle = 0
+        ##################
+        #'''
         num_new_neighbors_outside = calc_neighbor_metric(neighbor_dicts, size_of_neighbor_training_window, 'outside')
         num_new_neighbors_dns = calc_neighbor_metric(neighbor_dicts, size_of_neighbor_training_window, 'kube-dns_VIP')
         num_new_neighbors_all = calc_neighbor_metric(neighbor_dicts, size_of_neighbor_training_window, 'all')
@@ -354,9 +351,9 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
 
         into_dns_eigenval_angles12 = change_point_detection(dns_in_metric_dicts, window_size*2, current_total_node_list)
         into_dns_eigenval_angles12 = into_dns_eigenval_angles12[0:len(into_dns_eigenval_angles)]
-
+        #'''
         calculated_values = {}
-
+        #'''
         ### TODO::: REMOVE!!!
         ### exit(999)
 
@@ -401,8 +398,10 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
         calculated_values['into_dns_eigenval_angles12'] = into_dns_eigenval_angles12
         calculated_values['sum_of_max_pod_to_dns_from_each_svc'] = sum_of_max_pod_to_dns_from_each_svc
         calculated_values['outside_to_sum_of_max_pod_to_dns_from_each_svc_ratio'] = outside_to_sum_of_max_pod_to_dns_from_each_svc_ratio
-        calculated_values['max_ewma_control_chart_scores'] = list_of_max_ewma_control_chart_scores
-        calculated_values['ide_angles'] = ide_angles
+        #'''
+        #calculated_values['max_ewma_control_chart_scores'] = list_of_max_ewma_control_chart_scores
+        #'''
+        #calculated_values['ide_angles'] = ide_angles
 
         with open(basegraph_name + '_processed_vales_' + 'subset' + '_' + '%.2f' % (time_interval) + '.txt',
                   'w') as csvfile:

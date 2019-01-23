@@ -555,6 +555,81 @@ def change_point_detection(tensor, window_size, nodes_in_tensor):
 
     return angles
 
+## TODO TODO TODO TODO TODO TODO TODO TODO TODO
+# from : https://www.andrew.cmu.edu/user/lakoglu/pubs/EVENTDETECTION_AkogluFaloutsos.pdf
+# returns list of angles (of size len(tensor)). Note:
+# i have decided to append window_size 'nans' to the front of the list of
+# angles (so that the graphing goes easier b/c I won't have to worry about shifting stuff)
+# (b/c the first window_size angles do not exist in a meaningful way...) -
+### NOTE: tensor is a list of adjacency dataframes
+### NOTE: have this function be at least >4 if you want results that are behave coherently, ###
+### though >= 6 is best ###
+### NOTE: this relies on the the tensors being ordered the same (b/c otherwise the direction will swing around for
+### no good reason)
+def ide_angles(tensor, window_size, nodes_in_tensor):
+    print "len(tensor)", len(tensor)
+    if window_size < 3:
+        # does not make sense for window_size to be less than 3
+        print "window_size needs to be >= 3 for pearson to work"
+        exit(3)
+    if tensor == []:
+        return []
+
+    # let's outline what I gotta do here...
+    # take a 'window' size time slice
+    # for each pair of nodes in this window -> calculate correlation of time series
+        # using pearson's rho
+        # result is a correlation matrix
+    # slide the window down the day, getting a time series of correlation matrices
+    # for each correlation matrix, find the principal eigenvector
+    # this is kinda a second pass of the window thing, but combine (via normal
+        # average) all the eigenvectors in the window
+    # find angle (seperate function)
+    #print "tensor", tensor
+
+    adjacency_matrix_eigenvectors = []
+    # let's iterate through the times, pulling out slices that correspond to windows
+    ####smallest_slice = 3 # 2 is guaranteed to get a pearson value of 1, even smaller breaks it
+    for i in range( window_size, len(tensor) + 1):
+        start_of_window =  i - window_size # no +1 b/c of the slicing
+        # compute average window (with what we have available)
+        print "start_of_window", start_of_window
+        #print "list slice window of tensor", tensor[start_of_window: i]
+        tensor_window = tensor[start_of_window: i]
+
+        adjacency_matrix = tensor[i]
+        eigen_vals, eigen_vects = scipy.linalg.eigh(adjacency_matrix.values)
+        # note: here we want the principal eigenvector, which is assocated with the
+        # eigenvalue that has the largest magnitude
+        print "eigenvalues", eigen_vals
+        #print eigen_vects
+        largest_mag_eigenvalue = max(eigen_vals, key=abs)
+        #print "largest_mag_eigenvalue", largest_mag_eigenvalue
+        largest_mag_eigenvalue_index = 0
+        for counter, value in enumerate(eigen_vals):
+            if value == largest_mag_eigenvalue:
+                largest_mag_eigenvalue_index = counter
+                break
+
+        #print "eigenvectors", eigen_vects
+        print "principal eigenvector", eigen_vects[largest_mag_eigenvalue_index]
+        adjacency_matrix_eigenvectors.append(eigen_vects[largest_mag_eigenvalue_index])
+
+    ## NOTE: OKAY, below here is fine. The key is load up the correlation_matrix_eeigenvectors (might want to change
+    ## the name) with the wieghted adjacency matrix)
+
+    #for correlation_matrix in correlation_matrices:
+    #    print correlation_matrix.values, '\n'
+    print "correlation eigenvects", adjacency_matrix_eigenvectors
+    angles = find_angles(adjacency_matrix_eigenvectors, window_size)
+
+    # note: padding front so that alignment is maintained
+    for i in range(0, window_size - 1): # first window_size values becomes one value, hence want to add bakc window_size -1 vals
+        angles.insert(0, float('nan'))
+
+    return angles
+
+
 def graph_distance(starting_point, ending_point, dictionary_of_edge_attribs):
     return float(1) / dictionary_of_edge_attribs['weight']
 

@@ -58,6 +58,10 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
             print "this is k8s, so using these sevices", ms_s
             svcs = ms_s
 
+        # TODO: THIS IS WHERE I ACTUALLY WANT TO PUT THE MULTIPROCESSING PART.... so this should actually be really
+        # easy I think... since we can just put a join after...
+
+        
         total_calculated_vals[(time_interval_length, '')], list_of_concrete_container_exfil_paths, list_of_exfil_amts = \
             simplified_graph_metrics.calc_subset_graph_metrics(interval_to_filenames[str(time_interval_length)],
                                                                time_interval_length, basegraph_name + '_subset_',
@@ -307,6 +311,7 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
 
     print "starting pipeline..."
 
+    #sub_path = 'sub_only_edge_corr_'  # NOTE: make this an empty string if using the full pipeline (and not the subset)
     #sub_path = 'sub_only_eigen_'  # NOTE: make this an empty string if using the full pipeline (and not the subset)
     ### TODO put VVV back in...
     sub_path = 'sub_'  # NOTE: make this an empty string if using the full pipeline (and not the subset)
