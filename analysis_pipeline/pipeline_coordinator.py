@@ -1020,19 +1020,21 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
             ##  ewma_train = X_train['max_ewma_control_chart_scores']
             ##  ewma_test = X_test['max_ewma_control_chart_scores']
             # now for the ewma part...
-            fpr_ewma, tpr_ewma, thresholds_ewma = sklearn.metrics.roc_curve(y_true=y_test, y_score = ewma_test, pos_label=1)
+            #fpr_ewma, tpr_ewma, thresholds_ewma = sklearn.metrics.roc_curve(y_true=y_test, y_score = ewma_test, pos_label=1)
             print "y_test",y_test
             print "ide_test",ide_test, ide_train
             try:
                 fpr_ide, tpr_ide, thresholds_ide = sklearn.metrics.roc_curve(y_true=y_test, y_score = ide_test, pos_label=1)
+                line_titles = ['ensemble model', 'ide_angles']
+                list_of_x_vals = [x_vals, fpr_ide]
+                list_of_y_vals = [y_vals, tpr_ide]
             except:
-                ide_test = [0 for i in range(0, len(X_test))]
-                fpr_ide, tpr_ide, thresholds_ide = sklearn.metrics.roc_curve(y_true=y_test, y_score = ide_test, pos_label=1)
+                #ide_test = [0 for i in range(0, len(X_test))]
+                #fpr_ide, tpr_ide, thresholds_ide = sklearn.metrics.roc_curve(y_true=y_test, y_score = ide_test, pos_label=1)
+                line_titles = ['ensemble model']
+                list_of_x_vals = [x_vals]
+                list_of_y_vals = [y_vals]
 
-
-            line_titles = ['ensemble model', 'ide_angles']
-            list_of_x_vals = [x_vals, fpr_ide]
-            list_of_y_vals = [y_vals, tpr_ide]
             ax, _, plot_path = generate_alerts.construct_ROC_curve(list_of_x_vals, list_of_y_vals, title, ROC_path + plot_name,\
                                                                    line_titles, show_p=False)
             list_of_rocs.append(plot_path)
