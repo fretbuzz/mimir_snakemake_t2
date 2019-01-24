@@ -228,7 +228,7 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
             list_of_max_ewma_control_chart_scores.append(max_anom_score)
 
             #'''
-            '''
+            #'''
             density = nx.density(cur_1si_G)
             #print "cur_class_G",cur_class_G.nodes()
             #print "cur_1si_G", cur_1si_G.nodes()
@@ -316,7 +316,7 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
         ide_angles_results = ide_angles(adjacency_matrixes, 6, total_edgelist_nodes)
         # ide_angle = 0
         ##################
-        '''
+        #'''
         num_new_neighbors_outside = calc_neighbor_metric(neighbor_dicts, size_of_neighbor_training_window, 'outside')
         num_new_neighbors_dns = calc_neighbor_metric(neighbor_dicts, size_of_neighbor_training_window, 'kube-dns_VIP')
         num_new_neighbors_all = calc_neighbor_metric(neighbor_dicts, size_of_neighbor_training_window, 'all')
@@ -360,7 +360,7 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
         #'''
         ### TODO::: REMOVE!!!
         ### exit(999)
-        '''
+        #'''
         for service_pair in list_of_svc_pair_to_density[0].keys():
             calculated_values[service_pair[0] + '_' + service_pair[1] + '_density'] = []
             calculated_values[service_pair[0] + '_' + service_pair[1] + '_reciprocity'] = []
@@ -405,7 +405,7 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
         #'''
         #calculated_values['max_ewma_control_chart_scores'] = list_of_max_ewma_control_chart_scores
         #'''
-        print "ide_angles", ide_angles_results
+        #print "ide_angles", ide_angles_results
         calculated_values['ide_angles'] = ide_angles_results
 
         with open(basegraph_name + '_processed_vales_' + 'subset' + '_' + '%.2f' % (time_interval) + '.txt',

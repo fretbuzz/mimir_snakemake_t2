@@ -703,7 +703,7 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
                                          path_occurence_testing_df, recipes_used)
     '''
     #time_gran_to_aggreg_feature_dfs
-    statistically_analyze_graph_features(time_gran_to_aggreg_feature_dfs, ROC_curve_p, base_output_name,
+    statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, base_output_name,
                                          names, starts_of_testing, path_occurence_training_df,
                                          path_occurence_testing_df, recipes_used, skip_model_part)
 
@@ -727,12 +727,14 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
     list_of_optimal_fone_scores = []
     for time_gran,aggregate_mod_score_dfs in time_gran_to_aggregate_mod_score_dfs.iteritems():
         # drop columns with all identical values b/c they are useless and too many of them makes LASSO wierd
-        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(aggregate_mod_score_dfs.std()[(aggregate_mod_score_dfs.std() == 0)].index, axis=1)
+        #aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(aggregate_mod_score_dfs.std()[(aggregate_mod_score_dfs.std() == 0)].index, axis=1)
 
+        '''
+        print aggregate_mod_score_dfs.columns
         for column in aggregate_mod_score_dfs.columns:
-            if 'coef_of_var_' in column or '': # todo
-                aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(column)
-
+            if 'coef_of_var_' in column or 'reciprocity' in column or '_density_' in column: # todo
+                aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(column, axis=1)
+        '''
 
         time_grans.append(time_gran)
         #'''
@@ -805,13 +807,33 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
             ewma_test = [0 for i in range(0,len(X_test))]
 
         try:
-            ide_train =  X_train['ide_angles']
-            ide_test = X_test['ide_angles']
-            X_train = X_train.drop(columns='ide_angles')
-            X_test = X_test.drop(columns='ide_angles')
+            #if True:
+            print X_train.columns
+            ide_train =  copy.deepcopy(X_train['ide_angles_'])
+            ide_train.fillna(ide_train.mean())
+            print "ide_train", ide_train
+            #exit(1222)
+            copy_of_X_test = X_test.copy(deep=True)
+            ide_test = copy.deepcopy(copy_of_X_test['ide_angles_'])
+            ide_test = ide_test.fillna(ide_train.mean())
+            print "ide_test",ide_test
+            X_train = X_train.drop(columns='ide_angles_')
+            X_test = X_test.drop(columns='ide_angles_')
+            #if np. ide_test.tolist():
+            #    ide_train = [0 for i in range(0, len(X_train))]
+            #    ide_test = [0 for i in range(0, len(X_test))]
         except:
-            ide_train = [0 for i in range(0,len(X_train))]
-            ide_test = [0 for i in range(0,len(X_test))]
+            try:
+                ide_train = copy.deepcopy(X_train['ide_angles_mod_z_score'])
+                ide_train.fillna(ide_train.mean())
+                print "ide_train", ide_train
+                # exit(1222)
+                copy_of_X_test = X_test.copy(deep=True)
+                ide_test = copy.deepcopy(copy_of_X_test['ide_angles_mod_z_score'])
+                ide_test = ide_test.fillna(ide_train.mean())
+            except:
+                ide_train = [0 for i in range(0,len(X_train))]
+                ide_test = [0 for i in range(0,len(X_test))]
 
 
         X_train = X_train.drop(columns='exfil_path')
@@ -901,7 +923,7 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         #clf = RandomForestClassifier(n_estimators=10)
         #clf = clf.fit(X_train, y_train)
 
-        #clf = ElasticNetCV()
+        #clf = ElasticNetCV(l1_ratio=1.0)
         clf = LassoCV(cv=3, max_iter=8000) ## TODO TODO TODO <<-- instead of having choosing the alpha be magic, let's use cross validation to choose it instead...
         #clf = RidgeCV(cv=10) ## TODO TODO TODO <<-- instead of having choosing the alpha be magic, let's use cross validation to choose it instead...
         #alpha = 5 # note: not used unless the line underneath is un-commented...
@@ -999,12 +1021,18 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
             ##  ewma_test = X_test['max_ewma_control_chart_scores']
             # now for the ewma part...
             fpr_ewma, tpr_ewma, thresholds_ewma = sklearn.metrics.roc_curve(y_true=y_test, y_score = ewma_test, pos_label=1)
-            fpr_ide, tpr_ide, thresholds_ide = sklearn.metrics.roc_curve(y_true=y_test, y_score = ide_test, pos_label=1)
+            print "y_test",y_test
+            print "ide_test",ide_test, ide_train
+            try:
+                fpr_ide, tpr_ide, thresholds_ide = sklearn.metrics.roc_curve(y_true=y_test, y_score = ide_test, pos_label=1)
+            except:
+                ide_test = [0 for i in range(0, len(X_test))]
+                fpr_ide, tpr_ide, thresholds_ide = sklearn.metrics.roc_curve(y_true=y_test, y_score = ide_test, pos_label=1)
 
 
-            line_titles = ['ensemble model', 'edge correlation', 'ide_angles']
-            list_of_x_vals = [x_vals, fpr_ewma, fpr_ide]
-            list_of_y_vals = [y_vals, tpr_ewma, tpr_ide]
+            line_titles = ['ensemble model', 'ide_angles']
+            list_of_x_vals = [x_vals, fpr_ide]
+            list_of_y_vals = [y_vals, tpr_ide]
             ax, _, plot_path = generate_alerts.construct_ROC_curve(list_of_x_vals, list_of_y_vals, title, ROC_path + plot_name,\
                                                                    line_titles, show_p=False)
             list_of_rocs.append(plot_path)
@@ -1218,6 +1246,7 @@ def assign_exfil_paths_to_experiments(exp_infos, goal_train_test_split, goal_att
 def generate_exfil_path_occurence_df(list_of_time_gran_to_mod_zscore_df, experiment_names):
     experiments_to_exfil_path_time_dicts = []
     for time_gran_to_mod_zscore_df in list_of_time_gran_to_mod_zscore_df:
+        print time_gran_to_mod_zscore_df.keys()
         min_time_gran = min(time_gran_to_mod_zscore_df.keys())
         logical_exfil_paths_freq = time_gran_to_mod_zscore_df[min_time_gran]['exfil_path'].value_counts().to_dict()
         for path, occur in logical_exfil_paths_freq.iteritems():
