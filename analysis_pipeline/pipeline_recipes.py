@@ -1459,7 +1459,7 @@ def multi_experiment_wordpress_recipe():
     goal_attack_NoAttack_split = 0.5
     training_window_size = 200
     size_of_neighbor_training_window = 200
-    calc_vals = False
+    calc_vals = True
     function_list = [process_wordpress6_rep3, process_wordpress6_rep4, process_wordpress7_rep2, process_wordpress7_rep3,
                      process_wordpress8_rep_2, process_wordpress8_rep_3]
     skip_model_part = False
@@ -1504,9 +1504,9 @@ if __name__=="__main__":
     print sys.argv
 
     if len(sys.argv) == 1:
-        #multi_experiment_wordpress_recipe()
+        multi_experiment_wordpress_recipe()
         #time.sleep(14400)
-        multi_experiment_sockshop_recipe()
+        #multi_experiment_sockshop_recipe()
 
         # TODO: might wanna re-enable the function below...
         #run_analysis_pipeline_recipes()

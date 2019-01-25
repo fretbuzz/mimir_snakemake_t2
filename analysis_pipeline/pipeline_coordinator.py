@@ -780,6 +780,13 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
 
         #time_gran_to_debugging_csv[time_gran] = copy.deepcopy(aggregate_mod_score_dfs)
 
+        aggregate_mod_score_dfs_training = aggregate_mod_score_dfs_training.drop(columns='new_neighbors_outside')
+        aggregate_mod_score_dfs_testing = aggregate_mod_score_dfs_testing.drop(columns='new_neighbors_outside')
+        aggregate_mod_score_dfs_training = aggregate_mod_score_dfs_training.drop(columns='new_neighbors_dns')
+        aggregate_mod_score_dfs_testing = aggregate_mod_score_dfs_testing.drop(columns='new_neighbors_dns')
+        aggregate_mod_score_dfs_training = aggregate_mod_score_dfs_training.drop(columns='new_neighbors_all')
+        aggregate_mod_score_dfs_testing = aggregate_mod_score_dfs_testing.drop(columns='new_neighbors_all')
+
         X_train = aggregate_mod_score_dfs_training.loc[:, aggregate_mod_score_dfs_training.columns != 'labels']
         y_train = aggregate_mod_score_dfs_training.loc[:, aggregate_mod_score_dfs_training.columns == 'labels']
         X_test = aggregate_mod_score_dfs_testing.loc[:, aggregate_mod_score_dfs_training.columns != 'labels']

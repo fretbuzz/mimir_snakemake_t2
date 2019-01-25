@@ -20,12 +20,15 @@ def generate_neig_dict(G):
 # in the new_neigh_dict vals that are not in the old_neigh_dict vals
 def calc_num_new_neighs(old_neigh_dict, new_neigh_dict):
     new_neighs = 0
+    total_new_neighbor_list = []
     for node, neighbors in new_neigh_dict.iteritems():
         if node in old_neigh_dict:
-            cur_new_neighs = len(np.setdiff1d(neighbors, old_neigh_dict[node]))
+            new_neighbor_list = np.setdiff1d(neighbors, old_neigh_dict[node])
+            total_new_neighbor_list.extend(new_neighbor_list)
+            cur_new_neighs = len(new_neighbor_list)
             #print "node", node, ";union",np.setdiff1d(neighbors, old_neigh_dict[node])
             new_neighs += cur_new_neighs
-    return new_neighs
+    return new_neighs,total_new_neighbor_list
 
 # for each key, calculates the union of the two values (which'll
 # be lists)
@@ -62,25 +65,27 @@ def calc_neighbor_metric(list_of_neigh_dicts, size_of_training_window, which_nod
     for i in range(0, size_of_training_window):
         training_window_neigh_dict = psudeo_merge_neigh_dicts(list_of_neigh_dicts[i], training_window_neigh_dict)
     list_of_new_neighbors = [float('nan') for i in range(0,size_of_training_window)]
+    list_of_negihbor_identities = []
     for i in range(size_of_training_window, len(list_of_neigh_dicts)):
         if which_nodes == 'all':
             #print list_of_neigh_dicts[i]
             #print training_window_neigh_dict
-            cur_new_neighbors = calc_num_new_neighs(training_window_neigh_dict, list_of_neigh_dicts[i])
+            cur_new_neighbors,new_neighbor_list = calc_num_new_neighs(training_window_neigh_dict, list_of_neigh_dicts[i])
         elif which_nodes == 'outside':
             relevant_training_window_neigh_dict = make_one_item_dict(training_window_neigh_dict, 'outside')
             relevant_current_dict = make_one_item_dict(list_of_neigh_dicts[i], 'outside')
-            cur_new_neighbors = calc_num_new_neighs(relevant_training_window_neigh_dict, relevant_current_dict)
+            cur_new_neighbors,new_neighbor_list = calc_num_new_neighs(relevant_training_window_neigh_dict, relevant_current_dict)
         elif which_nodes == 'kube-dns_VIP':
             relevant_training_window_neigh_dict = make_one_item_dict(training_window_neigh_dict, 'kube-dns_VIP')
             relevant_current_dict = make_one_item_dict(list_of_neigh_dicts[i], 'kube-dns_VIP')
-            cur_new_neighbors = calc_num_new_neighs(relevant_training_window_neigh_dict, relevant_current_dict)
+            cur_new_neighbors,new_neighbor_list = calc_num_new_neighs(relevant_training_window_neigh_dict, relevant_current_dict)
         else:
             print "which_nodes name not recognized!!"
             exit(23)
         print "cur_new_neighbors", cur_new_neighbors
         list_of_new_neighbors.append(cur_new_neighbors)
-    return list_of_new_neighbors
+        list_of_negihbor_identities.append(new_neighbor_list)
+    return list_of_new_neighbors,list_of_negihbor_identities
 
 # this functions takes a list_of_dictionaries, where each dictionaries contains keys for every node in the graph.
 # The corresponding value is the weight of the edge (if edge does not exist -> val must be zero, but key MUST
