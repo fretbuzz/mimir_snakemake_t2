@@ -43,6 +43,9 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
     total_calculated_vals = {}
     time_gran_to_list_of_concrete_exfil_paths = {}
     time_gran_to_list_of_exfil_amts = {}
+    time_gran_to_new_neighbors_outside = {}
+    time_gran_to_new_neighbors_dns = {}
+    time_gran_to_new_neighbors_all = {}
     for time_interval_length in time_interval_lengths:
         print "analyzing edgefiles...", "timer_interval...", time_interval_length
 
@@ -82,8 +85,8 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
         list_of_concrete_container_exfil_paths = out_q.get()
         list_of_exfil_amts = out_q.get()
         '''
-        total_calculated_vals[(time_interval_length, '')], list_of_concrete_container_exfil_paths, list_of_exfil_amts = \
-            simplified_graph_metrics.calc_subset_graph_metrics(interval_to_filenames[str(time_interval_length)],
+        total_calculated_vals[(time_interval_length, '')], list_of_concrete_container_exfil_paths, list_of_exfil_amts,\
+        new_neighbors_outside, new_neighbors_dns, new_neighbors_all = simplified_graph_metrics.calc_subset_graph_metrics(interval_to_filenames[str(time_interval_length)],
                                                                time_interval_length, basegraph_name + '_subset_',
                                                                calc_vals, window_size, ms_s, mapping, is_swarm, svcs,
                                                                list_of_infra_services, synthetic_exfil_paths,
@@ -94,14 +97,19 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
         #'''
         time_gran_to_list_of_concrete_exfil_paths[time_interval_length] = list_of_concrete_container_exfil_paths
         time_gran_to_list_of_exfil_amts[time_interval_length] = list_of_exfil_amts
+        time_gran_to_new_neighbors_outside[time_interval_length] = new_neighbors_outside
+        time_gran_to_new_neighbors_dns[time_interval_length] = new_neighbors_dns
+        time_gran_to_new_neighbors_all[time_interval_length] = new_neighbors_all
 
         #total_calculated_vals.update(newly_calculated_values)
         gc.collect()
-    return total_calculated_vals, time_gran_to_list_of_concrete_exfil_paths, time_gran_to_list_of_exfil_amts
+    return total_calculated_vals, time_gran_to_list_of_concrete_exfil_paths, time_gran_to_list_of_exfil_amts,\
+        time_gran_to_new_neighbors_outside, time_gran_to_new_neighbors_dns, time_gran_to_new_neighbors_all
 
 def calc_zscores(alert_file, training_window_size, minimum_training_window,
                  sub_path, time_gran_to_attack_labels, time_gran_to_feature_dataframe, calc_zscore_p, time_gran_to_synthetic_exfil_paths_series,
-                 time_gran_to_list_of_concrete_exfil_paths, time_gran_to_list_of_exfil_amts, end_of_training):
+                 time_gran_to_list_of_concrete_exfil_paths, time_gran_to_list_of_exfil_amts, end_of_training,
+                 time_gran_to_new_neighbors_outside, time_gran_to_new_neighbors_dns, time_gran_to_new_neighbors_all):
 
     #time_gran_to_mod_zscore_df = process_graph_metrics.calculate_mod_zscores_dfs(total_calculated_vals, minimum_training_window,
     #                                                                             training_window_size, time_interval_lengths)
@@ -117,7 +125,9 @@ def calc_zscores(alert_file, training_window_size, minimum_training_window,
         process_graph_metrics.save_feature_datafames(time_gran_to_mod_zscore_df, mod_z_score_df_basefile_name,
                                                      time_gran_to_attack_labels, time_gran_to_synthetic_exfil_paths_series,
                                                      time_gran_to_list_of_concrete_exfil_paths,
-                                                     time_gran_to_list_of_exfil_amts, end_of_training)
+                                                     time_gran_to_list_of_exfil_amts, end_of_training,
+                                                     time_gran_to_new_neighbors_outside, time_gran_to_new_neighbors_dns,
+                                                     time_gran_to_new_neighbors_all)
 
         time_gran_to_zscore_dataframe = process_graph_metrics.calc_time_gran_to_zscore_dfs(time_gran_to_feature_dataframe,
                                                                                            training_window_size,
@@ -126,7 +136,9 @@ def calc_zscores(alert_file, training_window_size, minimum_training_window,
         process_graph_metrics.save_feature_datafames(time_gran_to_zscore_dataframe, z_score_df_basefile_name,
                                                      time_gran_to_attack_labels, time_gran_to_synthetic_exfil_paths_series,
                                                      time_gran_to_list_of_concrete_exfil_paths,
-                                                     time_gran_to_list_of_exfil_amts, end_of_training)
+                                                     time_gran_to_list_of_exfil_amts, end_of_training,
+                                                     time_gran_to_new_neighbors_outside, time_gran_to_new_neighbors_dns,
+                                                     time_gran_to_new_neighbors_all)
     else:
         time_gran_to_zscore_dataframe = {}
         time_gran_to_mod_zscore_df = {}
@@ -144,6 +156,16 @@ def calc_zscores(alert_file, training_window_size, minimum_training_window,
                 del time_gran_to_mod_zscore_df[interval]['exfil_pkts']
                 del time_gran_to_zscore_dataframe[interval]['is_test']
                 del time_gran_to_mod_zscore_df[interval]['is_test']
+
+                ''' # we'll drop these in the other part of the program...
+                del time_gran_to_mod_zscore_df[interval]['new_neighbors_dns']
+                del time_gran_to_mod_zscore_df[interval]['new_neighbors_all']
+                del time_gran_to_mod_zscore_df[interval]['new_neighbors_outside']
+
+                del time_gran_to_zscore_dataframe[interval]['new_neighbors_dns']
+                del time_gran_to_zscore_dataframe[interval]['new_neighbors_all']
+                del time_gran_to_zscore_dataframe[interval]['new_neighbors_outside']
+                '''
             except:
                 pass
 
@@ -422,7 +444,8 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
 
         #####exit(200) ## TODO ::: <<<---- remove!!
         # OKAY, let's verify that this determine_attacks_to_times function is wokring before moving on to the next one...
-        total_calculated_vals, time_gran_to_list_of_concrete_exfil_paths, time_gran_to_list_of_exfil_amts = \
+        total_calculated_vals, time_gran_to_list_of_concrete_exfil_paths, time_gran_to_list_of_exfil_amts, \
+        time_gran_to_new_neighbors_outside, time_gran_to_new_neighbors_dns, time_gran_to_new_neighbors_all = \
             calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms_s, basegraph_name, calc_vals,
                                         window_size, mapping, is_swarm, make_net_graphs_p, list_of_infra_services,
                                         synthetic_exfil_paths, initiator_info_for_paths, time_gran_to_attack_ranges,
@@ -433,7 +456,8 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
         process_graph_metrics.save_feature_datafames(time_gran_to_feature_dataframe, alert_file + sub_path,
                                                      time_gran_to_attack_labels,time_gran_to_synthetic_exfil_paths_series,
                                                      time_gran_to_list_of_concrete_exfil_paths, time_gran_to_list_of_exfil_amts,
-                                                     end_of_training)
+                                                     end_of_training, time_gran_to_new_neighbors_outside,
+                                                     time_gran_to_new_neighbors_dns, time_gran_to_new_neighbors_all)
 
         analysis_pipeline.generate_graphs.generate_feature_multitime_boxplots(total_calculated_vals, basegraph_name,
                                                                               window_size, colors, time_interval_lengths,
@@ -446,6 +470,7 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
         time_gran_to_synthetic_exfil_paths_series = {}
         time_gran_to_list_of_concrete_exfil_paths = {}
         time_gran_to_list_of_exfil_amts = {}
+        time_gran_to_new_neighbors_outside, time_gran_to_new_neighbors_dns, time_gran_to_new_neighbors_all = {},{},{}
         min_interval = min(time_interval_lengths)
         for interval in time_interval_lengths:
             #if interval in time_interval_lengths:
@@ -453,6 +478,9 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
             print "feature_df_path", alert_file + sub_path + str(interval) + '.csv'
             time_gran_to_feature_dataframe[interval] = pd.read_csv(alert_file + sub_path + str(interval) + '.csv', na_values='?')
             time_gran_to_attack_labels[interval] = time_gran_to_feature_dataframe[interval]['labels']
+            time_gran_to_new_neighbors_outside[interval] = time_gran_to_feature_dataframe[interval]['new_neighbors_outside']
+            time_gran_to_new_neighbors_dns[interval] = time_gran_to_feature_dataframe[interval]['new_neighbors_dns']
+            time_gran_to_new_neighbors_all[interval] = time_gran_to_feature_dataframe[interval]['new_neighbors_all']
             time_gran_to_synthetic_exfil_paths_series[interval] = time_gran_to_feature_dataframe[interval]['exfil_path']
             ##recover time_gran_to_list_of_concrete_exfil_paths, time_gran_to_list_of_exfil_amts
             time_gran_to_list_of_concrete_exfil_paths[interval] = time_gran_to_feature_dataframe[interval]['concrete_exfil_path']
@@ -477,6 +505,9 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
             del feature_dataframe['exfil_pkts']
             del feature_dataframe['concrete_exfil_path']
             del feature_dataframe['is_test']
+            del feature_dataframe['new_neighbors_dns']
+            del feature_dataframe['new_neighbors_all']
+            del feature_dataframe['new_neighbors_outside']
         except:
             pass
 
@@ -484,7 +515,8 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
     time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe = \
         calc_zscores(alert_file, training_window_size, minimum_training_window, sub_path, time_gran_to_attack_labels,
                      time_gran_to_feature_dataframe, calc_zscore_p, time_gran_to_synthetic_exfil_paths_series,
-                     time_gran_to_list_of_concrete_exfil_paths, time_gran_to_list_of_exfil_amts, end_of_training)
+                     time_gran_to_list_of_concrete_exfil_paths, time_gran_to_list_of_exfil_amts, end_of_training,
+                     time_gran_to_new_neighbors_outside, time_gran_to_new_neighbors_dns, time_gran_to_new_neighbors_all)
 
     print "analysis_pipeline about to return!"
 

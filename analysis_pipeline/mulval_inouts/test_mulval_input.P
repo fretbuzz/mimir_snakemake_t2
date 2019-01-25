@@ -8,17 +8,17 @@ vulProperty('is_a_vip', remoteExploit, privEscalation).
 attackerLocated(my_release_pxc_pod).
 
 hacl(my_release_pxc_pod, internet, _, _).
-hacl(wwwppp_wordpress_pod,my_release_pxc_vip, TCP, 4567).
-hacl(wwwppp_wordpress_vip,my_release_pxc_pod, TCP, 4567).
-hacl(my_release_pxc_pod,wwwppp_wordpress_vip, TCP, 4567).
-hacl(my_release_pxc_pod,wwwppp_wordpress_pod, TCP, 4567).
-hacl(my_release_pxc_pod,kube_dns_vip, TCP, 4567).
-hacl(my_release_pxc_pod,my_release_pxc_vip, TCP, 4567).
+hacl(wwwppp_wordpress_pod,my_release_pxc_vip, TCP, 3306).
+hacl(wwwppp_wordpress_vip,my_release_pxc_pod, TCP, 3306).
+hacl(my_release_pxc_pod,wwwppp_wordpress_vip, TCP, 3306).
+hacl(my_release_pxc_pod,wwwppp_wordpress_pod, TCP, 3306).
+hacl(my_release_pxc_pod,kube_dns_vip, TCP, 3306).
+hacl(my_release_pxc_pod,my_release_pxc_vip, TCP, 3306).
 hacl(my_release_pxc_vip,my_release_pxc_pod, _, _).
 vulExists(my_release_pxc_pod, 'attacker_can_access_anything', is_computer).
 networkServiceInfo(my_release_pxc_pod, is_computer,  _, _ , _).
 vulExists(my_release_pxc_vip, 'is_a_vip', is_vip).
-networkServiceInfo(my_release_pxc_vip, is_vip, TCP, 4567, _).
+networkServiceInfo(my_release_pxc_vip, is_vip, TCP, 3306, _).
 
 hacl(wwwppp_wordpress_pod, internet, _, _).
 hacl(my_release_pxc_pod,wwwppp_wordpress_vip, TCP, 80).

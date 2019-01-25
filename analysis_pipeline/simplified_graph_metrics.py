@@ -402,9 +402,9 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
         calculated_values['into_dns_eigenval_angles12'] = into_dns_eigenval_angles12
         calculated_values['sum_of_max_pod_to_dns_from_each_svc'] = sum_of_max_pod_to_dns_from_each_svc
         calculated_values['outside_to_sum_of_max_pod_to_dns_from_each_svc_ratio'] = outside_to_sum_of_max_pod_to_dns_from_each_svc_ratio
-        calculated_values['new_neighbors_outside'] = new_neighbors_outside
-        calculated_values['new_neighbors_dns'] = new_neighbors_dns
-        calculated_values['new_neighbors_all'] = new_neighbors_all
+        #calculated_values['new_neighbors_outside'] = new_neighbors_outside
+        #calculated_values['new_neighbors_dns'] = new_neighbors_dns
+        #calculated_values['new_neighbors_all'] = new_neighbors_all
         '''
         #calculated_values['max_ewma_control_chart_scores'] = list_of_max_ewma_control_chart_scores
         #'''
@@ -433,7 +433,9 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
     #out_q.put(calculated_values)
     #out_q.put(list_of_concrete_container_exfil_paths)
     #out_q.put(list_of_exfil_amts)
-    return calculated_values, list_of_concrete_container_exfil_paths, list_of_exfil_amts#, injected_filenames
+    return calculated_values, list_of_concrete_container_exfil_paths, list_of_exfil_amts,\
+            new_neighbors_outside,new_neighbors_dns,new_neighbors_all
+    #, injected_filenames
 
 
 def inject_synthetic_attacks(graph, synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
