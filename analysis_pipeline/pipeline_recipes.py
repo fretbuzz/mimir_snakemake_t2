@@ -8,6 +8,9 @@ import sys
 import gc
 import functools
 
+import matplotlib
+matplotlib.use('Agg',warn=False, force=True)
+
 from analysis_pipeline.pipeline_coordinator import run_data_anaylsis_pipeline, multi_experiment_pipeline
 
 '''

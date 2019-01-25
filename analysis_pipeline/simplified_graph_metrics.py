@@ -16,6 +16,8 @@ import random
 import copy
 import logging
 import time
+import matplotlib
+matplotlib.use('Agg',warn=False, force=True)
 from matplotlib import pyplot as plt
 from networkx.drawing.nx_agraph import graphviz_layout
 import os,errno
@@ -60,7 +62,7 @@ def pipeline_subset_analysis_step(filenames, ms_s, time_interval, basegraph_name
 
 def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_vals_p, window_size, ms_s, container_to_ip,
                               is_swarm, svcs, infra_service, synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
-                              fraction_of_edge_weights, fraction_of_edge_pkts, size_of_neighbor_training_window):#, out_q):
+                              fraction_of_edge_weights, fraction_of_edge_pkts, size_of_neighbor_training_window, out_q):#, out_q):
     if calc_vals_p:
         pod_comm_but_not_VIP_comms = []
         fraction_pod_comm_but_not_VIP_comms = []
@@ -430,11 +432,15 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
                 calculated_values[row[0]] = [i if i != (None) else float('nan') for i in ast.literal_eval(row[1])]
                 print row[0], calculated_values[row[0]]
 
-    #out_q.put(calculated_values)
-    #out_q.put(list_of_concrete_container_exfil_paths)
-    #out_q.put(list_of_exfil_amts)
-    return calculated_values, list_of_concrete_container_exfil_paths, list_of_exfil_amts,\
-            new_neighbors_outside,new_neighbors_dns,new_neighbors_all
+    out_q.put(calculated_values)
+    out_q.put(list_of_concrete_container_exfil_paths)
+    out_q.put(list_of_exfil_amts)
+    out_q.put(new_neighbors_outside)
+    out_q.put(new_neighbors_dns)
+    out_q.put(new_neighbors_all)
+
+    #return calculated_values, list_of_concrete_container_exfil_paths, list_of_exfil_amts,\
+    #        new_neighbors_outside,new_neighbors_dns,new_neighbors_all
     #, injected_filenames
 
 

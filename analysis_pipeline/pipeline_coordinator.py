@@ -65,7 +65,7 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
 
         # TODO: THIS IS WHERE I ACTUALLY WANT TO PUT THE MULTIPROCESSING PART.... so this should actually be really
         # easy I think... since we can just put a join after...
-        '''
+        #'''
         out_q = multiprocessing.Queue()
         args = (interval_to_filenames[str(time_interval_length)],
                time_interval_length, basegraph_name + '_subset_',
@@ -84,6 +84,9 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
         total_calculated_vals[(time_interval_length, '')] = out_q.get()
         list_of_concrete_container_exfil_paths = out_q.get()
         list_of_exfil_amts = out_q.get()
+        new_neighbors_outside =  out_q.get()
+        new_neighbors_dns =  out_q.get()
+        new_neighbors_all = out_q.get()
         '''
         total_calculated_vals[(time_interval_length, '')], list_of_concrete_container_exfil_paths, list_of_exfil_amts,\
         new_neighbors_outside, new_neighbors_dns, new_neighbors_all = simplified_graph_metrics.calc_subset_graph_metrics(interval_to_filenames[str(time_interval_length)],
