@@ -478,9 +478,15 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
             print "feature_df_path", alert_file + sub_path + str(interval) + '.csv'
             time_gran_to_feature_dataframe[interval] = pd.read_csv(alert_file + sub_path + str(interval) + '.csv', na_values='?')
             time_gran_to_attack_labels[interval] = time_gran_to_feature_dataframe[interval]['labels']
-            time_gran_to_new_neighbors_outside[interval] = time_gran_to_feature_dataframe[interval]['new_neighbors_outside']
-            time_gran_to_new_neighbors_dns[interval] = time_gran_to_feature_dataframe[interval]['new_neighbors_dns']
-            time_gran_to_new_neighbors_all[interval] = time_gran_to_feature_dataframe[interval]['new_neighbors_all']
+            try:
+                time_gran_to_new_neighbors_outside[interval] = time_gran_to_feature_dataframe[interval]['new_neighbors_outside']
+                time_gran_to_new_neighbors_dns[interval] = time_gran_to_feature_dataframe[interval]['new_neighbors_dns']
+                time_gran_to_new_neighbors_all[interval] = time_gran_to_feature_dataframe[interval]['new_neighbors_all']
+            except:
+                time_gran_to_new_neighbors_outside[interval] = [[] for i in range(0,len(time_gran_to_attack_labels[interval]))]
+                time_gran_to_new_neighbors_dns[interval] = [[] for i in range(0,len(time_gran_to_attack_labels[interval]))]
+                time_gran_to_new_neighbors_all[interval] = [[] for i in range(0,len(time_gran_to_attack_labels[interval]))]
+
             time_gran_to_synthetic_exfil_paths_series[interval] = time_gran_to_feature_dataframe[interval]['exfil_path']
             ##recover time_gran_to_list_of_concrete_exfil_paths, time_gran_to_list_of_exfil_amts
             time_gran_to_list_of_concrete_exfil_paths[interval] = time_gran_to_feature_dataframe[interval]['concrete_exfil_path']
@@ -505,12 +511,23 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
             del feature_dataframe['exfil_pkts']
             del feature_dataframe['concrete_exfil_path']
             del feature_dataframe['is_test']
-            del feature_dataframe['new_neighbors_dns']
-            del feature_dataframe['new_neighbors_all']
-            del feature_dataframe['new_neighbors_outside']
         except:
             pass
 
+        try:
+            time_gran_to_feature_dataframe[time_gran] =  time_gran_to_feature_dataframe[time_gran].drop(columns=[u'new_neighbors_dns'])
+        except:
+            pass
+        try:
+            time_gran_to_feature_dataframe[time_gran] = time_gran_to_feature_dataframe[time_gran].drop(columns=[u'new_neighbors_all '])
+        except:
+            pass
+        try:
+            time_gran_to_feature_dataframe [time_gran]= time_gran_to_feature_dataframe[time_gran].drop(columns= [u'new_neighbors_outside'])
+        except:
+            pass
+        print "feature_dataframe_columns", time_gran_to_feature_dataframe[time_gran].columns
+    #exit(322)
 
     time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe = \
         calc_zscores(alert_file, training_window_size, minimum_training_window, sub_path, time_gran_to_attack_labels,
@@ -534,6 +551,10 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
     return_dict['end_of_training'] = end_of_training
     return return_dict
     '''
+    for time_gran, mod_z_score_df in time_gran_to_mod_zscore_df.iteritems():
+        mod_z_score_df['new_neighbors_dns'] = time_gran_to_new_neighbors_dns[time_gran]
+        mod_z_score_df['new_neighbors_all'] = time_gran_to_new_neighbors_all[time_gran]
+        mod_z_score_df['new_neighbors_outside'] = time_gran_to_new_neighbors_outside[time_gran]
 
     return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe_copy, \
            time_gran_to_synthetic_exfil_paths_series, end_of_training
@@ -816,8 +837,10 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         aggregate_mod_score_dfs_testing = aggregate_mod_score_dfs_testing.drop(columns='new_neighbors_outside')
         aggregate_mod_score_dfs_training = aggregate_mod_score_dfs_training.drop(columns='new_neighbors_dns')
         aggregate_mod_score_dfs_testing = aggregate_mod_score_dfs_testing.drop(columns='new_neighbors_dns')
-        aggregate_mod_score_dfs_training = aggregate_mod_score_dfs_training.drop(columns='new_neighbors_all')
-        aggregate_mod_score_dfs_testing = aggregate_mod_score_dfs_testing.drop(columns='new_neighbors_all')
+        aggregate_mod_score_dfs_training = aggregate_mod_score_dfs_training.drop(columns=u'new_neighbors_all')
+        aggregate_mod_score_dfs_testing = aggregate_mod_score_dfs_testing.drop(columns=u'new_neighbors_all')
+        aggregate_mod_score_dfs_training = aggregate_mod_score_dfs_training.drop(columns=u'new_neighbors_all ')
+        aggregate_mod_score_dfs_testing = aggregate_mod_score_dfs_testing.drop(columns=u'new_neighbors_all ')
 
         X_train = aggregate_mod_score_dfs_training.loc[:, aggregate_mod_score_dfs_training.columns != 'labels']
         y_train = aggregate_mod_score_dfs_training.loc[:, aggregate_mod_score_dfs_training.columns == 'labels']
@@ -897,13 +920,15 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         #'''
         print "X_train_columns", X_train.columns, "---"
         try:
+            ## TODO: probably wanna keep the outside_mod_z_score in...
             dropped_feature_list = ['New Class-Class Edges with DNS_mod_z_score',
-                                    'New Class-Class Edges_mod_z_score']
+                                    'New Class-Class Edges_mod_z_score',
+                                    'New Class-Class Edges with Outside_mod_z_score']
             X_train = X_train.drop(columns='New Class-Class Edges with DNS_mod_z_score')
-            #X_train = X_train.drop(columns='New Class-Class Edges with Outside_mod_z_score')
+            X_train = X_train.drop(columns='New Class-Class Edges with Outside_mod_z_score')
             X_train = X_train.drop(columns='New Class-Class Edges_mod_z_score')
             X_test = X_test.drop(columns='New Class-Class Edges with DNS_mod_z_score')
-            #X_test = X_test.drop(columns='New Class-Class Edges with Outside_mod_z_score')
+            X_test = X_test.drop(columns='New Class-Class Edges with Outside_mod_z_score')
             X_test = X_test.drop(columns='New Class-Class Edges_mod_z_score')
         except:
             dropped_feature_list = ['New Class-Class Edges with DNS_', 'New Class-Class Edges with Outside_',
@@ -984,6 +1009,8 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         #clf = RidgeCV(cv=10) ## TODO TODO TODO <<-- instead of having choosing the alpha be magic, let's use cross validation to choose it instead...
         #alpha = 5 # note: not used unless the line underneath is un-commented...
         #clf=Lasso(alpha=alpha)
+        print X_train.dtypes
+        print y_train
         clf.fit(X_train, y_train)
         score_val = clf.score(X_test, y_test)
         print "score_val", score_val

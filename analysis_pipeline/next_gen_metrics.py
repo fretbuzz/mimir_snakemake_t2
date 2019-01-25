@@ -64,8 +64,9 @@ def calc_neighbor_metric(list_of_neigh_dicts, size_of_training_window, which_nod
     #print "list_of_neigh_dicts", list_of_neigh_dicts
     for i in range(0, size_of_training_window):
         training_window_neigh_dict = psudeo_merge_neigh_dicts(list_of_neigh_dicts[i], training_window_neigh_dict)
+
     list_of_new_neighbors = [float('nan') for i in range(0,size_of_training_window)]
-    list_of_negihbor_identities = []
+    list_of_negihbor_identities = [[] for i in range(0,size_of_training_window)]
     for i in range(size_of_training_window, len(list_of_neigh_dicts)):
         if which_nodes == 'all':
             #print list_of_neigh_dicts[i]

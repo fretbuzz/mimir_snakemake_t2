@@ -79,6 +79,7 @@ def calc_modified_z_score(time_series, window_size, min_training_window):
         next_val = time_series[i]
 
         # now let's actually calculate the modified z-score
+        print "training_window",training_window
         median = np.nanmedian(training_window)
         # MAD = mean absolute deviation
         MAD = np.nanmedian([np.abs(val - median) for val in training_window])
@@ -281,6 +282,11 @@ def save_feature_datafames(time_gran_to_feature_dataframe, csv_path, time_gran_t
         feature_dataframe['concrete_exfil_path'] = pandas.Series(time_gran_to_list_of_concrete_exfil_paths[time_gran], index=feature_dataframe.index)
         feature_dataframe['exfil_weight'] = pandas.Series([i['weight'] for i in time_gran_to_list_of_exfil_amts[time_gran]], index=feature_dataframe.index)
         feature_dataframe['exfil_pkts'] = pandas.Series([i['frames'] for i in time_gran_to_list_of_exfil_amts[time_gran]], index=feature_dataframe.index)
+
+
+        print time_gran_to_new_neighbors_outside[time_gran]
+        print time_gran_to_new_neighbors_dns[time_gran]
+        print time_gran_to_new_neighbors_dns[time_gran]
         feature_dataframe['new_neighbors_outside'] = pandas.Series(time_gran_to_new_neighbors_outside[time_gran], index=feature_dataframe.index)
         feature_dataframe['new_neighbors_dns'] = pandas.Series(time_gran_to_new_neighbors_dns[time_gran], index=feature_dataframe.index)
         feature_dataframe['new_neighbors_all ']= pandas.Series(time_gran_to_new_neighbors_all[time_gran], index=feature_dataframe.index)
@@ -357,6 +363,7 @@ def calc_time_gran_to_mod_zscore_dfs(time_gran_to_feature_dataframe, training_wi
             current_metric_time_series_list = current_metric_time_series.tolist()
             if 'ratio' in col:
                 current_metric_time_series_list = [i if i else float('nan') for i in current_metric_time_series_list]
+            print "current_col", col
             current_col_mod_z_scores = calc_modified_z_score(current_metric_time_series_list, training_window_size, mod_min_training_window)
             df_mod_zscore[col + 'mod_z_score'] = current_col_mod_z_scores
         time_gran_mod_z_score_dataframe[time_interval] = df_mod_zscore
