@@ -402,7 +402,7 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
         calculated_values['into_dns_eigenval_angles12'] = into_dns_eigenval_angles12
         calculated_values['sum_of_max_pod_to_dns_from_each_svc'] = sum_of_max_pod_to_dns_from_each_svc
         calculated_values['outside_to_sum_of_max_pod_to_dns_from_each_svc_ratio'] = outside_to_sum_of_max_pod_to_dns_from_each_svc_ratio
-        #'''
+        '''
         #calculated_values['max_ewma_control_chart_scores'] = list_of_max_ewma_control_chart_scores
         #'''
         #print "ide_angles", ide_angles_results

@@ -202,14 +202,14 @@ def prepare_graph(G, svcs, level_of_processing, is_swarm, counter, file_path, ms
         #containers_to_ms = map_nodes_to_svcs(G, svcs + infra_service)
         #nx.set_node_attributes(G, containers_to_ms, 'svc')
 
-        if counter < 50:  # keep # of network graphs to a reasonable amount
+        if counter < 85:  # keep # of network graphs to a reasonable amount
             filename = file_path.replace('.txt', '') + '_app_only_network_graph_container.png'
             make_network_graph(induced_graph, edge_label_p=True, filename=filename, figsize=(54, 32), node_color_p=False,
                                ms_s=ms_s)
         return induced_graph
     elif level_of_processing == 'class':
         aggreg_multi_G, aggreg_simple_G = aggregate_graph(G, ms_s)# + infra_service)
-        if counter < 50:
+        if counter < 85:
             filename = file_path.replace('.txt', '') + '_network_graph_class.png'
             make_network_graph(aggreg_simple_G, edge_label_p=True, filename=filename, figsize=(16, 10),
                                node_color_p=False,

@@ -15,7 +15,7 @@ import random
 import math
 import pandas as pd
 import time
-#from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split
 from sklearn.model_selection import KFold, cross_validate
 from sklearn.linear_model import LassoCV, Lasso, RidgeCV, Ridge, ElasticNetCV
 import sklearn
@@ -767,15 +767,18 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
 
             aggregate_mod_score_dfs_training = aggregate_mod_score_dfs[aggregate_mod_score_dfs['is_test'] == 0]
             aggregate_mod_score_dfs_testing = aggregate_mod_score_dfs[aggregate_mod_score_dfs['is_test'] == 1]
+            time_gran_to_debugging_csv[time_gran] = aggregate_mod_score_dfs.copy(deep=True)
+
         else:
             ## note: generally you'd want to split into test and train sets, but if we're not doing logic
             ## part anyway, we just want quick-and-dirty results, so don't bother (note: so for formal purposes,
             ## DO NOT USE WITHOUT LOGIC CHECKING OR SOLVE THE TRAINING-TESTING split problem)
-            aggregate_mod_score_dfs_training = aggregate_mod_score_dfs
-            aggregate_mod_score_dfs_testing = aggregate_mod_score_dfs
+            aggregate_mod_score_dfs_training, aggregate_mod_score_dfs_testing = train_test_split(aggregate_mod_score_dfs, test_size=0.5)
+            #aggregate_mod_score_dfs_training = aggregate_mod_score_dfs
+            #aggregate_mod_score_dfs_testing = aggregate_mod_score_dfs
+            time_gran_to_debugging_csv[time_gran] = aggregate_mod_score_dfs_training.copy(deep=True).append(aggregate_mod_score_dfs_testing.copy(deep=True))
 
-        time_gran_to_debugging_csv[time_gran] = copy.deepcopy(aggregate_mod_score_dfs)
-
+        #time_gran_to_debugging_csv[time_gran] = copy.deepcopy(aggregate_mod_score_dfs)
 
         X_train = aggregate_mod_score_dfs_training.loc[:, aggregate_mod_score_dfs_training.columns != 'labels']
         y_train = aggregate_mod_score_dfs_training.loc[:, aggregate_mod_score_dfs_training.columns == 'labels']
@@ -852,19 +855,21 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         ## TODO: might to put these back in...
         dropped_feature_list = []
 
-        '''
+        #'''
+        print "X_train_columns", X_train.columns, "---"
         try:
-            dropped_feature_list = ['New Class-Class Edges with DNS_mod_z_score', 'New Class-Class Edges with Outside_mod_z_score',
+            dropped_feature_list = ['New Class-Class Edges with DNS_mod_z_score',
                                     'New Class-Class Edges_mod_z_score']
             X_train = X_train.drop(columns='New Class-Class Edges with DNS_mod_z_score')
-            X_train = X_train.drop(columns='New Class-Class Edges with Outside_mod_z_score')
+            #X_train = X_train.drop(columns='New Class-Class Edges with Outside_mod_z_score')
             X_train = X_train.drop(columns='New Class-Class Edges_mod_z_score')
             X_test = X_test.drop(columns='New Class-Class Edges with DNS_mod_z_score')
-            X_test = X_test.drop(columns='New Class-Class Edges with Outside_mod_z_score')
+            #X_test = X_test.drop(columns='New Class-Class Edges with Outside_mod_z_score')
             X_test = X_test.drop(columns='New Class-Class Edges_mod_z_score')
         except:
             dropped_feature_list = ['New Class-Class Edges with DNS_', 'New Class-Class Edges with Outside_',
                                     'New Class-Class Edges_']
+            print "X_train_columns",X_train.columns, "---"
             X_train = X_train.drop(columns='New Class-Class Edges with DNS_')
             X_train = X_train.drop(columns='New Class-Class Edges with Outside_')
             X_train = X_train.drop(columns='New Class-Class Edges_')
@@ -875,7 +880,7 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
 
         print '-------'
         print type(X_train)
-        print X_train.columns.values
+        print "X_train_columns_values", X_train.columns.values
         ###exit(344) ### TODO TODO TODO <<<----- remove!!!
 
         print "columns", X_train.columns
@@ -893,8 +898,20 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         X_test = X_test.fillna(X_train.median())
         print "X_train_median", X_train.median()
 
+        print X_train
+        #exit(233)
+        pre_drop_X_train = X_train.copy(deep=True)
         X_train = X_train.dropna(axis=1)
+        print X_train
+        #exit(233)
+
+        dropped_columns = list(pre_drop_X_train.columns.difference(X_train.columns))
+        print "dropped_columns", dropped_columns
+        #exit(233)
+        #dropped_columns=[]
+
         X_test = X_test.dropna(axis=1)
+
         print "columns", X_train.columns
         print "columns", X_test.columns
 
@@ -949,7 +966,8 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         if not skip_model_part:
             time_gran_to_debugging_csv[time_gran].loc[:, "aggreg_anom_score"] = np.concatenate([train_predictions, test_predictions])
         else:
-            time_gran_to_debugging_csv[time_gran].loc[:, "aggreg_anom_score"] = test_predictions
+            #time_gran_to_debugging_csv[time_gran].loc[:, "aggreg_anom_score"] = test_predictions
+            time_gran_to_debugging_csv[time_gran].loc[:, "aggreg_anom_score"] = np.concatenate([train_predictions, test_predictions])
 
         print "len(clf.coef_)", len(clf.coef_), "len(X_train_columns)", len(X_train_columns), "time_gran", time_gran, \
             "len(X_test_columns)", len(X_test_columns), X_train.shape, X_test.shape
@@ -962,10 +980,12 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
             exit(888)
         for coef, feat in zip(clf.coef_, X_train_columns):
             coef_dict[feat] = coef
+        print "COEFS_HERE"
         print "intercept...", clf.intercept_
         coef_dict['intercept'] = clf.intercept_
         for coef,feature in coef_dict.iteritems():
             print coef,feature
+        #exit(233) ## TODO REMOVE!!!!
 
         #print "COEF_DICT", coef_dict
 
@@ -1066,7 +1086,9 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
                 time_gran_to_debugging_csv[time_gran].loc[:, "anom_val_at_opt_pt"] = \
                     np.concatenate([optimal_train_predictions, optimal_predictions])
             else:
-                time_gran_to_debugging_csv[time_gran].loc[:, "anom_val_at_opt_pt"] = optimal_predictions
+                #time_gran_to_debugging_csv[time_gran].loc[:, "anom_val_at_opt_pt"] = optimal_predictions
+                time_gran_to_debugging_csv[time_gran].loc[:, "anom_val_at_opt_pt"] = \
+                    np.concatenate([optimal_train_predictions, optimal_predictions])
 
             # I don't want the attributes w/ zero coefficients to show up in the debugging csv b/c it makes it hard to read
             ## TODO
@@ -1074,9 +1096,15 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
                 print "coef_check", coef, not coef, feature
                 if not coef:
                     print "just_dropped", feature
-                    time_gran_to_debugging_csv[time_gran] = time_gran_to_debugging_csv[time_gran].drop([feature],axis=1)
-            for dropped_feature in dropped_feature_list:
-                time_gran_to_debugging_csv[time_gran] = time_gran_to_debugging_csv[time_gran].drop([dropped_feature], axis=1)
+                    try:
+                        time_gran_to_debugging_csv[time_gran] = time_gran_to_debugging_csv[time_gran].drop([feature],axis=1)
+                    except:
+                        pass
+                for dropped_feature in dropped_feature_list + dropped_columns:
+                    try:
+                        time_gran_to_debugging_csv[time_gran] = time_gran_to_debugging_csv[time_gran].drop([dropped_feature], axis=1)
+                    except:
+                        pass
 
             time_gran_to_debugging_csv[time_gran].to_csv(base_output_name + 'DEBUGGING_modz_feat_df_at_time_gran_of_'+\
                                                          str(time_gran) + '_sec.csv', na_rep='?')
