@@ -3,6 +3,8 @@ import datetime
 import pandas as pd
 import pdfkit
 import subprocess
+import os
+
 
 #####
 ## NOTE: this portion of the code is heavily influenced by:
@@ -12,7 +14,8 @@ import subprocess
 def generate_report(list_of_rocs, list_of_feat_coef, list_of_attacks_found_dfs, recipes_used,
                     output_location, time_grans, list_of_model_parameters, list_of_optimal_fone_scores,
                     starts_of_testing_df, path_occurence_training_df, path_occurence_testing_df,
-                    percent_attacks, list_of_attacks_found_training_df, percent_attacks_training):
+                    percent_attacks, list_of_attacks_found_training_df, percent_attacks_training,
+                    feature_activation_heatmaps, feature_raw_heatmaps):
     # setup jinga and the associated template
     env = Environment(
         loader=FileSystemLoader(searchpath="src")
@@ -37,7 +40,9 @@ def generate_report(list_of_rocs, list_of_feat_coef, list_of_attacks_found_dfs, 
             optimal_fOne = list_of_optimal_fone_scores[i],
             percent_attacks = percent_attacks[i],
             attacks_found_training = list_of_attacks_found_training_df[i].to_html(),
-            percent_attacks_training = percent_attacks_training[i]
+            percent_attacks_training = percent_attacks_training[i],
+            feature_activation_heatmap = feature_activation_heatmaps[i],
+            feature_raw_heatmap = feature_raw_heatmaps[i]
         ))
     '''
     sections.append(table_section_template.render(
@@ -80,7 +85,10 @@ def generate_report(list_of_rocs, list_of_feat_coef, list_of_attacks_found_dfs, 
             sections=sections
         ))
 
-    pdfkit.from_file("mulval_inouts/report.html", output_location + "_report.pdf")
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    #print "dir_path", dir_path
+    config = pdfkit.configuration(wkhtmltopdf="/usr/local/bin/wkhtmltopdf")## TODO
+    pdfkit.from_file("mulval_inouts/report.html", output_location + "_report.pdf", configuration=config)
     out = subprocess.check_output(['open', output_location + "_report.pdf"])
     print out
 

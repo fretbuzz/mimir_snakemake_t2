@@ -1462,7 +1462,7 @@ def multi_experiment_wordpress_recipe():
     goal_attack_NoAttack_split = 0.5
     training_window_size = 200
     size_of_neighbor_training_window = 200
-    calc_vals = True
+    calc_vals = False
     function_list = [process_wordpress6_rep3, process_wordpress6_rep4, process_wordpress7_rep2, process_wordpress7_rep3,
                      process_wordpress8_rep_2, process_wordpress8_rep_3]
     skip_model_part = False

@@ -35,6 +35,7 @@ import operator
 import copy
 import multiprocessing
 from sklearn.ensemble import RandomForestClassifier
+import generate_heatmap
 
 def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms_s, basegraph_name, calc_vals, window_size,
                                 mapping, is_swarm, make_net_graphs_p, list_of_infra_services,synthetic_exfil_paths,
@@ -781,6 +782,8 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
     list_of_attacks_found_dfs = []
     list_of_attacks_found_training_df = []
     list_of_optimal_fone_scores = []
+    feature_activation_heatmaps = []
+    feature_raw_heatmaps = []
     for time_gran,aggregate_mod_score_dfs in time_gran_to_aggregate_mod_score_dfs.iteritems():
         # drop columns with all identical values b/c they are useless and too many of them makes LASSO wierd
         #aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(aggregate_mod_score_dfs.std()[(aggregate_mod_score_dfs.std() == 0)].index, axis=1)
@@ -926,23 +929,30 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
             ## TODO: probably wanna keep the outside_mod_z_score in...
             dropped_feature_list = ['New Class-Class Edges with DNS_mod_z_score',
                                     'New Class-Class Edges_mod_z_score',
-                                    'New Class-Class Edges with Outside_mod_z_score']
+                                    'New Class-Class Edges with Outside_mod_z_score',
+                                    '1-step-induced-pod density_mod_z_score']
             X_train = X_train.drop(columns='New Class-Class Edges with DNS_mod_z_score')
             X_train = X_train.drop(columns='New Class-Class Edges with Outside_mod_z_score')
             X_train = X_train.drop(columns='New Class-Class Edges_mod_z_score')
+            X_train = X_train.drop(columns='1-step-induced-pod density_mod_z_score')
             X_test = X_test.drop(columns='New Class-Class Edges with DNS_mod_z_score')
             X_test = X_test.drop(columns='New Class-Class Edges with Outside_mod_z_score')
             X_test = X_test.drop(columns='New Class-Class Edges_mod_z_score')
+            X_test = X_test.drop(columns='1-step-induced-pod density_mod_z_score')
+
         except:
             dropped_feature_list = ['New Class-Class Edges with DNS_', 'New Class-Class Edges with Outside_',
-                                    'New Class-Class Edges_']
+                                    'New Class-Class Edges_',
+                                    '1-step-induced-pod density_mod_']
             print "X_train_columns",X_train.columns, "---"
             X_train = X_train.drop(columns='New Class-Class Edges with DNS_')
             X_train = X_train.drop(columns='New Class-Class Edges with Outside_')
             X_train = X_train.drop(columns='New Class-Class Edges_')
+            X_train = X_train.drop(columns='1-step-induced-pod density_mod_')
             X_test = X_test.drop(columns='New Class-Class Edges with DNS_')
             X_test = X_test.drop(columns='New Class-Class Edges with Outside_')
             X_test = X_test.drop(columns='New Class-Class Edges_')
+            X_test = X_train.drop(columns='1-step-induced-pod density_mod_')
         #'''
 
         print '-------'
@@ -1059,6 +1069,8 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         #print "COEF_DICT", coef_dict
 
         coef_feature_df = pd.DataFrame.from_dict(coef_dict, orient='index')
+
+        #plt.savefig(local_graph_loc, format='png', dpi=1000)
         #print coef_feature_df.columns.values
         #coef_feature_df.index.name = 'Features'
         coef_feature_df.columns = ['Coefficient']
@@ -1089,6 +1101,18 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         time_gran_to_model[time_gran] = clf
         ##print "time_gran", time_gran, "scores", scores
         '''
+
+        current_heatmap_val_path = base_output_name + 'coef_val_heatmap_' + str(time_gran) + '.png'
+        local_heatmap_val_path = 'temp_outputs/heatmap_coef_val_at_' +  str(time_gran) + '.png'
+        current_heatmap_path = base_output_name + 'coef_act_heatmap_' + str(time_gran) + '.png'
+        local_heatmap_path = 'temp_outputs/heatmap_coef_contribs_at_' +  str(time_gran) + '.png'
+        coef_impact_df, raw_feature_val_df = generate_heatmap.generate_covariate_heatmap(coef_dict, X_test, exfil_paths)
+        generate_heatmap.generate_heatmap(coef_impact_df, local_heatmap_path, current_heatmap_path)
+        generate_heatmap.generate_heatmap(raw_feature_val_df, local_heatmap_val_path, current_heatmap_val_path)
+        feature_activation_heatmaps.append('../' + local_heatmap_path)
+        feature_raw_heatmaps.append('../' + local_heatmap_val_path)
+        print coef_impact_df
+        #exit(233)
 
         ### step (3)
         ## use the generate sklearn model to create the detection ROC
@@ -1190,7 +1214,7 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
                                     recipes_used, base_output_name, time_grans, list_of_model_parameters,
                                     list_of_optimal_fone_scores, starts_of_testing_df, path_occurence_training_df,
                                     path_occurence_testing_df, percent_attacks, list_of_attacks_found_training_df,
-                                    list_percent_attacks_training)
+                                    list_percent_attacks_training, feature_activation_heatmaps, feature_raw_heatmaps)
 
     print "multi_experiment_pipeline is all done! (NO ERROR DURING RUNNING)"
     #print "recall that this was the list of alert percentiles", percentile_thresholds
@@ -1347,6 +1371,9 @@ def generate_exfil_path_occurence_df(list_of_time_gran_to_mod_zscore_df, experim
     for time_gran_to_mod_zscore_df in list_of_time_gran_to_mod_zscore_df:
         print time_gran_to_mod_zscore_df.keys()
         min_time_gran = min(time_gran_to_mod_zscore_df.keys())
+        print time_gran_to_mod_zscore_df[min_time_gran]
+        print time_gran_to_mod_zscore_df[min_time_gran]['exfil_path']
+        print time_gran_to_mod_zscore_df[min_time_gran]['exfil_path'].value_counts()
         logical_exfil_paths_freq = time_gran_to_mod_zscore_df[min_time_gran]['exfil_path'].value_counts().to_dict()
         for path, occur in logical_exfil_paths_freq.iteritems():
             logical_exfil_paths_freq[path] = occur * min_time_gran
