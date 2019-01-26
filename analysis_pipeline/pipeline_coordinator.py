@@ -572,7 +572,7 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
 # temporally before the physical attack starts) and the goal percentage of split that we are aiming for.
 # I think we're going to aim for the desired split in each experiment, but we WON'T try  to compensate
 # not meeting one experiment's goal by modifying how we handle another experiment.
-def determine_injection_times(exps_info, goal_train_test_split, goal_attack_NoAttack_split):
+def determine_injection_times(exps_info, goal_train_test_split, goal_attack_NoAttack_split, ignore_physical_attacks_p):
     #time_splits = []
     exp_injection_info = []
     end_of_train_portions = []
@@ -587,10 +587,13 @@ def determine_injection_times(exps_info, goal_train_test_split, goal_attack_NoAt
         ## now to find how much time to spending injecting during training and testing...
         ## okay, let's do testing first b/c it should be relatively straightforward...
         testing_time = exp_info['total_experiment_length'] - time_split
-        physical_attack_time = exp_info['exfil_end_time'] - exp_info['exfil_start_time']
-        testing_time_without_physical_attack = testing_time - physical_attack_time ## <<-- used to use this to calc testing_time_for_attack_injection
-        ## but switched it later on b/c you get a (fairly big) label imbalance
-        testing_time_for_attack_injection = physical_attack_time * goal_attack_NoAttack_split
+        if ignore_physical_attacks_p:
+            physical_attack_time = 0
+        else:
+            physical_attack_time = exp_info['exfil_end_time'] - exp_info['exfil_start_time']
+        #testing_time_without_physical_attack = testing_time - physical_attack_time
+        testing_time_for_attack_injection = testing_time * goal_attack_NoAttack_split
+        testing_time_for_attack_injection = max(testing_time_for_attack_injection - physical_attack_time,0)
 
         # now let's find the time to inject during training... this'll be a percentage of the time between
         # system startup and the training/testing split point...
@@ -607,7 +610,7 @@ def determine_injection_times(exps_info, goal_train_test_split, goal_attack_NoAt
 # the injected synthetic attacks
 def multi_experiment_pipeline(function_list_exp_info, function_list, base_output_name, ROC_curve_p, time_each_synthetic_exfil,
                               goal_train_test_split, goal_attack_NoAttack_split, training_window_size,
-                              size_of_neighbor_training_window, calc_vals, skip_model_part):
+                              size_of_neighbor_training_window, calc_vals, skip_model_part, ignore_physical_attacks_p):
     ### Okay, so what is needed here??? We need, like, a list of sets of input (appropriate for run_data_analysis_pipeline),
     ### followed by the LASSO stuff, and finally the ROC stuff... okay, let's do this!!!
 
@@ -636,7 +639,7 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
 
         training_exfil_paths, testing_exfil_paths, end_of_train_portions = assign_exfil_paths_to_experiments(exp_infos, goal_train_test_split,
                                                                                       goal_attack_NoAttack_split,time_each_synthetic_exfil,
-                                                                                      exps_exfil_paths)
+                                                                                      exps_exfil_paths, ignore_physical_attacks_p)
         print "end_of_train_portions", end_of_train_portions
         possible_exps_exfil_paths = []
         for exp_exfil_paths in exps_exfil_paths:
@@ -771,37 +774,43 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
     statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p,
                                          base_output_name + 'lasso_mod_z_',
                                          names, starts_of_testing, path_occurence_training_df,
-                                         path_occurence_testing_df, recipes_used, skip_model_part, clf)
+                                         path_occurence_testing_df, recipes_used, skip_model_part, clf,
+                                         ignore_physical_attacks_p)
 
     statistically_analyze_graph_features(time_gran_to_aggreg_feature_dfs, ROC_curve_p, base_output_name + 'lasso_raw_',
                                          names, starts_of_testing, path_occurence_training_df,
-                                         path_occurence_testing_df, recipes_used, skip_model_part, clf)
+                                         path_occurence_testing_df, recipes_used, skip_model_part, clf,
+                                         ignore_physical_attacks_p)
     #'''
     '''
     clf = LogisticRegressionCV(penalty="l2", cv=3, max_iter=10000)
     statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p,
                                          base_output_name + 'logistic_l2_mod_z_',
                                          names, starts_of_testing, path_occurence_training_df,
-                                         path_occurence_testing_df, recipes_used, skip_model_part, clf)
+                                         path_occurence_testing_df, recipes_used, skip_model_part, clf,
+                                         ignore_physical_attacks_p)
 
     statistically_analyze_graph_features(time_gran_to_aggreg_feature_dfs, ROC_curve_p, base_output_name + 'logistic_l2_raw_',
                                          names, starts_of_testing, path_occurence_training_df,
-                                         path_occurence_testing_df, recipes_used, skip_model_part, clf)
+                                         path_occurence_testing_df, recipes_used, skip_model_part, clf,
+                                         ignore_physical_attacks_p)
     #'''
     clf = LogisticRegressionCV(penalty="l1", cv=3, max_iter=10000, solver='saga')
     statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p,
                                          base_output_name + 'logistic_l1_mod_z_',
                                          names, starts_of_testing, path_occurence_training_df,
-                                         path_occurence_testing_df, recipes_used, skip_model_part, clf)
+                                         path_occurence_testing_df, recipes_used, skip_model_part, clf,
+                                         ignore_physical_attacks_p)
 
     statistically_analyze_graph_features(time_gran_to_aggreg_feature_dfs, ROC_curve_p,
                                          base_output_name + 'logistic_l1_raw_',
                                          names, starts_of_testing, path_occurence_training_df,
-                                         path_occurence_testing_df, recipes_used, skip_model_part, clf)
+                                         path_occurence_testing_df, recipes_used, skip_model_part, clf,
+                                         ignore_physical_attacks_p)
 
 def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, base_output_name, names,
                                          starts_of_testing, path_occurence_training_df, path_occurence_testing_df,
-                                         recipes_used, skip_model_part, clf):
+                                         recipes_used, skip_model_part, clf, ignore_physical_attacks_p):
     #print time_gran_to_aggregate_mod_score_dfs['60']
     ######### 2a.II. do the actual splitting
     # note: labels have the column name 'labels' (noice)
@@ -855,7 +864,8 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
             ### todo: might wanna remove? might wanna keep? not sure...
             ### todo: drop the test physical attacks from the test sets...
             #'''
-            aggregate_mod_score_dfs = \
+            if ignore_physical_attacks_p:
+                aggregate_mod_score_dfs = \
                 aggregate_mod_score_dfs[~((aggregate_mod_score_dfs['labels'] == 1) &
                                           (aggregate_mod_score_dfs['exfil_pkts'] == 0))]
             #'''
@@ -1321,7 +1331,7 @@ def aggregate_dfs(list_time_gran_to_mod_zscore_df):
 
 # this function determines which experiments should have which synthetic exfil paths injected into them
 def assign_exfil_paths_to_experiments(exp_infos, goal_train_test_split, goal_attack_NoAttack_split,time_each_synthetic_exfil,
-                                      exps_exfil_paths):
+                                      exps_exfil_paths, ignore_physical_attacks_p):
 
     flat_exps_exfil_paths = [tuple(exfil_path) for exp_exfil_paths in exps_exfil_paths for exfil_path in exp_exfil_paths]
     print "flat_exps_exfil_paths",flat_exps_exfil_paths
@@ -1330,7 +1340,7 @@ def assign_exfil_paths_to_experiments(exp_infos, goal_train_test_split, goal_att
     ## now perform the actual assignment portion...
     # first, find the amt of time available for attack injections in each experiments training/testing phase...
     inject_times,end_of_train_portions = determine_injection_times(exp_infos, goal_train_test_split,
-                                                                   goal_attack_NoAttack_split)
+                                                                   goal_attack_NoAttack_split, ignore_physical_attacks_p)
     # second, find how many exfil_paths can be injected into each experiments training/testing
     possible_exfil_path_injections = []
     total_training_injections_possible = 0

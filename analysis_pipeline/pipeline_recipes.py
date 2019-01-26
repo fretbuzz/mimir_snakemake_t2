@@ -1461,11 +1461,12 @@ def multi_experiment_wordpress_recipe():
     goal_train_test_split = 0.6
     goal_attack_NoAttack_split = 0.6
     training_window_size = 200
-    size_of_neighbor_training_window = 200
+    size_of_neighbor_training_window = 0
     calc_vals = False
     function_list = [process_wordpress6_rep3, process_wordpress6_rep4, process_wordpress7_rep2, process_wordpress7_rep3,
                      process_wordpress8_rep_2, process_wordpress8_rep_3]
     skip_model_part = False
+    ignore_physical_attacks_p = True
     ## NOTE: process_wordpress8 could be here too, but I'm for the moment I'm keeping each kind of injected
     ## attack w/ two different experiments in which it occurss...
 
@@ -1475,7 +1476,7 @@ def multi_experiment_wordpress_recipe():
     base_output_location = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_summary/'# + 'lasso_roc'
     multi_experiment_pipeline(function_list_exp_info, function_list, base_output_location, True, time_of_synethic_exfil,
                               goal_train_test_split, goal_attack_NoAttack_split, training_window_size,
-                              size_of_neighbor_training_window, calc_vals, skip_model_part)
+                              size_of_neighbor_training_window, calc_vals, skip_model_part, ignore_physical_attacks_p)
 
 ## TODO TODO TODO TODO
 # this function feeds a set of wordpress experiments into the multi_experiment_pipeline() function found in the
@@ -1485,9 +1486,10 @@ def multi_experiment_sockshop_recipe():
     goal_train_test_split = 0.6
     goal_attack_NoAttack_split = 0.5
     training_window_size = 200
-    size_of_neighbor_training_window = 200
+    size_of_neighbor_training_window = 0
     calc_vals = True#True
     skip_model_part = True #False
+    ignore_physical_attacks_p = False
     ### TODO: can add the other reps of 9,11,12 when I get some time...
     function_list = [process_sockshop9, process_sockshop11, process_sockshop12] ## TODO TODO TODO
 
@@ -1500,7 +1502,7 @@ def multi_experiment_sockshop_recipe():
     base_output_location = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_summary/'# + 'lasso_roc'
     multi_experiment_pipeline(function_list_exp_info, function_list, base_output_location, True, time_of_synethic_exfil,
                               goal_train_test_split, goal_attack_NoAttack_split, training_window_size,
-                              size_of_neighbor_training_window, calc_vals, skip_model_part)
+                              size_of_neighbor_training_window, calc_vals, skip_model_part, ignore_physical_attacks_p)
 
 if __name__=="__main__":
     print "RUNNING"
