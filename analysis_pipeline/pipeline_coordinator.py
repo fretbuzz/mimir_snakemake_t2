@@ -1077,7 +1077,6 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         #'''
 
 
-        list_of_feat_coefs_dfs.append(coef_feature_df)
         print '--------------------------'
 
         model_params = clf.get_params()
@@ -1191,6 +1190,7 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
                     print "just_dropped", feature
                     try:
                         time_gran_to_debugging_csv[time_gran] = time_gran_to_debugging_csv[time_gran].drop([feature],axis=1)
+                        coef_feature_df = coef_feature_df.drop(feature, axis=0)
                     except:
                         pass
                 for dropped_feature in dropped_feature_list + dropped_columns:
@@ -1202,6 +1202,8 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
             time_gran_to_debugging_csv[time_gran].to_csv(base_output_name + 'DEBUGGING_modz_feat_df_at_time_gran_of_'+\
                                                          str(time_gran) + '_sec.csv', na_rep='?')
             print "ide_angles", ide_train, ide_test
+
+        list_of_feat_coefs_dfs.append(coef_feature_df)
 
     starts_of_testing_dict = {}
     for counter,name in enumerate(names):
