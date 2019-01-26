@@ -17,7 +17,7 @@ import pandas as pd
 import time
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import KFold, cross_validate
-from sklearn.linear_model import LassoCV, Lasso, RidgeCV, Ridge, ElasticNetCV
+from sklearn.linear_model import LassoCV, Lasso, RidgeCV, Ridge, ElasticNetCV, LogisticRegressionCV
 import sklearn
 from sklearn import tree
 import logging
@@ -560,6 +560,10 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
         mod_z_score_df['new_neighbors_all'] = time_gran_to_new_neighbors_all[time_gran]
         mod_z_score_df['new_neighbors_outside'] = time_gran_to_new_neighbors_outside[time_gran]
 
+        time_gran_to_feature_dataframe_copy[time_gran]['new_neighbors_dns'] = time_gran_to_new_neighbors_dns[time_gran]
+        time_gran_to_feature_dataframe_copy[time_gran]['new_neighbors_all'] = time_gran_to_new_neighbors_all[time_gran]
+        time_gran_to_feature_dataframe_copy[time_gran]['new_neighbors_outside'] = time_gran_to_new_neighbors_outside[time_gran]
+
     return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe_copy, \
            time_gran_to_synthetic_exfil_paths_series, end_of_training
 
@@ -760,13 +764,33 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
                                          path_occurence_testing_df, recipes_used)
     '''
     #time_gran_to_aggreg_feature_dfs
-    statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, base_output_name,
+    ## okay, so now us the time to get a little tricky with everything... we gotta generate seperate reports for the different
+    ## modls used...
+    clf = LassoCV(cv=3, max_iter=8000)
+    statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p,
+                                         base_output_name + 'lasso_mod_z_',
                                          names, starts_of_testing, path_occurence_training_df,
-                                         path_occurence_testing_df, recipes_used, skip_model_part)
+                                         path_occurence_testing_df, recipes_used, skip_model_part, clf)
+
+    statistically_analyze_graph_features(time_gran_to_aggreg_feature_dfs, ROC_curve_p, base_output_name + 'lasso_raw_',
+                                         names, starts_of_testing, path_occurence_training_df,
+                                         path_occurence_testing_df, recipes_used, skip_model_part, clf)
+
+    '''
+    clf = LogisticRegressionCV(penalty="l1", cv=3)
+    statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p,
+                                         base_output_name + 'logistic_mod_z_',
+                                         names, starts_of_testing, path_occurence_training_df,
+                                         path_occurence_testing_df, recipes_used, skip_model_part, clf)
+
+    statistically_analyze_graph_features(time_gran_to_aggreg_feature_dfs, ROC_curve_p, base_output_name + 'logistic_raw_',
+                                         names, starts_of_testing, path_occurence_training_df,
+                                         path_occurence_testing_df, recipes_used, skip_model_part, clf)
+    '''
 
 def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, base_output_name, names,
                                          starts_of_testing, path_occurence_training_df, path_occurence_testing_df,
-                                         recipes_used, skip_model_part):
+                                         recipes_used, skip_model_part, clf):
     #print time_gran_to_aggregate_mod_score_dfs['60']
     ######### 2a.II. do the actual splitting
     # note: labels have the column name 'labels' (noice)
@@ -943,16 +967,16 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         except:
             dropped_feature_list = ['New Class-Class Edges with DNS_', 'New Class-Class Edges with Outside_',
                                     'New Class-Class Edges_',
-                                    '1-step-induced-pod density_mod_']
+                                    '1-step-induced-pod density_']
             print "X_train_columns",X_train.columns, "---"
             X_train = X_train.drop(columns='New Class-Class Edges with DNS_')
             X_train = X_train.drop(columns='New Class-Class Edges with Outside_')
             X_train = X_train.drop(columns='New Class-Class Edges_')
-            X_train = X_train.drop(columns='1-step-induced-pod density_mod_')
+            X_train = X_train.drop(columns='1-step-induced-pod density_')
             X_test = X_test.drop(columns='New Class-Class Edges with DNS_')
             X_test = X_test.drop(columns='New Class-Class Edges with Outside_')
             X_test = X_test.drop(columns='New Class-Class Edges_')
-            X_test = X_train.drop(columns='1-step-induced-pod density_mod_')
+            X_test = X_test.drop(columns='1-step-induced-pod density_')
         #'''
 
         print '-------'
@@ -1018,7 +1042,6 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         #clf = clf.fit(X_train, y_train)
 
         #clf = ElasticNetCV(l1_ratio=1.0)
-        clf = LassoCV(cv=3, max_iter=8000) ## TODO TODO TODO <<-- instead of having choosing the alpha be magic, let's use cross validation to choose it instead...
         #clf = RidgeCV(cv=10) ## TODO TODO TODO <<-- instead of having choosing the alpha be magic, let's use cross validation to choose it instead...
         #alpha = 5 # note: not used unless the line underneath is un-commented...
         #clf=Lasso(alpha=alpha)
