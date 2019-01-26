@@ -1359,6 +1359,59 @@ def process_sockshop9_rep2(time_of_synethic_exfil=None,only_exp_info=False, init
     #'''
     return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val, fifth_val
 
+## sockshop experiment 9_rep2 (an hour of scaled-up activity w/ exfil along normal path)
+def process_sockshop9_rep2(time_of_synethic_exfil=None,only_exp_info=False, initiator_info_for_paths=None,
+                             portion_for_training=None,training_window_size=None, size_of_neighbor_training_window=None,
+                             synthetic_exfil_paths_train=None,
+                             synthetic_exfil_paths_test=None, calc_vals=False,skip_model_part=False):
+    #calc_vals=False
+
+    ## sockshop experiment 9 (an hour of scaled-up activity w/ exfil along normal path)
+    pcap_paths = ["/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/sockshop_nine_rep2_default_bridge_0any.pcap"]
+    is_swarm = 0
+    basefile_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/edgefiles/sockshop_nine_rep2_'
+    basegraph_name = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/graphs/sockshop_nine_rep2_'
+    container_info_path = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/sockshop_nine_rep2_docker_0_network_configs.txt'
+    kubernetes_svc_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/sockshop_nine_rep2_svc_config_0.txt'
+    kubernetes_pod_info = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/sockshop_nine_rep2_pod_config_0.txt'
+    time_interval_lengths = [30, 10]#,
+    ms_s = microservices_sockshop
+    make_edgefiles = False
+    start_time = None
+    end_time = None
+    exfil_start_time = 2100
+    exfil_end_time = 3000
+    window_size = 6
+    graph_p = False # should I make graphs?
+    colors = ['b', 'r']
+    percentile_thresholds = [30, 40, 50, 60, 70, 75, 85, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100]
+    anomaly_window = [1, 4]
+    anom_num_outlier_vals_in_window = [1, 2] # note: these vals correspond to anoamly_window (so the first vals get matched, etc.)
+    alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/alerts/sockshop_nine_rep2_'
+    wiggle_room = 2 # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
+    sec_between_exfil_events = 1
+    physical_exfil_path = ['user-db', 'user', 'front-end', 'internet']
+    #physical_exfil_path = ['user-db', 'user', 'internet']
+    time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val, fifth_val = \
+        run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
+                               make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
+                               wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,
+                               graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info, rdpcap_p=False,
+                               kubernetes_pod_info=kubernetes_pod_info, alert_file=alert_file, ROC_curve_p=True,
+                               calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events,
+                               injected_exfil_path=physical_exfil_path, only_exp_info=only_exp_info,
+                               time_of_synethic_exfil=time_of_synethic_exfil,
+                               initiator_info_for_paths=initiator_info_for_paths,
+                               end_of_training=portion_for_training,
+                               training_window_size=training_window_size,
+                               size_of_neighbor_training_window=size_of_neighbor_training_window,
+                               synthetic_exfil_paths_train=synthetic_exfil_paths_train,
+                               synthetic_exfil_paths_test=synthetic_exfil_paths_test,
+                                   skip_model_part=skip_model_part)
+    #'''
+    return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val, fifth_val
+
+
 ## sockshop experiment 11 (an hour of scaled-up activity w/ exfil NOT on normal path)
 def process_sockshop11(time_of_synethic_exfil=None,only_exp_info=False, initiator_info_for_paths=None,
                              portion_for_training=None,training_window_size=None, size_of_neighbor_training_window=None,

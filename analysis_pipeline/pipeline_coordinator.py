@@ -81,13 +81,13 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
             target=simplified_graph_metrics.calc_subset_graph_metrics,
             args=args)
         p.start()
-        p.join()
         total_calculated_vals[(time_interval_length, '')] = out_q.get()
         list_of_concrete_container_exfil_paths = out_q.get()
         list_of_exfil_amts = out_q.get()
         new_neighbors_outside =  out_q.get()
         new_neighbors_dns =  out_q.get()
         new_neighbors_all = out_q.get()
+        p.join()
         '''
         total_calculated_vals[(time_interval_length, '')], list_of_concrete_container_exfil_paths, list_of_exfil_amts,\
         new_neighbors_outside, new_neighbors_dns, new_neighbors_all = simplified_graph_metrics.calc_subset_graph_metrics(interval_to_filenames[str(time_interval_length)],
@@ -99,6 +99,7 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
                                                                fraction_of_edge_weights, fraction_of_edge_pkts,
                                                                int(size_of_neighbor_training_window/time_interval_length))
         #'''
+        print "process returned!"
         time_gran_to_list_of_concrete_exfil_paths[time_interval_length] = list_of_concrete_container_exfil_paths
         time_gran_to_list_of_exfil_amts[time_interval_length] = list_of_exfil_amts
         time_gran_to_new_neighbors_outside[time_interval_length] = new_neighbors_outside

@@ -357,6 +357,8 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
 
         into_dns_eigenval_angles12 = change_point_detection(dns_in_metric_dicts, window_size*2, current_total_node_list)
         into_dns_eigenval_angles12 = into_dns_eigenval_angles12[0:len(into_dns_eigenval_angles)]
+
+        print "simplified_graph_metrics_all_vals_calculated"
         #'''
         calculated_values = {}
         #'''
@@ -442,7 +444,9 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
     #return calculated_values, list_of_concrete_container_exfil_paths, list_of_exfil_amts,\
     #        new_neighbors_outside,new_neighbors_dns,new_neighbors_all
     #, injected_filenames
-
+    print "simplified_graph_metrics_about_to_reteurn"
+    print out_q
+    return
 
 def inject_synthetic_attacks(graph, synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
                              node_granularity, time_granularity,graph_number, attack_number_to_mapping,
