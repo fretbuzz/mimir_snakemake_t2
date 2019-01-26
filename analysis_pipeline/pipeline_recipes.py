@@ -1459,7 +1459,7 @@ def run_analysis_pipeline_recipes_json(json_file, path_to_experimental_data):
 def multi_experiment_wordpress_recipe():
     time_of_synethic_exfil = 30 # sec
     goal_train_test_split = 0.6
-    goal_attack_NoAttack_split = 0.5
+    goal_attack_NoAttack_split = 0.6
     training_window_size = 200
     size_of_neighbor_training_window = 200
     calc_vals = False

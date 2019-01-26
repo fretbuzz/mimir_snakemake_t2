@@ -34,7 +34,7 @@ def generate_covariate_heatmap(coef_dict, X_test, exfil_type_series):
 
 def generate_heatmap(coef_impact_df, path, non_local_path):
     fig = plt.figure(figsize=(35,35))
-    sns_plot = sns.heatmap(coef_impact_df)#,linewidths=.5)
+    sns_plot = sns.heatmap(coef_impact_df, robust=True, annot=True)#,linewidths=.5)
     ax = fig.add_subplot(sns_plot)
     labels = coef_impact_df.index.values
     labels = ['\n'.join(wrap(l, 30)) for l in labels]

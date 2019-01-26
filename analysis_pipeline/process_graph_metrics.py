@@ -97,7 +97,7 @@ def calc_modified_z_score(time_series, window_size, min_training_window):
                 next_modified_z_score = float('inf')
         next_modified_z_score = abs(next_modified_z_score) ## TODO: remove???
         ## behavior is funny if there are inf's so, let's put an upper bound of 1000
-        next_modified_z_score = min(next_modified_z_score, 1000)
+        next_modified_z_score = min(next_modified_z_score, 10000)
         logging.info("median, " + str(median) +", MAD, " + str(MAD) +", next_modified_z_score, " + str(next_modified_z_score) +
                      ", val" + str(next_val) + ' ' + str(type(median)) + ' ' + str(type(MAD)) + ' ' + str(type(next_val)))
         modified_z_scores.append(next_modified_z_score)

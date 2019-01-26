@@ -766,6 +766,7 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
     #time_gran_to_aggreg_feature_dfs
     ## okay, so now us the time to get a little tricky with everything... we gotta generate seperate reports for the different
     ## modls used...
+    '''
     clf = LassoCV(cv=3, max_iter=8000)
     statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p,
                                          base_output_name + 'lasso_mod_z_',
@@ -775,18 +776,28 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
     statistically_analyze_graph_features(time_gran_to_aggreg_feature_dfs, ROC_curve_p, base_output_name + 'lasso_raw_',
                                          names, starts_of_testing, path_occurence_training_df,
                                          path_occurence_testing_df, recipes_used, skip_model_part, clf)
-
+    #'''
     '''
-    clf = LogisticRegressionCV(penalty="l1", cv=3)
+    clf = LogisticRegressionCV(penalty="l2", cv=3, max_iter=10000)
     statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p,
-                                         base_output_name + 'logistic_mod_z_',
+                                         base_output_name + 'logistic_l2_mod_z_',
                                          names, starts_of_testing, path_occurence_training_df,
                                          path_occurence_testing_df, recipes_used, skip_model_part, clf)
 
-    statistically_analyze_graph_features(time_gran_to_aggreg_feature_dfs, ROC_curve_p, base_output_name + 'logistic_raw_',
+    statistically_analyze_graph_features(time_gran_to_aggreg_feature_dfs, ROC_curve_p, base_output_name + 'logistic_l2_raw_',
                                          names, starts_of_testing, path_occurence_training_df,
                                          path_occurence_testing_df, recipes_used, skip_model_part, clf)
-    '''
+    #'''
+    clf = LogisticRegressionCV(penalty="l1", cv=3, max_iter=10000, solver='saga')
+    statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p,
+                                         base_output_name + 'logistic_l1_mod_z_',
+                                         names, starts_of_testing, path_occurence_training_df,
+                                         path_occurence_testing_df, recipes_used, skip_model_part, clf)
+
+    statistically_analyze_graph_features(time_gran_to_aggreg_feature_dfs, ROC_curve_p,
+                                         base_output_name + 'logistic_l1_raw_',
+                                         names, starts_of_testing, path_occurence_training_df,
+                                         path_occurence_testing_df, recipes_used, skip_model_part, clf)
 
 def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, base_output_name, names,
                                          starts_of_testing, path_occurence_training_df, path_occurence_testing_df,
@@ -808,6 +819,8 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
     list_of_optimal_fone_scores = []
     feature_activation_heatmaps = []
     feature_raw_heatmaps = []
+    ideal_thresholds = []
+    feature_activation_heatmaps_training, feature_raw_heatmaps_training = [], []
     for time_gran,aggregate_mod_score_dfs in time_gran_to_aggregate_mod_score_dfs.iteritems():
         # drop columns with all identical values b/c they are useless and too many of them makes LASSO wierd
         #aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(aggregate_mod_score_dfs.std()[(aggregate_mod_score_dfs.std() == 0)].index, axis=1)
@@ -1073,14 +1086,20 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
 
         print "len(clf.coef_)", len(clf.coef_), "len(X_train_columns)", len(X_train_columns), "time_gran", time_gran, \
             "len(X_test_columns)", len(X_test_columns), X_train.shape, X_test.shape
-        if len(clf.coef_) != (len(X_train_columns)): # there is no plus one b/c the intercept is stored in clf.intercept_
+
+        if 'logistic' in base_output_name:
+            model_coefs = clf.coef_[0]
+        else:
+            model_coefs = clf.coef_
+
+        if len(model_coefs) != (len(X_train_columns)): # there is no plus one b/c the intercept is stored in clf.intercept_
             print "coef_ is different length than X_train_columns!", X_train_columns
             for  counter,i in enumerate(X_train_dtypes):
                 print counter,i, X_train_columns[counter]
-                print clf.coef_#[counter]
-                print len(clf.coef_)
+                print model_coefs#[counter]
+                print len(model_coefs)
             exit(888)
-        for coef, feat in zip(clf.coef_, X_train_columns):
+        for coef, feat in zip(model_coefs, X_train_columns):
             coef_dict[feat] = coef
         print "COEFS_HERE"
         print "intercept...", clf.intercept_
@@ -1109,7 +1128,8 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
             try:
                 model_params['alpha_val'] = alpha
             except:
-                tree.export_graphviz(clf,out_file = 'tree.dot')
+                pass
+                #tree.export_graphviz(clf,out_file = 'tree.dot')
                 #pass
         list_of_model_parameters.append(model_params)
         '''
@@ -1135,6 +1155,16 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         feature_raw_heatmaps.append('../' + local_heatmap_val_path)
         print coef_impact_df
         #exit(233)
+
+        current_heatmap_raw_val_path_training = base_output_name + 'training_raw_val_heatmap_' + str(time_gran) + '.png'
+        local_heatmap_raw_val_path_training = 'temp_outputs/training_heatmap_raw_val_at_' +  str(time_gran) + '.png'
+        current_heatmap_path_training = base_output_name + 'training_coef_act_heatmap_' + str(time_gran) + '.png'
+        local_heatmap_path_training = 'temp_outputs/training_heatmap_coef_contribs_at_' +  str(time_gran) + '.png'
+        coef_impact_df, raw_feature_val_df = generate_heatmap.generate_covariate_heatmap(coef_dict, X_train, exfil_paths_train)
+        generate_heatmap.generate_heatmap(coef_impact_df, local_heatmap_path_training, current_heatmap_path_training)
+        generate_heatmap.generate_heatmap(raw_feature_val_df, local_heatmap_raw_val_path_training, current_heatmap_raw_val_path_training)
+        feature_activation_heatmaps_training.append('../' + local_heatmap_path_training)
+        feature_raw_heatmaps_training.append('../' + local_heatmap_raw_val_path_training)
 
         ### step (3)
         ## use the generate sklearn model to create the detection ROC
@@ -1177,6 +1207,7 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
             ### determination of the optimal operating point goes here (take all the thresh vals and predictions,
             ### find the corresponding f1 scores (using sklearn func), and then return the best.
             optimal_f1_score, optimal_thresh = process_roc.determine_optimal_threshold(y_test, test_predictions, thresholds)
+            ideal_thresholds.append(optimal_thresh)
             print "optimal_f1_score", optimal_f1_score, "optimal_thresh",optimal_thresh
             list_of_optimal_fone_scores.append(optimal_f1_score)
             ### get confusion matrix... take predictions from classifer. THreshold
@@ -1239,7 +1270,8 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
                                     recipes_used, base_output_name, time_grans, list_of_model_parameters,
                                     list_of_optimal_fone_scores, starts_of_testing_df, path_occurence_training_df,
                                     path_occurence_testing_df, percent_attacks, list_of_attacks_found_training_df,
-                                    list_percent_attacks_training, feature_activation_heatmaps, feature_raw_heatmaps)
+                                    list_percent_attacks_training, feature_activation_heatmaps, feature_raw_heatmaps,
+                                    ideal_thresholds, feature_activation_heatmaps_training, feature_raw_heatmaps_training)
 
     print "multi_experiment_pipeline is all done! (NO ERROR DURING RUNNING)"
     #print "recall that this was the list of alert percentiles", percentile_thresholds
