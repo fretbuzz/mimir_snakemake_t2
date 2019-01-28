@@ -197,6 +197,7 @@ def exfil_time_valid(potential_starting_point, time_slots_attack, attack_labels)
 def assign_attacks_to_first_available_spots(time_gran_to_attack_labels, largest_time_gran, time_periods_startup, time_periods_attack,
                                             counter, time_gran_to_attack_ranges, synthetic_exfil_paths, current_exfil_paths):
     for synthetic_exfil_path in synthetic_exfil_paths:
+        print synthetic_exfil_path, synthetic_exfil_path in current_exfil_paths
         if synthetic_exfil_path in current_exfil_paths:
             # randomly choose ranges using highest granularity (then after this we'll choose for the smaller granularities...)
             attack_spot_found = False
@@ -224,10 +225,10 @@ def assign_attacks_to_first_available_spots(time_gran_to_attack_labels, largest_
                         time_gran_to_attack_labels[largest_time_gran][i] = 1
                 #print "this starting point failed", potential_starting_point
                 counter += 1
-            else:
-                ### by making these two points the same, this value will be 'passed over' by the other functions...
-                potential_starting_point = int(time_periods_startup + counter)
-                time_gran_to_attack_ranges[largest_time_gran].append((potential_starting_point,potential_starting_point))
+        else:
+            ### by making these two points the same, this value will be 'passed over' by the other functions...
+            potential_starting_point = int(time_periods_startup + counter)
+            time_gran_to_attack_ranges[largest_time_gran].append((potential_starting_point,potential_starting_point))
     return time_gran_to_attack_labels, time_gran_to_attack_ranges
 
 ##### the goal needs to be some mapping of times to attacks to time (ranges) + updated attack labels
@@ -431,6 +432,9 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
             if path not in synthetic_exfil_paths:
                 synthetic_exfil_paths.append(path)
 
+        print "synthetic_exfil_paths_train",synthetic_exfil_paths_train
+        print "synthetic_exfil_paths_test",synthetic_exfil_paths_test
+        print "synthetic_exfil_paths",synthetic_exfil_paths
         time_gran_to_attack_labels, time_gran_to_attack_ranges, time_gran_to_physical_attack_ranges = \
             determine_attacks_to_times(time_gran_to_attack_labels, synthetic_exfil_paths, time_of_synethic_exfil=time_of_synethic_exfil,
                                        min_starting=system_startup_time, end_of_train=end_of_training,
@@ -447,7 +451,7 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
         print "time_gran_to_synthetic_exfil_paths_series", time_gran_to_synthetic_exfil_paths_series
         #time.sleep(50)
 
-        #####exit(200) ## TODO ::: <<<---- remove!!
+        #exit(200) ## TODO ::: <<<---- remove!!
         # OKAY, let's verify that this determine_attacks_to_times function is wokring before moving on to the next one...
         total_calculated_vals, time_gran_to_list_of_concrete_exfil_paths, time_gran_to_list_of_exfil_amts, \
         time_gran_to_new_neighbors_outside, time_gran_to_new_neighbors_dns, time_gran_to_new_neighbors_all = \
@@ -650,7 +654,13 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
         print "possible_exps_exfil_paths:"
         for possible_exp_exfil_path in possible_exps_exfil_paths:
             print possible_exp_exfil_path
-        ###### exit(122) ### TODO::: <--- remove!!!
+        print "training_exfil_paths:"
+        for cur_training_exfil_paths in training_exfil_paths:
+            print cur_training_exfil_paths
+        print "testing_exfil_paths:"
+        for cur_testing_exfil_paths in testing_exfil_paths:
+            print cur_testing_exfil_paths
+        #exit(122) ### TODO::: <--- remove!!!
 
     else:
         exps_exfil_paths = []
