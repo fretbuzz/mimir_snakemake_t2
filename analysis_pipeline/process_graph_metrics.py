@@ -79,7 +79,7 @@ def calc_modified_z_score(time_series, window_size, min_training_window):
         next_val = time_series[i]
 
         # now let's actually calculate the modified z-score
-        print "training_window",training_window
+        print "training_window",training_window, type(training_window[0])
         median = np.nanmedian(training_window)
         # MAD = mean absolute deviation
         MAD = np.nanmedian([np.abs(val - median) for val in training_window])
@@ -274,6 +274,18 @@ def save_feature_datafames(time_gran_to_feature_dataframe, csv_path, time_gran_t
     for time_gran, feature_dataframe in time_gran_to_feature_dataframe.iteritems():
         attack_labels = time_gran_to_attack_labels[time_gran]
         #print "feature_dataframe",feature_dataframe,feature_dataframe.index
+
+        print time_gran_to_new_neighbors_outside[time_gran]
+        print time_gran_to_new_neighbors_dns[time_gran]
+        print time_gran_to_new_neighbors_dns[time_gran]
+        feature_dataframe['new_neighbors_outside'] = pandas.Series(time_gran_to_new_neighbors_outside[time_gran], index=feature_dataframe.index)
+        feature_dataframe['new_neighbors_dns'] = pandas.Series(time_gran_to_new_neighbors_dns[time_gran], index=feature_dataframe.index)
+        feature_dataframe['new_neighbors_all ']= pandas.Series(time_gran_to_new_neighbors_all[time_gran], index=feature_dataframe.index)
+
+        # make sure there's no stupid complex numbers here...
+        for column in feature_dataframe:
+            feature_dataframe[column] = feature_dataframe[column].apply(lambda x: np.real(x))
+
         #print "attack_labels",attack_labels, len(attack_labels), "time_gran", time_gran
         feature_dataframe['labels'] = pandas.Series(attack_labels, index=feature_dataframe.index)
         print "time_gran_to_synthetic_exfil_paths_series[time_gran]", time_gran_to_synthetic_exfil_paths_series[time_gran]
@@ -283,14 +295,6 @@ def save_feature_datafames(time_gran_to_feature_dataframe, csv_path, time_gran_t
         feature_dataframe['exfil_weight'] = pandas.Series([i['weight'] for i in time_gran_to_list_of_exfil_amts[time_gran]], index=feature_dataframe.index)
         feature_dataframe['exfil_pkts'] = pandas.Series([i['frames'] for i in time_gran_to_list_of_exfil_amts[time_gran]], index=feature_dataframe.index)
 
-
-        print time_gran_to_new_neighbors_outside[time_gran]
-        print time_gran_to_new_neighbors_dns[time_gran]
-        print time_gran_to_new_neighbors_dns[time_gran]
-        feature_dataframe['new_neighbors_outside'] = pandas.Series(time_gran_to_new_neighbors_outside[time_gran], index=feature_dataframe.index)
-        feature_dataframe['new_neighbors_dns'] = pandas.Series(time_gran_to_new_neighbors_dns[time_gran], index=feature_dataframe.index)
-        feature_dataframe['new_neighbors_all ']= pandas.Series(time_gran_to_new_neighbors_all[time_gran], index=feature_dataframe.index)
-
         print "feature_dataframe", feature_dataframe
 
         ### now let's store an indicator of when the training set ends... end_of_training indicates the first member
@@ -299,6 +303,7 @@ def save_feature_datafames(time_gran_to_feature_dataframe, csv_path, time_gran_t
                            [1 for i in range(end_of_training/time_gran, len(feature_dataframe.index))]
         test_period_series = pandas.Series(test_period_list, index=feature_dataframe.index)
         feature_dataframe['is_test'] = test_period_series
+
 
         feature_dataframe.to_csv(csv_path + str(time_gran) + '.csv', na_rep='?')
 

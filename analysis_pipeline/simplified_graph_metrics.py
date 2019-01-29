@@ -420,9 +420,11 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
             spamwriter = csv.writer(csvfile, delimiter=',',
                                     quotechar='|', quoting=csv.QUOTE_MINIMAL)
             for value_name, value in calculated_values.iteritems():
+                print value_name,value
                 spamwriter.writerow([value_name, [i if not math.isnan(i) else (None) for i in value]])
     else:
         calculated_values = {}
+        #print "incoming_read_values:"
         with open(basegraph_name + '_processed_vales_' + 'subset' + '_' + '%.2f' % (time_interval) + '.txt',
                   'r') as csvfile:
             csvread = csv.reader(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)

@@ -486,6 +486,8 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
             print "time_interval_lengths",time_interval_lengths, "interval", interval
             print "feature_df_path", alert_file + sub_path + str(interval) + '.csv'
             time_gran_to_feature_dataframe[interval] = pd.read_csv(alert_file + sub_path + str(interval) + '.csv', na_values='?')
+            #time_gran_to_feature_dataframe[interval] = time_gran_to_feature_dataframe[interval].apply(lambda x: np.real(x))
+            print "dtypes_of_df", time_gran_to_feature_dataframe[interval].dtypes
             time_gran_to_attack_labels[interval] = time_gran_to_feature_dataframe[interval]['labels']
             try:
                 time_gran_to_new_neighbors_outside[interval] = time_gran_to_feature_dataframe[interval]['new_neighbors_outside']

@@ -541,8 +541,8 @@ def change_point_detection(tensor, window_size, nodes_in_tensor):
                 break
 
         #print "eigenvectors", eigen_vects
-        print "principal eigenvector", eigen_vects[largest_mag_eigenvalue_index]
-        correlation_matrix_eigenvectors.append(eigen_vects[largest_mag_eigenvalue_index])
+        print "principal eigenvector", eigen_vects.T[largest_mag_eigenvalue_index]
+        correlation_matrix_eigenvectors.append(eigen_vects.T[largest_mag_eigenvalue_index])
 
     #for correlation_matrix in correlation_matrices:
     #    print correlation_matrix.values, '\n'
@@ -555,7 +555,6 @@ def change_point_detection(tensor, window_size, nodes_in_tensor):
 
     return angles
 
-## TODO TODO TODO TODO TODO TODO TODO TODO TODO
 # from : https://www.andrew.cmu.edu/user/lakoglu/pubs/EVENTDETECTION_AkogluFaloutsos.pdf
 # returns list of angles (of size len(tensor)). Note:
 # i have decided to append window_size 'nans' to the front of the list of
@@ -611,7 +610,7 @@ def ide_angles(tensor, window_size, nodes_in_tensor):
     #for i in range(0, window_size): # first window_size values becomes one value, hence want to add bakc window_size -1 vals
     #    angles.insert(0, float('nan'))
 
-    return angles, adjacency_matrix_eigenvectors
+    return angles#, adjacency_matrix_eigenvectors
 
 
 def graph_distance(starting_point, ending_point, dictionary_of_edge_attribs):

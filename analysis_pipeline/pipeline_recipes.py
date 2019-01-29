@@ -1646,7 +1646,7 @@ def multi_experiment_sockshop_recipe():
     training_window_size = 200
     size_of_neighbor_training_window = 0
     calc_vals = True#True
-    skip_model_part = True #False
+    skip_model_part = False
     ignore_physical_attacks_p = False
     ### TODO: can add the other reps of 9,11,12 when I get some time...
     #function_list = [process_sockshop9, process_sockshop9_rep2, process_sockshop11, process_sockshop11_rep2,

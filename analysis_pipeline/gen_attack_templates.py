@@ -3,6 +3,8 @@ import networkx as nx
 import os
 import matplotlib.pyplot as plt
 from networkx.drawing.nx_agraph import graphviz_layout
+import time
+import os
 
 def run_mulval():
     client = docker.from_env()
@@ -204,6 +206,11 @@ def post_process_mulval_result(sensitive_node):
     pos = graphviz_layout(G)
     nx.draw_networkx(G, pos, with_labels=True, arrows=True)
     #plt.show() ## todo: remove!!! <---- <---- <----
+    plt.draw()
+    plt.savefig('./propogation_graph.png')
+    print os.getcwd()
+    print G.number_of_nodes()
+    #time.sleep(34)
 
     # okay, so let's generate all the paths using this...
     paths=[]
