@@ -121,6 +121,7 @@ def calc_zscores(alert_file, training_window_size, minimum_training_window,
 
     mod_z_score_df_basefile_name = alert_file + 'mod_z_score_' + sub_path
     z_score_df_basefile_name = alert_file + 'norm_z_score_' + sub_path
+    robustScaler_df_basefile_name = alert_file + 'robustScaler_score_' + sub_path
 
     if calc_zscore_p:
         time_gran_to_mod_zscore_df = process_graph_metrics.calc_time_gran_to_mod_zscore_dfs(time_gran_to_feature_dataframe,
@@ -144,23 +145,48 @@ def calc_zscores(alert_file, training_window_size, minimum_training_window,
                                                      time_gran_to_list_of_exfil_amts, end_of_training,
                                                      time_gran_to_new_neighbors_outside, time_gran_to_new_neighbors_dns,
                                                      time_gran_to_new_neighbors_all)
+
+        '''
+        time_gran_to_RobustScaler_df = process_graph_metrics.calc_time_gran_to_robustScaker_dfs(time_gran_to_feature_dataframe, training_window_size)
+
+        process_graph_metrics.save_feature_datafames(time_gran_to_RobustScaler_df, robustScaler_df_basefile_name,
+                                                     time_gran_to_attack_labels, time_gran_to_synthetic_exfil_paths_series,
+                                                     time_gran_to_list_of_concrete_exfil_paths,
+                                                     time_gran_to_list_of_exfil_amts, end_of_training,
+                                                     time_gran_to_new_neighbors_outside, time_gran_to_new_neighbors_dns,
+                                                     time_gran_to_new_neighbors_all)
+        '''
     else:
         time_gran_to_zscore_dataframe = {}
         time_gran_to_mod_zscore_df = {}
+        #time_gran_to_RobustScaler_df = {}
         for interval in time_gran_to_feature_dataframe.keys():
             time_gran_to_zscore_dataframe[interval] = pd.read_csv(z_score_df_basefile_name + str(interval) + '.csv', na_values='?')
             time_gran_to_mod_zscore_df[interval] = pd.read_csv(mod_z_score_df_basefile_name + str(interval) + '.csv', na_values='?')
+            #time_gran_to_RobustScaler_df[interval] = pd.read_csv(robustScaler_df_basefile_name + str(interval) + '.csv', na_values='?')
+
             try:
                 del time_gran_to_zscore_dataframe[interval]['exfil_path']
                 del time_gran_to_mod_zscore_df[interval]['exfil_path']
+
                 del time_gran_to_zscore_dataframe[interval]['concrete_exfil_path']
                 del time_gran_to_mod_zscore_df[interval]['concrete_exfil_path']
+
                 del time_gran_to_zscore_dataframe[interval]['exfil_weight']
                 del time_gran_to_mod_zscore_df[interval]['exfil_weight']
+
+
                 del time_gran_to_zscore_dataframe[interval]['exfil_pkts']
                 del time_gran_to_mod_zscore_df[interval]['exfil_pkts']
+
                 del time_gran_to_zscore_dataframe[interval]['is_test']
                 del time_gran_to_mod_zscore_df[interval]['is_test']
+
+                #def time_gran_to_RobustScaler_df[interval]['exfil_path']
+                #del time_gran_to_RobustScaler_df[interval]['concrete_exfil_path']
+                #del time_gran_to_RobustScaler_df[interval]['exfil_weight']
+                #del time_gran_to_RobustScaler_df[interval]['exfil_pkts']
+                #del time_gran_to_RobustScaler_df[interval]['is_test']
 
                 ''' # we'll drop these in the other part of the program...
                 del time_gran_to_mod_zscore_df[interval]['new_neighbors_dns']
@@ -174,7 +200,8 @@ def calc_zscores(alert_file, training_window_size, minimum_training_window,
             except:
                 pass
 
-    return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe
+    return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, None# time_gran_to_RobustScaler_df # todo<-- put back
+    #return time_gran_to_RobustScaler_df, time_gran_to_zscore_dataframe, time_gran_to_RobustScaler_df
 
 def generate_rocs(time_gran_to_anom_score_df, alert_file, sub_path):
     for time_gran, df_with_anom_features in time_gran_to_anom_score_df.iteritems():
@@ -347,7 +374,7 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
                                end_of_training=None, injected_exfil_path='None', only_exp_info=False,
                                initiator_info_for_paths=None,
                                synthetic_exfil_paths_train=None, synthetic_exfil_paths_test=None,
-                               skip_model_part=False):
+                               skip_model_part=False, max_number_of_paths=None, netsec_policy=None):
 
     print "log file can be found at: " + str(basefile_name) + '_logfile.log'
     logging.basicConfig(filename=basefile_name + '_logfile.log', level=logging.INFO)
@@ -377,7 +404,11 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
                 sensitive_ms = ms
             if 'my-release' in ms:
                 sensitive_ms = ms
-        synthetic_exfil_paths, initiator_info_for_paths = gen_attack_templates.generate_synthetic_attack_templates(mapping, ms_s, sensitive_ms)
+        ## TODO: modify generate_synthetic_attack_templates to only return a set number of paths to return
+        #max_number_of_paths = None ## TODO
+        netsec_policy = gen_attack_templates.parse_netsec_policy(netsec_policy)
+        synthetic_exfil_paths, initiator_info_for_paths = gen_attack_templates.generate_synthetic_attack_templates(mapping, ms_s, sensitive_ms,
+                                                                                                                   max_number_of_paths, netsec_policy)
         return synthetic_exfil_paths, initiator_info_for_paths, None, None,None
 
     system_startup_time = training_window_size+size_of_neighbor_training_window
@@ -540,7 +571,7 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
         print "feature_dataframe_columns", time_gran_to_feature_dataframe[time_gran].columns
     #exit(322)
 
-    time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe = \
+    time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_RobustScaler_df = \
         calc_zscores(alert_file, training_window_size, minimum_training_window, sub_path, time_gran_to_attack_labels,
                      time_gran_to_feature_dataframe, calc_zscore_p, time_gran_to_synthetic_exfil_paths_series,
                      time_gran_to_list_of_concrete_exfil_paths, time_gran_to_list_of_exfil_amts, end_of_training,
@@ -638,9 +669,16 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
         ## this'll require passing a parameter to the single-experiment pipeline and then getting the set of paths
         exps_exfil_paths = []
         exps_initiator_info = []
+        total_training_injections_possible, total_testing_injections_possible, _, _ = \
+            determine_injection_amnts(exp_infos, goal_train_test_split, goal_attack_NoAttack_split,
+                                      ignore_physical_attacks_p,
+                                      time_each_synthetic_exfil, float("inf"))
+        max_number_of_paths = min(total_training_injections_possible, total_testing_injections_possible)
         for func in function_list:
+            print "func", func
             synthetic_exfil_paths, initiator_info_for_paths, _, _,_ = func(time_of_synethic_exfil=time_each_synthetic_exfil,
-                                                                           calc_vals=calc_vals)
+                                                                           calc_vals=calc_vals,max_number_of_paths=max_number_of_paths)
+            max_number_of_paths = None
             exps_exfil_paths.append(synthetic_exfil_paths)
             exps_initiator_info.append(initiator_info_for_paths)
 
@@ -662,7 +700,7 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
         print "testing_exfil_paths:"
         for cur_testing_exfil_paths in testing_exfil_paths:
             print cur_testing_exfil_paths
-        #exit(122) ### TODO::: <--- remove!!!
+        exit(122) ### TODO::: <--- remove!!!
 
     else:
         exps_exfil_paths = []
@@ -867,7 +905,7 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
             pass
         try:
 
-            aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='Unnamed: 0') # might wanna just stop these from being generaetd
+            aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='Unnamed: 0mod_z_score') # might wanna just stop these from being generaetd
         except:
             pass
 
@@ -1350,21 +1388,11 @@ def assign_exfil_paths_to_experiments(exp_infos, goal_train_test_split, goal_att
     print "flat_exps_exfil_paths",flat_exps_exfil_paths
     possible_exfil_paths = list(set(flat_exps_exfil_paths))
 
-    ## now perform the actual assignment portion...
-    # first, find the amt of time available for attack injections in each experiments training/testing phase...
-    inject_times,end_of_train_portions = determine_injection_times(exp_infos, goal_train_test_split,
-                                                                   goal_attack_NoAttack_split, ignore_physical_attacks_p)
-    # second, find how many exfil_paths can be injected into each experiments training/testing
-    possible_exfil_path_injections = []
-    total_training_injections_possible = 0
-    total_testing_injections_possible = 0
-    for inject_time in inject_times:
-        training_exfil_path_injections = min(math.floor(inject_time['training'] / time_each_synthetic_exfil),possible_exfil_paths)
-        total_training_injections_possible += training_exfil_path_injections
-        testing_exfil_path_injections = min(math.floor(inject_time['testing'] /  time_each_synthetic_exfil),possible_exfil_paths)
-        total_testing_injections_possible += testing_exfil_path_injections
-        possible_exfil_path_injections.append({"testing": testing_exfil_path_injections,
-                                               "training": training_exfil_path_injections})
+    total_training_injections_possible,total_testing_injections_possible,possible_exfil_path_injections,end_of_train_portions = \
+        determine_injection_amnts(exp_infos, goal_train_test_split, goal_attack_NoAttack_split,
+                                  ignore_physical_attacks_p,
+                                  time_each_synthetic_exfil, possible_exfil_paths)
+
     exfil_path_to_occurences = {}
     for possible_exfil_path in possible_exfil_paths:
         exfil_path_to_occurences[tuple(possible_exfil_path)] = flat_exps_exfil_paths.count(tuple(possible_exfil_path))
@@ -1453,8 +1481,11 @@ def generate_exfil_path_occurence_df(list_of_time_gran_to_mod_zscore_df, experim
         min_time_gran = min(time_gran_to_mod_zscore_df.keys())
         print time_gran_to_mod_zscore_df[min_time_gran]
         print time_gran_to_mod_zscore_df[min_time_gran]['exfil_path']
+        print time_gran_to_mod_zscore_df[min_time_gran]['exfil_path']
+        print time_gran_to_mod_zscore_df[min_time_gran]['exfil_path'].values
         print time_gran_to_mod_zscore_df[min_time_gran]['exfil_path'].value_counts()
         logical_exfil_paths_freq = time_gran_to_mod_zscore_df[min_time_gran]['exfil_path'].value_counts().to_dict()
+        #exit(233)
         for path, occur in logical_exfil_paths_freq.iteritems():
             logical_exfil_paths_freq[path] = occur * min_time_gran
         experiments_to_exfil_path_time_dicts.append(logical_exfil_paths_freq)
@@ -1467,6 +1498,25 @@ def generate_time_gran_sub_dataframes(time_gran_to_df_dataframe, column_name, co
         sub_dataframe = dataframe[dataframe[column_name] == column_value]
         time_gran_to_sub_dataframe[time_gran] = sub_dataframe
     return time_gran_to_sub_dataframe
+
+def determine_injection_amnts(exp_infos, goal_train_test_split, goal_attack_NoAttack_split, ignore_physical_attacks_p,
+                              time_each_synthetic_exfil, possible_exfil_paths):
+    ## now perform the actual assignment portion...
+    # first, find the amt of time available for attack injections in each experiments training/testing phase...
+    inject_times,end_of_train_portions = determine_injection_times(exp_infos, goal_train_test_split,
+                                                                   goal_attack_NoAttack_split, ignore_physical_attacks_p)
+    # second, find how many exfil_paths can be injected into each experiments training/testing
+    possible_exfil_path_injections = []
+    total_training_injections_possible = 0
+    total_testing_injections_possible = 0
+    for inject_time in inject_times:
+        training_exfil_path_injections = min(math.floor(inject_time['training'] / time_each_synthetic_exfil),possible_exfil_paths)
+        total_training_injections_possible += training_exfil_path_injections
+        testing_exfil_path_injections = min(math.floor(inject_time['testing'] /  time_each_synthetic_exfil),possible_exfil_paths)
+        total_testing_injections_possible += testing_exfil_path_injections
+        possible_exfil_path_injections.append({"testing": testing_exfil_path_injections,
+                                               "training": training_exfil_path_injections})
+    return total_training_injections_possible,total_testing_injections_possible,possible_exfil_path_injections,end_of_train_portions
 
 if __name__ == "__main__":
     time_gran_to_attack_labels = {1: [0, 0, 1, 1, 0, 0, 0, 0, 0, 0], 2: [0, 1, 0, 0, 0]}

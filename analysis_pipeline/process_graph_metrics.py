@@ -7,6 +7,7 @@ import pandas
 import time
 import scipy.stats
 import logging
+from sklearn.preprocessing import RobustScaler
 
 # TODO: NOTE: I'm 90% sure that this function is wrong...
 # exfil_rate used to determine if there should be a gap between exfil labels
@@ -65,7 +66,7 @@ def generate_time_gran_to_attack_labels(time_interval_lengths, exfil_start, exfi
         time_gran_to_attack_lables[time_gran] = attack_labels
     return time_gran_to_attack_lables
 
-def calc_modified_z_score(time_series, window_size, min_training_window):
+def calc_modified_z_score(time_series, window_size, min_training_window, upper_limit, abs_val_p):
     logging.info("---- new call for calc_modified_z_score -----")
     if len(time_series) < min_training_window:
         return [float('nan') for i in range(0,len(time_series))]
@@ -95,13 +96,76 @@ def calc_modified_z_score(time_series, window_size, min_training_window):
                 next_modified_z_score = 0.0
             else:
                 next_modified_z_score = float('inf')
-        next_modified_z_score = abs(next_modified_z_score) ## TODO: remove???
+        if abs_val_p:
+            next_modified_z_score = abs(next_modified_z_score)  ## TODO: remove???
+            if upper_limit:
+                next_modified_z_score = min(next_modified_z_score, upper_limit)  ## TODO: mess w/ the upper limit??
+        else:
+            if upper_limit:
+                next_modified_z_score = min(next_modified_z_score, upper_limit)  ## TODO: mess w/ the upper limit??
+                next_modified_z_score = max(next_modified_z_score, -upper_limit)  ## TODO: mess w/ the upper limit??
+
         ## behavior is funny if there are inf's so, let's put an upper bound of 1000
-        next_modified_z_score = min(next_modified_z_score, 10000)
         logging.info("median, " + str(median) +", MAD, " + str(MAD) +", next_modified_z_score, " + str(next_modified_z_score) +
                      ", val" + str(next_val) + ' ' + str(type(median)) + ' ' + str(type(MAD)) + ' ' + str(type(next_val)))
         modified_z_scores.append(next_modified_z_score)
     #time.sleep(2)
+    return modified_z_scores
+
+def calc_RobustScaler_scores(time_series, window_size, min_training_window, upper_limit, abs_val_p):
+    logging.info("---- new call for calc_RobustScaler_scores -----")
+    if len(time_series) < min_training_window:
+        return [float('nan') for i in range(0,len(time_series))]
+    RobustScaler_scores = [float('nan') for i in range(0,min_training_window)]
+
+    for i in range(min_training_window, len(time_series)):
+        start_training_window = max(0, i - window_size)
+        training_window = time_series[start_training_window:i]
+        next_val = time_series[i]
+
+        transformer = RobustScaler().fit([training_window])
+        next_robustScaler_score = transformer.transform([next_val])[0]
+
+        if abs_val_p:
+            next_robustScaler_score = abs(next_robustScaler_score)  ## TODO: remove???
+            if upper_limit:
+                next_robustScaler_score = min(next_robustScaler_score, upper_limit)  ## TODO: mess w/ the upper limit??
+        else:
+            if upper_limit:
+                next_robustScaler_score = min(next_robustScaler_score, upper_limit)  ## TODO: mess w/ the upper limit??
+                next_robustScaler_score = max(next_robustScaler_score, -upper_limit)  ## TODO: mess w/ the upper limit??
+        ## behavior is funny if there are inf's so, let's put an upper bound of 1000
+        #logging.info("median, " + str(median) +", MAD, " + str(MAD) +", next_modified_z_score, " + str(next_modified_z_score) +
+        #             ", val" + str(next_val) + ' ' + str(type(median)) + ' ' + str(type(MAD)) + ' ' + str(type(next_val)))
+        RobustScaler_scores.append(next_robustScaler_score)
+    #time.sleep(2)
+    return RobustScaler_scores
+
+def calc_modified_z_score_whole_window(time_series, upper_limit, abs_val_p):
+    modified_z_scores = []
+    median = np.nanmedian(time_series)
+    MAD = np.nanmedian([np.abs(val - median) for val in time_series])
+    for next_val in time_series:
+        if MAD:
+            print next_val, type(next_val), median, type(median)
+            next_modified_z_score = 0.6754 * (next_val - median) / MAD
+            #print "No ZeroDivisionError!"
+        else:
+            #print "ZeroDivisionError!"
+            if str(next_val) == 'nan':
+                next_modified_z_score = float('nan')
+            elif (next_val - median) == 0:
+                next_modified_z_score = 0.0
+            else:
+                next_modified_z_score = float('inf')
+        if abs_val_p:
+            next_modified_z_score = abs(next_modified_z_score) ## TODO: remove???
+        ## behavior is funny if there are inf's so, let's put an upper bound of 1000
+        if upper_limit:
+            next_modified_z_score = min(next_modified_z_score, upper_limit) ## TODO: mess w/ the upper limit??
+        logging.info("median, " + str(median) +", MAD, " + str(MAD) +", next_modified_z_score, " + str(next_modified_z_score) +
+                     ", val" + str(next_val) + ' ' + str(type(median)) + ' ' + str(type(MAD)) + ' ' + str(type(next_val)))
+        modified_z_scores.append(next_modified_z_score)
     return modified_z_scores
 
 def z_score(time_series, window_size, min_training_window):
@@ -126,6 +190,7 @@ def z_score(time_series, window_size, min_training_window):
         z_scores.append(next_z_score)
     return z_scores
 
+'''
 def calculate_modified_z_scores_of_grap_metrics(calculated_vals, label, minimum_training_window, training_window_size,
                                                 time_gran_to_list_of_anom_metrics_applied, time_gran_to_list_of_anom_value,
                                                 list_of_anom_metrics_applied, list_of_anom_values):
@@ -145,12 +210,13 @@ def calculate_modified_z_scores_of_grap_metrics(calculated_vals, label, minimum_
             'nan')
         modified_min_z_score_training_window = number_nans_in_this_time_series + minimum_training_window
 
+        upper_limit, abs_val_p = 100, False
         # for the VIP metric, we only want to look at the non-zero values...
-        if 'VIP' in current_metric_name:
-            current_metric_time_series = [h if h else float('nan') for h in current_metric_time_series]
-
+        #if 'VIP' in current_metric_name:
+        #    current_metric_time_series = [h if h else float('nan') for h in current_metric_time_series]
         modified_z_scorese = calc_modified_z_score(current_metric_time_series, sigma_window_size,
-                                                   modified_min_z_score_training_window)
+                                                   modified_min_z_score_training_window,
+                                                   upper_limit, abs_val_p)
         list_of_anom_metrics_applied.append(current_metric_name + str(sigma_window_size) + '_' + \
                                             str(sigma_min_training_window) + '_' + label[1] + \
                                             '_mod_z_score')
@@ -159,6 +225,43 @@ def calculate_modified_z_scores_of_grap_metrics(calculated_vals, label, minimum_
             print current_metric_name, "raw_time_series", current_metric_time_series, len(current_metric_time_series)
 
     return time_gran_to_list_of_anom_metrics_applied, time_gran_to_list_of_anom_value, list_of_anom_metrics_applied, list_of_anom_values
+
+# TODO: note: this new version addresesses the fact thatt the min_training window does not make sense b/c we should
+# have a training dataset anyway, which we would assume we'd have available at the beginning, so no need
+# to have all of the NaN vals and/or those extreme vals when the set of values is reaelly small...
+def calculate_modified_z_scores_of_grap_metrics_over_entire_window(calculated_vals, label, sigma_min_training_window, training_window_size,
+                                                time_gran_to_list_of_anom_metrics_applied, time_gran_to_list_of_anom_value,
+                                                list_of_anom_metrics_applied, list_of_anom_values):
+    # okay,
+    for current_metric_name, current_metric_time_series in calculated_vals[label].iteritems():
+        sigma_window_size = training_window_size
+        upper_limit, abs_val_p = 100, False
+
+        # for the VIP metric, we only want to look at the non-zero values...
+        if 'VIP' in current_metric_name:
+            current_metric_time_series = [h if h else float('nan') for h in current_metric_time_series]
+
+        first_modified_z_score = calc_modified_z_score_whole_window(current_metric_time_series[0:sigma_window_size],upper_limit, abs_val_p)
+
+        # calc_modified_z_score(time_series, window_size, min_training_window, upper_limit, abs_val_p)
+        modified_z_scorese = calc_modified_z_score(current_metric_time_series, sigma_window_size,
+                                                   training_window_size,
+                                                   upper_limit, abs_val_p)
+        modified_z_scorese = first_modified_z_score + modified_z_scorese[sigma_window_size:]
+        list_of_anom_metrics_applied.append(current_metric_name + str(sigma_window_size) + '_' + \
+                                            str(sigma_min_training_window) + '_' + label[1] + \
+                                            '_mod_z_score')
+        list_of_anom_values.append(modified_z_scorese)
+        if 'New' in current_metric_name:
+            print current_metric_name, "raw_time_series", current_metric_time_series, len(current_metric_time_series)
+
+    return time_gran_to_list_of_anom_metrics_applied, time_gran_to_list_of_anom_value, list_of_anom_metrics_applied, list_of_anom_values
+'''
+
+def robust_scaler_scaling():
+
+
+    pass
 
 def generate_mod_z_score_dataframes(time_gran_to_list_of_anom_values, time_gran_to_list_of_anom_metrics_applied, time_grans):
     time_gran_to_mod_z_score_dataframe = {}
@@ -233,6 +336,7 @@ def generate_feature_dfs(calculated_vals, time_interval_lengths):
         time_gran_to_feature_dataframe[time_gran] = feature_dataframe
     return time_gran_to_feature_dataframe
 
+'''
 def calculate_mod_zscores_dfs(calculated_vals, minimum_training_window, training_window_size, time_interval_lengths):
     time_grans = []
     time_gran_to_list_of_anom_metrics_applied = {}
@@ -263,6 +367,7 @@ def calculate_mod_zscores_dfs(calculated_vals, minimum_training_window, training
     time_gran_to_mod_z_score_dataframe = generate_mod_z_score_dataframes(time_gran_to_list_of_anom_values,
                                                                          time_gran_to_list_of_anom_metrics_applied, time_grans)
     return time_gran_to_mod_z_score_dataframe
+'''
 
 def save_feature_datafames(time_gran_to_feature_dataframe, csv_path, time_gran_to_attack_labels, time_gran_to_synthetic_exfil_paths_series,
                            time_gran_to_list_of_concrete_exfil_paths, time_gran_to_list_of_exfil_amts, end_of_training,
@@ -354,7 +459,7 @@ def calc_time_gran_to_mod_zscore_dfs(time_gran_to_feature_dataframe, training_wi
             # an alarm worthy case. So what I'd probably have to do is run the damn thing and then replace the nan's
             # with 0's... though since I'm not going to trigger an alarm on a nan anyway (i think), maybe it doesn't
             # even matter...
-
+            #'''
             first_non_NAN_index = 0
             for item in current_metric_time_series:
                 if str(item) != 'nan':
@@ -364,12 +469,54 @@ def calc_time_gran_to_mod_zscore_dfs(time_gran_to_feature_dataframe, training_wi
             number_nans_in_this_time_series = [str(i) for i in current_metric_time_series[0:first_non_NAN_index]].count(
                 'nan')
             mod_min_training_window = number_nans_in_this_time_series + minimum_training_window
+            #'''
             #print "current_metric_time_series",current_metric_time_series
             current_metric_time_series_list = current_metric_time_series.tolist()
-            if 'ratio' in col:
-                current_metric_time_series_list = [i if i else float('nan') for i in current_metric_time_series_list]
+            #if 'ratio' in col:
+            #    current_metric_time_series_list = [i if i else float('nan') for i in current_metric_time_series_list]
             print "current_col", col
-            current_col_mod_z_scores = calc_modified_z_score(current_metric_time_series_list, training_window_size, mod_min_training_window)
+
+            upper_limit, abs_val_p = 100, False
+
+            #first_modified_z_score = calc_modified_z_score_whole_window(current_metric_time_series_list[0:minimum_training_window],
+            #                                                            upper_limit, abs_val_p)
+
+            # calc_modified_z_score(time_series, window_size, min_training_window, upper_limit, abs_val_p)
+            #modified_z_scorese = calc_modified_z_score(current_metric_time_series, training_window_size,
+            #                                           training_window_size,
+            #                                           upper_limit, abs_val_p)
+
+            # could put back in if I really wanted
+            current_col_mod_z_scores = calc_modified_z_score(current_metric_time_series_list, training_window_size, mod_min_training_window,
+                                                             upper_limit, abs_val_p)
+            #current_col_mod_z_scores = first_modified_z_score + modified_z_scorese[minimum_training_window:]
             df_mod_zscore[col + 'mod_z_score'] = current_col_mod_z_scores
+        time_gran_mod_z_score_dataframe[time_interval] = df_mod_zscore
+    return time_gran_mod_z_score_dataframe
+
+def calc_time_gran_to_robustScaker_dfs(time_gran_to_feature_dataframe, training_window_size):
+    time_gran_mod_z_score_dataframe = {}
+    for time_interval, df in time_gran_to_feature_dataframe.iteritems():
+        cols = list(df.columns)
+        df_mod_zscore = pandas.DataFrame()
+        for col in cols:
+            current_metric_time_series = df[col]
+
+            current_metric_time_series_list = current_metric_time_series.tolist()
+            print "current_col", col
+
+            ## TODO: modify this thing by changing this into using the preprocessing robustscler
+            transformer = RobustScaler().fit([current_metric_time_series_list[0:training_window_size]])
+            robustScaler_scores = transformer.transform([current_metric_time_series_list[0:training_window_size]])[0]
+            print "robustScaler_scores",robustScaler_scores, "len_current_metric_time_series_list",len(current_metric_time_series_list), \
+                "training_window_size",training_window_size
+            for i in range(training_window_size + 1, len(current_metric_time_series_list)):
+                transformer = RobustScaler().fit([current_metric_time_series_list[i - training_window_size:i]])
+                new_transform_value = transformer.transform([current_metric_time_series_list[i]])[0]
+                robustScaler_scores.append(new_transform_value)
+                print "new_transform_value",new_transform_value
+
+            print "robustScaler_scores",robustScaler_scores
+            df_mod_zscore[col + 'mod_z_score'] = robustScaler_scores
         time_gran_mod_z_score_dataframe[time_interval] = df_mod_zscore
     return time_gran_mod_z_score_dataframe

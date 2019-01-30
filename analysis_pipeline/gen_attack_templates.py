@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from networkx.drawing.nx_agraph import graphviz_layout
 import time
 import os
+import random
 
 def run_mulval():
     client = docker.from_env()
@@ -31,7 +32,7 @@ def run_mulval():
     #print client.containers.prune(filters={'id': container.id})
 
 ## NOTE: there can be NO - chars in mulval input... it causes problems with the trace parser!!
-def prepare_mulval_input(ms_s, mapping, sensitive_ms):
+def prepare_mulval_input(ms_s, mapping, sensitive_ms, netsec_policy):
     # this is going to need to take the k8s input files and then convert to the input format for mulval
     ### TODO: okay, I think that this is the next step...
     ### Stuff to include:
@@ -171,7 +172,7 @@ def prepare_mulval_input(ms_s, mapping, sensitive_ms):
 
     return sensitive_node # do I want to return anything??
 
-def post_process_mulval_result(sensitive_node):
+def post_process_mulval_result(sensitive_node, max_number_of_paths):
     # well, not in accordance with the architecture document, if we're putting orchestrator logic into the
     # mulval component, then we'd need to include the 'chaining' together of various steps
 
@@ -215,14 +216,40 @@ def post_process_mulval_result(sensitive_node):
     # okay, so let's generate all the paths using this...
     paths=[]
 
+    # max_number_of_paths...
+    ## NOTE: much better plan would be the number of **compromised** containers necessary... b/c it doesn't make sense
+    ## to count vips as actual steps or to
+    current_path_length = 1
+    while max_number_of_paths:
+        cur_paths = []
+        print "len(paths)", len(paths)
+        for path in nx.all_simple_paths(G, source=sensitive_node, target='internet', cutoff=current_path_length+3):
+            # we have a +5 in the cutoff value b/c DNS and VIP terms don't count for the actual path...
+            #print "not_cleared", path, len(path)
+            #print "cleared", [i for i in path if 'vip' not in i and 'dns' not in i], len([i for i in path if 'vip' not in i and 'dns' not in i])
+            if len([i for i in path if 'vip' not in i and 'dns' not in i]) == current_path_length:
+                print "a_path:", path  ## TODO: put back in!!
+                cur_paths.append(path)
+                print len(cur_paths)
+        current_path_length += 1
+        if len(cur_paths) + len(paths) < max_number_of_paths:
+            paths = paths + cur_paths
+        else:
+            print int(max_number_of_paths), len(path)
+            selected_path = random.sample(cur_paths, int(max_number_of_paths - len(path)))
+            paths = paths + selected_path
+            break
+
     ## TODO: okay, this part is problematic b/c we can move between the servies a bazillion
     ## times when working with a sizeable # of microservices (e.g., sockshop)
     ## neeed to define some kinda metric that requires that the attacker doesn't
     ## just move around a bazillion trillion times before leaving (b/c that's also unrealistic)
+    '''
     for path in nx.all_simple_paths(G, source=sensitive_node, target='internet'):
         print "a_path:", path ## TODO: put back in!!
         paths.append(path)
         print len(paths)
+    '''
     #print "# of paths present", len(paths)
     #exit(212)
 
@@ -243,10 +270,10 @@ def post_process_mulval_result(sensitive_node):
     print "has the graph been drawn???? yes, yes they have"
     return paths, initiator_info
 
-def generate_synthetic_attack_templates(mapping, ms_s,sensitive_ms):
-    sensitive_node = prepare_mulval_input(ms_s, mapping, sensitive_ms)
+def generate_synthetic_attack_templates(mapping, ms_s,sensitive_ms, max_number_of_paths, netsec_policy):
+    sensitive_node = prepare_mulval_input(ms_s, mapping, sensitive_ms, netsec_policy)
     run_mulval()
-    paths, initiator_info = post_process_mulval_result(sensitive_node)
+    paths, initiator_info = post_process_mulval_result(sensitive_node, max_number_of_paths)
     return paths, initiator_info
 
 def determine_initator(paths):
@@ -282,6 +309,21 @@ def determine_initator(paths):
 
     return initiator_info
 
+def parse_netsec_policy(netsec_policy):
+    allowed_dict = {}
+    with open(netsec_policy, 'r') as f:
+        lines = f.readlines()
+        for line in lines:
+            if line[0] != '#':
+                line_split = line.split(' ')
+                if line_split[1].rstrip().lstrip() == 'ALLOWED':
+                    if line_split[0].rstrip().lstrip() in allowed_dict:
+                        allowed_dict[line_split[0].rstrip().lstrip()].append(line_split[2].rstrip().lstrip())
+                    else:
+                        allowed_dict[line_split[0].rstrip().lstrip()] = [line_split[2].rstrip().lstrip()]
+                print line
+    print allowed_dict
+    return allowed_dict
 
 if __name__ == "__main__":
     generate_synthetic_attack_templates([], [])

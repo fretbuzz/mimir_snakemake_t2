@@ -390,22 +390,31 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
         calculated_values['New Class-Class Edges'] = num_new_neighbors_all
         calculated_values['New Class-Class Edges with Outside'] = num_new_neighbors_outside
         calculated_values['New Class-Class Edges with DNS'] = num_new_neighbors_dns
-        calculated_values['Angle of DNS edge weight vectors'] = dns_angles
         calculated_values[
             'Fraction of Communication Between Pods not through VIPs (no abs)'] = fraction_pod_comm_but_not_VIP_comms_no_abs
         calculated_values['Communication Between Pods not through VIPs (no abs)'] = pod_comm_but_not_VIP_comms_no_abs
+        calculated_values[
+            'Fraction of Communication Between Pods not through VIPs (w/ abs)'] = abs(fraction_pod_comm_but_not_VIP_comms_no_abs)
+        calculated_values['Communication Between Pods not through VIPs (w/ abs)'] = abs(pod_comm_but_not_VIP_comms_no_abs)
         calculated_values['DNS outside-to-inside ratio'] = dns_outside_inside_ratios
         calculated_values['DNS outside'] = dns_list_outside
         calculated_values['DNS inside'] = dns_list_inside
         calculated_values['1-step-induced-pod density'] = pod_1si_density_list
-        calculated_values['DNS_eigenval_angles'] = dns_eigenval_angles
-        #calculated_values['DNS_eigenval_angles_DoubleWindowSize'] = dns_eigenval_angles12
-        calculated_values['into_dns_ratio'] = into_dns_ratio
-        calculated_values['into_dns_eigenval_angles'] = into_dns_eigenval_angles
-        calculated_values['into_dns_from_outside'] = into_dns_from_outside_list
-        calculated_values['into_dns_eigenval_angles12'] = into_dns_eigenval_angles12
         calculated_values['sum_of_max_pod_to_dns_from_each_svc'] = sum_of_max_pod_to_dns_from_each_svc
         calculated_values['outside_to_sum_of_max_pod_to_dns_from_each_svc_ratio'] = outside_to_sum_of_max_pod_to_dns_from_each_svc_ratio
+        calculated_values['into_dns_from_outside'] = into_dns_from_outside_list
+        calculated_values['into_dns_ratio'] = into_dns_ratio
+
+        calculated_values['Angle of DNS edge weight vectors'] = dns_angles
+        calculated_values['DNS_eigenval_angles'] = dns_eigenval_angles
+        calculated_values['into_dns_eigenval_angles'] = into_dns_eigenval_angles
+        calculated_values['into_dns_eigenval_angles12'] = into_dns_eigenval_angles12
+
+        calculated_values['Angle of DNS edge weight vectors (w/ abs)'] = abs(dns_angles)
+        calculated_values['DNS_eigenval_angles (w/ abs)'] = abs(dns_eigenval_angles)
+        calculated_values['into_dns_eigenval_angles (w/ abs)'] = abs(into_dns_eigenval_angles)
+        calculated_values['into_dns_eigenval_angles12 (w/ abs)'] = abs(into_dns_eigenval_angles12)
+        #calculated_values['DNS_eigenval_angles_DoubleWindowSize'] = dns_eigenval_angles12
         #calculated_values['new_neighbors_outside'] = new_neighbors_outside
         #calculated_values['new_neighbors_dns'] = new_neighbors_dns
         #calculated_values['new_neighbors_all'] = new_neighbors_all
@@ -414,6 +423,7 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
         #'''
         #print "ide_angles", ide_angles_results
         calculated_values['ide_angles'] = ide_angles_results
+        calculated_values['ide_angles (w/ abs)'] = abs(ide_angles_results)
 
         with open(basegraph_name + '_processed_vales_' + 'subset' + '_' + '%.2f' % (time_interval) + '.txt',
                   'w') as csvfile:
