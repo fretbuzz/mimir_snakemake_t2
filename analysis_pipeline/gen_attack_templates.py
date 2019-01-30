@@ -6,6 +6,7 @@ from networkx.drawing.nx_agraph import graphviz_layout
 import time
 import os
 import random
+import itertools
 
 def run_mulval():
     client = docker.from_env()
@@ -89,14 +90,29 @@ def prepare_mulval_input(ms_s, mapping, sensitive_ms, netsec_policy):
         #    lines.append( 'hacl(' + svc[0] + ', _, _, _).' )
         #else:
         #if 'dns_pod' in svc[0]:
-        lines.append( 'hacl(' + svc[0] + ', internet, _, _).' )
+        ### TODO: modifications start here...
+        #lines.append( 'hacl(' + svc[0] + ', internet, _, _).' ) # TODO: maybe wanna put this back in...
         # VIP is harder
         port, proto = None,None
-        for svc_two in svcs:
+        print  "svcs",svcs
+        print "netsec_policy",netsec_policy
+        #exit(344)
+        for svc_two in svcs + [('internet', 'internet', 'internet')]:
+            ## check if this is in the allowed dict...
+            svc_convert_to_netsec_pol = svc[0].replace('_pod', '').replace('_vip', '').replace('_','-') ## TODO
+            svc_two_convert_to_netsec_pol = svc_two[0].replace('_pod', '').replace('_vip', '').replace('_','-')  ## TODO
+            try:
+                corresponding_netsec_policy =  netsec_policy[svc_convert_to_netsec_pol]
+            except:
+                corresponding_netsec_policy = []
+            print "netsec_policy_keys", netsec_policy.keys(), svc_convert_to_netsec_pol, svc_two_convert_to_netsec_pol, svc_two_convert_to_netsec_pol not in corresponding_netsec_policy
+            if svc_two_convert_to_netsec_pol not in corresponding_netsec_policy:
+                continue
+
             print mapping
             for ip,individ_mapping in mapping.iteritems():
                 try:
-                    print svc[2], individ_mapping
+                    print "individ_mapping_stuff", svc[2], individ_mapping
                     if svc[2] in individ_mapping[0].replace('-','_') and 'VIP' in individ_mapping[0]:
                         port,proto = individ_mapping[2][0], individ_mapping[3][0]
                 except:
@@ -112,6 +128,7 @@ def prepare_mulval_input(ms_s, mapping, sensitive_ms, netsec_policy):
                     print 'hacl(', svc_two[0], ',', svc[1], ', ', proto, ', ', port[0], ').'
                     lines.append(  'hacl(' + svc_two[0] +',' + svc[1] + ', ' + proto +', ' + port[0] + ').'  )
                 if 'dns_pod' not in svc[0] and 'dns_vip' not in svc_two[1]:
+                #if 'dns_vip' not in svc_two[1]:
                     ## TODO: remove lower if-statement when we want to re-enable the full range of exfil possibilities
                     #if 'dns_vip' not in svc[0] or svc_two[1] == sensitive_node:
                     lines.append(  'hacl(' + svc_two[1] +',' + svc[0] + ', ' + proto +', ' + port[0] + ').'  )
@@ -126,7 +143,16 @@ def prepare_mulval_input(ms_s, mapping, sensitive_ms, netsec_policy):
                         #if 'dns_vip' not in svc_two[1]:
                         lines.append(  'hacl(' + svc[0] +',' + svc_two[0] + ', ' + proto +', ' + port[0] + ').'  )
 
-        print svc, svc[2]
+        #exit(344)
+        ## MODIFICATIONS END HERE!!!
+
+        #print svc, svc[2], proto, port
+        ## TODO: probably wanna fix the port,proto mapping stuff...
+        if not proto:
+            proto = '_'
+        if not port:
+            port = ['_']
+        ## end thing probably wanna fix
         lines.append( 'hacl(' + svc[0] +',' + svc[1] + ', ' +proto + ', ' + port[0] + ').')
         #e.g. hacl(fileServer_pod, fileServer_vip, TCP, 67).
         lines.append( 'hacl(' + svc[1] +','+ svc[0] + ', ' + '_' + ', ' + '_' + ').' )
@@ -160,6 +186,9 @@ def prepare_mulval_input(ms_s, mapping, sensitive_ms, netsec_policy):
         #### like the array, but let's make it a flag for it, and only trigger it on when the __main__ thing happens...
         #### also, obviously, we're just putting a single node for each pod (maybe later we can put more if we want...)
         #### yah, def. do hte grid...
+
+    # might want to handle in another place... also this is a kinda nasty workaround...
+    lines.append('hacl(' + 'kube_dns_pod' + ',' + 'internet' + ', ' + 'UDP' + ', ' + '53' + ').')
 
     with open('./mulval_inouts/test_mulval_input.P', 'w') as f:
         for line in lines:
@@ -208,10 +237,13 @@ def post_process_mulval_result(sensitive_node, max_number_of_paths):
     nx.draw_networkx(G, pos, with_labels=True, arrows=True)
     #plt.show() ## todo: remove!!! <---- <---- <----
     plt.draw()
-    plt.savefig('./propogation_graph.png')
+    if os.path.isfile('./propogation_graph.png'):
+        os.remove('./propogation_graph.png')  # Opt.: os.system("rm "+strFile)
+    plt.savefig('./propogation_graph.png', format='png', dpi=1000)
     print os.getcwd()
-    print G.number_of_nodes()
+    print G.number_of_nodes(), [i for i in G.nodes()]
     #time.sleep(34)
+    #exit(344)
 
     # okay, so let's generate all the paths using this...
     paths=[]
@@ -223,12 +255,14 @@ def post_process_mulval_result(sensitive_node, max_number_of_paths):
     while max_number_of_paths:
         cur_paths = []
         print "len(paths)", len(paths)
+        print "sensitive_node", sensitive_node, [i for i in G.nodes()]
         for path in nx.all_simple_paths(G, source=sensitive_node, target='internet', cutoff=current_path_length+3):
             # we have a +5 in the cutoff value b/c DNS and VIP terms don't count for the actual path...
             #print "not_cleared", path, len(path)
             #print "cleared", [i for i in path if 'vip' not in i and 'dns' not in i], len([i for i in path if 'vip' not in i and 'dns' not in i])
+            #print "path_thing", path
             if len([i for i in path if 'vip' not in i and 'dns' not in i]) == current_path_length:
-                print "a_path:", path  ## TODO: put back in!!
+                print "a_path:", path, current_path_length  ## TODO: put back in!!
                 cur_paths.append(path)
                 print len(cur_paths)
         current_path_length += 1
@@ -240,6 +274,7 @@ def post_process_mulval_result(sensitive_node, max_number_of_paths):
             paths = paths + selected_path
             break
 
+    exit(433)  ## TODO<---- remove!!
     ## TODO: okay, this part is problematic b/c we can move between the servies a bazillion
     ## times when working with a sizeable # of microservices (e.g., sockshop)
     ## neeed to define some kinda metric that requires that the attacker doesn't
@@ -311,18 +346,39 @@ def determine_initator(paths):
 
 def parse_netsec_policy(netsec_policy):
     allowed_dict = {}
+    allow_all = []
     with open(netsec_policy, 'r') as f:
         lines = f.readlines()
         for line in lines:
             if line[0] != '#':
                 line_split = line.split(' ')
+                #print "line_split", line_split
                 if line_split[1].rstrip().lstrip() == 'ALLOWED':
+                    if line_split[2].rstrip().lstrip() == 'all':
+                        #print "found the allowed all!"
+                        allow_all.append(line_split[0].rstrip().lstrip())
+                        continue
+                    #print "did not find the allowed all"
                     if line_split[0].rstrip().lstrip() in allowed_dict:
                         allowed_dict[line_split[0].rstrip().lstrip()].append(line_split[2].rstrip().lstrip())
                     else:
                         allowed_dict[line_split[0].rstrip().lstrip()] = [line_split[2].rstrip().lstrip()]
                 print line
+    allowed_dict_keys = allowed_dict.keys()
+    allowed_dict_vals = list(itertools.chain(*allowed_dict.values()))
+    allowed_dict_keys = list(set(allowed_dict_keys+allowed_dict_vals))
+    print allow_all
+    #exit(34)
+    for allow_all_item in allow_all:
+        allowed_dict[allow_all_item] = allowed_dict_keys
+    for allowed_dict_key in allowed_dict_keys:
+        if allowed_dict_key in allowed_dict:
+            allowed_dict[allowed_dict_key].extend(allow_all)
+        else:
+            allowed_dict[allowed_dict_key] = allow_all
+
     print allowed_dict
+    #exit(34)
     return allowed_dict
 
 if __name__ == "__main__":

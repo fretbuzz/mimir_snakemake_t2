@@ -674,6 +674,7 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
                                       ignore_physical_attacks_p,
                                       time_each_synthetic_exfil, float("inf"))
         max_number_of_paths = min(total_training_injections_possible, total_testing_injections_possible)
+        orig_max_number_of_paths=  max_number_of_paths
         for func in function_list:
             print "func", func
             synthetic_exfil_paths, initiator_info_for_paths, _, _,_ = func(time_of_synethic_exfil=time_each_synthetic_exfil,
@@ -682,6 +683,11 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
             exps_exfil_paths.append(synthetic_exfil_paths)
             exps_initiator_info.append(initiator_info_for_paths)
 
+        print "orig_max_number_of_paths", orig_max_number_of_paths
+        #print exps_exfil_paths
+        for counter,exp_path in enumerate(exps_exfil_paths[0]):
+            print counter,exp_path,len(exp_path)
+        exit(344)
         training_exfil_paths, testing_exfil_paths, end_of_train_portions = assign_exfil_paths_to_experiments(exp_infos, goal_train_test_split,
                                                                                       goal_attack_NoAttack_split,time_each_synthetic_exfil,
                                                                                       exps_exfil_paths, ignore_physical_attacks_p)
