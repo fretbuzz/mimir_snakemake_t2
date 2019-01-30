@@ -400,7 +400,7 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
                 not synthetic_exfil_paths_test
         # todo: might wanna specify this is in the attack descriptions...
         for ms in ms_s:
-            if 'user' in ms:
+            if 'user' in ms and 'db' in ms:
                 sensitive_ms = ms
             if 'my-release' in ms:
                 sensitive_ms = ms
@@ -687,7 +687,7 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
         #print exps_exfil_paths
         for counter,exp_path in enumerate(exps_exfil_paths[0]):
             print counter,exp_path,len(exp_path)
-        exit(344)
+        #exit(344)
         training_exfil_paths, testing_exfil_paths, end_of_train_portions = assign_exfil_paths_to_experiments(exp_infos, goal_train_test_split,
                                                                                       goal_attack_NoAttack_split,time_each_synthetic_exfil,
                                                                                       exps_exfil_paths, ignore_physical_attacks_p)

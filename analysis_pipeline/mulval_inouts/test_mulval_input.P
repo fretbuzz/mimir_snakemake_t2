@@ -6,6 +6,10 @@ networkServiceInfo(internet, is_computer, _, _, _).
 vulProperty('attacker_can_access_anything', remoteExploit, privEscalation).
 vulProperty('is_a_vip', remoteExploit, privEscalation).
 
+hacl(carts_pod,carts_db_vip, TCP, 27017).
+hacl(carts_vip,carts_db_pod, TCP, 27017).
+hacl(carts_db_pod,carts_vip, TCP, 27017).
+hacl(carts_db_pod,carts_pod, TCP, 27017).
 hacl(carts_db_pod,kube_dns_vip, TCP, 27017).
 hacl(carts_db_pod,carts_db_vip, TCP, 27017).
 hacl(carts_db_vip,carts_db_pod, _, _).
@@ -34,6 +38,10 @@ networkServiceInfo(carts_pod, is_computer,  _, _ , _).
 vulExists(carts_vip, 'is_a_vip', is_vip).
 networkServiceInfo(carts_vip, is_vip, TCP, 80, _).
 
+hacl(catalogue_pod,catalogue_db_vip, TCP, 3306).
+hacl(catalogue_vip,catalogue_db_pod, TCP, 3306).
+hacl(catalogue_db_pod,catalogue_vip, TCP, 3306).
+hacl(catalogue_db_pod,catalogue_pod, TCP, 3306).
 hacl(catalogue_db_pod,kube_dns_vip, TCP, 3306).
 hacl(catalogue_db_pod,catalogue_db_vip, TCP, 3306).
 hacl(catalogue_db_vip,catalogue_db_pod, _, _).
@@ -86,6 +94,10 @@ networkServiceInfo(front_end_pod, is_computer,  _, _ , _).
 vulExists(front_end_vip, 'is_a_vip', is_vip).
 networkServiceInfo(front_end_vip, is_vip, TCP, 80, _).
 
+hacl(orders_pod,orders_db_vip, TCP, 27017).
+hacl(orders_vip,orders_db_pod, TCP, 27017).
+hacl(orders_db_pod,orders_vip, TCP, 27017).
+hacl(orders_db_pod,orders_pod, TCP, 27017).
 hacl(orders_db_pod,kube_dns_vip, TCP, 27017).
 hacl(orders_db_pod,orders_db_vip, TCP, 27017).
 hacl(orders_db_vip,orders_db_pod, _, _).
@@ -187,6 +199,10 @@ vulExists(shipping_vip, 'is_a_vip', is_vip).
 networkServiceInfo(shipping_vip, is_vip, TCP, 80, _).
 attackerLocated(user_db_pod).
 
+hacl(user_pod,user_db_vip, TCP, 27017).
+hacl(user_vip,user_db_pod, TCP, 27017).
+hacl(user_db_pod,user_vip, TCP, 27017).
+hacl(user_db_pod,user_pod, TCP, 27017).
 hacl(user_db_pod,kube_dns_vip, TCP, 27017).
 hacl(user_db_pod,user_db_vip, TCP, 27017).
 hacl(user_db_vip,user_db_pod, _, _).
@@ -194,7 +210,6 @@ vulExists(user_db_pod, 'attacker_can_access_anything', is_computer).
 networkServiceInfo(user_db_pod, is_computer,  _, _ , _).
 vulExists(user_db_vip, 'is_a_vip', is_vip).
 networkServiceInfo(user_db_vip, is_vip, TCP, 27017, _).
-attackerLocated(user_pod).
 
 hacl(catalogue_pod,user_vip, TCP, 27017).
 hacl(catalogue_vip,user_pod, TCP, 27017).

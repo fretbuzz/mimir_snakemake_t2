@@ -223,8 +223,15 @@ def post_process_mulval_result(sensitive_node, max_number_of_paths):
     # okay, so it looks like it is going to be some kinda loop....
     # looks like G.add_edge(NODE1, NODE2, weight=WEIGHT) is the way to do this...
     # so all we gotta do is a construct a set of tuples from the hacls... piece of cake...
+    ## TODO: this is where I want to add some weights...
     for edge in propogation_graph_edges:
-        G.add_edge(edge[0], edge[1], proto = edge[2], port = edge[3])
+        if 'vip' in edge[0] or 'dns' in edge[1] or 'dns' in edge[0] or 'internet' in edge[1]:
+            weight = 0
+        elif 'vip' in edge[1]:
+            weight=0.75
+        else:
+            weight = 1
+        G.add_edge(edge[0], edge[1], proto = edge[2], port = edge[3], weight=weight)
         #print edge
 
     for edge in G.edges():
@@ -252,15 +259,22 @@ def post_process_mulval_result(sensitive_node, max_number_of_paths):
     ## NOTE: much better plan would be the number of **compromised** containers necessary... b/c it doesn't make sense
     ## to count vips as actual steps or to
     current_path_length = 1
-    while max_number_of_paths:
-        cur_paths = []
-        print "len(paths)", len(paths)
-        print "sensitive_node", sensitive_node, [i for i in G.nodes()]
-        for path in nx.all_simple_paths(G, source=sensitive_node, target='internet', cutoff=current_path_length+3):
-            # we have a +5 in the cutoff value b/c DNS and VIP terms don't count for the actual path...
-            #print "not_cleared", path, len(path)
-            #print "cleared", [i for i in path if 'vip' not in i and 'dns' not in i], len([i for i in path if 'vip' not in i and 'dns' not in i])
-            #print "path_thing", path
+    #while max_number_of_paths:
+    cur_paths = []
+    #    print "len(paths)", len(paths)
+    #    print "sensitive_node", sensitive_node, [i for i in G.nodes()]
+    for path in nx.shortest_simple_paths(G, source=sensitive_node, target='internet', weight='weight'):
+        # we have a +5 in the cutoff value b/c DNS and VIP terms don't count for the actual path...
+        #print "not_cleared", path, len(path)
+        #print "cleared", [i for i in path if 'vip' not in i and 'dns' not in i], len([i for i in path if 'vip' not in i and 'dns' not in i])
+        #print "path_thing", path
+        # here's another nasty workaround
+        if path_is_valid(path):
+            paths.append(path)
+        #print len(paths), max_number_of_paths, len(paths) >= max_number_of_paths
+        if len(paths) >= max_number_of_paths:
+            break
+        '''
             if len([i for i in path if 'vip' not in i and 'dns' not in i]) == current_path_length:
                 print "a_path:", path, current_path_length  ## TODO: put back in!!
                 cur_paths.append(path)
@@ -273,8 +287,9 @@ def post_process_mulval_result(sensitive_node, max_number_of_paths):
             selected_path = random.sample(cur_paths, int(max_number_of_paths - len(path)))
             paths = paths + selected_path
             break
-
-    exit(433)  ## TODO<---- remove!!
+        '''
+    print paths
+    #exit(433)  ## TODO<---- remove!!
     ## TODO: okay, this part is problematic b/c we can move between the servies a bazillion
     ## times when working with a sizeable # of microservices (e.g., sockshop)
     ## neeed to define some kinda metric that requires that the attacker doesn't
@@ -306,6 +321,9 @@ def post_process_mulval_result(sensitive_node, max_number_of_paths):
     return paths, initiator_info
 
 def generate_synthetic_attack_templates(mapping, ms_s,sensitive_ms, max_number_of_paths, netsec_policy):
+    if not max_number_of_paths:
+        return None,None
+
     sensitive_node = prepare_mulval_input(ms_s, mapping, sensitive_ms, netsec_policy)
     run_mulval()
     paths, initiator_info = post_process_mulval_result(sensitive_node, max_number_of_paths)
@@ -380,6 +398,27 @@ def parse_netsec_policy(netsec_policy):
     print allowed_dict
     #exit(34)
     return allowed_dict
+
+def path_is_valid(path):
+    print '------'
+    location_of_vips = [i for i,j in enumerate(path) if 'vip' in j]
+    valid = True
+    for location in location_of_vips:
+        prev_node = path[location-1]
+        next_node = path[location+1]
+        prev_node_class = prev_node.replace('_pod','').replace('_vip','') #'_'.join(prev_node.split('_')[:-1])
+        next_node_class = next_node.replace('_pod','').replace('_vip','')  #'_'.join(next_node.split('_')[:-1])
+        vip_class = path[location].replace('_pod','').replace('_vip','')  #'_'.join(path[location].split('_')[:-1])
+        print path, location_of_vips
+        print "test", prev_node_class, vip_class, next_node_class, prev_node_class in vip_class,next_node_class in vip_class,location
+        if prev_node_class == vip_class or next_node_class == vip_class:
+            if 'db' in prev_node_class or 'db' in next_node_class:
+                valid =  valid and 'db' in vip_class
+            else:
+                valid = valid and True
+        else:
+            valid = valid and False
+    return valid
 
 if __name__ == "__main__":
     generate_synthetic_attack_templates([], [])
