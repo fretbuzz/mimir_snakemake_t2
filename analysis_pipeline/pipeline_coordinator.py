@@ -249,6 +249,7 @@ def assign_attacks_to_first_available_spots(time_gran_to_attack_labels, largest_
                     print "RANGE", potential_starting_point, int(potential_starting_point + time_periods_attack)
                     for i in range(potential_starting_point, int(potential_starting_point + time_periods_attack)):
                         #print i, time_gran_to_attack_labels[largest_time_gran]
+                        print time_gran_to_attack_labels[largest_time_gran],i,len(time_gran_to_attack_labels[largest_time_gran])
                         time_gran_to_attack_labels[largest_time_gran][i] = 1
                 #print "this starting point failed", potential_starting_point
                 counter += 1
@@ -288,7 +289,7 @@ def determine_attacks_to_times(time_gran_to_attack_labels, synthetic_exfil_paths
     # second, let's assign for the testing period...
     print end_of_train, largest_time_gran
     counter = int(math.ceil(end_of_train/largest_time_gran)) #int(math.ceil(len(time_gran_to_attack_labels[largest_time_gran]) * end_of_train - time_periods_startup))
-    print "second_counter!!", counter
+    print "second_counter!!", counter, "attacks_to_assign",len(synthetic_exfil_paths_test), time_gran_to_attack_labels[time_gran][counter:],time_gran_to_attack_labels[time_gran][counter:].count(0)
     time_gran_to_attack_labels, time_gran_to_attack_ranges = assign_attacks_to_first_available_spots(time_gran_to_attack_labels, largest_time_gran, time_periods_startup,
                                             time_periods_attack, counter, time_gran_to_attack_ranges, synthetic_exfil_paths, synthetic_exfil_paths_test)
 
@@ -625,13 +626,15 @@ def determine_injection_times(exps_info, goal_train_test_split, goal_attack_NoAt
         ## now to find how much time to spending injecting during training and testing...
         ## okay, let's do testing first b/c it should be relatively straightforward...
         testing_time = exp_info['total_experiment_length'] - time_split
+        physical_attack_time = exp_info['exfil_end_time'] - exp_info['exfil_start_time']
         if ignore_physical_attacks_p:
-            physical_attack_time = 0
+            testing_time_for_attack_injection = (testing_time - physical_attack_time) * goal_attack_NoAttack_split
         else:
-            physical_attack_time = exp_info['exfil_end_time'] - exp_info['exfil_start_time']
+            testing_time_for_attack_injection = (testing_time) * goal_attack_NoAttack_split -physical_attack_time
+
         #testing_time_without_physical_attack = testing_time - physical_attack_time
-        testing_time_for_attack_injection = testing_time * goal_attack_NoAttack_split
-        testing_time_for_attack_injection = max(testing_time_for_attack_injection - physical_attack_time,0)
+        print "physical_attack_time",physical_attack_time
+        testing_time_for_attack_injection = max(testing_time_for_attack_injection,0)
 
         # now let's find the time to inject during training... this'll be a percentage of the time between
         # system startup and the training/testing split point...
@@ -641,6 +644,8 @@ def determine_injection_times(exps_info, goal_train_test_split, goal_attack_NoAt
         exp_injection_info.append({'testing': testing_time_for_attack_injection,
                                    "training": training_time_for_attack_injection})
         #time_splits.append(time_split)
+    print "exp_injection_info", exp_injection_info
+    #exit(34)
     return exp_injection_info,end_of_train_portions
 
 # this function loops through multiple experiments (or even just a single experiment), accumulates the relevant
@@ -692,6 +697,7 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
                                                                                       goal_attack_NoAttack_split,time_each_synthetic_exfil,
                                                                                       exps_exfil_paths, ignore_physical_attacks_p)
         print "end_of_train_portions", end_of_train_portions
+        print total_training_injections_possible, total_testing_injections_possible
         possible_exps_exfil_paths = []
         for exp_exfil_paths in exps_exfil_paths:
             for exp_exfil_path in exp_exfil_paths:
@@ -702,11 +708,12 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
             print possible_exp_exfil_path
         print "training_exfil_paths:"
         for cur_training_exfil_paths in training_exfil_paths:
-            print cur_training_exfil_paths
+            print "cur_training_exfil_paths", cur_training_exfil_paths, len(cur_training_exfil_paths)
         print "testing_exfil_paths:"
         for cur_testing_exfil_paths in testing_exfil_paths:
-            print cur_testing_exfil_paths
-        exit(122) ### TODO::: <--- remove!!!
+            print "cur_testing_exfil_paths", cur_testing_exfil_paths, len(cur_testing_exfil_paths)
+        print "look_here"
+        #exit(122) ### TODO::: <--- remove!!!
 
     else:
         exps_exfil_paths = []
@@ -1522,6 +1529,8 @@ def determine_injection_amnts(exp_infos, goal_train_test_split, goal_attack_NoAt
         total_testing_injections_possible += testing_exfil_path_injections
         possible_exfil_path_injections.append({"testing": testing_exfil_path_injections,
                                                "training": training_exfil_path_injections})
+    print "possible_exfil_path_injections", possible_exfil_path_injections
+    #exit(34)
     return total_training_injections_possible,total_testing_injections_possible,possible_exfil_path_injections,end_of_train_portions
 
 if __name__ == "__main__":

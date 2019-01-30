@@ -1663,7 +1663,7 @@ def multi_experiment_wordpress_recipe():
 # pipeline_coordinator
 def multi_experiment_sockshop_recipe():
     time_of_synethic_exfil = 30 # sec
-    goal_train_test_split = 0.6
+    goal_train_test_split = 0.5
     goal_attack_NoAttack_split = 0.5
     training_window_size = 200
     size_of_neighbor_training_window = 0

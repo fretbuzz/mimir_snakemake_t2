@@ -322,7 +322,7 @@ def post_process_mulval_result(sensitive_node, max_number_of_paths):
 
 def generate_synthetic_attack_templates(mapping, ms_s,sensitive_ms, max_number_of_paths, netsec_policy):
     if not max_number_of_paths:
-        return None,None
+        return [],{}
 
     sensitive_node = prepare_mulval_input(ms_s, mapping, sensitive_ms, netsec_policy)
     run_mulval()
