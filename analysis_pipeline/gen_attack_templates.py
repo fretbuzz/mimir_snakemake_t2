@@ -99,15 +99,16 @@ def prepare_mulval_input(ms_s, mapping, sensitive_ms, netsec_policy):
         #exit(344)
         for svc_two in svcs + [('internet', 'internet', 'internet')]:
             ## check if this is in the allowed dict...
-            svc_convert_to_netsec_pol = svc[0].replace('_pod', '').replace('_vip', '').replace('_','-') ## TODO
-            svc_two_convert_to_netsec_pol = svc_two[0].replace('_pod', '').replace('_vip', '').replace('_','-')  ## TODO
-            try:
-                corresponding_netsec_policy =  netsec_policy[svc_convert_to_netsec_pol]
-            except:
-                corresponding_netsec_policy = []
-            print "netsec_policy_keys", netsec_policy.keys(), svc_convert_to_netsec_pol, svc_two_convert_to_netsec_pol, svc_two_convert_to_netsec_pol not in corresponding_netsec_policy
-            if svc_two_convert_to_netsec_pol not in corresponding_netsec_policy:
-                continue
+            if netsec_policy is not None:
+                svc_convert_to_netsec_pol = svc[0].replace('_pod', '').replace('_vip', '').replace('_','-') ## TODO
+                svc_two_convert_to_netsec_pol = svc_two[0].replace('_pod', '').replace('_vip', '').replace('_','-')  ## TODO
+                try:
+                    corresponding_netsec_policy =  netsec_policy[svc_convert_to_netsec_pol]
+                except:
+                    corresponding_netsec_policy = []
+                print "netsec_policy_keys", netsec_policy.keys(), svc_convert_to_netsec_pol, svc_two_convert_to_netsec_pol, svc_two_convert_to_netsec_pol not in corresponding_netsec_policy
+                if svc_two_convert_to_netsec_pol not in corresponding_netsec_policy:
+                    continue
 
             print mapping
             for ip,individ_mapping in mapping.iteritems():
@@ -363,6 +364,9 @@ def determine_initator(paths):
     return initiator_info
 
 def parse_netsec_policy(netsec_policy):
+    if netsec_policy is None:
+        return None
+
     allowed_dict = {}
     allow_all = []
     with open(netsec_policy, 'r') as f:

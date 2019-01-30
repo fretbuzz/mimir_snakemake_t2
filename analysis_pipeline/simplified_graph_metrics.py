@@ -394,8 +394,8 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
             'Fraction of Communication Between Pods not through VIPs (no abs)'] = fraction_pod_comm_but_not_VIP_comms_no_abs
         calculated_values['Communication Between Pods not through VIPs (no abs)'] = pod_comm_but_not_VIP_comms_no_abs
         calculated_values[
-            'Fraction of Communication Between Pods not through VIPs (w/ abs)'] = abs(fraction_pod_comm_but_not_VIP_comms_no_abs)
-        calculated_values['Communication Between Pods not through VIPs (w/ abs)'] = abs(pod_comm_but_not_VIP_comms_no_abs)
+            'Fraction of Communication Between Pods not through VIPs (w/ abs)'] = [abs(i) for i in fraction_pod_comm_but_not_VIP_comms_no_abs]
+        calculated_values['Communication Between Pods not through VIPs (w/ abs)'] = [abs(i) for i in pod_comm_but_not_VIP_comms_no_abs]
         calculated_values['DNS outside-to-inside ratio'] = dns_outside_inside_ratios
         calculated_values['DNS outside'] = dns_list_outside
         calculated_values['DNS inside'] = dns_list_inside
@@ -410,10 +410,10 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
         calculated_values['into_dns_eigenval_angles'] = into_dns_eigenval_angles
         calculated_values['into_dns_eigenval_angles12'] = into_dns_eigenval_angles12
 
-        calculated_values['Angle of DNS edge weight vectors (w/ abs)'] = abs(dns_angles)
-        calculated_values['DNS_eigenval_angles (w/ abs)'] = abs(dns_eigenval_angles)
-        calculated_values['into_dns_eigenval_angles (w/ abs)'] = abs(into_dns_eigenval_angles)
-        calculated_values['into_dns_eigenval_angles12 (w/ abs)'] = abs(into_dns_eigenval_angles12)
+        calculated_values['Angle of DNS edge weight vectors (w/ abs)'] = [abs(i) for i in dns_angles]
+        calculated_values['DNS_eigenval_angles (w/ abs)'] = [abs(i) for i in dns_eigenval_angles]
+        calculated_values['into_dns_eigenval_angles (w/ abs)'] = [abs(i) for i in into_dns_eigenval_angles]
+        calculated_values['into_dns_eigenval_angles12 (w/ abs)'] = [abs(i) for i in into_dns_eigenval_angles12]
         #calculated_values['DNS_eigenval_angles_DoubleWindowSize'] = dns_eigenval_angles12
         #calculated_values['new_neighbors_outside'] = new_neighbors_outside
         #calculated_values['new_neighbors_dns'] = new_neighbors_dns
