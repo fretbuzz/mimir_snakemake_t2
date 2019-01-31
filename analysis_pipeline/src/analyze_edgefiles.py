@@ -426,6 +426,7 @@ def calc_graph_metrics(filenames, time_interval, basegraph_name, container_or_cl
 ### though >= 6 is best ###
 def change_point_detection(tensor, window_size, nodes_in_tensor):
     print "len(tensor)", len(tensor)
+    angles = []
     if window_size < 3:
         # does not make sense for window_size to be less than 3
         print "window_size needs to be >= 3 for pearson to work"
@@ -444,9 +445,9 @@ def change_point_detection(tensor, window_size, nodes_in_tensor):
         # average) all the eigenvectors in the window
     # find angle (seperate function)
     #print "tensor", tensor
-    correlation_matrices = []
     p_value_matrices =[]
     correlation_matrix_eigenvectors = []
+    correlation_matrices = []
     # let's iterate through the times, pulling out slices that correspond to windows
     ####smallest_slice = 3 # 2 is guaranteed to get a pearson value of 1, even smaller breaks it
     nodes_under_consideration = []
@@ -504,11 +505,11 @@ def change_point_detection(tensor, window_size, nodes_in_tensor):
                 # cause I there shouldn't be any None's...
                 #print "node_one_time_series", node_one_time_series
                 #print "node_two_time_series", node_two_time_series
-                invalid_node_one_time_series_entries = np.isfinite(node_one_time_series)
-                invalid_node_two_time_series_entries = np.isfinite(node_two_time_series)
-                invalid_time_series_entry = invalid_node_one_time_series_entries & invalid_node_two_time_series_entries
-                pearson_rho = scipy.stats.pearsonr(node_one_time_series[invalid_time_series_entry],
-                                                   node_two_time_series[invalid_time_series_entry])
+                valid_node_one_time_series_entries = np.isfinite(node_one_time_series)
+                valid_node_two_time_series_entries = np.isfinite(node_two_time_series)
+                valid_time_series_entry = valid_node_one_time_series_entries & valid_node_two_time_series_entries
+                pearson_rho = scipy.stats.pearsonr(node_one_time_series[valid_time_series_entry],
+                                                   node_two_time_series[valid_time_series_entry])
                 #print 'peasrson', pearson_rho, pearson_rho[0], node_one, node_two
                 correlation_matrix.at[node_one, node_two] = pearson_rho[0]
                 #print correlation_matrix
@@ -523,10 +524,12 @@ def change_point_detection(tensor, window_size, nodes_in_tensor):
                 if math.isnan(pearson_rho[0]):
                     correlation_matrix.at[node_one, node_two] = 0.0
 
-        print correlation_matrix
+
+        print "correlation_matrix", correlation_matrix
         correlation_matrices.append(correlation_matrix)
         p_value_matrices.append(pearson_p_val_matrix)
 
+    '''
         eigen_vals, eigen_vects = scipy.linalg.eigh(correlation_matrix.values)
         # note: here we want the principal eigenvector, which is assocated with the
         # eigenvalue that has the largest magnitude
@@ -548,12 +551,13 @@ def change_point_detection(tensor, window_size, nodes_in_tensor):
     #    print correlation_matrix.values, '\n'
     print "correlation eigenvects", correlation_matrix_eigenvectors
     angles = find_angles(correlation_matrix_eigenvectors, window_size)
-
+    '''
     # note: padding front so that alignment is maintained
     for i in range(0, window_size - 1): # first window_size values becomes one value, hence want to add bakc window_size -1 vals
-        angles.insert(0, float('nan'))
-
-    return angles
+        #angles.insert(0, float('nan'))
+        angles.append(float('nan'))
+    angle_between_principal_eigenvectors = ide_angles(correlation_matrices, window_size, nodes_in_tensor)
+    return angles + angle_between_principal_eigenvectors
 
 # from : https://www.andrew.cmu.edu/user/lakoglu/pubs/EVENTDETECTION_AkogluFaloutsos.pdf
 # returns list of angles (of size len(tensor)). Note:
@@ -596,6 +600,7 @@ def ide_angles(tensor, window_size, nodes_in_tensor):
 
         #print "eigenvectors", eigen_vects
         print "principal eigenvector", eigen_vects.T[largest_mag_eigenvalue_index]
+        #last_eigenvector =
         adjacency_matrix_eigenvectors.append(eigen_vects.T[largest_mag_eigenvalue_index])
 
     ## NOTE: OKAY, below here is fine. The key is load up the correlation_matrix_eeigenvectors (might want to change

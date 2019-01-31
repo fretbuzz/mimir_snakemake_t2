@@ -123,6 +123,15 @@ class TestChangePoint(unittest.TestCase):
     #    # are too much, maybe reduce them somehow?
     #'''
 
+    ### TODO: write some tests for  change_point_detection(tensor, window_size, nodes_in_tensor):
+    def change_point_detection_zz(self):
+        ## note: tensor is really a *list of dictionaries*, with keys of nodes_in_tensor
+        print "self_tensor",self.tensor
+        change_point_angles = change_point_detection(self.tensor, 4, [])
+        print "change_point_angles", change_point_angles
+        print "ZZZZ"
+        self.assertEqual(1,1)
+
     def test_find_angles_simplest(self):
         # find_angles(list_of_vectors, window_size)
         # okay, to test this I am going to need to do 2 things:
@@ -388,6 +397,7 @@ class TestChangePoint(unittest.TestCase):
 
         expected_angles = [float('nan'), float('nan'), float('nan'), float('nan'), float('nan'), 0.0, 0.0, 0.0, 0.0] # 9 - 4 = 5
         angles = change_point_detection(tensor, 3, [])
+        print "change_point_detection_qqqq", angles, tensor
         # self.assertEquals(computed_angles , [0.0, 0.0, 0.0])
         for i in range(0, len(expected_angles)):
             if math.isnan(expected_angles[i]):
@@ -505,7 +515,7 @@ class TestChangePoint(unittest.TestCase):
                       0.307189542, 0.263157895, 0.287581699, 0.294117647, 0.287581699, 0.287581699, 0.307189542,
                       0.278947368, 0.292397661, 0.320261438, 0.298245614, 0.274853801, 0.326797386]
 
-        mod_z_scores = calc_modified_z_score(test_array, 10, 5)
+        mod_z_scores = calc_modified_z_score(test_array, 10, 5, float('inf'), False)
         print "mod_z_scores", mod_z_scores,len(mod_z_scores)
         for i in range(0,5):
             self.assertTrue(math.isnan(mod_z_scores[i]))
@@ -520,7 +530,7 @@ class TestChangePoint(unittest.TestCase):
 
     def test_modified_z_score_all_zeroes(self):
         test_array = [0 for i in range(0,20)]
-        mod_z_scores = calc_modified_z_score(test_array, 10, 5)
+        mod_z_scores = calc_modified_z_score(test_array, 10, 5, float('inf'), False)
         print "mod_z_scores_zeroes", mod_z_scores,len(mod_z_scores)
         for i in range(0,5):
             self.assertTrue(math.isnan(mod_z_scores[i]))
@@ -529,7 +539,7 @@ class TestChangePoint(unittest.TestCase):
 
     def test_modified_z_score_min_bigger_than_ts(self):
         test_array = [float('nan') for i in range(0,10)] + [0.320261438, 0.298245614, 0.274853801, 0.326797386]
-        mod_z_scores = calc_modified_z_score(test_array, 10, 15)
+        mod_z_scores = calc_modified_z_score(test_array, 10, 15, float('inf'), False)
         print "mod_z_scores_zeroes_too_small", mod_z_scores, len(mod_z_scores)
         #self.assertEquals(mod_z_scores, [float('nan') for i in range(0,len(test_array))])
         for i in range(0,len(test_array)):

@@ -1725,9 +1725,13 @@ def multi_experiment_sockshop_recipe():
     #function_list = [i for i in raw_function_list]
 
     base_output_location = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_summary/'# + 'lasso_roc'
-    multi_experiment_pipeline(function_list, base_output_location, True, time_of_synethic_exfil,
+    fraction_of_edge_weights = [0.1]
+    fraction_of_edge_pkts = [0.1]
+    multi_experiment_pipeline(experiment_classes, base_output_location, True, time_of_synethic_exfil,
                               goal_train_test_split, goal_attack_NoAttack_split, training_window_size,
-                              size_of_neighbor_training_window, calc_vals, skip_model_part, ignore_physical_attacks_p)
+                              size_of_neighbor_training_window, calc_vals, skip_model_part, ignore_physical_attacks_p,
+                              fraction_of_edge_weights=fraction_of_edge_weights,
+                              fraction_of_edge_pkts=fraction_of_edge_pkts)
 
 if __name__=="__main__":
     print "RUNNING"

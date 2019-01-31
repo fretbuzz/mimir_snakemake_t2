@@ -525,6 +525,7 @@ class data_anylsis_pipline(object):
             # time.sleep(50)
 
             # exit(200) ## TODO ::: <<<---- remove!!
+            ### OKAY, this is where I'd need to add in the component that loops over the various injected exfil weights
             # OKAY, let's verify that this determine_attacks_to_times function is wokring before moving on to the next one...
             total_calculated_vals, time_gran_to_list_of_concrete_exfil_paths, time_gran_to_list_of_exfil_amts, \
             time_gran_to_new_neighbors_outside, time_gran_to_new_neighbors_dns, time_gran_to_new_neighbors_all = \
@@ -783,134 +784,152 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
             testing_exfil_paths.append([])
             exps_initiator_info.append([])
 
-    ## step (1) : iterate through individual experiments...
-    ##  # 1a. list of inputs [done]
-    ##  # 1b. acculate DFs
-    list_time_gran_to_mod_zscore_df = []
-    list_time_gran_to_mod_zscore_df_training = []
-    list_time_gran_to_mod_zscore_df_testing = []
-    list_time_gran_to_zscore_dataframe = []
-    list_time_gran_to_feature_dataframe = []
+
+    for rate_counter in range(0,len(fraction_of_edge_weights)):
+        ## step (1) : iterate through individual experiments...
+        ##  # 1a. list of inputs [done]
+        ##  # 1b. acculate DFs
+        prefix_for_inject_params = 'weight_' + str(fraction_of_edge_weights[rate_counter]) +\
+            '_pkt_' + str(fraction_of_edge_pkts[rate_counter]) + '_'
+        cur_base_output_name = base_output_name + prefix_for_inject_params
+        list_time_gran_to_mod_zscore_df = []
+        list_time_gran_to_mod_zscore_df_training = []
+        list_time_gran_to_mod_zscore_df_testing = []
+        list_time_gran_to_zscore_dataframe = []
+        list_time_gran_to_feature_dataframe = []
 
 
-    ### NOTE: I could modify this portion to loop over several different exfiltration rates...
-    ### and then store the resulting dicts in some kinda dict that is indexed by the exfil rate/amt...
-    ### my only concern is that it might lead to storing alot of stuff in RAM and also I'm not so sure how
-    ### reasonable the rate injector even is ATM...
-    experiments_to_exfil_path_time_dicts = []
-    starts_of_testing = []
-    for counter,experiment_object in enumerate(function_list):
-        #time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, _ = func()
-        print "exps_exfil_paths[counter]_to_func",exps_exfil_paths[counter], exps_initiator_info
+        ### NOTE: I could modify this portion to loop over several different exfiltration rates...
+        ### and then store the resulting dicts in some kinda dict that is indexed by the exfil rate/amt...
+        ### my only concern is that it might lead to storing alot of stuff in RAM and also I'm not so sure how
+        ### reasonable the rate injector even is ATM...
+        experiments_to_exfil_path_time_dicts = []
+        starts_of_testing = []
+        for counter,experiment_object in enumerate(function_list):
+            #time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, _ = func()
+            print "exps_exfil_paths[counter]_to_func",exps_exfil_paths[counter], exps_initiator_info
 
-        time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, _, start_of_testing = \
-        experiment_object.calculate_values(end_of_training=end_of_train_portions[counter],
-                                           synthetic_exfil_paths_train=training_exfil_paths[counter],
-                                           synthetic_exfil_paths_test=testing_exfil_paths[counter],
-                                           fraction_of_edge_weights=fraction_of_edge_weights[0],
-                                           fraction_of_edge_pkts=fraction_of_edge_pkts[0])
+            #''' todo:check if this works and then modify the results accordingly (note: i think this'll require that new vals are calculated...)
+            #prefix_for_inject_params
+            experiment_object.alert_file = experiment_object.alert_file + prefix_for_inject_params ## TODO
+            #experiment_object.basefile_name = experiment_object.basefile_name +  prefix_for_inject_params## TODO
+            experiment_object.basegraph_name = experiment_object.basegraph_name + prefix_for_inject_params ## TODO
+            experiment_object.exp_name = experiment_object.exp_name + prefix_for_inject_params ## TODO
+            #experiment_object.sub_path = None ## TODO: actually might not be needed
+            #'''
 
-        print "exps_exfil_pathas[time_gran_to_mod_zscore_df]", time_gran_to_mod_zscore_df
-        list_time_gran_to_mod_zscore_df.append(time_gran_to_mod_zscore_df)
-        list_time_gran_to_zscore_dataframe.append(time_gran_to_zscore_dataframe)
-        list_time_gran_to_feature_dataframe.append(time_gran_to_feature_dataframe)
-        list_time_gran_to_mod_zscore_df_training.append(generate_time_gran_sub_dataframes(time_gran_to_mod_zscore_df, 'is_test', 0))
-        list_time_gran_to_mod_zscore_df_testing.append(generate_time_gran_sub_dataframes(time_gran_to_mod_zscore_df, 'is_test', 1))
-        starts_of_testing.append(start_of_testing)
-        gc.collect()
+            time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, _, start_of_testing = \
+            experiment_object.calculate_values(end_of_training=end_of_train_portions[counter],
+                                               synthetic_exfil_paths_train=training_exfil_paths[counter],
+                                               synthetic_exfil_paths_test=testing_exfil_paths[counter],
+                                               fraction_of_edge_weights=fraction_of_edge_weights[rate_counter],
+                                               fraction_of_edge_pkts=fraction_of_edge_pkts[rate_counter])
 
-    # step (2) :  take the dataframes and feed them into the LASSO component...
-    ### 2a. split into training and testing data
-    ###### at the moment, we'll make the simplfying assumption to only use the modified z-scores...
-    ######## 2a.I. get aggregate dfs for each time granularity...
-    time_gran_to_aggregate_mod_score_dfs = {}
-    time_gran_to_feature_dfs = {}
-    print "about_to_do_list_time_gran_to_mod_zscore_df"
-    time_gran_to_aggregate_mod_score_dfs = aggregate_dfs(list_time_gran_to_mod_zscore_df)
-    #time_gran_to_aggregate_mod_score_dfs_training = aggregate_dfs(list_time_gran_to_mod_zscore_df_training)
-    #time_gran_to_aggregate_mod_score_dfs_testing = aggregate_dfs(list_time_gran_to_mod_zscore_df_testing)
-    print "about_to_do_list_time_gran_to_feature_dataframe"
-    time_gran_to_aggreg_feature_dfs = aggregate_dfs(list_time_gran_to_feature_dataframe)
+            print "exps_exfil_pathas[time_gran_to_mod_zscore_df]", time_gran_to_mod_zscore_df
+            list_time_gran_to_mod_zscore_df.append(time_gran_to_mod_zscore_df)
+            list_time_gran_to_zscore_dataframe.append(time_gran_to_zscore_dataframe)
+            list_time_gran_to_feature_dataframe.append(time_gran_to_feature_dataframe)
+            list_time_gran_to_mod_zscore_df_training.append(generate_time_gran_sub_dataframes(time_gran_to_mod_zscore_df, 'is_test', 0))
+            list_time_gran_to_mod_zscore_df_testing.append(generate_time_gran_sub_dataframes(time_gran_to_mod_zscore_df, 'is_test', 1))
+            starts_of_testing.append(start_of_testing)
+            gc.collect()
 
-    for time_gran, aggregate_feature_df in time_gran_to_aggreg_feature_dfs.iteritems():
-        aggregate_feature_df.to_csv(base_output_name + 'aggregate_feature_df_at_time_gran_of_' + str(time_gran) + '_sec.csv',
-                                    na_rep='?')
-    for time_gran, aggregate_feature_df in time_gran_to_aggregate_mod_score_dfs.iteritems():
-        aggregate_feature_df.to_csv(base_output_name + 'modz_feat_df_at_time_gran_of_' + str(time_gran) + '_sec.csv',
-                                    na_rep='?')
+        # step (2) :  take the dataframes and feed them into the LASSO component...
+        ### 2a. split into training and testing data
+        ###### at the moment, we'll make the simplfying assumption to only use the modified z-scores...
+        ######## 2a.I. get aggregate dfs for each time granularity...
+        time_gran_to_aggregate_mod_score_dfs = {}
+        time_gran_to_feature_dfs = {}
+        print "about_to_do_list_time_gran_to_mod_zscore_df"
+        time_gran_to_aggregate_mod_score_dfs = aggregate_dfs(list_time_gran_to_mod_zscore_df)
+        #time_gran_to_aggregate_mod_score_dfs_training = aggregate_dfs(list_time_gran_to_mod_zscore_df_training)
+        #time_gran_to_aggregate_mod_score_dfs_testing = aggregate_dfs(list_time_gran_to_mod_zscore_df_testing)
+        print "about_to_do_list_time_gran_to_feature_dataframe"
+        time_gran_to_aggreg_feature_dfs = aggregate_dfs(list_time_gran_to_feature_dataframe)
 
-    recipes_used = [recipe.exp_name for recipe in function_list]
-    names = []
-    for counter,recipe in enumerate(recipes_used):
-        #print "recipe_in_functon_list", recipe.__name__
-        #name = recipe.__name__
-        name = '_'.join(recipe.split('_')[1:])
-        names.append(name)
+        for time_gran, aggregate_feature_df in time_gran_to_aggreg_feature_dfs.iteritems():
+            aggregate_feature_df.to_csv(cur_base_output_name + 'aggregate_feature_df_at_time_gran_of_' + str(time_gran) + '_sec.csv',
+                                        na_rep='?')
+        for time_gran, aggregate_feature_df in time_gran_to_aggregate_mod_score_dfs.iteritems():
+            aggregate_feature_df.to_csv(cur_base_output_name + 'modz_feat_df_at_time_gran_of_' + str(time_gran) + '_sec.csv',
+                                        na_rep='?')
 
-    path_occurence_training_df = generate_exfil_path_occurence_df(list_time_gran_to_mod_zscore_df_training, names)
-    path_occurence_testing_df = generate_exfil_path_occurence_df(list_time_gran_to_mod_zscore_df_testing, names)
+        recipes_used = [recipe.exp_name for recipe in function_list]
+        names = []
+        for counter,recipe in enumerate(recipes_used):
+            #print "recipe_in_functon_list", recipe.__name__
+            #name = recipe.__name__
+            name = '_'.join(recipe.split('_')[1:])
+            names.append(name)
 
-    ##################################
-    # todo: okay, I'm going to mess w/ the aggregate mod_score_dfs b/c the vip vals should actually be just raw (instead
-    # of the mod-z score of hte vals)
-    for time_gran, aggregate_mod_df in time_gran_to_aggregate_mod_score_dfs.iteritems():
-        # okay, want to do 2 things:
-        # drop old vip terms
-        # add non-mod-z-score-terms
-        pass
-        ##time_gran_to_aggregate_mod_score_dfs[time_gran] = None ## TODO
+        path_occurence_training_df = generate_exfil_path_occurence_df(list_time_gran_to_mod_zscore_df_training, names)
+        path_occurence_testing_df = generate_exfil_path_occurence_df(list_time_gran_to_mod_zscore_df_testing, names)
 
-    ##################################
-    '''
-    statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, base_output_name,
-                                         names, starts_of_testing, path_occurence_training_df,
-                                         path_occurence_testing_df, recipes_used)
-    '''
-    #time_gran_to_aggreg_feature_dfs
-    ## okay, so now us the time to get a little tricky with everything... we gotta generate seperate reports for the different
-    ## modls used...
-    '''
-    clf = LassoCV(cv=3, max_iter=8000)
-    statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p,
-                                         base_output_name + 'lasso_mod_z_',
-                                         names, starts_of_testing, path_occurence_training_df,
-                                         path_occurence_testing_df, recipes_used, skip_model_part, clf,
-                                         ignore_physical_attacks_p)
+        ##################################
+        # todo: okay, I'm going to mess w/ the aggregate mod_score_dfs b/c the vip vals should actually be just raw (instead
+        # of the mod-z score of hte vals)
+        for time_gran, aggregate_mod_df in time_gran_to_aggregate_mod_score_dfs.iteritems():
+            # okay, want to do 2 things:
+            # drop old vip terms
+            # add non-mod-z-score-terms
+            pass
+            ##time_gran_to_aggregate_mod_score_dfs[time_gran] = None ## TODO
 
-    statistically_analyze_graph_features(time_gran_to_aggreg_feature_dfs, ROC_curve_p, base_output_name + 'lasso_raw_',
-                                         names, starts_of_testing, path_occurence_training_df,
-                                         path_occurence_testing_df, recipes_used, skip_model_part, clf,
-                                         ignore_physical_attacks_p)
-    #'''
-    '''
-    clf = LogisticRegressionCV(penalty="l2", cv=3, max_iter=10000)
-    statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p,
-                                         base_output_name + 'logistic_l2_mod_z_',
-                                         names, starts_of_testing, path_occurence_training_df,
-                                         path_occurence_testing_df, recipes_used, skip_model_part, clf,
-                                         ignore_physical_attacks_p)
+        ##################################
+        '''
+        statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, base_output_name,
+                                             names, starts_of_testing, path_occurence_training_df,
+                                             path_occurence_testing_df, recipes_used)
+        '''
+        #time_gran_to_aggreg_feature_dfs
+        ## okay, so now us the time to get a little tricky with everything... we gotta generate seperate reports for the different
+        ## modls used...
+        '''
+        clf = LassoCV(cv=3, max_iter=8000)
+        statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p,
+                                             base_output_name + 'lasso_mod_z_',
+                                             names, starts_of_testing, path_occurence_training_df,
+                                             path_occurence_testing_df, recipes_used, skip_model_part, clf,
+                                             ignore_physical_attacks_p)
+    
+        statistically_analyze_graph_features(time_gran_to_aggreg_feature_dfs, ROC_curve_p, base_output_name + 'lasso_raw_',
+                                             names, starts_of_testing, path_occurence_training_df,
+                                             path_occurence_testing_df, recipes_used, skip_model_part, clf,
+                                             ignore_physical_attacks_p)
+        #'''
+        '''
+        clf = LogisticRegressionCV(penalty="l2", cv=3, max_iter=10000)
+        statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p,
+                                             base_output_name + 'logistic_l2_mod_z_',
+                                             names, starts_of_testing, path_occurence_training_df,
+                                             path_occurence_testing_df, recipes_used, skip_model_part, clf,
+                                             ignore_physical_attacks_p)
+    
+        statistically_analyze_graph_features(time_gran_to_aggreg_feature_dfs, ROC_curve_p, base_output_name + 'logistic_l2_raw_',
+                                             names, starts_of_testing, path_occurence_training_df,
+                                             path_occurence_testing_df, recipes_used, skip_model_part, clf,
+                                             ignore_physical_attacks_p)
+        #'''
 
-    statistically_analyze_graph_features(time_gran_to_aggreg_feature_dfs, ROC_curve_p, base_output_name + 'logistic_l2_raw_',
-                                         names, starts_of_testing, path_occurence_training_df,
-                                         path_occurence_testing_df, recipes_used, skip_model_part, clf,
-                                         ignore_physical_attacks_p)
-    #'''
-    clf = LogisticRegressionCV(penalty="l1", cv=3, max_iter=10000, solver='saga')
-    statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p,
-                                         base_output_name + 'logistic_l1_mod_z_',
-                                         names, starts_of_testing, path_occurence_training_df,
-                                         path_occurence_testing_df, recipes_used, skip_model_part, clf,
-                                         ignore_physical_attacks_p)
+        clf = LogisticRegressionCV(penalty="l1", cv=10, max_iter=10000, solver='saga')
+        statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p,
+                                             cur_base_output_name + 'logistic_l1_mod_z_',
+                                             names, starts_of_testing, path_occurence_training_df,
+                                             path_occurence_testing_df, recipes_used, skip_model_part, clf,
+                                             ignore_physical_attacks_p, fraction_of_edge_weights[rate_counter],
+                                             fraction_of_edge_pkts[rate_counter])
 
-    statistically_analyze_graph_features(time_gran_to_aggreg_feature_dfs, ROC_curve_p,
-                                         base_output_name + 'logistic_l1_raw_',
-                                         names, starts_of_testing, path_occurence_training_df,
-                                         path_occurence_testing_df, recipes_used, skip_model_part, clf,
-                                         ignore_physical_attacks_p)
+        statistically_analyze_graph_features(time_gran_to_aggreg_feature_dfs, ROC_curve_p,
+                                             cur_base_output_name + 'logistic_l1_raw_',
+                                             names, starts_of_testing, path_occurence_training_df,
+                                             path_occurence_testing_df, recipes_used, skip_model_part, clf,
+                                             ignore_physical_attacks_p, fraction_of_edge_weights[rate_counter],
+                                             fraction_of_edge_pkts[rate_counter])
 
 def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, base_output_name, names,
                                          starts_of_testing, path_occurence_training_df, path_occurence_testing_df,
-                                         recipes_used, skip_model_part, clf, ignore_physical_attacks_p):
+                                         recipes_used, skip_model_part, clf, ignore_physical_attacks_p,
+                                         fraction_of_edge_weights, fraction_of_edge_pkts):
     #print time_gran_to_aggregate_mod_score_dfs['60']
     ######### 2a.II. do the actual splitting
     # note: labels have the column name 'labels' (noice)
@@ -1257,7 +1276,8 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
             model_params['alpha_val'] = clf.alpha_
         except:
             try:
-                model_params['alpha_val'] = alpha
+                pass
+                #model_params['alpha_val'] = alpha
             except:
                 pass
                 #tree.export_graphviz(clf,out_file = 'tree.dot')
@@ -1402,7 +1422,8 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
                                     list_of_optimal_fone_scores, starts_of_testing_df, path_occurence_training_df,
                                     path_occurence_testing_df, percent_attacks, list_of_attacks_found_training_df,
                                     list_percent_attacks_training, feature_activation_heatmaps, feature_raw_heatmaps,
-                                    ideal_thresholds, feature_activation_heatmaps_training, feature_raw_heatmaps_training)
+                                    ideal_thresholds, feature_activation_heatmaps_training, feature_raw_heatmaps_training,
+                                    fraction_of_edge_weights, fraction_of_edge_pkts)
 
     print "multi_experiment_pipeline is all done! (NO ERROR DURING RUNNING)"
     #print "recall that this was the list of alert percentiles", percentile_thresholds
