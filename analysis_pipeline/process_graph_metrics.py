@@ -404,6 +404,7 @@ def save_feature_datafames(time_gran_to_feature_dataframe, csv_path, time_gran_t
 
         ### now let's store an indicator of when the training set ends... end_of_training indicates the first member
         ### of the training dataset...
+        print end_of_training, time_gran
         test_period_list = [0 for i in range(0,end_of_training/time_gran)] + \
                            [1 for i in range(end_of_training/time_gran, len(feature_dataframe.index))]
         test_period_series = pandas.Series(test_period_list, index=feature_dataframe.index)

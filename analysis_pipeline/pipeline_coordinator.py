@@ -497,7 +497,7 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
         process_graph_metrics.save_feature_datafames(time_gran_to_feature_dataframe, alert_file + sub_path,
                                                      time_gran_to_attack_labels,time_gran_to_synthetic_exfil_paths_series,
                                                      time_gran_to_list_of_concrete_exfil_paths, time_gran_to_list_of_exfil_amts,
-                                                     end_of_training, time_gran_to_new_neighbors_outside,
+                                                     int(end_of_training), time_gran_to_new_neighbors_outside,
                                                      time_gran_to_new_neighbors_dns, time_gran_to_new_neighbors_all)
 
         analysis_pipeline.generate_graphs.generate_feature_multitime_boxplots(total_calculated_vals, basegraph_name,
@@ -738,32 +738,16 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
     list_time_gran_to_zscore_dataframe = []
     list_time_gran_to_feature_dataframe = []
 
+
+    ### NOTE: I could modify this portion to loop over several different exfiltration rates...
+    ### and then store the resulting dicts in some kinda dict that is indexed by the exfil rate/amt...
+    ### my only concern is that it might lead to storing alot of stuff in RAM and also I'm not so sure how
+    ### reasonable the rate injector even is ATM...
     experiments_to_exfil_path_time_dicts = []
     starts_of_testing = []
     for counter,func in enumerate(function_list):
         #time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, _ = func()
         print "exps_exfil_paths[counter]_to_func",exps_exfil_paths[counter], exps_initiator_info
-        ## TODO: need to make this use the multiprocessing library (so I can force the
-        ## stupid garbage collector to actually work...)
-        '''
-        kwards = {'time_of_synethic_exfil':time_each_synthetic_exfil,
-                 'initiator_info_for_paths':exps_initiator_info[counter],
-                 'training_window_size':training_window_size,
-                 'size_of_neighbor_training_window':size_of_neighbor_training_window,
-                 'portion_for_training':end_of_train_portions[counter],
-                 'synthetic_exfil_paths_train' : training_exfil_paths[counter],
-                 'synthetic_exfil_paths_test' : testing_exfil_paths[counter],
-                 'calc_vals':calc_vals}
-
-        manager = multiprocessing.Manager()
-        return_dict = manager.dict()
-        p = multiprocessing.Process(target=func, kwargs=kwards,  args=(return_dict,))
-        p.start()
-        p.join()
-        time_gran_to_mod_zscore_df = return_dict['time_gran_to_mod_zscore_df']
-        time_gran_to_zscore_dataframe = return_dict['time_gran_to_zscore_dataframe']
-        time_gran_to_feature_dataframe = return_dict['time_gran_to_feature_dataframe']
-        '''
         time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, _, start_of_testing = \
             func(time_of_synethic_exfil=time_each_synthetic_exfil,
                  initiator_info_for_paths=exps_initiator_info[counter],
@@ -1006,15 +990,23 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
             #    ide_test = [0 for i in range(0, len(X_test))]
         except:
             try:
-                ide_train = copy.deepcopy(X_train['ide_angles_mod_z_score'])
+                #ide_train = copy.deepcopy(X_train['ide_angles_mod_z_score'])
+                ide_train = copy.deepcopy(X_train['ide_angles (w abs)_mod_z_score'])
+                X_train = X_train.drop(columns='ide_angles_mod_z_score')
+                X_train = X_train.drop(columns='ide_angles (w abs)_mod_z_score')
                 ide_train.fillna(ide_train.mean())
                 print "ide_train", ide_train
                 # exit(1222)
-                copy_of_X_test = X_test.copy(deep=True)
-                ide_test = copy.deepcopy(copy_of_X_test['ide_angles_mod_z_score'])
-                ide_test = ide_test.fillna(ide_train.mean())
             except:
                 ide_train = [0 for i in range(0,len(X_train))]
+            try:
+                #copy_of_X_test = X_test.copy(deep=True)
+                #ide_test = copy.deepcopy(copy_of_X_test['ide_angles_mod_z_score'])
+                ide_test = copy.deepcopy(X_test['ide_angles (w abs)_mod_z_score'])
+                X_test = X_test.drop(columns='ide_angles_mod_z_score')
+                X_test = X_test.drop(columns='ide_angles (w abs)_mod_z_score')
+                ide_test = ide_test.fillna(ide_train.mean())
+            except:
                 ide_test = [0 for i in range(0,len(X_test))]
 
 
