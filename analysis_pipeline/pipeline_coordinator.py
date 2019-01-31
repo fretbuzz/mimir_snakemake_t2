@@ -128,6 +128,8 @@ def calc_zscores(alert_file, training_window_size, minimum_training_window,
                                                                                             training_window_size,
                                                                                             minimum_training_window)
 
+        #print "end_of_training", end_of_training
+        #exit(344)
         process_graph_metrics.save_feature_datafames(time_gran_to_mod_zscore_df, mod_z_score_df_basefile_name,
                                                      time_gran_to_attack_labels, time_gran_to_synthetic_exfil_paths_series,
                                                      time_gran_to_list_of_concrete_exfil_paths,
@@ -363,7 +365,8 @@ def determine_time_gran_to_synthetic_exfil_paths_series(time_gran_to_attack_rang
 # (1) creates edgefiles, (2) creates communication graphs from edgefiles, (3) calculates (and stores) graph metrics
 # (4) makes graphs of the graph metrics
 # Note: see run_analysis_pipeline_recipes for pre-configured sets of parameters (there are rather a lot)
-def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
+class data_anylsis_pipline(object):
+    def __init__(self, pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
                                make_edgefiles_p, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
                                wiggle_room, start_time=None, end_time=None, calc_vals=True, graph_p=True,
                                kubernetes_svc_info=None, make_net_graphs_p=False, cilium_config_path=None,
@@ -376,235 +379,284 @@ def run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_in
                                initiator_info_for_paths=None,
                                synthetic_exfil_paths_train=None, synthetic_exfil_paths_test=None,
                                skip_model_part=False, max_number_of_paths=None, netsec_policy=None):
+        self.ms_s = ms_s
+        print "log file can be found at: " + str(basefile_name) + '_logfile.log'
+        logging.basicConfig(filename=basefile_name + '_logfile.log', level=logging.INFO)
+        logging.info('run_data_anaylsis_pipeline Started')
 
-    print "log file can be found at: " + str(basefile_name) + '_logfile.log'
-    logging.basicConfig(filename=basefile_name + '_logfile.log', level=logging.INFO)
-    logging.info('run_data_anaylsis_pipeline Started')
+        if 'kube-dns' not in ms_s:
+            self.ms_s.append('kube-dns')  # going to put this here so I don't need to re-write all the recipes...
 
-    if 'kube-dns' not in ms_s:
-        ms_s.append('kube-dns') # going to put this here so I don't need to re-write all the recipes...
+        gc.collect()
 
-    gc.collect()
+        print "starting pipeline..."
 
-    print "starting pipeline..."
+        # sub_path = 'sub_only_edge_corr_'  # NOTE: make this an empty string if using the full pipeline (and not the subset)
+        # sub_path = 'sub_only_ide_'  # NOTE: make this an empty string if using the full pipeline (and not the subset)
+        ### TODO put VVV back in...
+        self.sub_path = 'sub_'  # NOTE: make this an empty string if using the full pipeline (and not the subset)
+        self.mapping, self.list_of_infra_services = create_mappings(is_swarm, container_info_path, kubernetes_svc_info,
+                                                          kubernetes_pod_info, cilium_config_path, ms_s)
 
-    #sub_path = 'sub_only_edge_corr_'  # NOTE: make this an empty string if using the full pipeline (and not the subset)
-    #sub_path = 'sub_only_ide_'  # NOTE: make this an empty string if using the full pipeline (and not the subset)
-    ### TODO put VVV back in...
-    sub_path = 'sub_'  # NOTE: make this an empty string if using the full pipeline (and not the subset)
-    mapping,list_of_infra_services = create_mappings(is_swarm, container_info_path, kubernetes_svc_info,
-                                                     kubernetes_pod_info, cilium_config_path, ms_s)
+        self.calc_zscore_p=calc_zscore_p
+        self.is_swarm = is_swarm
+        self.container_info_path = container_info_path
+        self.kubernetes_svc_info = kubernetes_svc_info
+        self.kubernetes_pod_info = kubernetes_pod_info
+        self.cilium_config_path = cilium_config_path
+        self.time_interval_lengths = time_interval_lengths
+        self.basegraph_name = basegraph_name
+        self.window_size = window_size
+        self.colors = colors
+        self.exfil_start_time = exfil_start_time
+        self.exfil_end_time = exfil_end_time
+        self.minimum_training_window = minimum_training_window
+        self.experiment_folder_path = basefile_name.split('edgefiles')[0]
+        self.pcap_file = pcap_paths[0].split('/')[-1]  # NOTE: assuming only a single pcap file...
+        self.exp_name = basefile_name.split('/')[-1]
+        self.make_edgefiles_p = make_edgefiles_p and only_exp_info
+        self.netsec_policy = netsec_policy
+        self.make_edgefiles_p=make_edgefiles_p
+        self.graph_p = graph_p
+        self.sensitive_ms = None
+        self.time_of_synethic_exfil = time_of_synethic_exfil
+        self.injected_exfil_path = injected_exfil_path
+        self.make_net_graphs_p=make_net_graphs_p
+        self.alert_file=alert_file
+        self.wiggle_room=wiggle_room
+        self.sec_between_exfil_events=sec_between_exfil_events
 
+        self.synthetic_exfil_paths = None
+        self.initiator_info_for_paths = None
+        self.training_window_size = training_window_size
+        self.size_of_neighbor_training_window = size_of_neighbor_training_window
+        print training_window_size,size_of_neighbor_training_window
+        self.system_startup_time = training_window_size + size_of_neighbor_training_window
+        self.calc_vals = calc_vals
 
-    if (synthetic_exfil_paths_train is None or initiator_info_for_paths is None or synthetic_exfil_paths_test is None) and not only_exp_info:
-        print "about_to_return_synthetic_exfil_paths", not synthetic_exfil_paths_train, not initiator_info_for_paths,\
-                not synthetic_exfil_paths_test
-        # todo: might wanna specify this is in the attack descriptions...
         for ms in ms_s:
             if 'user' in ms and 'db' in ms:
-                sensitive_ms = ms
+                self.sensitive_ms = ms
             if 'my-release' in ms:
-                sensitive_ms = ms
-        ## TODO: modify generate_synthetic_attack_templates to only return a set number of paths to return
-        #max_number_of_paths = None ## TODO
-        netsec_policy = gen_attack_templates.parse_netsec_policy(netsec_policy)
-        synthetic_exfil_paths, initiator_info_for_paths = gen_attack_templates.generate_synthetic_attack_templates(mapping, ms_s, sensitive_ms,
-                                                                                                                   max_number_of_paths, netsec_policy)
-        return synthetic_exfil_paths, initiator_info_for_paths, None, None,None
+                self.sensitive_ms = ms
 
-    system_startup_time = training_window_size+size_of_neighbor_training_window
+        self.process_pcaps()
 
-    experiment_folder_path = basefile_name.split('edgefiles')[0]
-    pcap_file = pcap_paths[0].split('/')[-1] # NOTE: assuming only a single pcap file...
-    exp_name = basefile_name.split('/')[-1]
-    make_edgefiles_p = make_edgefiles_p and only_exp_info
-    interval_to_filenames = process_pcap.process_pcap(experiment_folder_path, pcap_file, time_interval_lengths,
-                                                      exp_name, make_edgefiles_p, mapping)
+    def generate_synthetic_exfil_paths(self, max_number_of_paths):
+        self.netsec_policy = gen_attack_templates.parse_netsec_policy(self.netsec_policy)
+        synthetic_exfil_paths, initiator_info_for_paths = \
+            gen_attack_templates.generate_synthetic_attack_templates(self.mapping, self.ms_s, self.sensitive_ms,
+                                                                     max_number_of_paths, self.netsec_policy)
+        self.synthetic_exfil_paths = synthetic_exfil_paths
+        self.initiator_info_for_paths = initiator_info_for_paths
+        return synthetic_exfil_paths, initiator_info_for_paths
 
-    time_grans = [int(i) for i in interval_to_filenames.keys()]
-    smallest_time_gran = min(time_grans)
-    if only_exp_info:
-        print "only_exp_info_section", only_exp_info
-        total_experiment_length = len(interval_to_filenames[str(smallest_time_gran)]) * smallest_time_gran
-        print "about to return from only_exp_info section",total_experiment_length, exfil_start_time, exfil_end_time,\
-            system_startup_time,None
-        return total_experiment_length, exfil_start_time, exfil_end_time, system_startup_time,None
+    def process_pcaps(self):
+        self.interval_to_filenames = process_pcap.process_pcap(self.experiment_folder_path, self.pcap_file, self.time_interval_lengths,
+                                                          self.exp_name, self.make_edgefiles_p, self.mapping)
 
-    if calc_vals or graph_p:
-        # TODO: 90% sure that there is a problem with this function...
-        #largest_interval = int(min(interval_to_filenames.keys()))
-        exp_length = len(interval_to_filenames[str(smallest_time_gran)]) * smallest_time_gran
-        print "exp_length_ZZZ", exp_length, type(exp_length)
-        #if not skip_model_part:
-        time_gran_to_attack_labels = process_graph_metrics.generate_time_gran_to_attack_labels(time_interval_lengths,
-                                                                                               exfil_start_time, exfil_end_time,
-                                                                                                sec_between_exfil_events,
-                                                                                               exp_length)
-        #else:
-            #time_gran_to_attack_labels = {}
-            #for time_gran in time_interval_lengths:
+    def get_exp_info(self):
+        time_grans = [int(i) for i in self.interval_to_filenames.keys()]
+        smallest_time_gran = min(time_grans)
+        self.smallest_time_gran = smallest_time_gran
+        self.total_experiment_length = len(self.interval_to_filenames[str(smallest_time_gran)]) * smallest_time_gran
+        print "about to return from only_exp_info section", self.total_experiment_length, self.exfil_start_time, self.exfil_end_time, \
+            self.system_startup_time, None
+        #return total_experiment_length, self.exfil_start_time, self.exfil_end_time, self.system_startup_time
+        return self.total_experiment_length, self.exfil_start_time, self.exfil_end_time, self.system_startup_time
+
+    def calculate_values(self,end_of_training, synthetic_exfil_paths_train, synthetic_exfil_paths_test, fraction_of_edge_weights, fraction_of_edge_pkts):
+        self.end_of_training = end_of_training
+        if self.calc_vals or self.graph_p:
+            # TODO: 90% sure that there is a problem with this function...
+            # largest_interval = int(min(interval_to_filenames.keys()))
+            exp_length = len(self.interval_to_filenames[str(self.smallest_time_gran)]) * self.smallest_time_gran
+            print "exp_length_ZZZ", exp_length, type(exp_length)
+            # if not skip_model_part:
+            time_gran_to_attack_labels = process_graph_metrics.generate_time_gran_to_attack_labels(
+                self.time_interval_lengths,
+                self.exfil_start_time, self.exfil_end_time,
+                self.sec_between_exfil_events,
+                exp_length)
+            # else:
+            # time_gran_to_attack_labels = {}
+            # for time_gran in time_interval_lengths:
             #    time_gran_to_attack_labels[time_gran] = [(1,1)]
-                #pass
+            # pass
 
-        #print "interval_to_filenames_ZZZ",interval_to_filenames
-        for interval, filenames in interval_to_filenames.iteritems():
-            print "interval_ZZZ", interval, len(filenames)
-        for time_gran, attack_labels in time_gran_to_attack_labels.iteritems():
-            print "time_gran_right_after_creation", time_gran, "len of attack labels", len(attack_labels)
+            # print "interval_to_filenames_ZZZ",interval_to_filenames
+            for interval, filenames in self.interval_to_filenames.iteritems():
+                print "interval_ZZZ", interval, len(filenames)
+            for time_gran, attack_labels in time_gran_to_attack_labels.iteritems():
+                print "time_gran_right_after_creation", time_gran, "len of attack labels", len(attack_labels)
 
-        print interval_to_filenames, type(interval_to_filenames), 'stufff', interval_to_filenames.keys()
+            print self.interval_to_filenames, type(self.interval_to_filenames), 'stufff', self.interval_to_filenames.keys()
 
-        # most of the parameters are kinda arbitrary ATM...
-        print "INITIAL time_gran_to_attack_labels", time_gran_to_attack_labels
-        ## okay, I'll probably wanna write tests for the below function, but it seems to be working pretty well on my
-        # informal tests...
-        end_of_training = end_of_training
-        synthetic_exfil_paths = []
-        for path in synthetic_exfil_paths_train + synthetic_exfil_paths_test:
-            if path not in synthetic_exfil_paths:
-                synthetic_exfil_paths.append(path)
+            # most of the parameters are kinda arbitrary ATM...
+            print "INITIAL time_gran_to_attack_labels", time_gran_to_attack_labels
+            ## okay, I'll probably wanna write tests for the below function, but it seems to be working pretty well on my
+            # informal tests...
+            end_of_training = end_of_training
+            synthetic_exfil_paths = []
+            for path in synthetic_exfil_paths_train + synthetic_exfil_paths_test:
+                if path not in synthetic_exfil_paths:
+                    synthetic_exfil_paths.append(path)
 
-        print "synthetic_exfil_paths_train",synthetic_exfil_paths_train
-        print "synthetic_exfil_paths_test",synthetic_exfil_paths_test
-        print "synthetic_exfil_paths",synthetic_exfil_paths
-        time_gran_to_attack_labels, time_gran_to_attack_ranges, time_gran_to_physical_attack_ranges = \
-            determine_attacks_to_times(time_gran_to_attack_labels, synthetic_exfil_paths, time_of_synethic_exfil=time_of_synethic_exfil,
-                                       min_starting=system_startup_time, end_of_train=end_of_training,
-                                       synthetic_exfil_paths_train=synthetic_exfil_paths_train,
-                                       synthetic_exfil_paths_test=synthetic_exfil_paths_test)
-        print "time_gran_to_attack_labels",time_gran_to_attack_labels
-        print "time_gran_to_attack_ranges", time_gran_to_attack_ranges
-        #time.sleep(50)
+            print "synthetic_exfil_paths_train", synthetic_exfil_paths_train
+            print "synthetic_exfil_paths_test", synthetic_exfil_paths_test
+            print "synthetic_exfil_paths", synthetic_exfil_paths
+            time_gran_to_attack_labels, time_gran_to_attack_ranges, time_gran_to_physical_attack_ranges = \
+                determine_attacks_to_times(time_gran_to_attack_labels, synthetic_exfil_paths,
+                                           time_of_synethic_exfil=self.time_of_synethic_exfil,
+                                           min_starting=self.system_startup_time, end_of_train=end_of_training,
+                                           synthetic_exfil_paths_train=synthetic_exfil_paths_train,
+                                           synthetic_exfil_paths_test=synthetic_exfil_paths_test)
+            print "time_gran_to_attack_labels", time_gran_to_attack_labels
+            print "time_gran_to_attack_ranges", time_gran_to_attack_ranges
+            # time.sleep(50)
 
-        time_gran_to_synthetic_exfil_paths_series = determine_time_gran_to_synthetic_exfil_paths_series(time_gran_to_attack_ranges,
-                                                                            synthetic_exfil_paths, interval_to_filenames,
-                                                                            time_gran_to_physical_attack_ranges, injected_exfil_path)
+            time_gran_to_synthetic_exfil_paths_series = determine_time_gran_to_synthetic_exfil_paths_series(
+                time_gran_to_attack_ranges,
+                synthetic_exfil_paths, self.interval_to_filenames,
+                time_gran_to_physical_attack_ranges, self.injected_exfil_path)
 
-        print "time_gran_to_synthetic_exfil_paths_series", time_gran_to_synthetic_exfil_paths_series
-        #time.sleep(50)
+            print "time_gran_to_synthetic_exfil_paths_series", time_gran_to_synthetic_exfil_paths_series
+            # time.sleep(50)
 
-        #exit(200) ## TODO ::: <<<---- remove!!
-        # OKAY, let's verify that this determine_attacks_to_times function is wokring before moving on to the next one...
-        total_calculated_vals, time_gran_to_list_of_concrete_exfil_paths, time_gran_to_list_of_exfil_amts, \
-        time_gran_to_new_neighbors_outside, time_gran_to_new_neighbors_dns, time_gran_to_new_neighbors_all = \
-            calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms_s, basegraph_name, calc_vals,
-                                        window_size, mapping, is_swarm, make_net_graphs_p, list_of_infra_services,
-                                        synthetic_exfil_paths, initiator_info_for_paths, time_gran_to_attack_ranges,
-                                        fraction_of_edge_weights, fraction_of_edge_pkts, size_of_neighbor_training_window)
+            # exit(200) ## TODO ::: <<<---- remove!!
+            # OKAY, let's verify that this determine_attacks_to_times function is wokring before moving on to the next one...
+            total_calculated_vals, time_gran_to_list_of_concrete_exfil_paths, time_gran_to_list_of_exfil_amts, \
+            time_gran_to_new_neighbors_outside, time_gran_to_new_neighbors_dns, time_gran_to_new_neighbors_all = \
+                calculate_raw_graph_metrics(self.time_interval_lengths, self.interval_to_filenames, self.ms_s, self.basegraph_name,
+                                            self.calc_vals,
+                                            self.window_size, self.mapping, self.is_swarm, self.make_net_graphs_p,
+                                            self.list_of_infra_services,
+                                            synthetic_exfil_paths, self.initiator_info_for_paths, time_gran_to_attack_ranges,
+                                            fraction_of_edge_weights, fraction_of_edge_pkts,
+                                            self.size_of_neighbor_training_window)
 
-        time_gran_to_feature_dataframe = process_graph_metrics.generate_feature_dfs( total_calculated_vals, time_interval_lengths)
+            time_gran_to_feature_dataframe = process_graph_metrics.generate_feature_dfs(total_calculated_vals,
+                                                                                        self.time_interval_lengths)
 
-        process_graph_metrics.save_feature_datafames(time_gran_to_feature_dataframe, alert_file + sub_path,
-                                                     time_gran_to_attack_labels,time_gran_to_synthetic_exfil_paths_series,
-                                                     time_gran_to_list_of_concrete_exfil_paths, time_gran_to_list_of_exfil_amts,
-                                                     int(end_of_training), time_gran_to_new_neighbors_outside,
-                                                     time_gran_to_new_neighbors_dns, time_gran_to_new_neighbors_all)
+            process_graph_metrics.save_feature_datafames(time_gran_to_feature_dataframe, self.alert_file + self.sub_path,
+                                                         time_gran_to_attack_labels,
+                                                         time_gran_to_synthetic_exfil_paths_series,
+                                                         time_gran_to_list_of_concrete_exfil_paths,
+                                                         time_gran_to_list_of_exfil_amts,
+                                                         int(end_of_training), time_gran_to_new_neighbors_outside,
+                                                         time_gran_to_new_neighbors_dns, time_gran_to_new_neighbors_all)
 
-        analysis_pipeline.generate_graphs.generate_feature_multitime_boxplots(total_calculated_vals, basegraph_name,
-                                                                              window_size, colors, time_interval_lengths,
-                                                                              exfil_start_time, exfil_end_time, wiggle_room)
+            analysis_pipeline.generate_graphs.generate_feature_multitime_boxplots(total_calculated_vals, self.basegraph_name,
+                                                                                  self.window_size, self.colors,
+                                                                                  self.time_interval_lengths,
+                                                                                  self.exfil_start_time, self.exfil_end_time,
+                                                                                  self.wiggle_room)
 
 
-    else:
-        time_gran_to_feature_dataframe = {}
-        time_gran_to_attack_labels = {}
-        time_gran_to_synthetic_exfil_paths_series = {}
-        time_gran_to_list_of_concrete_exfil_paths = {}
-        time_gran_to_list_of_exfil_amts = {}
-        time_gran_to_new_neighbors_outside, time_gran_to_new_neighbors_dns, time_gran_to_new_neighbors_all = {},{},{}
-        min_interval = min(time_interval_lengths)
-        for interval in time_interval_lengths:
-            #if interval in time_interval_lengths:
-            print "time_interval_lengths",time_interval_lengths, "interval", interval
-            print "feature_df_path", alert_file + sub_path + str(interval) + '.csv'
-            time_gran_to_feature_dataframe[interval] = pd.read_csv(alert_file + sub_path + str(interval) + '.csv', na_values='?')
-            #time_gran_to_feature_dataframe[interval] = time_gran_to_feature_dataframe[interval].apply(lambda x: np.real(x))
-            print "dtypes_of_df", time_gran_to_feature_dataframe[interval].dtypes
-            time_gran_to_attack_labels[interval] = time_gran_to_feature_dataframe[interval]['labels']
+        else:
+            time_gran_to_feature_dataframe = {}
+            time_gran_to_attack_labels = {}
+            time_gran_to_synthetic_exfil_paths_series = {}
+            time_gran_to_list_of_concrete_exfil_paths = {}
+            time_gran_to_list_of_exfil_amts = {}
+            time_gran_to_new_neighbors_outside, time_gran_to_new_neighbors_dns, time_gran_to_new_neighbors_all = {}, {}, {}
+            min_interval = min(self.time_interval_lengths)
+            for interval in self.time_interval_lengths:
+                # if interval in time_interval_lengths:
+                print "time_interval_lengths", self.time_interval_lengths, "interval", interval
+                print "feature_df_path", self.alert_file + self.sub_path + str(interval) + '.csv'
+                time_gran_to_feature_dataframe[interval] = pd.read_csv(self.alert_file + self.sub_path + str(interval) + '.csv',
+                                                                       na_values='?')
+                # time_gran_to_feature_dataframe[interval] = time_gran_to_feature_dataframe[interval].apply(lambda x: np.real(x))
+                print "dtypes_of_df", time_gran_to_feature_dataframe[interval].dtypes
+                time_gran_to_attack_labels[interval] = time_gran_to_feature_dataframe[interval]['labels']
+                try:
+                    time_gran_to_new_neighbors_outside[interval] = time_gran_to_feature_dataframe[interval][
+                        'new_neighbors_outside']
+                    time_gran_to_new_neighbors_dns[interval] = time_gran_to_feature_dataframe[interval][
+                        'new_neighbors_dns']
+                    time_gran_to_new_neighbors_all[interval] = time_gran_to_feature_dataframe[interval][
+                        'new_neighbors_all']
+                except:
+                    time_gran_to_new_neighbors_outside[interval] = [[] for i in
+                                                                    range(0, len(time_gran_to_attack_labels[interval]))]
+                    time_gran_to_new_neighbors_dns[interval] = [[] for i in
+                                                                range(0, len(time_gran_to_attack_labels[interval]))]
+                    time_gran_to_new_neighbors_all[interval] = [[] for i in
+                                                                range(0, len(time_gran_to_attack_labels[interval]))]
+
+                time_gran_to_synthetic_exfil_paths_series[interval] = time_gran_to_feature_dataframe[interval][
+                    'exfil_path']
+                ##recover time_gran_to_list_of_concrete_exfil_paths, time_gran_to_list_of_exfil_amts
+                time_gran_to_list_of_concrete_exfil_paths[interval] = time_gran_to_feature_dataframe[interval][
+                    'concrete_exfil_path']
+                list_of_exfil_amts = []
+                for counter in range(0, len(time_gran_to_feature_dataframe[interval]['exfil_weight'])):
+                    weight = time_gran_to_feature_dataframe[interval]['exfil_weight'][counter]
+                    pkts = time_gran_to_feature_dataframe[interval]['exfil_pkts'][counter]
+                    current_exfil_dict = {'weight': weight, 'frames': pkts}
+                    list_of_exfil_amts.append(current_exfil_dict)
+                time_gran_to_list_of_exfil_amts[interval] = list_of_exfil_amts
+                if min_interval:
+                    print time_gran_to_feature_dataframe[interval]['is_test'], type(
+                        time_gran_to_feature_dataframe[interval]['is_test'])
+                    self.end_of_training = time_gran_to_feature_dataframe[interval]['is_test'].tolist().index(
+                        1) * min_interval
+
+        print "about to calculate some alerts!"
+
+        self.time_gran_to_feature_dataframe_copy = copy.deepcopy(time_gran_to_feature_dataframe)
+        for time_gran, feature_dataframe in time_gran_to_feature_dataframe.iteritems():
             try:
-                time_gran_to_new_neighbors_outside[interval] = time_gran_to_feature_dataframe[interval]['new_neighbors_outside']
-                time_gran_to_new_neighbors_dns[interval] = time_gran_to_feature_dataframe[interval]['new_neighbors_dns']
-                time_gran_to_new_neighbors_all[interval] = time_gran_to_feature_dataframe[interval]['new_neighbors_all']
+                del feature_dataframe['exfil_path']
+                del feature_dataframe['exfil_weight']
+                del feature_dataframe['exfil_pkts']
+                del feature_dataframe['concrete_exfil_path']
+                del feature_dataframe['is_test']
             except:
-                time_gran_to_new_neighbors_outside[interval] = [[] for i in range(0,len(time_gran_to_attack_labels[interval]))]
-                time_gran_to_new_neighbors_dns[interval] = [[] for i in range(0,len(time_gran_to_attack_labels[interval]))]
-                time_gran_to_new_neighbors_all[interval] = [[] for i in range(0,len(time_gran_to_attack_labels[interval]))]
+                pass
 
-            time_gran_to_synthetic_exfil_paths_series[interval] = time_gran_to_feature_dataframe[interval]['exfil_path']
-            ##recover time_gran_to_list_of_concrete_exfil_paths, time_gran_to_list_of_exfil_amts
-            time_gran_to_list_of_concrete_exfil_paths[interval] = time_gran_to_feature_dataframe[interval]['concrete_exfil_path']
-            list_of_exfil_amts = []
-            for counter in range(0, len(time_gran_to_feature_dataframe[interval]['exfil_weight'])):
-                weight = time_gran_to_feature_dataframe[interval]['exfil_weight'][counter]
-                pkts = time_gran_to_feature_dataframe[interval]['exfil_pkts'][counter]
-                current_exfil_dict = {'weight':weight, 'frames': pkts}
-                list_of_exfil_amts.append( current_exfil_dict )
-            time_gran_to_list_of_exfil_amts[interval] = list_of_exfil_amts
-            if min_interval:
-                print time_gran_to_feature_dataframe[interval]['is_test'], type(time_gran_to_feature_dataframe[interval]['is_test'])
-                end_of_training = time_gran_to_feature_dataframe[interval]['is_test'].tolist().index(1) * min_interval
+            try:
+                time_gran_to_feature_dataframe[time_gran] = time_gran_to_feature_dataframe[time_gran].drop(
+                    columns=[u'new_neighbors_dns'])
+            except:
+                pass
+            try:
+                time_gran_to_feature_dataframe[time_gran] = time_gran_to_feature_dataframe[time_gran].drop(
+                    columns=[u'new_neighbors_all '])
+            except:
+                pass
+            try:
+                time_gran_to_feature_dataframe[time_gran] = time_gran_to_feature_dataframe[time_gran].drop(
+                    columns=[u'new_neighbors_outside'])
+            except:
+                pass
+            print "feature_dataframe_columns", time_gran_to_feature_dataframe[time_gran].columns
 
-    print "about to calculate some alerts!"
+        self.time_gran_to_feature_dataframe=time_gran_to_feature_dataframe
+        self.time_gran_to_attack_labels=time_gran_to_attack_labels
+        self.time_gran_to_synthetic_exfil_paths_series=time_gran_to_synthetic_exfil_paths_series
+        self.time_gran_to_list_of_concrete_exfil_paths  = time_gran_to_list_of_concrete_exfil_paths
+        self.time_gran_to_list_of_exfil_amts=time_gran_to_list_of_exfil_amts
+        self.time_gran_to_new_neighbors_outside=time_gran_to_new_neighbors_outside
+        self.time_gran_to_new_neighbors_dns=time_gran_to_new_neighbors_dns
+        self.time_gran_to_new_neighbors_all=time_gran_to_new_neighbors_all
 
-    time_gran_to_feature_dataframe_copy = copy.deepcopy(time_gran_to_feature_dataframe)
-    for time_gran, feature_dataframe in time_gran_to_feature_dataframe.iteritems():
-        try:
-            del feature_dataframe['exfil_path']
-            del feature_dataframe['exfil_weight']
-            del feature_dataframe['exfil_pkts']
-            del feature_dataframe['concrete_exfil_path']
-            del feature_dataframe['is_test']
-        except:
-            pass
+        return self.calculate_z_scores_and_get_stat_vals()
 
-        try:
-            time_gran_to_feature_dataframe[time_gran] =  time_gran_to_feature_dataframe[time_gran].drop(columns=[u'new_neighbors_dns'])
-        except:
-            pass
-        try:
-            time_gran_to_feature_dataframe[time_gran] = time_gran_to_feature_dataframe[time_gran].drop(columns=[u'new_neighbors_all '])
-        except:
-            pass
-        try:
-            time_gran_to_feature_dataframe [time_gran]= time_gran_to_feature_dataframe[time_gran].drop(columns= [u'new_neighbors_outside'])
-        except:
-            pass
-        print "feature_dataframe_columns", time_gran_to_feature_dataframe[time_gran].columns
-    #exit(322)
+    def calculate_z_scores_and_get_stat_vals(self):
+        time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_RobustScaler_df = \
+            calc_zscores(self.alert_file, self.training_window_size, self.minimum_training_window, self.sub_path,
+                         self.time_gran_to_attack_labels,
+                         self.time_gran_to_feature_dataframe, self.calc_zscore_p, self.time_gran_to_synthetic_exfil_paths_series,
+                         self.time_gran_to_list_of_concrete_exfil_paths, self.time_gran_to_list_of_exfil_amts, self.end_of_training,
+                         self.time_gran_to_new_neighbors_outside, self.time_gran_to_new_neighbors_dns,
+                         self.time_gran_to_new_neighbors_all)
 
-    time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_RobustScaler_df = \
-        calc_zscores(alert_file, training_window_size, minimum_training_window, sub_path, time_gran_to_attack_labels,
-                     time_gran_to_feature_dataframe, calc_zscore_p, time_gran_to_synthetic_exfil_paths_series,
-                     time_gran_to_list_of_concrete_exfil_paths, time_gran_to_list_of_exfil_amts, end_of_training,
-                     time_gran_to_new_neighbors_outside, time_gran_to_new_neighbors_dns, time_gran_to_new_neighbors_all)
+        print "analysis_pipeline about to return!"
 
-    print "analysis_pipeline about to return!"
-
-    # okay, so can return it here...
-    #### exit(121)
-
-    #for time_gran, mod_zscore_df in time_gran_to_mod_zscore_df.iteritems():
-    #    mod_zscore_df['exfil_paths'] = time_gran_to_synthetic_exfil_paths_series[time_gran]
-    '''
-    return_dict = {}
-    return_dict['time_gran_to_mod_zscore_df'] = time_gran_to_mod_zscore_df
-    return_dict['time_gran_to_zscore_dataframe'] = time_gran_to_zscore_dataframe
-    return_dict['time_gran_to_feature_dataframe'] = time_gran_to_feature_dataframe
-    return_dict['time_gran_to_synthetic_exfil_paths_series'] = time_gran_to_synthetic_exfil_paths_series
-    return_dict['end_of_training'] = end_of_training
-    return return_dict
-    '''
-    for time_gran, mod_z_score_df in time_gran_to_mod_zscore_df.iteritems():
-        mod_z_score_df['new_neighbors_dns'] = time_gran_to_new_neighbors_dns[time_gran]
-        mod_z_score_df['new_neighbors_all'] = time_gran_to_new_neighbors_all[time_gran]
-        mod_z_score_df['new_neighbors_outside'] = time_gran_to_new_neighbors_outside[time_gran]
-
-        time_gran_to_feature_dataframe_copy[time_gran]['new_neighbors_dns'] = time_gran_to_new_neighbors_dns[time_gran]
-        time_gran_to_feature_dataframe_copy[time_gran]['new_neighbors_all'] = time_gran_to_new_neighbors_all[time_gran]
-        time_gran_to_feature_dataframe_copy[time_gran]['new_neighbors_outside'] = time_gran_to_new_neighbors_outside[time_gran]
-
-    return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe_copy, \
-           time_gran_to_synthetic_exfil_paths_series, end_of_training
+        return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, self.time_gran_to_feature_dataframe_copy, \
+               self.time_gran_to_synthetic_exfil_paths_series, self.end_of_training
 
 # this function determines how much time to is available for injection attacks in each experiment.
 # it takes into account when the physical attack starts (b/c need to split into training/testing set
@@ -651,21 +703,22 @@ def determine_injection_times(exps_info, goal_train_test_split, goal_attack_NoAt
 # this function loops through multiple experiments (or even just a single experiment), accumulates the relevant
 # feature dataframes, and then performs LASSO regression to determine a concise graphical model that can detect
 # the injected synthetic attacks
-def multi_experiment_pipeline(function_list_exp_info, function_list, base_output_name, ROC_curve_p, time_each_synthetic_exfil,
+def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time_each_synthetic_exfil,
                               goal_train_test_split, goal_attack_NoAttack_split, training_window_size,
-                              size_of_neighbor_training_window, calc_vals, skip_model_part, ignore_physical_attacks_p):
+                              size_of_neighbor_training_window, calc_vals, skip_model_part, ignore_physical_attacks_p,
+                              fraction_of_edge_weights=[0.1], fraction_of_edge_pkts=[0.1]):
     ### Okay, so what is needed here??? We need, like, a list of sets of input (appropriate for run_data_analysis_pipeline),
     ### followed by the LASSO stuff, and finally the ROC stuff... okay, let's do this!!!
 
     # step(0): need to find out the  meta-data for each experiment so we can coordinate the
     # synthetic attack injections between experiments
     if calc_vals and not skip_model_part:
-        print function_list_exp_info
+        print function_list
         exp_infos = []
-        for func_exp_info in function_list_exp_info:
+        for experiment_object in function_list:
             print "calc_vals", calc_vals
-            total_experiment_length, exfil_start_time, exfil_end_time, system_startup_time, _ = \
-                func_exp_info(training_window_size=training_window_size, size_of_neighbor_training_window=size_of_neighbor_training_window,calc_vals=calc_vals)
+            total_experiment_length, exfil_start_time, exfil_end_time, system_startup_time = \
+                experiment_object.get_exp_info()
             print "func_exp_info", total_experiment_length, exfil_start_time, exfil_end_time
             exp_infos.append({"total_experiment_length":total_experiment_length, "exfil_start_time":exfil_start_time,
                              "exfil_end_time":exfil_end_time, "startup_time": system_startup_time})
@@ -680,10 +733,10 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
                                       time_each_synthetic_exfil, float("inf"))
         max_number_of_paths = min(total_training_injections_possible, total_testing_injections_possible)
         orig_max_number_of_paths=  max_number_of_paths
-        for func in function_list:
+        for experiment_object in function_list:
             print "func", func
-            synthetic_exfil_paths, initiator_info_for_paths, _, _,_ = func(time_of_synethic_exfil=time_each_synthetic_exfil,
-                                                                           calc_vals=calc_vals,max_number_of_paths=max_number_of_paths)
+            synthetic_exfil_paths, initiator_info_for_paths = \
+                experiment_object.generate_synthetic_exfil_paths(max_number_of_paths=max_number_of_paths)
             max_number_of_paths = None
             exps_exfil_paths.append(synthetic_exfil_paths)
             exps_initiator_info.append(initiator_info_for_paths)
@@ -745,19 +798,17 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
     ### reasonable the rate injector even is ATM...
     experiments_to_exfil_path_time_dicts = []
     starts_of_testing = []
-    for counter,func in enumerate(function_list):
+    for counter,experiment_object in enumerate(function_list):
         #time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, _ = func()
         print "exps_exfil_paths[counter]_to_func",exps_exfil_paths[counter], exps_initiator_info
+
         time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, _, start_of_testing = \
-            func(time_of_synethic_exfil=time_each_synthetic_exfil,
-                 initiator_info_for_paths=exps_initiator_info[counter],
-                 training_window_size=training_window_size,
-                 size_of_neighbor_training_window=size_of_neighbor_training_window,
-                 portion_for_training=end_of_train_portions[counter],
-                 synthetic_exfil_paths_train = training_exfil_paths[counter],
-                 synthetic_exfil_paths_test = testing_exfil_paths[counter],
-                 calc_vals=calc_vals,
-                 skip_model_part=skip_model_part)
+        experiment_object.calculate_values(end_of_training=end_of_train_portions[counter],
+                                           synthetic_exfil_paths_train=training_exfil_paths[counter],
+                                           synthetic_exfil_paths_test=testing_exfil_paths[counter],
+                                           fraction_of_edge_weights=fraction_of_edge_weights[0],
+                                           fraction_of_edge_pkts=fraction_of_edge_pkts[0])
+
         print "exps_exfil_pathas[time_gran_to_mod_zscore_df]", time_gran_to_mod_zscore_df
         list_time_gran_to_mod_zscore_df.append(time_gran_to_mod_zscore_df)
         list_time_gran_to_zscore_dataframe.append(time_gran_to_zscore_dataframe)
@@ -787,7 +838,7 @@ def multi_experiment_pipeline(function_list_exp_info, function_list, base_output
         aggregate_feature_df.to_csv(base_output_name + 'modz_feat_df_at_time_gran_of_' + str(time_gran) + '_sec.csv',
                                     na_rep='?')
 
-    recipes_used = [recipe.__name__ for recipe in function_list]
+    recipes_used = [recipe.exp_name for recipe in function_list]
     names = []
     for counter,recipe in enumerate(recipes_used):
         #print "recipe_in_functon_list", recipe.__name__
@@ -922,6 +973,10 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
             aggregate_mod_score_dfs_training = aggregate_mod_score_dfs[aggregate_mod_score_dfs['is_test'] == 0]
             aggregate_mod_score_dfs_testing = aggregate_mod_score_dfs[aggregate_mod_score_dfs['is_test'] == 1]
             time_gran_to_debugging_csv[time_gran] = aggregate_mod_score_dfs.copy(deep=True)
+            print "aggregate_mod_score_dfs_training",aggregate_mod_score_dfs_training
+            print "aggregate_mod_score_dfs_testing",aggregate_mod_score_dfs_testing
+            print aggregate_mod_score_dfs['is_test']
+            #exit(344)
 
         else:
             ## note: generally you'd want to split into test and train sets, but if we're not doing logic
@@ -934,14 +989,21 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
 
         #time_gran_to_debugging_csv[time_gran] = copy.deepcopy(aggregate_mod_score_dfs)
 
+        print aggregate_mod_score_dfs_training.index
         aggregate_mod_score_dfs_training = aggregate_mod_score_dfs_training.drop(columns='new_neighbors_outside')
         aggregate_mod_score_dfs_testing = aggregate_mod_score_dfs_testing.drop(columns='new_neighbors_outside')
         aggregate_mod_score_dfs_training = aggregate_mod_score_dfs_training.drop(columns='new_neighbors_dns')
         aggregate_mod_score_dfs_testing = aggregate_mod_score_dfs_testing.drop(columns='new_neighbors_dns')
-        aggregate_mod_score_dfs_training = aggregate_mod_score_dfs_training.drop(columns=u'new_neighbors_all')
-        aggregate_mod_score_dfs_testing = aggregate_mod_score_dfs_testing.drop(columns=u'new_neighbors_all')
-        aggregate_mod_score_dfs_training = aggregate_mod_score_dfs_training.drop(columns=u'new_neighbors_all ')
-        aggregate_mod_score_dfs_testing = aggregate_mod_score_dfs_testing.drop(columns=u'new_neighbors_all ')
+        try:
+            aggregate_mod_score_dfs_training = aggregate_mod_score_dfs_training.drop(columns=u'new_neighbors_all')
+            aggregate_mod_score_dfs_testing = aggregate_mod_score_dfs_testing.drop(columns=u'new_neighbors_all')
+        except:
+            pass
+        try:
+            aggregate_mod_score_dfs_training = aggregate_mod_score_dfs_training.drop(columns=u'new_neighbors_all ')
+            aggregate_mod_score_dfs_testing = aggregate_mod_score_dfs_testing.drop(columns=u'new_neighbors_all ')
+        except:
+            pass
 
         X_train = aggregate_mod_score_dfs_training.loc[:, aggregate_mod_score_dfs_training.columns != 'labels']
         y_train = aggregate_mod_score_dfs_training.loc[:, aggregate_mod_score_dfs_training.columns == 'labels']
@@ -1103,8 +1165,10 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         number_non_attacks_in_test = len(y_test[y_test['labels'] == 0])
         percent_attacks.append(float(number_attacks_in_test) / (number_non_attacks_in_test + number_attacks_in_test))
 
+        print y_train
         number_attacks_in_train = len(y_train[y_train['labels'] == 1])
         number_non_attacks_in_train = len(y_train[y_train['labels'] == 0])
+        print number_non_attacks_in_train,number_attacks_in_train
         list_percent_attacks_training.append(float(number_attacks_in_train) / (number_non_attacks_in_train + number_attacks_in_train))
 
         #print "X_train", X_train

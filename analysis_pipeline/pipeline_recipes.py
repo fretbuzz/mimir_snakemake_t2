@@ -11,7 +11,7 @@ import functools
 import matplotlib
 matplotlib.use('Agg',warn=False, force=True)
 
-from analysis_pipeline.pipeline_coordinator import run_data_anaylsis_pipeline, multi_experiment_pipeline
+from analysis_pipeline.pipeline_coordinator import data_anylsis_pipline, multi_experiment_pipeline
 
 '''
 This file is essentially just sets of parameters for the run_data_analysis_pipeline function in pipeline_coordinator.py
@@ -878,8 +878,8 @@ def process_wordpress6_rep3(time_of_synethic_exfil=None, only_exp_info=False, in
     alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_six_rep_3_'
     sec_between_exfil_events = 15
     physical_exfil_path = ['my_release_pxc_pod', 'kube_dns_vip', 'kube_dns_pod', 'internet']
-    time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe,fourth_return_val, fifth_val = \
-        run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
+    #training_window_size
+    process_wordpress6_rep3_object = data_anylsis_pipline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
                                    make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
                                    wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,
                                    graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
@@ -894,9 +894,8 @@ def process_wordpress6_rep3(time_of_synethic_exfil=None, only_exp_info=False, in
                                    synthetic_exfil_paths_train=synthetic_exfil_paths_train, synthetic_exfil_paths_test=synthetic_exfil_paths_test,
                                    skip_model_part=skip_model_part,
                                    max_number_of_paths=max_number_of_paths)
-    return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe,fourth_return_val, fifth_val
-    #'''
 
+    return process_wordpress6_rep3_object
 
 def process_wordpress6_rep4(time_of_synethic_exfil=None, only_exp_info=False, initiator_info_for_paths=None,
                             portion_for_training=None, training_window_size=None, size_of_neighbor_training_window=None,
@@ -934,26 +933,25 @@ def process_wordpress6_rep4(time_of_synethic_exfil=None, only_exp_info=False, in
      alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_six_rep_4_'
      sec_between_exfil_events = 15
      physical_exfil_path = ['my_release_pxc_pod', 'kube_dns_vip', 'kube_dns_pod', 'internet']
-     time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe,fourth_return_val, fifth_val =\
-         run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
-                                    make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
-                                    wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,
-                                    graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
-                                    cilium_config_path=cilium_config_path, rdpcap_p=False,
-                                    kubernetes_pod_info=kubernetes_pod_info, alert_file=alert_file, ROC_curve_p=True,
-                                    calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events,
-                                    injected_exfil_path=physical_exfil_path, only_exp_info=only_exp_info,
-                                    time_of_synethic_exfil=time_of_synethic_exfil,
-                                    initiator_info_for_paths = initiator_info_for_paths,
-                                    end_of_training=portion_for_training,
-                                    training_window_size=training_window_size,
-                                    size_of_neighbor_training_window=size_of_neighbor_training_window,
-                                    synthetic_exfil_paths_train=synthetic_exfil_paths_train,
-                                    synthetic_exfil_paths_test=synthetic_exfil_paths_test,
-                                    skip_model_part=skip_model_part,
-                                    max_number_of_paths=max_number_of_paths)
-     return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe,fourth_return_val,fifth_val
-     # '''
+
+     process_wordpress6_rep4_object = data_anylsis_pipline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
+                                        make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
+                                        wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,
+                                        graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
+                                        cilium_config_path=cilium_config_path, rdpcap_p=False,
+                                        kubernetes_pod_info=kubernetes_pod_info, alert_file=alert_file, ROC_curve_p=True,
+                                        calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events,
+                                        injected_exfil_path=physical_exfil_path, only_exp_info=only_exp_info,
+                                        time_of_synethic_exfil=time_of_synethic_exfil,
+                                        initiator_info_for_paths = initiator_info_for_paths,
+                                        end_of_training=portion_for_training,
+                                        training_window_size=training_window_size,
+                                        size_of_neighbor_training_window=size_of_neighbor_training_window,
+                                        synthetic_exfil_paths_train=synthetic_exfil_paths_train,
+                                        synthetic_exfil_paths_test=synthetic_exfil_paths_test,
+                                        skip_model_part=skip_model_part,
+                                        max_number_of_paths=max_number_of_paths)
+     return process_wordpress6_rep4_object
 
 def process_wordpress7_rep3(time_of_synethic_exfil=None, only_exp_info=False, initiator_info_for_paths=None,
                             portion_for_training=None,training_window_size=None, size_of_neighbor_training_window=None,
@@ -991,8 +989,8 @@ def process_wordpress7_rep3(time_of_synethic_exfil=None, only_exp_info=False, in
     sec_between_exfil_events = 15
     physical_exfil_path = ['wwwppp_wordpress_pod', 'kube_dns_vip', 'kube_dns_pod', 'internet']
     alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_seven_rep_3_'
-    time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val, fifth_val = \
-        run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
+    process_wordpress7_rep3_object = \
+        data_anylsis_pipline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
                                    make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
                                    wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,
                                    graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
@@ -1009,8 +1007,9 @@ def process_wordpress7_rep3(time_of_synethic_exfil=None, only_exp_info=False, in
                                    synthetic_exfil_paths_test=synthetic_exfil_paths_test,
                                    skip_model_part=skip_model_part,
                                    max_number_of_paths=max_number_of_paths)
-    return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val, fifth_val
-   # '''
+    #return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val, fifth_val
+    # '''
+    return process_wordpress7_rep3_object
 
 # Wordpress exp 7 (wordpress w/ HA cluster on cilium w/o security config, dnscat exfil from single WP w/ 15 sec delay)
 def process_wordpress7():
@@ -1089,8 +1088,8 @@ def process_wordpress7_rep2(time_of_synethic_exfil=None, only_exp_info=False, in
     anom_num_outlier_vals_in_window = [1, 2]
     physical_exfil_path = ['wwwppp_wordpress_pod', 'kube_dns_vip', 'kube_dns_pod', 'internet']
     alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_seven_rep_2_'
-    time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val, fifth_val = \
-        run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
+    process_wordpress7_rep2_object = \
+        data_anylsis_pipline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
                                    make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
                                    wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,
                                    graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
@@ -1107,8 +1106,9 @@ def process_wordpress7_rep2(time_of_synethic_exfil=None, only_exp_info=False, in
                                    synthetic_exfil_paths_test=synthetic_exfil_paths_test,
                                    skip_model_part=skip_model_part,
                                    max_number_of_paths=max_number_of_paths)
-    return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val, fifth_val
+    #return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val, fifth_val
     #'''
+    return process_wordpress7_rep2_object
 
 # 20 min of scaled-up wordpress (wordpress_eight) (dnscat exfil)
 def process_wordpress8():
@@ -1188,8 +1188,8 @@ def process_wordpress8_rep_2(time_of_synethic_exfil=None, only_exp_info=False, i
     sec_between_exfil_events = 1
     alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_eight_rep_2_'
     physical_exfil_path = ['my_release_pxc_pod', 'wwwppp_wordpress_pod', 'internet']
-    time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val, fifth_val = \
-        run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
+    process_wordpress8_rep_2_object = \
+        data_anylsis_pipline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
                                    make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
                                    wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,
                                    graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info, rdpcap_p=False,
@@ -1205,8 +1205,9 @@ def process_wordpress8_rep_2(time_of_synethic_exfil=None, only_exp_info=False, i
                                    synthetic_exfil_paths_test=synthetic_exfil_paths_test,
                                    skip_model_part=skip_model_part,
                                    max_number_of_paths=max_number_of_paths)
-    return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val, fifth_val
+    #return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val, fifth_val
     #'''
+    return process_wordpress8_rep_2_object
 
 def process_wordpress8_rep_3(time_of_synethic_exfil=None,only_exp_info=False, initiator_info_for_paths=None,
                              portion_for_training=None,training_window_size=None, size_of_neighbor_training_window=None,
@@ -1243,8 +1244,8 @@ def process_wordpress8_rep_3(time_of_synethic_exfil=None,only_exp_info=False, in
     sec_between_exfil_events = 1
     physical_exfil_path = ['my_release_pxc_pod', 'wwwppp_wordpress_pod', 'internet']
     alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/alerts/wordpress_eight_rep_3_'
-    time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val, fifth_val = \
-        run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
+    process_wordpress8_rep_3_object = \
+        data_anylsis_pipline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
                                    make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
                                    wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,
                                    graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info, rdpcap_p=False,
@@ -1260,8 +1261,9 @@ def process_wordpress8_rep_3(time_of_synethic_exfil=None,only_exp_info=False, in
                                    synthetic_exfil_paths_test=synthetic_exfil_paths_test,
                                    skip_model_part=skip_model_part,
                                    max_number_of_paths=max_number_of_paths)
-    return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val, fifth_val
+    #return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val, fifth_val
     #'''
+    return process_wordpress8_rep_3_object
 
 ## sockshop experiment 9 (an hour of scaled-up activity w/ exfil along normal path)
 def process_sockshop9(time_of_synethic_exfil=None,only_exp_info=False, initiator_info_for_paths=None,
@@ -1643,18 +1645,36 @@ def multi_experiment_wordpress_recipe():
     training_window_size = 200
     size_of_neighbor_training_window = 0
     calc_vals = False
-    function_list = [process_wordpress6_rep3, process_wordpress6_rep4, process_wordpress7_rep2, process_wordpress7_rep3,
-                     process_wordpress8_rep_2, process_wordpress8_rep_3]
     skip_model_part = False
     ignore_physical_attacks_p = True
+
+    experiment_classes = [process_wordpress6_rep3(training_window_size=training_window_size,
+                                                  size_of_neighbor_training_window=size_of_neighbor_training_window,
+                                                  calc_vals=calc_vals),
+                          process_wordpress6_rep4(training_window_size=training_window_size,
+                                                  size_of_neighbor_training_window=size_of_neighbor_training_window,
+                                                  calc_vals=calc_vals),
+                          process_wordpress7_rep2(training_window_size=training_window_size,
+                                                  size_of_neighbor_training_window=size_of_neighbor_training_window,
+                                                  calc_vals=calc_vals),
+                          process_wordpress7_rep3(training_window_size=training_window_size,
+                                                  size_of_neighbor_training_window=size_of_neighbor_training_window,
+                                                  calc_vals=calc_vals),
+                          process_wordpress8_rep_2(training_window_size=training_window_size,
+                                                  size_of_neighbor_training_window=size_of_neighbor_training_window,
+                                                  calc_vals=calc_vals),
+                          process_wordpress8_rep_3(training_window_size=training_window_size,
+                                                  size_of_neighbor_training_window=size_of_neighbor_training_window,
+                                                  calc_vals=calc_vals)]
+
     ## NOTE: process_wordpress8 could be here too, but I'm for the moment I'm keeping each kind of injected
     ## attack w/ two different experiments in which it occurss...
 
     #function_list = [i for i in raw_function_list]
-    function_list_exp_info = [functools.partial(i,time_of_synethic_exfil=time_of_synethic_exfil, only_exp_info=True) for i in function_list]
+    #function_list_exp_info = [functools.partial(i,time_of_synethic_exfil=time_of_synethic_exfil, only_exp_info=True) for i in function_list]
 
     base_output_location = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_summary/'# + 'lasso_roc'
-    multi_experiment_pipeline(function_list_exp_info, function_list, base_output_location, True, time_of_synethic_exfil,
+    multi_experiment_pipeline(experiment_classes, base_output_location, True, time_of_synethic_exfil,
                               goal_train_test_split, goal_attack_NoAttack_split, training_window_size,
                               size_of_neighbor_training_window, calc_vals, skip_model_part, ignore_physical_attacks_p)
 
