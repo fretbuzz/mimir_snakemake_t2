@@ -271,6 +271,7 @@ def determine_attacks_to_times(time_gran_to_attack_labels, synthetic_exfil_paths
     time_grans = time_gran_to_attack_labels.keys()
     largest_time_gran = sorted(time_grans)[-1]
     print "LARGEST_TIME_GRAN", largest_time_gran
+    print "time_of_synethic_exfil",time_of_synethic_exfil
     time_periods_attack = float(time_of_synethic_exfil) / float(largest_time_gran)
     time_periods_startup = math.ceil(float(min_starting) / float(largest_time_gran))
     time_gran_to_attack_ranges = {} # a list that'll correspond w/ the synthetic exfil paths
@@ -734,7 +735,7 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
         max_number_of_paths = min(total_training_injections_possible, total_testing_injections_possible)
         orig_max_number_of_paths=  max_number_of_paths
         for experiment_object in function_list:
-            print "func", func
+            print "experiment_object", experiment_object
             synthetic_exfil_paths, initiator_info_for_paths = \
                 experiment_object.generate_synthetic_exfil_paths(max_number_of_paths=max_number_of_paths)
             max_number_of_paths = None

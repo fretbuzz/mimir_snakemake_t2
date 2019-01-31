@@ -1301,8 +1301,8 @@ def process_sockshop9(time_of_synethic_exfil=None,only_exp_info=False, initiator
     sec_between_exfil_events = 1
     physical_exfil_path = ['user-db', 'user', 'front-end', 'internet']
     #physical_exfil_path = ['user-db', 'user', 'internet']
-    time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val, fifth_val = \
-        run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
+    process_sockshop9_object = \
+        data_anylsis_pipline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
                                make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
                                wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,
                                graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info, rdpcap_p=False,
@@ -1320,7 +1320,8 @@ def process_sockshop9(time_of_synethic_exfil=None,only_exp_info=False, initiator
                                    max_number_of_paths=max_number_of_paths,
                                    netsec_policy=netsec_policy)
     #'''
-    return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val, fifth_val
+    #return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val, fifth_val
+    return process_sockshop9_object
 
 ## sockshop experiment 9_rep2 (an hour of scaled-up activity w/ exfil along normal path)
 def process_sockshop9_rep2(time_of_synethic_exfil=None,only_exp_info=False, initiator_info_for_paths=None,
@@ -1412,8 +1413,8 @@ def process_sockshop11(time_of_synethic_exfil=None,only_exp_info=False, initiato
     anom_num_outlier_vals_in_window = [1, 2] # note: these vals correspond to anoamly_window (so the first vals get matched, etc.)
     alert_file = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/alerts/sockshop_eleven_'
     wiggle_room = 2 # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
-    time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val, fifth_val = \
-        run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
+    process_sockshop11_object = \
+        data_anylsis_pipline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
                                make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
                                wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,
                                graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info, rdpcap_p=False,
@@ -1431,7 +1432,8 @@ def process_sockshop11(time_of_synethic_exfil=None,only_exp_info=False, initiato
                                    max_number_of_paths=max_number_of_paths,
                                    netsec_policy=netsec_policy)
     #'''
-    return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val, fifth_val
+    #return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val, fifth_val
+    return process_sockshop11_object
 
 ## sockshop experiment 11_rep2 (an hour of scaled-up activity w/ exfil NOT on normal path)
 def process_sockshop11_rep2(time_of_synethic_exfil=None,only_exp_info=False, initiator_info_for_paths=None,
@@ -1521,8 +1523,8 @@ def process_sockshop12(time_of_synethic_exfil=None,only_exp_info=False, initiato
     wiggle_room = 2 # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
     sec_between_exfil_events = 1
     physical_exfil_path = ['user-db', 'internet']
-    time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val, fifth_val = \
-        run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
+    process_sockshop12 = \
+        data_anylsis_pipline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
                                make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
                                wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,
                                graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info, rdpcap_p=False,
@@ -1539,8 +1541,10 @@ def process_sockshop12(time_of_synethic_exfil=None,only_exp_info=False, initiato
                                    skip_model_part=skip_model_part,
                                    max_number_of_paths=max_number_of_paths,
                                    netsec_policy=netsec_policy)
-    #'''
-    return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val, fifth_val
+    #
+    # '''
+    #return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, fourth_return_val, fifth_val
+    return process_sockshop12
 
 ## TODO
 ## sockshop experiment 12_rep2 (an hour of scaled-up activity w/ exfil going straight out)
@@ -1644,28 +1648,34 @@ def multi_experiment_wordpress_recipe():
     goal_attack_NoAttack_split = 0.6
     training_window_size = 200
     size_of_neighbor_training_window = 0
-    calc_vals = False
+    calc_vals = True
     skip_model_part = False
     ignore_physical_attacks_p = True
 
     experiment_classes = [process_wordpress6_rep3(training_window_size=training_window_size,
                                                   size_of_neighbor_training_window=size_of_neighbor_training_window,
-                                                  calc_vals=calc_vals),
+                                                  calc_vals=calc_vals,
+                                                  time_of_synethic_exfil=time_of_synethic_exfil),
                           process_wordpress6_rep4(training_window_size=training_window_size,
                                                   size_of_neighbor_training_window=size_of_neighbor_training_window,
-                                                  calc_vals=calc_vals),
+                                                  calc_vals=calc_vals,
+                                                  time_of_synethic_exfil=time_of_synethic_exfil),
                           process_wordpress7_rep2(training_window_size=training_window_size,
                                                   size_of_neighbor_training_window=size_of_neighbor_training_window,
-                                                  calc_vals=calc_vals),
+                                                  calc_vals=calc_vals,
+                                                  time_of_synethic_exfil=time_of_synethic_exfil),
                           process_wordpress7_rep3(training_window_size=training_window_size,
                                                   size_of_neighbor_training_window=size_of_neighbor_training_window,
-                                                  calc_vals=calc_vals),
+                                                  calc_vals=calc_vals,
+                                                  time_of_synethic_exfil=time_of_synethic_exfil),
                           process_wordpress8_rep_2(training_window_size=training_window_size,
                                                   size_of_neighbor_training_window=size_of_neighbor_training_window,
-                                                  calc_vals=calc_vals),
+                                                  calc_vals=calc_vals,
+                                                   time_of_synethic_exfil=time_of_synethic_exfil),
                           process_wordpress8_rep_3(training_window_size=training_window_size,
                                                   size_of_neighbor_training_window=size_of_neighbor_training_window,
-                                                  calc_vals=calc_vals)]
+                                                  calc_vals=calc_vals,
+                                                   time_of_synethic_exfil=time_of_synethic_exfil)]
 
     ## NOTE: process_wordpress8 could be here too, but I'm for the moment I'm keeping each kind of injected
     ## attack w/ two different experiments in which it occurss...
@@ -1693,17 +1703,29 @@ def multi_experiment_sockshop_recipe():
     ### TODO: can add the other reps of 9,11,12 when I get some time...
     #function_list = [process_sockshop9, process_sockshop9_rep2, process_sockshop11, process_sockshop11_rep2,
     #                 process_sockshop12, process_sockshop12_rep2] ## TODO TODO TODO
-    function_list = [process_sockshop9, process_sockshop11, process_sockshop12] ## TODO TODO TOD
+    #experiment_classes = [process_sockshop9(), process_sockshop11(), process_sockshop12()] ## TODO TODO TOD
+
+    experiment_classes = [process_sockshop9(training_window_size=training_window_size,
+                                                  size_of_neighbor_training_window=size_of_neighbor_training_window,
+                                                  calc_vals=calc_vals,
+                                                  time_of_synethic_exfil=time_of_synethic_exfil),
+                          process_sockshop11(training_window_size=training_window_size,
+                                                  size_of_neighbor_training_window=size_of_neighbor_training_window,
+                                                  calc_vals=calc_vals,
+                                                  time_of_synethic_exfil=time_of_synethic_exfil),
+                          process_sockshop12(training_window_size=training_window_size,
+                                                  size_of_neighbor_training_window=size_of_neighbor_training_window,
+                                                  calc_vals=calc_vals,
+                                                  time_of_synethic_exfil=time_of_synethic_exfil)]
 
 
     ## NOTE: process_wordpress8 could be here too, but I'm for the moment I'm keeping each kind of injected
     ## attack w/ two different experiments in which it occurss...
 
     #function_list = [i for i in raw_function_list]
-    function_list_exp_info = [functools.partial(i,time_of_synethic_exfil=time_of_synethic_exfil, only_exp_info=True) for i in function_list]
 
     base_output_location = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_summary/'# + 'lasso_roc'
-    multi_experiment_pipeline(function_list_exp_info, function_list, base_output_location, True, time_of_synethic_exfil,
+    multi_experiment_pipeline(function_list, base_output_location, True, time_of_synethic_exfil,
                               goal_train_test_split, goal_attack_NoAttack_split, training_window_size,
                               size_of_neighbor_training_window, calc_vals, skip_model_part, ignore_physical_attacks_p)
 
