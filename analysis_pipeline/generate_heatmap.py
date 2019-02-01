@@ -9,7 +9,7 @@ from textwrap import wrap
 # dataframe, which is return and put into a seaborn heatmap.
 # NOTE: could do all of this in a seperate thread while the other part is happening...
 def generate_covariate_heatmap(coef_dict, X_test, exfil_type_series):
-    exfil_type_occurnces = Counter(exfil_type_series)
+    exfil_type_occurnces = Counter([tuple(i) if type(i)==list else i for i in exfil_type_series])
     exfil_types = exfil_type_occurnces.keys()
     coef_impact_df = pd.DataFrame(0.0, index=exfil_types, columns=coef_dict.keys())
     raw_feature_val_df = pd.DataFrame(0.0, index=exfil_types, columns=coef_dict.keys())

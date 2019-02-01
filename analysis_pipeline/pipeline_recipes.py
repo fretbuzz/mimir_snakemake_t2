@@ -1643,15 +1643,16 @@ def run_analysis_pipeline_recipes_json(json_file, path_to_experimental_data):
 # this function feeds a set of wordpress experiments into the multi_experiment_pipeline() function found in the
 # pipeline_coordinator
 def multi_experiment_wordpress_recipe():
+    skip_model_part = False
+    ignore_physical_attacks_p = True
+    fraction_of_edge_weights,fraction_of_edge_pkts = [0.001, 0.1],[0.001, 0.1]
     time_of_synethic_exfil = 30 # sec
     goal_train_test_split = 0.6
     goal_attack_NoAttack_split = 0.6
     training_window_size = 200
     size_of_neighbor_training_window = 0
-    calc_vals = True
-    skip_model_part = False
-    ignore_physical_attacks_p = True
-
+    calc_vals = False
+    calculate_z_scores = False
     experiment_classes = [process_wordpress6_rep3(training_window_size=training_window_size,
                                                   size_of_neighbor_training_window=size_of_neighbor_training_window,
                                                   calc_vals=calc_vals,
@@ -1682,11 +1683,13 @@ def multi_experiment_wordpress_recipe():
 
     #function_list = [i for i in raw_function_list]
     #function_list_exp_info = [functools.partial(i,time_of_synethic_exfil=time_of_synethic_exfil, only_exp_info=True) for i in function_list]
-
     base_output_location = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_summary/'# + 'lasso_roc'
     multi_experiment_pipeline(experiment_classes, base_output_location, True, time_of_synethic_exfil,
                               goal_train_test_split, goal_attack_NoAttack_split, training_window_size,
-                              size_of_neighbor_training_window, calc_vals, skip_model_part, ignore_physical_attacks_p)
+                              size_of_neighbor_training_window, calc_vals, skip_model_part, ignore_physical_attacks_p,
+                              fraction_of_edge_weights=fraction_of_edge_weights,
+                              fraction_of_edge_pkts=fraction_of_edge_pkts,
+                              calculate_z_scores_p=calculate_z_scores)
 
 ## TODO TODO TODO TODO
 # this function feeds a set of wordpress experiments into the multi_experiment_pipeline() function found in the
@@ -1700,6 +1703,7 @@ def multi_experiment_sockshop_recipe():
     calc_vals = True#True
     skip_model_part = False
     ignore_physical_attacks_p = True
+    calculate_z_scores = True
     ### TODO: can add the other reps of 9,11,12 when I get some time...
     #function_list = [process_sockshop9, process_sockshop9_rep2, process_sockshop11, process_sockshop11_rep2,
     #                 process_sockshop12, process_sockshop12_rep2] ## TODO TODO TODO
@@ -1731,7 +1735,8 @@ def multi_experiment_sockshop_recipe():
                               goal_train_test_split, goal_attack_NoAttack_split, training_window_size,
                               size_of_neighbor_training_window, calc_vals, skip_model_part, ignore_physical_attacks_p,
                               fraction_of_edge_weights=fraction_of_edge_weights,
-                              fraction_of_edge_pkts=fraction_of_edge_pkts)
+                              fraction_of_edge_pkts=fraction_of_edge_pkts,
+                              calculate_z_scores_p=calculate_z_scores)
 
 if __name__=="__main__":
     print "RUNNING"

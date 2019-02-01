@@ -573,10 +573,10 @@ def inject_synthetic_attacks(graph, synthetic_exfil_paths, initiator_info_for_pa
             weight_min =  np.min(weight_np_array)
 
             if not dns_exfil_path:
-                fraction_of_pkt_min = int(pkt_min * fraction_of_edge_pkts)
+                fraction_of_pkt_min = int(math.ceil(pkt_min * fraction_of_edge_pkts))
                 fraction_of_weight_min = int(weight_min * fraction_of_edge_weights)
             else:
-                fraction_of_pkt_min = int(pkt_min * 3) ## TODO: might wanna parametrize...
+                fraction_of_pkt_min = int(math.ceil(pkt_min * 3)) ## TODO: might wanna parametrize...
                 fraction_of_weight_min = int(weight_min * 3) ## TODO: might wanna parametrize...
         else:
             ###  we should store the corresponding attribs from the app_only granularity and then just
@@ -849,7 +849,11 @@ def pairwise_metrics(G, svc_to_nodes):
                 # bipartite_density = bipartite.density(subgraph, nodes_one_with_vip)
                 bipartite_density = nx.density(subgraph)
                 weighted_reciprocity, _, _ = network_weidge_weighted_reciprocity(subgraph)
-                coef_of_var = find_coef_of_variation(subgraph, nodes_one_with_vip)
+                coef_of_var = find_coef_of_variation(subgraph, nodes_one)
+                # ^^^ NOTE: using nodes_one instead of nodes_one_with_vip b/c we don't want the vip in the
+                # coef_of_variation calculation b/c that value is different than the normal container-to-container
+                # connections
+
                 ## (d) store them somewhere accessible and return [done]
                 '''TODO: don't wan to put the equiv ones both ways...'''
                 if svc_one < svc_two:
@@ -905,6 +909,18 @@ def make_bipartite(G, node_set_one, node_set_two):
                 G.remove_edge(node_two, node_one)
             except:
                 pass
+    for node in G.nodes():
+        if node not in node_set_two and node not in node_set_one:
+            G.remove_node(node)
+
+    #nx.draw(G)
+    #plt.show()
+    #plt.savefig('./bipartite_example.png')
+
+    #print "node_set_one", node_set_one
+    #print "node_set_two", node_set_two
+    #print [i for i in G.nodes()]
+    #exit(34)
 
     return G
 

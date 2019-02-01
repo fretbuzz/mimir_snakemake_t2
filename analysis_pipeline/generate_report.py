@@ -89,7 +89,7 @@ def generate_report(list_of_rocs, list_of_feat_coef, list_of_attacks_found_dfs, 
             recipes_used = recipes_used,
             sections=sections,
             frac_exfil_weight = fraction_of_edge_weights,
-            frac_exfil_pkts = fraction_of_edge_pkts
+            frac_exfil_packets = fraction_of_edge_pkts
         ))
 
     dir_path = os.path.dirname(os.path.realpath(__file__))

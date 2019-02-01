@@ -120,7 +120,7 @@ def calc_zscores(alert_file, training_window_size, minimum_training_window,
     #                                                                             training_window_size, time_interval_lengths)
 
     mod_z_score_df_basefile_name = alert_file + 'mod_z_score_' + sub_path
-    z_score_df_basefile_name = alert_file + 'norm_z_score_' + sub_path
+    #z_score_df_basefile_name = alert_file + 'norm_z_score_' + sub_path
     robustScaler_df_basefile_name = alert_file + 'robustScaler_score_' + sub_path
 
     if calc_zscore_p:
@@ -137,6 +137,7 @@ def calc_zscores(alert_file, training_window_size, minimum_training_window,
                                                      time_gran_to_new_neighbors_outside, time_gran_to_new_neighbors_dns,
                                                      time_gran_to_new_neighbors_all)
 
+        '''
         time_gran_to_zscore_dataframe = process_graph_metrics.calc_time_gran_to_zscore_dfs(time_gran_to_feature_dataframe,
                                                                                            training_window_size,
                                                                                            minimum_training_window)
@@ -147,7 +148,7 @@ def calc_zscores(alert_file, training_window_size, minimum_training_window,
                                                      time_gran_to_list_of_exfil_amts, end_of_training,
                                                      time_gran_to_new_neighbors_outside, time_gran_to_new_neighbors_dns,
                                                      time_gran_to_new_neighbors_all)
-
+        '''
         '''
         time_gran_to_RobustScaler_df = process_graph_metrics.calc_time_gran_to_robustScaker_dfs(time_gran_to_feature_dataframe, training_window_size)
 
@@ -159,15 +160,17 @@ def calc_zscores(alert_file, training_window_size, minimum_training_window,
                                                      time_gran_to_new_neighbors_all)
         '''
     else:
-        time_gran_to_zscore_dataframe = {}
+        #time_gran_to_zscore_dataframe = {}
         time_gran_to_mod_zscore_df = {}
         #time_gran_to_RobustScaler_df = {}
         for interval in time_gran_to_feature_dataframe.keys():
-            time_gran_to_zscore_dataframe[interval] = pd.read_csv(z_score_df_basefile_name + str(interval) + '.csv', na_values='?')
+            #time_gran_to_zscore_dataframe[interval] = pd.read_csv(z_score_df_basefile_name + str(interval) + '.csv', na_values='?')
             time_gran_to_mod_zscore_df[interval] = pd.read_csv(mod_z_score_df_basefile_name + str(interval) + '.csv', na_values='?')
             #time_gran_to_RobustScaler_df[interval] = pd.read_csv(robustScaler_df_basefile_name + str(interval) + '.csv', na_values='?')
 
             try:
+                pass
+                '''
                 del time_gran_to_zscore_dataframe[interval]['exfil_path']
                 del time_gran_to_mod_zscore_df[interval]['exfil_path']
 
@@ -180,9 +183,9 @@ def calc_zscores(alert_file, training_window_size, minimum_training_window,
 
                 del time_gran_to_zscore_dataframe[interval]['exfil_pkts']
                 del time_gran_to_mod_zscore_df[interval]['exfil_pkts']
-
-                del time_gran_to_zscore_dataframe[interval]['is_test']
-                del time_gran_to_mod_zscore_df[interval]['is_test']
+                '''
+                #del time_gran_to_zscore_dataframe[interval]['is_test']
+                #del time_gran_to_mod_zscore_df[interval]['is_test']
 
                 #def time_gran_to_RobustScaler_df[interval]['exfil_path']
                 #del time_gran_to_RobustScaler_df[interval]['concrete_exfil_path']
@@ -202,7 +205,8 @@ def calc_zscores(alert_file, training_window_size, minimum_training_window,
             except:
                 pass
 
-    return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, None# time_gran_to_RobustScaler_df # todo<-- put back
+    return time_gran_to_mod_zscore_df, None, None# time_gran_to_RobustScaler_df # todo<-- put back
+    #return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, None# time_gran_to_RobustScaler_df # todo<-- put back
     #return time_gran_to_RobustScaler_df, time_gran_to_zscore_dataframe, time_gran_to_RobustScaler_df
 
 def generate_rocs(time_gran_to_anom_score_df, alert_file, sub_path):
@@ -415,6 +419,7 @@ class data_anylsis_pipline(object):
         self.experiment_folder_path = basefile_name.split('edgefiles')[0]
         self.pcap_file = pcap_paths[0].split('/')[-1]  # NOTE: assuming only a single pcap file...
         self.exp_name = basefile_name.split('/')[-1]
+        self.base_exp_name = self.exp_name
         self.make_edgefiles_p = make_edgefiles_p and only_exp_info
         self.netsec_policy = netsec_policy
         self.make_edgefiles_p=make_edgefiles_p
@@ -426,6 +431,9 @@ class data_anylsis_pipline(object):
         self.alert_file=alert_file
         self.wiggle_room=wiggle_room
         self.sec_between_exfil_events=sec_between_exfil_events
+        self.orig_alert_file = self.alert_file
+        self.orig_basegraph_name = self.basegraph_name
+        self.orig_exp_name = self.exp_name
 
         self.synthetic_exfil_paths = None
         self.initiator_info_for_paths = None
@@ -434,6 +442,15 @@ class data_anylsis_pipline(object):
         print training_window_size,size_of_neighbor_training_window
         self.system_startup_time = training_window_size + size_of_neighbor_training_window
         self.calc_vals = calc_vals
+
+        self.time_gran_to_feature_dataframe=None
+        self.time_gran_to_attack_labels=None
+        self.time_gran_to_synthetic_exfil_paths_series=None
+        self.time_gran_to_list_of_concrete_exfil_paths  = None
+        self.time_gran_to_list_of_exfil_amts=None
+        self.time_gran_to_new_neighbors_outside=None
+        self.time_gran_to_new_neighbors_dns=None
+        self.time_gran_to_new_neighbors_all=None
 
         for ms in ms_s:
             if 'user' in ms and 'db' in ms:
@@ -687,7 +704,7 @@ def determine_injection_times(exps_info, goal_train_test_split, goal_attack_NoAt
             testing_time_for_attack_injection = (testing_time) * goal_attack_NoAttack_split -physical_attack_time
 
         #testing_time_without_physical_attack = testing_time - physical_attack_time
-        print "physical_attack_time",physical_attack_time
+        print "physical_attack_time",physical_attack_time, "testing_time", testing_time, testing_time_for_attack_injection
         testing_time_for_attack_injection = max(testing_time_for_attack_injection,0)
 
         # now let's find the time to inject during training... this'll be a percentage of the time between
@@ -708,7 +725,8 @@ def determine_injection_times(exps_info, goal_train_test_split, goal_attack_NoAt
 def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time_each_synthetic_exfil,
                               goal_train_test_split, goal_attack_NoAttack_split, training_window_size,
                               size_of_neighbor_training_window, calc_vals, skip_model_part, ignore_physical_attacks_p,
-                              fraction_of_edge_weights=[0.1], fraction_of_edge_pkts=[0.1]):
+                              fraction_of_edge_weights=[0.1], fraction_of_edge_pkts=[0.1],
+                              calculate_z_scores_p=True):
     ### Okay, so what is needed here??? We need, like, a list of sets of input (appropriate for run_data_analysis_pipeline),
     ### followed by the LASSO stuff, and finally the ROC stuff... okay, let's do this!!!
 
@@ -784,7 +802,7 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
             testing_exfil_paths.append([])
             exps_initiator_info.append([])
 
-
+    list_of_optimal_fone_scores_at_exfil_rates = []
     for rate_counter in range(0,len(fraction_of_edge_weights)):
         ## step (1) : iterate through individual experiments...
         ##  # 1a. list of inputs [done]
@@ -805,16 +823,18 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
         ### reasonable the rate injector even is ATM...
         experiments_to_exfil_path_time_dicts = []
         starts_of_testing = []
+
         for counter,experiment_object in enumerate(function_list):
             #time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, _ = func()
             print "exps_exfil_paths[counter]_to_func",exps_exfil_paths[counter], exps_initiator_info
 
             #''' todo:check if this works and then modify the results accordingly (note: i think this'll require that new vals are calculated...)
             #prefix_for_inject_params
-            experiment_object.alert_file = experiment_object.alert_file + prefix_for_inject_params ## TODO
+            experiment_object.alert_file = experiment_object.orig_alert_file + prefix_for_inject_params ## TODO
             #experiment_object.basefile_name = experiment_object.basefile_name +  prefix_for_inject_params## TODO
-            experiment_object.basegraph_name = experiment_object.basegraph_name + prefix_for_inject_params ## TODO
-            experiment_object.exp_name = experiment_object.exp_name + prefix_for_inject_params ## TODO
+            experiment_object.basegraph_name = experiment_object.orig_basegraph_name + prefix_for_inject_params ## TODO
+            experiment_object.exp_name = experiment_object.orig_exp_name + prefix_for_inject_params ## TODO
+            experiment_object.calc_zscore_p = calculate_z_scores_p or calc_vals
             #experiment_object.sub_path = None ## TODO: actually might not be needed
             #'''
 
@@ -826,6 +846,7 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
                                                fraction_of_edge_pkts=fraction_of_edge_pkts[rate_counter])
 
             print "exps_exfil_pathas[time_gran_to_mod_zscore_df]", time_gran_to_mod_zscore_df
+            print time_gran_to_mod_zscore_df[time_gran_to_mod_zscore_df.keys()[0]].columns.values
             list_time_gran_to_mod_zscore_df.append(time_gran_to_mod_zscore_df)
             list_time_gran_to_zscore_dataframe.append(time_gran_to_zscore_dataframe)
             list_time_gran_to_feature_dataframe.append(time_gran_to_feature_dataframe)
@@ -854,7 +875,7 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
             aggregate_feature_df.to_csv(cur_base_output_name + 'modz_feat_df_at_time_gran_of_' + str(time_gran) + '_sec.csv',
                                         na_rep='?')
 
-        recipes_used = [recipe.exp_name for recipe in function_list]
+        recipes_used = [recipe.base_exp_name for recipe in function_list]
         names = []
         for counter,recipe in enumerate(recipes_used):
             #print "recipe_in_functon_list", recipe.__name__
@@ -884,19 +905,32 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
         #time_gran_to_aggreg_feature_dfs
         ## okay, so now us the time to get a little tricky with everything... we gotta generate seperate reports for the different
         ## modls used...
-        '''
+
+        #'''
         clf = LassoCV(cv=3, max_iter=8000)
-        statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p,
-                                             base_output_name + 'lasso_mod_z_',
+        list_of_optimal_fone_scores_at_this_exfil_rates = \
+            statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p,
+                                             cur_base_output_name + 'lasso_mod_z_',
                                              names, starts_of_testing, path_occurence_training_df,
                                              path_occurence_testing_df, recipes_used, skip_model_part, clf,
-                                             ignore_physical_attacks_p)
-    
+                                             ignore_physical_attacks_p, fraction_of_edge_weights[rate_counter],
+                                             fraction_of_edge_pkts[rate_counter])
+        list_of_optimal_fone_scores_at_exfil_rates.append(list_of_optimal_fone_scores_at_this_exfil_rates)
+        '''
         statistically_analyze_graph_features(time_gran_to_aggreg_feature_dfs, ROC_curve_p, base_output_name + 'lasso_raw_',
                                              names, starts_of_testing, path_occurence_training_df,
                                              path_occurence_testing_df, recipes_used, skip_model_part, clf,
                                              ignore_physical_attacks_p)
         #'''
+        # lass_feat_sel
+        clf = LogisticRegressionCV(penalty="l1", cv=10, max_iter=10000, solver='saga')
+        statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p,
+                                             cur_base_output_name + 'logistic_l1_mod_z_lass_feat_sel_',
+                                             names, starts_of_testing, path_occurence_training_df,
+                                             path_occurence_testing_df, recipes_used, skip_model_part, clf,
+                                             ignore_physical_attacks_p, fraction_of_edge_weights[rate_counter],
+                                             fraction_of_edge_pkts[rate_counter])
+
         '''
         clf = LogisticRegressionCV(penalty="l2", cv=3, max_iter=10000)
         statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p,
@@ -910,7 +944,8 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
                                              path_occurence_testing_df, recipes_used, skip_model_part, clf,
                                              ignore_physical_attacks_p)
         #'''
-
+        ''' # if i want to see logistic regression, i would typically use lasso for feature selection, which
+        ## is what I do above, b/c the l1 regularization isn't strong enough...
         clf = LogisticRegressionCV(penalty="l1", cv=10, max_iter=10000, solver='saga')
         statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p,
                                              cur_base_output_name + 'logistic_l1_mod_z_',
@@ -918,13 +953,19 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
                                              path_occurence_testing_df, recipes_used, skip_model_part, clf,
                                              ignore_physical_attacks_p, fraction_of_edge_weights[rate_counter],
                                              fraction_of_edge_pkts[rate_counter])
-
+        '''
+        '''
         statistically_analyze_graph_features(time_gran_to_aggreg_feature_dfs, ROC_curve_p,
                                              cur_base_output_name + 'logistic_l1_raw_',
                                              names, starts_of_testing, path_occurence_training_df,
                                              path_occurence_testing_df, recipes_used, skip_model_part, clf,
                                              ignore_physical_attacks_p, fraction_of_edge_weights[rate_counter],
                                              fraction_of_edge_pkts[rate_counter])
+        '''
+
+    # todo: graph f_one versus exfil rates...
+    graph_fone_versus_exfil_rate(list_of_optimal_fone_scores_at_exfil_rates, fraction_of_edge_weights,
+                                 fraction_of_edge_pkts, time_gran_to_aggregate_mod_score_dfs.keys())
 
 def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, base_output_name, names,
                                          starts_of_testing, path_occurence_training_df, path_occurence_testing_df,
@@ -977,6 +1018,37 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         except:
             pass
 
+        try:
+            aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='Unnamed: 0')
+        except:
+            pass
+        try:
+            aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='Communication Between Pods not through VIPs (no abs)_mod_z_score')
+        except:
+            pass
+        try:
+            aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='Fraction of Communication Between Pods not through VIPs (no abs)_mod_z_score')
+        except:
+            pass
+        try:
+            aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='DNS inside_mod_z_score')
+        except:
+            pass
+        try:
+            aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='into_dns_from_outside_mod_z_score')
+        except:
+            pass
+        try:
+            aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='DNS outside_mod_z_score')
+        except:
+            pass
+        try:
+            aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='Angle of DNS edge weight vectors_mod_z_score')
+        except:
+            pass
+        #'Communication Between Pods not through VIPs (no abs)_mod_z_score'
+        #'Fraction of Communication Between Pods not through VIPs (no abs)_mod_z_score'
+
         #'''
         if not skip_model_part:
             ### TODO TODO TODO TODO TODO TODO
@@ -986,7 +1058,8 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
             if ignore_physical_attacks_p:
                 aggregate_mod_score_dfs = \
                 aggregate_mod_score_dfs[~((aggregate_mod_score_dfs['labels'] == 1) &
-                                          (aggregate_mod_score_dfs['exfil_pkts'] == 0))]
+                                          ((aggregate_mod_score_dfs['exfil_pkts'] == 0) &
+                                           (aggregate_mod_score_dfs['exfil_weight'] == 0)) )]
             #'''
             #####
 
@@ -1166,13 +1239,31 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         X_train = X_train.dropna(axis=1)
         print X_train
         #exit(233)
+        X_test = X_test.dropna(axis=1)
+
+        ## TODO: okay, let's try to use the lasso for feature selection by logistic regresesion for the actual model...
+        ''' ## TODO: seperate feature selection step goes here...
+        clf_featuree_selection = LassoCV(cv=5)
+        # Set a minimum threshold of 0.25
+        sfm = sklearn.SelectFromModel(clf_featuree_selection)
+        sfm.fit(X, y)
+        n_features = sfm.transform(X).shape[1]
+        '''
+        if 'lass_feat_sel' in base_output_name:
+            clf_featuree_selection = LassoCV(cv=5)
+            sfm = sklearn.feature_selection.SelectFromModel(clf_featuree_selection)
+            sfm.fit(X_train, y_train)
+            feature_idx = sfm.get_support()
+            selected_columns = X_train.columns[feature_idx]
+            X_train = pd.DataFrame(sfm.transform(X_train),index=X_train.index,columns=selected_columns)
+            X_test = pd.DataFrame(sfm.transform(X_test),index=X_test.index,columns=selected_columns)
+            #X_test = sfm.transform(X_test)
+
 
         dropped_columns = list(pre_drop_X_train.columns.difference(X_train.columns))
         print "dropped_columns", dropped_columns
         #exit(233)
         #dropped_columns=[]
-
-        X_test = X_test.dropna(axis=1)
 
         print "columns", X_train.columns
         print "columns", X_test.columns
@@ -1210,6 +1301,7 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         #clf=Lasso(alpha=alpha)
         print X_train.dtypes
         print y_train
+
         clf.fit(X_train, y_train)
         score_val = clf.score(X_test, y_test)
         print "score_val", score_val
@@ -1427,6 +1519,7 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
 
     print "multi_experiment_pipeline is all done! (NO ERROR DURING RUNNING)"
     #print "recall that this was the list of alert percentiles", percentile_thresholds
+    return list_of_optimal_fone_scores
 
 def determine_categorical_cm_df(y_test, optimal_predictions, exfil_paths, exfil_weights):
     y_test = y_test['labels'].tolist()
@@ -1571,6 +1664,9 @@ def generate_exfil_path_occurence_df(list_of_time_gran_to_mod_zscore_df, experim
         print time_gran_to_mod_zscore_df.keys()
         min_time_gran = min(time_gran_to_mod_zscore_df.keys())
         print time_gran_to_mod_zscore_df[min_time_gran]
+        # I *hope* this solves the list is unhashable problem....
+        time_gran_to_mod_zscore_df[min_time_gran]['exfil_path'] = \
+            [tuple(i) if type(i) == list  else i for i in time_gran_to_mod_zscore_df[min_time_gran]['exfil_path']]
         print time_gran_to_mod_zscore_df[min_time_gran]['exfil_path']
         print time_gran_to_mod_zscore_df[min_time_gran]['exfil_path']
         print time_gran_to_mod_zscore_df[min_time_gran]['exfil_path'].values
@@ -1610,6 +1706,30 @@ def determine_injection_amnts(exp_infos, goal_train_test_split, goal_attack_NoAt
     print "possible_exfil_path_injections", possible_exfil_path_injections
     #exit(34)
     return total_training_injections_possible,total_testing_injections_possible,possible_exfil_path_injections,end_of_train_portions
+
+def graph_fone_versus_exfil_rate(optimal_fone_scores, exfil_weights_frac, exfil_pkts_frac, time_grans):
+    time_gran_to_fone_list = {}
+    time_gran_to_exfil_param_list = {}
+    for exfil_counter, optimal_fones in enumerate(optimal_fone_scores):
+        for timegran_counter, optimal_score in enumerate(optimal_fones):
+            if time_grans[timegran_counter] in time_gran_to_fone_list:
+                time_gran_to_fone_list[time_grans[timegran_counter]].append(optimal_score)
+            else:
+                time_gran_to_fone_list[time_grans[timegran_counter]] = [optimal_score]
+            if time_grans[timegran_counter] in time_gran_to_exfil_param_list:
+                time_gran_to_exfil_param_list[time_grans[timegran_counter]].append(
+                    [(exfil_weights_frac[exfil_counter], exfil_pkts_frac[exfil_counter])])
+            else:
+                time_gran_to_exfil_param_list[time_grans[timegran_counter]] = \
+                    [(exfil_weights_frac[exfil_counter], exfil_pkts_frac[exfil_counter])]
+        #print counter,optimal_fones
+    # and then plot...
+    for time_gran in time_gran_to_fone_list.keys():
+        plt.xlabel('f1')
+        plt.ylabel('exfil_rate')
+        plt.plot(time_gran_to_exfil_param_list[time_gran], [i[0] for i in time_gran_to_fone_list[time_gran]])
+        plt.draw()
+        plt.savefig('temp_outputs/fone_vs_exfil_rate.png')
 
 if __name__ == "__main__":
     time_gran_to_attack_labels = {1: [0, 0, 1, 1, 0, 0, 0, 0, 0, 0], 2: [0, 1, 0, 0, 0]}

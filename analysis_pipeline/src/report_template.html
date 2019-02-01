@@ -9,10 +9,10 @@
 This report was automatically generated.
 <p> {{ date }}</p>
 <p> Data used: {{ recipes_used }} </p>
+<p> Fraction of exfil weight: {{frac_exfil_weight}}</p>
+<p> Fraction of exfil packets: {{frac_exfil_packets}}</p>
 {% for section in sections %}
     {{ section }}
 {% endfor %}
-<p> Fraction of exfil weight: {{frac_exfil_weight}}</p>
-<p> Fraction of exfil packets: {{frac_exfil_packets}}</p>
 </body>
 </html>
