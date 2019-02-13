@@ -1272,7 +1272,7 @@ def process_sockshop9(time_of_synethic_exfil=None,only_exp_info=False, initiator
                              synthetic_exfil_paths_test=None, calc_vals=False,skip_model_part=False,
                             max_number_of_paths=None):
     ## TODO: REMOVE
-    #calc_vals=False
+    calc_vals=False
 
     ## sockshop experiment 9 (an hour of scaled-up activity w/ exfil along normal path)
     pcap_paths = ["/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/sockshop_nine_better_exfil_default_bridge_0any.pcap"]
@@ -1645,7 +1645,9 @@ def run_analysis_pipeline_recipes_json(json_file, path_to_experimental_data):
 def multi_experiment_wordpress_recipe():
     skip_model_part = False
     ignore_physical_attacks_p = True
-    fraction_of_edge_weights,fraction_of_edge_pkts = [0.001, 0.1],[0.001, 0.1]
+    #fraction_of_edge_weights,fraction_of_edge_pkts = [0.001, 0.1],[0.001, 0.1]
+    #fraction_of_edge_weights,fraction_of_edge_pkts = [0.1],[0.1]
+    fraction_of_edge_weights,fraction_of_edge_pkts = [0.001],[0.001]
     time_of_synethic_exfil = 30 # sec
     goal_train_test_split = 0.6
     goal_attack_NoAttack_split = 0.6
@@ -1700,10 +1702,14 @@ def multi_experiment_sockshop_recipe():
     goal_attack_NoAttack_split = 0.5
     training_window_size = 200
     size_of_neighbor_training_window = 0
-    calc_vals = True#True
+    #calc_vals = False#True
+    #fraction_of_edge_weights,fraction_of_edge_pkts = [0.001],[0.001]
     skip_model_part = False
     ignore_physical_attacks_p = True
-    calculate_z_scores = True
+
+    calc_vals = True #True  ## TODO: PROBABLY WANT TO TURN THIS OFF AT SOME POINT
+    calculate_z_scores = False
+
     ### TODO: can add the other reps of 9,11,12 when I get some time...
     #function_list = [process_sockshop9, process_sockshop9_rep2, process_sockshop11, process_sockshop11_rep2,
     #                 process_sockshop12, process_sockshop12_rep2] ## TODO TODO TODO
@@ -1743,9 +1749,9 @@ if __name__=="__main__":
     print sys.argv
 
     if len(sys.argv) == 1:
-        multi_experiment_wordpress_recipe()
+        #multi_experiment_wordpress_recipe()
         #time.sleep(14400)
-        #multi_experiment_sockshop_recipe()
+        multi_experiment_sockshop_recipe()
 
         # TODO: might wanna re-enable the function below...
         #run_analysis_pipeline_recipes()

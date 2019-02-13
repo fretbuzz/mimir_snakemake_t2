@@ -1042,10 +1042,34 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
             aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='DNS outside_mod_z_score')
         except:
             pass
+        #'''
         try:
             aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='Angle of DNS edge weight vectors_mod_z_score')
         except:
             pass
+        #'''
+        #'''
+        try:
+            aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='Angle of DNS edge weight vectors (w abs)_mod_z_score')
+        except:
+            pass
+        #outside_to_sum_of_max_pod_to_dns_from_each_svc_ratio_mod_z_score
+        #'''
+        try:
+            aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='outside_to_sum_of_max_pod_to_dns_from_each_svc_ratio_mod_z_score')
+        except:
+            pass
+        #sum_of_max_pod_to_dns_from_each_svc_mod_z_score
+        try:
+            aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='sum_of_max_pod_to_dns_from_each_svc_mod_z_score')
+        except:
+            pass
+        #Communication Not Through VIPs
+        try:
+            aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='Communication Not Through VIPs')
+        except:
+            pass
+        #'''
         #'Communication Between Pods not through VIPs (no abs)_mod_z_score'
         #'Fraction of Communication Between Pods not through VIPs (no abs)_mod_z_score'
 
@@ -1727,7 +1751,7 @@ def graph_fone_versus_exfil_rate(optimal_fone_scores, exfil_weights_frac, exfil_
     for time_gran in time_gran_to_fone_list.keys():
         plt.xlabel('f1')
         plt.ylabel('exfil_rate')
-        plt.plot(time_gran_to_exfil_param_list[time_gran], [i[0] for i in time_gran_to_fone_list[time_gran]])
+        plt.plot([i[0] for i in time_gran_to_exfil_param_list[time_gran]], time_gran_to_fone_list[time_gran])
         plt.draw()
         plt.savefig('temp_outputs/fone_vs_exfil_rate.png')
 
