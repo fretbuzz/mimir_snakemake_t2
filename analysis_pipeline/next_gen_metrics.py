@@ -125,6 +125,24 @@ def calc_outside_inside_ratio_dns_metric(dns_in_metric_dicts,dns_out_metric_dict
         list_of_outside_inside_ratios.append( ratio )
     return list_of_outside_inside_ratios,list_outside,list_inside
 
+def single_step_outside_inside_ratio_dns_metric(dns_in_metric_dict,dns_out_metric_dict):
+    try:
+        outside_weight = dns_out_metric_dict['outside'] #dict['outside']
+    except:
+        outside_weight = 0
+    inside_wieght = 0.0
+    for key,val in dns_in_metric_dict.iteritems():
+        if key != 'outside':
+            inside_wieght += val
+    if inside_wieght:
+        ratio = float(outside_weight) / inside_wieght
+    else:
+        if outside_weight:
+            ratio = float('inf')
+        else:
+            ratio = float('nan')
+    return ratio,outside_weight,inside_wieght
+
 def create_dict_for_dns_metric(G, name_of_of_dns_node):
     return_dict = {}
     return_dict_two = {}

@@ -9,7 +9,8 @@ import ast
 import gc
 import numpy as np
 from analysis_pipeline.next_gen_metrics import calc_neighbor_metric, generate_neig_dict, create_dict_for_dns_metric, \
-    calc_dns_metric, calc_outside_inside_ratio_dns_metric, find_dns_node_name, sum_max_pod_to_dns_from_each_svc,reverse_svc_to_pod_dict,turn_into_list
+    calc_dns_metric, calc_outside_inside_ratio_dns_metric, find_dns_node_name, sum_max_pod_to_dns_from_each_svc,\
+    reverse_svc_to_pod_dict,turn_into_list, single_step_outside_inside_ratio_dns_metric
 from analysis_pipeline.src.analyze_edgefiles import calc_VIP_metric, change_point_detection, ide_angles
 from analysis_pipeline.prepare_graph import prepare_graph, get_svc_equivalents
 import random
@@ -25,40 +26,220 @@ from networkx.algorithms import bipartite
 import copy
 import process_control_chart
 #plt.switch_backend('gtkagg')
+import cPickle as pickle
 
 # okay, so things to be aware of:
 # (a) we are assuming that if we cannot label the node and it is not loopback or in the '10.X.X.X' subnet, then it is outside
 
-## next steps: extract relevant parts of prepare_graph... it'll be messy. + How exactly to handle multiple
-## exps + training/testing data...
-## plus more metrics... (which'll probably be tomorrow-- but if I can make it non-nonsensical today + structure for a
-## set of experiments + setup the lasso, we'll be in very good shape...)
-## okay, so I've kinda setup the structure to be decently comprehensible. Next steps:
-## (a) setup for multiple experiments, with an integration point for the LASSO
-## (b) do I wanna re-arrange where the graph_metrics are calculated...
+class injected_graph():
+    def __init__(self, name, injected_graph_loc, non_injected_graph_loc, concrete_container_exfil_paths, exfil_amt,
+                 svc_to_pod, pod_to_svc, total_edgelist_nodes, where_to_save_this_obj, counter, name_of_dns_pod_node,
+                 current_total_node_list, fraction_of_edge_weights, fraction_of_edge_pkts,
+                 svcs, is_swarm, ms_s, container_to_ip, infra_service):
+        self.name = name
+        self.injected_graph_loc = injected_graph_loc
+        self.non_injected_graph_loc = non_injected_graph_loc
+        self.concrete_container_exfil_paths = concrete_container_exfil_paths
+        self.exfil_amt = exfil_amt
+        self.svc_to_pod = svc_to_pod
+        self.pod_to_svc = pod_to_svc
+        self.total_edgelist_nodes = total_edgelist_nodes
+        self.where_to_save_this_obj = where_to_save_this_obj
+        self.cur_1si_G = None
+        self.edgefile_folder_path = "/".join(injected_graph_loc.split('/')[:-1])
+        self.metrics_file = self.edgefile_folder_path + 'metrics_for_' + str(counter) + '.csv'
+        self.name_of_dns_pod_node = name_of_dns_pod_node
+        self.current_total_node_list = current_total_node_list
+        self.graph_feature_dict = {}
+        self.graph_feature_dict_keys = None
+        self.fraction_of_edge_weights = fraction_of_edge_weights
+        self.fraction_of_edge_pkts = fraction_of_edge_pkts
 
-'''
-def pipeline_subset_analysis_step(filenames, ms_s, time_interval, basegraph_name, calc_vals_p, window_size, container_to_ip,
-                           is_swarm, make_net_graphs_p, infra_service, synthetic_exfil_paths, initiator_info_for_paths,
-                                  attacks_to_times, fraction_of_edge_weights, fraction_of_edge_pkts):
-    total_calculated_values = {}
-    if is_swarm:
-        svcs = get_svc_equivalents(is_swarm, container_to_ip)
-    else:
-        print "this is k8s, so using these sevices", ms_s
-        svcs = ms_s
+        self.svcs = svcs
+        self.is_swarm = is_swarm
+        self.counter = counter
+        self.ms_s = ms_s
+        self.container_to_ip = container_to_ip
+        self.infra_service = infra_service
 
-    # okay, so the whole idea here is that I actually only want a small subset of the values that I was calculating before
-    total_calculated_values[(time_interval, '')] = calc_subset_graph_metrics(filenames, time_interval,
-                                                                               basegraph_name + '_subset_',
-                                                                               calc_vals_p, window_size,
-                                                                               ms_s, container_to_ip, is_swarm, svcs,
-                                                                               infra_service, synthetic_exfil_paths,
-                                                                               initiator_info_for_paths,
-                                                                               attacks_to_times,fraction_of_edge_weights,
-                                                                                fraction_of_edge_pkts)
-    return total_calculated_values
-'''
+        self.cur_class_G = None
+
+    def save(self):
+        with open(self.where_to_save_this_obj, 'wb') as output:  # Overwrites any existing file.
+            pickle.dump(self, output, pickle.HIGHEST_PROTOCOL)
+
+    def calc_single_step_metrics(self):
+        self._load_graph()
+        self._create_class_level_graph()
+
+        density = nx.density(self.cur_1si_G)
+        self.graph_feature_dict['pod_1si_density_list'] = density
+        weight_into_dns_dict, weight_outof_dns_dict, _, _ = create_dict_for_dns_metric(self.cur_1si_G, self.name_of_dns_pod_node)
+        self.graph_feature_dict['weight_into_dns_dict'] = weight_into_dns_dict
+        try:
+            self.graph_feature_dict['into_dns_from_outside_list'] = weight_into_dns_dict['outside']
+        except:
+            self.graph_feature_dict['into_dns_from_outside_list'] = 0.0
+        self.graph_feature_dict['dns_out_metric_dicts'] = weight_outof_dns_dict
+
+        pod_comm_but_not_VIP_comm, fraction_pod_comm_but_not_VIP_comm = calc_VIP_metric(self.cur_1si_G, True)
+        self.graph_feature_dict['pod_comm_but_not_VIP_comms'] = pod_comm_but_not_VIP_comm
+        self.graph_feature_dict['fraction_pod_comm_but_not_VIP_comms'] = fraction_pod_comm_but_not_VIP_comm
+
+        pod_comm_but_not_VIP_comm_no_abs, fraction_pod_comm_but_not_VIP_comm_no_abs = calc_VIP_metric(self.cur_1si_G, False)
+        self.graph_feature_dict['pod_comm_but_not_VIP_comms_no_abs'] = pod_comm_but_not_VIP_comm_no_abs
+        self.graph_feature_dict['fraction_pod_comm_but_not_VIP_comms_no_abs'] = fraction_pod_comm_but_not_VIP_comm_no_abs
+
+        svc_to_pod_with_outside = copy.deepcopy(self.svc_to_pod)
+        svc_to_pod_with_outside['outside'] = ['outside']
+        svc_pair_to_reciprocity, svc_pair_to_density, svc_pair_to_coef_of_var = pairwise_metrics(self.cur_1si_G,
+                                                                                                 svc_to_pod_with_outside)
+        self.graph_feature_dict['list_of_svc_pair_to_reciprocity'] = svc_pair_to_reciprocity
+        self.graph_feature_dict['list_of_svc_pair_to_density'] = svc_pair_to_density
+        self.graph_feature_dict['list_of_svc_pair_to_coef_of_var'] = svc_pair_to_coef_of_var
+
+        adjacency_matri = nx.to_pandas_adjacency(self.cur_1si_G, nodelist=self.current_total_node_list)
+        self.graph_feature_dict['adjacency_matrix'] = adjacency_matri
+
+
+        dns_outside_inside_ratios, dns_list_outside, dns_list_inside = \
+            single_step_outside_inside_ratio_dns_metric(weight_into_dns_dict, weight_outof_dns_dict)
+        into_dns_ratio, into_dns_from_outside, into_dns_from_indeside = \
+            single_step_outside_inside_ratio_dns_metric(weight_into_dns_dict, weight_into_dns_dict)
+
+        self.graph_feature_dict['weight_into_dns_dict'] = weight_into_dns_dict
+        self.graph_feature_dict['dns_outside_inside_ratios'] = dns_outside_inside_ratios
+        self.graph_feature_dict['into_dns_ratio'] = into_dns_ratio
+
+        self.graph_feature_dict['dns_list_outside'] = dns_list_outside
+        self.graph_feature_dict['dns_list_inside'] = dns_list_inside
+
+        self.graph_feature_dict_keys = self.graph_feature_dict.keys()
+        with open(self.metrics_file, 'wb') as f:  # Just use 'w' mode in 3.x
+            w = csv.DictWriter(f, self.graph_feature_dict.keys())
+            w.writeheader()
+            w.writerow(self.graph_feature_dict)
+
+    def _load_graph(self):
+        self.cur_1si_G = nx.DiGraph()
+        print "path to file is ", self.injected_graph_loc
+        f = open(self.injected_graph_loc, 'r')
+        lines = f.readlines()
+        nx.parse_edgelist(lines, delimiter=' ', create_using=self.cur_1si_G)
+
+    def load_metrics(self):
+        with open(self.metrics_file, mode='r') as f:
+            reader = csv.DictReader(f, self.graph_feature_dict_keys)
+            self.graph_feature_dict = {rows[0]: rows[1] for rows in reader}
+
+    def _create_class_level_graph(self):
+        self.cur_class_G = prepare_graph(self.cur_1si_G, self.svcs, 'class', self.is_swarm, self.counter, self.injected_graph_loc,
+                                    self.ms_s, self.container_to_ip, self.infra_service)
+
+# okay, so what does this function even mean? well it is important for the set of graphs
+class set_of_injected_graphs():
+    def __init__(self, fraction_of_edge_weights, fraction_of_edge_pkts, time_granularity, window_size, raw_edgefile_names):
+        self.list_of_injected_graphs = []
+        self.fraction_of_edge_weights = fraction_of_edge_weights
+        self.fraction_of_edge_pkts = fraction_of_edge_pkts
+        self.time_granularity = time_granularity
+        self.window_size = window_size
+        self.raw_edgefile_names = raw_edgefile_names
+
+        self.calculated_values = {}
+
+
+    def serialize_metrics_into_dataframe(self):
+        adjacency_matrixes = []
+        dns_in_metric_dicts = []
+
+        list_of_svc_pair_to_density = []
+        list_of_svc_pair_to_reciprocity = []
+        list_of_svc_pair_to_coef_of_var = []
+        fraction_pod_comm_but_not_VIP_comms_no_abs = []
+        pod_comm_but_not_VIP_comms_no_abs = []
+        dns_outside_inside_ratios = []
+        dns_list_outside = []
+        dns_list_inside = []
+        pod_1si_density_list = []
+        into_dns_from_outside_list = []
+        into_dns_ratio = []
+
+        for injected_graph in self.list_of_injected_graphs:
+            injected_graph.load_metrics()
+            current_graph_feature_dict = injected_graph.graph_feature_dict
+
+            # need to calculate the metrics that require all data to be known here...
+            adjacency_matrixes.append( current_graph_feature_dict['adjacency_matrix'] )
+            dns_in_metric_dicts.append( current_graph_feature_dict['weight_into_dns_dict'] )
+
+            list_of_svc_pair_to_density.append(current_graph_feature_dict['list_of_svc_pair_to_density'])
+            list_of_svc_pair_to_reciprocity.append(current_graph_feature_dict['list_of_svc_pair_to_reciprocity'])
+            list_of_svc_pair_to_coef_of_var.append(current_graph_feature_dict['list_of_svc_pair_to_coef_of_var'])
+            fraction_pod_comm_but_not_VIP_comms_no_abs.append(current_graph_feature_dict['fraction_pod_comm_but_not_VIP_comms_no_abs'])
+            pod_comm_but_not_VIP_comms_no_abs.append(current_graph_feature_dict['pod_comm_but_not_VIP_comms_no_abs'])
+            dns_outside_inside_ratios.append(current_graph_feature_dict['dns_outside_inside_ratios'])
+            dns_list_outside.append(current_graph_feature_dict['dns_list_outside'])
+            dns_list_inside.append(current_graph_feature_dict['dns_list_inside'])
+            pod_1si_density_list.append(current_graph_feature_dict['pod_1si_density_list'])
+            into_dns_from_outside_list.append(current_graph_feature_dict['into_dns_from_outside_list'])
+            into_dns_ratio.append(current_graph_feature_dict['into_dns_ratio'])
+
+        total_edgelist_nodes = self.list_of_injected_graphs[-1].total_edgelist_nodes
+        current_total_node_list = self.list_of_injected_graphs[-1].current_total_node_list
+        ide_angles_results = ide_angles(adjacency_matrixes, 6, total_edgelist_nodes)
+        into_dns_eigenval_angles = change_point_detection(dns_in_metric_dicts, self.window_size, current_total_node_list)
+
+
+        ## need to store these new results into the format that I've been using this far...
+        for service_pair in list_of_svc_pair_to_density[0].keys():
+            self.calculated_values[service_pair[0] + '_' + service_pair[1] + '_density'] = []
+            self.calculated_values[service_pair[0] + '_' + service_pair[1] + '_reciprocity'] = []
+            self.calculated_values[service_pair[0] + '_' + service_pair[1] + '_coef_of_var'] = []
+        for counter,svc_pair_to_density in enumerate(list_of_svc_pair_to_density):
+            for service_pair in list_of_svc_pair_to_density[0].keys():
+                try:
+                    self.calculated_values[service_pair[0] + '_' + service_pair[1] + '_reciprocity'].append(
+                        list_of_svc_pair_to_reciprocity[counter][service_pair])
+                except:
+                    self.calculated_values[service_pair[0] + '_' + service_pair[1] + '_reciprocity'].append(0.0)
+                try:
+                    self.calculated_values[service_pair[0] + '_' + service_pair[1] + '_density'].append(
+                        svc_pair_to_density[service_pair])
+                except:
+                    self.calculated_values[service_pair[0] + '_' + service_pair[1] + '_density'].append(0.0)
+                try:
+                    self.calculated_values[service_pair[0] + '_' + service_pair[1] + '_coef_of_var'].append(
+                        list_of_svc_pair_to_coef_of_var[counter][service_pair])
+                except:
+                    self.calculated_values[service_pair[0] + '_' + service_pair[1] + '_coef_of_var'].append(0.0)
+
+        self.calculated_values[
+            'Fraction of Communication Between Pods not through VIPs (no abs)'] = fraction_pod_comm_but_not_VIP_comms_no_abs
+        self.calculated_values['Communication Between Pods not through VIPs (no abs)'] = pod_comm_but_not_VIP_comms_no_abs
+        self.calculated_values[
+            'Fraction of Communication Between Pods not through VIPs (w abs)'] = [abs(i) for i in fraction_pod_comm_but_not_VIP_comms_no_abs]
+        self.calculated_values['Communication Between Pods not through VIPs (w abs)'] = [abs(i) for i in pod_comm_but_not_VIP_comms_no_abs]
+        self.calculated_values['DNS outside-to-inside ratio'] = dns_outside_inside_ratios
+        self.calculated_values['DNS outside'] = dns_list_outside
+        self.calculated_values['DNS inside'] = dns_list_inside
+        self.calculated_values['1-step-induced-pod density'] = pod_1si_density_list
+        self.calculated_values['into_dns_from_outside'] = into_dns_from_outside_list
+        self.calculated_values['into_dns_ratio'] = into_dns_ratio
+        self.calculated_values['into_dns_eigenval_angles'] = into_dns_eigenval_angles
+        self.calculated_values['ide_angles'] = ide_angles_results
+        self.calculated_values['ide_angles (w abs)'] = [abs(i) for i in ide_angles_results]
+
+    ## TODO: not sure what this function is
+    def not_sure(self):
+        if calc_vals_p:
+            for counter, injected_obj_loc in injected_graph_obj_locations.iteritems():
+                gc.collect()
+
+                with open(injected_obj_loc, 'r') as input_file:
+                    injected_graph_obj = pickle.load(input_file)
+
+                injected_graph_obj.calc_single_step_metrics()
 
 def generate_injected_edgefiles(filenames, svcs, is_swarm, ms_s, container_to_ip, infra_service,
                                 attacks_to_times, fraction_of_edge_weights, fraction_of_edge_pkts,
@@ -71,6 +252,8 @@ def generate_injected_edgefiles(filenames, svcs, is_swarm, ms_s, container_to_ip
     class_attack_mapping = {}
 
     injected_filenmames = {} # index via counter... might be useful later on...
+    total_edgelist_nodes = []
+    injected_graph_obj_locations = []
 
     for counter, file_path in enumerate(filenames):
 
@@ -97,6 +280,7 @@ def generate_injected_edgefiles(filenames, svcs, is_swarm, ms_s, container_to_ip
         # calculating the corresponding graph metrics
         edgefile_folder_path = "/".join(file_path.split('/')[:-1])
         name_of_file = file_path.split('/')[-1]
+        name_of_injected_file = str(fraction_of_edge_weights) + '_' + str(fraction_of_edge_pkts) + '_' + file_path.split('/')[-1]
         edgefile_pruned_folder_path = edgefile_folder_path + '/pruned_edgefiles/'
         ## if the pruned folder directory doesn't currently exist, then we'd want to create it...
         ## using the technique from https://stackoverflow.com/questions/273192/how-can-i-safely-create-a-nested-directory-in-python
@@ -193,13 +377,54 @@ def generate_injected_edgefiles(filenames, svcs, is_swarm, ms_s, container_to_ip
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise
-        nx.write_edgelist(cur_1si_G, edgefile_injected_folder_path + name_of_file, data=['frames', 'weight'])
+        nx.write_edgelist(cur_1si_G, edgefile_injected_folder_path + name_of_injected_file, data=['frames', 'weight'])
         # injected_filenames.append(edgefile_injected_folder_path+name_of_file)
-        injected_filenmames[counter] = edgefile_injected_folder_path + name_of_file
+        total_edgelist_nodes = update_total_edgelist_nodes_if_needed(cur_1si_G, total_edgelist_nodes)
+        #injected_filenmames[counter] = edgefile_injected_folder_path + name_of_file
 
-        ##continue ### <<<----- TODO: remove!
-        # exit() #### <----- TODO: remove!!
-    return injected_filenmames
+        name = name_of_file
+        injected_graph_obj_loc = 'graph_obj_' + name_of_injected_file
+        injected_graph_obj = injected_graph(name, edgefile_injected_folder_path + name_of_file, file_path, concrete_cont_node_path,
+                                            pre_specified_data_attribs, svc_to_pod, pod_to_svc, total_edgelist_nodes,
+                                            injected_graph_obj_loc, counter, name_of_dns_pod_node, current_total_node_list,
+                                            fraction_of_edge_weights, fraction_of_edge_pkts,
+                                            svcs, is_swarm, ms_s, container_to_ip, infra_service)
+        injected_graph_obj.save()
+        injected_graph_obj_locations.append(injected_graph_obj_loc)
+
+        ##continue ###
+        # exit() ####
+    return injected_graph_obj_locations
+
+def calc_subset_graph_metrics_take3(injected_graph_obj_locations, time_interval, basegraph_name, calc_vals_p, window_size, ms_s, container_to_ip,
+                              is_swarm, svcs, infra_service, synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
+                              fraction_of_edge_weights, fraction_of_edge_pkts, size_of_neighbor_training_window, out_q):#, out_q):
+    if calc_vals_p:
+        for counter, injected_obj_loc in injected_graph_obj_locations.iteritems():
+            gc.collect()
+
+            with open(injected_obj_loc, 'r') as input_file:
+                injected_graph_obj = pickle.load(input_file)
+
+            injected_graph_obj.calc_single_step_metrics()
+
+
+
+    ## TODO: what is even going on here???
+
+    out_q.put(calculated_values)
+    out_q.put(list_of_concrete_container_exfil_paths)
+    out_q.put(list_of_exfil_amts)
+    out_q.put(new_neighbors_outside)
+    out_q.put(new_neighbors_dns)
+    out_q.put(new_neighbors_all)
+
+    #return calculated_values, list_of_concrete_container_exfil_paths, list_of_exfil_amts,\
+    #        new_neighbors_outside,new_neighbors_dns,new_neighbors_all
+    #, injected_filenames
+    print "simplified_graph_metrics_about_to_reteurn"
+    print out_q
+    return
 
 def calc_subset_graph_metrics_take2(injected_filenames, time_interval, basegraph_name, calc_vals_p, window_size, ms_s, container_to_ip,
                               is_swarm, svcs, infra_service, synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
@@ -237,18 +462,18 @@ def calc_subset_graph_metrics_take2(injected_filenames, time_interval, basegraph
         total_edgelist_nodes = []
 
         single_itereation_metric_dict = {}
+        metrics_files = []
 
-        for counter, file_path in enumerate(injected_filenames):
-
+        for counter, file_path in injected_filenames.iteritems():
             gc.collect()
             cur_1si_G = nx.DiGraph()
             print "path to file is ", file_path
-
             f = open(file_path, 'r')
             lines = f.readlines()
             nx.parse_edgelist(lines, delimiter=' ', create_using=cur_1si_G)
-
             edgefile_folder_path = "/".join(file_path.split('/')[:-1])
+            current_metrics_file = edgefile_folder_path + 'metrics_for_' + str(counter) + '.csv'
+
 
             potential_name_of_dns_pod_node = find_dns_node_name(cur_1si_G)
             if potential_name_of_dns_pod_node != None:
@@ -285,27 +510,6 @@ def calc_subset_graph_metrics_take2(injected_filenames, time_interval, basegraph
             cur_class_G = prepare_graph(cur_1si_G, svcs, 'class', is_swarm, counter, file_path, ms_s, container_to_ip,
                                   infra_service)
 
-
-            '''
-            plt.figure(figsize=(12,12))  # todo: turn back to (27, 16)
-            plt.title('after processing')
-            pos = graphviz_layout(cur_1si_G)
-            for key in pos.keys():
-                pos[key] = (pos[key][0] * 4, pos[key][1] * 4)  # too close otherwise
-            nx.draw_networkx(cur_1si_G, pos, with_labels=True, arrows=True, font_size=8, font_color='b')
-            edge_labels = nx.get_edge_attributes(cur_1si_G, 'weight')
-            nx.draw_networkx_edge_labels(cur_1si_G, pos, edge_labels=edge_labels, font_size=7, label_pos=0.3)
-
-            plt.figure(figsize=(12,12))  # todo: turn back to (27, 16)
-            plt.title('before processing')
-            pos = graphviz_layout(G)
-            for key in pos.keys():
-                pos[key] = (pos[key][0] * 4, pos[key][1] * 4)  # too close otherwise
-            nx.draw_networkx(G, pos, with_labels=True, arrows=True, font_size=8, font_color='b')
-            edge_labels = nx.get_edge_attributes(G, 'weight')
-            nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=7, label_pos=0.3)
-            plt.show()
-            '''
 
             density = nx.density(cur_1si_G)
             #print "cur_class_G",cur_class_G.nodes()
@@ -344,44 +548,21 @@ def calc_subset_graph_metrics_take2(injected_filenames, time_interval, basegraph
             ##
             print "list_of_svc_pair_to_reciprocity", list_of_svc_pair_to_reciprocity
             print "list_of_svc_pair_to_density",list_of_svc_pair_to_density
-            ###exit(322) ## TODO::::<---remove!!!
-            ## TODO: the adjacency matrix is NOT IN THE CORRECT FORMAT
-            ## okay, so the current total_node_list should be edges (present in the adjacency matrix) here... so
-            ## also cannot feed it current_total_node_list, well we'll to maintain a seperate list for it...
-            ## so it's probably might not be as a bad...
-            #'''
-            #'''
+
             total_edgelist_nodes = update_total_edgelist_nodes_if_needed(cur_1si_G, total_edgelist_nodes)
             #adjacency_matrixes.append( make_edgelist_dict(cur_1si_G, total_edgelist_nodes) )
             adjacency_matrixes.append( nx.to_pandas_adjacency(cur_1si_G,nodelist=current_total_node_list))
             #num_items_drop_from_list = max(0, len(adjacency_matrixes) - (window_size + 1))
             #adjacency_matrixes = adjacency_matrixes[num_items_drop_from_list:]
             print "len_adjacency_matrixes",len(adjacency_matrixes)
-            #adjacency_matrixes_list = turn_into_list(adjacency_matrixes, total_edgelist_nodes)
-            #'''
-            ##################
-            '''
-            ## TODO: at some point VVVV
-            #print "adjacency_matrixes_list",adjacency_matrixes_list
-            print "adjacency_matrixes", adjacency_matrixes, adjacency_matrixes[0].keys()
-            ide_angle = ide_angles(adjacency_matrixes, 50, total_edgelist_nodes)
-            #ide_angle = 0
-            ##################
-
-            print "ide_angle", ide_angle
-            try:
-                ide_angles.append(ide_angle[-1])
-            except:
-                ide_angles.append(float('NaN'))
-            '''
-
-
 
             # TODO: would probably be a good idea to store these vals somewhere safe or something (I think
             # the program is holding all of the graphs in memory, which is leading to massive memory bloat)
             del G
             del cur_1si_G
             del cur_class_G
+
+            metrics_files.append(current_metrics_file)
 
         #######
         #return #exit() ### <<<<----- TODO : remove!
@@ -536,6 +717,70 @@ def calc_subset_graph_metrics_take2(injected_filenames, time_interval, basegraph
     print "simplified_graph_metrics_about_to_reteurn"
     print out_q
     return
+
+def generate_single_graph_features(cur_1si_G, name_of_dns_pod_node, svc_to_pod):
+    graph_feature_dict = {}
+
+    density = nx.density(cur_1si_G)
+    # print "cur_class_G",cur_class_G.nodes()
+    # print "cur_1si_G", cur_1si_G.nodes()
+    #pod_1si_density_list.append(density)
+    graph_feature_dict['pod_1si_density_list'] = density
+    #neighbor_dicts.append(generate_neig_dict(cur_class_G))
+    weight_into_dns_dict, weight_outof_dns_dict, _, _ = create_dict_for_dns_metric(cur_1si_G, name_of_dns_pod_node)
+    #dns_in_metric_dicts.append(weight_into_dns_dict)
+    graph_feature_dict['weight_into_dns_dict'] = weight_into_dns_dict
+    try:
+        #into_dns_from_outside_list.append(weight_into_dns_dict['outside'])
+        graph_feature_dict['into_dns_from_outside_list'] = weight_into_dns_dict['outside']
+    except:
+        #into_dns_from_outside_list.append(0.0)
+        graph_feature_dict['into_dns_from_outside_list'] = 0.0
+    logging.info("weight_into_dns_dict, " + str(weight_into_dns_dict))
+    #dns_out_metric_dicts.append(weight_outof_dns_dict)
+    graph_feature_dict['dns_out_metric_dicts'] = weight_outof_dns_dict
+    #logging.info("weight_outof_dns_dict, " + str(weight_outof_dns_dict))
+
+    # print "right before calc_VIP_metric", level_of_processing
+    pod_comm_but_not_VIP_comm, fraction_pod_comm_but_not_VIP_comm = calc_VIP_metric(cur_1si_G, True)
+    graph_feature_dict['pod_comm_but_not_VIP_comms'] = pod_comm_but_not_VIP_comm
+    graph_feature_dict['fraction_pod_comm_but_not_VIP_comms'] = fraction_pod_comm_but_not_VIP_comm
+
+    #pod_comm_but_not_VIP_comms.append(pod_comm_but_not_VIP_comm)
+    #fraction_pod_comm_but_not_VIP_comms.append(fraction_pod_comm_but_not_VIP_comm)
+    pod_comm_but_not_VIP_comm_no_abs, fraction_pod_comm_but_not_VIP_comm_no_abs = calc_VIP_metric(cur_1si_G, False)
+    graph_feature_dict['pod_comm_but_not_VIP_comms_no_abs'] = pod_comm_but_not_VIP_comm_no_abs
+    graph_feature_dict['fraction_pod_comm_but_not_VIP_comms_no_abs'] = fraction_pod_comm_but_not_VIP_comm_no_abs
+    #pod_comm_but_not_VIP_comms_no_abs.append(pod_comm_but_not_VIP_comm_no_abs)
+    #fraction_pod_comm_but_not_VIP_comms_no_abs.append(fraction_pod_comm_but_not_VIP_comm_no_abs)
+
+    ### TODO: this is where I want to implement the rest of my (new) graph metrics...
+    ### okay, need to put the new g
+    #print cur_1si_G.nodes(data=True)
+    print "svc_to_pod", svc_to_pod
+    svc_to_pod_with_outside = copy.deepcopy(svc_to_pod)
+    svc_to_pod_with_outside['outside'] = ['outside']
+    svc_pair_to_reciprocity, svc_pair_to_density, svc_pair_to_coef_of_var = pairwise_metrics(cur_1si_G,
+                                                                                             svc_to_pod_with_outside)
+    ## okay, so it appears like we already having a mapping... that's fun...
+    #list_of_svc_pair_to_reciprocity.append(svc_pair_to_reciprocity)
+    #list_of_svc_pair_to_density.append(svc_pair_to_density)
+    #list_of_svc_pair_to_coef_of_var.append(svc_pair_to_coef_of_var)
+    graph_feature_dict['list_of_svc_pair_to_reciprocity'] = svc_pair_to_reciprocity
+    graph_feature_dict['list_of_svc_pair_to_density'] = svc_pair_to_density
+    graph_feature_dict['list_of_svc_pair_to_coef_of_var'] = svc_pair_to_coef_of_var
+
+
+    ##
+    #print "list_of_svc_pair_to_reciprocity", list_of_svc_pair_to_reciprocity
+    #print "list_of_svc_pair_to_density", list_of_svc_pair_to_density
+
+    total_edgelist_nodes = update_total_edgelist_nodes_if_needed(cur_1si_G, total_edgelist_nodes)
+    # adjacency_matrixes.append( make_edgelist_dict(cur_1si_G, total_edgelist_nodes) )
+    adjacency_matrixes.append(nx.to_pandas_adjacency(cur_1si_G, nodelist=current_total_node_list))
+    # num_items_drop_from_list = max(0, len(adjacency_matrixes) - (window_size + 1))
+    # adjacency_matrixes = adjacency_matrixes[num_items_drop_from_list:]
+    print "len_adjacency_matrixes", len(adjacency_matrixes)
 
 
 def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_vals_p, window_size, ms_s, container_to_ip,
@@ -761,7 +1006,6 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
             ## so it's probably might not be as a bad...
             #'''
             #'''
-            total_edgelist_nodes = update_total_edgelist_nodes_if_needed(cur_1si_G, total_edgelist_nodes)
             #adjacency_matrixes.append( make_edgelist_dict(cur_1si_G, total_edgelist_nodes) )
             adjacency_matrixes.append( nx.to_pandas_adjacency(cur_1si_G,nodelist=current_total_node_list))
             #num_items_drop_from_list = max(0, len(adjacency_matrixes) - (window_size + 1))
