@@ -94,6 +94,9 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
         name_of_dns_pod_node = None # defining out here so it's accessible across runs
         old_dict = {}
         total_edgelist_nodes = []
+
+        single_itereation_metric_dict = {}
+
         for counter, file_path in enumerate(filenames):
             gc.collect()
             G = nx.DiGraph()
@@ -143,9 +146,33 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
             print "name_of_dns_pod_node", name_of_dns_pod_node
 
             ### NOTE: I think this is where we'd want to inject the synthetic attacks...
+            for node in cur_1si_G.nodes():
+                if node not in current_total_node_list:
+                    current_total_node_list.append(node)
+
+            # print "right after graph is prepared", level_of_processing, list(cur_G.nodes(data=True))
+            logging.info("svcs, " + str(svcs))
+            for thing in cur_1si_G.nodes(data=True):
+                logging.info(thing)
+                try:
+                    #print thing[1]['svc']
+                    cur_svc = thing[1]['svc']
+                    if 'VIP' not in thing[0] and cur_svc not in svc_to_pod:
+                        svc_to_pod[cur_svc] = [thing[0]]
+                    else:
+                        if 'VIP' not in thing[0] and thing[0] not in svc_to_pod[cur_svc]:
+                            svc_to_pod[cur_svc].append(thing[0])
+                except:
+                    #print "there was a svc error"
+                    pass
+
+            pod_to_svc = reverse_svc_to_pod_dict(svc_to_pod)
+
             pre_injection_weight_into_dns_dict, pre_injection_weight_outof_dns_dict, pre_inject_packets_into_dns_dict, \
                 pre_inject_packets_outof_dns_dict = create_dict_for_dns_metric(cur_1si_G, name_of_dns_pod_node)
-            cur_avg_dns_weight, cur_avg_dns_pkts = avg_behavior_into_dns_node(pre_injection_weight_into_dns_dict, pre_inject_packets_into_dns_dict)
+            cur_avg_dns_weight, cur_avg_dns_pkts = avg_behavior_into_dns_node(pre_injection_weight_into_dns_dict, pre_inject_packets_into_dns_dict, pod_to_svc)
+            print("process_rep: " + str(counter) + ':' + " cur_avg_dns_weight: " + str(cur_avg_dns_weight) + ', cur_avg_dns_pkts:' + str(cur_avg_dns_pkts))
+            logging.info("process_rep: " + str(counter) + ':' + " cur_avg_dns_weight: " + str(cur_avg_dns_weight) + ', cur_avg_dns_pkts:' + str(cur_avg_dns_pkts))
             if cur_avg_dns_weight != 0:
                 if avg_dns_weight == 0:
                     avg_dns_weight = cur_avg_dns_weight
@@ -201,26 +228,6 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
             nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=7, label_pos=0.3)
             plt.show()
             '''
-
-            for node in cur_1si_G.nodes():
-                if node not in current_total_node_list:
-                    current_total_node_list.append(node)
-
-            # print "right after graph is prepared", level_of_processing, list(cur_G.nodes(data=True))
-            logging.info("svcs, " + str(svcs))
-            for thing in cur_1si_G.nodes(data=True):
-                logging.info(thing)
-                try:
-                    #print thing[1]['svc']
-                    cur_svc = thing[1]['svc']
-                    if 'VIP' not in thing[0] and cur_svc not in svc_to_pod:
-                        svc_to_pod[cur_svc] = [thing[0]]
-                    else:
-                        if 'VIP' not in thing[0] and thing[0] not in svc_to_pod[cur_svc]:
-                            svc_to_pod[cur_svc].append(thing[0])
-                except:
-                    #print "there was a svc error"
-                    pass
             #print "svc_to_pod", svc_to_pod
             #time.sleep(50)
 
@@ -299,6 +306,8 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
                 ide_angles.append(float('NaN'))
             '''
 
+
+
             # TODO: would probably be a good idea to store these vals somewhere safe or something (I think
             # the program is holding all of the graphs in memory, which is leading to massive memory bloat)
             del G
@@ -331,10 +340,9 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
                                                                                                             dns_in_metric_dicts)
 
         into_dns_eigenval_angles = change_point_detection(dns_in_metric_dicts, window_size, current_total_node_list)
-        pod_to_svc = reverse_svc_to_pod_dict(svc_to_pod)
         print "pod_to_svc",pod_to_svc
         #time.sleep(100)
-        sum_of_max_pod_to_dns_from_each_svc = sum_max_pod_to_dns_from_each_svc(dns_in_metric_dicts, pod_to_svc, svc_to_pod.keys())
+        sum_of_max_pod_to_dns_from_each_svc = sum_max_pod_to_dns_from_each_svc(dns_in_metric_dicts, pod_to_svc, svc_to_pod)
         outside_to_sum_of_max_pod_to_dns_from_each_svc_ratio = [dns_out_metric_dicts[i]['outside']/sum_of_max_pod_to_dns_from_each_svc[i]
                                                                 if sum_of_max_pod_to_dns_from_each_svc[i] else float('nan')
                                                                 for i in range(0,len(sum_of_max_pod_to_dns_from_each_svc))]
@@ -816,19 +824,28 @@ def abstract_node_pair_same_service_p(abstract_node_one, abstract_node_two):
     abstract_node_two_core = abstract_node_two.replace('_pod', '').replace('_vip', '')
     return abstract_node_one_core == abstract_node_two_core
 
-def avg_behavior_into_dns_node(pre_injection_weight_into_dns_dict, pre_inject_packets_into_dns_dict):
-    avg_dns_weight = 0
-    avg_dns_pkts = 0
+def avg_behavior_into_dns_node(pre_injection_weight_into_dns_dict, pre_inject_packets_into_dns_dict, pod_to_svc):
+    avg_dns_weight = 0.0
+    avg_dns_pkts = 0.0
     non_null_edges = 0
+    #app_pods = pod_to_svc.keys()
     for node in pre_injection_weight_into_dns_dict.keys():
-        weight = pre_injection_weight_into_dns_dict[node]
-        pkts = pre_inject_packets_into_dns_dict[node]
-        if pkts != 0 or weight != 0:
-            avg_dns_weight += weight
-            avg_dns_pkts += pkts
-            non_null_edges += 1
-    avg_dns_weight = avg_dns_weight / non_null_edges
-    avg_dns_pkts = avg_dns_pkts / non_null_edges
+        #print("pre_injection_weight_into_dns_dict",pre_injection_weight_into_dns_dict)
+        #print("node", node, node in pod_to_svc, pod_to_svc.keys())
+        if node in pod_to_svc:
+            weight = pre_injection_weight_into_dns_dict[node]
+            pkts = pre_inject_packets_into_dns_dict[node]
+            if pkts != 0 or weight != 0:
+                avg_dns_weight += weight
+                avg_dns_pkts += pkts
+                non_null_edges += 1
+    if non_null_edges != 0:
+        avg_dns_weight = avg_dns_weight / non_null_edges
+        avg_dns_pkts = avg_dns_pkts / non_null_edges
+    #else:
+    #    avg_dns_weight = 0.0
+    #    avg_dns_pkts = 0.0
+
     return avg_dns_weight, avg_dns_pkts
 
 def pairwise_metrics(G, svc_to_nodes):

@@ -1653,7 +1653,7 @@ def multi_experiment_wordpress_recipe():
     goal_attack_NoAttack_split = 0.6
     training_window_size = 200
     size_of_neighbor_training_window = 0
-    calc_vals = False
+    calc_vals = True ## TODO: probably want to turn this off
     calculate_z_scores = False
     experiment_classes = [process_wordpress6_rep3(training_window_size=training_window_size,
                                                   size_of_neighbor_training_window=size_of_neighbor_training_window,
@@ -1707,7 +1707,7 @@ def multi_experiment_sockshop_recipe():
     skip_model_part = False
     ignore_physical_attacks_p = True
 
-    calc_vals = True #True  ## TODO: PROBABLY WANT TO TURN THIS OFF AT SOME POINT
+    calc_vals = False #True  ## TODO: PROBABLY WANT TO TURN THIS OFF AT SOME POINT
     calculate_z_scores = False
 
     ### TODO: can add the other reps of 9,11,12 when I get some time...
@@ -1749,9 +1749,9 @@ if __name__=="__main__":
     print sys.argv
 
     if len(sys.argv) == 1:
-        #multi_experiment_wordpress_recipe()
+        multi_experiment_wordpress_recipe()
         #time.sleep(14400)
-        multi_experiment_sockshop_recipe()
+        #multi_experiment_sockshop_recipe()
 
         # TODO: might wanna re-enable the function below...
         #run_analysis_pipeline_recipes()
