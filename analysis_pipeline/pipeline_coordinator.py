@@ -36,6 +36,27 @@ import copy
 import multiprocessing
 from sklearn.ensemble import RandomForestClassifier
 import generate_heatmap
+import cPickle as pickle
+
+def process_one_set_of_graphs(fraction_of_edge_weights, fraction_of_edge_pkts, time_interval_length, window_size,
+                                filenames, svcs, is_swarm, ms_s, mapping,  list_of_infra_services,
+                                synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
+                               collected_metrics_location, current_set_of_graphs_loc, calc_vals, out_q):
+
+    if calc_vals:
+        current_set_of_graphs = simplified_graph_metrics.set_of_injected_graphs(fraction_of_edge_weights,
+                                         fraction_of_edge_pkts, time_interval_length, window_size,
+                                         filenames, svcs, is_swarm, ms_s, mapping, list_of_infra_services,
+                                         synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
+                                          collected_metrics_location, current_set_of_graphs_loc, out_q)
+        current_set_of_graphs.generate_injected_edgefiles()
+        current_set_of_graphs.calcuated_single_step_metrics()
+        current_set_of_graphs.calc_serialize_metrics()
+        current_set_of_graphs.save()
+    else:
+        current_set_of_graphs = pickle.load(current_set_of_graphs_loc)
+        current_set_of_graphs.load_serialized_metrics()
+    current_set_of_graphs.put_values_into_outq()
 
 def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms_s, basegraph_name, calc_vals, window_size,
                                 mapping, is_swarm, make_net_graphs_p, list_of_infra_services,synthetic_exfil_paths,
@@ -50,24 +71,14 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
     for time_interval_length in time_interval_lengths:
         print "analyzing edgefiles...", "timer_interval...", time_interval_length
 
-        #newly_calculated_values = simplified_graph_metrics.pipeline_subset_analysis_step(interval_to_filenames[str(time_interval_length)], ms_s,
-        #                                                                                 time_interval_length, basegraph_name, calc_vals, window_size,
-        #                                                                                 mapping, is_swarm, make_net_graphs_p, list_of_infra_services,
-        #                                                                                 synthetic_exfil_paths, initiator_info_for_paths,
-        #                                                                                 time_gran_to_attacks_to_times[time_interval_length],
-        #                                                                                 fraction_of_edge_weights,
-        #                                                                                 fraction_of_edge_pkts)
-
         if is_swarm:
             svcs = analysis_pipeline.prepare_graph.get_svc_equivalents(is_swarm, mapping)
         else:
             print "this is k8s, so using these sevices", ms_s
             svcs = ms_s
-
-        # TODO: THIS IS WHERE I ACTUALLY WANT TO PUT THE MULTIPROCESSING PART.... so this should actually be really
-        # easy I think... since we can just put a join after...
-        #'''
         out_q = multiprocessing.Queue()
+
+        '''
         args = (interval_to_filenames[str(time_interval_length)],
                time_interval_length, basegraph_name + '_subset_',
                calc_vals, window_size, ms_s, mapping, is_swarm, svcs,
@@ -88,23 +99,33 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
         new_neighbors_dns =  out_q.get()
         new_neighbors_all = out_q.get()
         p.join()
-        '''
-        total_calculated_vals[(time_interval_length, '')], list_of_concrete_container_exfil_paths, list_of_exfil_amts,\
-        new_neighbors_outside, new_neighbors_dns, new_neighbors_all = simplified_graph_metrics.calc_subset_graph_metrics(interval_to_filenames[str(time_interval_length)],
-                                                               time_interval_length, basegraph_name + '_subset_',
-                                                               calc_vals, window_size, ms_s, mapping, is_swarm, svcs,
-                                                               list_of_infra_services, synthetic_exfil_paths,
-                                                               initiator_info_for_paths,
-                                                               time_gran_to_attacks_to_times[time_interval_length],
-                                                               fraction_of_edge_weights, fraction_of_edge_pkts,
-                                                               int(size_of_neighbor_training_window/time_interval_length))
+        
         #'''
+        collected_metrics_location = basegraph_name + 'collected_metrics_time_gran_' + str(time_interval_length) + '.csv'
+        current_set_of_graphs_loc = basegraph_name + 'set_of_graphs' + str(time_interval_length) + '.csv'
+        args = [fraction_of_edge_weights, fraction_of_edge_pkts, time_interval_length, window_size,
+                interval_to_filenames[str(time_interval_length)], svcs, is_swarm, ms_s, mapping,
+                list_of_infra_services, synthetic_exfil_paths,  initiator_info_for_paths,
+                time_gran_to_attacks_to_times[time_interval_length], collected_metrics_location, current_set_of_graphs_loc,
+                calc_vals, out_q]
+        p = multiprocessing.Process(
+            target=process_one_set_of_graphs,
+            args=args)
+        p.start()
+        total_calculated_vals[(time_interval_length, '')] = out_q.get()
+        list_of_concrete_container_exfil_paths = out_q.get()
+        list_of_exfil_amts = out_q.get()
+        new_neighbors_outside =  out_q.get()
+        new_neighbors_dns =  out_q.get()
+        new_neighbors_all = out_q.get()
+        p.join()
+
         print "process returned!"
         time_gran_to_list_of_concrete_exfil_paths[time_interval_length] = list_of_concrete_container_exfil_paths
         time_gran_to_list_of_exfil_amts[time_interval_length] = list_of_exfil_amts
-        time_gran_to_new_neighbors_outside[time_interval_length] = new_neighbors_outside
-        time_gran_to_new_neighbors_dns[time_interval_length] = new_neighbors_dns
-        time_gran_to_new_neighbors_all[time_interval_length] = new_neighbors_all
+        time_gran_to_new_neighbors_outside[time_interval_length] = None # no longer used
+        time_gran_to_new_neighbors_dns[time_interval_length] = None # no longer used
+        time_gran_to_new_neighbors_all[time_interval_length] = None # no longer used
 
         #total_calculated_vals.update(newly_calculated_values)
         gc.collect()

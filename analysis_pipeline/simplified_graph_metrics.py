@@ -135,12 +135,17 @@ class injected_graph():
     def _create_class_level_graph(self):
         self.cur_class_G = prepare_graph(self.cur_1si_G, self.svcs, 'class', self.is_swarm, self.counter, self.injected_graph_loc,
                                     self.ms_s, self.container_to_ip, self.infra_service)
+'''
+set_of_injected_graphs(fraction_of_edge_weights, fraction_of_edge_pkts, time_granularity, window_size, raw_edgefile_names,
+                svcs, is_swarm, ms_s, container_to_ip, infra_service, synthetic_exfil_paths, initiator_info_for_paths,
+                attacks_to_times, time_interval, collected_metrics_location)
+'''
 
 # okay, so what does this function even mean? well it is important for the set of graphs
 class set_of_injected_graphs():
     def __init__(self, fraction_of_edge_weights, fraction_of_edge_pkts, time_granularity, window_size, raw_edgefile_names,
                 svcs, is_swarm, ms_s, container_to_ip, infra_service, synthetic_exfil_paths, initiator_info_for_paths,
-                attacks_to_times, time_interval, collected_metrics_location):
+                attacks_to_times, collected_metrics_location, current_set_of_graphs_loc, out_q):
         self.list_of_injected_graphs_loc = []
         self.fraction_of_edge_weights = fraction_of_edge_weights
         self.fraction_of_edge_pkts = fraction_of_edge_pkts
@@ -155,11 +160,20 @@ class set_of_injected_graphs():
         self.synthetic_exfil_paths = synthetic_exfil_paths
         self.initiator_info_for_paths =initiator_info_for_paths
         self.attacks_to_times = attacks_to_times
-        self.time_interval= time_interval
+        self.time_interval= time_granularity
         self.collected_metrics_location = collected_metrics_location
+        self.current_set_of_graphs_loc = current_set_of_graphs_loc
+        self.out_q = out_q
 
         self.calculated_values = {}
         self.calculated_values_keys = None
+
+        self.list_of_concrete_container_exfil_paths = []
+        self.list_of_exfil_amts = []
+
+    def save(self):
+        with open(self.current_set_of_graphs_loc, 'wb') as output:  # Overwrites any existing file.
+            pickle.dump(self, output, pickle.HIGHEST_PROTOCOL)
 
     def calc_serialize_metrics(self):
         adjacency_matrixes = []
@@ -199,6 +213,7 @@ class set_of_injected_graphs():
             into_dns_ratio.append(current_graph_feature_dict['into_dns_ratio'])
             total_edgelist_nodes = injected_graph.total_edgelist_nodes
             current_total_node_list = injected_graph.current_total_node_list
+
 
         #total_edgelist_nodes = self.list_of_injected_graphs[-1].total_edgelist_nodes
         #current_total_node_list = self.list_of_injected_graphs[-1].current_total_node_list
@@ -245,20 +260,19 @@ class set_of_injected_graphs():
         self.calculated_values['ide_angles'] = ide_angles_results
         self.calculated_values['ide_angles (w abs)'] = [abs(i) for i in ide_angles_results]
 
-        ## TODO: these need to be handled too!!
-        '''    out_q.put(calculated_values)
-                out_q.put(list_of_concrete_container_exfil_paths)
-                out_q.put(list_of_exfil_amts)
-                out_q.put(new_neighbors_outside)
-            out_q.put(new_neighbors_dns)
-            out_q.put(new_neighbors_all)'''
-
-
         self.calculated_values_keys = self.calculated_values.keys()
         with open(self.collected_metrics_location, 'wb') as f:  # Just use 'w' mode in 3.x
             w = csv.DictWriter(f, self.calculated_values.keys())
             w.writeheader()
             w.writerow(self.calculated_values)
+
+    def put_values_into_outq(self):
+        self.out_q.put(self.calculated_values)
+        self.out_q.put(self.list_of_concrete_container_exfil_paths)
+        self.out_q.put(self.list_of_exfil_amts)
+        self.out_q.put([])  # new_neighbors_outside
+        self.out_q.put([])  # new_neighbors_dns
+        self.out_q.put([])  # new_neighbors_all
 
     def load_serialized_metrics(self):
         with open(self.collected_metrics_location, mode='r') as f:
@@ -277,8 +291,8 @@ class set_of_injected_graphs():
     def generate_injected_edgefiles(self):
         current_total_node_list = []
         svc_to_pod = {}
-        list_of_concrete_container_exfil_paths = []
-        list_of_exfil_amts = []
+        #list_of_concrete_container_exfil_paths = []
+        #list_of_exfil_amts = []
         node_attack_mapping = {}
         class_attack_mapping = {}
 
@@ -382,8 +396,8 @@ class set_of_injected_graphs():
                 self.attacks_to_times, 'app_only', self.time_interval, counter, node_attack_mapping,
                 self.fraction_of_edge_weights, self.fraction_of_edge_pkts, None,
                 name_of_dns_pod_node, avg_dns_weight, avg_dns_pkts)
-            list_of_concrete_container_exfil_paths.append(concrete_cont_node_path)
-            list_of_exfil_amts.append(pre_specified_data_attribs)
+            self.list_of_concrete_container_exfil_paths.append(concrete_cont_node_path)
+            self.list_of_exfil_amts.append(pre_specified_data_attribs)
 
             cur_class_G, class_attack_mapping, _, concrete_class_node_path = inject_synthetic_attacks(cur_class_G,
                                                                                                       self.synthetic_exfil_paths,
