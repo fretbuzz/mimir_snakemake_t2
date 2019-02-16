@@ -4,7 +4,7 @@
     "application_name": "sockshop",
     "experiment_name": "sockshop_thirteen",
     "orchestrator": "kubernetes",
-    "exfil_method": "dnscat",
+    "exfil_method": "none",
     "networks_to_tcpdump_on": ["bridge"],
     "setup" : "None",
     "class_to_networks": "None",
