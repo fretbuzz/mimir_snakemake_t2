@@ -283,6 +283,7 @@ if __name__== "__main__":
     # then modify so that passwd is a cmd line arg
     # then modify so called before run_experiment
     # and needs to modify wordpress_background to take the passwd from this function as a cmdline argument...
+        # might need to write to a file or something... (b/c gets wierd with python scripting)
 
     driver.close()
-    return new_pwd
+    new_pdw
