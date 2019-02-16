@@ -1312,7 +1312,7 @@ def generate_analysis_json(path_to_exp_folder, analysis_json_name, exp_config_js
     json_path = path_to_exp_folder + analysis_json_name
     r = json.dumps(analysis_dict)
     with open(json_path, 'w') as f:
-        f.write(r)
+        f.write(r + "\n" )
 
 def setup_directories(exp_name):
     # first want an ./experimental_data directory
