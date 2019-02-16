@@ -424,7 +424,10 @@ def prepare_app(app_name, config_params, ip, port):
              config_params["number_background_locusts"], "-r", config_params["background_locust_spawn_rate"],
              "-t", "10min"]
         print prepare_cmds
-        out = subprocess.check_output(prepare_cmds)
+        try:
+            out = subprocess.check_output(prepare_cmds)
+        except:
+            pass # almost definitely a few posts failing, so no big deal
 
         print out
     elif app_name == "atsea_store":

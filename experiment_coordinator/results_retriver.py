@@ -12,11 +12,13 @@ import kubernetes_setup_functions
 cloudlab_private_key = '/Users/jseverin/Dropbox/cloudlab.pem'
 local_dir = '/Users/jseverin/Documents'  # TODO
 sentinal_file = '/mydata/all_done.txt'
+exp_name = 'off_site_completey_crazy_test'  # TODO
 mimir_1 = 'c240g5-110119.wisc.cloudlab.us'
 mimir_2 = 'c240g5-110105.wisc.cloudlab.us'
 cloudlab_server_ip = mimir_2 #note: remove the username@ from the beggining
-remote_dir = '/mydata/mimir_snakemake_t2/results'  # TODO
+remote_dir = '/mydata/mimir_snakemake_t2/experiment_coordinator/experimental_data/' + exp_name  # TODO
 possible_apps = ['drupal', 'sockshop', 'gitlab', 'eShop', 'wordpress']
+experiment_sentinal_file = '/mydata/mimir_snakemake_t2/experiment_coordinator/experiment_done.txt'
 
 def retrieve_results(s):
     print('hello')
@@ -25,9 +27,9 @@ def retrieve_results(s):
     while True:
         # this is a special 'done' file used to indicate that
         # the experiment is finished.
-        if s.download_data(sentinal_file) == 'done':
+        if 'experimenet_done' in s.download_data(experiment_sentinal_file):
             break
-        time.sleep(300)
+        time.sleep(200)
 
     s.download_dir(remote=remote_dir, local=local_dir)
 
@@ -140,30 +142,34 @@ def run_experiment(app_name, config_file_name, exp_name):
     minikube_ip, front_facing_port = last_line.split(' ')[-1].split('/')[-1].rstrip().split(':')
     print "minikube_ip", minikube_ip, "front_facing_port",front_facing_port
 
-    time.sleep(150)
+    time.sleep(170)
+    sh.sendline('rm ' + experiment_sentinal_file)
     sh.sendline('minikube ssh')
     sh.sendline('docker pull nicolaka/netshoot')
     sh.sendline('exit')
-    time.sleep(150)
-
-    #start_actual_experiment = 'python /mydata/mimir_snakemake_t2/experiment_coordinator/run_experiment.py --exp_name ' +\
-    #                          exp_name  + ' --config_file ' + config_file_name + ' --prepare_app_p --port ' + \
-    #                          front_facing_port + ' --ip ' + minikube_ip + ' --no_exfil'
+    time.sleep(170)
 
     start_actual_experiment = 'python /mydata/mimir_snakemake_t2/experiment_coordinator/run_experiment.py --exp_name ' +\
-                              exp_name  + ' --config_file ' + config_file_name + ' --port ' + \
+                              exp_name  + ' --config_file ' + config_file_name + ' --prepare_app_p --port ' + \
                               front_facing_port + ' --ip ' + minikube_ip + ' --no_exfil'
+
+    #start_actual_experiment = 'python /mydata/mimir_snakemake_t2/experiment_coordinator/run_experiment.py --exp_name ' +\
+    #                          exp_name  + ' --config_file ' + config_file_name + ' --port ' + \
+    #                          front_facing_port + ' --ip ' + minikube_ip + ' --no_exfil'
+
+    create_experiment_sential_file = '; echo experimenet_done >> ' + experiment_sentinal_file
+    start_actual_experiment += create_experiment_sential_file
 
     print "start_actual_experiment: ", start_actual_experiment
     sh.sendline('cd /mydata/mimir_snakemake_t2/experiment_coordinator/')
     sh.sendline(start_actual_experiment)
-    sh.stream()
+    #sh.stream()
     #sh.process([start_actual_experiment], cwd='/mydata/mimir_snakemake_t2/experiment_coordinator/',executable='python').stream()
     line_rec = 'start'
     last_line = ''
     while line_rec != '':
         last_line = line_rec
-        line_rec = sh.recvline(timeout=5)
+        line_rec = sh.recvline(timeout=90)
         print("recieved line", line_rec)
 
     '''
@@ -204,6 +210,5 @@ if __name__ == "__main__":
     app_name = possible_apps[1]
     config_file_name = '/mydata/mimir_snakemake_t2/experiment_coordinator/experimental_configs/sockshop_thirteen'
     # NOTE: remember: dont put the .json in the filename!! ^^^
-    exp_name = 'completey_crazy_test' # TODO
     s = run_experiment(app_name, config_file_name, exp_name)
-    #retrieve_results(s)
+    retrieve_results(s)
