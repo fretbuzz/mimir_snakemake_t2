@@ -22,7 +22,7 @@ with open('wordpress_users.csv', 'rb') as csvfile:
 
 # id's refer to posts
 lowest_id = 1
-highest_id = 100
+highest_id = 800
 
 # I'm just having the admin modify everything ATM
 #app_pass = 'a1tA u1Rc 6j5h 2NKc 90Hu COeo'

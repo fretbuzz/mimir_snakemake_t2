@@ -12,10 +12,10 @@ import kubernetes_setup_functions
 cloudlab_private_key = '/Users/jseverin/Dropbox/cloudlab.pem'
 local_dir = '/Users/jseverin/Documents'  # TODO
 sentinal_file = '/mydata/all_done.txt'
-exp_name = 'off_site_completey_crazy_test'  # TODO
+exp_name = 'off_site_completey_crazy_test_maybe_work_fnally'  # TODO
 mimir_1 = 'c240g5-110119.wisc.cloudlab.us'
 mimir_2 = 'c240g5-110105.wisc.cloudlab.us'
-cloudlab_server_ip = mimir_2 #note: remove the username@ from the beggining
+cloudlab_server_ip = mimir_1 #note: remove the username@ from the beggining
 remote_dir = '/mydata/mimir_snakemake_t2/experiment_coordinator/experimental_data/' + exp_name  # TODO
 possible_apps = ['drupal', 'sockshop', 'gitlab', 'eShop', 'wordpress']
 experiment_sentinal_file = '/mydata/mimir_snakemake_t2/experiment_coordinator/experiment_done.txt'
@@ -144,9 +144,13 @@ def run_experiment(app_name, config_file_name, exp_name):
 
     time.sleep(170)
     sh.sendline('rm ' + experiment_sentinal_file)
+    print "removing experimente sential file", sh.recvline(timeout=5)
     sh.sendline('minikube ssh')
+    print "minikube sshing", sh.recvline(timeout=5)
     sh.sendline('docker pull nicolaka/netshoot')
+    print "docker pulling", sh.recvline(timeout=5)
     sh.sendline('exit')
+    print "minikube exiting", sh.recvline(timeout=5)
     time.sleep(170)
 
     start_actual_experiment = 'python /mydata/mimir_snakemake_t2/experiment_coordinator/run_experiment.py --exp_name ' +\
@@ -169,7 +173,11 @@ def run_experiment(app_name, config_file_name, exp_name):
     last_line = ''
     while line_rec != '':
         last_line = line_rec
-        line_rec = sh.recvline(timeout=90)
+        line_rec = sh.recvline(timeout=120)
+        print("recieved line", line_rec)
+    while line_rec != '':
+        last_line = line_rec
+        line_rec = sh.recvline(timeout=120)
         print("recieved line", line_rec)
 
     '''
