@@ -147,7 +147,7 @@ def make_new_application_passwd(driver_val):
     #driver.find_element_by_xpath("//div[@id='application-passwords-section']/div[2]/div/div/button").click()
     #pwd = driver.find_element_by_class_name('app-pass-dialog notification-dialog')
     time.sleep(2)
-    pwd = driver.find_element_by_class_name("new-application-password-content")
+    pwd = driver_val.find_element_by_class_name("new-application-password-content")
     pwd = pwd.text.split(":")[-1].rstrip().lstrip()
     print "pwd", pwd #get_attribute('body')
                                       #new-application-password-content
@@ -277,17 +277,13 @@ if __name__== "__main__":
     new_pdw = make_new_application_passwd(driver_two)
     time.sleep(45)
 
-    # todo: 3 more pages of fakerpress nonsense... followed by exporting the urls
-    # and then creating an app password...
-    # modify woordpress_background to take the password
-    # and then moving exporting urls and moving them to the right spot.
-    # and then wrapping this whole thing into a system that can be deployed on cloudlab easily...
-
     # todo: first finish loading wp (via fakerpress) -- okay, I think this might be done (just gotta test it...)
     # then modify so that passwd is a cmd line arg -- okay, I think this might be done (just gotta test it...)
-    # then modify so called before run_experiment -- start from here
+    # then make it run on cloudlab <----- start from here
+    # then modify so called before run_experiment (should be easy...)
     # and needs to modify wordpress_background to take the passwd from this function as a cmdline argument...
         # might need to write to a file or something... (b/c gets wierd with python scripting)
+            # might need to get tricky but shouldn't be too bad either...
 
     driver.close()
     driver_two.close()
