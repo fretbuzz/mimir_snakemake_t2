@@ -254,7 +254,7 @@ if __name__== "__main__":
     post_page = 'https://' + ip_of_wp + ':' + port_of_wp + '/wp-admin/admin.php?page=fakerpress&view=posts'
     driver.get(post_page)
     posts_page_code()
-    time.sleep(360)
+    time.sleep(300)
     #'''
     #''' # this is good
     comments_page = 'https://' + ip_of_wp + ':' + port_of_wp + '/wp-admin/admin.php?page=fakerpress&view=comments'

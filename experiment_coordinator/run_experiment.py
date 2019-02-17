@@ -426,10 +426,10 @@ def prepare_app(app_name, config_params, ip, port):
         print prepare_cmds
         try:
             out = subprocess.check_output(prepare_cmds)
+            print out
         except:
             pass # almost definitely a few posts failing, so no big deal
 
-        print out
     elif app_name == "atsea_store":
         print config_params["number_background_locusts"], config_params["background_locust_spawn_rate"], config_params["number_customer_records"]
         print type(config_params["number_background_locusts"]), type(config_params["background_locust_spawn_rate"]), type(config_params["number_customer_records"])

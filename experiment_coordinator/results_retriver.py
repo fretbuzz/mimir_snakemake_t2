@@ -173,11 +173,11 @@ def run_experiment(app_name, config_file_name, exp_name):
     last_line = ''
     while line_rec != '':
         last_line = line_rec
-        line_rec = sh.recvline(timeout=120)
+        line_rec = sh.recvline(timeout=200)
         print("recieved line", line_rec)
     while line_rec != '':
         last_line = line_rec
-        line_rec = sh.recvline(timeout=120)
+        line_rec = sh.recvline(timeout=200)
         print("recieved line", line_rec)
 
     '''
