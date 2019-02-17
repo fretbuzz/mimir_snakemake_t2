@@ -184,9 +184,9 @@ def admin_login(admin_pwd, driver_val):
     elem.send_keys(Keys.RETURN)
     print elem
 
-if __name__== "__main__":
-    if len(sys.argv) <= 2:
-        print "needs an ip address, budy"
+def main(ip_of_wp, port_of_wp, admin_pwd):
+    global driver
+    global driver_two
 
     try:
         os.makedirs('./wp_csv_loc')
@@ -194,10 +194,6 @@ if __name__== "__main__":
         if e.errno != errno.EEXIST:
             raise
 
-    print sys.argv
-    ip_of_wp = sys.argv[1]
-    port_of_wp = sys.argv[2]
-    admin_pwd = sys.argv[3]
 
     # from: https://selenium-python.readthedocs.io/faq.html (literally copy-pasted)
     fp = webdriver.FirefoxProfile()
@@ -288,3 +284,14 @@ if __name__== "__main__":
     driver.close()
     driver_two.close()
     new_pdw
+
+if __name__ == "__main__":
+    if len(sys.argv) <= 2:
+        print "needs an ip address, budy"
+
+    print sys.argv
+    ip_of_wp = sys.argv[1]
+    port_of_wp = sys.argv[2]
+    admin_pwd = sys.argv[3]
+
+    main(ip_of_wp, port_of_wp, admin_pwd)

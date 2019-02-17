@@ -8,6 +8,7 @@ import pwnlib.tubes.ssh
 from pwn import *
 
 import kubernetes_setup_functions
+import experiment_coordinator.experimental_configs.setup_wordpress as setup_wordpress
 
 cloudlab_private_key = '/Users/jseverin/Dropbox/cloudlab.pem'
 local_dir = '/Users/jseverin/Documents'  # TODO
@@ -126,6 +127,11 @@ def run_experiment(app_name, config_file_name, exp_name):
     if app_name == 'sockshop':
         sh.sendline('minikube service front-end  --url --namespace="sock-shop"')
         namespace = 'sock-shop'
+    elif app_name == 'wordpress':
+        # step 1: install selenium dependencies
+        sh.sendline('bash /mydata/mimir_snakemake_t2/experiment_coordinator/install_scripts/install_selenium_dependencies.sh')
+        # step 2: get the appropriate ip / port (like above -- need for next step)
+        sh.sendline('minikube service wordpress  --url')
     else:
         pass #TODO
 
@@ -141,6 +147,16 @@ def run_experiment(app_name, config_file_name, exp_name):
     #kubernetes_setup_functions.wait_until_pods_done(namespace)
     minikube_ip, front_facing_port = last_line.split(' ')[-1].split('/')[-1].rstrip().split(':')
     print "minikube_ip", minikube_ip, "front_facing_port",front_facing_port
+
+    if app_name == 'wordpress':
+        # step 3: setup wordpress (must be done now rather than later in run_experiment like sockshop)
+        wp_api_pwd = setup_wordpress.main(minikube_ip, front_facing_port, 'hi')
+        # step 4: load wordpreses
+            ## TODO: THIS PART ##
+            # 4a: move csv file and put wp_api_pwd into the loading function
+            # 4b actually call the loading function
+        print "wp_api_pwd",wp_api_pwd
+        exit(2)
 
     time.sleep(170)
     sh.sendline('rm ' + experiment_sentinal_file)
@@ -215,7 +231,7 @@ def run_experiment(app_name, config_file_name, exp_name):
     return s
 
 if __name__ == "__main__":
-    app_name = possible_apps[1]
+    app_name = possible_apps[4]
     config_file_name = '/mydata/mimir_snakemake_t2/experiment_coordinator/experimental_configs/sockshop_thirteen'
     # NOTE: remember: dont put the .json in the filename!! ^^^
     s = run_experiment(app_name, config_file_name, exp_name)
