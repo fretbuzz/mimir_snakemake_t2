@@ -1,4 +1,6 @@
-from experiment_coordinator.kubernetes_setup_functions import *
+import time
+from kubernetes_setup_functions import *
+
 
 def main():
 	out = subprocess.check_output(["wget", "https://raw.githubusercontent.com/helm/helm/master/scripts/get"])
@@ -9,7 +11,7 @@ def main():
 	print out
 	out = subprocess.check_output(["helm", "init"])
 	print out
-	time.sleep(5)
+	time.sleep(10)
 	wait_until_pods_done("kube-system") # need tiller pod deployed
 	#out = subprocess.check_output(["/helm", "install", "--name", "wordpress", "stable/wordpress"])
 	#print out
@@ -18,6 +20,7 @@ def main():
 		print out
 	except:
 		print "DB cluster must have already been initiated..."
+	time.sleep(10)
 	wait_until_pods_done("default") # wait until DB cluster is setup
 	## TODO: setup wordpress servers then
 	db_cluster_ip = get_svc_ip('my-release-pxc')
@@ -29,6 +32,7 @@ def main():
 	except:
 		print "wordpress deployment must already exist"
 
+	time.sleep(10)
 	num_wp_containers = 1
 	goal_wp_containers = 10
 	while num_wp_containers < goal_wp_containers:
