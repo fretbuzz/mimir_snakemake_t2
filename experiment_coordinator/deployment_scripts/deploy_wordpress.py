@@ -30,7 +30,7 @@ def main():
 		print "wordpress deployment must already exist"
 
 	num_wp_containers = 1
-	goal_wp_containers = 1
+	goal_wp_containers = 10
 	while num_wp_containers < goal_wp_containers:
 		out = subprocess.check_output(["kubectl", "scale", "deploy", "wwwppp-wordpress", "--replicas=" + str(num_wp_containers)])
 		num_wp_containers += 5

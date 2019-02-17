@@ -8,7 +8,7 @@ import pwnlib.tubes.ssh
 from pwn import *
 
 import kubernetes_setup_functions
-import experiment_coordinator.experimental_configs.setup_wordpress as setup_wordpress
+import experimental_configs.setup_wordpress as setup_wordpress
 
 cloudlab_private_key = '/Users/jseverin/Dropbox/cloudlab.pem'
 local_dir = '/Users/jseverin/Documents'  # TODO
@@ -128,9 +128,7 @@ def run_experiment(app_name, config_file_name, exp_name):
         sh.sendline('minikube service front-end  --url --namespace="sock-shop"')
         namespace = 'sock-shop'
     elif app_name == 'wordpress':
-        # step 1: install selenium dependencies
-        sh.sendline('bash /mydata/mimir_snakemake_t2/experiment_coordinator/install_scripts/install_selenium_dependencies.sh')
-        # step 2: get the appropriate ip / port (like above -- need for next step)
+        # step 1: get the appropriate ip / port (like above -- need for next step)
         sh.sendline('minikube service wordpress  --url')
     else:
         pass #TODO
@@ -149,12 +147,12 @@ def run_experiment(app_name, config_file_name, exp_name):
     print "minikube_ip", minikube_ip, "front_facing_port",front_facing_port
 
     if app_name == 'wordpress':
-        # step 3: setup wordpress (must be done now rather than later in run_experiment like sockshop)
+        # step 2: setup wordpress (must be done now rather than later in run_experiment like sockshop)
         wp_api_pwd = setup_wordpress.main(minikube_ip, front_facing_port, 'hi')
-        # step 4: load wordpreses
+        # step 3: load wordpreses
             ## TODO: THIS PART ##
-            # 4a: move csv file and put wp_api_pwd into the loading function
-            # 4b actually call the loading function
+            # 3a: move csv file and put wp_api_pwd into the loading function
+            # 3b actually call the loading function
         print "wp_api_pwd",wp_api_pwd
         exit(2)
 
