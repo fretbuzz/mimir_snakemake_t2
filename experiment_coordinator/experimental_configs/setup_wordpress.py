@@ -206,7 +206,7 @@ def main(ip_of_wp, port_of_wp, admin_pwd):
     fp.set_preference("browser.helperApps.neverAsk.saveToDisk", "application/octet-stream")
 
     driver = webdriver.Firefox(fp, options=options)
-    driver_two = webdriver.Firefox(fp)
+    driver_two = webdriver.Firefox(fp, options=options)
     admin_login(admin_pwd, driver)
     admin_login(admin_pwd, driver_two)
     time.sleep(5)

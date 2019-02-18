@@ -149,11 +149,22 @@ def run_experiment(app_name, config_file_name, exp_name):
 
     if app_name == 'wordpress':
         # step 2: setup wordpress (must be done now rather than later in run_experiment like sockshop)
-        wp_api_pwd = setup_wordpress.main(minikube_ip, front_facing_port, 'hi')
-        # step 3: load wordpreses
-            ## TODO: THIS PART ##
-            # 3a: move csv file and put wp_api_pwd into the loading function
-            # 3b actually call the loading function
+        # todo: it's not local you know... it doesn't make any sense for it be called locally...
+        #wp_api_pwd = setup_wordpress.main(minikube_ip, front_facing_port, 'hi')
+        sh.sendline("python /mydata/mimir_snakemake_t2/experiment_coordinator/experimental_configs/setup_wordpress.py " + \
+                minikube_ip + " " + front_facing_port + " " + "hi")
+        pwd_line = ''
+        while line_rec != '':
+            last_line = line_rec
+            line_rec = sh.recvline(timeout=100)
+            print("recieved line", line_rec)
+            if 'pwd' in line_rec:
+                pwd_line = line_rec
+
+        wp_api_pwd = pwd_line.split("pwd")[1].lstrip()
+        #
+
+        # 3b actually call the loading function
         print "wp_api_pwd",wp_api_pwd
         exit(2)
 
