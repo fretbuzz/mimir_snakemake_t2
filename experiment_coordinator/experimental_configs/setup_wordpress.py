@@ -208,7 +208,7 @@ def main(ip_of_wp, port_of_wp, admin_pwd):
             raise
 
     options = Options()
-    #options.headless = True
+    options.headless = True
 
     # from: https://selenium-python.readthedocs.io/faq.html (literally copy-pasted)
     fp = webdriver.FirefoxProfile()
