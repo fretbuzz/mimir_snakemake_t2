@@ -18,6 +18,7 @@ import os,errno
 from multiprocessing.dummy import Pool as ThreadPool
 import threading
 from selenium.webdriver.firefox.options import Options
+import shutil
 
 def install_pluggin():
     try:
@@ -105,6 +106,7 @@ def export_urls_code(driver_val):
     driver_val.find_element_by_name("export").click()
     driver_val.find_element_by_xpath("//form[@id='infoForm']/table/tbody/tr[3]/td").click()
     #link_to_get_csv = driver.find_element_by_link_text("Click here") #find_element_by_class_name("updated")
+    time.sleep(25)
     link_to_get_csv = driver_val.find_element_by_link_text("Click here")
     print "link_to_get_csv",link_to_get_csv, link_to_get_csv.get_attribute('href')
     url_to_download_csv = link_to_get_csv.get_attribute('href')
@@ -205,6 +207,7 @@ def main(ip_of_wp, port_of_wp, admin_pwd):
     fp.set_preference("browser.download.manager.showWhenStarting", False)
     fp.set_preference("browser.download.dir", os.getcwd() + '/wp_csv_loc/')
     fp.set_preference("browser.helperApps.neverAsk.saveToDisk", "application/octet-stream")
+    fp.set_preference("browser.helperApps.neverAsk.saveToDisk", "text/csv")
 
     driver = webdriver.Firefox(fp, options=options)
     driver_two = webdriver.Firefox(fp, options=options)
@@ -277,7 +280,7 @@ def main(ip_of_wp, port_of_wp, admin_pwd):
     print "done sleeping"
     #'''
     new_pdw = make_new_application_passwd(driver_two)
-    time.sleep(45)
+    time.sleep(35)
 
     # todo: first finish loading wp (via fakerpress) -- okay, I think this might be done (just gotta test it...)
     # then modify so that passwd is a cmd line arg -- okay, I think this might be done (just gotta test it...)
