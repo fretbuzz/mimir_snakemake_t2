@@ -162,11 +162,12 @@ def run_experiment(app_name, config_file_name, exp_name):
                 pwd_line = line_rec
 
         wp_api_pwd = pwd_line.split("pwd")[1].lstrip()
-        #
-
-        # 3b actually call the loading function
         print "wp_api_pwd",wp_api_pwd
-        exit(2)
+        change_cwd = 'cd /mydata/mimir_snakemake_t2/experiment_coordinator/load_generators'
+        change_pwd_cmd = "sed -e 's/app_pass.*$/app_pass = \"" + wp_api_pwd +  "\"/g' wordpress_background.py"
+        sh.sendline(change_cwd)
+        sh.sendline(change_pwd_cmd)
+        #exit(2)
 
     time.sleep(170)
     sh.sendline('rm ' + experiment_sentinal_file)
