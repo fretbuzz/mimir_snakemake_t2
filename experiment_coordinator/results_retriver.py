@@ -11,8 +11,8 @@ import experimental_configs.setup_wordpress as setup_wordpress
 cloudlab_private_key = '/Users/jseverin/Dropbox/cloudlab.pem'
 local_dir = '/Users/jseverin/Documents'  # TODO
 sentinal_file = '/mydata/all_done.txt'
-exp_name = 'off_site_completey_crazy_test_maybe_work_fnally'  # TODO
-mimir_1 = 'c240g5-110119.wisc.cloudlab.us' #'c240g5-110119.wisc.cloudlab.us'
+exp_name = 'wordpress_auto_test'  # TODO
+mimir_1 = 'c240g5-110105.wisc.cloudlab.us' #'c240g5-110119.wisc.cloudlab.us' #'c240g5-110119.wisc.cloudlab.us'
 #mimir_2 = 'c240g5-110105.wisc.cloudlab.us'
 cloudlab_server_ip = mimir_1 #note: remove the username@ from the beggining
 remote_dir = '/mydata/mimir_snakemake_t2/experiment_coordinator/experimental_data/' + exp_name  # TODO
@@ -33,6 +33,7 @@ def retrieve_results(s):
     s.download_dir(remote=remote_dir, local=local_dir)
 
 def run_experiment(app_name, config_file_name, exp_name):
+    #start_minikube_p = False
     s = None
     while s == None:
         try:
@@ -64,6 +65,8 @@ def run_experiment(app_name, config_file_name, exp_name):
     sh.sendline('sudo newgrp docker')
     sh.sendline('export MINIKUBE_HOME=/mydata/')
 
+
+    #if start_minikube_p:
     sh.sendline('minikube stop')
     line_rec = 'start'
     while line_rec != '':
@@ -127,7 +130,7 @@ def run_experiment(app_name, config_file_name, exp_name):
         namespace = 'sock-shop'
     elif app_name == 'wordpress':
         # step 1: get the appropriate ip / port (like above -- need for next step)
-        sh.sendline('minikube service wordpress  --url')
+        sh.sendline('minikube service wwwppp-wordpress  --url')
     else:
         pass #TODO
 

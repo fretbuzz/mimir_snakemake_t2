@@ -17,6 +17,7 @@ import unittest, time, re
 import os,errno
 from multiprocessing.dummy import Pool as ThreadPool
 import threading
+from selenium.webdriver.firefox.options import Options
 
 def install_pluggin():
     try:
@@ -194,6 +195,8 @@ def main(ip_of_wp, port_of_wp, admin_pwd):
         if e.errno != errno.EEXIST:
             raise
 
+    options = Options()
+    options.headless = True
 
     # from: https://selenium-python.readthedocs.io/faq.html (literally copy-pasted)
     fp = webdriver.FirefoxProfile()
@@ -202,7 +205,7 @@ def main(ip_of_wp, port_of_wp, admin_pwd):
     fp.set_preference("browser.download.dir", os.getcwd() + '/wp_csv_loc/')
     fp.set_preference("browser.helperApps.neverAsk.saveToDisk", "application/octet-stream")
 
-    driver = webdriver.Firefox(fp)
+    driver = webdriver.Firefox(fp, options=options)
     driver_two = webdriver.Firefox(fp)
     admin_login(admin_pwd, driver)
     admin_login(admin_pwd, driver_two)
@@ -283,7 +286,7 @@ def main(ip_of_wp, port_of_wp, admin_pwd):
 
     driver.close()
     driver_two.close()
-    new_pdw
+    return new_pdw
 
 if __name__ == "__main__":
     if len(sys.argv) <= 2:
