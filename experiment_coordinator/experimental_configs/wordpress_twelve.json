@@ -16,7 +16,7 @@
     },
     "exfiltration_info" : {
       "exfiltration_path_class":["wwwppp-wordpress-545cbd5954-gfclg", "wwwppp-wordpress-545cbd5954-gfclg" ],
-      "exfiltration_path_how_many_instances_for_each_class":[ "1", "1" ],
+      "exfiltration_path_how_many_instances_for_each_class":[ "0", "0" ],
       "exfiltration_path_class_which_installer": {"wwwppp-wordpress-545cbd5954-gfclg": "apt", "wwwppp-wordpress-545cbd5954-gfclg": "apt"},
       "exfil_protocol": "tcp",
       "folder_to_exfil": "/var/lib/mysql/",
