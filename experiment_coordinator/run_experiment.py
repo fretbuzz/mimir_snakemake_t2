@@ -445,7 +445,7 @@ def prepare_app(app_name, config_params, ip, port):
         print out
     elif app_name == "wordpress":
         print "wordpress must be prepared manually (via the the /admin panel and Fakerpress)"
-        exit(12)
+        #exit(12) # yah yah I know. No need to exit b/c of it...
     else:
         # TODO TODO TODO other applications will require other setup procedures (if they can be automated) #
         # note: some cannot be automated (i.e. wordpress)

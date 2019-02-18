@@ -155,6 +155,7 @@ def run_experiment(app_name, config_file_name, exp_name):
                 minikube_ip + " " + front_facing_port + " " + "hi")
 
         #pwd_line = ''
+        line_rec = 'something something'
         while line_rec != '':
             last_line = line_rec
             line_rec = sh.recvline(timeout=100)
@@ -181,6 +182,13 @@ def run_experiment(app_name, config_file_name, exp_name):
     sh.sendline('exit')
     print "minikube exiting", sh.recvline(timeout=5)
     time.sleep(170)
+
+    # pwd_line = ''
+    line_rec = 'something something'
+    while line_rec != '':
+        last_line = line_rec
+        line_rec = sh.recvline(timeout=100)
+        print("recieved line", line_rec)
 
     start_actual_experiment = 'python /mydata/mimir_snakemake_t2/experiment_coordinator/run_experiment.py --exp_name ' +\
                               exp_name  + ' --config_file ' + config_file_name + ' --prepare_app_p --port ' + \
@@ -209,44 +217,12 @@ def run_experiment(app_name, config_file_name, exp_name):
         line_rec = sh.recvline(timeout=200)
         print("recieved line", line_rec)
 
-    '''
-    okay, we have a bit of downtime. We should start planning our next move... which is to do what??
-    just activate the bash script (which should already be there...)
-    
-    okay, what do we actually need to do?? well, we need to focus-down bigtime, my homie. This means that the 
-    path forward must go through setting up sockshop automatically as soon as possible. then we can also add in
-    retrieval + wordpress components (probably plug and play) after that.
-    
-    getting sockshop setup is:
-        1. finishing/fixing run_experiment.sh
-            well just hitting run_experiment.sh sockshop seems to work just dandy... however, it doesn't actally run the
-            experiment... we need to
-                (a) get the params
-                    (i) which params?? : 
-                        EXP_NAME = None # TODO -- will pass.
-                        CONFIG_FILE = None # TODO -- must put into the experimental_confis directory (beforehand)
-                        PORT_NUMBER = None # TODO -- need to determine -- extracted
-                        VM_IP = None # TODO -- need to determine
-                (b) call the func
-        2. having this function start/stop things appropriately...
-        
-    '''
-    '''
-    # todo: problem is that stream never stops. need to put a sentinal file to identify when that portion is done.
-    # also, there's a timeout problem with the thing that starts tcpdump. There was also some problems w/ the function
-    # to retrieve the pcap from minikube, but I think it won't be a problem as long as the initial function works finee.
-    # and of course I haven't tested the end part at all... the part where I bring the results directory back to the local
-    # machine (but prelim analysis indicates that the directories are not appearing where'd you'd expect them...)
-    # and then just transform the pcap with the stuff to a recipe and hopefully it'll more-or-less run... and I can get
-    # results again... since I don't have them at the moment...
-    '''
-
     return s
 
 if __name__ == "__main__":
     app_name = possible_apps[4]
     sock_config_file_name = '/mydata/mimir_snakemake_t2/experiment_coordinator/experimental_configs/sockshop_thirteen'
-    wp_config_file_name = '/mydata/mimir_snakemake_t2/experiment_coordinator/experimental_configs/wordpress_twelve.json'
+    wp_config_file_name = '/mydata/mimir_snakemake_t2/experiment_coordinator/experimental_configs/wordpress_twelve'
     # NOTE: remember: dont put the .json in the filename!! ^^^
     s = run_experiment(app_name, wp_config_file_name, exp_name)
     retrieve_results(s)
