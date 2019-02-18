@@ -30,8 +30,9 @@ def install_pluggin():
         faker_press_install.click()
 
         activate_button()
-    except:
-        print("there was an exception thrown in installing/activating pluggin...")
+
+    except Exception as e:
+        print("there was an exception thrown in installing/activating pluggin...", e)
         pass  # might already be installed...
 
 def activate_button():
@@ -214,6 +215,7 @@ def main(ip_of_wp, port_of_wp, admin_pwd):
     # okay, first install fakerpress
     #'''
     page_about_fakerpress = 'https://' + ip_of_wp + ':' + port_of_wp + '/wp-admin/plugin-install.php?tab=plugin-information&plugin=fakerpress&TB_iframe=true&height=-34%22&width=772'
+    print driver.page_source.encode("utf-8")
     driver.get(page_about_fakerpress)
     install_pluggin()
     time.sleep(10)
@@ -233,6 +235,7 @@ def main(ip_of_wp, port_of_wp, admin_pwd):
     # now generate the fake data using fakerpress
     max_num = 'fakerpress-field-qty-max'
     max_num_class = 'fp-field fp-type-number fp-size-tiny'
+    global min_num 
     min_num = 'fakerpress-field-qty-min'
     drop_down_id = 's2id_fakerpress-field-meta-type'
 
