@@ -195,6 +195,17 @@ def main(ip_of_wp, port_of_wp, admin_pwd):
     try:
         os.makedirs('./wp_csv_loc')
     except OSError as e:
+        print e
+    # if the dictory already exists,then we want to clear it (to make the result easy to find)
+	# (taken from: https://stackoverflow.com/questions/185936/how-to-delete-the-contents-of-a-folder-in-python)
+	#file_name = None
+    for file_name in os.listdir('./wp_csv_loc'):
+        file_path = os.path.join('./wp_csv_loc', file_name)
+        try:
+            if os.path.isfile(file_path):
+                os.unlink(file_path)
+        except Exception as e:
+            print(e)
         if e.errno != errno.EEXIST:
             raise
 
@@ -214,12 +225,14 @@ def main(ip_of_wp, port_of_wp, admin_pwd):
     admin_login(admin_pwd, driver)
     admin_login(admin_pwd, driver_two)
     time.sleep(5)
+    
 
     # okay, first install fakerpress
     #'''
     page_about_fakerpress = 'https://' + ip_of_wp + ':' + port_of_wp + '/wp-admin/plugin-install.php?tab=plugin-information&plugin=fakerpress&TB_iframe=true&height=-34%22&width=772'
-    print driver.page_source.encode("utf-8")
+    #print driver.page_source.encode("utf-8")
     driver.get(page_about_fakerpress)
+    time.sleep(5)
     install_pluggin()
     time.sleep(10)
 
@@ -292,7 +305,18 @@ def main(ip_of_wp, port_of_wp, admin_pwd):
 
     driver.close()
     driver_two.close()
-    return new_pdw
+
+    # let's also return the name of the resulting csv folder...
+    folders_in_csv_path = os.listdir('./wp_csv_loc')
+    print "folders_in_csv_path", folders_in_csv_path
+    path_to_csv_file = './wp_csv_loc/' + folders_in_csv_path[0]
+    shutil.copy(path_to_csv_file, "../" + "wordpress_users.csv")
+    shutil.copy(path_to_csv_file, "../load_generators/" + "wordpress_users.csv")
+    
+    with open('../load_generators/wordpress_api_pwd.txt', 'w') as f:
+        f.write(new_pdw)
+
+    return new_pdw#, path_to_csv_file
 
 if __name__ == "__main__":
     if len(sys.argv) <= 2:
