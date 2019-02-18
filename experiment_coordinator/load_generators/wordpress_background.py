@@ -13,7 +13,8 @@ import os
 # this way we can simulate users using already-existing accounts
 #users = pickle.load( open( "users.pickle", "rb" ) )
 urls = []
-with open('wordpress_users.csv', 'rb') as csvfile:
+#with open('./load_generators/wordpress_users.csv', 'rb') as csvfile:
+with open('./load_generators/wordpress_users.csv', 'rb') as csvfile:
     spamreader = csv.reader(csvfile, delimiter=' ', quotechar='|')
     i = 0
     for row in spamreader:
@@ -29,7 +30,10 @@ highest_id = 750
 #app_pass = 'vKhE 9Uv4 8gZX lrXS vFtl 3DJU'
 #app_pass = "6grp jHjj eEg2 HvrE lp9G UgLN"
 app_pass = None #"Somv XGRh FStO U0wq uACo x4s2"
-with open('wordpress_api_pwd.txt','r') as f:
+
+dir_path = os.path.dirname(os.path.realpath(__file__))
+print "dir_path", dir_path
+with open('./load_generators/wordpress_api_pwd.txt','r') as f:
 	lines = f.readlines()
 	app_pass = lines[0]
 	
