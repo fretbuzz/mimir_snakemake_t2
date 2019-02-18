@@ -18,6 +18,7 @@ import os,errno
 from multiprocessing.dummy import Pool as ThreadPool
 import threading
 from selenium.webdriver.firefox.options import Options
+import shutil
 
 def install_pluggin():
     try:
@@ -105,6 +106,7 @@ def export_urls_code(driver_val):
     driver_val.find_element_by_name("export").click()
     driver_val.find_element_by_xpath("//form[@id='infoForm']/table/tbody/tr[3]/td").click()
     #link_to_get_csv = driver.find_element_by_link_text("Click here") #find_element_by_class_name("updated")
+    time.sleep(15)
     link_to_get_csv = driver_val.find_element_by_link_text("Click here")
     print "link_to_get_csv",link_to_get_csv, link_to_get_csv.get_attribute('href')
     url_to_download_csv = link_to_get_csv.get_attribute('href')
@@ -214,6 +216,7 @@ def main(ip_of_wp, port_of_wp, admin_pwd):
     fp.set_preference("browser.download.manager.showWhenStarting", False)
     fp.set_preference("browser.download.dir", os.getcwd() + '/wp_csv_loc/')
     fp.set_preference("browser.helperApps.neverAsk.saveToDisk", "application/octet-stream")
+    fp.set_preference("browser.helperApps.neverAsk.saveToDisk", "text/csv")
 
     driver = webdriver.Firefox(fp, options=options)
     driver_two = webdriver.Firefox(fp, options=options)
@@ -254,26 +257,26 @@ def main(ip_of_wp, port_of_wp, admin_pwd):
     user_page = 'https://' + ip_of_wp + ':' + port_of_wp + '/wp-admin/admin.php?page=fakerpress&view=users'
     driver.get(user_page)
     user_page_code()
-    time.sleep(170)
+    #time.sleep(170)
     '''
 
     #''' # this is good.
     terms_page = 'https://' + ip_of_wp + ':' + port_of_wp + '/wp-admin/admin.php?page=fakerpress&view=terms'
     driver.get(terms_page)
     terms_page_code()
-    time.sleep(60)
+    #time.sleep(60)
     '''
     #''' # this is good
     post_page = 'https://' + ip_of_wp + ':' + port_of_wp + '/wp-admin/admin.php?page=fakerpress&view=posts'
     driver.get(post_page)
     posts_page_code()
-    time.sleep(300)
+    #time.sleep(300)
     #'''
     #''' # this is good
     comments_page = 'https://' + ip_of_wp + ':' + port_of_wp + '/wp-admin/admin.php?page=fakerpress&view=comments'
     driver.get(comments_page)
     comments_page_code()
-    time.sleep(300)
+    #time.sleep(300)
     #'''
 
     export_all_urls_page = 'https://' + ip_of_wp + ':' + port_of_wp + '/wp-admin/options-general.php?page=extract-all-urls-settings'
@@ -305,9 +308,12 @@ def main(ip_of_wp, port_of_wp, admin_pwd):
     folders_in_csv_path = os.listdir('./wp_csv_loc')
     print "folders_in_csv_path", folders_in_csv_path
     path_to_csv_file = './wp_csv_loc/' + folders_in_csv_path[0]
-    shutil.move(path_to_csv_file, "/mydata/mimir_snakemake_t2/experiment_coordinator/" + "wordpress_users.csv")
-    shutil.move(path_to_csv_file, "/mydata/mimir_snakemake_t2/experiment_coordinator/load_generators/" + "wordpress_users.csv")
+    shutil.copy(path_to_csv_file, "../" + "wordpress_users.csv")
+    shutil.copy(path_to_csv_file, "../load_generators/" + "wordpress_users.csv")
     
+    with open('../load_generators/wordpress_api_pwd.txt', 'w') as f:
+	f.write(new_pdw)
+
     return new_pdw#, path_to_csv_file 
 
 if __name__ == "__main__":

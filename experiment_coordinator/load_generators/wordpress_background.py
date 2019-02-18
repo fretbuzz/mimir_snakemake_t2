@@ -28,7 +28,11 @@ highest_id = 750
 #app_pass = 'a1tA u1Rc 6j5h 2NKc 90Hu COeo'
 #app_pass = 'vKhE 9Uv4 8gZX lrXS vFtl 3DJU'
 #app_pass = "6grp jHjj eEg2 HvrE lp9G UgLN"
-app_pass = "Somv XGRh FStO U0wq uACo x4s2"
+app_pass = None #"Somv XGRh FStO U0wq uACo x4s2"
+with open('wordpress_api_pwd.txt','r') as f:
+	lines = f.readlines()
+	app_pass = lines[0]
+	
 user = 'user'
 #user = 'mimir2'
 token = base64.standard_b64encode(user + ':' + app_pass)
