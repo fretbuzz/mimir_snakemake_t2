@@ -13,6 +13,7 @@ import os
 # this way we can simulate users using already-existing accounts
 #users = pickle.load( open( "users.pickle", "rb" ) )
 urls = []
+failures_list = [0]
 #with open('./load_generators/wordpress_users.csv', 'rb') as csvfile:
 with open('./load_generators/wordpress_users.csv', 'rb') as csvfile:
     spamreader = csv.reader(csvfile, delimiter=' ', quotechar='|')
@@ -34,8 +35,8 @@ app_pass = None #"Somv XGRh FStO U0wq uACo x4s2"
 dir_path = os.path.dirname(os.path.realpath(__file__))
 print "dir_path", dir_path
 with open('./load_generators/wordpress_api_pwd.txt','r') as f:
-	lines = f.readlines()
-	app_pass = lines[0]
+    lines = f.readlines()
+    app_pass = lines[0]
 	
 user = 'user'
 #user = 'mimir2'
@@ -68,7 +69,9 @@ class BackgroundTraffic(TaskSet):
             cont = ''.join(choice(string.ascii_lowercase + ' ' + '.') for _ in range(randint(20, 80)))
             while not update_succeeded:
                 trys += 1
-                random_post = randint(lowest_id, highest_id)
+                random_post = 0
+                while random_post in failures_list
+                    random_post = randint(lowest_id, highest_id)
                 # random_post = 994
 
                 updatedpost = {'content': cont + ' ' + str(random_post)}
@@ -82,6 +85,7 @@ class BackgroundTraffic(TaskSet):
                     print 'that took this many tries: ', str(trys)
                 except:
                     print 'sorry buddy, but that post # was invalid'
+                    failures_list.append(random_post)
             time.sleep(randint(min_wait,max_wait) / 1000.0) # going to wait a bit between events
 
 

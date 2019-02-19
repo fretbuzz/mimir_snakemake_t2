@@ -11,8 +11,8 @@ import experimental_configs.setup_wordpress as setup_wordpress
 cloudlab_private_key = '/Users/jseverin/Dropbox/cloudlab.pem'
 local_dir = '/Users/jseverin/Documents'  # TODO
 sentinal_file = '/mydata/all_done.txt'
-exp_name = 'wordpress_auto_test'  # TODO
-mimir_1 = 'c240g5-110105.wisc.cloudlab.us' #'c240g5-110119.wisc.cloudlab.us' #'c240g5-110119.wisc.cloudlab.us'
+exp_name = 'wordpress_auto_test_fullsetup'  # TODO
+mimir_1 = 'c240g5-110105.wisc.cloudlab.us' #'c240g5-110105.wisc.cloudlab.us' #'c240g5-110119.wisc.cloudlab.us' #'c240g5-110119.wisc.cloudlab.us'
 #mimir_2 = 'c240g5-110105.wisc.cloudlab.us'
 cloudlab_server_ip = mimir_1 #note: remove the username@ from the beggining
 remote_dir = '/mydata/mimir_snakemake_t2/experiment_coordinator/experimental_data/' + exp_name  # TODO
@@ -124,6 +124,17 @@ def run_experiment(app_name, config_file_name, exp_name):
             break
         time.sleep(20)
 
+    '''
+    def run_experiment(app_name, config_file_name, exp_name):
+    ## delete this part...
+    s = pwnlib.tubes.ssh.ssh(host=cloudlab_server_ip,
+        keyfile=cloudlab_private_key,
+        user='jsev')
+    sh = s.run('sh') # Create an initial process
+    sh.sendline('sudo newgrp docker')
+    sh.sendline('export MINIKUBE_HOME=/mydata/')
+    ## delete this part...
+    '''
 
     if app_name == 'sockshop':
         sh.sendline('minikube service front-end  --url --namespace="sock-shop"')
@@ -151,18 +162,27 @@ def run_experiment(app_name, config_file_name, exp_name):
         # step 2: setup wordpress (must be done now rather than later in run_experiment like sockshop)
         # todo: it's not local you know... it doesn't make any sense for it be called locally...
         #wp_api_pwd = setup_wordpress.main(minikube_ip, front_facing_port, 'hi')
-        sh.sendline("python /mydata/mimir_snakemake_t2/experiment_coordinator/experimental_configs/setup_wordpress.py " + \
-                minikube_ip + " " + front_facing_port + " " + "hi")
+        sh.sendline("exit") # need to be a normal user when using selenium
+        sh.sendline("cd /mydata/mimir_snakemake_t2/experiment_coordinator/experimental_configs")
+
+        prepare_wp_str = "python /mydata/mimir_snakemake_t2/experiment_coordinator/experimental_configs/setup_wordpress.py " + \
+                minikube_ip + " " + front_facing_port + " " + "hi"
+        print "prepare_wp_str",prepare_wp_str
+        sh.sendline(prepare_wp_str)
 
         #pwd_line = ''
         line_rec = 'something something'
         while line_rec != '':
             last_line = line_rec
-            line_rec = sh.recvline(timeout=100)
+            line_rec = sh.recvline(timeout=400)
             print("recieved line", line_rec)
             #if 'pwd' in line_rec:
             #    pwd_line = line_rec
 
+        # need to get back to the other group now
+        sh.sendline('sudo newgrp docker')
+        sh.sendline('export MINIKUBE_HOME=/mydata/')
+        sh.sendline('cd /mydata/mimir_snakemake_t2/experiment_coordinator/')
         #wp_api_pwd = pwd_line.split("pwd")[1].lstrip()
         #print "wp_api_pwd",wp_api_pwd
         # this is kinda silly... just put the pwd in a file and have the background function read it...
