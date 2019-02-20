@@ -1,6 +1,6 @@
 {
     "application_name": "wordpress",
-    "experiment_name": "wordpress_twelve",
+    "experiment_name": "wordpress_thirteen",
     "orchestrator": "kubernetes",
     "network_plugin": "none",
     "exfil_method": "none",
@@ -10,7 +10,7 @@
     "experiment" : {
       "number_background_locusts": "85",
       "background_locust_spawn_rate": "10",
-      "experiment_length_sec": "1200",
+      "experiment_length_sec": "3600",
       "traffic_type" : "normal",
       "number_of_trials": "1"
     },

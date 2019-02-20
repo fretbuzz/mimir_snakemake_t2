@@ -595,7 +595,8 @@ def start_tcpdump(interface, network_namespace, tcpdump_time, filename, orchestr
     #tcpdump_time = str(int(tcpdump_time) / 10) # dividing by 10 b/c going to rotate
     #start_tcpdum = "tcpdump -G " + tcpdump_time + ' -W 10 -i ' + interface + ' -w /outside/\'' + filename \
     #               + '_%Y-%m-%d_%H:%M:%S.pcap\''+ ' -n' + ' -z gzip '
-    start_tcpdum = "tcpdump -G " + tcpdump_time + ' -W 1 -i ' + interface + ' -w /outside/' + filename + ' -n'
+    # NOTE: if you want the whole packet body, then get-rid-of/adjust the "-s 94" part!
+    start_tcpdum = "tcpdump -s 94 -G " + tcpdump_time + ' -W 1 -i ' + interface + ' -w /outside/' + filename + ' -n'
 
     cmd_to_send = start_netshoot + ';' + switch_namespace + ';' + start_tcpdum
     print "cmd_to_send", cmd_to_send

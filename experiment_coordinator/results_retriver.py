@@ -3,16 +3,16 @@
 # TODO: will need to fill in these TODOs and then test (maybe integrate
 # with auto-running of the analysis capabilities, but will require me to re-work some of the testbed)
 
+import argparse
 import pwnlib.tubes.ssh
 from pwn import *
-
-import experimental_configs.setup_wordpress as setup_wordpress
+import time
 
 cloudlab_private_key = '/Users/jseverin/Dropbox/cloudlab.pem'
 local_dir = '/Users/jseverin/Documents'  # TODO
 sentinal_file = '/mydata/all_done.txt'
-exp_name = 'wordpress_auto_test_fullsetup'  # TODO
-mimir_1 = 'c240g5-110105.wisc.cloudlab.us' #'c240g5-110105.wisc.cloudlab.us' #'c240g5-110119.wisc.cloudlab.us' #'c240g5-110119.wisc.cloudlab.us'
+exp_name = 'wordpress_thirteen_t1'  # TODO
+mimir_1 = 'c240g5-110217.wisc.cloudlab.us' #'c240g5-110119.wisc.cloudlab.us' #'c240g5-110119.wisc.cloudlab.us'
 #mimir_2 = 'c240g5-110105.wisc.cloudlab.us'
 cloudlab_server_ip = mimir_1 #note: remove the username@ from the beggining
 remote_dir = '/mydata/mimir_snakemake_t2/experiment_coordinator/experimental_data/' + exp_name  # TODO
@@ -32,7 +32,7 @@ def retrieve_results(s):
 
     s.download_dir(remote=remote_dir, local=local_dir)
 
-def run_experiment(app_name, config_file_name, exp_name):
+def run_experiment(app_name, config_file_name, exp_name, skip_setup_p):
     #start_minikube_p = False
     s = None
     while s == None:
@@ -65,143 +65,142 @@ def run_experiment(app_name, config_file_name, exp_name):
     sh.sendline('sudo newgrp docker')
     sh.sendline('export MINIKUBE_HOME=/mydata/')
 
+    if not skip_setup_p:
+        sh.sendline('minikube stop')
+        line_rec = 'start'
+        while line_rec != '':
+            line_rec = sh.recvline(timeout=5)
+            if 'Please enter your response' in line_rec:
+                sh.sendline('n')
+            print("recieved line", line_rec)
+        print("--end minikube-stop ---")
 
-    #if start_minikube_p:
-    sh.sendline('minikube stop')
-    line_rec = 'start'
-    while line_rec != '':
-        line_rec = sh.recvline(timeout=5)
-        if 'Please enter your response' in line_rec:
-            sh.sendline('n')
-        print("recieved line", line_rec)
-    print("--end minikube-stop ---")
+        sh.sendline('minikube delete')
+        line_rec = 'start'
+        while line_rec != '':
+            line_rec = sh.recvline(timeout=5)
+            if 'Please enter your response' in line_rec:
+                sh.sendline('n')
+            print("recieved line", line_rec)
+        print("--end minikube delete ---")
 
-    sh.sendline('minikube delete')
-    line_rec = 'start'
-    while line_rec != '':
-        line_rec = sh.recvline(timeout=5)
-        if 'Please enter your response' in line_rec:
-            sh.sendline('n')
-        print("recieved line", line_rec)
-    print("--end minikube delete ---")
+        '''
+        sh.sendline('minikube ip')
+        # Receive output from the executed command
+        line_rec = 'start'
+        while line_rec != '':
+            line_rec = sh.recvline(timeout=5)
+            print("recieved line", line_rec)
+        print("--end minikube_ip ---")
+        '''
+        #print last_line.split(' ')
+        #print last_line.split(' ')[-1]
+        #print last_line.split(' ')[-1].split('/')
+        #print last_line.split(' ')[-1].split('/')[-1]
+        #print last_line.split(' ')[-1].split('/')[-1].rstrip().split(':')
 
-    '''
-    sh.sendline('minikube ip')
-    # Receive output from the executed command
-    line_rec = 'start'
-    while line_rec != '':
-        line_rec = sh.recvline(timeout=5)
-        print("recieved line", line_rec)
-    print("--end minikube_ip ---")
-    '''
-    #print last_line.split(' ')
-    #print last_line.split(' ')[-1]
-    #print last_line.split(' ')[-1].split('/')
-    #print last_line.split(' ')[-1].split('/')[-1]
-    #print last_line.split(' ')[-1].split('/')[-1].rstrip().split(':')
+        #minikube_ip, front_facing_port = None, None
+        #print "minikube_ip", minikube_ip, "front_facing_port",front_facing_port
 
-    #minikube_ip, front_facing_port = None, None
-    #print "minikube_ip", minikube_ip, "front_facing_port",front_facing_port
-
-    sh.sendline('bash /local/repository/run_experiment.sh ' + app_name)
-
-
-    line_rec = 'start'
-    last_line = ''
-    while line_rec != '':
-        last_line = line_rec
-        line_rec = sh.recvline(timeout=40)
-        print("recieved line", line_rec)
-    print("did run_experiment work???")
+        sh.sendline('bash /local/repository/run_experiment.sh ' + app_name)
 
 
-    sentinal_file_setup = '/mydata/done_with_setup.txt'
-    while True:
-        # this is a special 'done' file used to indicate that
-        # the experiment is finished.
-        print "line_recieved: ", s.download_data(sentinal_file_setup)
-        if 'done_with_that' in s.download_data(sentinal_file_setup):
-            break
-        time.sleep(20)
-
-    '''
-    def run_experiment(app_name, config_file_name, exp_name):
-    ## delete this part...
-    s = pwnlib.tubes.ssh.ssh(host=cloudlab_server_ip,
-        keyfile=cloudlab_private_key,
-        user='jsev')
-    sh = s.run('sh') # Create an initial process
-    sh.sendline('sudo newgrp docker')
-    sh.sendline('export MINIKUBE_HOME=/mydata/')
-    ## delete this part...
-    '''
-
-    if app_name == 'sockshop':
-        sh.sendline('minikube service front-end  --url --namespace="sock-shop"')
-        namespace = 'sock-shop'
-    elif app_name == 'wordpress':
-        # step 1: get the appropriate ip / port (like above -- need for next step)
-        sh.sendline('minikube service wwwppp-wordpress  --url')
-    else:
-        pass #TODO
-
-
-    line_rec = 'start'
-    last_line = ''
-    while line_rec != '':
-        last_line = line_rec
-        line_rec = sh.recvline(timeout=100)
-        print("recieved line", line_rec)
-    print("--end minikube_front-end port ---")
-
-    #kubernetes_setup_functions.wait_until_pods_done(namespace)
-    minikube_ip, front_facing_port = last_line.split(' ')[-1].split('/')[-1].rstrip().split(':')
-    print "minikube_ip", minikube_ip, "front_facing_port",front_facing_port
-
-    if app_name == 'wordpress':
-        # step 2: setup wordpress (must be done now rather than later in run_experiment like sockshop)
-        # todo: it's not local you know... it doesn't make any sense for it be called locally...
-        #wp_api_pwd = setup_wordpress.main(minikube_ip, front_facing_port, 'hi')
-        sh.sendline("exit") # need to be a normal user when using selenium
-        sh.sendline("cd /mydata/mimir_snakemake_t2/experiment_coordinator/experimental_configs")
-
-        prepare_wp_str = "python /mydata/mimir_snakemake_t2/experiment_coordinator/experimental_configs/setup_wordpress.py " + \
-                minikube_ip + " " + front_facing_port + " " + "hi"
-        print "prepare_wp_str",prepare_wp_str
-        sh.sendline(prepare_wp_str)
-
-        #pwd_line = ''
-        line_rec = 'something something'
+        line_rec = 'start'
+        last_line = ''
         while line_rec != '':
             last_line = line_rec
-            line_rec = sh.recvline(timeout=400)
+            line_rec = sh.recvline(timeout=40)
             print("recieved line", line_rec)
-            #if 'pwd' in line_rec:
-            #    pwd_line = line_rec
+        print("did run_experiment work???")
 
-        # need to get back to the other group now
+
+        sentinal_file_setup = '/mydata/done_with_setup.txt'
+        while True:
+            # this is a special 'done' file used to indicate that
+            # the experiment is finished.
+            print "line_recieved: ", s.download_data(sentinal_file_setup)
+            if 'done_with_that' in s.download_data(sentinal_file_setup):
+                break
+            time.sleep(20)
+
+        '''
+        def run_experiment(app_name, config_file_name, exp_name):
+        ## delete this part...
+        s = pwnlib.tubes.ssh.ssh(host=cloudlab_server_ip,
+            keyfile=cloudlab_private_key,
+            user='jsev')
+        sh = s.run('sh') # Create an initial process
         sh.sendline('sudo newgrp docker')
         sh.sendline('export MINIKUBE_HOME=/mydata/')
-        sh.sendline('cd /mydata/mimir_snakemake_t2/experiment_coordinator/')
-        #wp_api_pwd = pwd_line.split("pwd")[1].lstrip()
-        #print "wp_api_pwd",wp_api_pwd
-        # this is kinda silly... just put the pwd in a file and have the background function read it...
-        #change_cwd = 'cd /mydata/mimir_snakemake_t2/experiment_coordinator/load_generators'
-        #change_pwd_cmd = "sed -e 's/app_pass.*$/app_pass = \"" + wp_api_pwd +  "\"/g' wordpress_background.py"
-        #sh.sendline(change_cwd)
-        #sh.sendline(change_pwd_cmd)
-        #exit(2)
+        ## delete this part...
+        #'''
 
-    time.sleep(170)
-    sh.sendline('rm ' + experiment_sentinal_file)
-    print "removing experimente sential file", sh.recvline(timeout=5)
-    sh.sendline('minikube ssh')
-    print "minikube sshing", sh.recvline(timeout=5)
-    sh.sendline('docker pull nicolaka/netshoot')
-    print "docker pulling", sh.recvline(timeout=5)
-    sh.sendline('exit')
-    print "minikube exiting", sh.recvline(timeout=5)
-    time.sleep(170)
+        if app_name == 'sockshop':
+            sh.sendline('minikube service front-end  --url --namespace="sock-shop"')
+            namespace = 'sock-shop'
+        elif app_name == 'wordpress':
+            # step 1: get the appropriate ip / port (like above -- need for next step)
+            sh.sendline('minikube service wwwppp-wordpress  --url')
+        else:
+            pass #TODO
+
+
+        line_rec = 'start'
+        last_line = ''
+        while line_rec != '':
+            last_line = line_rec
+            line_rec = sh.recvline(timeout=100)
+            print("recieved line", line_rec)
+        print("--end minikube_front-end port ---")
+
+        #kubernetes_setup_functions.wait_until_pods_done(namespace)
+        minikube_ip, front_facing_port = last_line.split(' ')[-1].split('/')[-1].rstrip().split(':')
+        print "minikube_ip", minikube_ip, "front_facing_port",front_facing_port
+
+        if app_name == 'wordpress':
+            # step 2: setup wordpress (must be done now rather than later in run_experiment like sockshop)
+            # todo: it's not local you know... it doesn't make any sense for it be called locally...
+            #wp_api_pwd = setup_wordpress.main(minikube_ip, front_facing_port, 'hi')
+            sh.sendline("exit") # need to be a normal user when using selenium
+            sh.sendline("cd /mydata/mimir_snakemake_t2/experiment_coordinator/experimental_configs")
+
+            prepare_wp_str = "python /mydata/mimir_snakemake_t2/experiment_coordinator/experimental_configs/setup_wordpress.py " + \
+                    minikube_ip + " " + front_facing_port + " " + "hi"
+            print "prepare_wp_str",prepare_wp_str
+            sh.sendline(prepare_wp_str)
+
+            #pwd_line = ''
+            line_rec = 'something something'
+            while line_rec != '':
+                last_line = line_rec
+                line_rec = sh.recvline(timeout=400)
+                print("recieved line", line_rec)
+                #if 'pwd' in line_rec:
+                #    pwd_line = line_rec
+
+            # need to get back to the other group now
+            sh.sendline('sudo newgrp docker')
+            sh.sendline('export MINIKUBE_HOME=/mydata/')
+            sh.sendline('cd /mydata/mimir_snakemake_t2/experiment_coordinator/')
+            #wp_api_pwd = pwd_line.split("pwd")[1].lstrip()
+            #print "wp_api_pwd",wp_api_pwd
+            # this is kinda silly... just put the pwd in a file and have the background function read it...
+            #change_cwd = 'cd /mydata/mimir_snakemake_t2/experiment_coordinator/load_generators'
+            #change_pwd_cmd = "sed -e 's/app_pass.*$/app_pass = \"" + wp_api_pwd +  "\"/g' wordpress_background.py"
+            #sh.sendline(change_cwd)
+            #sh.sendline(change_pwd_cmd)
+            #exit(2)
+
+        time.sleep(170)
+        sh.sendline('rm ' + experiment_sentinal_file)
+        print "removing experimente sential file", sh.recvline(timeout=5)
+        sh.sendline('minikube ssh')
+        print "minikube sshing", sh.recvline(timeout=5)
+        sh.sendline('docker pull nicolaka/netshoot')
+        print "docker pulling", sh.recvline(timeout=5)
+        sh.sendline('exit')
+        print "minikube exiting", sh.recvline(timeout=5)
+        time.sleep(170)
 
     # pwd_line = ''
     line_rec = 'something something'
@@ -242,7 +241,22 @@ def run_experiment(app_name, config_file_name, exp_name):
 if __name__ == "__main__":
     app_name = possible_apps[4]
     sock_config_file_name = '/mydata/mimir_snakemake_t2/experiment_coordinator/experimental_configs/sockshop_thirteen'
-    wp_config_file_name = '/mydata/mimir_snakemake_t2/experiment_coordinator/experimental_configs/wordpress_twelve'
+    wp_config_file_name = '/mydata/mimir_snakemake_t2/experiment_coordinator/experimental_configs/wordpress_thirteen'
+
+
+    parser = argparse.ArgumentParser(description='Handles e2e setup, running, and extract of microservice traffic experiments')
+
+    parser.add_argument('--straight_to_experiment', dest='skip_setup_p', action='store_true',
+                        default=False,
+                        help='only do the running the experiment-- no minikube setup, application deployment, or \
+                        application loading')
+
+    args = parser.parse_args()
+    # TODO / NOTE: THIS ARGS DON'T ACTUALLY DO ANYTHING YET B/C they require changing the workflow of the
+    # experimental coordinator-- in particular run_experiment.sh couples setting up minikube w/ deploying the application
+    # which might actually make sense... sense why would I be setting up the application if minikbue already exists??
+    # this is kinda
+
     # NOTE: remember: dont put the .json in the filename!! ^^^
-    s = run_experiment(app_name, wp_config_file_name, exp_name)
+    s = run_experiment(app_name, wp_config_file_name, exp_name, args.skip_setup_p)
     retrieve_results(s)
