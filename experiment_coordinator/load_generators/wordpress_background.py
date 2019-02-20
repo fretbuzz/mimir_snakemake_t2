@@ -70,7 +70,7 @@ class BackgroundTraffic(TaskSet):
             while not update_succeeded:
                 trys += 1
                 random_post = 0
-                while random_post in failures_list
+                while random_post in failures_list:
                     random_post = randint(lowest_id, highest_id)
                 # random_post = 994
 
