@@ -71,11 +71,14 @@ def aggregate_outside_nodes(G):
                 #print "new outside node!", node
     # might wanna put below line back in...
     #print "outside nodes", outside_nodes
-    first_node = outside_nodes[0]
-    for cur_node in outside_nodes[1:]:
-        G = nx.contracted_nodes(G, first_node, cur_node, self_loops=False)
-    mapping = {first_node: 'outside'}
-    nx.relabel_nodes(G, mapping, copy=False)
+    try:
+        first_node = outside_nodes[0]
+        for cur_node in outside_nodes[1:]:
+            G = nx.contracted_nodes(G, first_node, cur_node, self_loops=False)
+        mapping = {first_node: 'outside'}
+        nx.relabel_nodes(G, mapping, copy=False)
+    except:
+        pass
     return G
 
 # aggregate all nodes of the same class into a single node

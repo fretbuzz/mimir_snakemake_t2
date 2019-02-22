@@ -1,9 +1,9 @@
 import json
 import time
 
-import pyximport;
-
+import pyximport
 pyximport.install() # am I sure that I want this???
+
 import sys
 import gc
 import functools
@@ -1640,6 +1640,101 @@ def run_analysis_pipeline_recipes_json(json_file, path_to_experimental_data):
                                    ROC_curve_p=ROC_curve_p, calc_zscore_p=calc_tpr_fpr_p,
                                    sec_between_exfil_events=sec_between_exfil_events)
 
+def wordpress_thirteen_t1(time_of_synethic_exfil=None, only_exp_info=False, initiator_info_for_paths=None,
+                            portion_for_training=None, training_window_size=None, size_of_neighbor_training_window=None,
+                            synthetic_exfil_paths_train=None,
+                            synthetic_exfil_paths_test=None, calc_vals=False,
+                            skip_model_part=False,max_number_of_paths=None):
+    #'''
+    #calc_vals=False
+    # Wordpress exp 6 rep3 (wordpress w/ HA cluster on cilium w/o security config, dnscat exfil from single db w/ 15 sec delay)
+    pcap_paths = [
+        "/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t1/wordpress_thirteen_t1_default_bridge_0any.pcap"]
+    is_swarm = 0
+    basefile_name = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t1/edgefiles/wordpress_thirteen_t1_'
+    basegraph_name = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t1/graphs/wordpress_thirteen_t1_'
+    container_info_path = "/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t1/wordpress_thirteen_t1_docker_0_network_configs.txt"
+    cilium_config_path = None # does NOT use cilium on reps 2-4
+    kubernetes_svc_info = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t1/wordpress_thirteen_t1_svc_config_0.txt'
+    kubernetes_pod_info = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t1/wordpress_thirteen_t1_pod_config_0.txt'
+    time_interval_lengths = [30, 10]#,
+                             #1]  # , 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
+    ms_s = ["my-release-pxc", "wwwppp-wordpress"]
+    start_time = False
+    end_time = None
+    exfil_start_time = 10000
+    exfil_end_time = 10000
+    #calc_vals = False #
+    window_size = 6
+    graph_p = False  # should I make graphs?
+    colors = ['b', 'r']
+    wiggle_room = 2  # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
+    percentile_thresholds = [50, 75, 85, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100]
+    anomaly_window = [1, 4]
+    anom_num_outlier_vals_in_window = [1, 2] # note: these vals correspond to anoamly_window (so the first vals get matched, etc.)
+    alert_file = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t1/alerts/wordpress_thirteen_t1_'
+    sec_between_exfil_events = 15
+    physical_exfil_path = []
+    #training_window_size
+
+
+    make_edgefiles = False ## already done!
+    wordpress_thirteen_t1_object = data_anylsis_pipline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
+                                   make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
+                                   wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,
+                                   graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
+                                   cilium_config_path=cilium_config_path, rdpcap_p=False,
+                                   kubernetes_pod_info=kubernetes_pod_info, alert_file=alert_file, ROC_curve_p=True,
+                                   calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events,
+                                   injected_exfil_path = physical_exfil_path, only_exp_info=only_exp_info,
+                                   time_of_synethic_exfil=time_of_synethic_exfil,
+                                   initiator_info_for_paths=initiator_info_for_paths,
+                                   end_of_training=portion_for_training,
+                                   training_window_size=training_window_size, size_of_neighbor_training_window=size_of_neighbor_training_window,
+                                   synthetic_exfil_paths_train=synthetic_exfil_paths_train, synthetic_exfil_paths_test=synthetic_exfil_paths_test,
+                                   skip_model_part=skip_model_part,
+                                   max_number_of_paths=max_number_of_paths)
+
+    return wordpress_thirteen_t1_object
+
+
+
+def new_wordpress_recipe():
+    skip_model_part = False
+    ignore_physical_attacks_p = True
+    #fraction_of_edge_weights,fraction_of_edge_pkts = [0.001, 0.1],[0.001, 0.1]
+    #fraction_of_edge_weights,fraction_of_edge_pkts = [0.1],[0.1]
+    fraction_of_edge_weights,fraction_of_edge_pkts = [0.1, 0.001],[0.1, 0.001]
+    time_of_synethic_exfil = 30 # sec
+    goal_train_test_split = 0.6
+    goal_attack_NoAttack_split = 0.6
+    training_window_size = 200
+    size_of_neighbor_training_window = 0
+
+
+    calc_vals = True ## TODO: probably want to turn this off: NOTE IS THIS ALSO PROCESSING THE PCAP
+    calculate_z_scores = True
+
+
+    experiment_classes = [wordpress_thirteen_t1(training_window_size=training_window_size,
+                                                  size_of_neighbor_training_window=size_of_neighbor_training_window,
+                                                  calc_vals=calc_vals,
+                                                  time_of_synethic_exfil=time_of_synethic_exfil)]
+
+    ## NOTE: process_wordpress8 could be here too, but I'm for the moment I'm keeping each kind of injected
+    ## attack w/ two different experiments in which it occurss...
+
+    #function_list = [i for i in raw_function_list]
+    #function_list_exp_info = [functools.partial(i,time_of_synethic_exfil=time_of_synethic_exfil, only_exp_info=True) for i in function_list]
+    base_output_location = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_summary/new_'# + 'lasso_roc'
+    multi_experiment_pipeline(experiment_classes, base_output_location, True, time_of_synethic_exfil,
+                              goal_train_test_split, goal_attack_NoAttack_split, training_window_size,
+                              size_of_neighbor_training_window, calc_vals, skip_model_part, ignore_physical_attacks_p,
+                              fraction_of_edge_weights=fraction_of_edge_weights,
+                              fraction_of_edge_pkts=fraction_of_edge_pkts,
+                              calculate_z_scores_p=calculate_z_scores)
+
+
 # this function feeds a set of wordpress experiments into the multi_experiment_pipeline() function found in the
 # pipeline_coordinator
 def multi_experiment_wordpress_recipe():
@@ -1749,7 +1844,8 @@ if __name__=="__main__":
     print sys.argv
 
     if len(sys.argv) == 1:
-        multi_experiment_wordpress_recipe()
+        new_wordpress_recipe()
+        #multi_experiment_wordpress_recipe()
         #time.sleep(14400)
         #multi_experiment_sockshop_recipe()
 

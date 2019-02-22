@@ -37,6 +37,8 @@ import multiprocessing
 from sklearn.ensemble import RandomForestClassifier
 import generate_heatmap
 import cPickle as pickle
+import pyximport
+pyximport.install() # am I sure that I want this???
 
 def process_one_set_of_graphs(fraction_of_edge_weights, fraction_of_edge_pkts, time_interval_length, window_size,
                                 filenames, svcs, is_swarm, ms_s, mapping,  list_of_infra_services,

@@ -27,6 +27,8 @@ import copy
 import process_control_chart
 #plt.switch_backend('gtkagg')
 import cPickle as pickle
+import pyximport
+pyximport.install() # am I sure that I want this???
 
 # okay, so things to be aware of:
 # (a) we are assuming that if we cannot label the node and it is not loopback or in the '10.X.X.X' subnet, then it is outside
@@ -35,10 +37,12 @@ class injected_graph():
     def __init__(self, name, injected_graph_loc, non_injected_graph_loc, concrete_container_exfil_paths, exfil_amt,
                  svc_to_pod, pod_to_svc, total_edgelist_nodes, where_to_save_this_obj, counter, name_of_dns_pod_node,
                  current_total_node_list, fraction_of_edge_weights, fraction_of_edge_pkts,
-                 svcs, is_swarm, ms_s, container_to_ip, infra_service):
+                 svcs, is_swarm, ms_s, container_to_ip, infra_service, injected_class_graph_loc, name_of_injected_file):
         self.name = name
         self.injected_graph_loc = injected_graph_loc
+        self.name_of_injected_file = name_of_injected_file
         self.non_injected_graph_loc = non_injected_graph_loc
+        self.injected_class_graph_loc = injected_class_graph_loc
         self.concrete_container_exfil_paths = concrete_container_exfil_paths
         self.exfil_amt = exfil_amt
         self.svc_to_pod = svc_to_pod
@@ -47,7 +51,7 @@ class injected_graph():
         self.where_to_save_this_obj = where_to_save_this_obj
         self.cur_1si_G = None
         self.edgefile_folder_path = "/".join(injected_graph_loc.split('/')[:-1])
-        self.metrics_file = self.edgefile_folder_path + 'metrics_for_' + str(counter) + '.csv'
+        self.metrics_file = self.edgefile_folder_path + '/metrics_for_' + name_of_injected_file + '.csv'
         self.name_of_dns_pod_node = name_of_dns_pod_node
         self.current_total_node_list = current_total_node_list
         self.graph_feature_dict = {}
@@ -70,7 +74,7 @@ class injected_graph():
 
     def calc_single_step_metrics(self):
         self._load_graph()
-        self._create_class_level_graph()
+        #self._create_class_level_graph()
 
         density = nx.density(self.cur_1si_G)
         self.graph_feature_dict['pod_1si_density_list'] = density
@@ -115,22 +119,41 @@ class injected_graph():
         self.graph_feature_dict['dns_list_inside'] = dns_list_inside
 
         self.graph_feature_dict_keys = self.graph_feature_dict.keys()
+
         with open(self.metrics_file, 'wb') as f:  # Just use 'w' mode in 3.x
-            w = csv.DictWriter(f, self.graph_feature_dict.keys())
-            w.writeheader()
-            w.writerow(self.graph_feature_dict)
+            ''' # we're going to use a different method...
+                w = csv.DictWriter(f, self.graph_feature_dict.keys())
+                w.writeheader()
+                w.writerow(self.graph_feature_dict)
+            '''
+            f.write(pickle.dumps(self.graph_feature_dict))
+            #f.write(str(self.graph_feature_dict))
 
     def _load_graph(self):
         self.cur_1si_G = nx.DiGraph()
         print "path to file is ", self.injected_graph_loc
         f = open(self.injected_graph_loc, 'r')
         lines = f.readlines()
-        nx.parse_edgelist(lines, delimiter=' ', create_using=self.cur_1si_G)
+        nx.parse_edgelist(lines, delimiter=' ', create_using=self.cur_1si_G, data=[('frames',int), ('weight',int)])
+
+        self.cur_class_G = nx.DiGraph()
+        print "path to class file is ", self.injected_class_graph_loc
+        f = open(self.injected_class_graph_loc, 'r')
+        lines = f.readlines()
+        nx.parse_edgelist(lines, delimiter=' ', create_using=self.cur_class_G, data=[('frames',int), ('weight',int)])
+
+
 
     def load_metrics(self):
-        with open(self.metrics_file, mode='r') as f:
-            reader = csv.DictReader(f, self.graph_feature_dict_keys)
-            self.graph_feature_dict = {rows[0]: rows[1] for rows in reader}
+        print "metrics_file", self.metrics_file
+        with open(self.metrics_file, mode='rb') as f:
+            #reader = csv.DictReader(f, self.graph_feature_dict_keys)
+            #print "row_in_load_metrics_reader", [rows for rows in reader]
+            #self.graph_feature_dict = {rows[0]: rows[1] for rows in reader}
+
+            #self.graph_feature_dict = ast.literal_eval(f.read())
+            dict_contents = f.read()
+            self.graph_feature_dict = pickle.loads(dict_contents)
 
     def _create_class_level_graph(self):
         self.cur_class_G = prepare_graph(self.cur_1si_G, self.svcs, 'class', self.is_swarm, self.counter, self.injected_graph_loc,
@@ -146,6 +169,7 @@ class set_of_injected_graphs():
     def __init__(self, fraction_of_edge_weights, fraction_of_edge_pkts, time_granularity, window_size, raw_edgefile_names,
                 svcs, is_swarm, ms_s, container_to_ip, infra_service, synthetic_exfil_paths, initiator_info_for_paths,
                 attacks_to_times, collected_metrics_location, current_set_of_graphs_loc, out_q):
+
         self.list_of_injected_graphs_loc = []
         self.fraction_of_edge_weights = fraction_of_edge_weights
         self.fraction_of_edge_pkts = fraction_of_edge_pkts
@@ -192,11 +216,14 @@ class set_of_injected_graphs():
         into_dns_ratio = []
 
         for injected_graph_loc in self.list_of_injected_graphs_loc:
-            injected_graph = pickle.load(injected_graph_loc)
+            print "injected_graph_loc",injected_graph_loc
+            with open(injected_graph_loc, 'rb') as pickle_input_file:
+                injected_graph = pickle.load(pickle_input_file)
             injected_graph.load_metrics()
             current_graph_feature_dict = injected_graph.graph_feature_dict
 
             # need to calculate the metrics that require all data to be known here...
+            print("current_graph_feature_dict.keys()", current_graph_feature_dict.keys())
             adjacency_matrixes.append( current_graph_feature_dict['adjacency_matrix'] )
             dns_in_metric_dicts.append( current_graph_feature_dict['weight_into_dns_dict'] )
 
@@ -280,13 +307,16 @@ class set_of_injected_graphs():
             self.calculated_values = {rows[0]: rows[1] for rows in reader}
 
     def calcuated_single_step_metrics(self):
-            for counter, injected_obj_loc in enumerate(self.list_of_injected_graphs_loc):
-                gc.collect()
+        print("self.list_of_injected_graphs_loc",self.list_of_injected_graphs_loc)
+        for counter, injected_obj_loc in enumerate(self.list_of_injected_graphs_loc):
+            gc.collect()
 
-                with open(injected_obj_loc, 'r') as input_file:
-                    injected_graph_obj = pickle.load(input_file)
+            with open(injected_obj_loc, 'r') as input_file:
+                injected_graph_obj = pickle.load(input_file)
 
-                injected_graph_obj.calc_single_step_metrics()
+            injected_graph_obj.calc_single_step_metrics()
+
+            injected_graph_obj.save()
 
     def generate_injected_edgefiles(self):
         current_total_node_list = []
@@ -299,6 +329,9 @@ class set_of_injected_graphs():
         injected_filenmames = {}  # index via counter... might be useful later on...
         total_edgelist_nodes = []
         injected_graph_obj_locations = []
+
+        avg_dns_weight = 0
+        avg_dns_pkts = 0
 
         for counter, file_path in enumerate(self.raw_edgefile_names):
 
@@ -324,10 +357,21 @@ class set_of_injected_graphs():
             # debugging process... and some point I could even decouple creating/processing the edgefiles and
             # calculating the corresponding graph metrics
             edgefile_folder_path = "/".join(file_path.split('/')[:-1])
+            experiment_info_path = "/".join(edgefile_folder_path.split('/')[:-1])
             name_of_file = file_path.split('/')[-1]
             name_of_injected_file = str(self.fraction_of_edge_weights) + '_' + str(self.fraction_of_edge_pkts) + '_' + \
                                     file_path.split('/')[-1]
             edgefile_pruned_folder_path = edgefile_folder_path + '/pruned_edgefiles/'
+            graph_obj_folder_path = experiment_info_path + '/graph_objs/'
+
+            ## if the graph object folder directory doesn't currently exist, then we'd want to create it...
+            ## using the technique from https://stackoverflow.com/questions/273192/how-can-i-safely-create-a-nested-directory-in-python
+            try:
+                os.makedirs(graph_obj_folder_path)
+            except OSError as e:
+                if e.errno != errno.EEXIST:
+                    raise
+
             ## if the pruned folder directory doesn't currently exist, then we'd want to create it...
             ## using the technique from https://stackoverflow.com/questions/273192/how-can-i-safely-create-a-nested-directory-in-python
             try:
@@ -337,7 +381,7 @@ class set_of_injected_graphs():
                     raise
             nx.write_edgelist(cur_1si_G, edgefile_pruned_folder_path + name_of_file, data=['frames', 'weight'])
 
-            cur_class_G = prepare_graph(G, self.svcs, 'class', is_swarm, counter, file_path, self.ms_s, self.container_to_ip,
+            cur_class_G = prepare_graph(G, self.svcs, 'class', self.is_swarm, counter, file_path, self.ms_s, self.container_to_ip,
                                         self.infra_service)
 
             logging.info("cur_1si_G edges")
@@ -426,23 +470,49 @@ class set_of_injected_graphs():
                     raise
             nx.write_edgelist(cur_1si_G, edgefile_injected_folder_path + name_of_injected_file,
                               data=['frames', 'weight'])
+
+            nx.write_edgelist(cur_class_G, edgefile_injected_folder_path + 'class_' +name_of_injected_file,
+                              data=['frames', 'weight'])
+
             # injected_filenames.append(edgefile_injected_folder_path+name_of_file)
             total_edgelist_nodes = update_total_edgelist_nodes_if_needed(cur_1si_G, total_edgelist_nodes)
             # injected_filenmames[counter] = edgefile_injected_folder_path + name_of_file
 
             name = name_of_file
-            injected_graph_obj_loc = 'graph_obj_' + name_of_injected_file
-            injected_graph_obj = injected_graph(name, edgefile_injected_folder_path + name_of_file, file_path,
+            injected_graph_obj_loc = graph_obj_folder_path + 'graph_obj_' + name_of_injected_file # TODO:: QQQ need new file path...
+            print("injected_graph_obj_loc",injected_graph_obj_loc)
+            injected_graph_obj = injected_graph(name, edgefile_injected_folder_path + name_of_injected_file,
+                                                edgefile_pruned_folder_path + name_of_file,
                                                 concrete_cont_node_path,
                                                 pre_specified_data_attribs, svc_to_pod, pod_to_svc,
                                                 total_edgelist_nodes,
                                                 injected_graph_obj_loc, counter, name_of_dns_pod_node,
                                                 current_total_node_list,
                                                 self.fraction_of_edge_weights, self.fraction_of_edge_pkts,
-                                                self.svcs, self.is_swarm, self.ms_s, self.container_to_ip, self.infra_service)
+                                                self.svcs, self.is_swarm, self.ms_s, self.container_to_ip, self.infra_service,
+                                                edgefile_injected_folder_path + 'class_' +name_of_injected_file,
+                                                name_of_injected_file)
+
             injected_graph_obj.save()
 
+
+
+            # at 53: 4.04 GB
             self.list_of_injected_graphs_loc.append(injected_graph_obj_loc)
+            del injected_graph_obj # help??
+            cur_1si_G.clear()
+            del cur_1si_G # help??
+            cur_class_G.clear()
+            del cur_class_G # help
+            G.clear()
+            del G # help
+
+            # okay, so this function would literally function if we passed the object into it and it was able to return somehow
+            # but unfortunately, this seems unlikely... but memory usage is still way to high in the program, and I'm not
+            # sure what to do about it...
+            # plan (1) remove all the references to self. use local vars that I initialize at the beggining of the function
+            # (2) wrap the rest
+
 
 def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_vals_p, window_size, ms_s, container_to_ip,
                               is_swarm, svcs, infra_service, synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
