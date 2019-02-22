@@ -168,7 +168,7 @@ set_of_injected_graphs(fraction_of_edge_weights, fraction_of_edge_pkts, time_gra
 class set_of_injected_graphs():
     def __init__(self, fraction_of_edge_weights, fraction_of_edge_pkts, time_granularity, window_size, raw_edgefile_names,
                 svcs, is_swarm, ms_s, container_to_ip, infra_service, synthetic_exfil_paths, initiator_info_for_paths,
-                attacks_to_times, collected_metrics_location, current_set_of_graphs_loc, out_q):
+                attacks_to_times, collected_metrics_location, current_set_of_graphs_loc):#, out_q):
 
         self.list_of_injected_graphs_loc = []
         self.fraction_of_edge_weights = fraction_of_edge_weights
@@ -187,7 +187,7 @@ class set_of_injected_graphs():
         self.time_interval= time_granularity
         self.collected_metrics_location = collected_metrics_location
         self.current_set_of_graphs_loc = current_set_of_graphs_loc
-        self.out_q = out_q
+        #self.out_q = out_q
 
         self.calculated_values = {}
         self.calculated_values_keys = None
@@ -196,8 +196,11 @@ class set_of_injected_graphs():
         self.list_of_exfil_amts = []
 
     def save(self):
-        with open(self.current_set_of_graphs_loc, 'wb') as output:  # Overwrites any existing file.
-            pickle.dump(self, output, pickle.HIGHEST_PROTOCOL)
+        #with open(self.current_set_of_graphs_loc, 'wb') as output:  # Overwrites any existing file.
+        #    pickle.dump(self, output, pickle.HIGHEST_PROTOCOL)
+
+        with open(self.current_set_of_graphs_loc, 'wb') as f:  # Just use 'w' mode in 3.x
+            f.write(pickle.dumps(self))
 
     def calc_serialize_metrics(self):
         adjacency_matrixes = []
@@ -288,23 +291,32 @@ class set_of_injected_graphs():
         self.calculated_values['ide_angles (w abs)'] = [abs(i) for i in ide_angles_results]
 
         self.calculated_values_keys = self.calculated_values.keys()
-        with open(self.collected_metrics_location, 'wb') as f:  # Just use 'w' mode in 3.x
-            w = csv.DictWriter(f, self.calculated_values.keys())
-            w.writeheader()
-            w.writerow(self.calculated_values)
 
-    def put_values_into_outq(self):
-        self.out_q.put(self.calculated_values)
-        self.out_q.put(self.list_of_concrete_container_exfil_paths)
-        self.out_q.put(self.list_of_exfil_amts)
-        self.out_q.put([])  # new_neighbors_outside
-        self.out_q.put([])  # new_neighbors_dns
-        self.out_q.put([])  # new_neighbors_all
+        #with open(self.collected_metrics_location, 'wb') as f:  # Just use 'w' mode in 3.x
+        #    w = csv.DictWriter(f, self.calculated_values.keys())
+        #    w.writeheader()
+        #    w.writerow(self.calculated_values)
+
+        with open(self.collected_metrics_location, 'wb') as f:  # Just use 'w' mode in 3.x
+            f.write(pickle.dumps(self.calculated_values))
+
+    def put_values_into_outq(self, out_q):
+        out_q.put(self.calculated_values)
+        out_q.put(self.list_of_concrete_container_exfil_paths)
+        out_q.put(self.list_of_exfil_amts)
+        out_q.put([])  # new_neighbors_outside
+        out_q.put([])  # new_neighbors_dns
+        out_q.put([])  # new_neighbors_all
 
     def load_serialized_metrics(self):
-        with open(self.collected_metrics_location, mode='r') as f:
-            reader = csv.DictReader(f, self.calculated_values_keys)
-            self.calculated_values = {rows[0]: rows[1] for rows in reader}
+        #with open(self.collected_metrics_location, mode='r') as f:
+        #    reader = csv.DictReader(f, self.calculated_values_keys)
+        #    self.calculated_values = {rows[0]: rows[1] for rows in reader}
+
+        with open(self.collected_metrics_location, mode='rb') as f:
+            cur_contents = f.read()
+            print "cur_contents", cur_contents
+            self.calculated_values = pickle.loads(cur_contents)
 
     def calcuated_single_step_metrics(self):
         print("self.list_of_injected_graphs_loc",self.list_of_injected_graphs_loc)

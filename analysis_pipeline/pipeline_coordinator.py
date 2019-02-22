@@ -50,15 +50,17 @@ def process_one_set_of_graphs(fraction_of_edge_weights, fraction_of_edge_pkts, t
                                          fraction_of_edge_pkts, time_interval_length, window_size,
                                          filenames, svcs, is_swarm, ms_s, mapping, list_of_infra_services,
                                          synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
-                                          collected_metrics_location, current_set_of_graphs_loc, out_q)
+                                          collected_metrics_location, current_set_of_graphs_loc)
         current_set_of_graphs.generate_injected_edgefiles()
         current_set_of_graphs.calcuated_single_step_metrics()
         current_set_of_graphs.calc_serialize_metrics()
         current_set_of_graphs.save()
     else:
-        current_set_of_graphs = pickle.load(current_set_of_graphs_loc)
+        with open(current_set_of_graphs_loc, mode='rb') as f:
+            current_set_of_graphs_loc_contents = f.read()
+            current_set_of_graphs = pickle.loads(current_set_of_graphs_loc_contents)
         current_set_of_graphs.load_serialized_metrics()
-    current_set_of_graphs.put_values_into_outq()
+    current_set_of_graphs.put_values_into_outq(out_q)
 
 def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms_s, basegraph_name, calc_vals, window_size,
                                 mapping, is_swarm, make_net_graphs_p, list_of_infra_services,synthetic_exfil_paths,
@@ -1250,14 +1252,38 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
                                     'New Class-Class Edges_',
                                     '1-step-induced-pod density_']
             print "X_train_columns",X_train.columns, "---"
-            X_train = X_train.drop(columns='New Class-Class Edges with DNS_')
-            X_train = X_train.drop(columns='New Class-Class Edges with Outside_')
-            X_train = X_train.drop(columns='New Class-Class Edges_')
-            X_train = X_train.drop(columns='1-step-induced-pod density_')
-            X_test = X_test.drop(columns='New Class-Class Edges with DNS_')
-            X_test = X_test.drop(columns='New Class-Class Edges with Outside_')
-            X_test = X_test.drop(columns='New Class-Class Edges_')
-            X_test = X_test.drop(columns='1-step-induced-pod density_')
+            try:
+                X_train = X_train.drop(columns='New Class-Class Edges with DNS_')
+            except:
+                pass
+            try:
+                X_train = X_train.drop(columns='New Class-Class Edges with Outside_')
+            except:
+                pass
+            try:
+                X_train = X_train.drop(columns='New Class-Class Edges_')
+            except:
+                pass
+            try:
+                X_train = X_train.drop(columns='1-step-induced-pod density_')
+            except:
+                pass
+            try:
+                X_test = X_test.drop(columns='New Class-Class Edges with DNS_')
+            except:
+                pass
+            try:
+                X_test = X_test.drop(columns='New Class-Class Edges with Outside_')
+            except:
+                pass
+            try:
+                X_test = X_test.drop(columns='New Class-Class Edges_')
+            except:
+                pass
+            try:
+                X_test = X_test.drop(columns='1-step-induced-pod density_')
+            except:
+                pass
         #'''
 
         print '-------'
