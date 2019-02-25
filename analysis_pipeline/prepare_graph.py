@@ -3,6 +3,7 @@ import networkx as nx
 import numpy as np
 from matplotlib import pyplot as plt
 from networkx.drawing.nx_agraph import graphviz_layout
+from itertools import chain
 
 # TODO: at some point, what I probably want to do is pass in the hosting machine's IP addresses, b/c I'm justing using heuristics
 # to identify it ATM
@@ -71,15 +72,35 @@ def aggregate_outside_nodes(G):
                 #print "new outside node!", node
     # might wanna put below line back in...
     #print "outside nodes", outside_nodes
-    try:
-        first_node = outside_nodes[0]
-        for cur_node in outside_nodes[1:]:
-            G = nx.contracted_nodes(G, first_node, cur_node, self_loops=False)
-        mapping = {first_node: 'outside'}
-        nx.relabel_nodes(G, mapping, copy=False)
-    except:
-        pass
-    return G
+    #try:
+    print("trying...")
+    first_node = outside_nodes[0]
+    H = G.copy()
+    for cur_node in outside_nodes[1:]:
+        ## going to modify the src code for contracted_edges in networkx 1.10
+        ##  ## https://networkx.github.io/documentation/networkx-1.10/_modules/networkx/algorithms/minors.html#contracted_nodes
+        in_edges = ((w, first_node, d) for w, x, d in G.in_edges(cur_node, data=True))
+        out_edges = ((first_node, w, d) for x, w, d in G.out_edges(cur_node, data=True))
+        new_edges = chain(in_edges, out_edges)
+        print("new_edges_chain...", new_edges)
+        for new_edge in new_edges:
+            if H.has_edge(new_edge[0], new_edge[1]):
+                print("modify exist edge",G[new_edge[0]][new_edge[1]])
+                G[new_edge[0]][new_edge[1]]['weight']=  G[new_edge[0]][new_edge[1]]['weight'] + new_edge[2]['weight']
+                G[new_edge[0]][new_edge[1]]['frames'] =  G[new_edge[0]][new_edge[1]]['frames'] + new_edge[2]['frames']
+            else:
+                print("newe_edge",new_edge)
+                G.add_edge(new_edge[0],new_edge[1], frames=new_edge[2]['frames'], weight=new_edge[2]['weight'])
+                #G.add_edge(*new_edge)
+        print("removing...", cur_node)
+        H.remove_node(cur_node)
+
+        #G = nx.contracted_nodes(G, first_node, cur_node, self_loops=False)
+    mapping = {first_node: 'outside'}
+    nx.relabel_nodes(H, mapping, copy=False)
+    #except:
+    #    pass
+    return H
 
 # aggregate all nodes of the same class into a single node
 # let's use a multigraph, so we can keep all the edges as intact...

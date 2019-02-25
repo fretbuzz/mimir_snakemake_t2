@@ -254,9 +254,11 @@ def exfil_time_valid(potential_starting_point, time_slots_attack, attack_labels)
 
 def assign_attacks_to_first_available_spots(time_gran_to_attack_labels, largest_time_gran, time_periods_startup, time_periods_attack,
                                             counter, time_gran_to_attack_ranges, synthetic_exfil_paths, current_exfil_paths):
-    for synthetic_exfil_path in synthetic_exfil_paths:
+    ## TODO: problem: this can only inject the attacks in once...
+    for synthetic_exfil_path in current_exfil_paths: # synthetic_exfil_paths:
+
         print synthetic_exfil_path, synthetic_exfil_path in current_exfil_paths
-        if synthetic_exfil_path in current_exfil_paths:
+        if synthetic_exfil_path in synthetic_exfil_paths: #current_exfil_paths:
             # randomly choose ranges using highest granularity (then after this we'll choose for the smaller granularities...)
             attack_spot_found = False
             number_free_spots = time_gran_to_attack_labels[largest_time_gran][int(time_periods_startup):].count(0)
@@ -947,6 +949,7 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
                                              path_occurence_testing_df, recipes_used, skip_model_part, clf,
                                              ignore_physical_attacks_p)
         #'''
+        ''' # appears to be strictly worse than lasso regression...
         # lass_feat_sel
         clf = LogisticRegressionCV(penalty="l1", cv=10, max_iter=10000, solver='saga')
         statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p,
@@ -956,6 +959,7 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
                                              ignore_physical_attacks_p, fraction_of_edge_weights[rate_counter],
                                              fraction_of_edge_pkts[rate_counter])
 
+        #'''
         '''
         clf = LogisticRegressionCV(penalty="l2", cv=3, max_iter=10000)
         statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p,

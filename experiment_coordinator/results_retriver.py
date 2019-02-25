@@ -11,11 +11,11 @@ import time
 cloudlab_private_key = '/Users/jseverin/Dropbox/cloudlab.pem'
 local_dir = '/Volumes/exM2/experimental_data/wordpress_info' #'/Users/jseverin/Documents'  # TODO
 sentinal_file = '/mydata/all_done.txt'
-exp_name = 'wordpress_thirteen_t3'  # TODO
-mimir_1 = 'c240g5-110217.wisc.cloudlab.us' #'c240g5-110119.wisc.cloudlab.us' #'c240g5-110119.wisc.cloudlab.us'
+exp_name = 'wordpress_thirteen_t5'  # TODO
+mimir_1 = 'c240g5-110215.wisc.cloudlab.us' #'c240g5-110207.wisc.cloudlab.us' #'c240g5-110217.wisc.cloudlab.us' #'c240g5-110119.wisc.cloudlab.us' #'c240g5-110119.wisc.cloudlab.us'
 #mimir_2 = 'c240g5-110105.wisc.cloudlab.us'
 cloudlab_server_ip = mimir_1 #note: remove the username@ from the beggining
-exp_length = 7200 # in seconds
+exp_length = 10800 #7200 # in seconds
 remote_dir = '/mydata/mimir_snakemake_t2/experiment_coordinator/experimental_data/' + exp_name  # TODO
 possible_apps = ['drupal', 'sockshop', 'gitlab', 'eShop', 'wordpress']
 experiment_sentinal_file = '/mydata/mimir_snakemake_t2/experiment_coordinator/experiment_done.txt'

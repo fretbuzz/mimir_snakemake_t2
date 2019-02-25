@@ -1712,7 +1712,7 @@ def new_wordpress_recipe():
     size_of_neighbor_training_window = 0
 
 
-    calc_vals = True ## TODO: probably want to turn this off: NOTE IS THIS ALSO PROCESSING THE PCAP
+    calc_vals = True ## TODO: probably want to turn this off
     calculate_z_scores = True
 
 

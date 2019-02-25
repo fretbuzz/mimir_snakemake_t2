@@ -37,7 +37,8 @@ class injected_graph():
     def __init__(self, name, injected_graph_loc, non_injected_graph_loc, concrete_container_exfil_paths, exfil_amt,
                  svc_to_pod, pod_to_svc, total_edgelist_nodes, where_to_save_this_obj, counter, name_of_dns_pod_node,
                  current_total_node_list, fraction_of_edge_weights, fraction_of_edge_pkts,
-                 svcs, is_swarm, ms_s, container_to_ip, infra_service, injected_class_graph_loc, name_of_injected_file):
+                 svcs, is_swarm, ms_s, container_to_ip, infra_service, injected_class_graph_loc, name_of_injected_file,
+                 nodeAttrib_injected_graph_loc, nodeAttrib_injected_graph_loc_class):
         self.name = name
         self.injected_graph_loc = injected_graph_loc
         self.name_of_injected_file = name_of_injected_file
@@ -58,6 +59,8 @@ class injected_graph():
         self.graph_feature_dict_keys = None
         self.fraction_of_edge_weights = fraction_of_edge_weights
         self.fraction_of_edge_pkts = fraction_of_edge_pkts
+        self.nodeAttrib_injected_graph_loc = nodeAttrib_injected_graph_loc
+        self.nodeAttrib_injected_graph_loc_class = nodeAttrib_injected_graph_loc_class
 
         self.svcs = svcs
         self.is_swarm = is_swarm
@@ -132,16 +135,17 @@ class injected_graph():
     def _load_graph(self):
         self.cur_1si_G = nx.DiGraph()
         print "path to file is ", self.injected_graph_loc
-        f = open(self.injected_graph_loc, 'r')
-        lines = f.readlines()
-        nx.parse_edgelist(lines, delimiter=' ', create_using=self.cur_1si_G, data=[('frames',int), ('weight',int)])
+        #f = open(self.injected_graph_loc, 'r')
+        #lines = f.readlines()
+        #nx.parse_edgelist(lines, delimiter=' ', create_using=self.cur_1si_G, data=[('frames',int), ('weight',int)])
+        self.cur_1si_G = nx.read_gpickle( self.nodeAttrib_injected_graph_loc )
 
         self.cur_class_G = nx.DiGraph()
-        print "path to class file is ", self.injected_class_graph_loc
-        f = open(self.injected_class_graph_loc, 'r')
-        lines = f.readlines()
-        nx.parse_edgelist(lines, delimiter=' ', create_using=self.cur_class_G, data=[('frames',int), ('weight',int)])
-
+        #print "path to class file is ", self.injected_class_graph_loc
+        #f = open(self.injected_class_graph_loc, 'r')
+        #lines = f.readlines()
+        #nx.parse_edgelist(lines, delimiter=' ', create_using=self.cur_class_G, data=[('frames',int), ('weight',int)])
+        self.cur_class_G = nx.read_gpickle( self.nodeAttrib_injected_graph_loc_class )
 
 
     def load_metrics(self):
@@ -321,6 +325,7 @@ class set_of_injected_graphs():
     def calcuated_single_step_metrics(self):
         print("self.list_of_injected_graphs_loc",self.list_of_injected_graphs_loc)
         for counter, injected_obj_loc in enumerate(self.list_of_injected_graphs_loc):
+            print("counter",counter)
             gc.collect()
 
             with open(injected_obj_loc, 'r') as input_file:
@@ -486,6 +491,10 @@ class set_of_injected_graphs():
             nx.write_edgelist(cur_class_G, edgefile_injected_folder_path + 'class_' +name_of_injected_file,
                               data=['frames', 'weight'])
 
+            nx.write_gpickle(cur_1si_G, edgefile_injected_folder_path + 'with_nodeAttribs' + name_of_injected_file)
+            nx.write_gpickle(cur_class_G, edgefile_injected_folder_path + 'class_' + 'with_nodeAttribs' + name_of_injected_file)
+
+
             # injected_filenames.append(edgefile_injected_folder_path+name_of_file)
             total_edgelist_nodes = update_total_edgelist_nodes_if_needed(cur_1si_G, total_edgelist_nodes)
             # injected_filenmames[counter] = edgefile_injected_folder_path + name_of_file
@@ -503,7 +512,9 @@ class set_of_injected_graphs():
                                                 self.fraction_of_edge_weights, self.fraction_of_edge_pkts,
                                                 self.svcs, self.is_swarm, self.ms_s, self.container_to_ip, self.infra_service,
                                                 edgefile_injected_folder_path + 'class_' +name_of_injected_file,
-                                                name_of_injected_file)
+                                                name_of_injected_file,
+                                                edgefile_injected_folder_path + 'with_nodeAttribs' + name_of_injected_file,
+                                                edgefile_injected_folder_path + 'class_' + 'with_nodeAttribs' + name_of_injected_file)
 
             injected_graph_obj.save()
 

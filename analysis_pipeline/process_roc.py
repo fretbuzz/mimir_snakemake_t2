@@ -26,18 +26,23 @@ def determine_categorical_labels(y_test, optimal_predictions, exfil_paths, exfil
     print exfil_paths.tolist()
     types_of_exfil_paths = []
     for gen_exfil_path in exfil_paths.tolist():
-        if gen_exfil_path not in types_of_exfil_paths:
-            types_of_exfil_paths.append(gen_exfil_path)
+        if str(gen_exfil_path) not in types_of_exfil_paths:
+            types_of_exfil_paths.append(str(gen_exfil_path))
     #types_of_exfil_paths = list(set(exfil_paths.tolist()))
     print "types_of_exfil_paths", types_of_exfil_paths
-    types_of_exfil_paths = [ast.literal_eval(i) for i in types_of_exfil_paths]
+    types_of_exfil_paths_eval = []
+    for i in types_of_exfil_paths:
+        print("i",i)
+        types_of_exfil_paths_eval.append(ast.literal_eval(i))
+    types_of_exfil_paths = types_of_exfil_paths_eval
+    #types_of_exfil_paths = [ast.literal_eval(i) for i in types_of_exfil_paths]
     print "types_of_exfil_paths", types_of_exfil_paths
     types_of_exfil_paths = [i if i != 0 else [] for i in types_of_exfil_paths]
     print "types_of_exfil_paths", types_of_exfil_paths
     attack_type_to_index = {}
     for exfil_type in types_of_exfil_paths:
         print "exfil_type",exfil_type, type(exfil_type), "tuple(exfil_type)",tuple(exfil_type), type(tuple(exfil_type))
-        current_indexes = [i for i, j in enumerate(exfil_paths) if j == str(exfil_type)]
+        current_indexes = [i for i, j in enumerate(exfil_paths) if str(j) == str(exfil_type)]
         print "current_indexes", current_indexes
         attack_type_to_index[tuple(exfil_type)] = current_indexes
     number_of_found_exfils = len(attack_type_to_index.values())
