@@ -73,7 +73,7 @@ def aggregate_outside_nodes(G):
     # might wanna put below line back in...
     #print "outside nodes", outside_nodes
     #try:
-    print("trying...")
+    #print("trying...")
     first_node = outside_nodes[0]
     H = G.copy()
     for cur_node in outside_nodes[1:]:
@@ -82,17 +82,17 @@ def aggregate_outside_nodes(G):
         in_edges = ((w, first_node, d) for w, x, d in G.in_edges(cur_node, data=True))
         out_edges = ((first_node, w, d) for x, w, d in G.out_edges(cur_node, data=True))
         new_edges = chain(in_edges, out_edges)
-        print("new_edges_chain...", new_edges)
+        #print("new_edges_chain...", new_edges)
         for new_edge in new_edges:
             if H.has_edge(new_edge[0], new_edge[1]):
-                print("modify exist edge",G[new_edge[0]][new_edge[1]])
+                #print("modify exist edge",G[new_edge[0]][new_edge[1]])
                 G[new_edge[0]][new_edge[1]]['weight']=  G[new_edge[0]][new_edge[1]]['weight'] + new_edge[2]['weight']
                 G[new_edge[0]][new_edge[1]]['frames'] =  G[new_edge[0]][new_edge[1]]['frames'] + new_edge[2]['frames']
             else:
-                print("newe_edge",new_edge)
+                #print("newe_edge",new_edge)
                 G.add_edge(new_edge[0],new_edge[1], frames=new_edge[2]['frames'], weight=new_edge[2]['weight'])
                 #G.add_edge(*new_edge)
-        print("removing...", cur_node)
+        #print("removing...", cur_node)
         H.remove_node(cur_node)
 
         #G = nx.contracted_nodes(G, first_node, cur_node, self_loops=False)

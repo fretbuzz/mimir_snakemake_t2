@@ -350,6 +350,18 @@ class set_of_injected_graphs():
         avg_dns_weight = 0
         avg_dns_pkts = 0
 
+        svcs = self.svcs
+        is_swarm = self.is_swarm
+        ms_s = self.ms_s
+        container_to_ip = self.container_to_ip
+        infra_service = self.infra_service
+        fraction_of_edge_weights = self.fraction_of_edge_weights
+        fraction_of_edge_pkts = self.fraction_of_edge_pkts
+        synthetic_exfil_paths = self.synthetic_exfil_paths
+        initiator_info_for_paths = self.initiator_info_for_paths
+        attacks_to_times = self.attacks_to_times
+        time_interval = self.time_interval
+
         for counter, file_path in enumerate(self.raw_edgefile_names):
 
             gc.collect()
@@ -367,8 +379,8 @@ class set_of_injected_graphs():
 
             # nx.read_edgelist(file_path,
             #                 create_using=G, delimiter=',', data=(('weight', float),))
-            cur_1si_G = prepare_graph(G, self.svcs, 'app_only', self.is_swarm, counter, file_path, self.ms_s,
-                                      self.container_to_ip, self.infra_service)
+            cur_1si_G = prepare_graph(G, svcs, 'app_only', is_swarm, counter, file_path, ms_s,
+                                      container_to_ip, infra_service)
 
             # let's save the processed version of the graph in a nested folder for easier comparison during the
             # debugging process... and some point I could even decouple creating/processing the edgefiles and
@@ -376,7 +388,7 @@ class set_of_injected_graphs():
             edgefile_folder_path = "/".join(file_path.split('/')[:-1])
             experiment_info_path = "/".join(edgefile_folder_path.split('/')[:-1])
             name_of_file = file_path.split('/')[-1]
-            name_of_injected_file = str(self.fraction_of_edge_weights) + '_' + str(self.fraction_of_edge_pkts) + '_' + \
+            name_of_injected_file = str(fraction_of_edge_weights) + '_' + str(fraction_of_edge_pkts) + '_' + \
                                     file_path.split('/')[-1]
             edgefile_pruned_folder_path = edgefile_folder_path + '/pruned_edgefiles/'
             graph_obj_folder_path = experiment_info_path + '/graph_objs/'
@@ -398,8 +410,8 @@ class set_of_injected_graphs():
                     raise
             nx.write_edgelist(cur_1si_G, edgefile_pruned_folder_path + name_of_file, data=['frames', 'weight'])
 
-            cur_class_G = prepare_graph(G, self.svcs, 'class', self.is_swarm, counter, file_path, self.ms_s, self.container_to_ip,
-                                        self.infra_service)
+            cur_class_G = prepare_graph(G, svcs, 'class', is_swarm, counter, file_path, ms_s, container_to_ip,
+                                        infra_service)
 
             logging.info("cur_1si_G edges")
             for edge in cur_1si_G.edges(data=True):
@@ -418,7 +430,7 @@ class set_of_injected_graphs():
                     current_total_node_list.append(node)
 
             # print "right after graph is prepared", level_of_processing, list(cur_G.nodes(data=True))
-            logging.info("svcs, " + str(self.svcs))
+            logging.info("svcs, " + str(svcs))
             for thing in cur_1si_G.nodes(data=True):
                 logging.info(thing)
                 try:
@@ -453,23 +465,21 @@ class set_of_injected_graphs():
                     avg_dns_pkts = avg_dns_pkts / 2.0 + cur_avg_dns_pkts / 2.0
 
             cur_1si_G, node_attack_mapping, pre_specified_data_attribs, concrete_cont_node_path = inject_synthetic_attacks(
-                cur_1si_G, self.synthetic_exfil_paths, self.initiator_info_for_paths,
-                self.attacks_to_times, 'app_only', self.time_interval, counter, node_attack_mapping,
-                self.fraction_of_edge_weights, self.fraction_of_edge_pkts, None,
+                cur_1si_G, synthetic_exfil_paths, initiator_info_for_paths,
+                attacks_to_times, 'app_only', time_interval, counter, node_attack_mapping,
+                fraction_of_edge_weights, fraction_of_edge_pkts, None,
                 name_of_dns_pod_node, avg_dns_weight, avg_dns_pkts)
-            self.list_of_concrete_container_exfil_paths.append(concrete_cont_node_path)
-            self.list_of_exfil_amts.append(pre_specified_data_attribs)
 
             cur_class_G, class_attack_mapping, _, concrete_class_node_path = inject_synthetic_attacks(cur_class_G,
-                                                                                                      self.synthetic_exfil_paths,
-                                                                                                      self.initiator_info_for_paths,
-                                                                                                      self.attacks_to_times,
+                                                                                                      synthetic_exfil_paths,
+                                                                                                      initiator_info_for_paths,
+                                                                                                      attacks_to_times,
                                                                                                       'class',
-                                                                                                      self.time_interval,
+                                                                                                      time_interval,
                                                                                                       counter,
                                                                                                       class_attack_mapping,
-                                                                                                      self.fraction_of_edge_weights,
-                                                                                                      self.fraction_of_edge_pkts,
+                                                                                                      fraction_of_edge_weights,
+                                                                                                      fraction_of_edge_pkts,
                                                                                                       pre_specified_data_attribs,
                                                                                                       name_of_dns_pod_node,
                                                                                                       avg_dns_weight,
@@ -509,19 +519,16 @@ class set_of_injected_graphs():
                                                 total_edgelist_nodes,
                                                 injected_graph_obj_loc, counter, name_of_dns_pod_node,
                                                 current_total_node_list,
-                                                self.fraction_of_edge_weights, self.fraction_of_edge_pkts,
-                                                self.svcs, self.is_swarm, self.ms_s, self.container_to_ip, self.infra_service,
+                                                fraction_of_edge_weights, fraction_of_edge_pkts,
+                                                svcs, is_swarm, ms_s, container_to_ip, infra_service,
                                                 edgefile_injected_folder_path + 'class_' +name_of_injected_file,
                                                 name_of_injected_file,
                                                 edgefile_injected_folder_path + 'with_nodeAttribs' + name_of_injected_file,
                                                 edgefile_injected_folder_path + 'class_' + 'with_nodeAttribs' + name_of_injected_file)
 
             injected_graph_obj.save()
-
-
-
             # at 53: 4.04 GB
-            self.list_of_injected_graphs_loc.append(injected_graph_obj_loc)
+
             del injected_graph_obj # help??
             cur_1si_G.clear()
             del cur_1si_G # help??
@@ -529,6 +536,17 @@ class set_of_injected_graphs():
             del cur_class_G # help
             G.clear()
             del G # help
+
+
+            ## okay, literally the code above should be wrapped in a function call...
+            ## however, you'd probably wanna process like 40-50 of these on a single call...
+            self.list_of_concrete_container_exfil_paths.append(concrete_cont_node_path)
+            self.list_of_exfil_amts.append(pre_specified_data_attribs)
+            self.list_of_injected_graphs_loc.append(injected_graph_obj_loc)
+            ''' # need to be passed too
+                    avg_dns_weight
+                    avg_dns_pkts
+            '''
 
             # okay, so this function would literally function if we passed the object into it and it was able to return somehow
             # but unfortunately, this seems unlikely... but memory usage is still way to high in the program, and I'm not
