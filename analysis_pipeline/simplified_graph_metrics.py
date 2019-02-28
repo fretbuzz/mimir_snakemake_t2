@@ -163,13 +163,7 @@ class injected_graph():
     def _create_class_level_graph(self):
         self.cur_class_G = prepare_graph(self.cur_1si_G, self.svcs, 'class', self.is_swarm, self.counter, self.injected_graph_loc,
                                     self.ms_s, self.container_to_ip, self.infra_service)
-'''
-set_of_injected_graphs(fraction_of_edge_weights, fraction_of_edge_pkts, time_granularity, window_size, raw_edgefile_names,
-                svcs, is_swarm, ms_s, container_to_ip, infra_service, synthetic_exfil_paths, initiator_info_for_paths,
-                attacks_to_times, time_interval, collected_metrics_location)
-'''
 
-# okay, so what does this function even mean? well it is important for the set of graphs
 class set_of_injected_graphs():
     def __init__(self, fraction_of_edge_weights, fraction_of_edge_pkts, time_granularity, window_size, raw_edgefile_names,
                 svcs, is_swarm, ms_s, container_to_ip, infra_service, synthetic_exfil_paths, initiator_info_for_paths,
@@ -320,7 +314,7 @@ class set_of_injected_graphs():
 
         with open(self.collected_metrics_location, mode='rb') as f:
             cur_contents = f.read()
-            print "cur_contents", cur_contents
+            #print "cur_contents", cur_contents
             self.calculated_values = pickle.loads(cur_contents)
 
     def calcuated_single_step_metrics(self):
@@ -339,15 +333,9 @@ class set_of_injected_graphs():
     def generate_injected_edgefiles(self):
         current_total_node_list = []
         svc_to_pod = {}
-        #list_of_concrete_container_exfil_paths = []
-        #list_of_exfil_amts = []
         node_attack_mapping = {}
         class_attack_mapping = {}
-
-        injected_filenmames = {}  # index via counter... might be useful later on...
         total_edgelist_nodes = []
-        injected_graph_obj_locations = []
-
         avg_dns_weight = 0
         avg_dns_pkts = 0
 
@@ -363,10 +351,7 @@ class set_of_injected_graphs():
         attacks_to_times = self.attacks_to_times
         time_interval = self.time_interval
         out_q = multiprocessing.Queue()
-
-        #for counter, file_path in enumerate(self.raw_edgefile_names):
-        # TODO: okay, so what do I want to do now?? I want take slices of the file_path and
-        # pass it to the function
+        name_of_dns_pod_node = None
 
         num_graphs_to_process_at_once = 40
         for counter in range(0, len(self.raw_edgefile_names), num_graphs_to_process_at_once):
@@ -375,7 +360,7 @@ class set_of_injected_graphs():
             args = [counter, file_paths, svcs, is_swarm, ms_s, container_to_ip, infra_service, fraction_of_edge_weights,
                     fraction_of_edge_pkts, synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
                     time_interval, total_edgelist_nodes, svc_to_pod, avg_dns_weight, avg_dns_pkts, class_attack_mapping,
-                    node_attack_mapping, out_q, current_total_node_list]
+                    node_attack_mapping, out_q, current_total_node_list, name_of_dns_pod_node]
             p = multiprocessing.Process(
                 target=process_and_inject_single_graph,
                 args=args)
@@ -392,6 +377,7 @@ class set_of_injected_graphs():
             class_attack_mapping = out_q.get()
             node_attack_mapping = out_q.get()
             current_total_node_list = out_q.get()
+            name_of_dns_pod_node = out_q.get()
             p.join()
 
             ## okay, literally the code above should be wrapped in a function call...
@@ -403,7 +389,7 @@ class set_of_injected_graphs():
 def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm, ms_s, container_to_ip, infra_service, fraction_of_edge_weights,
                     fraction_of_edge_pkts, synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
                     time_interval, total_edgelist_nodes, svc_to_pod, avg_dns_weight, avg_dns_pkts, class_attack_mapping,
-                    node_attack_mapping, out_q, current_total_node_list):
+                    node_attack_mapping, out_q, current_total_node_list,name_of_dns_pod_node):
 
     concrete_cont_node_path_list = []
     pre_specified_data_attribs_list = []
@@ -594,6 +580,7 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
     out_q.put(class_attack_mapping)
     out_q.put(node_attack_mapping)
     out_q.put(current_total_node_list)
+    out_q.put(name_of_dns_pod_node)
 
 
 def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_vals_p, window_size, ms_s, container_to_ip,

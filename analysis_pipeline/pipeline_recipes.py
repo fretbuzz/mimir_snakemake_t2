@@ -1669,9 +1669,9 @@ def wordpress_thirteen_t1(time_of_synethic_exfil=None, only_exp_info=False, init
     graph_p = False  # should I make graphs?
     colors = ['b', 'r']
     wiggle_room = 2  # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
-    percentile_thresholds = [50, 75, 85, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100]
-    anomaly_window = [1, 4]
-    anom_num_outlier_vals_in_window = [1, 2] # note: these vals correspond to anoamly_window (so the first vals get matched, etc.)
+    #percentile_thresholds = [50, 75, 85, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100]
+    #anomaly_window = [1, 4]
+    #anom_num_outlier_vals_in_window = [1, 2] # note: these vals correspond to anoamly_window (so the first vals get matched, etc.)
     alert_file = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t1/alerts/wordpress_thirteen_t1_'
     sec_between_exfil_events = 15
     physical_exfil_path = []
@@ -1704,7 +1704,12 @@ def new_wordpress_recipe():
     ignore_physical_attacks_p = True
     #fraction_of_edge_weights,fraction_of_edge_pkts = [0.001, 0.1],[0.001, 0.1]
     #fraction_of_edge_weights,fraction_of_edge_pkts = [0.1],[0.1]
-    fraction_of_edge_weights,fraction_of_edge_pkts = [0.2, 0.1, 0.01, 0.001],[0.2, 0.1, 0.01, 0.001]
+
+    # want to put back eventaully...
+    #fraction_of_edge_weights,fraction_of_edge_pkts = [0.2, 0.1, 0.01, 0.001],[0.2, 0.1, 0.01, 0.001]
+    # going w/ this now b/c the 0.2's have already been calculated...
+    fraction_of_edge_weights, fraction_of_edge_pkts = [0.001], [0.001]
+
     time_of_synethic_exfil = 30 # sec
     goal_train_test_split = 0.6
     goal_attack_NoAttack_split = 0.6

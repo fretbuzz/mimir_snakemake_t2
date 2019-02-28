@@ -196,6 +196,9 @@ def make_multi_time_boxplots(metrics_to_time_to_granularity_lists, time_grans, m
     #print "min_yaxis", min_yaxis
     #print "max_yaxis", max_yaxis
     plt.xlim(0, cur_pos)
+    if min_yaxis == float('NaN') or min_yaxis == float('inf') or max_yaxis == float('NaN') or max_yaxis == float('inf'):
+        return # it's not going to end well anyway if there's a problem w/ the axises, so just return
+
     plt.ylim(min_yaxis, max_yaxis)
     plt.xticks(tick_position_list, [str(i) for i in time_grans])
 

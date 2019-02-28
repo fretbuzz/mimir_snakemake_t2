@@ -59,6 +59,9 @@ def process_one_set_of_graphs(fraction_of_edge_weights, fraction_of_edge_pkts, t
         with open(current_set_of_graphs_loc, mode='rb') as f:
             current_set_of_graphs_loc_contents = f.read()
             current_set_of_graphs = pickle.loads(current_set_of_graphs_loc_contents)
+            print "current_set_of_graphs.list_of_injected_graphs_loc", current_set_of_graphs.list_of_injected_graphs_loc
+            print "time_granularity", current_set_of_graphs.time_granularity
+            print "current_set_of_graphs.raw_edgefile_names",current_set_of_graphs.raw_edgefile_names
         current_set_of_graphs.load_serialized_metrics()
     current_set_of_graphs.put_values_into_outq(out_q)
 
@@ -592,13 +595,15 @@ class data_anylsis_pipline(object):
                                                          int(end_of_training), time_gran_to_new_neighbors_outside,
                                                          time_gran_to_new_neighbors_dns, time_gran_to_new_neighbors_all)
 
-            analysis_pipeline.generate_graphs.generate_feature_multitime_boxplots(total_calculated_vals, self.basegraph_name,
+            try: # this thing returns some kinda error but i don't care.
+                analysis_pipeline.generate_graphs.generate_feature_multitime_boxplots(total_calculated_vals, self.basegraph_name,
                                                                                   self.window_size, self.colors,
                                                                                   self.time_interval_lengths,
                                                                                   self.exfil_start_time, self.exfil_end_time,
                                                                                   self.wiggle_room)
 
-
+            except:
+                pass
         else:
             time_gran_to_feature_dataframe = {}
             time_gran_to_attack_labels = {}
@@ -995,6 +1000,12 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
     # todo: graph f_one versus exfil rates...
     graph_fone_versus_exfil_rate(list_of_optimal_fone_scores_at_exfil_rates, fraction_of_edge_weights,
                                  fraction_of_edge_pkts, time_gran_to_aggregate_mod_score_dfs.keys())
+
+    # todo: do I want to vary the exfil rate per-path?? If I wanna do that, I should probably actually get started
+    #  on implementing it at some point... the problem, of course, is that it is going to break the independence
+    # of analyzing the graph features for each injection rate independently... okay, so this is pretty complicated...
+    # should I create a new object?? well, first let's walk through what this functionality actually involves??
+    # GOAL: create e
 
 def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, base_output_name, names,
                                          starts_of_testing, path_occurence_training_df, path_occurence_testing_df,
