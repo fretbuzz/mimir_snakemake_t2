@@ -394,6 +394,7 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
     concrete_cont_node_path_list = []
     pre_specified_data_attribs_list = []
     injected_graph_obj_loc_list = []
+    carryover = 0
     for counter_add, file_path in enumerate(file_paths):
         counter = counter_starting + counter_add
         gc.collect()
@@ -496,13 +497,13 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
                 avg_dns_weight = avg_dns_weight / 2.0 + cur_avg_dns_weight / 2.0
                 avg_dns_pkts = avg_dns_pkts / 2.0 + cur_avg_dns_pkts / 2.0
 
-        cur_1si_G, node_attack_mapping, pre_specified_data_attribs, concrete_cont_node_path = inject_synthetic_attacks(
+        cur_1si_G, node_attack_mapping, pre_specified_data_attribs, concrete_cont_node_path,carryover = inject_synthetic_attacks(
             cur_1si_G, synthetic_exfil_paths, initiator_info_for_paths,
             attacks_to_times, 'app_only', time_interval, counter, node_attack_mapping,
             fraction_of_edge_weights, fraction_of_edge_pkts, None,
-            name_of_dns_pod_node, avg_dns_weight, avg_dns_pkts)
+            name_of_dns_pod_node, avg_dns_weight, avg_dns_pkts,carryover)
 
-        cur_class_G, class_attack_mapping, _, concrete_class_node_path = inject_synthetic_attacks(cur_class_G,
+        cur_class_G, class_attack_mapping, _, concrete_class_node_path,_ = inject_synthetic_attacks(cur_class_G,
                                                                                                   synthetic_exfil_paths,
                                                                                                   initiator_info_for_paths,
                                                                                                   attacks_to_times,
@@ -515,7 +516,7 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
                                                                                                   pre_specified_data_attribs,
                                                                                                   name_of_dns_pod_node,
                                                                                                   avg_dns_weight,
-                                                                                                  avg_dns_pkts)
+                                                                                                  avg_dns_pkts,carryover)
 
         # let's save a copy of the edgefile for the graph w/ the injected attack b/c that'll help with debugging
         # the system...
@@ -995,7 +996,7 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
 def inject_synthetic_attacks(graph, synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
                              node_granularity, time_granularity,graph_number, attack_number_to_mapping,
                              fraction_of_edge_weights, fraction_of_edge_pkts, pre_specified_data_attribs,
-                             name_of_dns_pod_node, avg_dns_weight, avg_dns_pkts):
+                             name_of_dns_pod_node, avg_dns_weight, avg_dns_pkts,old_carryover):
 
     ## we have the times and the theoretical attacks... we just have to modify the graph
     ## accordingly...
@@ -1019,6 +1020,7 @@ def inject_synthetic_attacks(graph, synthetic_exfil_paths, initiator_info_for_pa
             attack_occuring = counter % len(synthetic_exfil_paths)
             print "attack in range found!"
             break
+    carryover = 0
     if attack_occuring != None:
         if node_granularity == 'class':
             synthetic_exfil_paths = copy.deepcopy(synthetic_exfil_paths)
@@ -1106,8 +1108,8 @@ def inject_synthetic_attacks(graph, synthetic_exfil_paths, initiator_info_for_pa
             weight_min =  np.min(weight_np_array)
 
             #if not dns_exfil_path:
-            fraction_of_pkt_min = int(math.ceil(pkt_min * fraction_of_edge_pkts))
-            fraction_of_weight_min = int(weight_min * fraction_of_edge_weights)
+            fraction_of_pkt_min = max(int(math.ceil(pkt_min * fraction_of_edge_pkts)),1)
+            fraction_of_weight_min = int(weight_min * fraction_of_edge_weights)+ old_carryover
             #else:
             #    fraction_of_pkt_min = int(math.ceil(pkt_min * 3)) ## TODO: might wanna parametrize...
             #    fraction_of_weight_min = int(weight_min * 3) ## TODO: might wanna parametrize...
@@ -1152,22 +1154,22 @@ def inject_synthetic_attacks(graph, synthetic_exfil_paths, initiator_info_for_pa
                 print attack_number_to_mapping[attack_occuring]
                 print "concrete_node_path", node_one_loc, concrete_node_path
                 if abstract_node_pair_same_service_p(abstract_node_pair[0], abstract_node_pair[1]):
-                    graph = add_edge_weight_graph(graph, concrete_node_src_one, concrete_node_dst,
+                    graph,carryover = add_edge_weight_graph(graph, concrete_node_src_one, concrete_node_dst,
                                                   fraction_of_weight_min, fraction_of_pkt_min)
                     #if concrete_node_path == []:
                     #    concrete_node_path.append(concrete_node_src_one)
                     print "concrete_node_path", node_one_loc, concrete_node_path
-                    graph = add_edge_weight_graph(graph, concrete_node_src_two, concrete_node_dst,
+                    graph,carryover = add_edge_weight_graph(graph, concrete_node_src_two, concrete_node_dst,
                                                   fraction_of_weight_min, fraction_of_pkt_min)
                     node_one_loc += 1 # b/c we're modifying two edges here, we need to increment the counter one more time...
                     concrete_node_path.append((concrete_node_src_one,concrete_node_dst))
                     concrete_node_path.append((concrete_node_src_two,concrete_node_dst))
                     print "concrete_node_path", node_one_loc, concrete_node_path
                 elif abstract_node_pair_same_service_p(abstract_node_dst, abstract_node_pair[1]):
-                    graph = add_edge_weight_graph(graph, concrete_node_src_one, concrete_node_src_two,
+                    graph,carryover = add_edge_weight_graph(graph, concrete_node_src_one, concrete_node_src_two,
                                                   fraction_of_weight_min, fraction_of_pkt_min)
                     print "concrete_node_path", concrete_node_src_one, concrete_node_src_two
-                    graph = add_edge_weight_graph(graph, concrete_node_src_one, concrete_node_dst,
+                    graph,carryover = add_edge_weight_graph(graph, concrete_node_src_one, concrete_node_dst,
                                                   fraction_of_weight_min, fraction_of_pkt_min)
                     node_one_loc += 1 # b/c we're modifying two edges here, we need to increment the counter one more time...
                     concrete_node_path.append((concrete_node_src_one,concrete_node_src_two))
@@ -1175,6 +1177,9 @@ def inject_synthetic_attacks(graph, synthetic_exfil_paths, initiator_info_for_pa
                 else:
                     print "apparently a vip in the path doesn't belong to either service??"
                     exit(544)
+                if carryover == fraction_of_weight_min:
+                    fraction_of_weight_min = 0
+                    fraction_of_pkt_min = 0
             else:
                 # this case does not involve any redirection via the kubernetes network model, so it is simple
                 concrete_node_src = attack_number_to_mapping[attack_occuring][abstract_node_pair[0]]
@@ -1184,9 +1189,13 @@ def inject_synthetic_attacks(graph, synthetic_exfil_paths, initiator_info_for_pa
                 #    concrete_node_path.append(concrete_node_src)
                 concrete_node_path.append((concrete_node_src,concrete_node_dst))
 
-                graph = add_edge_weight_graph(graph, concrete_node_src, concrete_node_dst,
+                graph,carryover = add_edge_weight_graph(graph, concrete_node_src, concrete_node_dst,
                                               fraction_of_weight_min,
                                               fraction_of_pkt_min)
+                if carryover == fraction_of_weight_min:
+                    fraction_of_weight_min = 0
+                    fraction_of_pkt_min = 0
+
                 print "concrete_node_path", node_one_loc, concrete_node_path, concrete_node_src, concrete_node_dst
             node_one_loc += 1
 
@@ -1194,7 +1203,7 @@ def inject_synthetic_attacks(graph, synthetic_exfil_paths, initiator_info_for_pa
 
         ###exit(99)###TODO: remove!
 
-    return graph, attack_number_to_mapping, {'weight':fraction_of_weight_min, 'frames': fraction_of_pkt_min}, concrete_node_path
+    return graph, attack_number_to_mapping, {'weight':fraction_of_weight_min, 'frames': fraction_of_pkt_min}, concrete_node_path,carryover
 
 # abstract_to_concrete_mapping: abstract_node graph -> concrete_node (in graph)
 def abstract_to_concrete_mapping(abstract_node, graph, node_granularity):
@@ -1328,22 +1337,30 @@ def add_edge_weight_graph(graph, concrete_node_src, concrete_node_dst, fraction_
         graph.add_node(concrete_node_dst)
         graph.add_node(concrete_node_src)
 
+    ## TODO: problem here. We cannot add the weight if it is less than 40. It makes no sense. Let's make it
+    ## at least like 20 more than 40. So if it's less than 60, that is a problem.
+
     # now that all the nodes exist, we can add the weights
     #print graph.nodes(), concrete_node_src, concrete_node_dst
 
-    # if no edge exists, then we need to add one...
-    if not graph.has_edge(concrete_node_src, concrete_node_dst):
-        graph.add_edge(concrete_node_src, concrete_node_dst, weight=0, frames=0)
-    graph[concrete_node_src][concrete_node_dst]['weight'] += fraction_of_weight_median
-    graph[concrete_node_src][concrete_node_dst]['frames'] += fraction_of_pkt_median
+    carryover = 0 # this indicates how much we are taking to the next time step with us.
+    # if packet bytes is > 60, let' sgo ahead and add it
+    if fraction_of_weight_median > 60:
+        # if no edge exists, then we need to add one...
+        if not graph.has_edge(concrete_node_src, concrete_node_dst):
+            graph.add_edge(concrete_node_src, concrete_node_dst, weight=0, frames=0)
+        graph[concrete_node_src][concrete_node_dst]['weight'] += fraction_of_weight_median
+        graph[concrete_node_src][concrete_node_dst]['frames'] += fraction_of_pkt_median
 
-    # now need to account for the acks...
-    if not graph.has_edge(concrete_node_dst, concrete_node_src):
-        graph.add_edge(concrete_node_dst, concrete_node_src, weight=0, frames=0)
-    graph[concrete_node_dst][concrete_node_src]['weight'] += (fraction_of_pkt_median * ack_packet_size)
-    graph[concrete_node_dst][concrete_node_src]['frames'] += fraction_of_pkt_median
+        # now need to account for the acks...
+        if not graph.has_edge(concrete_node_dst, concrete_node_src):
+            graph.add_edge(concrete_node_dst, concrete_node_src, weight=0, frames=0)
+        graph[concrete_node_dst][concrete_node_src]['weight'] += (fraction_of_pkt_median * ack_packet_size)
+        graph[concrete_node_dst][concrete_node_src]['frames'] += fraction_of_pkt_median
+    else:
+        carryover = fraction_of_weight_median
 
-    return graph
+    return graph, carryover
 
 def abstract_node_pair_same_service_p(abstract_node_one, abstract_node_two):
     ## okay, well, let's give this a shot
