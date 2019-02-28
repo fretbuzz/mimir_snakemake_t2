@@ -406,8 +406,8 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
         nx.parse_edgelist(lines, delimiter=' ', create_using=G)
 
         logging.info("straight_G_edges")
-        for edge in G.edges(data=True):
-            logging.info(edge)
+        #for edge in G.edges(data=True):
+        #    logging.info(edge)
         logging.info("end straight_G_edges")
 
         # nx.read_edgelist(file_path,
@@ -447,8 +447,8 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
                                     infra_service)
 
         logging.info("cur_1si_G edges")
-        for edge in cur_1si_G.edges(data=True):
-            logging.info(edge)
+        #for edge in cur_1si_G.edges(data=True):
+        #    logging.info(edge)
         logging.info("end cur_1si_G edges")
 
         potential_name_of_dns_pod_node = find_dns_node_name(G)
@@ -496,6 +496,9 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
             else:
                 avg_dns_weight = avg_dns_weight / 2.0 + cur_avg_dns_weight / 2.0
                 avg_dns_pkts = avg_dns_pkts / 2.0 + cur_avg_dns_pkts / 2.0
+
+        logging.info("process_rep: " + str(counter) + ':' + " avg_dns_weight: " + str(
+            avg_dns_weight) + ', avg_dns_pkts:' + str(avg_dns_pkts))
 
         cur_1si_G, node_attack_mapping, pre_specified_data_attribs, concrete_cont_node_path,carryover = inject_synthetic_attacks(
             cur_1si_G, synthetic_exfil_paths, initiator_info_for_paths,
@@ -632,8 +635,8 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
             nx.parse_edgelist(lines, delimiter=' ', create_using=G)
 
             logging.info("straight_G_edges")
-            for edge in G.edges(data=True):
-                logging.info(edge)
+            #for edge in G.edges(data=True):
+            #    logging.info(edge)
             logging.info("end straight_G_edges")
 
             #nx.read_edgelist(file_path,
@@ -705,7 +708,9 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
                 else:
                     avg_dns_weight = avg_dns_weight / 2.0 + cur_avg_dns_weight / 2.0
                     avg_dns_pkts = avg_dns_pkts / 2.0 + cur_avg_dns_pkts / 2.0
+
             logging.info("process_rep: " + str(counter) + ':' + " avg_dns_weight: " + str(avg_dns_weight) + ', avg_dns_pkts:' + str(avg_dns_pkts))
+
             cur_1si_G, node_attack_mapping,pre_specified_data_attribs, concrete_cont_node_path = inject_synthetic_attacks(cur_1si_G, synthetic_exfil_paths,initiator_info_for_paths,
                                                  attacks_to_times,'app_only',time_interval,counter,node_attack_mapping,
                                                                       fraction_of_edge_weights, fraction_of_edge_pkts, None,
@@ -1067,6 +1072,7 @@ def inject_synthetic_attacks(graph, synthetic_exfil_paths, initiator_info_for_pa
                                       synthetic_exfil_paths[attack_occuring][node_one_loc+1])
 
                 if 'dns_vip' in abstract_node_pair[1]:
+                    logging.info("dns_vip found in abstract node pair")
                     dns_exfil_path = True
                     # then let's clear all the early values... since they're all giant probably...
                     all_weights_in_exfil_path = []
@@ -1083,23 +1089,34 @@ def inject_synthetic_attacks(graph, synthetic_exfil_paths, initiator_info_for_pa
                 print "concrete_nodes", concrete_node_src,concrete_node_dst
                 concrete_edge = graph.get_edge_data(concrete_node_src, concrete_node_dst)
                 print concrete_edge
+                cur_exfil_weight = None
                 if concrete_edge: # will return None if edge doesn't exist...
-                    all_weights_in_exfil_path.append( concrete_edge['weight'] )
+                    cur_exfil_weight = concrete_edge['weight']
+                    all_weights_in_exfil_path.append( cur_exfil_weight )
                     all_pkts_in_exfil_path.append( concrete_edge['frames'] )
                 else:
-                    equivalent_edge = find_equiv_edge(first_concrete_node_pair, graph, node_granularity)
+                    logging.info("need to find an equivalent edge to: " + str(concrete_node_src) + " " + str(concrete_node_dst))
+                    equivalent_edge = find_equiv_edge(concrete_node_pair, graph, node_granularity)
                     if equivalent_edge:
+                        logging.info("this equivalent_edge is:" + str(equivalent_edge[0]) + ', ' + str(equivalent_edge[1]))
                         equiv_concrete_node_src = equivalent_edge[0]
                         equiv_concrete_node_dst = equivalent_edge[1]
-                        all_weights_in_exfil_path.append(graph.get_edge_data(equiv_concrete_node_src, equiv_concrete_node_dst)['weight'])
-                        all_pkts_in_exfil_path.append( graph.get_edge_data(equiv_concrete_node_src, equiv_concrete_node_dst)['frames'] )
+                        cur_exfil_data  = graph.get_edge_data(equiv_concrete_node_src, equiv_concrete_node_dst)
+                        cur_exfil_weight = cur_exfil_data['weight']
+                        cur_exfil_frames = cur_exfil_data['frames']
+                        all_weights_in_exfil_path.append( cur_exfil_weight )
+                        all_pkts_in_exfil_path.append( cur_exfil_frames )
                     else:
-                        # equivalent_edge is only None when it's a dns_exfil path and no dns nodes are present in the current graph
-                        # in which case, we'll have to rely on previous dns behavior
-                        # (this previous behavior will be passed as a parameter to the function...)
-                        all_weights_in_exfil_path.append(avg_dns_weight)
-                        all_pkts_in_exfil_path.append(avg_dns_pkts)
+                        if 'dns' in concrete_node_dst or 'dns' in concrete_node_src:
+                            logging.info("no equivalent edge found and dns is in the name... must be dns")
+                            # equivalent_edge is only None when it's a dns_exfil path and no dns nodes are present in the current graph
+                            # in which case, we'll have to rely on previous dns behavior
+                            # (this previous behavior will be passed as a parameter to the function...)
+                            cur_exfil_weight = avg_dns_weight
+                            all_weights_in_exfil_path.append(avg_dns_weight)
+                            all_pkts_in_exfil_path.append(avg_dns_pkts)
 
+                logging.info("found this weight: " + str(cur_exfil_weight))
             logging.info("all_weights_in_exfil_path" + str(all_weights_in_exfil_path))
             # so let's choose the weight/packets... let's maybe go w/ some fraction of the median...
             pkt_np_array = np.array(all_pkts_in_exfil_path)
@@ -1107,12 +1124,22 @@ def inject_synthetic_attacks(graph, synthetic_exfil_paths, initiator_info_for_pa
             pkt_min = np.min(pkt_np_array)
             weight_min =  np.min(weight_np_array)
 
+            logging.info("weight_min: " + str(weight_min))
+
             #if not dns_exfil_path:
             fraction_of_pkt_min = max(int(math.ceil(pkt_min * fraction_of_edge_pkts)),1)
             fraction_of_weight_min = int(weight_min * fraction_of_edge_weights)+ old_carryover
+            logging.info("fraction_of_weight_min: " + str(fraction_of_weight_min) + ";; fraction_of_edge_weights: "  + str(fraction_of_edge_weights))
+            #print("synthetic_exfil_paths", synthetic_exfil_paths)
+            #exit(233)
+            attack_occuring_str = " ".join([str(z) for z in synthetic_exfil_paths[attack_occuring]])
+            print("attack_occuring", attack_occuring_str)
+            #exit(233)
+            logging.info("attack_occuring: " + attack_occuring_str)
+
             #else:
-            #    fraction_of_pkt_min = int(math.ceil(pkt_min * 3)) ## TODO: might wanna parametrize...
-            #    fraction_of_weight_min = int(weight_min * 3) ## TODO: might wanna parametrize...
+            #    fraction_of_pkt_min = int(math.ceil(pkt_min * 3)) ## TODO: might wanna parametrize... i think I'll just stay consistent
+            #    fraction_of_weight_min = int(weight_min * 3) ## TODO: might wanna parametrize... i think I'll just stay consistent...
         else:
             ###  we should store the corresponding attribs from the app_only granularity and then just
             # use that (b/c class gran. gives super huge).
@@ -1250,9 +1277,11 @@ def find_equiv_edge(concrete_node_pair, graph, node_granularity):
     print "find_equiv_edge", concrete_node_pair, graph.edges(), node_granularity
     #equiv_node_src = None
     #equiv_node_dst = None
+    '''
     if concrete_node_pair[0] == 'outside' or concrete_node_pair[1] == 'outside':
         # we'll change the node that is labeled 'outside'
         if concrete_node_pair[0] == 'outside' and concrete_node_pair[1] != 'outside':
+            logging.info("find_equiv_edge case 1: concrete_node_pair[0] == 'outside'")
             # okay, let's modify the [0] node...
             edges_incident_on_non_outside_node = graph.edges([concrete_node_pair[1]])
             # need to convert the view to a list...
@@ -1264,6 +1293,7 @@ def find_equiv_edge(concrete_node_pair, graph, node_granularity):
             equiv_edge = random.choice(edges_incident_on_non_outside_node)
             print "equiv_edge", equiv_edge
         elif concrete_node_pair[0] != 'outside' and concrete_node_pair[1] == 'outside':
+            logging.info("find_equiv_edge case 2: concrete_node_pair[1] == 'outside'")
             edges_incident_on_non_outside_node = graph.edges([concrete_node_pair[0]])
             edges_incident_on_non_outside_node_list = []
             for edge in edges_incident_on_non_outside_node:
@@ -1274,42 +1304,50 @@ def find_equiv_edge(concrete_node_pair, graph, node_granularity):
         else:
             print "both nodes being outside should not be possible..."
             exit(343)
-    elif 'dns_vip' in concrete_node_pair[1]:
+    elif 'dns_vip' in concrete_node_pair[1] or 'dns_VIP' in concrete_node_pair[1]:
+            logging.info("find_equiv_edge case 3: 'dns_vip' in concrete_node_pair[1]'")
             edges_incident_on_dns_vip = graph.edges([concrete_node_pair[1]])
-            edges_incident_on_dns_vip_list = []
+            edges_into_dns_server_pod = []
             for edge in edges_incident_on_dns_vip:
-                edges_incident_on_dns_vip_list.append(edge)
-            if edges_incident_on_dns_vip_list == []:
+                edges_into_dns_server_pod.append(edge)
+            if edges_into_dns_server_pod == []:
                 equiv_edge = None
             else:
-                equiv_edge = random.choice(edges_incident_on_dns_vip_list)
+                equiv_edge = random.choice(edges_into_dns_server_pod)
             print "equiv_dns_edge", equiv_edge
-    elif 'dns_vip' in concrete_node_pair[0]:
-            edges_incident_on_dns_vip = graph.edges([concrete_node_pair[0]])
-            edges_incident_on_dns_vip_list = []
-            for edge in edges_incident_on_dns_vip:
-                edges_incident_on_dns_vip_list.append(edge)
-            if edges_incident_on_dns_vip_list == []:
+    elif 'dns_vip' in concrete_node_pair[0] or 'dns_VIP' in concrete_node_pair[0]:
+            logging.info("find_equiv_edge case 4: 'dns_vip' in concrete_node_pair[0]'")
+            #edges_incident_on_dns_vip = graph.edges([concrete_node_pair[1]])
+            # this'll register as dns_vip -> dns_pod and we want to find an edge incident on the DNS pod
+            edges_into_dns_server_pod = []
+            for (u,v,d) in graph.edgese():
+                if concrete_node_pair[1] in v:
+                    edges_into_dns_server_pod.append((u,v,d))
+            #edges_into_dns_server_pod = []
+            #for edge in edges_incident_on_dns_vip:
+            #    edges_into_dns_server_pod.append(edge)
+            if edges_into_dns_server_pod == []:
                 equiv_edge = None
             else:
-                equiv_edge = random.choice(edges_incident_on_dns_vip_list)
+                equiv_edge = random.choice(edges_into_dns_server_pod)
             print "equiv_dns_edge", equiv_edge
     else:
+        logging.info("find_equiv_edge case 5: default rando on src node")
         # we'll have to choose randomly which one to keep, I suppose... (or maybe the lower weight one...)
         # again, there's probably a better way to do this...
         #remaining_node = random.choice([concrete_node_pair[0], concrete_node_pair[1]])
         # NO: We'll keep the first (src) node
         print "NEED TO FIND EQUIVALENT EDGE", concrete_node_pair, node_granularity
 
-        '''
-        pos = graphviz_layout(graph)
-        for key in pos.keys():
-            pos[key] = (pos[key][0] * 4, pos[key][1] * 4)  # too close otherwise
-        nx.draw_networkx(graph, pos, with_labels=True, arrows=True, font_size=8, font_color='b')
-        edge_labels = nx.get_edge_attributes(graph, 'weight')
-        nx.draw_networkx_edge_labels(graph, pos, edge_labels=edge_labels, font_size=7, label_pos=0.3)
-        plt.show()
-        '''
+        #
+        #pos = graphviz_layout(graph)
+        #for key in pos.keys():
+        #    pos[key] = (pos[key][0] * 4, pos[key][1] * 4)  # too close otherwise
+        #nx.draw_networkx(graph, pos, with_labels=True, arrows=True, font_size=8, font_color='b')
+        #edge_labels = nx.get_edge_attributes(graph, 'weight')
+        #nx.draw_networkx_edge_labels(graph, pos, edge_labels=edge_labels, font_size=7, label_pos=0.3)
+        #plt.show()
+        #
 
         remaining_node = concrete_node_pair[0]
         edges_incident_on_remaining_node = graph.edges([remaining_node])
@@ -1318,7 +1356,21 @@ def find_equiv_edge(concrete_node_pair, graph, node_granularity):
             edges_incident_list.append(edge)
         equiv_edge = random.choice(edges_incident_list)
 
-        print "equiv_edge", equiv_edge
+        print "equiv_edge", equiv_edge    
+        '''
+
+    edges_into_dest = []
+    #logging.info("concrete node pair: " + str(concrete_node_pair[0]) + ", " + str(concrete_node_pair[1]))
+    #logging.info("looking for in-edges to:", concrete_node_pair[1])
+    for (u, v, d) in graph.in_edges(concrete_node_pair[1], data=True):
+        #if concrete_node_pair[1] in v:
+        if 'internet' not in u and 'outside' not in u and "." not in u and 'dns' not in u and 'kubernetes_VIP' not in u:
+            #logging.info("one_possible_equiv_edge: " + str(u) + " " + str(v))
+            edges_into_dest.append((u, v, d))
+    try:
+        equiv_edge = random.choice(edges_into_dest)
+    except:
+        equiv_edge = None
 
     return equiv_edge
 

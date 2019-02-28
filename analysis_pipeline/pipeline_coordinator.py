@@ -513,6 +513,20 @@ class data_anylsis_pipline(object):
         #return total_experiment_length, self.exfil_start_time, self.exfil_end_time, self.system_startup_time
         return self.total_experiment_length, self.exfil_start_time, self.exfil_end_time, self.system_startup_time
 
+    def correct_attacks_labels_using_exfil_amts(self, time_gran_to_attack_labels, time_gran_to_list_of_exfil_amts):
+        time_gran_to_new_attack_labels = []
+        for time_gran, attack_labels in time_gran_to_attack_labels.iteritems():
+            new_attack_labels = []
+            list_of_exfil_amts = time_gran_to_list_of_exfil_amts[time_gran]
+            for counter,label in new_attack_labels:
+                if list_of_exfil_amts[counter] == 0: # if it equals zero, then we know there isn't an actual attack
+                    new_attack_labels.append(0)
+                else:
+                    new_attack_labels.append(label) # otherwise go w/ existing
+            time_gran_to_new_attack_labels[time_gran] = new_attack_labels
+
+        return time_gran_to_new_attack_labels
+
     def calculate_values(self,end_of_training, synthetic_exfil_paths_train, synthetic_exfil_paths_test, fraction_of_edge_weights, fraction_of_edge_pkts):
         self.end_of_training = end_of_training
         if self.calc_vals or self.graph_p:
@@ -583,6 +597,12 @@ class data_anylsis_pipline(object):
                                             synthetic_exfil_paths, self.initiator_info_for_paths, time_gran_to_attack_ranges,
                                             fraction_of_edge_weights, fraction_of_edge_pkts,
                                             self.size_of_neighbor_training_window)
+
+            ## time_gran_to_attack_labels needs to be corrected using time_gran_to_list_of_concrete_exfil_paths
+            ## because just because it was assigned, doesn't mean that it is necessarily going to be injected (might
+            ## have to wait...)
+            time_gran_to_attack_labels = self.correct_attacks_labels_using_exfil_amts(time_gran_to_attack_labels,
+                                                                                      time_gran_to_list_of_exfil_amts)
 
             time_gran_to_feature_dataframe = process_graph_metrics.generate_feature_dfs(total_calculated_vals,
                                                                                         self.time_interval_lengths)
@@ -1836,6 +1856,7 @@ def determine_injection_amnts(exp_infos, goal_train_test_split, goal_attack_NoAt
     return total_training_injections_possible,total_testing_injections_possible,possible_exfil_path_injections,end_of_train_portions
 
 def graph_fone_versus_exfil_rate(optimal_fone_scores, exfil_weights_frac, exfil_pkts_frac, time_grans):
+
     time_gran_to_fone_list = {}
     time_gran_to_exfil_param_list = {}
     for exfil_counter, optimal_fones in enumerate(optimal_fone_scores):
