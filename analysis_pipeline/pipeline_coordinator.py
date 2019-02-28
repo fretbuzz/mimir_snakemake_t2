@@ -1029,11 +1029,11 @@ def calc_vals_single_exfil_rate(fraction_of_edge_weights, rate_counter, fraction
     '''
 
     out_q.put(Xs)
-    out_q.get(Ys)
-    out_q.get(Xts)
-    out_q.get(Yts)
-    out_q.get(list_of_optimal_fone_scores_at_this_exfil_rates)
-    out_q.get(trained_models)
+    out_q.put(Ys)
+    out_q.put(Xts)
+    out_q.put(Yts)
+    out_q.put(list_of_optimal_fone_scores_at_this_exfil_rates)
+    out_q.put(trained_models)
 
 
 def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, base_output_name, names,
@@ -1844,6 +1844,7 @@ def graph_fone_versus_exfil_rate(optimal_fone_scores, exfil_weights_frac, exfil_
                 time_gran_to_fone_list[time_grans[timegran_counter]].append(optimal_score)
             else:
                 time_gran_to_fone_list[time_grans[timegran_counter]] = [optimal_score]
+
             if time_grans[timegran_counter] in time_gran_to_exfil_param_list:
                 time_gran_to_exfil_param_list[time_grans[timegran_counter]].append(
                     [(exfil_weights_frac[exfil_counter], exfil_pkts_frac[exfil_counter])])

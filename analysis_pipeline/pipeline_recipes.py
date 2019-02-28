@@ -1657,7 +1657,7 @@ def wordpress_thirteen_t1(time_of_synethic_exfil=None, only_exp_info=False, init
     cilium_config_path = None # does NOT use cilium on reps 2-4
     kubernetes_svc_info = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t1/wordpress_thirteen_t1_svc_config_0.txt'
     kubernetes_pod_info = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t1/wordpress_thirteen_t1_pod_config_0.txt'
-    time_interval_lengths = [30, 10, 1]#,
+    time_interval_lengths = [30, 10]#, 1]#,
                              #1]  # , 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
     ms_s = ["my-release-pxc", "wwwppp-wordpress"]
     start_time = False
@@ -1706,9 +1706,9 @@ def new_wordpress_recipe():
     #fraction_of_edge_weights,fraction_of_edge_pkts = [0.1],[0.1]
 
     # want to put back eventaully...
-    #fraction_of_edge_weights,fraction_of_edge_pkts = [0.2, 0.1, 0.01, 0.001],[0.2, 0.1, 0.01, 0.001]
+    fraction_of_edge_weights,fraction_of_edge_pkts = [0.2, 0.1, 0.01, 0.001],[0.2, 0.1, 0.01, 0.001]
     # going w/ this now b/c the 0.2's have already been calculated...
-    fraction_of_edge_weights, fraction_of_edge_pkts = [0.001], [0.001]
+    #fraction_of_edge_weights, fraction_of_edge_pkts = [0.001], [0.001]
 
     time_of_synethic_exfil = 30 # sec
     goal_train_test_split = 0.6
@@ -1717,7 +1717,7 @@ def new_wordpress_recipe():
     size_of_neighbor_training_window = 0
 
 
-    calc_vals = False ## TODO: probably want to turn this off (eventually...)
+    calc_vals = True ## TODO: probably want to turn this off (eventually...)
     calculate_z_scores = True
 
 

@@ -704,6 +704,7 @@ def calc_subset_graph_metrics(filenames, time_interval, basegraph_name, calc_val
                 else:
                     avg_dns_weight = avg_dns_weight / 2.0 + cur_avg_dns_weight / 2.0
                     avg_dns_pkts = avg_dns_pkts / 2.0 + cur_avg_dns_pkts / 2.0
+            logging.info("process_rep: " + str(counter) + ':' + " avg_dns_weight: " + str(avg_dns_weight) + ', avg_dns_pkts:' + str(avg_dns_pkts))
             cur_1si_G, node_attack_mapping,pre_specified_data_attribs, concrete_cont_node_path = inject_synthetic_attacks(cur_1si_G, synthetic_exfil_paths,initiator_info_for_paths,
                                                  attacks_to_times,'app_only',time_interval,counter,node_attack_mapping,
                                                                       fraction_of_edge_weights, fraction_of_edge_pkts, None,
@@ -1097,18 +1098,19 @@ def inject_synthetic_attacks(graph, synthetic_exfil_paths, initiator_info_for_pa
                         all_weights_in_exfil_path.append(avg_dns_weight)
                         all_pkts_in_exfil_path.append(avg_dns_pkts)
 
+            logging.info("all_weights_in_exfil_path" + str(all_weights_in_exfil_path))
             # so let's choose the weight/packets... let's maybe go w/ some fraction of the median...
             pkt_np_array = np.array(all_pkts_in_exfil_path)
             weight_np_array = np.array(all_weights_in_exfil_path)
             pkt_min = np.min(pkt_np_array)
             weight_min =  np.min(weight_np_array)
 
-            if not dns_exfil_path:
-                fraction_of_pkt_min = int(math.ceil(pkt_min * fraction_of_edge_pkts))
-                fraction_of_weight_min = int(weight_min * fraction_of_edge_weights)
-            else:
-                fraction_of_pkt_min = int(math.ceil(pkt_min * 3)) ## TODO: might wanna parametrize...
-                fraction_of_weight_min = int(weight_min * 3) ## TODO: might wanna parametrize...
+            #if not dns_exfil_path:
+            fraction_of_pkt_min = int(math.ceil(pkt_min * fraction_of_edge_pkts))
+            fraction_of_weight_min = int(weight_min * fraction_of_edge_weights)
+            #else:
+            #    fraction_of_pkt_min = int(math.ceil(pkt_min * 3)) ## TODO: might wanna parametrize...
+            #    fraction_of_weight_min = int(weight_min * 3) ## TODO: might wanna parametrize...
         else:
             ###  we should store the corresponding attribs from the app_only granularity and then just
             # use that (b/c class gran. gives super huge).
@@ -1247,7 +1249,8 @@ def find_equiv_edge(concrete_node_pair, graph, node_granularity):
             # need to convert the view to a list...
             edges_incident_on_non_outside_node_list = []
             for edge in edges_incident_on_non_outside_node:
-                edges_incident_on_non_outside_node_list.append(edge)
+                if 'dns' not in edge[0]:
+                    edges_incident_on_non_outside_node_list.append(edge)
             # we'll just choose randomly, since it seems the easiest...
             equiv_edge = random.choice(edges_incident_on_non_outside_node)
             print "equiv_edge", equiv_edge
@@ -1255,7 +1258,8 @@ def find_equiv_edge(concrete_node_pair, graph, node_granularity):
             edges_incident_on_non_outside_node = graph.edges([concrete_node_pair[0]])
             edges_incident_on_non_outside_node_list = []
             for edge in edges_incident_on_non_outside_node:
-                edges_incident_on_non_outside_node_list.append(edge)
+                if 'dns' not in edge[1]:
+                    edges_incident_on_non_outside_node_list.append(edge)
             equiv_edge = random.choice(edges_incident_on_non_outside_node_list)
             print "equiv_edge", equiv_edge
         else:
@@ -1336,7 +1340,7 @@ def add_edge_weight_graph(graph, concrete_node_src, concrete_node_dst, fraction_
     # now need to account for the acks...
     if not graph.has_edge(concrete_node_dst, concrete_node_src):
         graph.add_edge(concrete_node_dst, concrete_node_src, weight=0, frames=0)
-    graph[concrete_node_dst][concrete_node_src]['weight'] += (fraction_of_weight_median * ack_packet_size)
+    graph[concrete_node_dst][concrete_node_src]['weight'] += (fraction_of_pkt_median * ack_packet_size)
     graph[concrete_node_dst][concrete_node_src]['frames'] += fraction_of_pkt_median
 
     return graph
