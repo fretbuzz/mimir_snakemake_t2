@@ -1717,7 +1717,7 @@ def new_wordpress_recipe():
     size_of_neighbor_training_window = 0
 
 
-    calc_vals = True ## TODO: probably want to turn this off (eventually...)
+    calc_vals = False ## TODO: probably want to turn this off (eventually...)
     calculate_z_scores = True
 
 

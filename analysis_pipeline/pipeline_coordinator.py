@@ -1001,11 +1001,7 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
     graph_fone_versus_exfil_rate(list_of_optimal_fone_scores_at_exfil_rates, fraction_of_edge_weights,
                                  fraction_of_edge_pkts, time_gran_to_aggregate_mod_score_dfs.keys())
 
-    # todo: do I want to vary the exfil rate per-path?? If I wanna do that, I should probably actually get started
-    #  on implementing it at some point... the problem, of course, is that it is going to break the independence
-    # of analyzing the graph features for each injection rate independently... okay, so this is pretty complicated...
-    # should I create a new object?? well, first let's walk through what this functionality actually involves??
-    # GOAL: create e
+
 
 def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, base_output_name, names,
                                          starts_of_testing, path_occurence_training_df, path_occurence_testing_df,
