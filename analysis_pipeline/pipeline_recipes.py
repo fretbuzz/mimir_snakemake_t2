@@ -1713,7 +1713,7 @@ def new_wordpress_recipe():
 
     # want to put back eventaully...
     #fraction_of_edge_weights,fraction_of_edge_pkts = [1.0, 0.2, 0.1, 0.01, 0.001],[1.0, 0.2, 0.1, 0.01, 0.001]
-    fraction_of_edge_weights,fraction_of_edge_pkts = [100.0],[100.0]
+    fraction_of_edge_weights,fraction_of_edge_pkts = [1000.0],[1000.0]
 
     # going w/ this now b/c the 0.2's have already been calculated...
     #fraction_of_edge_weights, fraction_of_edge_pkts = [0.001], [0.001]
@@ -1725,8 +1725,8 @@ def new_wordpress_recipe():
     size_of_neighbor_training_window = 0
 
 
-    calc_vals = False ## TODO: probably want to turn this off (eventually...)
-    calculate_z_scores = False
+    calc_vals = True ## TODO: probably want to turn this off (eventually...)
+    calculate_z_scores = True
 
 
     experiment_classes = [wordpress_thirteen_t1(training_window_size=training_window_size,
