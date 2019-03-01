@@ -119,8 +119,8 @@ def pipeline_one_exfil_rate(rate_counter,
     ## step (1) : iterate through individual experiments...
     ##  # 1a. list of inputs [done]
     ##  # 1b. acculate DFs
-    prefix_for_inject_params = 'weight_' + str(fraction_of_edge_weights[rate_counter]) +\
-        '_pkt_' + str(fraction_of_edge_pkts[rate_counter]) + '_'
+    prefix_for_inject_params = 'avg_exfil_' + str(avg_exfil_per_min[rate_counter]) + ':' + str(exfil_per_min_variance[rate_counter]) +\
+        '_avg_pkt_' + str(avg_pkt_size[rate_counter])  + ':' + str(pkt_size_variance[rate_counter]) + '_'
     cur_base_output_name = base_output_name + prefix_for_inject_params
     list_time_gran_to_mod_zscore_df = []
     list_time_gran_to_mod_zscore_df_training = []

@@ -102,6 +102,8 @@ class data_anylsis_pipline(object):
         self.time_gran_to_new_neighbors_outside=None
         self.time_gran_to_new_neighbors_dns=None
         self.time_gran_to_new_neighbors_all=None
+        self.time_gran_to_list_of_amt_of_out_traffic_bytes = None
+        self.time_gran_to_list_of_amt_of_out_traffic_pkts = None
 
         for ms in ms_s:
             if 'user' in ms and 'db' in ms:
@@ -211,13 +213,13 @@ class data_anylsis_pipline(object):
             ### OKAY, this is where I'd need to add in the component that loops over the various injected exfil weights
             # OKAY, let's verify that this determine_attacks_to_times function is wokring before moving on to the next one...
             total_calculated_vals, time_gran_to_list_of_concrete_exfil_paths, time_gran_to_list_of_exfil_amts, \
-            time_gran_to_new_neighbors_outside, time_gran_to_new_neighbors_dns, time_gran_to_new_neighbors_all = \
+            time_gran_to_new_neighbors_outside, time_gran_to_new_neighbors_dns, time_gran_to_new_neighbors_all, \
+            time_gran_to_list_of_amt_of_out_traffic_bytes, time_gran_to_list_of_amt_of_out_traffic_pkts= \
                 calculate_raw_graph_metrics(self.time_interval_lengths, self.interval_to_filenames, self.ms_s, self.basegraph_name,
                                             self.calc_vals,
                                             self.window_size, self.mapping, self.is_swarm, self.make_net_graphs_p,
                                             self.list_of_infra_services,
                                             synthetic_exfil_paths, self.initiator_info_for_paths, time_gran_to_attack_ranges,
-                                            fraction_of_edge_weights, fraction_of_edge_pkts,
                                             self.size_of_neighbor_training_window,
                                             avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance)
 
@@ -236,7 +238,9 @@ class data_anylsis_pipline(object):
                                                          time_gran_to_list_of_concrete_exfil_paths,
                                                          time_gran_to_list_of_exfil_amts,
                                                          int(end_of_training), time_gran_to_new_neighbors_outside,
-                                                         time_gran_to_new_neighbors_dns, time_gran_to_new_neighbors_all)
+                                                         time_gran_to_new_neighbors_dns, time_gran_to_new_neighbors_all,
+                                                         time_gran_to_list_of_amt_of_out_traffic_bytes,
+                                                         time_gran_to_list_of_amt_of_out_traffic_pkts)
 
             try: # this thing returns some kinda error but i don't care.
                 analysis_pipeline.generate_graphs.generate_feature_multitime_boxplots(total_calculated_vals, self.basegraph_name,
@@ -253,6 +257,8 @@ class data_anylsis_pipline(object):
             time_gran_to_synthetic_exfil_paths_series = {}
             time_gran_to_list_of_concrete_exfil_paths = {}
             time_gran_to_list_of_exfil_amts = {}
+            time_gran_to_list_of_amt_of_out_traffic_bytes = {}
+            time_gran_to_list_of_amt_of_out_traffic_pkts = {}
             time_gran_to_new_neighbors_outside, time_gran_to_new_neighbors_dns, time_gran_to_new_neighbors_all = {}, {}, {}
             min_interval = min(self.time_interval_lengths)
             for interval in self.time_interval_lengths:
@@ -264,6 +270,10 @@ class data_anylsis_pipline(object):
                 # time_gran_to_feature_dataframe[interval] = time_gran_to_feature_dataframe[interval].apply(lambda x: np.real(x))
                 print "dtypes_of_df", time_gran_to_feature_dataframe[interval].dtypes
                 time_gran_to_attack_labels[interval] = time_gran_to_feature_dataframe[interval]['labels']
+
+                time_gran_to_list_of_amt_of_out_traffic_bytes[interval] = time_gran_to_feature_dataframe[interval]['amt_of_out_traffic_bytes']
+                time_gran_to_list_of_amt_of_out_traffic_pkts[interval] = time_gran_to_feature_dataframe[interval]['amt_of_out_traffic_pkts']
+
                 try:
                     time_gran_to_new_neighbors_outside[interval] = time_gran_to_feature_dataframe[interval][
                         'new_neighbors_outside']
@@ -335,6 +345,8 @@ class data_anylsis_pipline(object):
         self.time_gran_to_new_neighbors_outside=time_gran_to_new_neighbors_outside
         self.time_gran_to_new_neighbors_dns=time_gran_to_new_neighbors_dns
         self.time_gran_to_new_neighbors_all=time_gran_to_new_neighbors_all
+        self.time_gran_to_list_of_amt_of_out_traffic_bytes = time_gran_to_list_of_amt_of_out_traffic_bytes
+        self.time_gran_to_list_of_amt_of_out_traffic_pkts = time_gran_to_list_of_amt_of_out_traffic_pkts
 
         return self.calculate_z_scores_and_get_stat_vals()
 
@@ -353,15 +365,14 @@ class data_anylsis_pipline(object):
                self.time_gran_to_synthetic_exfil_paths_series, self.end_of_training
 
 
-def process_one_set_of_graphs(fraction_of_edge_weights, fraction_of_edge_pkts, time_interval_length, window_size,
+def process_one_set_of_graphs(time_interval_length, window_size,
                                 filenames, svcs, is_swarm, ms_s, mapping,  list_of_infra_services,
                                 synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
                                collected_metrics_location, current_set_of_graphs_loc, calc_vals, out_q,
                               avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance):
 
     if calc_vals:
-        current_set_of_graphs = simplified_graph_metrics.set_of_injected_graphs(fraction_of_edge_weights,
-                                         fraction_of_edge_pkts, time_interval_length, window_size,
+        current_set_of_graphs = simplified_graph_metrics.set_of_injected_graphs(time_interval_length, window_size,
                                          filenames, svcs, is_swarm, ms_s, mapping, list_of_infra_services,
                                          synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
                                           collected_metrics_location, current_set_of_graphs_loc,
@@ -383,8 +394,8 @@ def process_one_set_of_graphs(fraction_of_edge_weights, fraction_of_edge_pkts, t
 
 def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms_s, basegraph_name, calc_vals, window_size,
                                 mapping, is_swarm, make_net_graphs_p, list_of_infra_services,synthetic_exfil_paths,
-                                initiator_info_for_paths, time_gran_to_attacks_to_times, fraction_of_edge_weights,
-                                fraction_of_edge_pkts, size_of_neighbor_training_window, avg_exfil_per_min,
+                                initiator_info_for_paths, time_gran_to_attacks_to_times, size_of_neighbor_training_window,
+                                avg_exfil_per_min,
                                 exfil_per_min_variance, avg_pkt_size, pkt_size_variance):
     total_calculated_vals = {}
     time_gran_to_list_of_concrete_exfil_paths = {}
@@ -392,6 +403,9 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
     time_gran_to_new_neighbors_outside = {}
     time_gran_to_new_neighbors_dns = {}
     time_gran_to_new_neighbors_all = {}
+    time_gran_to_list_of_amt_of_out_traffic_bytes = {}
+    time_gran_to_list_of_amt_of_out_traffic_pkts = {}
+
     for time_interval_length in time_interval_lengths:
         print "analyzing edgefiles...", "timer_interval...", time_interval_length
 
@@ -402,32 +416,9 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
             svcs = ms_s
         out_q = multiprocessing.Queue()
 
-        '''
-        args = (interval_to_filenames[str(time_interval_length)],
-               time_interval_length, basegraph_name + '_subset_',
-               calc_vals, window_size, ms_s, mapping, is_swarm, svcs,
-               list_of_infra_services, synthetic_exfil_paths,
-               initiator_info_for_paths,
-               time_gran_to_attacks_to_times[time_interval_length],
-               fraction_of_edge_weights, fraction_of_edge_pkts,
-               int(size_of_neighbor_training_window/time_interval_length),
-               out_q)
-        p = multiprocessing.Process(
-            target=simplified_graph_metrics.calc_subset_graph_metrics,
-            args=args)
-        p.start()
-        total_calculated_vals[(time_interval_length, '')] = out_q.get()
-        list_of_concrete_container_exfil_paths = out_q.get()
-        list_of_exfil_amts = out_q.get()
-        new_neighbors_outside =  out_q.get()
-        new_neighbors_dns =  out_q.get()
-        new_neighbors_all = out_q.get()
-        p.join()
-        
-        #'''
         collected_metrics_location = basegraph_name + 'collected_metrics_time_gran_' + str(time_interval_length) + '.csv'
         current_set_of_graphs_loc = basegraph_name + 'set_of_graphs' + str(time_interval_length) + '.csv'
-        args = [fraction_of_edge_weights, fraction_of_edge_pkts, time_interval_length, window_size,
+        args = [time_interval_length, window_size,
                 interval_to_filenames[str(time_interval_length)], svcs, is_swarm, ms_s, mapping,
                 list_of_infra_services, synthetic_exfil_paths,  initiator_info_for_paths,
                 time_gran_to_attacks_to_times[time_interval_length], collected_metrics_location, current_set_of_graphs_loc,
@@ -442,6 +433,9 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
         new_neighbors_outside =  out_q.get()
         new_neighbors_dns =  out_q.get()
         new_neighbors_all = out_q.get()
+        list_of_amt_of_out_traffic_bytes = out_q.get()
+        list_of_amt_of_out_traffic_pkts = out_q.get()
+
         p.join()
 
         print "process returned!"
@@ -450,11 +444,14 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
         time_gran_to_new_neighbors_outside[time_interval_length] = None # no longer used
         time_gran_to_new_neighbors_dns[time_interval_length] = None # no longer used
         time_gran_to_new_neighbors_all[time_interval_length] = None # no longer used
+        time_gran_to_list_of_amt_of_out_traffic_bytes[time_interval_length] = list_of_amt_of_out_traffic_bytes
+        time_gran_to_list_of_amt_of_out_traffic_pkts[time_interval_length] = list_of_amt_of_out_traffic_pkts
 
         #total_calculated_vals.update(newly_calculated_values)
         gc.collect()
     return total_calculated_vals, time_gran_to_list_of_concrete_exfil_paths, time_gran_to_list_of_exfil_amts,\
-        time_gran_to_new_neighbors_outside, time_gran_to_new_neighbors_dns, time_gran_to_new_neighbors_all
+        time_gran_to_new_neighbors_outside, time_gran_to_new_neighbors_dns, time_gran_to_new_neighbors_all,\
+        time_gran_to_list_of_amt_of_out_traffic_bytes, time_gran_to_list_of_amt_of_out_traffic_pkts
 
 
 def calc_zscores(alert_file, training_window_size, minimum_training_window,

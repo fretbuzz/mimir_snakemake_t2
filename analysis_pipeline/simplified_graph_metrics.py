@@ -38,7 +38,7 @@ import numpy.random
 class injected_graph():
     def __init__(self, name, injected_graph_loc, non_injected_graph_loc, concrete_container_exfil_paths, exfil_amt,
                  svc_to_pod, pod_to_svc, total_edgelist_nodes, where_to_save_this_obj, counter, name_of_dns_pod_node,
-                 current_total_node_list, fraction_of_edge_weights, fraction_of_edge_pkts,
+                 current_total_node_list,
                  svcs, is_swarm, ms_s, container_to_ip, infra_service, injected_class_graph_loc, name_of_injected_file,
                  nodeAttrib_injected_graph_loc, nodeAttrib_injected_graph_loc_class):
         self.name = name
@@ -59,8 +59,6 @@ class injected_graph():
         self.current_total_node_list = current_total_node_list
         self.graph_feature_dict = {}
         self.graph_feature_dict_keys = None
-        self.fraction_of_edge_weights = fraction_of_edge_weights
-        self.fraction_of_edge_pkts = fraction_of_edge_pkts
         self.nodeAttrib_injected_graph_loc = nodeAttrib_injected_graph_loc
         self.nodeAttrib_injected_graph_loc_class = nodeAttrib_injected_graph_loc_class
 
@@ -166,14 +164,12 @@ class injected_graph():
                                     self.ms_s, self.container_to_ip, self.infra_service)
 
 class set_of_injected_graphs():
-    def __init__(self, fraction_of_edge_weights, fraction_of_edge_pkts, time_granularity, window_size, raw_edgefile_names,
+    def __init__(self, time_granularity, window_size, raw_edgefile_names,
                 svcs, is_swarm, ms_s, container_to_ip, infra_service, synthetic_exfil_paths, initiator_info_for_paths,
                 attacks_to_times, collected_metrics_location, current_set_of_graphs_loc,
                  avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance):#, out_q):
 
         self.list_of_injected_graphs_loc = []
-        self.fraction_of_edge_weights = fraction_of_edge_weights
-        self.fraction_of_edge_pkts = fraction_of_edge_pkts
         self.time_granularity = time_granularity
         self.window_size = window_size
         self.raw_edgefile_names = raw_edgefile_names
@@ -200,6 +196,8 @@ class set_of_injected_graphs():
         self.exfil_per_min_variance =  exfil_per_min_variance
         self.avg_pkt_size  = avg_pkt_size
         self.pkt_size_variance =  pkt_size_variance
+        self.list_of_amt_of_out_traffic_bytes = []
+        self.list_of_amt_of_out_traffic_pkts = []
 
     def save(self):
         #with open(self.current_set_of_graphs_loc, 'wb') as output:  # Overwrites any existing file.
@@ -313,6 +311,8 @@ class set_of_injected_graphs():
         out_q.put([])  # new_neighbors_outside
         out_q.put([])  # new_neighbors_dns
         out_q.put([])  # new_neighbors_all
+        out_q.put(self.list_of_amt_of_out_traffic_bytes)
+        out_q.put(self.list_of_amt_of_out_traffic_pkts)
 
     def load_serialized_metrics(self):
         #with open(self.collected_metrics_location, mode='r') as f:
@@ -351,8 +351,6 @@ class set_of_injected_graphs():
         ms_s = self.ms_s
         container_to_ip = self.container_to_ip
         infra_service = self.infra_service
-        fraction_of_edge_weights = self.fraction_of_edge_weights
-        fraction_of_edge_pkts = self.fraction_of_edge_pkts
         synthetic_exfil_paths = self.synthetic_exfil_paths
         initiator_info_for_paths = self.initiator_info_for_paths
         attacks_to_times = self.attacks_to_times
@@ -370,8 +368,8 @@ class set_of_injected_graphs():
         for counter in range(0, len(self.raw_edgefile_names), num_graphs_to_process_at_once):
 
             file_paths = self.raw_edgefile_names[counter: counter + num_graphs_to_process_at_once]
-            args = [counter, file_paths, svcs, is_swarm, ms_s, container_to_ip, infra_service, fraction_of_edge_weights,
-                    fraction_of_edge_pkts, synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
+            args = [counter, file_paths, svcs, is_swarm, ms_s, container_to_ip, infra_service,
+                    synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
                     time_interval, total_edgelist_nodes, svc_to_pod, avg_dns_weight, avg_dns_pkts,
                     node_attack_mapping, out_q, current_total_node_list, name_of_dns_pod_node, last_attack_injected,
                     carryover, avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance ]
@@ -394,6 +392,8 @@ class set_of_injected_graphs():
             name_of_dns_pod_node = out_q.get()
             last_attack_injected = out_q.get()
             carryover = out_q.get()
+            amt_of_out_traffic_bytes = out_q.get()
+            amt_of_out_traffic_pkts = out_q.get()
             p.join()
 
             ## okay, literally the code above should be wrapped in a function call...
@@ -401,9 +401,12 @@ class set_of_injected_graphs():
             self.list_of_concrete_container_exfil_paths.extend(concrete_cont_node_path)
             self.list_of_exfil_amts.extend(pre_specified_data_attribs)
             self.list_of_injected_graphs_loc.extend(injected_graph_obj_loc)
+            self.list_of_amt_of_out_traffic_bytes.extend(amt_of_out_traffic_bytes)
+            self.list_of_amt_of_out_traffic_pkts.extend(amt_of_out_traffic_pkts)
 
-def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm, ms_s, container_to_ip, infra_service, fraction_of_edge_weights,
-                    fraction_of_edge_pkts, synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
+
+def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm, ms_s, container_to_ip, infra_service,
+                                    synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
                     time_interval, total_edgelist_nodes, svc_to_pod, avg_dns_weight, avg_dns_pkts,
                     node_attack_mapping, out_q, current_total_node_list,name_of_dns_pod_node,attack_injected, carryover,
                     avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance ):
@@ -411,6 +414,9 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
     concrete_cont_node_path_list = []
     pre_specified_data_attribs_list = []
     injected_graph_obj_loc_list = []
+    amt_of_out_traffic_bytes = []
+    amt_of_out_traffic_pkts = []
+
     for counter_add, file_path in enumerate(file_paths):
         counter = counter_starting + counter_add
         gc.collect()
@@ -431,14 +437,24 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
         cur_1si_G = prepare_graph(G, svcs, 'app_only', is_swarm, counter, file_path, ms_s,
                                   container_to_ip, infra_service)
 
+        into_outside_bytes, into_outside_pkts = find_amt_of_out_traffic(cur_1si_G)
+        amt_of_out_traffic_bytes.append(into_outside_bytes)
+        amt_of_out_traffic_pkts.append(into_outside_pkts)
+
         # let's save the processed version of the graph in a nested folder for easier comparison during the
         # debugging process... and some point I could even decouple creating/processing the edgefiles and
         # calculating the corresponding graph metrics
         edgefile_folder_path = "/".join(file_path.split('/')[:-1])
         experiment_info_path = "/".join(edgefile_folder_path.split('/')[:-1])
         name_of_file = file_path.split('/')[-1]
-        name_of_injected_file = str(fraction_of_edge_weights) + '_' + str(fraction_of_edge_pkts) + '_' + \
-                                file_path.split('/')[-1]
+        #name_of_injected_file = str(fraction_of_edge_weights) + '_' + str(fraction_of_edge_pkts) + '_' + \
+        #                        file_path.split('/')[-1]
+
+        prefix_for_inject_params = 'avg_exfil_' + str(avg_exfil_per_min) + ':' + str(exfil_per_min_variance) + \
+                                   '_avg_pkt_' + str(avg_pkt_size) + ':' + str(pkt_size_variance) + '_'
+
+        name_of_injected_file =  prefix_for_inject_params +  file_path.split('/')[-1]
+
         edgefile_pruned_folder_path = edgefile_folder_path + '/pruned_edgefiles/'
         graph_obj_folder_path = experiment_info_path + '/graph_objs/'
 
@@ -522,7 +538,7 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
         '''
 
         cur_1si_G, node_attack_mapping, pre_specified_data_attribs, concrete_cont_node_path,carryover,attack_injected = \
-        inject_synthetic_attacks(graph, synthetic_exfil_paths, attacks_to_times, counter, node_attack_mapping,
+        inject_synthetic_attacks(cur_1si_G, synthetic_exfil_paths, attacks_to_times, counter, node_attack_mapping,
                                  name_of_dns_pod_node, carryover, attack_injected, time_interval, avg_exfil_per_min,
                                  exfil_per_min_variance, avg_pkt_size, pkt_size_variance)
 
@@ -562,7 +578,6 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
                                             total_edgelist_nodes,
                                             injected_graph_obj_loc, counter, name_of_dns_pod_node,
                                             current_total_node_list,
-                                            fraction_of_edge_weights, fraction_of_edge_pkts,
                                             svcs, is_swarm, ms_s, container_to_ip, infra_service,
                                             edgefile_injected_folder_path + 'class_' + name_of_injected_file,
                                             name_of_injected_file,
@@ -595,6 +610,17 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
     out_q.put(name_of_dns_pod_node)
     out_q.put(attack_injected)
     out_q.put(carryover)
+    out_q.put(amt_of_out_traffic_bytes)
+    out_q.put(amt_of_out_traffic_pkts)
+
+def find_amt_of_out_traffic(cur_1si_G):
+    into_outside_bytes = 0
+    into_outside_pkts = 0
+    edges_into_outside = cur_1si_G.in_edges('outside',data=True)
+    for (u,v,d) in edges_into_outside:
+        into_outside_bytes += d['weight']
+        into_outside_pkts +=  d['frames']
+    return into_outside_bytes,into_outside_pkts
 
 ## we have the times and the theoretical attacks... we just have to modify the graph
 ## accordingly...
@@ -608,8 +634,8 @@ def inject_synthetic_attacks(graph, synthetic_exfil_paths, attacks_to_times, gra
 
     current_time = graph_number
     attack_occuring = None
-    fraction_of_pkt_min = 0
-    fraction_of_weight_min = 0
+    #fraction_of_pkt_min = 0
+    #fraction_of_weight_min = 0
 
     # step (1) : identify whether an attack needs to be injected here
     #print "attacks_to_times", attacks_to_times, type(attacks_to_times), current_time, node_granularity
@@ -621,8 +647,8 @@ def inject_synthetic_attacks(graph, synthetic_exfil_paths, attacks_to_times, gra
             break
 
     if attack_occuring == None:
-        return graph, attack_number_to_mapping, {'weight': fraction_of_weight_min,
-                                                 'frames': fraction_of_pkt_min}, [], 0
+        return graph, attack_number_to_mapping, {'weight': 0,
+                                                 'frames': 0}, [], 0, None
 
     # step (2): is this the first contiguous time iteration that this kind of attack occurs?
     # if yes -> must determine the node mapping now

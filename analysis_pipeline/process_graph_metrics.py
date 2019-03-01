@@ -382,7 +382,9 @@ def calculate_mod_zscores_dfs(calculated_vals, minimum_training_window, training
 def save_feature_datafames(time_gran_to_feature_dataframe, csv_path, time_gran_to_attack_labels, time_gran_to_synthetic_exfil_paths_series,
                            time_gran_to_list_of_concrete_exfil_paths, time_gran_to_list_of_exfil_amts, end_of_training,
                            time_gran_to_new_neighbors_outside,
-                           time_gran_to_new_neighbors_dns, time_gran_to_new_neighbors_all):
+                           time_gran_to_new_neighbors_dns, time_gran_to_new_neighbors_all,
+                           time_gran_to_list_of_amt_of_out_traffic_bytes, time_gran_to_list_of_amt_of_out_traffic_pkts):
+
     print "time_gran_to_feature_dataframe",time_gran_to_feature_dataframe.keys()
     for time_gran, attack_labels in time_gran_to_attack_labels.iteritems():
         print "time_gran", time_gran, "len of attack labels", len(attack_labels)
@@ -409,6 +411,9 @@ def save_feature_datafames(time_gran_to_feature_dataframe, csv_path, time_gran_t
         feature_dataframe['concrete_exfil_path'] = pandas.Series(time_gran_to_list_of_concrete_exfil_paths[time_gran], index=feature_dataframe.index)
         feature_dataframe['exfil_weight'] = pandas.Series([i['weight'] for i in time_gran_to_list_of_exfil_amts[time_gran]], index=feature_dataframe.index)
         feature_dataframe['exfil_pkts'] = pandas.Series([i['frames'] for i in time_gran_to_list_of_exfil_amts[time_gran]], index=feature_dataframe.index)
+
+        feature_dataframe['amt_of_out_traffic_bytes'] = pandas.Series(time_gran_to_list_of_amt_of_out_traffic_bytes[time_gran], index=feature_dataframe.index)
+        feature_dataframe['amt_of_out_traffic_pkts'] = pandas.Series(time_gran_to_list_of_amt_of_out_traffic_pkts[time_gran], index=feature_dataframe.index)
 
         print "feature_dataframe", feature_dataframe
 

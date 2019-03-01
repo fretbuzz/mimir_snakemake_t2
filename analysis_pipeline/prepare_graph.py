@@ -74,6 +74,10 @@ def aggregate_outside_nodes(G):
     #print "outside nodes", outside_nodes
     #try:
     #print("trying...")
+    if len(outside_nodes) == 0: #probably already aggregated
+        H = G.copy()
+        return H
+
     first_node = outside_nodes[0]
     H = G.copy()
     for cur_node in outside_nodes[1:]:
