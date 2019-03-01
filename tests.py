@@ -8,6 +8,8 @@ from analysis_pipeline.process_graph_metrics import calc_modified_z_score
 
 from analysis_pipeline.generate_graphs import get_points_to_plot
 from analysis_pipeline.src.analyze_edgefiles import change_point_detection, find_angles, ide_angles, calc_VIP_metric
+import analysis_pipeline.simplified_graph_metrics
+import multiprocessing
 
 '''
 def mathTestSuite():
@@ -50,6 +52,48 @@ class TestStringMethods(unittest.TestCase):
         # check that s.split fails when the separator is not a string
         with self.assertRaises(TypeError):
             s.split(2)
+
+class testSyntheticAttackInjector(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        pass
+
+    def test_injector(self):
+        file_paths = ['./test_values/wordpress_thirteen_t1_default_bridge_0any_split_00036_20190220141725_edges.txt']
+        counter_starting = 0
+        svcs = ["my-release-pxc", "wwwppp-wordpress"]
+        is_swarm = 0
+        ms_s = svcs
+
+        current_total_node_list = []
+        svc_to_pod = {}
+        node_attack_mapping = {}
+        total_edgelist_nodes = []
+        avg_dns_weight = 0
+        avg_dns_pkts = 0
+
+        container_to_ip = None
+        infra_service = None
+        synthetic_exfil_paths = None
+        initiator_info_for_paths = None
+        attacks_to_times = None
+        time_interval = None
+        out_q = multiprocessing.Queue()
+        name_of_dns_pod_node = None
+        last_attack_injected = None
+        carryover = None
+        avg_exfil_per_min = None
+        exfil_per_min_variance = None
+        avg_pkt_size = None
+        pkt_size_variance = None
+
+
+
+        analysis_pipeline.simplified_graph_metrics.process_and_inject_single_graph(counter_starting, file_paths, svcs,
+                        is_swarm, ms_s, container_to_ip, infra_service, synthetic_exfil_paths, initiator_info_for_paths,
+                        attacks_to_times, time_interval, total_edgelist_nodes, svc_to_pod, avg_dns_weight, avg_dns_pkts,
+                        node_attack_mapping, out_q, current_total_node_list, name_of_dns_pod_node, last_attack_injected,
+                        carryover, avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance)
 
 class TestChangePoint(unittest.TestCase):
     maxDiff = None

@@ -1647,40 +1647,30 @@ def wordpress_thirteen_t1(time_of_synethic_exfil=None, only_exp_info=False, init
                             synthetic_exfil_paths_test=None, calc_vals=False,
                             skip_model_part=False,max_number_of_paths=None,
                             time_interval_lengths=None):
-    #'''
-    #calc_vals=False
-    # Wordpress exp 6 rep3 (wordpress w/ HA cluster on cilium w/o security config, dnscat exfil from single db w/ 15 sec delay)
-    pcap_paths = [
-        "/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t1/wordpress_thirteen_t1_default_bridge_0any.pcap"]
-    is_swarm = 0
+
     basefile_name = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t1/edgefiles/wordpress_thirteen_t1_'
     basegraph_name = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t1/graphs/wordpress_thirteen_t1_'
     alert_file = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t1/alerts/wordpress_thirteen_t1_'
-
-    # TODO: REMOVE
-    #basegraph_name += 'huge_'
-    #alert_file += 'huge_'
 
     container_info_path = "/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t1/wordpress_thirteen_t1_docker_0_network_configs.txt"
     cilium_config_path = None # does NOT use cilium on reps 2-4
     kubernetes_svc_info = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t1/wordpress_thirteen_t1_svc_config_0.txt'
     kubernetes_pod_info = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t1/wordpress_thirteen_t1_pod_config_0.txt'
+    pcap_paths = [
+        "/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t1/wordpress_thirteen_t1_default_bridge_0any.pcap"]
+
+    is_swarm = 0
     ms_s = ["my-release-pxc", "wwwppp-wordpress"]
     start_time = False
     end_time = None
     exfil_start_time = 3570
     exfil_end_time = 3570
-    #calc_vals = False #
     window_size = 6
     graph_p = False  # should I make graphs?
     colors = ['b', 'r']
     wiggle_room = 2  # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
-    #percentile_thresholds = [50, 75, 85, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100]
-    #anomaly_window = [1, 4]
-    #anom_num_outlier_vals_in_window = [1, 2] # note: these vals correspond to anoamly_window (so the first vals get matched, etc.)
     sec_between_exfil_events = 15
     physical_exfil_path = []
-    #training_window_size
 
 
     make_edgefiles = False ## already done!
@@ -1707,15 +1697,6 @@ def wordpress_thirteen_t1(time_of_synethic_exfil=None, only_exp_info=False, init
 def new_wordpress_recipe():
     skip_model_part = False
     ignore_physical_attacks_p = True
-    #fraction_of_edge_weights,fraction_of_edge_pkts = [0.001, 0.1],[0.001, 0.1]
-    #fraction_of_edge_weights,fraction_of_edge_pkts = [0.1],[0.1]
-
-    # want to put back eventaully...
-    #fraction_of_edge_weights,fraction_of_edge_pkts = [1.0, 0.2, 0.1, 0.01, 0.001],[1.0, 0.2, 0.1, 0.01, 0.001]
-    fraction_of_edge_weights,fraction_of_edge_pkts = [1000.0],[1000.0]
-
-    # going w/ this now b/c the 0.2's have already been calculated...
-    #fraction_of_edge_weights, fraction_of_edge_pkts = [0.001], [0.001]
 
     time_of_synethic_exfil = 30 # sec
     goal_train_test_split = 0.6
@@ -1734,8 +1715,6 @@ def new_wordpress_recipe():
     BytesPerMegabyte = 1000000
     avg_exfil_per_min = [BytesPerMegabyte * i for i in avg_exfil_per_min]
     exfil_per_min_variance = [BytesPerMegabyte * i for i in exfil_per_min_variance]
-    avg_pkt_size = [BytesPerMegabyte * i for i in avg_pkt_size]
-    pkt_size_variance = [BytesPerMegabyte * i for i in pkt_size_variance]
     ######
 
     calc_vals = True ## TODO: probably want to turn this off (eventually...)
