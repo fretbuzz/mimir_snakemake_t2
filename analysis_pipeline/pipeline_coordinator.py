@@ -1,10 +1,13 @@
 import gc
+
 import pandas as pd
 import pyximport
 from matplotlib import pyplot as plt
+
 import generate_alerts
 from analysis_pipeline.single_experiment_pipeline import determine_attacks_to_times
 from analysis_pipeline.statistical_analysis import statistically_analyze_graph_features
+
 pyximport.install() # to leverage cpython
 import math
 from sklearn.linear_model import LassoCV, LogisticRegressionCV
@@ -19,18 +22,6 @@ def generate_rocs(time_gran_to_anom_score_df, alert_file, sub_path):
         cur_alert_function,features_to_use = generate_alerts.determine_alert_function(df_with_anom_features)
         generate_alerts.generate_all_anom_ROCs(df_with_anom_features, time_gran, alert_file, sub_path, cur_alert_function,
                                features_to_use)
-
-# returns whether the range does not already have an attack at that location... so if an attack is found
-# then the range is not valid (So you'd wanna return false)
-def exfil_time_valid(potential_starting_point, time_slots_attack, attack_labels):
-    attack_found = False
-    # now check if there's not already an attack selected for that time...
-    #print potential_starting_point, potential_starting_point + time_slots_attack
-    for i in attack_labels[potential_starting_point:int(potential_starting_point + time_slots_attack)]:
-        if i:  # ==1
-            attack_found = True
-            break
-    return not attack_found
 
 # this function determines how much time to is available for injection attacks in each experiment.
 # it takes into account when the physical attack starts (b/c need to split into training/testing set

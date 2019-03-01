@@ -13,7 +13,6 @@ import analysis_pipeline.generate_graphs
 import analysis_pipeline.prepare_graph
 from analysis_pipeline import gen_attack_templates, process_pcap, process_graph_metrics, simplified_graph_metrics
 from analysis_pipeline.pcap_to_edgelists import create_mappings
-from analysis_pipeline.pipeline_coordinator import exfil_time_valid
 
 
 ## TODO: this function is an atrocity and should be converted into a snakemake spec so we can use that instead...###
@@ -692,3 +691,15 @@ def determine_time_gran_to_synthetic_exfil_paths_series(time_gran_to_attack_rang
 
     #time.sleep(60)
     return time_gran_to_synthetic_exfil_paths_series
+
+# returns whether the range does not already have an attack at that location... so if an attack is found
+# then the range is not valid (So you'd wanna return false)
+def exfil_time_valid(potential_starting_point, time_slots_attack, attack_labels):
+    attack_found = False
+    # now check if there's not already an attack selected for that time...
+    #print potential_starting_point, potential_starting_point + time_slots_attack
+    for i in attack_labels[potential_starting_point:int(potential_starting_point + time_slots_attack)]:
+        if i:  # ==1
+            attack_found = True
+            break
+    return not attack_found
