@@ -1117,7 +1117,7 @@ def inject_synthetic_attacks(graph, synthetic_exfil_paths, initiator_info_for_pa
                             all_pkts_in_exfil_path.append(avg_dns_pkts)
 
                 logging.info("found this weight: " + str(cur_exfil_weight))
-            logging.info("all_weights_in_exfil_path" + str(all_weights_in_exfil_path))
+            logging.info("all_weights_in_exfil_path" + str(all_weights_in_exfil_path) + ", time_gran: " + str(time_granularity))
             # so let's choose the weight/packets... let's maybe go w/ some fraction of the median...
             pkt_np_array = np.array(all_pkts_in_exfil_path)
             weight_np_array = np.array(all_weights_in_exfil_path)

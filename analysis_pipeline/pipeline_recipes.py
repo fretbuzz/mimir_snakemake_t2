@@ -11,7 +11,8 @@ import functools
 import matplotlib
 matplotlib.use('Agg',warn=False, force=True)
 
-from analysis_pipeline.pipeline_coordinator import data_anylsis_pipline, multi_experiment_pipeline
+from analysis_pipeline.pipeline_coordinator import multi_experiment_pipeline
+from analysis_pipeline.single_experiment_pipeline import data_anylsis_pipline
 
 '''
 This file is essentially just sets of parameters for the run_data_analysis_pipeline function in pipeline_coordinator.py
@@ -1653,11 +1654,17 @@ def wordpress_thirteen_t1(time_of_synethic_exfil=None, only_exp_info=False, init
     is_swarm = 0
     basefile_name = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t1/edgefiles/wordpress_thirteen_t1_'
     basegraph_name = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t1/graphs/wordpress_thirteen_t1_'
+    alert_file = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t1/alerts/wordpress_thirteen_t1_'
+
+    # TODO: REMOVE
+    basegraph_name += 'huge_'
+    alert_file += 'huge_'
+
     container_info_path = "/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t1/wordpress_thirteen_t1_docker_0_network_configs.txt"
     cilium_config_path = None # does NOT use cilium on reps 2-4
     kubernetes_svc_info = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t1/wordpress_thirteen_t1_svc_config_0.txt'
     kubernetes_pod_info = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t1/wordpress_thirteen_t1_pod_config_0.txt'
-    time_interval_lengths = [30, 10, 1]#,
+    time_interval_lengths = [10] #[30, 10, 1]#,
                              #1]  # , 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
     ms_s = ["my-release-pxc", "wwwppp-wordpress"]
     start_time = False
@@ -1672,7 +1679,6 @@ def wordpress_thirteen_t1(time_of_synethic_exfil=None, only_exp_info=False, init
     #percentile_thresholds = [50, 75, 85, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100]
     #anomaly_window = [1, 4]
     #anom_num_outlier_vals_in_window = [1, 2] # note: these vals correspond to anoamly_window (so the first vals get matched, etc.)
-    alert_file = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t1/alerts/wordpress_thirteen_t1_'
     sec_between_exfil_events = 15
     physical_exfil_path = []
     #training_window_size
@@ -1706,8 +1712,8 @@ def new_wordpress_recipe():
     #fraction_of_edge_weights,fraction_of_edge_pkts = [0.1],[0.1]
 
     # want to put back eventaully...
-    fraction_of_edge_weights,fraction_of_edge_pkts = [0.2, 0.1, 0.01, 0.001],[0.2, 0.1, 0.01, 0.001]
-    #fraction_of_edge_weights,fraction_of_edge_pkts = [0.2],[0.2]
+    #fraction_of_edge_weights,fraction_of_edge_pkts = [1.0, 0.2, 0.1, 0.01, 0.001],[1.0, 0.2, 0.1, 0.01, 0.001]
+    fraction_of_edge_weights,fraction_of_edge_pkts = [10.0],[10.0]
 
     # going w/ this now b/c the 0.2's have already been calculated...
     #fraction_of_edge_weights, fraction_of_edge_pkts = [0.001], [0.001]
