@@ -1126,20 +1126,20 @@ def inject_synthetic_attacks(graph, synthetic_exfil_paths, initiator_info_for_pa
 
             logging.info("weight_min: " + str(weight_min))
 
-            #if not dns_exfil_path:
-            fraction_of_pkt_min = max(int(math.ceil(pkt_min * fraction_of_edge_pkts)),1)
-            fraction_of_weight_min = int(weight_min * fraction_of_edge_weights)+ old_carryover
-            logging.info("fraction_of_weight_min: " + str(fraction_of_weight_min) + ";; fraction_of_edge_weights: "  + str(fraction_of_edge_weights))
-            #print("synthetic_exfil_paths", synthetic_exfil_paths)
-            #exit(233)
+            if not dns_exfil_path:
+                fraction_of_pkt_min = max(int(math.ceil(pkt_min * fraction_of_edge_pkts)),1)
+                fraction_of_weight_min = int(weight_min * fraction_of_edge_weights)+ old_carryover
+            else:
+                # NOTE THE 10* HERE
+                fraction_of_pkt_min = max(int(math.ceil(pkt_min * 10.0 * fraction_of_edge_pkts)),1)
+                fraction_of_weight_min = int(weight_min * 10.0 * fraction_of_edge_weights)+ old_carryover
+
+            logging.info("fraction_of_weight_min: " + str(fraction_of_weight_min) + ";; fraction_of_edge_weights: " + str(
+                fraction_of_edge_weights))
             attack_occuring_str = " ".join([str(z) for z in synthetic_exfil_paths[attack_occuring]])
             print("attack_occuring", attack_occuring_str)
-            #exit(233)
             logging.info("attack_occuring: " + attack_occuring_str)
 
-            #else:
-            #    fraction_of_pkt_min = int(math.ceil(pkt_min * 3)) ## TODO: might wanna parametrize... i think I'll just stay consistent
-            #    fraction_of_weight_min = int(weight_min * 3) ## TODO: might wanna parametrize... i think I'll just stay consistent...
         else:
             ###  we should store the corresponding attribs from the app_only granularity and then just
             # use that (b/c class gran. gives super huge).

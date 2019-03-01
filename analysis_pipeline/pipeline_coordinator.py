@@ -45,7 +45,7 @@ def process_one_set_of_graphs(fraction_of_edge_weights, fraction_of_edge_pkts, t
                                 synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
                                collected_metrics_location, current_set_of_graphs_loc, calc_vals, out_q):
 
-    if calc_vals:
+    if False: #calc_vals:
         current_set_of_graphs = simplified_graph_metrics.set_of_injected_graphs(fraction_of_edge_weights,
                                          fraction_of_edge_pkts, time_interval_length, window_size,
                                          filenames, svcs, is_swarm, ms_s, mapping, list_of_infra_services,
@@ -514,11 +514,11 @@ class data_anylsis_pipline(object):
         return self.total_experiment_length, self.exfil_start_time, self.exfil_end_time, self.system_startup_time
 
     def correct_attacks_labels_using_exfil_amts(self, time_gran_to_attack_labels, time_gran_to_list_of_exfil_amts):
-        time_gran_to_new_attack_labels = []
+        time_gran_to_new_attack_labels = {}
         for time_gran, attack_labels in time_gran_to_attack_labels.iteritems():
             new_attack_labels = []
             list_of_exfil_amts = time_gran_to_list_of_exfil_amts[time_gran]
-            for counter,label in new_attack_labels:
+            for counter,label in enumerate(attack_labels):
                 if list_of_exfil_amts[counter] == 0: # if it equals zero, then we know there isn't an actual attack
                     new_attack_labels.append(0)
                 else:
@@ -1866,6 +1866,7 @@ def graph_fone_versus_exfil_rate(optimal_fone_scores, exfil_weights_frac, exfil_
             else:
                 time_gran_to_fone_list[time_grans[timegran_counter]] = [optimal_score]
 
+            print "time_gran_to_exfil_param_list", time_gran_to_exfil_param_list
             if time_grans[timegran_counter] in time_gran_to_exfil_param_list:
                 time_gran_to_exfil_param_list[time_grans[timegran_counter]].append(
                     [(exfil_weights_frac[exfil_counter], exfil_pkts_frac[exfil_counter])])
