@@ -66,26 +66,11 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         Y_tests[time_gran] = y_test
 
         dropped_columns = list(pre_drop_X_train.columns.difference(X_train.columns))
-        #print "dropped_columns", dropped_columns
-        #print "columns", X_train.columns
-        #print "columns", X_test.columns
-        X_train_dtypes = X_train.dtypes
-        X_train_columns = X_train.columns.values
-        X_test_columns = X_test.columns.values
-        #print y_test
 
-        number_attacks_in_test = len(y_test[y_test['labels'] == 1])
-        number_non_attacks_in_test = len(y_test[y_test['labels'] == 0])
-        percent_attacks.append(float(number_attacks_in_test) / (number_non_attacks_in_test + number_attacks_in_test))
-        #print y_train
-        number_attacks_in_train = len(y_train[y_train['labels'] == 1])
-        number_non_attacks_in_train = len(y_train[y_train['labels'] == 0])
-        #print number_non_attacks_in_train,number_attacks_in_train
-        list_percent_attacks_training.append(float(number_attacks_in_train) / (number_non_attacks_in_train + number_attacks_in_train))
-        #print X_train.dtypes
-        #print y_train
-
-
+        ###########################
+        # if I was going to change the model, this part would need to be what changes. For instance,
+        # if I want to do logistic regresesion, this is probably where I'd need to do it (but would it
+        # effect the information that I need to feed into the report generation component??)
         clf.fit(X_train, y_train)
         trained_models[time_gran] = clf
         score_val = clf.score(X_test, y_test)
@@ -94,7 +79,7 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         train_predictions = clf.predict(X=X_train)
 
 
-        coef_dict = get_coef_dict(clf, X_train_columns, base_output_name, X_train_dtypes)
+        coef_dict = get_coef_dict(clf, X_train.columns.values, base_output_name, X_train.dtypes)
         coef_feature_df = pd.DataFrame.from_dict(coef_dict, orient='index')
         coef_feature_df.columns = ['Coefficient']
         model_params = clf.get_params()
@@ -104,6 +89,7 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
             pass
         list_of_model_parameters.append(model_params)
 
+        ####################################
         print '--------------------------'
 
         #print len(time_gran_to_debugging_csv[time_gran]["labels"]), len(np.concatenate([train_predictions, test_predictions]))
@@ -116,6 +102,7 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
             time_gran_to_debugging_csv[time_gran].loc[:, "aggreg_anom_score"] = np.concatenate(
                 [train_predictions, test_predictions])
 
+        # make heatmaps so I can see which features are contributing
         current_heatmap_val_path = base_output_name + 'coef_val_heatmap_' + str(time_gran) + '.png'
         local_heatmap_val_path = 'temp_outputs/heatmap_coef_val_at_' +  str(time_gran) + '.png'
         current_heatmap_path = base_output_name + 'coef_act_heatmap_' + str(time_gran) + '.png'
@@ -179,11 +166,20 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
 
         list_of_feat_coefs_dfs.append(coef_feature_df)
 
+        number_attacks_in_test = len(y_test[y_test['labels'] == 1])
+        number_non_attacks_in_test = len(y_test[y_test['labels'] == 0])
+        percent_attacks.append(float(number_attacks_in_test) / (number_non_attacks_in_test + number_attacks_in_test))
+        number_attacks_in_train = len(y_train[y_train['labels'] == 1])
+        number_non_attacks_in_train = len(y_train[y_train['labels'] == 0])
+        list_percent_attacks_training.append(
+            float(number_attacks_in_train) / (number_non_attacks_in_train + number_attacks_in_train))
+
     starts_of_testing_dict = {}
     for counter,name in enumerate(names):
         starts_of_testing_dict[name] = starts_of_testing[counter]
 
     starts_of_testing_df = pd.DataFrame(starts_of_testing_dict, index=['start_of_testing_phase'])
+
 
     print "list_of_rocs", list_of_rocs
     generate_report.generate_report(list_of_rocs, list_of_feat_coefs_dfs, list_of_attacks_found_dfs,
