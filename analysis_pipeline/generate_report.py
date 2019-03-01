@@ -17,7 +17,7 @@ def generate_report(list_of_rocs, list_of_feat_coef, list_of_attacks_found_dfs, 
                     percent_attacks, list_of_attacks_found_training_df, percent_attacks_training,
                     feature_activation_heatmaps, feature_raw_heatmaps, ideal_thresholds,
                     feature_activation_heatmaps_training, feature_raw_heatmaps_training,
-                    fraction_of_edge_weights, fraction_of_edge_pkts):
+                    avg_exfil_per_min, avg_pkt_size, exfil_per_min_variance, pkt_size_variance):
     # setup jinga and the associated template
     env = Environment(
         loader=FileSystemLoader(searchpath="src")
@@ -88,8 +88,10 @@ def generate_report(list_of_rocs, list_of_feat_coef, list_of_attacks_found_dfs, 
             date = date,
             recipes_used = recipes_used,
             sections=sections,
-            frac_exfil_weight = fraction_of_edge_weights,
-            frac_exfil_packets = fraction_of_edge_pkts
+            avg_exfil_per_min = avg_exfil_per_min,
+            avg_pkt_size =avg_pkt_size,
+            exfil_per_min_variance = exfil_per_min_variance,
+            pkt_size_variance=pkt_size_variance
         ))
 
     dir_path = os.path.dirname(os.path.realpath(__file__))

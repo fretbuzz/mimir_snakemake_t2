@@ -14,7 +14,10 @@ from analysis_pipeline import generate_heatmap, generate_alerts, process_roc, ge
 def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, base_output_name, names,
                                          starts_of_testing, path_occurence_training_df, path_occurence_testing_df,
                                          recipes_used, skip_model_part, clf, ignore_physical_attacks_p,
-                                         fraction_of_edge_weights, fraction_of_edge_pkts):
+                                         avg_exfil_per_min,
+                                         avg_pkt_size,
+                                         exfil_per_min_variance,
+                                         pkt_size_variance):
     #print time_gran_to_aggregate_mod_score_dfs['60']
     ######### 2a.II. do the actual splitting
     # note: labels have the column name 'labels' (noice)
@@ -179,7 +182,7 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
                                     path_occurence_testing_df, percent_attacks, list_of_attacks_found_training_df,
                                     list_percent_attacks_training, feature_activation_heatmaps, feature_raw_heatmaps,
                                     ideal_thresholds, feature_activation_heatmaps_training, feature_raw_heatmaps_training,
-                                    fraction_of_edge_weights, fraction_of_edge_pkts)
+                                    avg_exfil_per_min,avg_pkt_size, exfil_per_min_variance, pkt_size_variance)
 
     print "multi_experiment_pipeline is all done! (NO ERROR DURING RUNNING)"
     return list_of_optimal_fone_scores,X_trains,Y_trains,X_tests,Y_tests, trained_models

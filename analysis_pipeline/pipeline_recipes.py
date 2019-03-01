@@ -1645,7 +1645,8 @@ def wordpress_thirteen_t1(time_of_synethic_exfil=None, only_exp_info=False, init
                             portion_for_training=None, training_window_size=None, size_of_neighbor_training_window=None,
                             synthetic_exfil_paths_train=None,
                             synthetic_exfil_paths_test=None, calc_vals=False,
-                            skip_model_part=False,max_number_of_paths=None):
+                            skip_model_part=False,max_number_of_paths=None,
+                            time_interval_lengths=None):
     #'''
     #calc_vals=False
     # Wordpress exp 6 rep3 (wordpress w/ HA cluster on cilium w/o security config, dnscat exfil from single db w/ 15 sec delay)
@@ -1664,8 +1665,6 @@ def wordpress_thirteen_t1(time_of_synethic_exfil=None, only_exp_info=False, init
     cilium_config_path = None # does NOT use cilium on reps 2-4
     kubernetes_svc_info = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t1/wordpress_thirteen_t1_svc_config_0.txt'
     kubernetes_pod_info = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t1/wordpress_thirteen_t1_pod_config_0.txt'
-    time_interval_lengths = [10] #[30, 10, 1]#,
-                             #1]  # , 0.5] # note: not doing 100 or 0.1 b/c 100 -> not enough data points; 0.1 -> too many (takes multiple days to run)
     ms_s = ["my-release-pxc", "wwwppp-wordpress"]
     start_time = False
     end_time = None
@@ -1723,7 +1722,21 @@ def new_wordpress_recipe():
     goal_attack_NoAttack_split = 0.6
     training_window_size = 200
     size_of_neighbor_training_window = 0
+    time_interval_lengths = [10] #[30, 10, 1]#,
 
+    #####
+    # IN MEGABYTES / MINUTE
+    avg_exfil_per_min = [1.0]
+    exfil_per_min_variance = [0.2]
+    avg_pkt_size = [500.0]
+    pkt_size_variance = [100]
+
+    BytesPerMegabyte = 1000000
+    avg_exfil_per_min = [BytesPerMegabyte * i for i in avg_exfil_per_min]
+    exfil_per_min_variance = [BytesPerMegabyte * i for i in exfil_per_min_variance]
+    avg_pkt_size = [BytesPerMegabyte * i for i in avg_pkt_size]
+    pkt_size_variance = [BytesPerMegabyte * i for i in pkt_size_variance]
+    ######
 
     calc_vals = True ## TODO: probably want to turn this off (eventually...)
     calculate_z_scores = True
@@ -1732,7 +1745,8 @@ def new_wordpress_recipe():
     experiment_classes = [wordpress_thirteen_t1(training_window_size=training_window_size,
                                                   size_of_neighbor_training_window=size_of_neighbor_training_window,
                                                   calc_vals=calc_vals,
-                                                  time_of_synethic_exfil=time_of_synethic_exfil)]
+                                                  time_of_synethic_exfil=time_of_synethic_exfil,
+                                                  time_interval_lengths=time_interval_lengths)]
 
     ## NOTE: process_wordpress8 could be here too, but I'm for the moment I'm keeping each kind of injected
     ## attack w/ two different experiments in which it occurss...
@@ -1743,9 +1757,9 @@ def new_wordpress_recipe():
     multi_experiment_pipeline(experiment_classes, base_output_location, True, time_of_synethic_exfil,
                               goal_train_test_split, goal_attack_NoAttack_split, training_window_size,
                               size_of_neighbor_training_window, calc_vals, skip_model_part, ignore_physical_attacks_p,
-                              fraction_of_edge_weights=fraction_of_edge_weights,
-                              fraction_of_edge_pkts=fraction_of_edge_pkts,
-                              calculate_z_scores_p=calculate_z_scores)
+                              calculate_z_scores_p=calculate_z_scores,
+                              avg_exfil_per_min=avg_exfil_per_min, exfil_per_min_variance=exfil_per_min_variance,
+                              avg_pkt_size=avg_pkt_size, pkt_size_variance=pkt_size_variance)
 
 
 # this function feeds a set of wordpress experiments into the multi_experiment_pipeline() function found in the

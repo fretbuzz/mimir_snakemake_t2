@@ -30,7 +30,6 @@ class data_anylsis_pipline(object):
                                rdpcap_p=False, kubernetes_pod_info=None, alert_file=None, ROC_curve_p=False,
                                calc_zscore_p=False, training_window_size=200, minimum_training_window=5,
                                sec_between_exfil_events=1, time_of_synethic_exfil=30,
-                               fraction_of_edge_weights=0.1, fraction_of_edge_pkts=0.1,
                                size_of_neighbor_training_window=300,
                                end_of_training=None, injected_exfil_path='None', only_exp_info=False,
                                initiator_info_for_paths=None,
@@ -149,7 +148,8 @@ class data_anylsis_pipline(object):
 
         return time_gran_to_new_attack_labels
 
-    def calculate_values(self,end_of_training, synthetic_exfil_paths_train, synthetic_exfil_paths_test, fraction_of_edge_weights, fraction_of_edge_pkts):
+    def calculate_values(self,end_of_training, synthetic_exfil_paths_train, synthetic_exfil_paths_test,
+                         avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance):
         self.end_of_training = end_of_training
         if self.calc_vals or self.graph_p:
             # TODO: 90% sure that there is a problem with this function...
@@ -218,7 +218,8 @@ class data_anylsis_pipline(object):
                                             self.list_of_infra_services,
                                             synthetic_exfil_paths, self.initiator_info_for_paths, time_gran_to_attack_ranges,
                                             fraction_of_edge_weights, fraction_of_edge_pkts,
-                                            self.size_of_neighbor_training_window)
+                                            self.size_of_neighbor_training_window,
+                                            avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance)
 
             ## time_gran_to_attack_labels needs to be corrected using time_gran_to_list_of_concrete_exfil_paths
             ## because just because it was assigned, doesn't mean that it is necessarily going to be injected (might
@@ -355,14 +356,16 @@ class data_anylsis_pipline(object):
 def process_one_set_of_graphs(fraction_of_edge_weights, fraction_of_edge_pkts, time_interval_length, window_size,
                                 filenames, svcs, is_swarm, ms_s, mapping,  list_of_infra_services,
                                 synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
-                               collected_metrics_location, current_set_of_graphs_loc, calc_vals, out_q):
+                               collected_metrics_location, current_set_of_graphs_loc, calc_vals, out_q,
+                              avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance):
 
     if calc_vals:
         current_set_of_graphs = simplified_graph_metrics.set_of_injected_graphs(fraction_of_edge_weights,
                                          fraction_of_edge_pkts, time_interval_length, window_size,
                                          filenames, svcs, is_swarm, ms_s, mapping, list_of_infra_services,
                                          synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
-                                          collected_metrics_location, current_set_of_graphs_loc)
+                                          collected_metrics_location, current_set_of_graphs_loc,
+                                          avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance)
         current_set_of_graphs.generate_injected_edgefiles()
         current_set_of_graphs.calcuated_single_step_metrics()
         current_set_of_graphs.calc_serialize_metrics()
@@ -381,7 +384,8 @@ def process_one_set_of_graphs(fraction_of_edge_weights, fraction_of_edge_pkts, t
 def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms_s, basegraph_name, calc_vals, window_size,
                                 mapping, is_swarm, make_net_graphs_p, list_of_infra_services,synthetic_exfil_paths,
                                 initiator_info_for_paths, time_gran_to_attacks_to_times, fraction_of_edge_weights,
-                                fraction_of_edge_pkts, size_of_neighbor_training_window):
+                                fraction_of_edge_pkts, size_of_neighbor_training_window, avg_exfil_per_min,
+                                exfil_per_min_variance, avg_pkt_size, pkt_size_variance):
     total_calculated_vals = {}
     time_gran_to_list_of_concrete_exfil_paths = {}
     time_gran_to_list_of_exfil_amts = {}
@@ -427,7 +431,7 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
                 interval_to_filenames[str(time_interval_length)], svcs, is_swarm, ms_s, mapping,
                 list_of_infra_services, synthetic_exfil_paths,  initiator_info_for_paths,
                 time_gran_to_attacks_to_times[time_interval_length], collected_metrics_location, current_set_of_graphs_loc,
-                calc_vals, out_q]
+                calc_vals, out_q, avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance]
         p = multiprocessing.Process(
             target=process_one_set_of_graphs,
             args=args)

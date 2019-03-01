@@ -30,6 +30,7 @@ import cPickle as pickle
 import pyximport
 pyximport.install() # am I sure that I want this???
 import multiprocessing
+import numpy.random
 
 # okay, so things to be aware of:
 # (a) we are assuming that if we cannot label the node and it is not loopback or in the '10.X.X.X' subnet, then it is outside
@@ -167,7 +168,8 @@ class injected_graph():
 class set_of_injected_graphs():
     def __init__(self, fraction_of_edge_weights, fraction_of_edge_pkts, time_granularity, window_size, raw_edgefile_names,
                 svcs, is_swarm, ms_s, container_to_ip, infra_service, synthetic_exfil_paths, initiator_info_for_paths,
-                attacks_to_times, collected_metrics_location, current_set_of_graphs_loc):#, out_q):
+                attacks_to_times, collected_metrics_location, current_set_of_graphs_loc,
+                 avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance):#, out_q):
 
         self.list_of_injected_graphs_loc = []
         self.fraction_of_edge_weights = fraction_of_edge_weights
@@ -193,6 +195,11 @@ class set_of_injected_graphs():
 
         self.list_of_concrete_container_exfil_paths = []
         self.list_of_exfil_amts = []
+
+        self.avg_exfil_per_min = avg_exfil_per_min
+        self.exfil_per_min_variance =  exfil_per_min_variance
+        self.avg_pkt_size  = avg_pkt_size
+        self.pkt_size_variance =  pkt_size_variance
 
     def save(self):
         #with open(self.current_set_of_graphs_loc, 'wb') as output:  # Overwrites any existing file.
@@ -354,6 +361,10 @@ class set_of_injected_graphs():
         name_of_dns_pod_node = None
         last_attack_injected = None
         carryover = None
+        avg_exfil_per_min = self.avg_exfil_per_min
+        exfil_per_min_variance = self.exfil_per_min_variance
+        avg_pkt_size = self.avg_pkt_size
+        pkt_size_variance = self.pkt_size_variance
 
         num_graphs_to_process_at_once = 40
         for counter in range(0, len(self.raw_edgefile_names), num_graphs_to_process_at_once):
@@ -363,7 +374,7 @@ class set_of_injected_graphs():
                     fraction_of_edge_pkts, synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
                     time_interval, total_edgelist_nodes, svc_to_pod, avg_dns_weight, avg_dns_pkts,
                     node_attack_mapping, out_q, current_total_node_list, name_of_dns_pod_node, last_attack_injected,
-                    carryover]
+                    carryover, avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance ]
             p = multiprocessing.Process(
                 target=process_and_inject_single_graph,
                 args=args)
@@ -394,7 +405,8 @@ class set_of_injected_graphs():
 def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm, ms_s, container_to_ip, infra_service, fraction_of_edge_weights,
                     fraction_of_edge_pkts, synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
                     time_interval, total_edgelist_nodes, svc_to_pod, avg_dns_weight, avg_dns_pkts,
-                    node_attack_mapping, out_q, current_total_node_list,name_of_dns_pod_node,attack_injected, carryover):
+                    node_attack_mapping, out_q, current_total_node_list,name_of_dns_pod_node,attack_injected, carryover,
+                    avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance ):
 
     concrete_cont_node_path_list = []
     pre_specified_data_attribs_list = []
@@ -501,12 +513,18 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
         logging.info("process_rep: " + str(counter) + ':' + " avg_dns_weight: " + str(
             avg_dns_weight) + ', avg_dns_pkts:' + str(avg_dns_pkts))
 
+        '''
         cur_1si_G, node_attack_mapping, pre_specified_data_attribs, concrete_cont_node_path,carryover,attack_injected = \
-            inject_synthetic_attacks(cur_1si_G, synthetic_exfil_paths, initiator_info_for_paths,
+            inject_synthetic_attacks(cur_1si_G, synthetic_exfil_paths,
                     attacks_to_times, time_interval, counter, node_attack_mapping,
                     fraction_of_edge_weights, fraction_of_edge_pkts,
                     name_of_dns_pod_node, avg_dns_weight, avg_dns_pkts,carryover, attack_injected)
+        '''
 
+        cur_1si_G, node_attack_mapping, pre_specified_data_attribs, concrete_cont_node_path,carryover,attack_injected = \
+        inject_synthetic_attacks(graph, synthetic_exfil_paths, attacks_to_times, counter, node_attack_mapping,
+                                 name_of_dns_pod_node, carryover, attack_injected, time_interval, avg_exfil_per_min,
+                                 exfil_per_min_variance, avg_pkt_size, pkt_size_variance)
 
         cur_class_G = prepare_graph(cur_1si_G, svcs, 'class', is_swarm, counter, file_path, ms_s, container_to_ip,
                                     infra_service)
@@ -584,10 +602,9 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
 # (2) identify whether this is the first occurence of injection... if it was injected
 ## earlier, then we need to re-use the mappings...
 # (3) add the weights...
-def inject_synthetic_attacks(graph, synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
-                             time_granularity,graph_number, attack_number_to_mapping,
-                             fraction_of_edge_weights, fraction_of_edge_pkts,
-                             name_of_dns_pod_node, avg_dns_weight, avg_dns_pkts,old_carryover, last_attack):
+def inject_synthetic_attacks(graph, synthetic_exfil_paths, attacks_to_times, graph_number, attack_number_to_mapping,
+                            name_of_dns_pod_node,old_carryover, last_attack, time_gran, avg_exfil_per_min, exfil_per_min_variance,
+                             avg_pkt_size, pkt_size_variance):
 
     current_time = graph_number
     attack_occuring = None
@@ -626,10 +643,9 @@ def inject_synthetic_attacks(graph, synthetic_exfil_paths, initiator_info_for_pa
 
     concrete_node_path = determine_concrete_node_path(synthetic_exfil_paths[attack_occuring], attack_number_to_mapping[attack_occuring])
 
-    fraction_of_pkt_min, fraction_of_weight_min = \
-        determine_exfiltration_amt(attack_occuring, attack_number_to_mapping, synthetic_exfil_paths,
-                                   avg_dns_weight, avg_dns_pkts, time_granularity,
-                                   fraction_of_edge_pkts, fraction_of_edge_weights, old_carryover, graph)
+    fraction_of_weight_min, fraction_of_pkt_min = determine_exfiltration_amt(avg_exfil_per_min, exfil_per_min_variance,
+                                                                             avg_pkt_size, pkt_size_variance, time_gran,
+                                                                             old_carryover)
 
     ## Step (4): use the previously calculated exfiltration rate to actually make the appropriate modifications
     ## to the graph.
@@ -900,6 +916,17 @@ def avg_behavior_into_dns_node(pre_injection_weight_into_dns_dict, pre_inject_pa
     return avg_dns_weight, avg_dns_pkts
 
 #'''
+def determine_exfiltration_amt(avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance, time_gran, carryover):
+    exfil_amt = numpy.random.normal(loc=avg_exfil_per_min, scale=exfil_per_min_variance) + carryover
+    pkt_size = numpy.random.normal(loc=avg_pkt_size, scale=pkt_size_variance)
+
+    # okay, so the exfil amt is what it'd be over a whole minute so
+    exfil_amt_in_this_time_interval = (exfil_amt) * (1/60)  * time_gran
+    exfil_amt_in_this_time_interval = int(math.floor(exfil_amt_in_this_time_interval))
+    pkts_in_this_time_interval = int(math.floor(exfil_amt_in_this_time_interval / pkt_size))
+
+    return exfil_amt_in_this_time_interval, pkts_in_this_time_interval
+
 def determine_exfiltration_amt(attack_occuring, attack_number_to_mapping, synthetic_exfil_paths,
                                avg_dns_weight, avg_dns_pkts, time_granularity, fraction_of_edge_pkts,
                                fraction_of_edge_weights, old_carryover, graph, concrete_node_path):

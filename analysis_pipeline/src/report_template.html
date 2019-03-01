@@ -9,8 +9,11 @@
 This report was automatically generated.
 <p> {{ date }}</p>
 <p> Data used: {{ recipes_used }} </p>
-<p> Fraction of exfil weight: {{frac_exfil_weight}}</p>
-<p> Fraction of exfil packets: {{frac_exfil_packets}}</p>
+<p> Average Exfil Per Min (Bytes): {{avg_exfil_per_min}} </p>
+<p> Exfil Rate Variance (Bytes): {{exfil_per_min_variance}} </p>
+<p> Averge Packete Size (Bytese): {{avg_pkt_size}} </p>
+<p> Packet Size Variance (Bytes): {{pkt_size_variance}} </p>
+
 {% for section in sections %}
     {{ section }}
 {% endfor %}

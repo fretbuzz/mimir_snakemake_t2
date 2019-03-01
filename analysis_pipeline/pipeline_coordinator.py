@@ -71,8 +71,8 @@ def determine_injection_times(exps_info, goal_train_test_split, goal_attack_NoAt
 def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time_each_synthetic_exfil,
                               goal_train_test_split, goal_attack_NoAttack_split, training_window_size,
                               size_of_neighbor_training_window, calc_vals, skip_model_part, ignore_physical_attacks_p,
-                              fraction_of_edge_weights=[0.1], fraction_of_edge_pkts=[0.1],
-                              calculate_z_scores_p=True):
+                              calculate_z_scores_p=True,avg_exfil_per_min=None, exfil_per_min_variance=None,
+                              avg_pkt_size=None, pkt_size_variance=None):
 
     # step(0): need to find out the  meta-data for each experiment so we can coordinate the
     # synthetic attack injections between experiments
@@ -82,14 +82,14 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
 
 
     list_of_optimal_fone_scores_at_exfil_rates = []
-    for rate_counter in range(0,len(fraction_of_edge_weights)):
+    for rate_counter in range(0,len(avg_pkt_size)):
         out_q = multiprocessing.Queue()
         cur_function_list = [copy.deepcopy(i) for i in function_list]
-        args = [fraction_of_edge_weights, rate_counter, fraction_of_edge_pkts,
+        args = [rate_counter,
                 base_output_name, cur_function_list, exps_exfil_paths, exps_initiator_info,
                 calculate_z_scores_p, calc_vals, end_of_train_portions,training_exfil_paths,
                 testing_exfil_paths, ignore_physical_attacks_p, skip_model_part, out_q,
-                ROC_curve_p]
+                ROC_curve_p, avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance]
         p = multiprocessing.Process(
             target=pipeline_one_exfil_rate,
             args=args)
@@ -105,15 +105,17 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
         list_of_optimal_fone_scores_at_exfil_rates.append(optimal_fones)
 
     # todo: graph f_one versus exfil rates...
-    graph_fone_versus_exfil_rate(list_of_optimal_fone_scores_at_exfil_rates, fraction_of_edge_weights,
-                                 fraction_of_edge_pkts, Xs.keys())
+    avg_exfil_size_per_path=  None # TODO
+    avg_exfil_pkts_per_path = None # TODO
+    graph_fone_versus_exfil_rate(list_of_optimal_fone_scores_at_exfil_rates, avg_exfil_size_per_path,
+                                 avg_exfil_pkts_per_path, Xs.keys())
 
 
-def pipeline_one_exfil_rate(fraction_of_edge_weights, rate_counter, fraction_of_edge_pkts,
+def pipeline_one_exfil_rate(rate_counter,
                             base_output_name, function_list, exps_exfil_paths, exps_initiator_info,
                             calculate_z_scores_p, calc_vals, end_of_train_portions, training_exfil_paths,
                             testing_exfil_paths, ignore_physical_attacks_p, skip_model_part, out_q,
-                            ROC_curve_p):
+                            ROC_curve_p, avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance):
     ## step (1) : iterate through individual experiments...
     ##  # 1a. list of inputs [done]
     ##  # 1b. acculate DFs
@@ -139,8 +141,9 @@ def pipeline_one_exfil_rate(fraction_of_edge_weights, rate_counter, fraction_of_
         experiment_object.calculate_values(end_of_training=end_of_train_portions[counter],
                                            synthetic_exfil_paths_train=training_exfil_paths[counter],
                                            synthetic_exfil_paths_test=testing_exfil_paths[counter],
-                                           fraction_of_edge_weights=fraction_of_edge_weights[rate_counter],
-                                           fraction_of_edge_pkts=fraction_of_edge_pkts[rate_counter])
+                                           avg_exfil_per_min=avg_exfil_per_min[counter],
+                                           exfil_per_min_variance=exfil_per_min_variance[counter],
+                                           avg_pkt_size=avg_pkt_size[counter], pkt_size_variance=pkt_size_variance[counter])
 
         print "exps_exfil_pathas[time_gran_to_mod_zscore_df]", time_gran_to_mod_zscore_df
         print time_gran_to_mod_zscore_df[time_gran_to_mod_zscore_df.keys()[0]].columns.values
@@ -185,8 +188,11 @@ def pipeline_one_exfil_rate(fraction_of_edge_weights, rate_counter, fraction_of_
                                              cur_base_output_name + 'lasso_mod_z_',
                                              names, starts_of_testing, path_occurence_training_df,
                                              path_occurence_testing_df, recipes_used, skip_model_part, clf,
-                                             ignore_physical_attacks_p, fraction_of_edge_weights[rate_counter],
-                                             fraction_of_edge_pkts[rate_counter])
+                                             ignore_physical_attacks_p,
+                                             avg_exfil_per_min[rate_counter],
+                                             avg_pkt_size[rate_counter],
+                                             exfil_per_min_variance[rate_counter],
+                                             pkt_size_variance[rate_counter])
     '''
     statistically_analyze_graph_features(time_gran_to_aggreg_feature_dfs, ROC_curve_p, base_output_name + 'lasso_raw_',
                                          names, starts_of_testing, path_occurence_training_df,
@@ -200,8 +206,10 @@ def pipeline_one_exfil_rate(fraction_of_edge_weights, rate_counter, fraction_of_
                                                             cur_base_output_name + 'logistic_l1_mod_z_lass_feat_sel_',
                                                             names, starts_of_testing, path_occurence_training_df,
                                                             path_occurence_testing_df, recipes_used, skip_model_part, clf,
-                                                            ignore_physical_attacks_p, fraction_of_edge_weights[rate_counter],
-                                                            fraction_of_edge_pkts[rate_counter])
+                                                            ignore_physical_attacks_p, avg_exfil_per_min[rate_counter],
+                                                             avg_pkt_size[rate_counter],
+                                                             exfil_per_min_variance[rate_counter],
+                                                             pkt_size_variance[rate_counter])
 
     #'''
     '''
