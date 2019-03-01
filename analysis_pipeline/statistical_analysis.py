@@ -42,41 +42,13 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
     for time_gran,aggregate_mod_score_dfs in time_gran_to_aggregate_mod_score_dfs.iteritems():
         time_grans.append(time_gran)
 
-        aggregate_mod_score_dfs = drop_useless_columns_aggreg_DF(aggregate_mod_score_dfs)
-
-        if not skip_model_part:
-            if ignore_physical_attacks_p:
-                aggregate_mod_score_dfs = \
-                aggregate_mod_score_dfs[~((aggregate_mod_score_dfs['labels'] == 1) &
-                                          ((aggregate_mod_score_dfs['exfil_pkts'] == 0) &
-                                           (aggregate_mod_score_dfs['exfil_weight'] == 0)) )]
-
-            aggregate_mod_score_dfs_training = aggregate_mod_score_dfs[aggregate_mod_score_dfs['is_test'] == 0]
-            aggregate_mod_score_dfs_testing = aggregate_mod_score_dfs[aggregate_mod_score_dfs['is_test'] == 1]
-            time_gran_to_debugging_csv[time_gran] = aggregate_mod_score_dfs.copy(deep=True)
-            print "aggregate_mod_score_dfs_training",aggregate_mod_score_dfs_training
-            print "aggregate_mod_score_dfs_testing",aggregate_mod_score_dfs_testing
-            print aggregate_mod_score_dfs['is_test']
-
-        else:
-            ## note: generally you'd want to split into test and train sets, but if we're not doing logic
-            ## part anyway, we just want quick-and-dirty results, so don't bother (note: so for formal purposes,
-            ## DO NOT USE WITHOUT LOGIC CHECKING OR SOLVE THE TRAINING-TESTING split problem)
-            aggregate_mod_score_dfs_training, aggregate_mod_score_dfs_testing = train_test_split(aggregate_mod_score_dfs, test_size=0.5)
-            time_gran_to_debugging_csv[time_gran] = aggregate_mod_score_dfs_training.copy(deep=True).append(aggregate_mod_score_dfs_testing.copy(deep=True))
-
-        print aggregate_mod_score_dfs_training.index
-        aggregate_mod_score_dfs_training, aggregate_mod_score_dfs_testing = \
-            drop_useless_columns_aggreg_testtrain_DF(aggregate_mod_score_dfs_training, aggregate_mod_score_dfs_testing)
-
-        X_train = aggregate_mod_score_dfs_training.loc[:, aggregate_mod_score_dfs_training.columns != 'labels']
-        y_train = aggregate_mod_score_dfs_training.loc[:, aggregate_mod_score_dfs_training.columns == 'labels']
-        X_test = aggregate_mod_score_dfs_testing.loc[:, aggregate_mod_score_dfs_training.columns != 'labels']
-        y_test = aggregate_mod_score_dfs_testing.loc[:, aggregate_mod_score_dfs_training.columns == 'labels']
+        X_train, y_train, X_test, y_test, pre_drop_X_train, time_gran_to_debugging_csv, dropped_feature_list, ide_train,\
+            ide_test, X_train_exfil_weight, X_test_exfil_weight = prepare_data(aggregate_mod_score_dfs, skip_model_part,
+                                                        ignore_physical_attacks_p, time_gran_to_debugging_csv, time_gran)
 
         try:
-            exfil_paths = X_test['exfil_path'].replace('0','[]')
-            exfil_paths_train = X_train['exfil_path'].replace('0','[]')
+            exfil_paths = X_test['exfil_path'].replace('0', '[]')
+            exfil_paths_train = X_train['exfil_path'].replace('0', '[]')
         except:
             try:
                 exfil_paths = X_test['exfil_path'].replace(0, '[]')
@@ -84,71 +56,58 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
             except:
                 pass
 
-        # get method to compare against and remove them from the DF...
-        ide_train, ide_test, X_train, X_test = extract_comparison_methods(X_train, X_test)
-
-        X_train, X_test, dropped_feature_list, X_train_exfil_weight, X_test_exfil_weight = \
-            drop_useless_columns_testTrain_Xs(X_train, X_test)
-
-        print '-------'
-        print type(X_train)
-        print "X_train_columns_values", X_train.columns.values
-        print "columns", X_train.columns
-        print "columns", X_test.columns
-
-        print X_train.dtypes
-
-        # need to replace the missing values in the data w/ meaningful values...
-        X_train = X_train.fillna(X_train.median())
-        X_test = X_test.fillna(X_train.median())
-        print "X_train_median", X_train.median()
-
-        print X_train
-        pre_drop_X_train = X_train.copy(deep=True)
-        X_train = X_train.dropna(axis=1)
-        print X_train
-        X_test = X_test.dropna(axis=1)
-
+        # TODO: probably want to pass in the feature selection capabilities as a first class function
         if 'lass_feat_sel' in base_output_name:
-            clf_featuree_selection = LassoCV(cv=5)
-            sfm = sklearn.feature_selection.SelectFromModel(clf_featuree_selection)
-            sfm.fit(X_train, y_train)
-            feature_idx = sfm.get_support()
-            selected_columns = X_train.columns[feature_idx]
-            X_train = pd.DataFrame(sfm.transform(X_train),index=X_train.index,columns=selected_columns)
-            X_test = pd.DataFrame(sfm.transform(X_test),index=X_test.index,columns=selected_columns)
-            #X_test = sfm.transform(X_test)
+            X_train, X_test = lasso_feature_selection(X_train, y_train, X_test, y_test)
 
+        X_trains[time_gran] = X_train
+        Y_trains[time_gran] = y_train
+        X_tests[time_gran] = X_test
+        Y_tests[time_gran] = y_test
 
         dropped_columns = list(pre_drop_X_train.columns.difference(X_train.columns))
-        print "dropped_columns", dropped_columns
-        print "columns", X_train.columns
-        print "columns", X_test.columns
+        #print "dropped_columns", dropped_columns
+        #print "columns", X_train.columns
+        #print "columns", X_test.columns
         X_train_dtypes = X_train.dtypes
         X_train_columns = X_train.columns.values
         X_test_columns = X_test.columns.values
-        print y_test
+        #print y_test
 
         number_attacks_in_test = len(y_test[y_test['labels'] == 1])
         number_non_attacks_in_test = len(y_test[y_test['labels'] == 0])
         percent_attacks.append(float(number_attacks_in_test) / (number_non_attacks_in_test + number_attacks_in_test))
-        print y_train
+        #print y_train
         number_attacks_in_train = len(y_train[y_train['labels'] == 1])
         number_non_attacks_in_train = len(y_train[y_train['labels'] == 0])
-        print number_non_attacks_in_train,number_attacks_in_train
+        #print number_non_attacks_in_train,number_attacks_in_train
         list_percent_attacks_training.append(float(number_attacks_in_train) / (number_non_attacks_in_train + number_attacks_in_train))
-        print X_train.dtypes
-        print y_train
+        #print X_train.dtypes
+        #print y_train
+
 
         clf.fit(X_train, y_train)
         trained_models[time_gran] = clf
         score_val = clf.score(X_test, y_test)
-        print "score_val", score_val
+        #print "score_val", score_val
         test_predictions = clf.predict(X=X_test)
         train_predictions = clf.predict(X=X_train)
 
-        print len(time_gran_to_debugging_csv[time_gran]["labels"]), len(np.concatenate([train_predictions, test_predictions]))
-        print len(time_gran_to_debugging_csv[time_gran].index)
+
+        coef_dict = get_coef_dict(clf, X_train_columns, base_output_name, X_train_dtypes)
+        coef_feature_df = pd.DataFrame.from_dict(coef_dict, orient='index')
+        coef_feature_df.columns = ['Coefficient']
+        model_params = clf.get_params()
+        try:
+            model_params['alpha_val'] = clf.alpha_
+        except:
+            pass
+        list_of_model_parameters.append(model_params)
+
+        print '--------------------------'
+
+        #print len(time_gran_to_debugging_csv[time_gran]["labels"]), len(np.concatenate([train_predictions, test_predictions]))
+        #print len(time_gran_to_debugging_csv[time_gran].index)
         if not skip_model_part:
             time_gran_to_debugging_csv[time_gran].loc[:, "aggreg_anom_score"] = np.concatenate(
                 [train_predictions, test_predictions])
@@ -156,20 +115,6 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
             # time_gran_to_debugging_csv[time_gran].loc[:, "aggreg_anom_score"] = test_predictions
             time_gran_to_debugging_csv[time_gran].loc[:, "aggreg_anom_score"] = np.concatenate(
                 [train_predictions, test_predictions])
-
-        coef_dict = get_coef_dict(clf, X_train_columns, base_output_name, X_train_dtypes)
-        coef_feature_df = pd.DataFrame.from_dict(coef_dict, orient='index')
-        coef_feature_df.columns = ['Coefficient']
-
-        print '--------------------------'
-
-        model_params = clf.get_params()
-        try:
-            model_params['alpha_val'] = clf.alpha_
-        except:
-            pass
-
-        list_of_model_parameters.append(model_params)
 
         current_heatmap_val_path = base_output_name + 'coef_val_heatmap_' + str(time_gran) + '.png'
         local_heatmap_val_path = 'temp_outputs/heatmap_coef_val_at_' +  str(time_gran) + '.png'
@@ -192,100 +137,45 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         feature_activation_heatmaps_training.append('../' + local_heatmap_path_training)
         feature_raw_heatmaps_training.append('../' + local_heatmap_raw_val_path_training)
 
-        X_trains[time_gran] = X_train
-        Y_trains[time_gran] = y_train
-        X_tests[time_gran] = X_test
-        Y_tests[time_gran] = y_test
+        ### step (3): Make ROCs and determine performance at optimal F1 operating point
+        optimal_predictions, optimal_thresh, plot_path = generate_ROC_curves(y_test, test_predictions, base_output_name,
+                                                                             time_gran, ide_test, ide_train,
+                                                                             list_of_optimal_fone_scores)
+        ideal_thresholds.append(optimal_thresh)
+        list_of_rocs.append(plot_path)
+        categorical_cm_df = determine_categorical_cm_df(y_test, optimal_predictions, exfil_paths, X_test_exfil_weight)
+        list_of_attacks_found_dfs.append(categorical_cm_df)
+        optimal_train_predictions = [int(i > optimal_thresh) for i in train_predictions]
+        categorical_cm_df_training = determine_categorical_cm_df(y_train, optimal_train_predictions, exfil_paths_train,
+                                                                 X_train_exfil_weight)
+        list_of_attacks_found_training_df.append(categorical_cm_df_training)
 
-        ### step (3)
-        ## use the generate sklearn model to create the detection ROC
-        if ROC_curve_p:
-            fpr, tpr, thresholds = sklearn.metrics.roc_curve(y_true=y_test, y_score=test_predictions, pos_label=1)
-            x_vals = fpr
-            y_vals = tpr
-            ROC_path = base_output_name + '_good_roc_'
-            title = 'ROC Linear Combination of Features at ' + str(time_gran)
-            plot_name = 'sub_roc_lin_comb_features_' + str(time_gran)
+        if not skip_model_part:
+            time_gran_to_debugging_csv[time_gran].loc[:, "anom_val_at_opt_pt"] = \
+                np.concatenate([optimal_train_predictions, optimal_predictions])
+        else:
+            #time_gran_to_debugging_csv[time_gran].loc[:, "anom_val_at_opt_pt"] = optimal_predictions
+            time_gran_to_debugging_csv[time_gran].loc[:, "anom_val_at_opt_pt"] = \
+                np.concatenate([optimal_train_predictions, optimal_predictions])
 
-            try:
-                os.makedirs('./temp_outputs')
-            except OSError as e:
-                if e.errno != errno.EEXIST:
-                    raise
+        # I don't want the attributes w/ zero coefficients to show up in the debugging csv b/c it makes it hard to read
+        for feature,coef in coef_dict.iteritems():
+            print "coef_check", coef, not coef, feature
+            if not coef:
+                print "just_dropped", feature
+                try:
+                    time_gran_to_debugging_csv[time_gran] = time_gran_to_debugging_csv[time_gran].drop([feature],axis=1)
+                    coef_feature_df = coef_feature_df.drop(feature, axis=0)
+                except:
+                    pass
+            for dropped_feature in dropped_feature_list + dropped_columns:
+                try:
+                    time_gran_to_debugging_csv[time_gran] = time_gran_to_debugging_csv[time_gran].drop([dropped_feature], axis=1)
+                except:
+                    pass
 
-            ##  ewma_train = X_train['max_ewma_control_chart_scores']
-            ##  ewma_test = X_test['max_ewma_control_chart_scores']
-            # now for the ewma part...
-            #fpr_ewma, tpr_ewma, thresholds_ewma = sklearn.metrics.roc_curve(y_true=y_test, y_score = ewma_test, pos_label=1)
-            print "y_test",y_test
-            print "ide_test",ide_test, ide_train
-            try:
-                fpr_ide, tpr_ide, thresholds_ide = sklearn.metrics.roc_curve(y_true=y_test, y_score = ide_test, pos_label=1)
-                line_titles = ['ensemble model', 'ide_angles']
-                list_of_x_vals = [x_vals, fpr_ide]
-                list_of_y_vals = [y_vals, tpr_ide]
-            except:
-                #ide_test = [0 for i in range(0, len(X_test))]
-                #fpr_ide, tpr_ide, thresholds_ide = sklearn.metrics.roc_curve(y_true=y_test, y_score = ide_test, pos_label=1)
-                line_titles = ['ensemble model']
-                list_of_x_vals = [x_vals]
-                list_of_y_vals = [y_vals]
-
-            ax, _, plot_path = generate_alerts.construct_ROC_curve(list_of_x_vals, list_of_y_vals, title, ROC_path + plot_name,\
-                                                                   line_titles, show_p=False)
-            list_of_rocs.append(plot_path)
-
-            ### determination of the optimal operating point goes here (take all the thresh vals and predictions,
-            ### find the corresponding f1 scores (using sklearn func), and then return the best.
-            optimal_f1_score, optimal_thresh = process_roc.determine_optimal_threshold(y_test, test_predictions, thresholds)
-            ideal_thresholds.append(optimal_thresh)
-            print "optimal_f1_score", optimal_f1_score, "optimal_thresh",optimal_thresh
-            list_of_optimal_fone_scores.append(optimal_f1_score)
-            ### get confusion matrix... take predictions from classifer. THreshold
-            ### using optimal threshold determined previously. Extract the labels too. This gives two lists, appropriate
-            ### for using the confusion_matrix function of sklearn. However, this does NOT handle the different
-            ### categories... (for display will probably want to make a df)
-            optimal_predictions = [int(i > optimal_thresh) for i in test_predictions]
-            print "optimal_predictions", optimal_predictions
-            ### determine categorical-level behavior... Split the two lists from the previous step into 2N lists,
-            ### where N is the # of categories, and then can just do the confusion matrix function on them...
-            ### (and then display the results somehow...)
-
-            categorical_cm_df = determine_categorical_cm_df(y_test, optimal_predictions, exfil_paths, X_test_exfil_weight)
-            list_of_attacks_found_dfs.append(categorical_cm_df)
-
-            optimal_train_predictions = [int(i>optimal_thresh) for i in train_predictions]
-            categorical_cm_df_training = determine_categorical_cm_df(y_train, optimal_train_predictions, exfil_paths_train,
-                                                                     X_train_exfil_weight)
-            list_of_attacks_found_training_df.append(categorical_cm_df_training)
-
-            if not skip_model_part:
-                time_gran_to_debugging_csv[time_gran].loc[:, "anom_val_at_opt_pt"] = \
-                    np.concatenate([optimal_train_predictions, optimal_predictions])
-            else:
-                #time_gran_to_debugging_csv[time_gran].loc[:, "anom_val_at_opt_pt"] = optimal_predictions
-                time_gran_to_debugging_csv[time_gran].loc[:, "anom_val_at_opt_pt"] = \
-                    np.concatenate([optimal_train_predictions, optimal_predictions])
-
-            # I don't want the attributes w/ zero coefficients to show up in the debugging csv b/c it makes it hard to read
-            for feature,coef in coef_dict.iteritems():
-                print "coef_check", coef, not coef, feature
-                if not coef:
-                    print "just_dropped", feature
-                    try:
-                        time_gran_to_debugging_csv[time_gran] = time_gran_to_debugging_csv[time_gran].drop([feature],axis=1)
-                        coef_feature_df = coef_feature_df.drop(feature, axis=0)
-                    except:
-                        pass
-                for dropped_feature in dropped_feature_list + dropped_columns:
-                    try:
-                        time_gran_to_debugging_csv[time_gran] = time_gran_to_debugging_csv[time_gran].drop([dropped_feature], axis=1)
-                    except:
-                        pass
-
-            time_gran_to_debugging_csv[time_gran].to_csv(base_output_name + 'DEBUGGING_modz_feat_df_at_time_gran_of_'+\
-                                                         str(time_gran) + '_sec.csv', na_rep='?')
-            print "ide_angles", ide_train, ide_test
+        time_gran_to_debugging_csv[time_gran].to_csv(base_output_name + 'DEBUGGING_modz_feat_df_at_time_gran_of_'+\
+                                                     str(time_gran) + '_sec.csv', na_rep='?')
 
         list_of_feat_coefs_dfs.append(coef_feature_df)
 
@@ -559,6 +449,134 @@ def get_coef_dict(clf, X_train_columns, base_output_name, X_train_dtypes):
         print coef, feature
 
     return coef_dict
+
+def prepare_data(aggregate_mod_score_dfs, skip_model_part, ignore_physical_attacks_p, time_gran_to_debugging_csv, time_gran):
+    aggregate_mod_score_dfs = drop_useless_columns_aggreg_DF(aggregate_mod_score_dfs)
+
+    if not skip_model_part:
+        if ignore_physical_attacks_p:
+            aggregate_mod_score_dfs = \
+                aggregate_mod_score_dfs[~((aggregate_mod_score_dfs['labels'] == 1) &
+                                          ((aggregate_mod_score_dfs['exfil_pkts'] == 0) &
+                                           (aggregate_mod_score_dfs['exfil_weight'] == 0)))]
+
+        aggregate_mod_score_dfs_training = aggregate_mod_score_dfs[aggregate_mod_score_dfs['is_test'] == 0]
+        aggregate_mod_score_dfs_testing = aggregate_mod_score_dfs[aggregate_mod_score_dfs['is_test'] == 1]
+        time_gran_to_debugging_csv[time_gran] = aggregate_mod_score_dfs.copy(deep=True)
+        print "aggregate_mod_score_dfs_training", aggregate_mod_score_dfs_training
+        print "aggregate_mod_score_dfs_testing", aggregate_mod_score_dfs_testing
+        print aggregate_mod_score_dfs['is_test']
+
+    else:
+        ## note: generally you'd want to split into test and train sets, but if we're not doing logic
+        ## part anyway, we just want quick-and-dirty results, so don't bother (note: so for formal purposes,
+        ## DO NOT USE WITHOUT LOGIC CHECKING OR SOLVE THE TRAINING-TESTING split problem)
+        aggregate_mod_score_dfs_training, aggregate_mod_score_dfs_testing = train_test_split(aggregate_mod_score_dfs,
+                                                                                             test_size=0.5)
+        time_gran_to_debugging_csv[time_gran] = aggregate_mod_score_dfs_training.copy(deep=True).append(
+            aggregate_mod_score_dfs_testing.copy(deep=True))
+
+    print aggregate_mod_score_dfs_training.index
+    aggregate_mod_score_dfs_training, aggregate_mod_score_dfs_testing = \
+        drop_useless_columns_aggreg_testtrain_DF(aggregate_mod_score_dfs_training, aggregate_mod_score_dfs_testing)
+
+    X_train = aggregate_mod_score_dfs_training.loc[:, aggregate_mod_score_dfs_training.columns != 'labels']
+    y_train = aggregate_mod_score_dfs_training.loc[:, aggregate_mod_score_dfs_training.columns == 'labels']
+    X_test = aggregate_mod_score_dfs_testing.loc[:, aggregate_mod_score_dfs_training.columns != 'labels']
+    y_test = aggregate_mod_score_dfs_testing.loc[:, aggregate_mod_score_dfs_training.columns == 'labels']
+
+    # get method to compare against and remove them from the DF...
+    ide_train, ide_test, X_train, X_test = extract_comparison_methods(X_train, X_test)
+
+    X_train, X_test, dropped_feature_list, X_train_exfil_weight, X_test_exfil_weight = \
+        drop_useless_columns_testTrain_Xs(X_train, X_test)
+
+    print '-------'
+    print type(X_train)
+    print "X_train_columns_values", X_train.columns.values
+    print "columns", X_train.columns
+    print "columns", X_test.columns
+
+    print X_train.dtypes
+
+    # need to replace the missing values in the data w/ meaningful values...
+    X_train = X_train.fillna(X_train.median())
+    X_test = X_test.fillna(X_train.median())
+    print "X_train_median", X_train.median()
+
+    print X_train
+    pre_drop_X_train = X_train.copy(deep=True)
+    X_train = X_train.dropna(axis=1)
+    print X_train
+    X_test = X_test.dropna(axis=1)
+
+    return X_train, y_train, X_test, y_test, pre_drop_X_train, time_gran_to_debugging_csv, dropped_feature_list, \
+           ide_train, ide_test, X_train_exfil_weight, X_test_exfil_weight
+
+def lasso_feature_selection(X_train, y_train, X_test, y_test):
+    clf_featuree_selection = LassoCV(cv=5)
+    sfm = sklearn.feature_selection.SelectFromModel(clf_featuree_selection)
+    sfm.fit(X_train, y_train)
+    feature_idx = sfm.get_support()
+    selected_columns = X_train.columns[feature_idx]
+    X_train = pd.DataFrame(sfm.transform(X_train), index=X_train.index, columns=selected_columns)
+    X_test = pd.DataFrame(sfm.transform(X_test), index=X_test.index, columns=selected_columns)
+    # X_test = sfm.transform(X_test)
+    return X_train, X_test
+
+def generate_ROC_curves(y_test, test_predictions, base_output_name, time_gran, ide_test, ide_train, list_of_optimal_fone_scores):
+    ## use the generate sklearn model to create the detection ROC
+    fpr, tpr, thresholds = sklearn.metrics.roc_curve(y_true=y_test, y_score=test_predictions, pos_label=1)
+    x_vals = fpr
+    y_vals = tpr
+    ROC_path = base_output_name + '_good_roc_'
+    title = 'ROC Linear Combination of Features at ' + str(time_gran)
+    plot_name = 'sub_roc_lin_comb_features_' + str(time_gran)
+
+    try:
+        os.makedirs('./temp_outputs')
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise
+
+    ##  ewma_train = X_train['max_ewma_control_chart_scores']
+    ##  ewma_test = X_test['max_ewma_control_chart_scores']
+    # now for the ewma part...
+    # fpr_ewma, tpr_ewma, thresholds_ewma = sklearn.metrics.roc_curve(y_true=y_test, y_score = ewma_test, pos_label=1)
+    print "y_test", y_test
+    print "ide_test", ide_test, ide_train
+    try:
+        fpr_ide, tpr_ide, thresholds_ide = sklearn.metrics.roc_curve(y_true=y_test, y_score=ide_test, pos_label=1)
+        line_titles = ['ensemble model', 'ide_angles']
+        list_of_x_vals = [x_vals, fpr_ide]
+        list_of_y_vals = [y_vals, tpr_ide]
+    except:
+        # ide_test = [0 for i in range(0, len(X_test))]
+        # fpr_ide, tpr_ide, thresholds_ide = sklearn.metrics.roc_curve(y_true=y_test, y_score = ide_test, pos_label=1)
+        line_titles = ['ensemble model']
+        list_of_x_vals = [x_vals]
+        list_of_y_vals = [y_vals]
+
+    ax, _, plot_path = generate_alerts.construct_ROC_curve(list_of_x_vals, list_of_y_vals, title, ROC_path + plot_name, \
+                                                           line_titles, show_p=False)
+
+    ### determination of the optimal operating point goes here (take all the thresh vals and predictions,
+    ### find the corresponding f1 scores (using sklearn func), and then return the best.
+    optimal_f1_score, optimal_thresh = process_roc.determine_optimal_threshold(y_test, test_predictions, thresholds)
+    print "optimal_f1_score", optimal_f1_score, "optimal_thresh", optimal_thresh
+    list_of_optimal_fone_scores.append(optimal_f1_score)
+    ### get confusion matrix... take predictions from classifer. THreshold
+    ### using optimal threshold determined previously. Extract the labels too. This gives two lists, appropriate
+    ### for using the confusion_matrix function of sklearn. However, this does NOT handle the different
+    ### categories... (for display will probably want to make a df)
+    optimal_predictions = [int(i > optimal_thresh) for i in test_predictions]
+    print "optimal_predictions", optimal_predictions
+    ### determine categorical-level behavior... Split the two lists from the previous step into 2N lists,
+    ### where N is the # of categories, and then can just do the confusion matrix function on them...
+    ### (and then display the results somehow...)
+
+    return optimal_predictions, optimal_thresh, plot_path
+
 
 def determine_categorical_cm_df(y_test, optimal_predictions, exfil_paths, exfil_weights):
     y_test = y_test['labels'].tolist()
