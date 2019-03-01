@@ -189,6 +189,49 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
 
 def drop_useless_columns_aggreg_DF(aggregate_mod_score_dfs):
     # '''
+
+    #amt_of_out_traffic_pkts
+    try:
+        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(
+            columns='Communication Between Pods not through VIPs (no abs)_')  # might wanna just stop these from being generated...
+    except:
+        pass
+
+    try:
+        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(
+            columns='DNS outside_')  # might wanna just stop these from being generated...
+    except:
+        pass
+
+    try:
+        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(
+            columns='DNS inside_')  # might wanna just stop these from being generated...
+    except:
+        pass
+
+    try:
+        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(
+            columns='amt_of_out_traffic_bytesmod_z_score')  # might wanna just stop these from being generated...
+    except:
+        pass
+
+    try:
+        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(
+            columns='amt_of_out_traffic_pktsmod_z_score')  # might wanna just stop these from being generated...
+    except:
+        pass
+
+    try:
+        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(
+            columns='amt_of_out_traffic_pkts')  # might wanna just stop these from being generated...
+    except:
+        pass
+
+    try:
+        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(
+            columns='amt_of_out_traffic_bytes')  # might wanna just stop these from being generated...
+    except:
+        pass
     try:
         aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(
             columns='timemod_z_score')  # might wanna just stop these from being generated...
@@ -206,6 +249,37 @@ def drop_useless_columns_aggreg_DF(aggregate_mod_score_dfs):
             columns='Unnamed: 0mod_z_score')  # might wanna just stop these from being generaetd
     except:
         pass
+
+    try:
+
+        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(
+            columns='into_dns_from_outside_')  # might wanna just stop these from being generaetd
+    except:
+        pass
+
+    try:
+        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='Communication Between Pods not through VIPs (w abs)_')
+    except:
+        pass
+
+    try:
+        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='Fraction of Communication Between Pods not through VIPs (no abs)_')
+    except:
+        pass
+
+
+
+    ################
+    try:
+        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='ide_angles (w abs)_')
+    except:
+        pass
+
+    try:
+        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='into_dns_eigenval_angles_')
+    except:
+        pass
+    ###############
 
     try:
         aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='Unnamed: 0')

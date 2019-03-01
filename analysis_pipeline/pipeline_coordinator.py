@@ -184,6 +184,29 @@ def pipeline_one_exfil_rate(rate_counter,
     #'''
     clf = LassoCV(cv=3, max_iter=8000)
     list_of_optimal_fone_scores_at_this_exfil_rates, Xs,Ys,Xts,Yts, trained_models = \
+        statistically_analyze_graph_features(time_gran_to_aggreg_feature_dfs, ROC_curve_p,
+                                             cur_base_output_name + 'lasso_raw_',
+                                             names, starts_of_testing, path_occurence_training_df,
+                                             path_occurence_testing_df, recipes_used, skip_model_part, clf,
+                                             ignore_physical_attacks_p,
+                                             avg_exfil_per_min[rate_counter],
+                                             avg_pkt_size[rate_counter],
+                                             exfil_per_min_variance[rate_counter],
+                                             pkt_size_variance[rate_counter])
+
+    clf = LogisticRegressionCV(penalty="l1", cv=10, max_iter=10000, solver='saga')
+    _, _, _, _, _, _ = statistically_analyze_graph_features(time_gran_to_aggreg_feature_dfs, ROC_curve_p,
+                                                            cur_base_output_name + 'logistic_l1_raw_lass_feat_sel_',
+                                                            names, starts_of_testing, path_occurence_training_df,
+                                                            path_occurence_testing_df, recipes_used, skip_model_part, clf,
+                                                            ignore_physical_attacks_p, avg_exfil_per_min[rate_counter],
+                                                             avg_pkt_size[rate_counter],
+                                                             exfil_per_min_variance[rate_counter],
+                                                             pkt_size_variance[rate_counter])
+
+
+    clf = LassoCV(cv=3, max_iter=8000)
+    list_of_optimal_fone_scores_at_this_exfil_rates, Xs,Ys,Xts,Yts, trained_models = \
         statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p,
                                              cur_base_output_name + 'lasso_mod_z_',
                                              names, starts_of_testing, path_occurence_training_df,
@@ -193,6 +216,8 @@ def pipeline_one_exfil_rate(rate_counter,
                                              avg_pkt_size[rate_counter],
                                              exfil_per_min_variance[rate_counter],
                                              pkt_size_variance[rate_counter])
+
+
     '''
     statistically_analyze_graph_features(time_gran_to_aggreg_feature_dfs, ROC_curve_p, base_output_name + 'lasso_raw_',
                                          names, starts_of_testing, path_occurence_training_df,

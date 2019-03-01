@@ -1703,7 +1703,7 @@ def new_wordpress_recipe():
     goal_attack_NoAttack_split = 0.6
     training_window_size = 200
     size_of_neighbor_training_window = 0
-    time_interval_lengths = [10] #[30, 10, 1]#,
+    time_interval_lengths = [10] #[30, 10, 1] #[30, 10, 1]#,
 
     #####
     # IN MEGABYTES / MINUTE
@@ -1717,8 +1717,8 @@ def new_wordpress_recipe():
     exfil_per_min_variance = [BytesPerMegabyte * i for i in exfil_per_min_variance]
     ######
 
-    calc_vals = True ## TODO: probably want to turn this off (eventually...)
-    calculate_z_scores = True
+    calc_vals = False ## TODO: probably want to turn this off (eventually...)
+    calculate_z_scores = False
 
 
     experiment_classes = [wordpress_thirteen_t1(training_window_size=training_window_size,
