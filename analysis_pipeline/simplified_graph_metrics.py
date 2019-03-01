@@ -352,6 +352,8 @@ class set_of_injected_graphs():
         time_interval = self.time_interval
         out_q = multiprocessing.Queue()
         name_of_dns_pod_node = None
+        last_attack_injected = None
+        carryover = None
 
         num_graphs_to_process_at_once = 40
         for counter in range(0, len(self.raw_edgefile_names), num_graphs_to_process_at_once):
@@ -360,7 +362,8 @@ class set_of_injected_graphs():
             args = [counter, file_paths, svcs, is_swarm, ms_s, container_to_ip, infra_service, fraction_of_edge_weights,
                     fraction_of_edge_pkts, synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
                     time_interval, total_edgelist_nodes, svc_to_pod, avg_dns_weight, avg_dns_pkts,
-                    node_attack_mapping, out_q, current_total_node_list, name_of_dns_pod_node]
+                    node_attack_mapping, out_q, current_total_node_list, name_of_dns_pod_node, last_attack_injected,
+                    carryover]
             p = multiprocessing.Process(
                 target=process_and_inject_single_graph,
                 args=args)
@@ -378,6 +381,8 @@ class set_of_injected_graphs():
             node_attack_mapping = out_q.get()
             current_total_node_list = out_q.get()
             name_of_dns_pod_node = out_q.get()
+            last_attack_injected = out_q.get()
+            carryover = out_q.get()
             p.join()
 
             ## okay, literally the code above should be wrapped in a function call...
@@ -389,13 +394,11 @@ class set_of_injected_graphs():
 def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm, ms_s, container_to_ip, infra_service, fraction_of_edge_weights,
                     fraction_of_edge_pkts, synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
                     time_interval, total_edgelist_nodes, svc_to_pod, avg_dns_weight, avg_dns_pkts,
-                    node_attack_mapping, out_q, current_total_node_list,name_of_dns_pod_node):
+                    node_attack_mapping, out_q, current_total_node_list,name_of_dns_pod_node,attack_injected, carryover):
 
     concrete_cont_node_path_list = []
     pre_specified_data_attribs_list = []
     injected_graph_obj_loc_list = []
-    attack_injected = None
-    carryover = 0
     for counter_add, file_path in enumerate(file_paths):
         counter = counter_starting + counter_add
         gc.collect()
@@ -572,6 +575,8 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
     out_q.put(node_attack_mapping)
     out_q.put(current_total_node_list)
     out_q.put(name_of_dns_pod_node)
+    out_q.put(attack_injected)
+    out_q.put(carryover)
 
 ## we have the times and the theoretical attacks... we just have to modify the graph
 ## accordingly...
@@ -602,12 +607,29 @@ def inject_synthetic_attacks(graph, synthetic_exfil_paths, initiator_info_for_pa
         return graph, attack_number_to_mapping, {'weight': fraction_of_weight_min,
                                                  'frames': fraction_of_pkt_min}, [], 0
 
+    # step (2): is this the first contiguous time iteration that this kind of attack occurs?
+    # if yes -> must determine the node mapping now
+    # if no -> use node mapping from before (requires no work b/c needed info already in dict)
+    if attack_occuring not in attack_number_to_mapping.keys() or last_attack != attack_occuring:
+        current_mapping = {} # abstract_node -> concrete_node
+        for node in synthetic_exfil_paths[attack_occuring]:
+            # if node not in current_mapping.keys() # doesn't actually matter...
+            if node == 'kube_dns_pod':
+                print "kube_dns_pod found in mapping function!!", name_of_dns_pod_node
+                current_mapping['kube_dns_pod'] = name_of_dns_pod_node
+            else:
+                concrete_node = abstract_to_concrete_mapping(node, graph, [])
+                if 'dns' in node:
+                    print "new_mapping!", node, concrete_node
+                current_mapping[node] = concrete_node
+        attack_number_to_mapping[attack_occuring] = current_mapping
+
     concrete_node_path = determine_concrete_node_path(synthetic_exfil_paths[attack_occuring], attack_number_to_mapping[attack_occuring])
 
     fraction_of_pkt_min, fraction_of_weight_min = \
-        determine_exfiltration_amt(attack_occuring, attack_number_to_mapping,
-        last_attack, synthetic_exfil_paths, name_of_dns_pod_node, avg_dns_weight,
-        avg_dns_pkts, time_granularity, fraction_of_edge_pkts, fraction_of_edge_weights, old_carryover, graph)
+        determine_exfiltration_amt(attack_occuring, attack_number_to_mapping, synthetic_exfil_paths,
+                                   avg_dns_weight, avg_dns_pkts, time_granularity,
+                                   fraction_of_edge_pkts, fraction_of_edge_weights, old_carryover, graph)
 
     ## Step (4): use the previously calculated exfiltration rate to actually make the appropriate modifications
     ## to the graph.
@@ -674,7 +696,7 @@ def determine_concrete_node_path(current_exfil_path, current_abstract_to_physica
 
 
 # abstract_to_concrete_mapping: abstract_node graph -> concrete_node (in graph)
-def abstract_to_concrete_mapping(abstract_node, graph):
+def abstract_to_concrete_mapping(abstract_node, graph, excluded_list):
     #print "abstract_to_concrete_mapping", abstract_node, graph.nodes(),node_granularity
     ## okay, so there's a couple of things that I should do???
     if abstract_node == 'internet':
@@ -696,7 +718,7 @@ def abstract_to_concrete_mapping(abstract_node, graph):
             exit(453)
 
     print "modified abstract_node", abstract_node
-    matching_concrete_nodes = [node for node in graph.nodes() if abstract_node in node]
+    matching_concrete_nodes = [node for node in graph.nodes() if abstract_node in node if node not in excluded_list]
     '''
     if len(matching_concrete_nodes) == 0:
         # if no matching concrete nodes, then we are adding a new node to the graph, which'll be a
@@ -712,12 +734,12 @@ def abstract_to_concrete_mapping(abstract_node, graph):
     return concrete_node
 
 # find_equiv_edge: concrete_node_pair graph -> concrete_node_pair
-def find_equiv_edge(concrete_node_pair, graph, node_granularity):
+def find_equiv_edge(concrete_node_pair, graph):
     ## Step (1): which node to modify???
     #### if outside present, modify that. else, choose node randomly
     ## step (2): what to modify that node to??
     #### choose randomly from edges incident on remaining nodee
-    print "find_equiv_edge", concrete_node_pair, graph.edges(), node_granularity
+    print "find_equiv_edge", concrete_node_pair, graph.edges()
     #equiv_node_src = None
     #equiv_node_dst = None
     '''
@@ -877,74 +899,51 @@ def avg_behavior_into_dns_node(pre_injection_weight_into_dns_dict, pre_inject_pa
 
     return avg_dns_weight, avg_dns_pkts
 
-def determine_exfiltration_amt(attack_occuring, attack_number_to_mapping,
-                               last_attack, synthetic_exfil_paths, name_of_dns_pod_node,
+#'''
+def determine_exfiltration_amt(attack_occuring, attack_number_to_mapping, synthetic_exfil_paths,
                                avg_dns_weight, avg_dns_pkts, time_granularity, fraction_of_edge_pkts,
-                               fraction_of_edge_weights, old_carryover, graph):
-
-    # step (2): is this the first contiguous time iteration that this kind of attack occurs?
-    # if yes -> must determine the node mapping now
-    # if no -> use node mapping from before (requires no work b/c needed info already in dict)
-    if attack_occuring not in attack_number_to_mapping.keys() or last_attack != attack_occuring:
-        current_mapping = {} # abstract_node -> concrete_node
-        for node in synthetic_exfil_paths[attack_occuring]:
-            # if node not in current_mapping.keys() # doesn't actually matter...
-            if node == 'kube_dns_pod':
-                print "kube_dns_pod found in mapping function!!", name_of_dns_pod_node
-                current_mapping['kube_dns_pod'] = name_of_dns_pod_node
-            else:
-                concrete_node = abstract_to_concrete_mapping(node, graph)
-                if 'dns' in node:
-                    print "new_mapping!", node, concrete_node
-                current_mapping[node] = concrete_node
-        attack_number_to_mapping[attack_occuring] = current_mapping
+                               fraction_of_edge_weights, old_carryover, graph, concrete_node_path):
 
     # step (3) : determine the appropriate weight change for the edges leading to exfiltration
     all_weights_in_exfil_path = []
     all_pkts_in_exfil_path = []
-    #abstract_node_pair = None
-    #concrete_node_pair = None
-    first_concrete_node_pair = None
     dns_exfil_path = False
-    for node_one_loc in range(0, len(synthetic_exfil_paths[attack_occuring]) -1 ):
-        abstract_node_pair = (synthetic_exfil_paths[attack_occuring][node_one_loc],
-                              synthetic_exfil_paths[attack_occuring][node_one_loc+1])
 
-        if 'dns_vip' in abstract_node_pair[1]:
-            logging.info("dns_vip found in abstract node pair")
-            dns_exfil_path = True
-            # then let's clear all the early values... since they're all giant probably...
-            all_weights_in_exfil_path = []
-            all_pkts_in_exfil_path = []
-
-        concrete_node_src = attack_number_to_mapping[attack_occuring][abstract_node_pair[0]]
-        concrete_node_dst = attack_number_to_mapping[attack_occuring][abstract_node_pair[1]]
-        concrete_node_pair = (concrete_node_src,concrete_node_dst)
-
-        if not first_concrete_node_pair:
-            first_concrete_node_pair = concrete_node_pair
-
-        # wanna determine the relevant weight and then add it. (so in actualuality, this is #3 from below)
-        print "concrete_nodes", concrete_node_src,concrete_node_dst
+    for concrete_node_pair in concrete_node_path:
+        #graph = add_edge_weight_graph(graph, concrete_node_pair[0], concrete_node_pair[1],
+        #                              fraction_of_weight_min, fraction_of_pkt_min)
+        cur_exfil_weight = None
+        concrete_node_src = concrete_node_pair[0]
+        concrete_node_dst = concrete_node_pair[1]
         concrete_edge = graph.get_edge_data(concrete_node_src, concrete_node_dst)
         print concrete_edge
-        cur_exfil_weight = None
-        if concrete_edge: # will return None if edge doesn't exist...
+
+        if concrete_edge:  # will return None if edge doesn't exist...
             cur_exfil_weight = concrete_edge['weight']
-            all_weights_in_exfil_path.append( cur_exfil_weight )
-            all_pkts_in_exfil_path.append( concrete_edge['frames'] )
+            all_weights_in_exfil_path.append(cur_exfil_weight)
+            all_pkts_in_exfil_path.append(concrete_edge['frames'])
         else:
+            #### TODO: okay, back to be bane of my existence. This fucking part will be the goddamn edge of me
+            #### what we really want to do is return another mapping between pods in the two services... right now
+            #### it does this by finding another pod that goes into the destination service.
+            #### this doesn't really make any sense if you actually think about it tho... well, I guess i tmight makesome
+            #### sense... I really wish I had decided initially just to do bytes... that would been so much easier...
+            ####
+
+
+
             logging.info("need to find an equivalent edge to: " + str(concrete_node_src) + " " + str(concrete_node_dst))
-            equivalent_edge = find_equiv_edge(concrete_node_pair, graph, node_granularity)
+            equivalent_edge = find_equiv_edge(concrete_node_pair, graph)  # , node_granularity)
+
             if equivalent_edge:
                 logging.info("this equivalent_edge is:" + str(equivalent_edge[0]) + ', ' + str(equivalent_edge[1]))
                 equiv_concrete_node_src = equivalent_edge[0]
                 equiv_concrete_node_dst = equivalent_edge[1]
-                cur_exfil_data  = graph.get_edge_data(equiv_concrete_node_src, equiv_concrete_node_dst)
+                cur_exfil_data = graph.get_edge_data(equiv_concrete_node_src, equiv_concrete_node_dst)
                 cur_exfil_weight = cur_exfil_data['weight']
                 cur_exfil_frames = cur_exfil_data['frames']
-                all_weights_in_exfil_path.append( cur_exfil_weight )
-                all_pkts_in_exfil_path.append( cur_exfil_frames )
+                all_weights_in_exfil_path.append(cur_exfil_weight)
+                all_pkts_in_exfil_path.append(cur_exfil_frames)
             else:
                 if 'dns' in concrete_node_dst or 'dns' in concrete_node_src:
                     logging.info("no equivalent edge found and dns is in the name... must be dns")
@@ -956,8 +955,10 @@ def determine_exfiltration_amt(attack_occuring, attack_number_to_mapping,
                     all_pkts_in_exfil_path.append(avg_dns_pkts)
 
         logging.info("found this weight: " + str(cur_exfil_weight))
+
     logging.info("all_weights_in_exfil_path" + str(all_weights_in_exfil_path) + ", time_gran: " + str(time_granularity))
     # so let's choose the weight/packets... let's maybe go w/ some fraction of the median...
+
     pkt_np_array = np.array(all_pkts_in_exfil_path)
     weight_np_array = np.array(all_weights_in_exfil_path)
     pkt_min = np.min(pkt_np_array)
@@ -980,6 +981,7 @@ def determine_exfiltration_amt(attack_occuring, attack_number_to_mapping,
     logging.info("attack_occuring: " + attack_occuring_str)
 
     return fraction_of_pkt_min, fraction_of_weight_min
+#'''
 
 def pairwise_metrics(G, svc_to_nodes):
     svc_pair_to_reciprocity = {}
