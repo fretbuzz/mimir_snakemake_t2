@@ -358,7 +358,7 @@ class set_of_injected_graphs():
         out_q = multiprocessing.Queue()
         name_of_dns_pod_node = None
         last_attack_injected = None
-        carryover = None
+        carryover = 0
         avg_exfil_per_min = self.avg_exfil_per_min
         exfil_per_min_variance = self.exfil_per_min_variance
         avg_pkt_size = self.avg_pkt_size
@@ -633,6 +633,7 @@ def inject_synthetic_attacks(graph, synthetic_exfil_paths, attacks_to_times, gra
                 print "kube_dns_pod found in mapping function!!", name_of_dns_pod_node
                 current_mapping['kube_dns_pod'] = name_of_dns_pod_node
             else:
+                print "node_to_map", node
                 concrete_node = abstract_to_concrete_mapping(node, graph, [])
                 if 'dns' in node:
                     print "new_mapping!", node, concrete_node
@@ -644,6 +645,8 @@ def inject_synthetic_attacks(graph, synthetic_exfil_paths, attacks_to_times, gra
     fraction_of_weight_min, fraction_of_pkt_min = determine_exfiltration_amt(avg_exfil_per_min, exfil_per_min_variance,
                                                                              avg_pkt_size, pkt_size_variance, time_gran,
                                                                              old_carryover)
+
+    print "fraction_of_weight_min_", fraction_of_weight_min, "fraction_of_pkt_min_",fraction_of_pkt_min
 
     ## Step (4): use the previously calculated exfiltration rate to actually make the appropriate modifications
     ## to the graph.
@@ -815,11 +818,13 @@ def determine_exfiltration_amt(avg_exfil_per_min, exfil_per_min_variance, avg_pk
     exfil_amt = numpy.random.normal(loc=avg_exfil_per_min, scale=exfil_per_min_variance) + carryover
     pkt_size = numpy.random.normal(loc=avg_pkt_size, scale=pkt_size_variance)
 
+    print "exfil_amt",exfil_amt,"pkt_size",pkt_size
     # okay, so the exfil amt is what it'd be over a whole minute so
-    exfil_amt_in_this_time_interval = (exfil_amt) * (1/60)  * time_gran
+    exfil_amt_in_this_time_interval = (exfil_amt) * (1/60.0)  * time_gran
     exfil_amt_in_this_time_interval = int(math.floor(exfil_amt_in_this_time_interval))
     pkts_in_this_time_interval = int(math.floor(exfil_amt_in_this_time_interval / pkt_size))
 
+    print "exfil_amt_in_this_time_interval",exfil_amt_in_this_time_interval,"pkts_in_this_time_interval",pkts_in_this_time_interval
     return exfil_amt_in_this_time_interval, pkts_in_this_time_interval
 
 def pairwise_metrics(G, svc_to_nodes):

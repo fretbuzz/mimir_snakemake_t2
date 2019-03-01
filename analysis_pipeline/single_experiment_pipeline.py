@@ -357,7 +357,9 @@ class data_anylsis_pipline(object):
                          self.time_gran_to_feature_dataframe, self.calc_zscore_p, self.time_gran_to_synthetic_exfil_paths_series,
                          self.time_gran_to_list_of_concrete_exfil_paths, self.time_gran_to_list_of_exfil_amts, self.end_of_training,
                          self.time_gran_to_new_neighbors_outside, self.time_gran_to_new_neighbors_dns,
-                         self.time_gran_to_new_neighbors_all)
+                         self.time_gran_to_new_neighbors_all,
+                         self.time_gran_to_list_of_amt_of_out_traffic_bytes,
+                         self.time_gran_to_list_of_amt_of_out_traffic_pkts)
 
         print "analysis_pipeline about to return!"
 
@@ -457,7 +459,8 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
 def calc_zscores(alert_file, training_window_size, minimum_training_window,
                  sub_path, time_gran_to_attack_labels, time_gran_to_feature_dataframe, calc_zscore_p, time_gran_to_synthetic_exfil_paths_series,
                  time_gran_to_list_of_concrete_exfil_paths, time_gran_to_list_of_exfil_amts, end_of_training,
-                 time_gran_to_new_neighbors_outside, time_gran_to_new_neighbors_dns, time_gran_to_new_neighbors_all):
+                 time_gran_to_new_neighbors_outside, time_gran_to_new_neighbors_dns, time_gran_to_new_neighbors_all,
+                 time_gran_to_list_of_amt_of_out_traffic_bytes, time_gran_to_list_of_amt_of_out_traffic_pkts):
 
     #time_gran_to_mod_zscore_df = process_graph_metrics.calculate_mod_zscores_dfs(total_calculated_vals, minimum_training_window,
     #                                                                             training_window_size, time_interval_lengths)
@@ -478,7 +481,9 @@ def calc_zscores(alert_file, training_window_size, minimum_training_window,
                                                      time_gran_to_list_of_concrete_exfil_paths,
                                                      time_gran_to_list_of_exfil_amts, end_of_training,
                                                      time_gran_to_new_neighbors_outside, time_gran_to_new_neighbors_dns,
-                                                     time_gran_to_new_neighbors_all)
+                                                     time_gran_to_new_neighbors_all,
+                                                     time_gran_to_list_of_amt_of_out_traffic_bytes,
+                                                     time_gran_to_list_of_amt_of_out_traffic_pkts)
 
         '''
         time_gran_to_zscore_dataframe = process_graph_metrics.calc_time_gran_to_zscore_dfs(time_gran_to_feature_dataframe,
