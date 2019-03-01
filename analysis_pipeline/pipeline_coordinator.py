@@ -45,7 +45,7 @@ def process_one_set_of_graphs(fraction_of_edge_weights, fraction_of_edge_pkts, t
                                 synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
                                collected_metrics_location, current_set_of_graphs_loc, calc_vals, out_q):
 
-    if False: #calc_vals:
+    if calc_vals:
         current_set_of_graphs = simplified_graph_metrics.set_of_injected_graphs(fraction_of_edge_weights,
                                          fraction_of_edge_pkts, time_interval_length, window_size,
                                          filenames, svcs, is_swarm, ms_s, mapping, list_of_infra_services,
