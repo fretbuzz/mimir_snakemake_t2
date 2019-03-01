@@ -43,18 +43,8 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         time_grans.append(time_gran)
 
         X_train, y_train, X_test, y_test, pre_drop_X_train, time_gran_to_debugging_csv, dropped_feature_list, ide_train,\
-            ide_test, X_train_exfil_weight, X_test_exfil_weight = prepare_data(aggregate_mod_score_dfs, skip_model_part,
-                                                        ignore_physical_attacks_p, time_gran_to_debugging_csv, time_gran)
-
-        try:
-            exfil_paths = X_test['exfil_path'].replace('0', '[]')
-            exfil_paths_train = X_train['exfil_path'].replace('0', '[]')
-        except:
-            try:
-                exfil_paths = X_test['exfil_path'].replace(0, '[]')
-                exfil_paths_train = X_train['exfil_path'].replace(0, '[]')
-            except:
-                pass
+            ide_test, X_train_exfil_weight, X_test_exfil_weight, exfil_paths, exfil_paths_train = \
+            prepare_data(aggregate_mod_score_dfs, skip_model_part, ignore_physical_attacks_p, time_gran_to_debugging_csv, time_gran)
 
         # TODO: probably want to pass in the feature selection capabilities as a first class function
         if 'lass_feat_sel' in base_output_name:
@@ -70,7 +60,8 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         ###########################
         # if I was going to change the model, this part would need to be what changes. For instance,
         # if I want to do logistic regresesion, this is probably where I'd need to do it (but would it
-        # effect the information that I need to feed into the report generation component??)
+        # effect the information that I need to feed into the report generation component??) - in particular
+        # the heatmap and ROC component
         clf.fit(X_train, y_train)
         trained_models[time_gran] = clf
         score_val = clf.score(X_test, y_test)
@@ -484,6 +475,18 @@ def prepare_data(aggregate_mod_score_dfs, skip_model_part, ignore_physical_attac
     # get method to compare against and remove them from the DF...
     ide_train, ide_test, X_train, X_test = extract_comparison_methods(X_train, X_test)
 
+    exfil_paths = X_test['exfil_path']
+    exfil_paths_train = X_train['exfil_path']
+    try:
+        exfil_paths = exfil_paths.replace('0', '[]')
+        exfil_paths_train = exfil_paths_train.replace('0', '[]')
+    except:
+        try:
+            exfil_paths = exfil_paths.replace(0, '[]')
+            exfil_paths_train = exfil_paths_train.replace(0, '[]')
+        except:
+            pass
+
     X_train, X_test, dropped_feature_list, X_train_exfil_weight, X_test_exfil_weight = \
         drop_useless_columns_testTrain_Xs(X_train, X_test)
 
@@ -507,7 +510,7 @@ def prepare_data(aggregate_mod_score_dfs, skip_model_part, ignore_physical_attac
     X_test = X_test.dropna(axis=1)
 
     return X_train, y_train, X_test, y_test, pre_drop_X_train, time_gran_to_debugging_csv, dropped_feature_list, \
-           ide_train, ide_test, X_train_exfil_weight, X_test_exfil_weight
+           ide_train, ide_test, X_train_exfil_weight, X_test_exfil_weight, exfil_paths, exfil_paths_train
 
 def lasso_feature_selection(X_train, y_train, X_test, y_test):
     clf_featuree_selection = LassoCV(cv=5)
