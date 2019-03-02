@@ -34,7 +34,8 @@ class data_anylsis_pipline(object):
                                end_of_training=None, injected_exfil_path='None', only_exp_info=False,
                                initiator_info_for_paths=None,
                                synthetic_exfil_paths_train=None, synthetic_exfil_paths_test=None,
-                               skip_model_part=False, max_number_of_paths=None, netsec_policy=None):
+                               skip_model_part=False, max_number_of_paths=None, netsec_policy=None,
+                                startup_time=200):
         self.ms_s = ms_s
         print "log file can be found at: " + str(basefile_name) + '_logfile.log'
         logging.basicConfig(filename=basefile_name + '_logfile.log', level=logging.INFO)
@@ -91,7 +92,7 @@ class data_anylsis_pipline(object):
         self.training_window_size = training_window_size
         self.size_of_neighbor_training_window = size_of_neighbor_training_window
         print training_window_size,size_of_neighbor_training_window
-        self.system_startup_time = training_window_size + size_of_neighbor_training_window
+        self.system_startup_time = start_time #training_window_size + size_of_neighbor_training_window
         self.calc_vals = calc_vals
 
         self.time_gran_to_feature_dataframe=None
@@ -383,11 +384,12 @@ def process_one_set_of_graphs(time_interval_length, window_size,
                                          synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
                                           collected_metrics_location, current_set_of_graphs_loc,
                                           avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance)
-        ### TODO: PUT THE LINE BELOW BACK IN AND THE TAKE THE THREE BELOW THAT OUT
-        #current_set_of_graphs.generate_injected_edgefiles()
-        with open(current_set_of_graphs_loc, mode='rb') as f:
-            current_set_of_graphs_loc_contents = f.read()
-            current_set_of_graphs = pickle.loads(current_set_of_graphs_loc_contents)
+        ### TODO: if don't wanna redo the injection step (and why would you), then you can just go ahead
+        ### and comment out the line below and comment in the two lines below that
+        current_set_of_graphs.generate_injected_edgefiles()
+        #with open(current_set_of_graphs_loc, mode='rb') as f:
+        #    current_set_of_graphs_loc_contents = f.read()
+        #    current_set_of_graphs = pickle.loads(current_set_of_graphs_loc_contents)
 
 
         current_set_of_graphs.calcuated_single_step_metrics()
