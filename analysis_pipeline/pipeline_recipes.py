@@ -7,6 +7,7 @@ pyximport.install() # am I sure that I want this???
 import sys
 import gc
 import functools
+import numpy as np
 
 import matplotlib
 matplotlib.use('Agg',warn=False, force=True)
@@ -1646,7 +1647,8 @@ def wordpress_thirteen_t1(time_of_synethic_exfil=None, only_exp_info=False, init
                             synthetic_exfil_paths_train=None,
                             synthetic_exfil_paths_test=None, calc_vals=False,
                             skip_model_part=False,max_number_of_paths=None,
-                            time_interval_lengths=None):
+                            time_interval_lengths=None,
+                          window_size=6, minimum_training_window=6):
 
     basefile_name = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t1/edgefiles/wordpress_thirteen_t1_'
     basegraph_name = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t1/graphs/wordpress_thirteen_t1_'
@@ -1665,7 +1667,6 @@ def wordpress_thirteen_t1(time_of_synethic_exfil=None, only_exp_info=False, init
     end_time = None
     exfil_start_time = 3570
     exfil_end_time = 3570
-    window_size = 6
     graph_p = False  # should I make graphs?
     colors = ['b', 'r']
     wiggle_room = 2  # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
@@ -1688,10 +1689,61 @@ def wordpress_thirteen_t1(time_of_synethic_exfil=None, only_exp_info=False, init
                                    training_window_size=training_window_size, size_of_neighbor_training_window=size_of_neighbor_training_window,
                                    synthetic_exfil_paths_train=synthetic_exfil_paths_train, synthetic_exfil_paths_test=synthetic_exfil_paths_test,
                                    skip_model_part=skip_model_part,
-                                   max_number_of_paths=max_number_of_paths)
+                                   max_number_of_paths=max_number_of_paths,
+                                   minimum_training_window=minimum_training_window)
 
     return wordpress_thirteen_t1_object
 
+def wordpress_thirteen_t4(time_of_synethic_exfil=None, only_exp_info=False, initiator_info_for_paths=None,
+                            portion_for_training=None, training_window_size=None, size_of_neighbor_training_window=None,
+                            synthetic_exfil_paths_train=None,
+                            synthetic_exfil_paths_test=None, calc_vals=False,
+                            skip_model_part=False,max_number_of_paths=None,
+                            time_interval_lengths=None,
+                            window_size = 6):
+
+    basefile_name = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t4/edgefiles/wordpress_thirteen_t4_'
+    basegraph_name = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t4/graphs/wordpress_thirteen_t4_'
+    alert_file = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t4/alerts/wordpress_thirteen_t4_'
+
+    container_info_path = "/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t4/wordpress_thirteen_t4_docker_0_network_configs.txt"
+    cilium_config_path = None # does NOT use cilium on reps 2-4
+    kubernetes_svc_info = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t4/wordpress_thirteen_t4_svc_config_0.txt'
+    kubernetes_pod_info = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t4/wordpress_thirteen_t4_pod_config_0.txt'
+    pcap_paths = [
+        "/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t4/wordpress_thirteen_t4_default_bridge_0any.pcap"]
+
+    is_swarm = 0
+    ms_s = ["my-release-pxc", "wwwppp-wordpress"]
+    start_time = False
+    end_time = None
+    exfil_start_time = 3570
+    exfil_end_time = 3570
+    graph_p = False  # should I make graphs?
+    colors = ['b', 'r']
+    wiggle_room = 2  # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
+    sec_between_exfil_events = 15
+    physical_exfil_path = []
+
+
+    make_edgefiles = True ## already done!
+    wordpress_thirteen_t1_object = data_anylsis_pipline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
+                                   make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
+                                   wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,
+                                   graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
+                                   cilium_config_path=cilium_config_path, rdpcap_p=False,
+                                   kubernetes_pod_info=kubernetes_pod_info, alert_file=alert_file, ROC_curve_p=True,
+                                   calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events,
+                                   injected_exfil_path = physical_exfil_path, only_exp_info=only_exp_info,
+                                   time_of_synethic_exfil=time_of_synethic_exfil,
+                                   initiator_info_for_paths=initiator_info_for_paths,
+                                   end_of_training=portion_for_training,
+                                   training_window_size=training_window_size, size_of_neighbor_training_window=size_of_neighbor_training_window,
+                                   synthetic_exfil_paths_train=synthetic_exfil_paths_train, synthetic_exfil_paths_test=synthetic_exfil_paths_test,
+                                   skip_model_part=skip_model_part,
+                                   max_number_of_paths=max_number_of_paths)
+
+    return wordpress_thirteen_t1_object
 
 
 def new_wordpress_recipe():
@@ -1701,9 +1753,18 @@ def new_wordpress_recipe():
     time_of_synethic_exfil = 30 # sec
     goal_train_test_split = 0.6
     goal_attack_NoAttack_split = 0.6
-    training_window_size = 200
-    size_of_neighbor_training_window = 0
+
     time_interval_lengths = [10] #[30, 10, 1] #[30, 10, 1]#,
+
+    # this doesn't actually do anything
+    size_of_neighbor_training_window = 0
+    # window size is for ide_angles and the other things that use the angle between the principal
+    # eigenvectors
+    window_size = 12
+    # these are for the moz-z-score-calculation
+    training_window_size = 35 * np.max(time_interval_lengths)
+    minimum_training_window = 12
+    ###
 
     #####
     # IN MEGABYTES / MINUTE
@@ -1717,7 +1778,7 @@ def new_wordpress_recipe():
     exfil_per_min_variance = [BytesPerMegabyte * i for i in exfil_per_min_variance]
     ######
 
-    calc_vals = True ## TODO: probably want to turn this off (eventually...)
+    calc_vals = False ## TODO: probably want to turn this off (eventually...)
     calculate_z_scores = True
 
 
@@ -1725,7 +1786,9 @@ def new_wordpress_recipe():
                                                   size_of_neighbor_training_window=size_of_neighbor_training_window,
                                                   calc_vals=calc_vals,
                                                   time_of_synethic_exfil=time_of_synethic_exfil,
-                                                  time_interval_lengths=time_interval_lengths)]
+                                                  time_interval_lengths=time_interval_lengths,
+                                                  window_size=window_size,
+                                                  minimum_training_window=minimum_training_window)]
 
     ## NOTE: process_wordpress8 could be here too, but I'm for the moment I'm keeping each kind of injected
     ## attack w/ two different experiments in which it occurss...

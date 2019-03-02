@@ -199,6 +199,55 @@ def drop_useless_columns_aggreg_DF(aggregate_mod_score_dfs):
 
     try:
         aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(
+            columns='dns_list_outside_mod_z_score')  # might wanna just stop these from being generated...
+    except:
+        pass
+
+    try:
+        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(
+            columns='dns_list_inside_mod_z_score')  # might wanna just stop these from being generated...
+    except:
+        pass
+
+    try:
+        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(
+            columns='into_dns_from_outside_list_mod_z_score')  # might wanna just stop these from being generated...
+    except:
+        pass
+
+    try:
+        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(
+            columns='into_dns_ratio_mod_z_score')  # might wanna just stop these from being generated...
+    except:
+        pass
+
+    try:
+        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(
+            columns='kube-dns_to_outside_density_mod_z_score')  # might wanna just stop these from being generated...
+    except:
+        pass
+
+    try:
+        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(
+            columns='labelsmod_z_score')  # might wanna just stop these from being generated...
+    except:
+        pass
+
+
+    try:
+        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(
+            columns='fraction_pod_comm_but_not_VIP_comms_mod_z_score')  # might wanna just stop these from being generated...
+    except:
+        pass
+
+    try:
+        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(
+            columns='fraction_pod_comm_but_not_VIP_comms_no_abs_mod_z_score')  # might wanna just stop these from being generated...
+    except:
+        pass
+
+    try:
+        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(
             columns='DNS outside_')  # might wanna just stop these from being generated...
     except:
         pass
@@ -269,6 +318,35 @@ def drop_useless_columns_aggreg_DF(aggregate_mod_score_dfs):
 
 
 
+    try:
+        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='pod_comm_but_not_VIP_comms_')
+    except:
+        pass
+    try:
+        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='pod_comm_but_not_VIP_comms_no_abs_')
+    except:
+        pass
+    try:
+        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='dns_list_outside_')
+    except:
+        pass
+    try:
+        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='dns_list_inside_')
+    except:
+        pass
+    #into_dns_from_outside_list_
+    try:
+        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='dns_outside_inside_ratios_')
+    except:
+        pass
+    try:
+        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='into_dns_from_outside_list_')
+    except:
+        pass
+    try:
+        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='into_dns_ratio_')
+    except:
+        pass
     ################
     try:
         aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='ide_angles (w abs)_')

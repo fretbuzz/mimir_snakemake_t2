@@ -363,6 +363,10 @@ class data_anylsis_pipline(object):
 
         print "analysis_pipeline about to return!"
 
+
+        for time_gran, mod_z_score_df in time_gran_to_mod_zscore_df.iteritems():
+            time_gran_to_mod_zscore_df[time_gran] = mod_z_score_df.drop(mod_z_score_df.index[:self.minimum_training_window])
+
         return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, self.time_gran_to_feature_dataframe_copy, \
                self.time_gran_to_synthetic_exfil_paths_series, self.end_of_training
 
