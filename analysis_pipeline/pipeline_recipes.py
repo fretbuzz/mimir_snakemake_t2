@@ -1717,8 +1717,8 @@ def new_wordpress_recipe():
     exfil_per_min_variance = [BytesPerMegabyte * i for i in exfil_per_min_variance]
     ######
 
-    calc_vals = False ## TODO: probably want to turn this off (eventually...)
-    calculate_z_scores = False
+    calc_vals = True ## TODO: probably want to turn this off (eventually...)
+    calculate_z_scores = True
 
 
     experiment_classes = [wordpress_thirteen_t1(training_window_size=training_window_size,

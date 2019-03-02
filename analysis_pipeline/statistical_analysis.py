@@ -276,6 +276,11 @@ def drop_useless_columns_aggreg_DF(aggregate_mod_score_dfs):
         pass
 
     try:
+        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='DNS outside-to-inside ratio_')
+    except:
+        pass
+
+    try:
         aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='into_dns_eigenval_angles_')
     except:
         pass

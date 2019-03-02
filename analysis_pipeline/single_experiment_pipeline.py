@@ -379,7 +379,13 @@ def process_one_set_of_graphs(time_interval_length, window_size,
                                          synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
                                           collected_metrics_location, current_set_of_graphs_loc,
                                           avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance)
-        current_set_of_graphs.generate_injected_edgefiles()
+        ### TODO: PUT THE LINE BELOW BACK IN AND THE TAKE THE THREE BELOW THAT OUT
+        #current_set_of_graphs.generate_injected_edgefiles()
+        with open(current_set_of_graphs_loc, mode='rb') as f:
+            current_set_of_graphs_loc_contents = f.read()
+            current_set_of_graphs = pickle.loads(current_set_of_graphs_loc_contents)
+
+
         current_set_of_graphs.calcuated_single_step_metrics()
         current_set_of_graphs.calc_serialize_metrics()
         current_set_of_graphs.save()

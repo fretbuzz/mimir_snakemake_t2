@@ -99,11 +99,70 @@ class injected_graph():
 
         svc_to_pod_with_outside = copy.deepcopy(self.svc_to_pod)
         svc_to_pod_with_outside['outside'] = ['outside']
-        svc_pair_to_reciprocity, svc_pair_to_density, svc_pair_to_coef_of_var = pairwise_metrics(self.cur_1si_G,
-                                                                                                 svc_to_pod_with_outside)
+        svc_pair_to_reciprocity, svc_pair_to_density, svc_pair_to_coef_of_var, svc_triple_to_degree_coef_of_var = \
+                                                            pairwise_metrics(self.cur_1si_G, svc_to_pod_with_outside)
+
+        ''' # this level of craftsmenship is too low...
         self.graph_feature_dict['list_of_svc_pair_to_reciprocity'] = svc_pair_to_reciprocity
         self.graph_feature_dict['list_of_svc_pair_to_density'] = svc_pair_to_density
         self.graph_feature_dict['list_of_svc_pair_to_coef_of_var'] = svc_pair_to_coef_of_var
+        '''
+
+        for svc_pair,reciprocity in svc_pair_to_reciprocity.iteritems():
+            self.graph_feature_dict[str(svc_pair[0]) + '_to_' + str(svc_pair[1]) + '_reciprocity'] = reciprocity
+            self.graph_feature_dict[str(svc_pair[0]) + '_to_' + str(svc_pair[1]) + '_density'] = svc_pair_to_density[svc_pair]
+            self.graph_feature_dict[str(svc_pair[0]) + '_to_' + str(svc_pair[1]) + '_edge_coef_of_var'] = svc_pair_to_coef_of_var[svc_pair]
+
+        eigenvector_centrality_classes = nx.eigenvector_centrality(self.cur_class_G, weight='weight')
+        #information_centrality_classes = nx.information_centrality(self.cur_class_G, weight='weight') # not implemented for directed
+        betweeness_centrality_classes = nx.betweenness_centrality(self.cur_class_G, weights='weight')
+        current_flow_betweenness_centrality_classes = nx.current_flow_betweenness_centrality(self.cur_class_G, weight='weight')
+        load_centrality_classes = nx.load_centrality(self.cur_class_G, weight='weight')
+        harmonic_centrality_classes = nx.harmonic_centrality(self.cur_class_G, distance='weight')
+
+        degree_classes_list = list(nx.degree(self.cur_class_G)) # all we can get is the list
+        for service in self.svc_to_pod.keys():
+            self.graph_feature_dict['eigenvector_centrality_of_' + str(service)] = eigenvector_centrality_classes[service]
+            #self.graph_feature_dict['information_centrality_of_' + str(service)] = information_centrality_classes[service]
+            self.graph_feature_dict['betweeness_centrality_of_' + str(service)] = betweeness_centrality_classes[service]
+            self.graph_feature_dict['current_flow_betweeness_centrality_of_' + str(service)] = current_flow_betweenness_centrality_classes[service]
+            self.graph_feature_dict['load_centrality_of_' + str(service)] = load_centrality_classes[service]
+            self.graph_feature_dict['harmonic_centrality_classes_of_' + str(service)] = harmonic_centrality_classes[service]
+
+        for class_val_degree_val_tuple in degree_classes_list:
+            class_val = class_val_degree_val_tuple[0]
+            degree_val = class_val_degree_val_tuple[1]
+            if class_val in self.svc_to_pod.keys():
+                self.graph_feature_dict['class_degree_of_' + str(class_val)] = degree_val
+
+        eigenvector_centrality_nodes = nx.eigenvector_centrality(self.cur_1si_G, weight='weight')
+        eigenvector_centrality_coef_var_of_classes = find_coef_of_var_for_nodes(eigenvector_centrality_nodes, self.svc_to_pod)
+        #information_centrality_nodes = nx.information_centrality(self.cur_1si_G, weight='weight')
+        #information_centrality_coef_var_of_classes = find_coef_of_var_for_nodes(information_centrality_nodes, self.svc_to_pod)
+        betweeness_centrality_nodes = nx.betweenness_centrality(self.cur_1si_G, weights='weight')
+        betweeness_centrality_coef_var_of_classes = find_coef_of_var_for_nodes(betweeness_centrality_nodes, self.svc_to_pod)
+        current_flow_betweenness_centrality_nodes = nx.current_flow_betweenness_centrality(self.cur_1si_G, weight='weight')
+        current_flow_betweenness_centrality_coef_var_of_classes = find_coef_of_var_for_nodes(current_flow_betweenness_centrality_nodes, self.svc_to_pod)
+        load_centrality_nodes = nx.load_centrality(self.cur_1si_G, weight='weight')
+        load_centrality_coef_var_of_classes = find_coef_of_var_for_nodes(load_centrality_nodes, self.svc_to_pod)
+        harmonic_centrality_nodes = nx.harmonic_centrality(self.cur_1si_G, distance='weight')
+        harmonic_centrality_coef_var_of_classes = find_coef_of_var_for_nodes(harmonic_centrality_nodes, self.svc_to_pod)
+
+        for service in self.svc_to_pod.keys():
+            self.graph_feature_dict['eigenvector_centrality_coef_of_var_' + str(service)] = eigenvector_centrality_coef_var_of_classes[service]
+            #self.graph_feature_dict['information_centrality_coef_of_var_' + str(service)] = information_centrality_coef_var_of_classes[service]
+            self.graph_feature_dict['betweeness_centrality_coef_of_var_' + str(service)] = betweeness_centrality_coef_var_of_classes[service]
+            self.graph_feature_dict['current_flow_betweeness_centrality_coef_of_var_' + str(service)] = current_flow_betweenness_centrality_coef_var_of_classes[service]
+            self.graph_feature_dict['load_centrality_coef_of_var_' + str(service)] = load_centrality_coef_var_of_classes[service]
+            self.graph_feature_dict['harmonic_centrality_coef_of_var_' + str(service)] = harmonic_centrality_coef_var_of_classes[service]
+
+        for svcOne_svcTwo_svcInQuestion, degree_coef_of_var in svc_triple_to_degree_coef_of_var.iteritems():
+            svc_one = svcOne_svcTwo_svcInQuestion[0]
+            svc_two = svcOne_svcTwo_svcInQuestion[1]
+            svc_the_metric_is_for = svcOne_svcTwo_svcInQuestion[2]
+            self.graph_feature_dict[str(svc_the_metric_is_for) + "_degree_coef_of_var_in_biparite_graph_of_" + \
+                                    str(svc_one) + '_' + str(svc_two)] = degree_coef_of_var
+
 
         adjacency_matri = nx.to_pandas_adjacency(self.cur_1si_G, nodelist=self.current_total_node_list)
         self.graph_feature_dict['adjacency_matrix'] = adjacency_matri
@@ -124,13 +183,7 @@ class injected_graph():
         self.graph_feature_dict_keys = self.graph_feature_dict.keys()
 
         with open(self.metrics_file, 'wb') as f:  # Just use 'w' mode in 3.x
-            ''' # we're going to use a different method...
-                w = csv.DictWriter(f, self.graph_feature_dict.keys())
-                w.writeheader()
-                w.writerow(self.graph_feature_dict)
-            '''
             f.write(pickle.dumps(self.graph_feature_dict))
-            #f.write(str(self.graph_feature_dict))
 
     def _load_graph(self):
         self.cur_1si_G = nx.DiGraph()
@@ -234,6 +287,19 @@ class set_of_injected_graphs():
             adjacency_matrixes.append( current_graph_feature_dict['adjacency_matrix'] )
             dns_in_metric_dicts.append( current_graph_feature_dict['weight_into_dns_dict'] )
 
+            for value_name, value_value in current_graph_feature_dict.iteritems():
+                if 'adjacency_matrix' in value_name or 'weight_into_dns_dict' in value_name:
+                    # these are handled seperately b/c we gotta get all the data then do some postprocessing
+                    continue
+
+                if value_name not in self.calculated_values.keys():
+                    self.calculated_values[value_name] = []
+                try:
+                    self.calculated_values[value_name].append(value_value)
+                except:
+                    self.calculated_values[value_name].append(0.0)
+
+            '''
             list_of_svc_pair_to_density.append(current_graph_feature_dict['list_of_svc_pair_to_density'])
             list_of_svc_pair_to_reciprocity.append(current_graph_feature_dict['list_of_svc_pair_to_reciprocity'])
             list_of_svc_pair_to_coef_of_var.append(current_graph_feature_dict['list_of_svc_pair_to_coef_of_var'])
@@ -245,6 +311,8 @@ class set_of_injected_graphs():
             pod_1si_density_list.append(current_graph_feature_dict['pod_1si_density_list'])
             into_dns_from_outside_list.append(current_graph_feature_dict['into_dns_from_outside_list'])
             into_dns_ratio.append(current_graph_feature_dict['into_dns_ratio'])
+            '''
+
             total_edgelist_nodes = injected_graph.total_edgelist_nodes
             current_total_node_list = injected_graph.current_total_node_list
 
@@ -256,6 +324,7 @@ class set_of_injected_graphs():
 
 
         ## need to store these new results into the format that I've been using this far...
+        '''
         for service_pair in list_of_svc_pair_to_density[0].keys():
             self.calculated_values[service_pair[0] + '_' + service_pair[1] + '_density'] = []
             self.calculated_values[service_pair[0] + '_' + service_pair[1] + '_reciprocity'] = []
@@ -277,19 +346,22 @@ class set_of_injected_graphs():
                         list_of_svc_pair_to_coef_of_var[counter][service_pair])
                 except:
                     self.calculated_values[service_pair[0] + '_' + service_pair[1] + '_coef_of_var'].append(0.0)
+        '''
+        #self.calculated_values[
+        #    'Fraction of Communication Between Pods not through VIPs (no abs)'] = fraction_pod_comm_but_not_VIP_comms_no_abs
+        #self.calculated_values['Communication Between Pods not through VIPs (no abs)'] = pod_comm_but_not_VIP_comms_no_abs
+        self.calculated_values['Fraction of Communication Between Pods not through VIPs (w abs)'] = \
+            [abs(i) for i in self.calculated_values['fraction_pod_comm_but_not_VIP_comms']]
+        self.calculated_values['Communication Between Pods not through VIPs (w abs)'] = \
+            [abs(i) for i in self.calculated_values['pod_comm_but_not_VIP_comms_no_abs']]
 
-        self.calculated_values[
-            'Fraction of Communication Between Pods not through VIPs (no abs)'] = fraction_pod_comm_but_not_VIP_comms_no_abs
-        self.calculated_values['Communication Between Pods not through VIPs (no abs)'] = pod_comm_but_not_VIP_comms_no_abs
-        self.calculated_values[
-            'Fraction of Communication Between Pods not through VIPs (w abs)'] = [abs(i) for i in fraction_pod_comm_but_not_VIP_comms_no_abs]
-        self.calculated_values['Communication Between Pods not through VIPs (w abs)'] = [abs(i) for i in pod_comm_but_not_VIP_comms_no_abs]
-        self.calculated_values['DNS outside-to-inside ratio'] = dns_outside_inside_ratios
-        self.calculated_values['DNS outside'] = dns_list_outside
-        self.calculated_values['DNS inside'] = dns_list_inside
-        self.calculated_values['1-step-induced-pod density'] = pod_1si_density_list
-        self.calculated_values['into_dns_from_outside'] = into_dns_from_outside_list
-        self.calculated_values['into_dns_ratio'] = into_dns_ratio
+        #self.calculated_values['DNS outside-to-inside ratio'] = dns_outside_inside_ratios
+        #self.calculated_values['DNS outside'] = dns_list_outside
+        #self.calculated_values['DNS inside'] = dns_list_inside
+        #self.calculated_values['1-step-induced-pod density'] = pod_1si_density_list
+        #self.calculated_values['into_dns_from_outside'] = into_dns_from_outside_list
+        #self.calculated_values['into_dns_ratio'] = into_dns_ratio
+
         self.calculated_values['into_dns_eigenval_angles'] = into_dns_eigenval_angles
         self.calculated_values['ide_angles'] = ide_angles_results
         self.calculated_values['ide_angles (w abs)'] = [abs(i) for i in ide_angles_results]
@@ -427,6 +499,21 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
         lines = f.readlines()
         nx.parse_edgelist(lines, delimiter=' ', create_using=G)
 
+        potential_name_of_dns_pod_node = find_dns_node_name(G)
+        if potential_name_of_dns_pod_node != None:
+            name_of_dns_pod_node = potential_name_of_dns_pod_node
+        logging.info("name_of_dns_pod_node, " + str(name_of_dns_pod_node))
+        print "name_of_dns_pod_node", name_of_dns_pod_node
+
+        # if no dns pod in current graph....
+        if potential_name_of_dns_pod_node is None:
+            # if we know the name of the dns pod...
+            if name_of_dns_pod_node is not None:
+                # then add in the dns pod and vip to the graph
+                # (this is needed for the centrality measures)
+                G.add_node(name_of_dns_pod_node)
+                G.add_node('kube-dns_VIP')
+
         logging.info("straight_G_edges")
         #for edge in G.edges(data=True):
         #    logging.info(edge)
@@ -480,12 +567,6 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
         #    logging.info(edge)
         logging.info("end cur_1si_G edges")
 
-        potential_name_of_dns_pod_node = find_dns_node_name(G)
-        if potential_name_of_dns_pod_node != None:
-            name_of_dns_pod_node = potential_name_of_dns_pod_node
-        logging.info("name_of_dns_pod_node, " + str(name_of_dns_pod_node))
-        print "name_of_dns_pod_node", name_of_dns_pod_node
-
         ### NOTE: I think this is where we'd want to inject the synthetic attacks...
         for node in cur_1si_G.nodes():
             if node not in current_total_node_list:
@@ -506,6 +587,9 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
             except:
                 # print "there was a svc error"
                 pass
+
+        #print("svc_to_pod",svc_to_pod)
+        #exit(988)
 
         pod_to_svc = reverse_svc_to_pod_dict(svc_to_pod)
 
@@ -831,8 +915,12 @@ def pairwise_metrics(G, svc_to_nodes):
     svc_pair_to_reciprocity = {}
     svc_pair_to_density = {}
     svc_pair_to_coef_of_var = {}
+    svc_triple_to_degree_coef_of_var = {}
+
     for svc_one,nodes_one in svc_to_nodes.iteritems():
         for svc_two,nodes_two in svc_to_nodes.iteritems():
+            orig_nodes_one = copy.deepcopy(nodes_one)
+            orig_nodes_two = copy.deepcopy(nodes_two)
             nodes_one_with_vip = nodes_one + [svc_one + '_VIP']
             nodes_two_with_vip = nodes_two + [svc_two + '_VIP']
             if svc_one != svc_two:
@@ -858,6 +946,22 @@ def pairwise_metrics(G, svc_to_nodes):
                 svc_pair_to_coef_of_var[(svc_one,svc_two)] = coef_of_var
                 #print "between_stuff", svc_one, svc_two, len(subgraph.edges(data=True)), subgraph.edges(data=True)
 
+                service_one_degrees = subgraph.degree(nbunch=orig_nodes_one)
+                service_one_degrees_list = []
+                for svc_one_node_node_degree_tuple in service_one_degrees:
+                    svc_one_node = svc_one_node_node_degree_tuple[0]
+                    node_degree = svc_one_node_node_degree_tuple[1]
+                    service_one_degrees_list.append( node_degree )
+                svc_triple_to_degree_coef_of_var[(svc_one, svc_two, svc_one)] = np.std(service_one_degrees_list) / np.mean(service_one_degrees_list)
+
+                service_two_degrees = subgraph.degree(nbunch=orig_nodes_two)
+                service_two_degrees_list = []
+                for svc_two_node_node_degree_tuple in service_two_degrees:
+                    svc_two_node = svc_two_node_node_degree_tuple[0]
+                    node_degree = svc_two_node_node_degree_tuple[1]
+                    service_two_degrees_list.append( node_degree )
+                svc_triple_to_degree_coef_of_var[(svc_one, svc_two, svc_two)] = np.std(service_two_degrees_list) / np.mean(service_two_degrees_list)
+
 
                 #### TODO: remove when I am done w/ looking at visualizations...
                 ''''
@@ -878,9 +982,18 @@ def pairwise_metrics(G, svc_to_nodes):
                 svc_pair_to_reciprocity[(svc_one, svc_two)] = weighted_reciprocity
                 #print "self_stuff", svc_one, subgraph.edges(data=True)
 
+                service_one_degrees = subgraph.degree(nbunch=orig_nodes_one)
+                service_one_degrees_list = []
+                for svc_one_node_node_degree_tuple in service_one_degrees:
+                    svc_one_node = svc_one_node_node_degree_tuple[0]
+                    node_degree = svc_one_node_node_degree_tuple[1]
+                    service_one_degrees_list.append( node_degree )
+                svc_triple_to_degree_coef_of_var[(svc_one, svc_two, svc_one)] = np.std(service_one_degrees_list) / np.mean(service_one_degrees_list)
+
+
     ###plt.show()
 
-    return svc_pair_to_reciprocity, svc_pair_to_density,svc_pair_to_coef_of_var
+    return svc_pair_to_reciprocity, svc_pair_to_density, svc_pair_to_coef_of_var, svc_triple_to_degree_coef_of_var
 
 def make_bipartite(G, node_set_one, node_set_two):
     for node_one in node_set_one:
@@ -1005,6 +1118,20 @@ def make_edgelist_dict(cur_1si_G, total_edgelist_nodes):
             edgelist_dict[edge_pair] = 0
     #print "edgelist_dict",
     return edgelist_dict
+
+def find_coef_of_var_for_nodes(node_feature_val_dict, svc_to_pod):
+    class_to_coef_var_dict = {}
+    for svc,list_of_pods in svc_to_pod:
+        current_feature_list = []
+        for pod in list_of_pods:
+            current_feature_list.append(node_feature_val_dict[pod])
+
+        # coef of var is (standard_deviation / mean)
+        feature_stddev = np.std(current_feature_list)
+        feature_mean = np.mean(current_feature_list)
+        class_to_coef_var_dict[svc] = feature_stddev / feature_mean
+
+    return class_to_coef_var_dict
 
 def update_total_edgelist_nodes_if_needed(cur_1si_G, total_edgelist_nodes):
     for node_one in cur_1si_G.nodes():
