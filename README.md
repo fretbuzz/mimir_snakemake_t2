@@ -2,8 +2,8 @@
 Mimir is an experimental apparatus designed to test the potential for anomaly-based data exfiltration detection in microservice-architecture applications. It creates a graphical representation of network communication and flags deviations from structural invariants.
 
 
-## Motivation
-TODO
+## To Run
+Currently, it only works off-line (with network pcap files). Add the desired configuration to analysis_pipeline/pipeline_recipes.py and that'll run it (see current contents of file for usage example). Note: If your thinking of running this yourself, you should probably talk to fretbuzz first.
 
  ## Tech/framework used
 
