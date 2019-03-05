@@ -1729,7 +1729,7 @@ def wordpress_thirteen_t4(time_of_synethic_exfil=None, only_exp_info=False, init
     physical_exfil_path = []
 
 
-    make_edgefiles = True ## already done!
+    make_edgefiles = False, ## already done! # highly doubt it's done, so lets just do it again...
     wordpress_thirteen_t4_object = data_anylsis_pipline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
                                    make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
                                    wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,
@@ -1783,7 +1783,7 @@ def wordpress_thirteen_t2(time_of_synethic_exfil=None, only_exp_info=False, init
     physical_exfil_path = []
 
 
-    make_edgefiles = True ## already done!
+    make_edgefiles = False ## already done!
     wordpress_thirteen_t2_object = data_anylsis_pipline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
                                    make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
                                    wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,
@@ -1842,21 +1842,22 @@ def new_wordpress_recipe():
     calculate_z_scores = True
 
 
-    experiment_classes = [wordpress_thirteen_t1(training_window_size=training_window_size,
-                                                  size_of_neighbor_training_window=size_of_neighbor_training_window,
-                                                  calc_vals=calc_vals,
-                                                  time_of_synethic_exfil=time_of_synethic_exfil,
-                                                  time_interval_lengths=time_interval_lengths,
-                                                  window_size=window_size,
-                                                  minimum_training_window=minimum_training_window,
-                                                startup_time=startup_time),
-                          wordpress_thirteen_t2(training_window_size=training_window_size,
+    experiment_classes = [wordpress_thirteen_t2(training_window_size=training_window_size,
                                                 size_of_neighbor_training_window=size_of_neighbor_training_window,
                                                 calc_vals=calc_vals,
                                                 time_of_synethic_exfil=time_of_synethic_exfil,
                                                 time_interval_lengths=time_interval_lengths,
                                                 window_size=window_size,
                                                 minimum_training_window=minimum_training_window,
+                                                startup_time=startup_time)]
+    '''
+                          wordpress_thirteen_t1(training_window_size=training_window_size,
+                                                  size_of_neighbor_training_window=size_of_neighbor_training_window,
+                                                  calc_vals=calc_vals,
+                                                  time_of_synethic_exfil=time_of_synethic_exfil,
+                                                  time_interval_lengths=time_interval_lengths,
+                                                  window_size=window_size,
+                                                  minimum_training_window=minimum_training_window,
                                                 startup_time=startup_time),
                           wordpress_thirteen_t4(training_window_size=training_window_size,
                                                 size_of_neighbor_training_window=size_of_neighbor_training_window,
@@ -1866,6 +1867,7 @@ def new_wordpress_recipe():
                                                 window_size=window_size,
                                                 minimum_training_window=minimum_training_window,
                                                 startup_time=startup_time)                          ]
+    '''
 
     ## NOTE: process_wordpress8 could be here too, but I'm for the moment I'm keeping each kind of injected
     ## attack w/ two different experiments in which it occurss...

@@ -102,6 +102,7 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
         trained_models = out_q.get()
         p.join()
 
+
         list_of_optimal_fone_scores_at_exfil_rates.append(optimal_fones)
 
     # todo: graph f_one versus exfil rates...
@@ -136,6 +137,8 @@ def pipeline_one_exfil_rate(rate_counter,
         experiment_object.basegraph_name = experiment_object.orig_basegraph_name + prefix_for_inject_params
         experiment_object.exp_name = experiment_object.orig_exp_name + prefix_for_inject_params
         experiment_object.calc_zscore_p = calculate_z_scores_p or calc_vals
+
+
 
         time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, _, start_of_testing = \
         experiment_object.calculate_values(end_of_training=end_of_train_portions[counter],

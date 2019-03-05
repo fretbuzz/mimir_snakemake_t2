@@ -133,10 +133,17 @@ class injected_graph():
         for service in self.svc_to_pod.keys():
             #self.graph_feature_dict['eigenvector_centrality_of_' + str(service)] = eigenvector_centrality_classes[service]
             #self.graph_feature_dict['information_centrality_of_' + str(service)] = information_centrality_classes[service]
-            self.graph_feature_dict['betweeness_centrality_of_' + str(service)] = betweeness_centrality_classes[service]
-            #self.graph_feature_dict['current_flow_betweeness_centrality_of_' + str(service)] = current_flow_betweenness_centrality_classes[service]
-            self.graph_feature_dict['load_centrality_of_' + str(service)] = load_centrality_classes[service]
-            self.graph_feature_dict['harmonic_centrality_classes_of_' + str(service)] = harmonic_centrality_classes[service]
+            try:
+                self.graph_feature_dict['betweeness_centrality_of_' + str(service)] = betweeness_centrality_classes[service]
+                self.graph_feature_dict['load_centrality_of_' + str(service)] = load_centrality_classes[service]
+                self.graph_feature_dict['harmonic_centrality_classes_of_' + str(service)] = harmonic_centrality_classes[
+                    service]
+                #self.graph_feature_dict['current_flow_betweeness_centrality_of_' + str(service)] = current_flow_betweenness_centrality_classes[service]
+            except:
+                print "eomthing kinda fishy with the centrality stuff...", betweeness_centrality_classes
+                self.graph_feature_dict['betweeness_centrality_of_' + str(service)] = float('nan')
+                self.graph_feature_dict['load_centrality_of_' + str(service)] = float('nan')
+                self.graph_feature_dict['harmonic_centrality_classes_of_' + str(service)] = float('nan')
 
         ''' # yah, idt that I want this...
         for class_val_degree_val_tuple in degree_classes_list:
@@ -170,6 +177,9 @@ class injected_graph():
             dict_of_clustering_coef = nx.clustering(self.cur_1si_G, nodes=self.svc_to_pod[service], weight='weight')
             avg_clustering_coef = np.sum(dict_of_clustering_coef.values()) / len(dict_of_clustering_coef.keys())
             self.graph_feature_dict['avg_clustering_coef_of' + str(service)] = avg_clustering_coef
+            clustering_coef_coef_of_var = find_coef_of_var_for_nodes(dict_of_clustering_coef,
+                                                                                 self.svc_to_pod)
+            self.graph_feature_dict['clustering_coef_of_var_' + str(service)] = clustering_coef_coef_of_var[service]
 
         '''
         for svcOne_svcTwo_svcInQuestion, degree_coef_of_var in svc_triple_to_degree_coef_of_var.iteritems():
@@ -1150,7 +1160,10 @@ def find_coef_of_var_for_nodes(node_feature_val_dict, svc_to_pod):
     for svc,list_of_pods in svc_to_pod.iteritems():
         current_feature_list = []
         for pod in list_of_pods:
-            current_feature_list.append(node_feature_val_dict[pod])
+            try:
+                current_feature_list.append(node_feature_val_dict[pod])
+            except:
+                pass
 
         # coef of var is (standard_deviation / mean)
         feature_stddev = np.std(current_feature_list)
