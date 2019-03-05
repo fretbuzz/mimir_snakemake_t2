@@ -1,8 +1,9 @@
 ## Mimir
-Munnin is an experimental apparatus designed to test the potential for anomaly-based data exfiltration detection in microservice-architecture applications. There are instructions in the Wiki on how to setup some example microservice-architecture applications. Then run_experiment can be used to coordinate the generation of background traffic with exfiltration of data. pcap_parser can can be used to analyze the resulting pcaps. It parses the pcaps into a graph-representation, saves the edgefiles, calculates some graph metrics, saves those too, and then makes some graphs. 
+Mimir is an experimental apparatus designed to test the potential for anomaly-based data exfiltration detection in microservice-architecture applications. It creates a graphical representation of network communication and flags deviations from structural invariants.
+
 
 ## Motivation
-The transition to microsevice-architectures bring new challenges and opportunities to detecting data exfiltration. Current data exfiltration methods use keyword-based methods that don't work on encrypted traffic, necessitating the use of anomaly-based methods. Anomaly-based methods, however, don't work well in tradtional enterprise applications because of the lack of network-level visibility. Network-level visibility is increased in microservice-architecture applications, so it is worth re-checking the effectivness of network-anomaly-based methods in this new context
+TODO
 
  ## Tech/framework used
 
@@ -29,12 +30,6 @@ The transition to microsevice-architectures bring new challenges and opportuniti
 * a whole bunch of Linux coreutils (most notably sed)
 
 * Anaconda for other data-analysis purposes
-
-## Code Example
-Just set up an experimental configuration file and set the flags correctly in run_experiment.py and you are ready to go!
-
-## Installation
-Refer to the instructions in the Wiki about how to deploy/install an application along with Mimir.
 
 ## Tests
 Are found in the test.py file.
