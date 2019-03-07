@@ -510,6 +510,35 @@ def calc_time_gran_to_mod_zscore_dfs(time_gran_to_feature_dataframe, training_wi
         time_gran_mod_z_score_dataframe[time_interval] = df_mod_zscore
     return time_gran_mod_z_score_dataframe
 
+def normalize_data_v2(time_gran_to_feature_dataframe, time_gran_to_attack_labels, end_of_training):
+    time_gran_to_normalized_df = {}
+    for time_gran, feature_dataframe in time_gran_to_feature_dataframe.iteritems():
+        current_attack_labels = time_gran_to_attack_labels[time_gran]
+        feature_dataframe['attack_labels'] = current_attack_labels
+        last_label_in_training = int(math.floor(float(end_of_training) / time_gran))
+
+        training_values = feature_dataframe.iloc[:last_label_in_training]
+        #testing_values = feature_dataframe.iloc[last_label_in_training:]
+
+        training_noAttack_values = training_values.loc[df['attack_labels'] == 0]
+        #training_Attack_values = training_values.loc[df['attack_labels'] == 1]
+
+        cols = list(df.columns)
+        df_normalized = pandas.DataFrame()
+        for col in cols:
+            transformer = RobustScaler().fit(training_noAttack_values[col])
+
+            #transformed_training_data = transformer.transform( training_values[col] )
+            #transformed_testing_data = transformer.transform( testing_values[col] )
+            transformed_data = transformer.transform( feature_dataframe[col] )
+
+            # b/c so much relies on it, I'll keep the mod_z_score in the name for now... even tho it isn't...
+            df_normalized[col + 'mod_z_score'] = transformed_data
+
+        time_gran_to_normalized_df[time_gran] = df_normalized
+
+    return time_gran_to_normalized_df
+
 def calc_time_gran_to_robustScaker_dfs(time_gran_to_feature_dataframe, training_window_size):
     time_gran_mod_z_score_dataframe = {}
     for time_interval, df in time_gran_to_feature_dataframe.iteritems():

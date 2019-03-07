@@ -35,7 +35,7 @@ class data_anylsis_pipline(object):
                                initiator_info_for_paths=None,
                                synthetic_exfil_paths_train=None, synthetic_exfil_paths_test=None,
                                skip_model_part=False, max_number_of_paths=None, netsec_policy=None,
-                                startup_time=200):
+                                startup_time=200, skip_graph_injection=False):
         self.ms_s = ms_s
         print "log file can be found at: " + str(basefile_name) + '_logfile.log'
         logging.basicConfig(filename=basefile_name + '_logfile.log', level=logging.INFO)
@@ -86,6 +86,7 @@ class data_anylsis_pipline(object):
         self.orig_alert_file = self.alert_file
         self.orig_basegraph_name = self.basegraph_name
         self.orig_exp_name = self.exp_name
+        self.skip_graph_injection = skip_graph_injection
 
         self.synthetic_exfil_paths = None
         self.initiator_info_for_paths = None
@@ -222,7 +223,8 @@ class data_anylsis_pipline(object):
                                             self.list_of_infra_services,
                                             synthetic_exfil_paths, self.initiator_info_for_paths, time_gran_to_attack_ranges,
                                             self.size_of_neighbor_training_window,
-                                            avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance)
+                                            avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
+                                            self.skip_graph_injection)
 
             ## time_gran_to_attack_labels needs to be corrected using time_gran_to_list_of_concrete_exfil_paths
             ## because just because it was assigned, doesn't mean that it is necessarily going to be injected (might
@@ -376,7 +378,8 @@ def process_one_set_of_graphs(time_interval_length, window_size,
                                 filenames, svcs, is_swarm, ms_s, mapping,  list_of_infra_services,
                                 synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
                                collected_metrics_location, current_set_of_graphs_loc, calc_vals, out_q,
-                              avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance):
+                              avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
+                              skip_graph_injection):
 
     if calc_vals:
         current_set_of_graphs = simplified_graph_metrics.set_of_injected_graphs(time_interval_length, window_size,
@@ -386,10 +389,12 @@ def process_one_set_of_graphs(time_interval_length, window_size,
                                           avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance)
         ### TODO: if don't wanna redo the injection step (and why would you), then you can just go ahead
         ### and comment out the line below and comment in the two lines below that
-        current_set_of_graphs.generate_injected_edgefiles()
-        #with open(current_set_of_graphs_loc, mode='rb') as f:
-        #    current_set_of_graphs_loc_contents = f.read()
-        #    current_set_of_graphs = pickle.loads(current_set_of_graphs_loc_contents)
+        if skip_graph_injection:
+         with open(current_set_of_graphs_loc, mode='rb') as f:
+            current_set_of_graphs_loc_contents = f.read()
+            current_set_of_graphs = pickle.loads(current_set_of_graphs_loc_contents)
+        else:
+            current_set_of_graphs.generate_injected_edgefiles()
 
 
         current_set_of_graphs.calcuated_single_step_metrics()
@@ -410,7 +415,8 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
                                 mapping, is_swarm, make_net_graphs_p, list_of_infra_services,synthetic_exfil_paths,
                                 initiator_info_for_paths, time_gran_to_attacks_to_times, size_of_neighbor_training_window,
                                 avg_exfil_per_min,
-                                exfil_per_min_variance, avg_pkt_size, pkt_size_variance):
+                                exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
+                                skip_graph_injection):
     total_calculated_vals = {}
     time_gran_to_list_of_concrete_exfil_paths = {}
     time_gran_to_list_of_exfil_amts = {}
@@ -436,7 +442,8 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
                 interval_to_filenames[str(time_interval_length)], svcs, is_swarm, ms_s, mapping,
                 list_of_infra_services, synthetic_exfil_paths,  initiator_info_for_paths,
                 time_gran_to_attacks_to_times[time_interval_length], collected_metrics_location, current_set_of_graphs_loc,
-                calc_vals, out_q, avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance]
+                calc_vals, out_q, avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
+                skip_graph_injection]
         p = multiprocessing.Process(
             target=process_one_set_of_graphs,
             args=args)
@@ -482,11 +489,18 @@ def calc_zscores(alert_file, training_window_size, minimum_training_window,
     robustScaler_df_basefile_name = alert_file + 'robustScaler_score_' + sub_path
 
     if calc_zscore_p:
-        time_gran_to_mod_zscore_df = process_graph_metrics.calc_time_gran_to_mod_zscore_dfs(time_gran_to_feature_dataframe,
-                                                                                            training_window_size,
-                                                                                            minimum_training_window)
+        #time_gran_to_mod_zscore_df = process_graph_metrics.calc_time_gran_to_mod_zscore_dfs(time_gran_to_feature_dataframe,
+        #                                                                                    training_window_size,
+        #                                                                                    minimum_training_window)
+
+        #### TODO: normalization should be different for training and testing... (okay, I think i did it...)
+        # note: it's not actually mod_z_score anymore, but I'm keeping the name for compatibility...
+        time_gran_to_mod_zscore_df = process_graph_metrics.normalize_data_v2(time_gran_to_feature_dataframe, time_gran_to_attack_labels,
+                                                       end_of_training)
+
 
         #print "end_of_training", end_of_training
+
         #exit(344)
         process_graph_metrics.save_feature_datafames(time_gran_to_mod_zscore_df, mod_z_score_df_basefile_name,
                                                      time_gran_to_attack_labels, time_gran_to_synthetic_exfil_paths_series,
@@ -628,7 +642,7 @@ def determine_attacks_to_times(time_gran_to_attack_labels, synthetic_exfil_paths
 
 def assign_attacks_to_first_available_spots(time_gran_to_attack_labels, largest_time_gran, time_periods_startup, time_periods_attack,
                                             counter, time_gran_to_attack_ranges, synthetic_exfil_paths, current_exfil_paths):
-    ## TODO: problem: this can only inject the attacks in once...
+    ## TODO: problem: this can only inject the attacks in once... <--- does this make any sense...
     for synthetic_exfil_path in current_exfil_paths: # synthetic_exfil_paths:
 
         print synthetic_exfil_path, synthetic_exfil_path in current_exfil_paths

@@ -42,8 +42,14 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
     X_tests = {}
     Y_tests = {}
     trained_models = {}
+
+    list_of_attacks_to_found_dfs = []
+    list_of_attacks_to_found_training_df = []
+
     for time_gran,aggregate_mod_score_dfs in time_gran_to_aggregate_mod_score_dfs.iteritems():
         time_grans.append(time_gran)
+        method_to_testing_df = {}
+        method_to_training_df = {}
 
         X_train, y_train, X_test, y_test, pre_drop_X_train, time_gran_to_debugging_csv, dropped_feature_list, ide_train,\
             ide_test, X_train_exfil_weight, X_test_exfil_weight, exfil_paths, exfil_paths_train = \
@@ -119,17 +125,33 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         feature_raw_heatmaps_training.append('../' + local_heatmap_raw_val_path_training)
 
         ### step (3): Make ROCs and determine performance at optimal F1 operating point
-        optimal_predictions, optimal_thresh, plot_path = generate_ROC_curves(y_test, test_predictions, base_output_name,
-                                                                             time_gran, ide_test, ide_train,
-                                                                             list_of_optimal_fone_scores)
+        optimal_predictions, optimal_thresh, plot_path, ide_threshold = generate_ROC_curves(y_test, test_predictions, base_output_name,
+                                                            time_gran, ide_test, ide_train, list_of_optimal_fone_scores)
+        optimal_ide_prediction = [int(i > ide_threshold) for i in ide_test]
+        ide_optimal_train_predictions = [int(i > ide_threshold) for i in ide_train]
         ideal_thresholds.append(optimal_thresh)
         list_of_rocs.append(plot_path)
         categorical_cm_df = determine_categorical_cm_df(y_test, optimal_predictions, exfil_paths, X_test_exfil_weight)
         list_of_attacks_found_dfs.append(categorical_cm_df)
+        method_to_testing_df['mimir'] = categorical_cm_df
+
         optimal_train_predictions = [int(i > optimal_thresh) for i in train_predictions]
         categorical_cm_df_training = determine_categorical_cm_df(y_train, optimal_train_predictions, exfil_paths_train,
                                                                  X_train_exfil_weight)
         list_of_attacks_found_training_df.append(categorical_cm_df_training)
+        method_to_training_df['mimir'] = categorical_cm_df_training
+
+
+        ide_categorical_cm_df = determine_categorical_cm_df(y_test, optimal_ide_prediction, exfil_paths, X_test_exfil_weight)
+        ide_categorical_cm_df_training = determine_categorical_cm_df(y_train, ide_optimal_train_predictions, exfil_paths_train,
+                                                                 X_train_exfil_weight)
+        method_to_training_df['ide'] = ide_categorical_cm_df_training
+        method_to_testing_df['ide'] = ide_categorical_cm_df
+
+        '''
+        method_to_testing_df['mimir'] = categorical_cm_df
+        method_to_training_df['mimir'] = categorical_cm_df_training
+        '''
 
         if not skip_model_part:
             time_gran_to_debugging_csv[time_gran].loc[:, "anom_val_at_opt_pt"] = \
@@ -168,12 +190,19 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         list_percent_attacks_training.append(
             float(number_attacks_in_train) / (number_non_attacks_in_train + number_attacks_in_train))
 
+        list_of_attacks_to_found_dfs.append(method_to_testing_df)
+        list_of_attacks_to_found_training_df.append(method_to_training_df)
+
+
     starts_of_testing_dict = {}
     for counter,name in enumerate(names):
         starts_of_testing_dict[name] = starts_of_testing[counter]
 
     starts_of_testing_df = pd.DataFrame(starts_of_testing_dict, index=['start_of_testing_phase'])
 
+    # TODO: this is kinda a bit of work.
+    # per_attack_bar_graphs(method_to_results_df, temp_location, file_storage_location)
+    #list_of_attacks_to_found_dfs, list_of_attacks_to_found_training_df
 
     print "list_of_rocs", list_of_rocs
     generate_report.generate_report(list_of_rocs, list_of_feat_coefs_dfs, list_of_attacks_found_dfs,
@@ -185,7 +214,59 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
                                     avg_exfil_per_min,avg_pkt_size, exfil_per_min_variance, pkt_size_variance)
 
     print "multi_experiment_pipeline is all done! (NO ERROR DURING RUNNING)"
-    return list_of_optimal_fone_scores,X_trains,Y_trains,X_tests,Y_tests, trained_models
+
+    return list_of_optimal_fone_scores,X_trains,Y_trains,X_tests,Y_tests, trained_models, list_of_attacks_found_dfs, list_of_attacks_found_training_df
+
+def results_df_to_attack_fones(results_df):
+    attacks = results_df.index
+    attack_to_fone = {}
+
+    for attack in attacks:
+        tp = results_df['tp'][attack]
+        fp = results_df['fp'][attack]
+        precision = tp / (tp + fp)    # TP / (TP + FP)
+        fn = results_df['fn'][attack]
+        recall = tp / (tp + fn)    # TP / (TP + FN)
+        cur_fOne = (2 * precision * recall) / (precision + recall)
+        attack_to_fone[attack] = cur_fOne
+
+    return attack_to_fone
+
+def per_attack_bar_graphs(method_to_results_df, temp_location, file_storage_location):
+    '''Taken more-or-less wholesale from https://matplotlib.org/gallery/statistics/barchart_demo.html'''
+    fig, ax = plt.subplots()
+    attacks = method_to_results_df[method_to_results_df.keys()[0]].index
+    n_groups = len(attacks)
+    index = np.arange(n_groups)
+    bar_width = 0.35
+
+    opacity = 0.4
+    error_config = {'ecolor': '0.3'}
+    colors_to_use = ['b', 'r']
+    x_tick_labels = list(attacks)
+
+    i = 0
+    for cur_method, cur_results in method_to_results_df.iteritems():
+
+        results_df_to_attack_fones(cur_results)
+        rects1 = ax.bar(index + bar_width * i, means_men, bar_width,
+                        alpha=opacity, color=colors_to_use[i],
+                        error_kw=error_config,
+                        label='Men')
+        i += 1
+
+
+    ax.set_xlabel('Attacks')
+    ax.set_ylabel('Optimal F1')
+    ax.set_title('Optimal F1 per Attacks')
+    ax.set_xticks(index + bar_width / 2)
+    ax.set_xticklabels( tuple(x_tick_labels) )
+    ax.legend()
+
+    fig.tight_layout()
+    #plt.show()
+    plt.savefig('temp_outputs/' + temp_location)
+    plt.savefig(file_storage_location)
 
 def drop_useless_columns_aggreg_DF(aggregate_mod_score_dfs):
     # '''
@@ -734,7 +815,7 @@ def generate_ROC_curves(y_test, test_predictions, base_output_name, time_gran, i
     ### where N is the # of categories, and then can just do the confusion matrix function on them...
     ### (and then display the results somehow...)
 
-    return optimal_predictions, optimal_thresh, plot_path
+    return optimal_predictions, optimal_thresh, plot_path, thresholds_ide
 
 
 def determine_categorical_cm_df(y_test, optimal_predictions, exfil_paths, exfil_weights):

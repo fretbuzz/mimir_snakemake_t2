@@ -290,17 +290,6 @@ class set_of_injected_graphs():
         dns_in_metric_dicts = []
 
         self.calculated_values = {}
-        list_of_svc_pair_to_density = []
-        list_of_svc_pair_to_reciprocity = []
-        list_of_svc_pair_to_coef_of_var = []
-        fraction_pod_comm_but_not_VIP_comms_no_abs = []
-        pod_comm_but_not_VIP_comms_no_abs = []
-        dns_outside_inside_ratios = []
-        dns_list_outside = []
-        dns_list_inside = []
-        pod_1si_density_list = []
-        into_dns_from_outside_list = []
-        into_dns_ratio = []
 
         for injected_graph_loc in self.list_of_injected_graphs_loc:
             print "injected_graph_loc",injected_graph_loc
@@ -327,20 +316,6 @@ class set_of_injected_graphs():
                 except:
                     self.calculated_values[value_name].append(0.0)
 
-            '''
-            list_of_svc_pair_to_density.append(current_graph_feature_dict['list_of_svc_pair_to_density'])
-            list_of_svc_pair_to_reciprocity.append(current_graph_feature_dict['list_of_svc_pair_to_reciprocity'])
-            list_of_svc_pair_to_coef_of_var.append(current_graph_feature_dict['list_of_svc_pair_to_coef_of_var'])
-            fraction_pod_comm_but_not_VIP_comms_no_abs.append(current_graph_feature_dict['fraction_pod_comm_but_not_VIP_comms_no_abs'])
-            pod_comm_but_not_VIP_comms_no_abs.append(current_graph_feature_dict['pod_comm_but_not_VIP_comms_no_abs'])
-            dns_outside_inside_ratios.append(current_graph_feature_dict['dns_outside_inside_ratios'])
-            dns_list_outside.append(current_graph_feature_dict['dns_list_outside'])
-            dns_list_inside.append(current_graph_feature_dict['dns_list_inside'])
-            pod_1si_density_list.append(current_graph_feature_dict['pod_1si_density_list'])
-            into_dns_from_outside_list.append(current_graph_feature_dict['into_dns_from_outside_list'])
-            into_dns_ratio.append(current_graph_feature_dict['into_dns_ratio'])
-            '''
-
             total_edgelist_nodes = injected_graph.total_edgelist_nodes
             current_total_node_list = injected_graph.current_total_node_list
 
@@ -352,29 +327,6 @@ class set_of_injected_graphs():
 
 
         ## need to store these new results into the format that I've been using this far...
-        '''
-        for service_pair in list_of_svc_pair_to_density[0].keys():
-            self.calculated_values[service_pair[0] + '_' + service_pair[1] + '_density'] = []
-            self.calculated_values[service_pair[0] + '_' + service_pair[1] + '_reciprocity'] = []
-            self.calculated_values[service_pair[0] + '_' + service_pair[1] + '_coef_of_var'] = []
-        for counter,svc_pair_to_density in enumerate(list_of_svc_pair_to_density):
-            for service_pair in list_of_svc_pair_to_density[0].keys():
-                try:
-                    self.calculated_values[service_pair[0] + '_' + service_pair[1] + '_reciprocity'].append(
-                        list_of_svc_pair_to_reciprocity[counter][service_pair])
-                except:
-                    self.calculated_values[service_pair[0] + '_' + service_pair[1] + '_reciprocity'].append(0.0)
-                try:
-                    self.calculated_values[service_pair[0] + '_' + service_pair[1] + '_density'].append(
-                        svc_pair_to_density[service_pair])
-                except:
-                    self.calculated_values[service_pair[0] + '_' + service_pair[1] + '_density'].append(0.0)
-                try:
-                    self.calculated_values[service_pair[0] + '_' + service_pair[1] + '_coef_of_var'].append(
-                        list_of_svc_pair_to_coef_of_var[counter][service_pair])
-                except:
-                    self.calculated_values[service_pair[0] + '_' + service_pair[1] + '_coef_of_var'].append(0.0)
-        '''
         #self.calculated_values[
         #    'Fraction of Communication Between Pods not through VIPs (no abs)'] = fraction_pod_comm_but_not_VIP_comms_no_abs
         #self.calculated_values['Communication Between Pods not through VIPs (no abs)'] = pod_comm_but_not_VIP_comms_no_abs
@@ -383,23 +335,11 @@ class set_of_injected_graphs():
         self.calculated_values['Communication Between Pods not through VIPs (w abs)'] = \
             [abs(i) for i in self.calculated_values['pod_comm_but_not_VIP_comms_no_abs']]
 
-        #self.calculated_values['DNS outside-to-inside ratio'] = dns_outside_inside_ratios
-        #self.calculated_values['DNS outside'] = dns_list_outside
-        #self.calculated_values['DNS inside'] = dns_list_inside
-        #self.calculated_values['1-step-induced-pod density'] = pod_1si_density_list
-        #self.calculated_values['into_dns_from_outside'] = into_dns_from_outside_list
-        #self.calculated_values['into_dns_ratio'] = into_dns_ratio
-
         self.calculated_values['into_dns_eigenval_angles'] = into_dns_eigenval_angles
         self.calculated_values['ide_angles'] = ide_angles_results
         self.calculated_values['ide_angles (w abs)'] = [abs(i) for i in ide_angles_results]
 
         self.calculated_values_keys = self.calculated_values.keys()
-
-        #with open(self.collected_metrics_location, 'wb') as f:  # Just use 'w' mode in 3.x
-        #    w = csv.DictWriter(f, self.calculated_values.keys())
-        #    w.writeheader()
-        #    w.writerow(self.calculated_values)
 
         with open(self.collected_metrics_location, 'wb') as f:  # Just use 'w' mode in 3.x
             f.write(pickle.dumps(self.calculated_values))
@@ -415,10 +355,6 @@ class set_of_injected_graphs():
         out_q.put(self.list_of_amt_of_out_traffic_pkts)
 
     def load_serialized_metrics(self):
-        #with open(self.collected_metrics_location, mode='r') as f:
-        #    reader = csv.DictReader(f, self.calculated_values_keys)
-        #    self.calculated_values = {rows[0]: rows[1] for rows in reader}
-
         with open(self.collected_metrics_location, mode='rb') as f:
             cur_contents = f.read()
             #print "cur_contents", cur_contents

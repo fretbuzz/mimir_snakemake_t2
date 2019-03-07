@@ -16,6 +16,8 @@ import copy
 import multiprocessing
 import pyximport
 pyximport.install()
+import pickle
+import numpy as np
 
 def generate_rocs(time_gran_to_anom_score_df, alert_file, sub_path):
     for time_gran, df_with_anom_features in time_gran_to_anom_score_df.iteritems():
@@ -72,51 +74,75 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
                               goal_train_test_split, goal_attack_NoAttack_split, training_window_size,
                               size_of_neighbor_training_window, calc_vals, skip_model_part, ignore_physical_attacks_p,
                               calculate_z_scores_p=True,avg_exfil_per_min=None, exfil_per_min_variance=None,
-                              avg_pkt_size=None, pkt_size_variance=None):
-
-    # step(0): need to find out the  meta-data for each experiment so we can coordinate the
-    # synthetic attack injections between experiments
-    exps_exfil_paths, end_of_train_portions, training_exfil_paths, testing_exfil_paths, exps_initiator_info = \
-            determine_and_assign_exfil_paths(calc_vals, skip_model_part, function_list, goal_train_test_split,
-                                             goal_attack_NoAttack_split, ignore_physical_attacks_p, time_each_synthetic_exfil)
-
+                              avg_pkt_size=None, pkt_size_variance=None,
+                              skip_graph_injection=False, get_endresult_from_memory=False):
 
     list_of_optimal_fone_scores_at_exfil_rates = []
-    for rate_counter in range(0,len(avg_pkt_size)):
-        out_q = multiprocessing.Queue()
-        cur_function_list = [copy.deepcopy(i) for i in function_list]
-        args = [rate_counter,
-                base_output_name, cur_function_list, exps_exfil_paths, exps_initiator_info,
-                calculate_z_scores_p, calc_vals, end_of_train_portions,training_exfil_paths,
-                testing_exfil_paths, ignore_physical_attacks_p, skip_model_part, out_q,
-                ROC_curve_p, avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance]
-        p = multiprocessing.Process(
-            target=pipeline_one_exfil_rate,
-            args=args)
-        p.start()
-        Xs = out_q.get()
-        Ys = out_q.get()
-        Xts = out_q.get()
-        Yts = out_q.get()
-        optimal_fones = out_q.get()
-        trained_models = out_q.get()
-        p.join()
+    rate_to_list_of_attacks_found_dfs = {}
+    rate_to_list_of_attacks_found_training_df = {}
+    test_results_df_loc = base_output_name + 'test_results_df_loc.txt'
+    training_results_df_loc = base_output_name + 'test_results_df_loc.txt'
+
+    if get_endresult_from_memory:
+        # todo: I can do this
+        with open(test_results_df_loc, 'r') as input_file:
+            rate_to_list_of_attacks_found_dfs = pickle.load(input_file)
+        with open(training_results_df_loc, 'r') as input_file:
+            rate_to_list_of_attacks_found_training_df = pickle.load(input_file)
+    else:
+        # step(0): need to find out the  meta-data for each experiment so we can coordinate the
+        # synthetic attack injections between experiments
+        exps_exfil_paths, end_of_train_portions, training_exfil_paths, testing_exfil_paths, exps_initiator_info = \
+                determine_and_assign_exfil_paths(calc_vals, skip_model_part, function_list, goal_train_test_split,
+                                                 goal_attack_NoAttack_split, ignore_physical_attacks_p, time_each_synthetic_exfil)
 
 
-        list_of_optimal_fone_scores_at_exfil_rates.append(optimal_fones)
+        for rate_counter in range(0,len(avg_pkt_size)):
+            out_q = multiprocessing.Queue()
+            cur_function_list = [copy.deepcopy(i) for i in function_list]
+            args = [rate_counter,
+                    base_output_name, cur_function_list, exps_exfil_paths, exps_initiator_info,
+                    calculate_z_scores_p, calc_vals, end_of_train_portions,training_exfil_paths,
+                    testing_exfil_paths, ignore_physical_attacks_p, skip_model_part, out_q,
+                    ROC_curve_p, avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
+                    skip_graph_injection]
+            p = multiprocessing.Process(
+                target=pipeline_one_exfil_rate,
+                args=args)
+            p.start()
+            Xs = out_q.get()
+            Ys = out_q.get()
+            Xts = out_q.get()
+            Yts = out_q.get()
+            optimal_fones = out_q.get()
+            trained_models = out_q.get()
+            list_of_attacks_found_dfs  = out_q.get()
+            list_of_attacks_found_training_df  = out_q.get()
+            p.join()
+
+            rate_to_list_of_attacks_found_dfs[avg_exfil_per_min[rate_counter]] = list_of_attacks_found_dfs
+            rate_to_list_of_attacks_found_training_df[avg_exfil_per_min[rate_counter]] = list_of_attacks_found_training_df
+            list_of_optimal_fone_scores_at_exfil_rates.append(optimal_fones)
+
+        with open(test_results_df_loc, 'wb') as f:  # Just use 'w' mode in 3.x
+            f.write(pickle.dumps(rate_to_list_of_attacks_found_dfs))
+        with open(training_results_df_loc, 'wb') as f:  # Just use 'w' mode in 3.x
+            f.write(pickle.dumps(rate_to_list_of_attacks_found_training_df))
 
     # todo: graph f_one versus exfil rates...
     avg_exfil_size_per_path=  None # TODO
     avg_exfil_pkts_per_path = None # TODO
-    graph_fone_versus_exfil_rate(list_of_optimal_fone_scores_at_exfil_rates, avg_exfil_size_per_path,
-                                 avg_exfil_pkts_per_path, Xs.keys())
+    #graph_fone_versus_exfil_rate(list_of_optimal_fone_scores_at_exfil_rates, avg_exfil_size_per_path,
+    #                             avg_exfil_pkts_per_path, Xs.keys())
+
 
 
 def pipeline_one_exfil_rate(rate_counter,
                             base_output_name, function_list, exps_exfil_paths, exps_initiator_info,
                             calculate_z_scores_p, calc_vals, end_of_train_portions, training_exfil_paths,
                             testing_exfil_paths, ignore_physical_attacks_p, skip_model_part, out_q,
-                            ROC_curve_p, avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance):
+                            ROC_curve_p, avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
+                            skip_graph_injection):
     ## step (1) : iterate through individual experiments...
     ##  # 1a. list of inputs [done]
     ##  # 1b. acculate DFs
@@ -137,7 +163,7 @@ def pipeline_one_exfil_rate(rate_counter,
         experiment_object.basegraph_name = experiment_object.orig_basegraph_name + prefix_for_inject_params
         experiment_object.exp_name = experiment_object.orig_exp_name + prefix_for_inject_params
         experiment_object.calc_zscore_p = calculate_z_scores_p or calc_vals
-
+        experiment_object.skip_graph_injection = skip_graph_injection
 
 
         time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, _, start_of_testing = \
@@ -210,7 +236,8 @@ def pipeline_one_exfil_rate(rate_counter,
 
     '''
     clf = LassoCV(cv=3, max_iter=80000)
-    list_of_optimal_fone_scores_at_this_exfil_rates, Xs,Ys,Xts,Yts, trained_models = \
+    list_of_optimal_fone_scores_at_this_exfil_rates, Xs,Ys,Xts,Yts, trained_models, list_of_attacks_found_dfs, \
+    list_of_attacks_found_training_df = \
         statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p,
                                              cur_base_output_name + 'lasso_mod_z_',
                                              names, starts_of_testing, path_occurence_training_df,
@@ -231,7 +258,7 @@ def pipeline_one_exfil_rate(rate_counter,
     #''' # appears to be strictly worse than lasso regression...
     # lass_feat_sel
     clf = LogisticRegressionCV(penalty="l1", cv=10, max_iter=10000, solver='saga')
-    _, _, _, _, _, _ = statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p,
+    _, _, _, _, _, _,_,_ = statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p,
                                                             cur_base_output_name + 'logistic_l1_mod_z_lass_feat_sel_',
                                                             names, starts_of_testing, path_occurence_training_df,
                                                             path_occurence_testing_df, recipes_used, skip_model_part, clf,
@@ -279,6 +306,8 @@ def pipeline_one_exfil_rate(rate_counter,
     out_q.put(Yts)
     out_q.put(list_of_optimal_fone_scores_at_this_exfil_rates)
     out_q.put(trained_models)
+    out_q.put(list_of_attacks_found_dfs)
+    out_q.put(list_of_attacks_found_training_df)
 
 def determine_and_assign_exfil_paths(calc_vals, skip_model_part, function_list, goal_train_test_split, goal_attack_NoAttack_split,
                                      ignore_physical_attacks_p, time_each_synthetic_exfil):
