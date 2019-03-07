@@ -111,7 +111,7 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, autoscale
 
         print("--end minikube delete ---")
 
-        clone_mimir_str = "git clone https://github.com/fretbuzz/mimir_snakemake_t2"
+        clone_mimir_str = "cd /mydata/; git clone https://github.com/fretbuzz/mimir_snakemake_t2"
         sh.sendline(clone_mimir_str)
 
         while line_rec != '':
