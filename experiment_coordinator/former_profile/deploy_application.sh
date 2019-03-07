@@ -15,9 +15,9 @@ if [ "$1" = "wordpress" ]; then
   bash /mydata/mimir_snakemake_t2/experiment_coordinator/install_scripts/install_selenium_dependencies.sh
   if [ -z "autoscale_p" ]
   then
-      python /mydata/mimir_snakemake_t2/experiment_coordinator/deployment_scripts/deploy_wordpress.py
+      python /mydata/mimir_snakemake_t2/experiment_coordinator/former_profile/deploy_wordpress.py
   else
-      python /mydata/mimir_snakemake_t2/experiment_coordinator/deployment_scripts/deploy_wordpress.py --autoscale_p --cpu_cutoff=$cpu_cutoff
+      python /mydata/mimir_snakemake_t2/experiment_coordinator/former_profile/deploy_wordpress.py --autoscale_p --cpu_cutoff=$cpu_cutoff
   fi
 elif [ "$1" = "eShop" ]; then
   echo "see, it was eShop" >> /local/repository/deploy_test.txt
