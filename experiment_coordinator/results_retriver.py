@@ -106,6 +106,11 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, autoscale
             if 'Please enter your response' in line_rec:
                 sh.sendline('n')
             print("recieved line", line_rec)
+
+
+            clone_mimir_str = "if cd /mydata/mimir_snakemake_t2; then cd ..; else git clone https://github.com/fretbuzz/mimir_snakemake_t2;fi"
+            sh.sendline(clone_mimir_str)
+
         print("--end minikube delete ---")
 
         '''
