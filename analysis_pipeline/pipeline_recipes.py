@@ -1809,11 +1809,11 @@ def new_wordpress_recipe():
     ignore_physical_attacks_p = True
 
     time_of_synethic_exfil = 30 # sec
-    goal_train_test_split_training = 0.6
+    goal_train_test_split_training = 0.5
     goal_attack_NoAttack_split_training = 0.6
-    goal_attack_NoAttack_split_testing = 0.6
+    goal_attack_NoAttack_split_testing = 0.2
 
-    time_interval_lengths = [10] #[30, 10, 1] #[30, 10, 1] #[30, 10, 1]#,
+    time_interval_lengths = [30, 10] #[30, 10, 1] #[30, 10, 1] #[30, 10, 1]#,
 
     # this doesn't actually do anything
     size_of_neighbor_training_window = 0
@@ -1829,7 +1829,7 @@ def new_wordpress_recipe():
 
     #####
     # IN MEGABYTES / MINUTE
-    avg_exfil_per_min = [2.0, 1.0, 0.75, 0.25, 0.3, 0.1]
+    avg_exfil_per_min = [10.0, 2.0, 1.0, 0.5, 0.25, 0.1]
     exfil_per_min_variance = [0.3, 0.2, 0.15, 0.1, 0.08, 0.05]
     avg_pkt_size = [500.0, 500.0, 500.00, 500.00, 500.0, 500.0]
     pkt_size_variance = [100, 100, 100, 100, 100, 100]
@@ -1839,7 +1839,7 @@ def new_wordpress_recipe():
     exfil_per_min_variance = [BytesPerMegabyte * i for i in exfil_per_min_variance]
     ######
 
-    calc_vals = True ## TODO: probably want to turn this off (eventually...)
+    calc_vals = False ## TODO: probably want to turn this off (eventually...)
     calculate_z_scores = True
 
     ####
@@ -1849,7 +1849,7 @@ def new_wordpress_recipe():
     #####
 
     skip_graph_injection = False
-    get_endresult_from_memory = False # in this case, you'd skip literally the whole pipeline and just get the
+    get_endresult_from_memory = True # in this case, you'd skip literally the whole pipeline and just get the
                                       # trained model + the results (from that model) out of memory
                                       # I anticpate that this'll mostly be useful for working on generating
                                       # the final results report + the graphs + other stuff kinda...

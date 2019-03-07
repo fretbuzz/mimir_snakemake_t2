@@ -553,7 +553,7 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
             if e.errno != errno.EEXIST:
                 raise
         nx.write_edgelist(cur_1si_G, edgefile_pruned_folder_path + name_of_file, data=['frames', 'weight'])
-        nx.write_gpickle(cur_1si_G, edgefile_pruned_folder_path + 'with_nodeAttribs' + name_of_file, data=['frames', 'weight'])
+        nx.write_gpickle(cur_1si_G, edgefile_pruned_folder_path + 'with_nodeAttribs' + name_of_file)
 
         logging.info("cur_1si_G edges")
         #for edge in cur_1si_G.edges(data=True):

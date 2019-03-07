@@ -58,7 +58,7 @@ def generate_heatmap(coef_impact_df, path, non_local_path):
     labels = ['\n'.join(wrap(l, 30)) for l in labels]
 
     x_labels = coef_impact_df.columns.values
-    x_labels = ['\n'.join(wrap(l, 30)) for l in x_labels]
+    x_labels = ['\n'.join(wrap(str(l), 30)) for l in x_labels]
 
     plt.setp(ax.set_yticklabels(labels))
     plt.setp(ax.set_xticklabels(x_labels))
