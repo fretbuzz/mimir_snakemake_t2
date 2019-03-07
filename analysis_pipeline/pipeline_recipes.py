@@ -1839,11 +1839,11 @@ def new_wordpress_recipe():
     exfil_per_min_variance = [BytesPerMegabyte * i for i in exfil_per_min_variance]
     ######
 
-    calc_vals = False ## TODO: probably want to turn this off (eventually...)
+    calc_vals = True
     calculate_z_scores = True
 
     ####
-    cur_experiment_name = "v2_"  # can modify if you want, probably with:  new_wordpress_recipe.__name__
+    cur_experiment_name = "v2_testingNewPipeline"  # can modify if you want, probably with:  new_wordpress_recipe.__name__
     base_output_location = '/Volumes/exM2/experimental_data/wordpress_summary/new_'# + 'lasso_roc'
     base_output_location += cur_experiment_name
     #####

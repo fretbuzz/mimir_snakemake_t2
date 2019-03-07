@@ -1,4 +1,4 @@
-from experiment_coordinator.former_profile.kubernetes_setup_functions import *
+from experiment_coordinator.deployment_scripts.kubernetes_setup_functions import *
 import argparse
 
 def main(autoscale_p=False, cpu_percent_cuttoff=80):

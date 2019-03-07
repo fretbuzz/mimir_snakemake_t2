@@ -519,14 +519,17 @@ def determine_attacks_to_times(time_gran_to_attack_labels, synthetic_exfil_paths
 
     # first, let's assign for the training period...
     counter = 0
-    time_gran_to_attack_labels, time_gran_to_attack_ranges = assign_attacks_to_first_available_spots(time_gran_to_attack_labels, largest_time_gran, time_periods_startup,
-                                            time_periods_attack, counter, time_gran_to_attack_ranges, synthetic_exfil_paths, synthetic_exfil_paths_train)
+    time_gran_to_attack_labels, time_gran_to_attack_ranges = assign_attacks_to_first_available_spots(time_gran_to_attack_labels, largest_time_gran,
+                                            time_periods_attack, counter, time_gran_to_attack_ranges, synthetic_exfil_paths, synthetic_exfil_paths_train,
+                                             int(end_of_train/largest_time_gran))
     # second, let's assign for the testing period...
     print end_of_train, largest_time_gran
     counter = int(math.ceil(end_of_train/largest_time_gran)) #int(math.ceil(len(time_gran_to_attack_labels[largest_time_gran]) * end_of_train - time_periods_startup))
     print "second_counter!!", counter, "attacks_to_assign",len(synthetic_exfil_paths_test), time_gran_to_attack_labels[time_gran][counter:],time_gran_to_attack_labels[time_gran][counter:].count(0)
-    time_gran_to_attack_labels, time_gran_to_attack_ranges = assign_attacks_to_first_available_spots(time_gran_to_attack_labels, largest_time_gran, time_periods_startup,
-                                            time_periods_attack, counter, time_gran_to_attack_ranges, synthetic_exfil_paths, synthetic_exfil_paths_test)
+
+    time_gran_to_attack_labels, time_gran_to_attack_ranges = assign_attacks_to_first_available_spots(time_gran_to_attack_labels, largest_time_gran,
+                                            time_periods_attack, counter, time_gran_to_attack_ranges, synthetic_exfil_paths, synthetic_exfil_paths_test,
+                                            len(time_gran_to_attack_ranges[largest_time_gran]))
 
     # okay, so now we have the times selected for the largest time granularity... we have to make sure
     # that the other granularities agree...
@@ -550,46 +553,39 @@ def determine_attacks_to_times(time_gran_to_attack_labels, synthetic_exfil_paths
     return time_gran_to_attack_labels, time_gran_to_attack_ranges, time_gran_to_physical_attack_ranges
 
 
-def assign_attacks_to_first_available_spots(time_gran_to_attack_labels, largest_time_gran, time_periods_startup, time_periods_attack,
-                                            counter, time_gran_to_attack_ranges, synthetic_exfil_paths, current_exfil_paths):
-    total_number_free_spots = time_gran_to_attack_labels[largest_time_gran][int(time_periods_startup):].count(0)
+def assign_attacks_to_first_available_spots(time_gran_to_attack_labels, largest_time_gran, time_periods_attack,
+                                            counter, time_gran_to_attack_ranges, synthetic_exfil_paths,
+                                            current_exfil_paths, end_time_interval_largestTimeGran):
+
+    print 'zip'
+    total_number_free_spots = time_gran_to_attack_labels[largest_time_gran][counter:end_time_interval_largestTimeGran].count(0)
     number_spots_needed = len(current_exfil_paths) * time_periods_attack +  \
-                          time_gran_to_attack_labels[largest_time_gran][int(time_periods_startup):].count(1)
+                          time_gran_to_attack_labels[largest_time_gran][counter:end_time_interval_largestTimeGran].count(1)
     extra_spots = total_number_free_spots - number_spots_needed - 1
 
     j = 0
     for synthetic_exfil_path in current_exfil_paths: # synthetic_exfil_paths:
-
         print synthetic_exfil_path, synthetic_exfil_path in current_exfil_paths
+
         if synthetic_exfil_path in synthetic_exfil_paths: #current_exfil_paths:
-            # randomly choose ranges using highest granularity (then after this we'll choose for the smaller granularities...)
             attack_spot_found = False
-            number_free_spots = time_gran_to_attack_labels[largest_time_gran][int(time_periods_startup):].count(0)
+            number_free_spots = time_gran_to_attack_labels[largest_time_gran][counter:].count(0)
             if number_free_spots < time_periods_attack:
                 exit(1244) # should break now b/c infinite loop (note: we're not handling the case where it is fragmented...)
 
-            # if extra_spots > 0:
             random.seed(0)
-            current_possible_steps = int(extra_spots / len(current_exfil_paths))#[j:]))
+            current_possible_steps = int(extra_spots/len(current_exfil_paths[j:])) #int(extra_spots)
             time_periods_between_attacks = random.randint(0, current_possible_steps)  # don't wan to bias it too much towards the end
-            # else:
-            #    time_periods_between_attacks = 0
-            #extra_spots -= time_periods_between_attacks
+            extra_spots -= time_periods_between_attacks
             counter += time_periods_between_attacks
 
+            print "counter",counter,"extra_spots",extra_spots, "time_periods_between_attacks", time_periods_between_attacks
+            inner_loop_counter = 0
             while not attack_spot_found:
-                ## TODO: WE CANNOT HAVE THEM ALL CLUSTERED HERE. A MUCH BETTER WAY IS TO CALCULATE THE AMT OF FREE SPACE
-                ## and then randomaly pick the espacing, continuously decreasing the amt of free space, appropriately...
-                ## Okay, the logic is simple, but the modifications might be complicated...
-                ## OKAY, I THINK IT IS IMPLEMENTED BELOW
+                inner_loop_counter += 1
+                potential_starting_point = int( counter)
 
-                ## NOTE: not sure if the -1 is necessary...
-                # NOTE: this random thing causes all types of problems. Let's just ignore it and do it right after startup??, maybe?
-                #potential_starting_point = random.randint(time_periods_startup,
-                #                                len(time_gran_to_attack_labels[largest_time_gran]) - time_periods_attack - 1)
-                potential_starting_point = int(time_periods_startup + counter)
-
-                print "potential_starting_point", potential_starting_point
+                #print "potential_starting_point", potential_starting_point
                 attack_spot_found = exfil_time_valid(potential_starting_point, time_periods_attack,
                                                      time_gran_to_attack_labels[largest_time_gran])
                 if attack_spot_found:
@@ -597,19 +593,17 @@ def assign_attacks_to_first_available_spots(time_gran_to_attack_labels, largest_
                     time_gran_to_attack_ranges[largest_time_gran].append((int(potential_starting_point),
                                                                           int(potential_starting_point + time_periods_attack)))
                     # and also modify the attack labels
-                    print "RANGE", potential_starting_point, int(potential_starting_point + time_periods_attack)
+                    #print "RANGE", potential_starting_point, int(potential_starting_point + time_periods_attack)
                     for i in range(potential_starting_point, int(potential_starting_point + time_periods_attack)):
-                        #print i, time_gran_to_attack_labels[largest_time_gran]
-                        print time_gran_to_attack_labels[largest_time_gran],i,len(time_gran_to_attack_labels[largest_time_gran]), j
+                        #print time_gran_to_attack_labels[largest_time_gran],i,len(time_gran_to_attack_labels[largest_time_gran]), j
                         time_gran_to_attack_labels[largest_time_gran][i] = 1
-                #else:
-                #    extra_spots -= 1
+                else:
+                    extra_spots -= 1
 
-                #print "this starting point failed", potential_starting_point
-                counter += 1 #+ time_periods_between_attacks
+                counter += 1
         else:
             ### by making these two points the same, this value will be 'passed over' by the other functions...
-            potential_starting_point = int(time_periods_startup + counter)
+            potential_starting_point = int( counter)
             time_gran_to_attack_ranges[largest_time_gran].append((potential_starting_point,potential_starting_point))
         j += 1
     return time_gran_to_attack_labels, time_gran_to_attack_ranges
