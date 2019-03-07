@@ -357,8 +357,10 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
             f.write('ready to go')
         # now wait for 3 more seconds so that the background load generator can get started before this and tcpdump start
         time.sleep(3)
+        print "DET part going!"
         ##################
 
+        print start_time, exfil_start_time, time.time()
         time.sleep(start_time + exfil_start_time - time.time())
         #file_to_exfil = config_params["exfiltration_info"]["folder_to_exfil"]
         if exfil_p:
@@ -516,6 +518,7 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
     # this code is to help sync up the various components
     while not os.path.exists(sentinal_file_loc):
         time.sleep(0.3)
+    print "generation_of_background_traffic part going!"
     #############################################
 
     #24 = hours in a day, we're working with 1 hour granularity
@@ -658,6 +661,7 @@ def start_tcpdump(interface, network_namespace, tcpdump_time, filename, orchestr
         time.sleep(0.3)
     # letting the background load generator get a head start...
     time.sleep(3)
+    print "start_tcpdump part going!"
     ##############################
     child.sendline(start_tcpdum)
     child.expect('bytes')
