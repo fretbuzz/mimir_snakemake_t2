@@ -11,8 +11,8 @@ import time
 cloudlab_private_key = '/Users/jseverin/Dropbox/cloudlab.pem'
 local_dir = '/Volumes/exM2/experimental_data/wordpress_info' #'/Users/jseverin/Documents'  # TODO
 sentinal_file = '/mydata/all_done.txt'
-exp_name = 'wordpress_thirteen_t5'  # TODO
-mimir_1 = 'c240g5-110215.wisc.cloudlab.us' #'c240g5-110207.wisc.cloudlab.us' #'c240g5-110217.wisc.cloudlab.us' #'c240g5-110119.wisc.cloudlab.us' #'c240g5-110119.wisc.cloudlab.us'
+exp_name = 'wordpress_thirteen_t5_autoscaling'  # TODO
+mimir_1 = 'c240g5-110231.wisc.cloudlab.us' #'c240g5-110207.wisc.cloudlab.us' #'c240g5-110217.wisc.cloudlab.us' #'c240g5-110119.wisc.cloudlab.us' #'c240g5-110119.wisc.cloudlab.us'
 #mimir_2 = 'c240g5-110105.wisc.cloudlab.us'
 cloudlab_server_ip = mimir_1 #note: remove the username@ from the beggining
 exp_length = 10800 #7200 # in seconds
@@ -56,7 +56,7 @@ def get_ip_and_port(app_name, sh):
     print "minikube_ip", minikube_ip, "front_facing_port", front_facing_port
     return minikube_ip, front_facing_port
 
-def run_experiment(app_name, config_file_name, exp_name, skip_setup_p):
+def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, autoscale_p):
     #start_minikube_p = False
     s = None
     while s == None:
@@ -127,7 +127,17 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p):
         #print "minikube_ip", minikube_ip, "front_facing_port",front_facing_port
 
         #sh.sendline('bash /local/repository/run_experiment.sh ' + app_name)
-        sh.sendline('bash /mydata/mimir_snakemake_t2/experiment_coordinator/former_profile/run_experiment.sh ' + app_Name)
+        if app_name == 'wordpress':
+            cpu_threshold = 80
+        else:
+            cpu_threshold = None # b/c doesn't matter
+
+        if autoscale_p:
+            sh.sendline('bash /mydata/mimir_snakemake_t2/experiment_coordinator/former_profile/run_experiment.sh ' +
+                        app_name + ' ' + str(autoscale_p) + ' ' + str(cpu_threshold))
+        else:
+            sh.sendline('bash /mydata/mimir_snakemake_t2/experiment_coordinator/former_profile/run_experiment.sh ' + \
+                        app_name)
 
         line_rec = 'start'
         last_line = ''
@@ -259,13 +269,12 @@ if __name__ == "__main__":
                         default=False,
                         help='only do the running the experiment-- no minikube setup, application deployment, or \
                         application loading')
+    parser.add_argument('--autoscale_p', dest='autoscale_p', action='store_true',
+                       default=False,
+                       help='enable autoscaling')
 
     args = parser.parse_args()
-    # TODO / NOTE: THIS ARGS DON'T ACTUALLY DO ANYTHING YET B/C they require changing the workflow of the
-    # experimental coordinator-- in particular run_experiment.sh couples setting up minikube w/ deploying the application
-    # which might actually make sense... sense why would I be setting up the application if minikbue already exists??
-    # this is kinda
 
     # NOTE: remember: dont put the .json in the filename!! ^^^
-    s = run_experiment(app_name, wp_config_file_name, exp_name, args.skip_setup_p)
+    s = run_experiment(app_name, wp_config_file_name, exp_name, args.skip_setup_p, args.autoscale_p)
     retrieve_results(s)
