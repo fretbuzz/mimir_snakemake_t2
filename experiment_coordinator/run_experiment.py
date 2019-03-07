@@ -305,7 +305,6 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
             print out
 
         # step (5) start load generator (okay, this I can do!)
-        start_time = time.time()
         max_client_count = int( config_params["experiment"]["number_background_locusts"])
         print "experiment length: ", experiment_length, "max_client_count", max_client_count, "traffic types", config_params["experiment"]["traffic_type"]
         print "background_locust_spawn_rate", config_params["experiment"]["background_locust_spawn_rate"], "ip", ip, "port", port
@@ -345,9 +344,6 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
             exfil_start_time = 20 # just put these as random vals b/c nothing will happen anyway
             exfil_end_time = 40
 
-        print "need to wait this long before starting the det client...", start_time + exfil_start_time - time.time()
-        print "current time", time.time(), "start time", start_time, "exfil_start_time", exfil_start_time, "exfil_end_time", exfil_end_time
-
         #################
         ### sentinal_file_loc ;; should wait here and then create the file...
         time.sleep(40) # going to wait for a longish-time so I know that the other threads/processes
@@ -359,8 +355,11 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
         time.sleep(3)
         print "DET part going!"
         ##################
+        start_time = time.time()
+        print "need to wait this long before starting the det client...", start_time + exfil_start_time - time.time()
+        print "current time", time.time(), "start time", start_time, "exfil_start_time", exfil_start_time, "exfil_end_time", exfil_end_time
 
-        print start_time, exfil_start_time, time.time()
+        print start_time, exfil_start_time, time.time(), start_time + exfil_start_time - time.time()
         time.sleep(start_time + exfil_start_time - time.time())
         #file_to_exfil = config_params["exfiltration_info"]["folder_to_exfil"]
         if exfil_p:
