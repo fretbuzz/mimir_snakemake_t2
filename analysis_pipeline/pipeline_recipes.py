@@ -1809,7 +1809,8 @@ def new_wordpress_recipe():
     ignore_physical_attacks_p = True
 
     time_of_synethic_exfil = 30 # sec
-    goal_train_test_split = 0.6
+    goal_train_test_split_training = 0.6
+    goal_attack_NoAttack_split_training = 0.6
     goal_attack_NoAttack_split = 0.6
 
     time_interval_lengths = [30, 10, 1] #[30, 10, 1] #[30, 10, 1]#,
@@ -1884,13 +1885,14 @@ def new_wordpress_recipe():
     ## attack w/ two different experiments in which it occurss...
 
     multi_experiment_pipeline(experiment_classes, base_output_location, True, time_of_synethic_exfil,
-                              goal_train_test_split, goal_attack_NoAttack_split, training_window_size,
+                              goal_train_test_split_training, goal_attack_NoAttack_split, training_window_size,
                               size_of_neighbor_training_window, calc_vals, skip_model_part, ignore_physical_attacks_p,
                               calculate_z_scores_p=calculate_z_scores,
                               avg_exfil_per_min=avg_exfil_per_min, exfil_per_min_variance=exfil_per_min_variance,
                               avg_pkt_size=avg_pkt_size, pkt_size_variance=pkt_size_variance,
                               skip_graph_injection=skip_graph_injection,
-                              get_endresult_from_memory=get_endresult_from_memory)
+                              get_endresult_from_memory=get_endresult_from_memory,
+                              goal_attack_NoAttack_split_training=goal_attack_NoAttack_split_training)
 
 
 # this function feeds a set of wordpress experiments into the multi_experiment_pipeline() function found in the

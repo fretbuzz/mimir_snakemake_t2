@@ -30,7 +30,8 @@ def generate_rocs(time_gran_to_anom_score_df, alert_file, sub_path):
 # temporally before the physical attack starts) and the goal percentage of split that we are aiming for.
 # I think we're going to aim for the desired split in each experiment, but we WON'T try  to compensate
 # not meeting one experiment's goal by modifying how we handle another experiment.
-def determine_injection_times(exps_info, goal_train_test_split, goal_attack_NoAttack_split, ignore_physical_attacks_p):
+def determine_injection_times(exps_info, goal_train_test_split,goal_attack_NoAttack_split_training, ignore_physical_attacks_p,
+                              goal_attack_NoAttack_split_testing):
     #time_splits = []
     exp_injection_info = []
     end_of_train_portions = []
@@ -47,9 +48,9 @@ def determine_injection_times(exps_info, goal_train_test_split, goal_attack_NoAt
         testing_time = exp_info['total_experiment_length'] - time_split
         physical_attack_time = exp_info['exfil_end_time'] - exp_info['exfil_start_time']
         if ignore_physical_attacks_p:
-            testing_time_for_attack_injection = (testing_time - physical_attack_time) * goal_attack_NoAttack_split
+            testing_time_for_attack_injection = (testing_time - physical_attack_time) * goal_attack_NoAttack_split_testing
         else:
-            testing_time_for_attack_injection = (testing_time) * goal_attack_NoAttack_split -physical_attack_time
+            testing_time_for_attack_injection = (testing_time) * goal_attack_NoAttack_split_testing -physical_attack_time
 
         #testing_time_without_physical_attack = testing_time - physical_attack_time
         print "physical_attack_time",physical_attack_time, "testing_time", testing_time, testing_time_for_attack_injection
@@ -58,7 +59,7 @@ def determine_injection_times(exps_info, goal_train_test_split, goal_attack_NoAt
         # now let's find the time to inject during training... this'll be a percentage of the time between
         # system startup and the training/testing split point...
         training_time_after_startup = time_split - exp_info["startup_time"]
-        training_time_for_attack_injection = training_time_after_startup * goal_attack_NoAttack_split
+        training_time_for_attack_injection = training_time_after_startup * goal_attack_NoAttack_split_training
 
         exp_injection_info.append({'testing': testing_time_for_attack_injection,
                                    "training": training_time_for_attack_injection})
@@ -71,11 +72,12 @@ def determine_injection_times(exps_info, goal_train_test_split, goal_attack_NoAt
 # feature dataframes, and then performs LASSO regression to determine a concise graphical model that can detect
 # the injected synthetic attacks
 def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time_each_synthetic_exfil,
-                              goal_train_test_split, goal_attack_NoAttack_split, training_window_size,
+                              goal_train_test_split, goal_attack_NoAttack_split_training, training_window_size,
                               size_of_neighbor_training_window, calc_vals, skip_model_part, ignore_physical_attacks_p,
-                              calculate_z_scores_p=True,avg_exfil_per_min=None, exfil_per_min_variance=None,
+                              calculate_z_scores_p=True, avg_exfil_per_min=None, exfil_per_min_variance=None,
                               avg_pkt_size=None, pkt_size_variance=None,
-                              skip_graph_injection=False, get_endresult_from_memory=False):
+                              skip_graph_injection=False, get_endresult_from_memory=False,
+                              goal_attack_NoAttack_split_testing=0.0):
 
     list_of_optimal_fone_scores_at_exfil_rates = []
     rate_to_list_of_attacks_found_dfs = {}
@@ -94,7 +96,8 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
         # synthetic attack injections between experiments
         exps_exfil_paths, end_of_train_portions, training_exfil_paths, testing_exfil_paths, exps_initiator_info = \
                 determine_and_assign_exfil_paths(calc_vals, skip_model_part, function_list, goal_train_test_split,
-                                                 goal_attack_NoAttack_split, ignore_physical_attacks_p, time_each_synthetic_exfil)
+                                                 goal_attack_NoAttack_split_training, ignore_physical_attacks_p, 
+                                                 time_each_synthetic_exfil,goal_attack_NoAttack_split_testing)
 
 
         for rate_counter in range(0,len(avg_pkt_size)):
@@ -309,8 +312,8 @@ def pipeline_one_exfil_rate(rate_counter,
     out_q.put(list_of_attacks_found_dfs)
     out_q.put(list_of_attacks_found_training_df)
 
-def determine_and_assign_exfil_paths(calc_vals, skip_model_part, function_list, goal_train_test_split, goal_attack_NoAttack_split,
-                                     ignore_physical_attacks_p, time_each_synthetic_exfil):
+def determine_and_assign_exfil_paths(calc_vals, skip_model_part, function_list, goal_train_test_split, goal_attack_NoAttack_split_training,
+                                     ignore_physical_attacks_p, time_each_synthetic_exfil, goal_attack_NoAttack_split_testing):
     if calc_vals and not skip_model_part:
         print function_list
         exp_infos = []
@@ -327,9 +330,9 @@ def determine_and_assign_exfil_paths(calc_vals, skip_model_part, function_list, 
         exps_exfil_paths = []
         exps_initiator_info = []
         total_training_injections_possible, total_testing_injections_possible, _, _ = \
-            determine_injection_amnts(exp_infos, goal_train_test_split, goal_attack_NoAttack_split,
+            determine_injection_amnts(exp_infos, goal_train_test_split, goal_attack_NoAttack_split_training,
                                       ignore_physical_attacks_p,
-                                      time_each_synthetic_exfil, float("inf"))
+                                      time_each_synthetic_exfil, float("inf"), goal_attack_NoAttack_split_testing)
         max_number_of_paths = min(total_training_injections_possible, total_testing_injections_possible)
         orig_max_number_of_paths=  max_number_of_paths
         for experiment_object in function_list:
@@ -346,8 +349,9 @@ def determine_and_assign_exfil_paths(calc_vals, skip_model_part, function_list, 
             print counter,exp_path,len(exp_path)
         #exit(344)
         training_exfil_paths, testing_exfil_paths, end_of_train_portions = assign_exfil_paths_to_experiments(exp_infos, goal_train_test_split,
-                                                                                      goal_attack_NoAttack_split,time_each_synthetic_exfil,
-                                                                                      exps_exfil_paths, ignore_physical_attacks_p)
+                                                                                      goal_attack_NoAttack_split_training,time_each_synthetic_exfil,
+                                                                                      exps_exfil_paths, ignore_physical_attacks_p,
+                                                                                      goal_attack_NoAttack_split_testing)
         print "end_of_train_portions", end_of_train_portions
         print total_training_injections_possible, total_testing_injections_possible
         possible_exps_exfil_paths = []
@@ -414,17 +418,17 @@ def aggregate_dfs(list_time_gran_to_mod_zscore_df):
     return time_gran_to_aggregate_mod_score_dfs#, time_gran_to_aggregate_mod_score_dfs_training, time_gran_to_aggregate_mod_score_dfs_testing
 
 # this function determines which experiments should have which synthetic exfil paths injected into them
-def assign_exfil_paths_to_experiments(exp_infos, goal_train_test_split, goal_attack_NoAttack_split,time_each_synthetic_exfil,
-                                      exps_exfil_paths, ignore_physical_attacks_p):
+def assign_exfil_paths_to_experiments(exp_infos, goal_train_test_split, goal_attack_NoAttack_split_training,time_each_synthetic_exfil,
+                                      exps_exfil_paths, ignore_physical_attacks_p, goal_attack_NoAttack_split_testing):
 
     flat_exps_exfil_paths = [tuple(exfil_path) for exp_exfil_paths in exps_exfil_paths for exfil_path in exp_exfil_paths]
     print "flat_exps_exfil_paths",flat_exps_exfil_paths
     possible_exfil_paths = list(set(flat_exps_exfil_paths))
 
     total_training_injections_possible,total_testing_injections_possible,possible_exfil_path_injections,end_of_train_portions = \
-        determine_injection_amnts(exp_infos, goal_train_test_split, goal_attack_NoAttack_split,
+        determine_injection_amnts(exp_infos, goal_train_test_split, goal_attack_NoAttack_split_training,
                                   ignore_physical_attacks_p,
-                                  time_each_synthetic_exfil, possible_exfil_paths)
+                                  time_each_synthetic_exfil, possible_exfil_paths, goal_attack_NoAttack_split_testing)
 
     exfil_path_to_occurences = {}
     for possible_exfil_path in possible_exfil_paths:
@@ -513,12 +517,13 @@ def generate_time_gran_sub_dataframes(time_gran_to_df_dataframe, column_name, co
         time_gran_to_sub_dataframe[time_gran] = sub_dataframe
     return time_gran_to_sub_dataframe
 
-def determine_injection_amnts(exp_infos, goal_train_test_split, goal_attack_NoAttack_split, ignore_physical_attacks_p,
-                              time_each_synthetic_exfil, possible_exfil_paths):
+def determine_injection_amnts(exp_infos, goal_train_test_split, goal_attack_NoAttack_split_training, ignore_physical_attacks_p,
+                              time_each_synthetic_exfil, possible_exfil_paths, goal_attack_NoAttack_split_testing):
     ## now perform the actual assignment portion...
     # first, find the amt of time available for attack injections in each experiments training/testing phase...
     inject_times,end_of_train_portions = determine_injection_times(exp_infos, goal_train_test_split,
-                                                                   goal_attack_NoAttack_split, ignore_physical_attacks_p)
+                                                                   goal_attack_NoAttack_split_training, ignore_physical_attacks_p,
+                                                                   goal_attack_NoAttack_split_testing)
     # second, find how many exfil_paths can be injected into each experiments training/testing
     possible_exfil_path_injections = []
     total_training_injections_possible = 0
