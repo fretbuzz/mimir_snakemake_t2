@@ -1,4 +1,4 @@
-from experiment_coordinator.former_profile.kubernetes_setup_functions import *
+from kubernetes_setup_functions import *
 import argparse
 
 def main(autoscale_p=False, cpu_percent_cuttoff=80):
@@ -66,10 +66,10 @@ if __name__== "__main__":
     parser = argparse.ArgumentParser(description='deploys the wordpress application')
 
     parser.add_argument('--cpu_cutoff',dest="cpu_cutoff", default='80')
-    parser.add_argument('--autoscale_p', dest='prepare_app_p', action='store_true',
+    parser.add_argument('--autoscale_p', dest='autoscale_p', action='store_true',
                         default=False,
                         help='should we autoscale the wordpress service')
     args = parser.parse_args()
 
     main(autoscale_p=args.autoscale_p, cpu_percent_cuttoff=args.cpu_cutoff)
-#--autoscale_p=$autoscale_p --cpu_cutoff=$cpu_cutoff
+	#--autoscale_p=$autoscale_p --cpu_cutoff=$cpu_cutoff
