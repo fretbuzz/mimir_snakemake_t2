@@ -40,7 +40,8 @@ class injected_graph():
                  svc_to_pod, pod_to_svc, total_edgelist_nodes, where_to_save_this_obj, counter, name_of_dns_pod_node,
                  current_total_node_list,
                  svcs, is_swarm, ms_s, container_to_ip, infra_service, injected_class_graph_loc, name_of_injected_file,
-                 nodeAttrib_injected_graph_loc, nodeAttrib_injected_graph_loc_class):
+                 nodeAttrib_injected_graph_loc, nodeAttrib_injected_graph_loc_class, pruned_graph_nodeAttrib_loc,
+                 past_end_of_training):
         self.name = name
         self.injected_graph_loc = injected_graph_loc
         self.name_of_injected_file = name_of_injected_file
@@ -61,6 +62,7 @@ class injected_graph():
         self.graph_feature_dict_keys = None
         self.nodeAttrib_injected_graph_loc = nodeAttrib_injected_graph_loc
         self.nodeAttrib_injected_graph_loc_class = nodeAttrib_injected_graph_loc_class
+        self.past_end_of_training = past_end_of_training
 
         self.svcs = svcs
         self.is_swarm = is_swarm
@@ -70,14 +72,26 @@ class injected_graph():
         self.infra_service = infra_service
 
         self.cur_class_G = None
+        self.pruned_graph_nodeAttrib_loc = pruned_graph_nodeAttrib_loc
+        self.cur_1si_G_non_injected = None
 
     def save(self):
         with open(self.where_to_save_this_obj, 'wb') as output:  # Overwrites any existing file.
             pickle.dump(self, output, pickle.HIGHEST_PROTOCOL)
 
+    '''
+    def calc_existing_single_step_metrics(self):
+        self._load_nonInjected_graph()
+
+        adjacency_matri = nx.to_pandas_adjacency(self.cur_1si_G_non_injected, nodelist=self.current_total_node_list)
+        self.graph_feature_dict['adjacency_matrix'] = adjacency_matri
+        self.graph_feature_dict_keys = self.graph_feature_dict.keys()
+    '''
+
     def calc_single_step_metrics(self):
         self.graph_feature_dict = {}
         self._load_graph()
+        self._load_nonInjected_graph()
         #self._create_class_level_graph()
 
         density = nx.density(self.cur_1si_G)
@@ -190,9 +204,13 @@ class injected_graph():
                                     str(svc_one) + '_' + str(svc_two)] = degree_coef_of_var
         '''
 
-        adjacency_matri = nx.to_pandas_adjacency(self.cur_1si_G, nodelist=self.current_total_node_list)
+        # yah, not so sure about this... need to store training/testing status in the graph object
+        # (b/c if it is testing, then can use injected. else should use the fine ones)...
+        if self.past_end_of_training:
+            adjacency_matri = nx.to_pandas_adjacency(self.cur_1si_G, nodelist=self.current_total_node_list)
+        else:
+            adjacency_matri = nx.to_pandas_adjacency(self.cur_1si_G_non_injected, nodelist=self.current_total_node_list)
         self.graph_feature_dict['adjacency_matrix'] = adjacency_matri
-
 
         dns_outside_inside_ratios, dns_list_outside, dns_list_inside = \
             single_step_outside_inside_ratio_dns_metric(weight_into_dns_dict, weight_outof_dns_dict)
@@ -208,6 +226,7 @@ class injected_graph():
 
         self.graph_feature_dict_keys = self.graph_feature_dict.keys()
 
+    def save_metrics_dict(self):
         with open(self.metrics_file, 'wb') as f:  # Just use 'w' mode in 3.x
             f.write(pickle.dumps(self.graph_feature_dict))
 
@@ -225,6 +244,9 @@ class injected_graph():
         #lines = f.readlines()
         #nx.parse_edgelist(lines, delimiter=' ', create_using=self.cur_class_G, data=[('frames',int), ('weight',int)])
         self.cur_class_G = nx.read_gpickle( self.nodeAttrib_injected_graph_loc_class )
+
+    def _load_nonInjected_graph(self):
+        self.cur_1si_G_non_injected = nx.read_gpickle( self.pruned_graph_nodeAttrib_loc )
 
 
     def load_metrics(self):
@@ -246,7 +268,8 @@ class set_of_injected_graphs():
     def __init__(self, time_granularity, window_size, raw_edgefile_names,
                 svcs, is_swarm, ms_s, container_to_ip, infra_service, synthetic_exfil_paths, initiator_info_for_paths,
                 attacks_to_times, collected_metrics_location, current_set_of_graphs_loc,
-                 avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance):#, out_q):
+                 avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
+                 end_of_training):#, out_q):
 
         self.list_of_injected_graphs_loc = []
         self.time_granularity = time_granularity
@@ -263,6 +286,7 @@ class set_of_injected_graphs():
         self.time_interval= time_granularity
         self.collected_metrics_location = collected_metrics_location
         self.current_set_of_graphs_loc = current_set_of_graphs_loc
+        self.end_of_training = end_of_training
         #self.out_q = out_q
 
         self.calculated_values = {}
@@ -370,6 +394,8 @@ class set_of_injected_graphs():
                 injected_graph_obj = pickle.load(input_file)
 
             injected_graph_obj.calc_single_step_metrics()
+            #injected_graph_obj.calc_existing_single_step_metrics()
+            injected_graph_obj.save_metrics_dict()
 
             injected_graph_obj.save()
 
@@ -408,7 +434,8 @@ class set_of_injected_graphs():
                     synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
                     time_interval, total_edgelist_nodes, svc_to_pod, avg_dns_weight, avg_dns_pkts,
                     node_attack_mapping, out_q, current_total_node_list, name_of_dns_pod_node, last_attack_injected,
-                    carryover, avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance ]
+                    carryover, avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
+                    self.end_of_training]
             p = multiprocessing.Process(
                 target=process_and_inject_single_graph,
                 args=args)
@@ -445,7 +472,7 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
                                     synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
                     time_interval, total_edgelist_nodes, svc_to_pod, avg_dns_weight, avg_dns_pkts,
                     node_attack_mapping, out_q, current_total_node_list,name_of_dns_pod_node,attack_injected, carryover,
-                    avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance ):
+                    avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance, end_of_training ):
 
     concrete_cont_node_path_list = []
     pre_specified_data_attribs_list = []
@@ -455,6 +482,7 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
 
     for counter_add, file_path in enumerate(file_paths):
         counter = counter_starting + counter_add
+        past_end_of_training = (counter * time_interval) > end_of_training
         gc.collect()
         G = nx.DiGraph()
         print "path to file is ", file_path
@@ -525,6 +553,7 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
             if e.errno != errno.EEXIST:
                 raise
         nx.write_edgelist(cur_1si_G, edgefile_pruned_folder_path + name_of_file, data=['frames', 'weight'])
+        nx.write_gpickle(cur_1si_G, edgefile_pruned_folder_path + 'with_nodeAttribs' + name_of_file, data=['frames', 'weight'])
 
         logging.info("cur_1si_G edges")
         #for edge in cur_1si_G.edges(data=True):
@@ -602,7 +631,9 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
                                             edgefile_injected_folder_path + 'class_' + name_of_injected_file,
                                             name_of_injected_file,
                                             edgefile_injected_folder_path + 'with_nodeAttribs' + name_of_injected_file,
-                                            edgefile_injected_folder_path + 'class_' + 'with_nodeAttribs' + name_of_injected_file)
+                                            edgefile_injected_folder_path + 'class_' + 'with_nodeAttribs' + name_of_injected_file,
+                                            edgefile_pruned_folder_path + 'with_nodeAttribs' + name_of_file,
+                                            past_end_of_training)
 
         injected_graph_obj.save()
         # at 53: 4.04 GB

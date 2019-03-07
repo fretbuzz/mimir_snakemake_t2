@@ -1811,9 +1811,9 @@ def new_wordpress_recipe():
     time_of_synethic_exfil = 30 # sec
     goal_train_test_split_training = 0.6
     goal_attack_NoAttack_split_training = 0.6
-    goal_attack_NoAttack_split = 0.6
+    goal_attack_NoAttack_split_testing = 0.6
 
-    time_interval_lengths = [30, 10, 1] #[30, 10, 1] #[30, 10, 1]#,
+    time_interval_lengths = [10] #[30, 10, 1] #[30, 10, 1] #[30, 10, 1]#,
 
     # this doesn't actually do anything
     size_of_neighbor_training_window = 0
@@ -1843,12 +1843,12 @@ def new_wordpress_recipe():
     calculate_z_scores = True
 
     ####
-    cur_experiment_name = ""  # can modify if you want, probably with:  new_wordpress_recipe.__name__
+    cur_experiment_name = "v2_"  # can modify if you want, probably with:  new_wordpress_recipe.__name__
     base_output_location = '/Volumes/exM2/experimental_data/wordpress_summary/new_'# + 'lasso_roc'
     base_output_location += cur_experiment_name
     #####
 
-    skip_graph_injection = True
+    skip_graph_injection = False
     get_endresult_from_memory = False # in this case, you'd skip literally the whole pipeline and just get the
                                       # trained model + the results (from that model) out of memory
                                       # I anticpate that this'll mostly be useful for working on generating
@@ -1885,14 +1885,14 @@ def new_wordpress_recipe():
     ## attack w/ two different experiments in which it occurss...
 
     multi_experiment_pipeline(experiment_classes, base_output_location, True, time_of_synethic_exfil,
-                              goal_train_test_split_training, goal_attack_NoAttack_split, training_window_size,
+                              goal_train_test_split_training, goal_attack_NoAttack_split_training, training_window_size,
                               size_of_neighbor_training_window, calc_vals, skip_model_part, ignore_physical_attacks_p,
                               calculate_z_scores_p=calculate_z_scores,
                               avg_exfil_per_min=avg_exfil_per_min, exfil_per_min_variance=exfil_per_min_variance,
                               avg_pkt_size=avg_pkt_size, pkt_size_variance=pkt_size_variance,
                               skip_graph_injection=skip_graph_injection,
                               get_endresult_from_memory=get_endresult_from_memory,
-                              goal_attack_NoAttack_split_training=goal_attack_NoAttack_split_training)
+                              goal_attack_NoAttack_split_testing=goal_attack_NoAttack_split_testing)
 
 
 # this function feeds a set of wordpress experiments into the multi_experiment_pipeline() function found in the
