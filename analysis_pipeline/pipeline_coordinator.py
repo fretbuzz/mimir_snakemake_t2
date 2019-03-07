@@ -86,7 +86,6 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
     training_results_df_loc = base_output_name + 'test_results_df_loc.txt'
 
     if get_endresult_from_memory:
-        # todo: I can do this
         with open(test_results_df_loc, 'r') as input_file:
             rate_to_list_of_attacks_found_dfs = pickle.load(input_file)
         with open(training_results_df_loc, 'r') as input_file:

@@ -13,7 +13,7 @@ import analysis_pipeline.generate_graphs
 import analysis_pipeline.prepare_graph
 from analysis_pipeline import gen_attack_templates, process_pcap, process_graph_metrics, simplified_graph_metrics
 from analysis_pipeline.pcap_to_edgelists import create_mappings
-
+import random
 
 ## TODO: this function is an atrocity and should be converted into a snakemake spec so we can use that instead...###
 ## todo (aim to get it done today...) : change  run_data_analysis_pipeline signature plus the feeder...
@@ -642,7 +642,13 @@ def determine_attacks_to_times(time_gran_to_attack_labels, synthetic_exfil_paths
 
 def assign_attacks_to_first_available_spots(time_gran_to_attack_labels, largest_time_gran, time_periods_startup, time_periods_attack,
                                             counter, time_gran_to_attack_ranges, synthetic_exfil_paths, current_exfil_paths):
-    ## TODO: problem: this can only inject the attacks in once... <--- does this make any sense...
+    ## TODO: problem: this can only inject the attacks in once... <--- IS THIS STILL TRUE??? No, I don't think that it is, but
+    ## should really verify first, before deleting the comment
+    total_number_free_spots = time_gran_to_attack_labels[largest_time_gran][int(time_periods_startup):].count(0)
+    number_spots_needed = len(current_exfil_paths) * time_periods_attack
+    extra_spots = total_number_free_spots - number_spots_needed
+
+
     for synthetic_exfil_path in current_exfil_paths: # synthetic_exfil_paths:
 
         print synthetic_exfil_path, synthetic_exfil_path in current_exfil_paths
@@ -653,11 +659,17 @@ def assign_attacks_to_first_available_spots(time_gran_to_attack_labels, largest_
             if number_free_spots < time_periods_attack:
                 exit(1244) # should break now b/c infinite loop (note: we're not handling the case where it is fragmented...)
             while not attack_spot_found:
+                ## TODO: WE CANNOT HAVE THEM ALL CLUSTERED HERE. A MUCH BETTER WAY IS TO CALCULATE THE AMT OF FREE SPACE
+                ## and then randomaly pick the espacing, continuously decreasing the amt of free space, appropriately...
+                ## Okay, the logic is simple, but the modifications might be complicated...
+                ## OKAY, I THINK IT IS IMPLEMENTED BELOW
+
                 ## NOTE: not sure if the -1 is necessary...
                 # NOTE: this random thing causes all types of problems. Let's just ignore it and do it right after startup??, maybe?
                 #potential_starting_point = random.randint(time_periods_startup,
                 #                                len(time_gran_to_attack_labels[largest_time_gran]) - time_periods_attack - 1)
-                potential_starting_point = int(time_periods_startup + counter)
+                time_periods_between_attacks = random.randint(0, int(extra_spots / 2.0)) # don't wan to bias it too much towards the end
+                potential_starting_point = int(time_periods_startup + counter + time_periods_between_attacks)
 
                 print "potential_starting_point", potential_starting_point
                 attack_spot_found = exfil_time_valid(potential_starting_point, time_periods_attack,
@@ -673,7 +685,7 @@ def assign_attacks_to_first_available_spots(time_gran_to_attack_labels, largest_
                         print time_gran_to_attack_labels[largest_time_gran],i,len(time_gran_to_attack_labels[largest_time_gran])
                         time_gran_to_attack_labels[largest_time_gran][i] = 1
                 #print "this starting point failed", potential_starting_point
-                counter += 1
+                counter += 1 + time_periods_between_attacks
         else:
             ### by making these two points the same, this value will be 'passed over' by the other functions...
             potential_starting_point = int(time_periods_startup + counter)
