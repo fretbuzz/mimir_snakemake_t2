@@ -144,6 +144,7 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, autoscale
         else:
             cpu_threshold = None # b/c doesn't matter
 
+        sh.sendline('cd /mydata/mimir_snakemake_t2/experiment_coordinator/former_profile/')
         if autoscale_p:
             sh.sendline('bash /mydata/mimir_snakemake_t2/experiment_coordinator/former_profile/run_experiment.sh ' +
                         app_name + ' ' + str(autoscale_p) + ' ' + str(cpu_threshold))
