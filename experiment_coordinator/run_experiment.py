@@ -59,7 +59,10 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
 
     # this file will be used to synchronize the three thread/processes: tcpdump, det, and the background load generator
     sentinal_file_loc = './ready_to_start_exp.txt'
-    os.remove(sentinal_file_loc)
+    try:
+        os.remove(sentinal_file_loc)
+    except OSError:
+        pass
 
     min_exfil_bytes_in_packet = int(config_params["exfiltration_info"]["min_exfil_data_per_packet_bytes"])
     max_exfil_bytes_in_packet = int(config_params["exfiltration_info"]["max_exfil_data_per_packet_bytes"])
