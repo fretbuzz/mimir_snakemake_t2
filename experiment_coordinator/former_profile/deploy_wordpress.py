@@ -39,6 +39,14 @@ def main(autoscale_p=False, cpu_percent_cuttoff=80):
         wait_until_pods_done("default")
 
     if autoscale_p:
+        heapstr_str = "minikube addons enable heapster"
+        out = subprocess.check_output(heapstr_str)
+        print "heapstr_str_response ", out
+        metrics_server_str= "minikube addons enable metrics-server"
+        out = subprocess.check_output(metrics_server_str)
+        print "metrics_server_str_response ", out
+        wait_until_pods_done("kube-system")
+
         autoscale_cmd_str = "kubectl autoscale deployment wwwppp-wordpreses --min=" + str(15) + " --max= " + str(
             goal_wp_containers) + " --cpu-percent=" + str(cpu_percent_cuttoff)
         out = subprocess.check_output(autoscale_cmd_str)

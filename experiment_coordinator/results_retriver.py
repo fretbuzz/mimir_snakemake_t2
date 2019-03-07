@@ -111,14 +111,14 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, autoscale
 
         print("--end minikube delete ---")
 
-        clone_mimir_str = "cd /mydata/; git clone https://github.com/fretbuzz/mimir_snakemake_t2"
-        sh.sendline(clone_mimir_str)
-
         while line_rec != '':
             line_rec = sh.recvline(timeout=5)
             if 'Please enter your response' in line_rec:
                 sh.sendline('n')
             print("recieved line", line_rec)
+
+        clone_mimir_str = "cd /mydata/; git clone https://github.com/fretbuzz/mimir_snakemake_t2"
+        sh.sendline(clone_mimir_str)
 
         '''
         sh.sendline('minikube ip')
@@ -145,6 +145,7 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, autoscale
             cpu_threshold = None # b/c doesn't matter
 
         sh.sendline('cd /mydata/mimir_snakemake_t2/experiment_coordinator/former_profile/')
+        print "autoscale_p",autoscale_p
         if autoscale_p:
             sh.sendline('bash /mydata/mimir_snakemake_t2/experiment_coordinator/former_profile/run_experiment.sh ' +
                         app_name + ' ' + str(autoscale_p) + ' ' + str(cpu_threshold))

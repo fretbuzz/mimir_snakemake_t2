@@ -356,15 +356,30 @@ class data_anylsis_pipline(object):
         return self.calculate_z_scores_and_get_stat_vals()
 
     def calculate_z_scores_and_get_stat_vals(self):
-        time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_RobustScaler_df = \
-            calc_zscores(self.alert_file, self.training_window_size, self.minimum_training_window, self.sub_path,
-                         self.time_gran_to_attack_labels,
-                         self.time_gran_to_feature_dataframe, self.calc_zscore_p, self.time_gran_to_synthetic_exfil_paths_series,
-                         self.time_gran_to_list_of_concrete_exfil_paths, self.time_gran_to_list_of_exfil_amts, self.end_of_training,
-                         self.time_gran_to_new_neighbors_outside, self.time_gran_to_new_neighbors_dns,
-                         self.time_gran_to_new_neighbors_all,
-                         self.time_gran_to_list_of_amt_of_out_traffic_bytes,
-                         self.time_gran_to_list_of_amt_of_out_traffic_pkts)
+        mod_z_score_df_basefile_name = self.alert_file + 'mod_z_score_' + self.sub_path
+
+        if self.calc_zscore_p:
+            # note: it's not actually mod_z_score anymore, but I'm keeping the name for compatibility...
+            time_gran_to_mod_zscore_df = process_graph_metrics.normalize_data_v2(self.time_gran_to_feature_dataframe,
+                                                                                 self.time_gran_to_attack_labels,
+                                                                                 self.end_of_training)
+
+            process_graph_metrics.save_feature_datafames(time_gran_to_mod_zscore_df, mod_z_score_df_basefile_name,
+                                                         self.time_gran_to_attack_labels,
+                                                         self.time_gran_to_synthetic_exfil_paths_series,
+                                                         self.time_gran_to_list_of_concrete_exfil_paths,
+                                                         self.time_gran_to_list_of_exfil_amts, self.end_of_training,
+                                                         self.time_gran_to_new_neighbors_outside,
+                                                         self.time_gran_to_new_neighbors_dns,
+                                                         self.time_gran_to_new_neighbors_all,
+                                                         self.time_gran_to_list_of_amt_of_out_traffic_bytes,
+                                                         self.time_gran_to_list_of_amt_of_out_traffic_pkts)
+
+        else:
+            time_gran_to_mod_zscore_df = {}
+            for interval in self.time_gran_to_feature_dataframe.keys():
+                time_gran_to_mod_zscore_df[interval] = pd.read_csv(
+                    mod_z_score_df_basefile_name + str(interval) + '.csv', na_values='?')
 
         print "analysis_pipeline about to return!"
 
@@ -372,7 +387,7 @@ class data_anylsis_pipline(object):
         for time_gran, mod_z_score_df in time_gran_to_mod_zscore_df.iteritems():
             time_gran_to_mod_zscore_df[time_gran] = mod_z_score_df.drop(mod_z_score_df.index[:self.minimum_training_window])
 
-        return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, self.time_gran_to_feature_dataframe_copy, \
+        return time_gran_to_mod_zscore_df, None, self.time_gran_to_feature_dataframe_copy, \
                self.time_gran_to_synthetic_exfil_paths_series, self.end_of_training
 
 
@@ -478,114 +493,6 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
         time_gran_to_list_of_amt_of_out_traffic_bytes, time_gran_to_list_of_amt_of_out_traffic_pkts
 
 
-def calc_zscores(alert_file, training_window_size, minimum_training_window,
-                 sub_path, time_gran_to_attack_labels, time_gran_to_feature_dataframe, calc_zscore_p, time_gran_to_synthetic_exfil_paths_series,
-                 time_gran_to_list_of_concrete_exfil_paths, time_gran_to_list_of_exfil_amts, end_of_training,
-                 time_gran_to_new_neighbors_outside, time_gran_to_new_neighbors_dns, time_gran_to_new_neighbors_all,
-                 time_gran_to_list_of_amt_of_out_traffic_bytes, time_gran_to_list_of_amt_of_out_traffic_pkts):
-
-    #time_gran_to_mod_zscore_df = process_graph_metrics.calculate_mod_zscores_dfs(total_calculated_vals, minimum_training_window,
-    #                                                                             training_window_size, time_interval_lengths)
-
-    mod_z_score_df_basefile_name = alert_file + 'mod_z_score_' + sub_path
-    #z_score_df_basefile_name = alert_file + 'norm_z_score_' + sub_path
-    robustScaler_df_basefile_name = alert_file + 'robustScaler_score_' + sub_path
-
-    if calc_zscore_p:
-        #time_gran_to_mod_zscore_df = process_graph_metrics.calc_time_gran_to_mod_zscore_dfs(time_gran_to_feature_dataframe,
-        #                                                                                    training_window_size,
-        #                                                                                    minimum_training_window)
-
-        #### TODO: normalization should be different for training and testing... (okay, I think i did it...)
-        # note: it's not actually mod_z_score anymore, but I'm keeping the name for compatibility...
-        time_gran_to_mod_zscore_df = process_graph_metrics.normalize_data_v2(time_gran_to_feature_dataframe, time_gran_to_attack_labels,
-                                                       end_of_training)
-
-
-        #print "end_of_training", end_of_training
-
-        #exit(344)
-        process_graph_metrics.save_feature_datafames(time_gran_to_mod_zscore_df, mod_z_score_df_basefile_name,
-                                                     time_gran_to_attack_labels, time_gran_to_synthetic_exfil_paths_series,
-                                                     time_gran_to_list_of_concrete_exfil_paths,
-                                                     time_gran_to_list_of_exfil_amts, end_of_training,
-                                                     time_gran_to_new_neighbors_outside, time_gran_to_new_neighbors_dns,
-                                                     time_gran_to_new_neighbors_all,
-                                                     time_gran_to_list_of_amt_of_out_traffic_bytes,
-                                                     time_gran_to_list_of_amt_of_out_traffic_pkts)
-
-        '''
-        time_gran_to_zscore_dataframe = process_graph_metrics.calc_time_gran_to_zscore_dfs(time_gran_to_feature_dataframe,
-                                                                                           training_window_size,
-                                                                                           minimum_training_window)
-
-        process_graph_metrics.save_feature_datafames(time_gran_to_zscore_dataframe, z_score_df_basefile_name,
-                                                     time_gran_to_attack_labels, time_gran_to_synthetic_exfil_paths_series,
-                                                     time_gran_to_list_of_concrete_exfil_paths,
-                                                     time_gran_to_list_of_exfil_amts, end_of_training,
-                                                     time_gran_to_new_neighbors_outside, time_gran_to_new_neighbors_dns,
-                                                     time_gran_to_new_neighbors_all)
-        '''
-        '''
-        time_gran_to_RobustScaler_df = process_graph_metrics.calc_time_gran_to_robustScaker_dfs(time_gran_to_feature_dataframe, training_window_size)
-
-        process_graph_metrics.save_feature_datafames(time_gran_to_RobustScaler_df, robustScaler_df_basefile_name,
-                                                     time_gran_to_attack_labels, time_gran_to_synthetic_exfil_paths_series,
-                                                     time_gran_to_list_of_concrete_exfil_paths,
-                                                     time_gran_to_list_of_exfil_amts, end_of_training,
-                                                     time_gran_to_new_neighbors_outside, time_gran_to_new_neighbors_dns,
-                                                     time_gran_to_new_neighbors_all)
-        '''
-    else:
-        #time_gran_to_zscore_dataframe = {}
-        time_gran_to_mod_zscore_df = {}
-        #time_gran_to_RobustScaler_df = {}
-        for interval in time_gran_to_feature_dataframe.keys():
-            #time_gran_to_zscore_dataframe[interval] = pd.read_csv(z_score_df_basefile_name + str(interval) + '.csv', na_values='?')
-            time_gran_to_mod_zscore_df[interval] = pd.read_csv(mod_z_score_df_basefile_name + str(interval) + '.csv', na_values='?')
-            #time_gran_to_RobustScaler_df[interval] = pd.read_csv(robustScaler_df_basefile_name + str(interval) + '.csv', na_values='?')
-
-            try:
-                pass
-                '''
-                del time_gran_to_zscore_dataframe[interval]['exfil_path']
-                del time_gran_to_mod_zscore_df[interval]['exfil_path']
-
-                del time_gran_to_zscore_dataframe[interval]['concrete_exfil_path']
-                del time_gran_to_mod_zscore_df[interval]['concrete_exfil_path']
-
-                del time_gran_to_zscore_dataframe[interval]['exfil_weight']
-                del time_gran_to_mod_zscore_df[interval]['exfil_weight']
-
-
-                del time_gran_to_zscore_dataframe[interval]['exfil_pkts']
-                del time_gran_to_mod_zscore_df[interval]['exfil_pkts']
-                '''
-                #del time_gran_to_zscore_dataframe[interval]['is_test']
-                #del time_gran_to_mod_zscore_df[interval]['is_test']
-
-                #def time_gran_to_RobustScaler_df[interval]['exfil_path']
-                #del time_gran_to_RobustScaler_df[interval]['concrete_exfil_path']
-                #del time_gran_to_RobustScaler_df[interval]['exfil_weight']
-                #del time_gran_to_RobustScaler_df[interval]['exfil_pkts']
-                #del time_gran_to_RobustScaler_df[interval]['is_test']
-
-                ''' # we'll drop these in the other part of the program...
-                del time_gran_to_mod_zscore_df[interval]['new_neighbors_dns']
-                del time_gran_to_mod_zscore_df[interval]['new_neighbors_all']
-                del time_gran_to_mod_zscore_df[interval]['new_neighbors_outside']
-
-                del time_gran_to_zscore_dataframe[interval]['new_neighbors_dns']
-                del time_gran_to_zscore_dataframe[interval]['new_neighbors_all']
-                del time_gran_to_zscore_dataframe[interval]['new_neighbors_outside']
-                '''
-            except:
-                pass
-
-    return time_gran_to_mod_zscore_df, None, None# time_gran_to_RobustScaler_df # todo<-- put back
-    #return time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, None# time_gran_to_RobustScaler_df # todo<-- put back
-    #return time_gran_to_RobustScaler_df, time_gran_to_zscore_dataframe, time_gran_to_RobustScaler_df
-
 ##### the goal needs to be some mapping of times to attacks to time (ranges) + updated attack labels
 ##### so, in effect, there are TWO outputs... and it makes a lot more sense to pick the range then modify
 ##### the labels
@@ -645,8 +552,6 @@ def determine_attacks_to_times(time_gran_to_attack_labels, synthetic_exfil_paths
 
 def assign_attacks_to_first_available_spots(time_gran_to_attack_labels, largest_time_gran, time_periods_startup, time_periods_attack,
                                             counter, time_gran_to_attack_ranges, synthetic_exfil_paths, current_exfil_paths):
-    ## TODO: problem: this can only inject the attacks in once... <--- IS THIS STILL TRUE??? No, I don't think that it is, but
-    ## should really verify first, before deleting the comment
     total_number_free_spots = time_gran_to_attack_labels[largest_time_gran][int(time_periods_startup):].count(0)
     number_spots_needed = len(current_exfil_paths) * time_periods_attack +  \
                           time_gran_to_attack_labels[largest_time_gran][int(time_periods_startup):].count(1)
