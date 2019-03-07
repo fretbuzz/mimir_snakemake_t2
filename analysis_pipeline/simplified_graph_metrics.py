@@ -206,6 +206,7 @@ class injected_graph():
 
         # yah, not so sure about this... need to store training/testing status in the graph object
         # (b/c if it is testing, then can use injected. else should use the fine ones)...
+        self.graph_feature_dict['past_end_of_training'] = self.past_end_of_training
         if self.past_end_of_training:
             adjacency_matri = nx.to_pandas_adjacency(self.cur_1si_G, nodelist=self.current_total_node_list)
         else:

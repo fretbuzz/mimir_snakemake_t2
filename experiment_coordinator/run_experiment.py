@@ -57,6 +57,10 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
     except:
         pass
 
+    # this file will be used to synchronize the three thread/processes: tcpdump, det, and the background load generator
+    sentinal_file_loc = './ready_to_start_exp.txt'
+    os.remove(sentinal_file_loc)
+
     min_exfil_bytes_in_packet = int(config_params["exfiltration_info"]["min_exfil_data_per_packet_bytes"])
     max_exfil_bytes_in_packet = int(config_params["exfiltration_info"]["max_exfil_data_per_packet_bytes"])
     avg_exfil_rate_KB_per_sec = float(config_params["exfiltration_info"]["avg_exfiltration_rate_KB_per_sec"])
@@ -304,7 +308,8 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
         print "background_locust_spawn_rate", config_params["experiment"]["background_locust_spawn_rate"], "ip", ip, "port", port
         thread.start_new_thread(generate_background_traffic, ((int(experiment_length)+2.4), max_client_count,
                     config_params["experiment"]["traffic_type"], config_params["experiment"]["background_locust_spawn_rate"],
-                                                              config_params["application_name"], ip, port, experiment_name))
+                                                              config_params["application_name"], ip, port, experiment_name,
+                                                              sentinal_file_loc))
 
         # step (4) setup testing infrastructure (i.e. tcpdump)
         for network_id, network_namespace in network_ids_to_namespaces.iteritems():
@@ -322,7 +327,8 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
             elif orchestrator == 'kubernetes':
                 interfaces = ['any'] #['docker0', 'eth0', 'eth1']
                 for interface in interfaces:
-                    thread.start_new_thread(start_tcpdump, (interface, network_namespace, str(int(experiment_length)), filename + interface + '.pcap', orchestrator))
+                    thread.start_new_thread(start_tcpdump, (interface, network_namespace, str(int(experiment_length)),
+                                                            filename + interface + '.pcap', orchestrator, sentinal_file_loc))
             else:
                 pass
 
@@ -338,6 +344,18 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
 
         print "need to wait this long before starting the det client...", start_time + exfil_start_time - time.time()
         print "current time", time.time(), "start time", start_time, "exfil_start_time", exfil_start_time, "exfil_end_time", exfil_end_time
+
+        #################
+        ### sentinal_file_loc ;; should wait here and then create the file...
+        time.sleep(40) # going to wait for a longish-time so I know that the other threads/processes
+                       # have reached the waiting point before me.
+        ## now create the file that the other thread/processes are waiting for
+        with open(sentinal_file_loc, 'w') as f:
+            f.write('ready to go')
+        # now wait for 3 more seconds so that the background load generator can get started before this and tcpdump start
+        time.sleep(3)
+        ##################
+
         time.sleep(start_time + exfil_start_time - time.time())
         #file_to_exfil = config_params["exfiltration_info"]["folder_to_exfil"]
         if exfil_p:
@@ -457,7 +475,8 @@ def prepare_app(app_name, config_params, ip, port):
 # Args:
 #   time: total time for test. Will be subdivided into 24 smaller chunks to represent 1 hour each
 #   max_clients: Arg provided by user in parameters.py. Represents maximum number of simultaneous clients
-def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate, app_name, ip, port, experiment_name):
+def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate, app_name, ip, port, experiment_name,
+                                sentinal_file_loc):
     #minikube = get_IP()#subprocess.check_output(["minikube", "ip"]).rstrip()
     devnull = open(os.devnull, 'wb')  # disposing of stdout manualy
 
@@ -489,6 +508,12 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
         print locust_info_file, "   ", "does not exist"
 
     subprocess.call(['touch', locust_info_file])
+
+    #############################################
+    # this code is to help sync up the various components
+    while not os.path.exists(sentinal_file_loc):
+        time.sleep(0.3)
+    #############################################
 
     #24 = hours in a day, we're working with 1 hour granularity
     timestep = run_time / 24.0
@@ -561,7 +586,7 @@ def get_IP(orchestrator):
     return "-1"
 
 
-def start_tcpdump(interface, network_namespace, tcpdump_time, filename, orchestrator):
+def start_tcpdump(interface, network_namespace, tcpdump_time, filename, orchestrator, sentinal_file_loc):
     #if orchestrator == "kubernetes":
     #    pass
     #elif orchestrator == "docker_swarm":
@@ -624,6 +649,13 @@ def start_tcpdump(interface, network_namespace, tcpdump_time, filename, orchestr
     child.sendline(switch_namespace)
     child.expect('#')
     print child.before, child.after
+    ##############################
+    # the code below is necessary to ensure that all the threads sync up properly
+    while not os.path.exists(sentinal_file_loc):
+        time.sleep(0.3)
+    # letting the background load generator get a head start...
+    time.sleep(3)
+    ##############################
     child.sendline(start_tcpdum)
     child.expect('bytes')
     print child.before, child.after

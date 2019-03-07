@@ -140,15 +140,6 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
         with open(rates_to_experiment_info_loc, 'wb') as f:  # Just use 'w' mode in 3.x
             f.write(pickle.dumps(rates_to_experiment_info))
 
-    # todo: graph f_one versus exfil rates...
-    avg_exfil_size_per_path=  None # TODO
-    avg_exfil_pkts_per_path = None # TODO
-    print "rate_to_timegran_to_methods_to_attacks_found_dfs",rate_to_timegran_to_methods_to_attacks_found_dfs.keys()
-    print "rate_to_timegran_list_of_methods_to_attacks_found_training_df",rate_to_timegran_list_of_methods_to_attacks_found_training_df.keys()
-    # base_output_name
-    #graph_fone_versus_exfil_rate(list_of_optimal_fone_scores_at_exfil_rates, avg_exfil_size_per_path,
-    #                             avg_exfil_pkts_per_path, Xs.keys())
-
     generate_aggregate_report.generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
                               rate_to_timegran_list_of_methods_to_attacks_found_training_df,
                               base_output_name, rates_to_experiment_info)

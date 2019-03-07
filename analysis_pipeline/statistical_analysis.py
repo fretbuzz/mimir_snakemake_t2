@@ -504,12 +504,13 @@ def extract_comparison_methods(X_train, X_test):
         # if True:
         print X_train.columns
         ide_train = copy.deepcopy(X_train['ide_angles_'])
-        ide_train.fillna(ide_train.mean())
+        #ide_train.fillna(ide_train.mean())
         print "ide_train", ide_train
         # exit(1222)
         copy_of_X_test = X_test.copy(deep=True)
         ide_test = copy.deepcopy(copy_of_X_test['ide_angles_'])
-        ide_test = ide_test.fillna(ide_train.mean())
+
+        #ide_test = ide_test.fillna(ide_train.mean())
         print "ide_test", ide_test
         X_train = X_train.drop(columns='ide_angles_')
         X_test = X_test.drop(columns='ide_angles_')
