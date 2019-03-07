@@ -30,7 +30,7 @@ def main(autoscale_p=False, cpu_percent_cuttoff=80):
     except:
         print "wordpress deployment must already exist"
 
-    num_wp_containers = 1
+    num_wp_containers = 1 
     goal_wp_containers = 23
     while num_wp_containers < goal_wp_containers:
         out = subprocess.check_output(
@@ -39,28 +39,18 @@ def main(autoscale_p=False, cpu_percent_cuttoff=80):
         wait_until_pods_done("default")
 
     if autoscale_p:
-        heapstr_str = "minikube addons enable heapster"
+        heapstr_str = ["minikube", "addons", "enable", "heapster"]
         out = subprocess.check_output(heapstr_str)
         print "heapstr_str_response ", out
-        metrics_server_str= "minikube addons enable metrics-server"
+        metrics_server_str= ["minikube", "addons", "enable", "metrics-server"]
         out = subprocess.check_output(metrics_server_str)
         print "metrics_server_str_response ", out
         wait_until_pods_done("kube-system")
 
-        autoscale_cmd_str = "kubectl autoscale deployment wwwppp-wordpreses --min=" + str(15) + " --max= " + str(
-            goal_wp_containers) + " --cpu-percent=" + str(cpu_percent_cuttoff)
+        autoscale_cmd_str = ["kubectl", "autoscale", "deployment", "wwwppp-wordpress", "--min=" + str(15), "--max=" + str(
+            goal_wp_containers),"--cpu-percent=" + str(cpu_percent_cuttoff)]
         out = subprocess.check_output(autoscale_cmd_str)
         print "autoscale_out: ", out
-
-'''
-out = subprocess.check_output(["helm", "install", "--name", "wordpress", "stable/wordpress"])
-            print out
-        wait_until_pods_done("default") # need new pods working before can start experiment
-        if hpa:
-            start_autoscalers(get_deployments('default'), '70')
-        # helm install --name wordpress stable/wordpress
-'''
-
 
 if __name__== "__main__":
     parser = argparse.ArgumentParser(description='deploys the wordpress application')
