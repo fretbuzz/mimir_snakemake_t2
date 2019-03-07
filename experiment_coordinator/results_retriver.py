@@ -11,7 +11,7 @@ import time
 cloudlab_private_key = '/Users/jseverin/Dropbox/cloudlab.pem'
 local_dir = '/Volumes/exM2/experimental_data/wordpress_info' #'/Users/jseverin/Documents'  # TODO
 sentinal_file = '/mydata/all_done.txt'
-exp_name = 'wordpress_thirteen_t5_autoscaling'  # TODO
+exp_name = 'wordpress_fourteen_1_autoscaling'  # TODO
 mimir_1 = 'c240g5-110231.wisc.cloudlab.us' #'c240g5-110207.wisc.cloudlab.us' #'c240g5-110217.wisc.cloudlab.us' #'c240g5-110119.wisc.cloudlab.us' #'c240g5-110119.wisc.cloudlab.us'
 #mimir_2 = 'c240g5-110105.wisc.cloudlab.us'
 cloudlab_server_ip = mimir_1 #note: remove the username@ from the beggining
@@ -274,7 +274,7 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, autoscale
 if __name__ == "__main__":
     app_name = possible_apps[4]
     sock_config_file_name = '/mydata/mimir_snakemake_t2/experiment_coordinator/experimental_configs/sockshop_thirteen'
-    wp_config_file_name = '/mydata/mimir_snakemake_t2/experiment_coordinator/experimental_configs/wordpress_thirteen'
+    wp_config_file_name = '/mydata/mimir_snakemake_t2/experiment_coordinator/experimental_configs/wordpress_fourteen'
 
 
     parser = argparse.ArgumentParser(description='Handles e2e setup, running, and extract of microservice traffic experiments')
