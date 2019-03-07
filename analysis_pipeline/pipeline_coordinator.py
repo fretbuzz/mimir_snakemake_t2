@@ -85,7 +85,7 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
     rate_to_timegran_list_of_methods_to_attacks_found_training_df = {}
     rates_to_experiment_info = {}
     test_results_df_loc = base_output_name + 'test_results_df_loc.txt'
-    training_results_df_loc = base_output_name + 'test_results_df_loc.txt'
+    training_results_df_loc = base_output_name + 'train_results_df_loc.txt'
     rates_to_experiment_info_loc = base_output_name + 'rates_to_experiment_info_loc.txt'
 
     if get_endresult_from_memory:

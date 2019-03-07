@@ -1849,7 +1849,7 @@ def new_wordpress_recipe():
     #####
 
     skip_graph_injection = False
-    get_endresult_from_memory = True # in this case, you'd skip literally the whole pipeline and just get the
+    get_endresult_from_memory = False # in this case, you'd skip literally the whole pipeline and just get the
                                       # trained model + the results (from that model) out of memory
                                       # I anticpate that this'll mostly be useful for working on generating
                                       # the final results report + the graphs + other stuff kinda...

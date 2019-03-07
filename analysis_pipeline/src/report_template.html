@@ -3,6 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <title>{{ title }}</title>
+
+    <style>
+        @media print {
+          .new-page {
+                page-break-before: always;
+          }
+        }
+    </style>
 </head>
 <body>
 <h1>{{ title }}</h1>
