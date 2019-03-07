@@ -126,8 +126,8 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p):
         #minikube_ip, front_facing_port = None, None
         #print "minikube_ip", minikube_ip, "front_facing_port",front_facing_port
 
-        sh.sendline('bash /local/repository/run_experiment.sh ' + app_name)
-
+        #sh.sendline('bash /local/repository/run_experiment.sh ' + app_name)
+        sh.sendline('bash /mydata/mimir_snakemake_t2/experiment_coordinator/former_profile/run_experiment.sh ' + app_Name)
 
         line_rec = 'start'
         last_line = ''
