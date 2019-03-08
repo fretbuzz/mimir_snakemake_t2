@@ -1,0 +1,20 @@
+{
+    "app_name" : "wordpress",
+    "exp_name" : "wordpress_fourteen_3_autoscaling",
+    "config_file_name" : "/mydata/mimir_snakemake_t2/experiment_coordinator/experimental_configs/wordpress_fourteen",
+    "local_dir" : "/Volumes/exM2/experimental_data/wordpress_info",
+    "cloudlab_server_ip" : "c240g5-110205.wisc.cloudlab.us",
+    "exp_length" : "3600",
+
+
+    "experiment" : {
+      "number_background_locusts": "200",
+      "background_locust_spawn_rate": "30",
+      "experiment_length_sec": "3600",
+      "traffic_type" : "normal",
+      "number_of_trials": "1"
+    },
+    "scale":{},
+    "autoscale_p":{}
+
+}

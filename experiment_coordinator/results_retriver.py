@@ -7,21 +7,14 @@ import argparse
 import pwnlib.tubes.ssh
 from pwn import *
 import time
+import json
 
 ################################
 
 cloudlab_private_key = '/Users/jseverin/Dropbox/cloudlab.pem'
-local_dir = '/Volumes/exM2/experimental_data/wordpress_info' #'/Users/jseverin/Documents'  # TODO
-sentinal_file = '/mydata/all_done.txt'
-exp_name = 'wordpress_fourteen_2_autoscaling'  # TODO
-#exp_name = 'sockshop_autoscaling_tests'  # TODO
-mimir_1 = 'c240g5-110205.wisc.cloudlab.us' #'c240g5-110231.wisc.cloudlab.us' #'c240g5-110207.wisc.cloudlab.us' #'c240g5-110217.wisc.cloudlab.us' #'c240g5-110119.wisc.cloudlab.us' #'c240g5-110119.wisc.cloudlab.us'
-mimir_2 = 'c240g5-110117.wisc.cloudlab.us'
-cloudlab_server_ip = mimir_1 #note: remove the username@ from the beggining
-exp_length = 3600 #10800 #7200 # in seconds
-remote_dir = '/mydata/mimir_snakemake_t2/experiment_coordinator/experimental_data/' + exp_name  # TODO
 possible_apps = ['drupal', 'sockshop', 'gitlab', 'eShop', 'wordpress']
 experiment_sentinal_file = '/mydata/mimir_snakemake_t2/experiment_coordinator/experiment_done.txt'
+sentinal_file = '/mydata/all_done.txt'
 
 ###############################
 
@@ -278,11 +271,22 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, autoscale
     return s
 
 if __name__ == "__main__":
+
+    #################################
     app_name = possible_apps[4]
     #app_name = possible_apps[1]
     sock_config_file_name = '/mydata/mimir_snakemake_t2/experiment_coordinator/experimental_configs/sockshop_thirteen'
     wp_config_file_name = '/mydata/mimir_snakemake_t2/experiment_coordinator/experimental_configs/wordpress_fourteen'
+    config_file_name = wp_config_file_name
 
+    local_dir = '/Volumes/exM2/experimental_data/wordpress_info'  # '/Users/jseverin/Documents'
+    exp_name = 'wordpress_fourteen_2_autoscaling'
+    # exp_name = 'sockshop_autoscaling_tests'
+    mimir_1 = 'c240g5-110205.wisc.cloudlab.us'  #'c240g5-110119.wisc.cloudlab.us'
+    mimir_2 = 'c240g5-110117.wisc.cloudlab.us'
+    cloudlab_server_ip = mimir_1  # note: remove the username@ from the beggining
+    exp_length = 3600  # 10800 #7200 # in seconds
+    #################################
 
     parser = argparse.ArgumentParser(description='Handles e2e setup, running, and extract of microservice traffic experiments')
 
@@ -294,8 +298,27 @@ if __name__ == "__main__":
                        default=False,
                        help='enable autoscaling')
 
+
+    parser.add_argument('--config_json',dest="config_json", default='None')
+
     args = parser.parse_args()
 
+    if args.config_json != 'None':
+        with open(args.config_json) as f:
+            config_params = json.load(f)
+
+            app_name = config_params["app_name"]
+            exp_name = config_params["exp_name"]
+            config_file_name = config_params["config_file_name"]
+            local_dir = config_params["local_dir"]
+            cloudlab_server_ip = config_params["cloudlab_server_ip"]
+            exp_length = config_params["exp_length"]
+
+            # steps: (a) move all relevant params down here
+            #        (b) make sample schema
+            #        (c) figure out how to write the results and stuff...
+
     # NOTE: remember: dont put the .json in the filename!! ^^^
-    s = run_experiment(app_name, wp_config_file_name, exp_name, args.skip_setup_p, args.autoscale_p)
+    remote_dir = '/mydata/mimir_snakemake_t2/experiment_coordinator/experimental_data/' + exp_name  # TODO
+    s = run_experiment(app_name, config_file_name, exp_name, args.skip_setup_p, args.autoscale_p)
     retrieve_results(s)
