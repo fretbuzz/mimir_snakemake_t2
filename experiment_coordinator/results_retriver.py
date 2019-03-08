@@ -57,6 +57,7 @@ def get_ip_and_port(app_name, sh):
     print("--end minikube_front-end port ---")
 
     # kubernetes_setup_functions.wait_until_pods_done(namespace)
+    print "last_line", last_line
     minikube_ip, front_facing_port = last_line.split(' ')[-1].split('/')[-1].rstrip().split(':')
     print "minikube_ip", minikube_ip, "front_facing_port", front_facing_port
     return minikube_ip, front_facing_port
