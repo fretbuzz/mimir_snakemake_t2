@@ -55,7 +55,7 @@ spec:
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: carts
+  name: cart
   labels:
     name: carts
   namespace: sock-shop

@@ -24,6 +24,7 @@ There are a lot of parameters, and some of them are rather long, so I decided to
 #microservices_sockshop = ['carts-db', 'carts', 'catalogue-db', 'catalogue', 'front-end', 'orders-db', 'orders',
 #                         'payment', 'queue-master', 'rabbitmq', 'session-db', 'shipping', 'user-db', 'user',
 #                          'load-test']
+# NOTE: useed to be carts, not cart
 microservices_sockshop = ['carts-db', 'carts', 'catalogue-db', 'catalogue', 'front-end', 'orders-db', 'orders',
                          'payment', 'queue-master', 'rabbitmq', 'shipping', 'user-db', 'user']
 minikube_infrastructure = ['etcd', 'kube-addon-manager', 'kube-apiserver', 'kube-controller-manager',
