@@ -378,6 +378,7 @@ class set_of_injected_graphs():
         out_q.put([])  # new_neighbors_all
         out_q.put(self.list_of_amt_of_out_traffic_bytes)
         out_q.put(self.list_of_amt_of_out_traffic_pkts)
+        out_q.put(self.mapping)
 
     def load_serialized_metrics(self):
         with open(self.collected_metrics_location, mode='rb') as f:
@@ -458,6 +459,7 @@ class set_of_injected_graphs():
             carryover = out_q.get()
             amt_of_out_traffic_bytes = out_q.get()
             amt_of_out_traffic_pkts = out_q.get()
+            mapping = out_q.get()
             p.join()
 
             ## okay, literally the code above should be wrapped in a function call...
@@ -511,6 +513,8 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
         #for edge in G.edges(data=True):
         #    logging.info(edge)
         logging.info("end straight_G_edges")
+
+        ### TODO: want to update::: container_to_ip using the pod/creation log.
 
         # nx.read_edgelist(file_path,
         #                 create_using=G, delimiter=',', data=(('weight', float),))
@@ -664,6 +668,7 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
     out_q.put(carryover)
     out_q.put(amt_of_out_traffic_bytes)
     out_q.put(amt_of_out_traffic_pkts)
+    out_q.put(container_to_ip)
 
 def find_amt_of_out_traffic(cur_1si_G):
     into_outside_bytes = 0

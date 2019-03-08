@@ -1297,7 +1297,7 @@ def setup_experiment(config_file):
 # if the experiment name is in the file name and then move it accordingly
 def copy_experimental_info_to_experimental_folder(exp_name):
     for filename in os.listdir('./'):
-        print "found_filename", filename
+        print "found_filename", filename, "    ", "exp_name", exp_name, exp_name in filename
         if exp_name in filename:
             print "exp_name_in_filename", filename
             shutil.move("./"+filename, './experimental_data/' + exp_name + '/' + filename)
