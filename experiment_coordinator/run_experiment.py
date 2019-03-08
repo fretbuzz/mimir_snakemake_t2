@@ -362,7 +362,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
         # start the pod creation logger
         subprocess.Popen(['python', './src/pod_creation_logger.py', './experimental_data/' + exp_name + '_pod_creation_log.txt',
                           './' + end_sentinal_file_loc], shell=True, stdin=None, stdout=None, stderr=None, close_fds=True)
-        subprocess.Popen(['bash', './src/hpa_looper.py', int(math.ceil(float(experiment_length)/60)),
+        subprocess.Popen(['bash', './src/hpa_looper.py', str(int(math.ceil(float(experiment_length)/60))),
                           './experimental_data/' + exp_name + '_hpa_log.txt'],  shell=True, stdin=None, stdout=None,
                          stderr=None, close_fds=True)
         print "DET part going!"
