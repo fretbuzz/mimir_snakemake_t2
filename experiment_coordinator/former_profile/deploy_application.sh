@@ -28,7 +28,13 @@ elif [ "$1" = "gitlab" ]; then
 elif [ "$1" = "sockshop" ]; then
   echo "see, it was sockshop" >> /local/repository/deploy_test.txt
   kubectl create -f ./sock-shop-ns.yaml -f ./modified_complete-demo.yaml
-  bash /local/repository/scale_sockshop.sh
+  bash ./scale_sockshop.sh
+
+  if [ -n "$autoscale_p" ]; then
+    # activate autoscaling
+    git clone https://github.com/microservices-demo/microservices-demo.git
+    kubectl apply -f ./microservices-demo/deploy/kubernetes/autoscaling/
+  fi
 elif [ "$1" = "drupal" ]; then
   echo "see, it was drupal" >> /local/repository/deploy_test.txt
 fi
