@@ -10,7 +10,7 @@
     "experiment" : {
       "number_background_locusts": "150",
       "background_locust_spawn_rate": "20",
-      "experiment_length_sec": "10800",
+      "experiment_length_sec": "3600",
       "traffic_type" : "normal",
       "number_of_trials": "1"
     },
