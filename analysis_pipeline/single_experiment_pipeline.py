@@ -35,7 +35,8 @@ class data_anylsis_pipline(object):
                                initiator_info_for_paths=None,
                                synthetic_exfil_paths_train=None, synthetic_exfil_paths_test=None,
                                skip_model_part=False, max_number_of_paths=None, netsec_policy=None,
-                                startup_time=200, skip_graph_injection=False):
+                                startup_time=200, skip_graph_injection=False,
+                                pod_creation_log=None):
         self.ms_s = ms_s
         print "log file can be found at: " + str(basefile_name) + '_logfile.log'
         logging.basicConfig(filename=basefile_name + '_logfile.log', level=logging.INFO)
@@ -95,6 +96,13 @@ class data_anylsis_pipline(object):
         print training_window_size,size_of_neighbor_training_window
         self.system_startup_time = start_time #training_window_size + size_of_neighbor_training_window
         self.calc_vals = calc_vals
+
+        if pod_creation_log is  None:
+            self.pod_creation_log=None
+        else:
+            with open(pod_creation_log, 'r') as f:
+                contents = f.read()
+                self.pod_creation_log = pickle.loads(contents)
 
         self.time_gran_to_feature_dataframe=None
         self.time_gran_to_attack_labels=None
@@ -226,7 +234,8 @@ class data_anylsis_pipline(object):
                                             synthetic_exfil_paths, self.initiator_info_for_paths, time_gran_to_attack_ranges,
                                             self.size_of_neighbor_training_window,
                                             avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
-                                            self.skip_graph_injection, self.end_of_training)
+                                            self.skip_graph_injection, self.end_of_training,
+                                            self.pod_creation_log)
 
             ## time_gran_to_attack_labels needs to be corrected using time_gran_to_list_of_concrete_exfil_paths
             ## because just because it was assigned, doesn't mean that it is necessarily going to be injected (might
@@ -396,7 +405,7 @@ def process_one_set_of_graphs(time_interval_length, window_size,
                                 synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
                                collected_metrics_location, current_set_of_graphs_loc, calc_vals, out_q,
                               avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
-                              skip_graph_injection, end_of_training):
+                              skip_graph_injection, end_of_training, pod_creation_log):
 
     if calc_vals:
         current_set_of_graphs = simplified_graph_metrics.set_of_injected_graphs(time_interval_length, window_size,
@@ -404,7 +413,7 @@ def process_one_set_of_graphs(time_interval_length, window_size,
                                          synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
                                           collected_metrics_location, current_set_of_graphs_loc,
                                           avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
-                                        end_of_training)
+                                        end_of_training, pod_creation_log)
 
         if skip_graph_injection:
          with open(current_set_of_graphs_loc, mode='rb') as f:
@@ -433,7 +442,7 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
                                 initiator_info_for_paths, time_gran_to_attacks_to_times, size_of_neighbor_training_window,
                                 avg_exfil_per_min,
                                 exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
-                                skip_graph_injection, end_of_training):
+                                skip_graph_injection, end_of_training, pod_creation_log):
     total_calculated_vals = {}
     time_gran_to_list_of_concrete_exfil_paths = {}
     time_gran_to_list_of_exfil_amts = {}
@@ -460,7 +469,7 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
                 list_of_infra_services, synthetic_exfil_paths,  initiator_info_for_paths,
                 time_gran_to_attacks_to_times[time_interval_length], collected_metrics_location, current_set_of_graphs_loc,
                 calc_vals, out_q, avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
-                skip_graph_injection, end_of_training]
+                skip_graph_injection, end_of_training, pod_creation_log]
         p = multiprocessing.Process(
             target=process_one_set_of_graphs,
             args=args)

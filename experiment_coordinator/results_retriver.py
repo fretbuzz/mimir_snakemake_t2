@@ -273,14 +273,17 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, autoscale
 if __name__ == "__main__":
 
     #################################
-    app_name = possible_apps[4]
-    #app_name = possible_apps[1]
+    #app_name = possible_apps[4]
+    app_name = possible_apps[1]
     sock_config_file_name = '/mydata/mimir_snakemake_t2/experiment_coordinator/experimental_configs/sockshop_thirteen'
     wp_config_file_name = '/mydata/mimir_snakemake_t2/experiment_coordinator/experimental_configs/wordpress_fourteen'
-    config_file_name = wp_config_file_name
+    config_file_name = sock_config_file_name
 
-    local_dir = '/Volumes/exM2/experimental_data/wordpress_info'  # '/Users/jseverin/Documents'
-    exp_name = 'wordpress_fourteen_2_autoscaling_FORREAL_'
+
+    #local_dir = '/Volumes/exM2/experimental_data/wordpress_info'  # '/Users/jseverin/Documents'
+    local_dir = '/Volumes/exM2/experimental_data/sockshop_info'
+    #exp_name = 'wordpress_fourteen_2_autoscaling_FORREAL_'
+    exp_name = 'sockshop_thirteen_autoscale'
     # exp_name = 'sockshop_autoscaling_tests'
     mimir_1 = 'c240g5-110205.wisc.cloudlab.us'  #'c240g5-110119.wisc.cloudlab.us'
     mimir_2 = 'c240g5-110117.wisc.cloudlab.us'

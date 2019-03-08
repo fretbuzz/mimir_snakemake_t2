@@ -270,7 +270,7 @@ class set_of_injected_graphs():
                 svcs, is_swarm, ms_s, container_to_ip, infra_service, synthetic_exfil_paths, initiator_info_for_paths,
                 attacks_to_times, collected_metrics_location, current_set_of_graphs_loc,
                  avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
-                 end_of_training):#, out_q):
+                 end_of_training, pod_creation_log):#, out_q):
 
         self.list_of_injected_graphs_loc = []
         self.time_granularity = time_granularity
@@ -289,6 +289,7 @@ class set_of_injected_graphs():
         self.current_set_of_graphs_loc = current_set_of_graphs_loc
         self.end_of_training = end_of_training
         #self.out_q = out_q
+        self.pod_creation_log = pod_creation_log
 
         self.calculated_values = {}
         self.calculated_values_keys = None
@@ -427,6 +428,7 @@ class set_of_injected_graphs():
         exfil_per_min_variance = self.exfil_per_min_variance
         avg_pkt_size = self.avg_pkt_size
         pkt_size_variance = self.pkt_size_variance
+        pod_creation_log = self.pod_creation_log
 
         num_graphs_to_process_at_once = 40
         for counter in range(0, len(self.raw_edgefile_names), num_graphs_to_process_at_once):
@@ -437,7 +439,7 @@ class set_of_injected_graphs():
                     time_interval, total_edgelist_nodes, svc_to_pod, avg_dns_weight, avg_dns_pkts,
                     node_attack_mapping, out_q, current_total_node_list, name_of_dns_pod_node, last_attack_injected,
                     carryover, avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
-                    self.end_of_training]
+                    self.end_of_training, pod_creation_log]
             p = multiprocessing.Process(
                 target=process_and_inject_single_graph,
                 args=args)
@@ -475,7 +477,8 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
                                     synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
                     time_interval, total_edgelist_nodes, svc_to_pod, avg_dns_weight, avg_dns_pkts,
                     node_attack_mapping, out_q, current_total_node_list,name_of_dns_pod_node,attack_injected, carryover,
-                    avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance, end_of_training ):
+                    avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance, end_of_training,
+                     pod_creation_log):
 
     concrete_cont_node_path_list = []
     pre_specified_data_attribs_list = []
@@ -514,7 +517,9 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
         #    logging.info(edge)
         logging.info("end straight_G_edges")
 
-        ### TODO: want to update::: container_to_ip using the pod/creation log.
+        ### TODO: want to update::: container_to_ip using the pod/creation log (this is called: pod_creation_log)
+        ## okay, testing this ATM. if it works, then I can delete the line above
+        update_mapping(container_to_ip, pod_creation_log, time_interval, counter)
 
         # nx.read_edgelist(file_path,
         #                 create_using=G, delimiter=',', data=(('weight', float),))
@@ -669,6 +674,18 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
     out_q.put(amt_of_out_traffic_bytes)
     out_q.put(amt_of_out_traffic_pkts)
     out_q.put(container_to_ip)
+
+def update_mapping(container_to_ip, pod_creation_log, time_gran, time_counter):
+    if pod_creation_log is None:
+        return container_to_ip
+
+    last_entry_into_log = time_gran * (time_counter - 1)
+    current_entry_into_log =  time_gran * time_counter
+
+    for i in range(last_entry_into_log, current_entry_into_log):
+        container_to_ip.update( pod_creation_log[i] )
+
+    return container_to_ip
 
 def find_amt_of_out_traffic(cur_1si_G):
     into_outside_bytes = 0
