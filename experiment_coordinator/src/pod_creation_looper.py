@@ -10,7 +10,7 @@ def pod_logger(log_file_loc, sentinal_file_loc):
     last_timestep_mapping = {}
     time_step_to_changes = {}
     while (not os.path.exists(sentinal_file_loc)):
-        print "current_loop: ", timestep_counter
+        #print "current_loop: ", timestep_counter
         current_mapping = {}
         out = subprocess.check_output(['kubectl', 'get', 'po', '-o','wide', '--all-namespaces'])
 
