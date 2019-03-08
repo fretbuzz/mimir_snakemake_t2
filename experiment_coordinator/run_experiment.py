@@ -440,6 +440,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
 
     with open(end_sentinal_file_loc, 'w') as f:
         f.write('all_done')
+    time.sleep(2)
 
     # stopping the proxies can be done the same way (useful if e.g., switching
     # protocols between experiments, etc.)
