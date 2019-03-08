@@ -82,6 +82,7 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
 
 
         coef_dict = get_coef_dict(clf, X_train.columns.values, base_output_name, X_train.dtypes)
+        print "coef_dict", coef_dict
         coef_feature_df = pd.DataFrame.from_dict(coef_dict, orient='index')
         coef_feature_df.columns = ['Coefficient']
         model_params = clf.get_params()
@@ -631,8 +632,8 @@ def get_coef_dict(clf, X_train_columns, base_output_name, X_train_dtypes):
     for coef, feat in zip(model_coefs, X_train_columns):
         coef_dict[feat] = coef
     print "COEFS_HERE"
-    print "intercept...", clf.intercept_
-    coef_dict['intercept'] = clf.intercept_
+    print "intercept...", float(clf.intercept_)
+    coef_dict['intercept'] = float(clf.intercept_)
     for coef, feature in coef_dict.iteritems():
         print coef, feature
 
