@@ -2,14 +2,6 @@ import subprocess
 import os, errno
 import json
 
-#######################
-##  TODO: mapping! finish integrating this with the pipeline by refactoring the mapping and
-## taking that as input, to create the edgefiles.
-## then try to do something really basic w/ snakemake
-##
-##
-#######################
-
 
 def convert_tshark_stats_to_edgefile(edgefile_path, edgefile_name, tshark_path, tshark_name, make_edgefiles_p, mapping):
     if make_edgefiles_p:

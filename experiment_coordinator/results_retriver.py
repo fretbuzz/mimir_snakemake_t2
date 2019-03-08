@@ -314,9 +314,11 @@ if __name__ == "__main__":
             cloudlab_server_ip = config_params["cloudlab_server_ip"]
             exp_length = config_params["exp_length"]
 
-            # steps: (a) move all relevant params down here
-            #        (b) make sample schema
-            #        (c) figure out how to write the results and stuff...
+            # steps: (a) move all relevant params down here [DONE]
+            #        (b) make sample schema [DONE]
+            #        (c) figure out how to write the results and stuff... [<---- TODO: NEXT IN THE TODO LIST!!!!]]]
+                # okay, so how would I do this?? well... it appears that there is a bunch of stuff stored both
+                # here (in the params) and in run_experiment...
 
     # NOTE: remember: dont put the .json in the filename!! ^^^
     remote_dir = '/mydata/mimir_snakemake_t2/experiment_coordinator/experimental_data/' + exp_name  # TODO

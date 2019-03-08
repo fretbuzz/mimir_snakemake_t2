@@ -296,6 +296,7 @@ def create_mappings(is_swarm, container_info_path, kubernetes_svc_info, kubernet
     #exit()
     return mapping, list_of_infra_services
 
+'''
 def create_edgelists(pcap_paths, start_time, make_edgefiles_p, time_interval_lengths, rdpcap_p, basefile_name,
                      mapping):
 
@@ -356,4 +357,5 @@ def create_edgelists(pcap_paths, start_time, make_edgefiles_p, time_interval_len
             a = f.read()
             interval_to_filenames = json.loads(a)
             # print "interval_to_filenames", interval_to_filenames
-    return interval_to_filenames
+    return interval_to_filenames 
+'''

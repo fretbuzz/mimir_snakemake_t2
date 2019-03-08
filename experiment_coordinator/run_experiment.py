@@ -19,6 +19,7 @@ import random
 import re
 import pexpect
 import shutil
+import math
 
 
 #Locust contemporary client count.  Calculated from the function f(x) = 1/25*(-1/2*sin(pi*x/12) + 1.1), 
@@ -58,9 +59,14 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
         pass
 
     # this file will be used to synchronize the three thread/processes: tcpdump, det, and the background load generator
+    end_sentinal_file_loc = './all_done.txt'
     sentinal_file_loc = './ready_to_start_exp.txt'
     try:
         os.remove(sentinal_file_loc)
+    except OSError:
+        pass
+    try:
+        os.remove(end_sentinal_file_loc)
     except OSError:
         pass
 
@@ -353,6 +359,12 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
             f.write('ready to go')
         # now wait for 3 more seconds so that the background load generator can get started before this and tcpdump start
         time.sleep(3)
+        # start the pod creation logger
+        subprocess.Popen(['python', './src/pod_creation_logger.py', './experimental_data/' + exp_name + '_pod_creation_log.txt',
+                          './' + end_sentinal_file_loc], shell=True, stdin=None, stdout=None, stderr=None, close_fds=True)
+        subprocess.Popen(['bash', './src/hpa_looper.py', int(math.ceil(float((experiment_length)/60))),
+                          './experimental_data/' + exp_name + '_hpa_log.txt'],  shell=True, stdin=None, stdout=None,
+                         stderr=None, close_fds=True)
         print "DET part going!"
         ##################
         start_time = time.time()
@@ -426,6 +438,9 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
         filename = experiment_name + '_' + 'default_bridge' + '_' + str(i) # note: will need to redo this if I want to go
                                                                            # back to using Docker Swarm at some point
         recover_pcap(orchestrator, filename + 'any' + '.pcap')
+
+    with open(end_sentinal_file_loc, 'w') as f:
+        f.write('all_done')
 
     # stopping the proxies can be done the same way (useful if e.g., switching
     # protocols between experiments, etc.)
@@ -626,9 +641,9 @@ def start_tcpdump(interface, network_namespace, tcpdump_time, filename, orchestr
     #start_tcpdum = "tcpdump -G " + tcpdump_time + ' -W 10 -i ' + interface + ' -w /outside/\'' + filename \
     #               + '_%Y-%m-%d_%H:%M:%S.pcap\''+ ' -n' + ' -z gzip '
 
-    #### NOTE: I TOOK OFF THE -N TO WHETHER IT SOLVES MY PROBLEMS
+    #### NOTE: I TOOK OFF THE -N TO WHETHER IT SOLVES MY PROBLEMS <-- NOTE: put it back in b/c it makes tcpdump drop lots of pkts
     # NOTE: if you want the whole packet body, then get-rid-of/adjust the "-s 94" part!
-    start_tcpdum = "tcpdump -s 94 -G " + tcpdump_time + ' -W 1 -i ' + interface + ' -w /outside/' + filename #+ ' -n'
+    start_tcpdum = "tcpdump -s 94 -G " + tcpdump_time + ' -W 1 -i ' + interface + ' -w /outside/' + filename + ' -n'
 
     cmd_to_send = start_netshoot + ';' + switch_namespace + ';' + start_tcpdum
     print "cmd_to_send", cmd_to_send
@@ -1313,21 +1328,31 @@ def generate_analysis_json(path_to_exp_folder, analysis_json_name, exp_config_js
     analysis_dict["kubernetes_svc_info"] = exp_name + '_svc_config_0.txt'
     analysis_dict["kubernetes_pod_info"] = exp_name + '_pod_config_0.txt'
 
-    if exp_config_json["application_name"] == 'wordpress':
+    if exp_config_json["application_name"] == 'sockshop':
         ms_s = ['carts-db', 'carts', 'catalogue-db', 'catalogue', 'front-end', 'orders-db', 'orders',
                               'payment', 'queue-master', 'rabbitmq', 'session-db', 'shipping', 'user-db', 'user',
                               'load-test']
-    elif exp_config_json["application_name"] == 'sockshop':
+    elif exp_config_json["application_name"] == 'wordpress':
         ms_s = ["my-release-pxc", "wwwppp-wordpress"]
     else:
         print "unrecognzied application"
         exit(1)
+
+    analysis_dict['exfil_methods'] = exp_config_json["exfil_method"]
+    analysis_dict["exfil_start_time"] = exp_config_json["exfiltration_info"]["exfil_start_time"]
+    analysis_dict["exfil_end_time"] = exp_config_json["exfiltration_info"]["exfil_end_time"]
+    analysis_dict["number_background_locusts"] = exp_config_json["experiment"]["number_background_locusts"]
+    analysis_dict["background_locust_spawn_rate"] = exp_config_json["experiment"]["background_locust_spawn_rate"]
+    analysis_dict["experiment_length_sec"] = exp_config_json["experiment"]["experiment_length_sec"]
+    analysis_dict["traffic_type"] = exp_config_json["experiment"]["traffic_type"]
+
+
+
+    '''
     analysis_dict["ms_s"] = ms_s
     analysis_dict["make_edgefiles"] = True
     analysis_dict["start_time"] = None
     analysis_dict["end_time"] = None
-    analysis_dict["exfil_start_time"] = exp_config_json["exfiltration_info"]["exfil_start_time"]
-    analysis_dict["exfil_end_time"] = exp_config_json["exfiltration_info"]["exfil_end_time"]
     analysis_dict["time_interval_lengths"] = [60, 30, 10]
 
     analysis_dict['calc_vals'] = True
@@ -1341,13 +1366,12 @@ def generate_analysis_json(path_to_exp_folder, analysis_json_name, exp_config_js
     analysis_dict['alert_file'] = 'alerts/' + exp_name + '_'
     analysis_dict['ROC_curve_p'] = True
     analysis_dict['calc_tpr_fpr_p'] = True
-
-    analysis_dict['exfil_methods'] = exp_config_json["exfil_method"]
+    '''
 
     if 'dnscat' in exp_config_json["exfil_method"]:
         analysis_dict['sec_between_exfil_events'] = exp_config_json["seconds_per_dns_packet"]
     else:
-        analysis_dict['sec_between_exfil_events'] = 1
+        analysis_dict['sec_between_exfil_events'] = 0.1
 
 
     json_path = path_to_exp_folder + analysis_json_name
