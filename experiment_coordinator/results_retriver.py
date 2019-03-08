@@ -280,7 +280,7 @@ if __name__ == "__main__":
     config_file_name = wp_config_file_name
 
     local_dir = '/Volumes/exM2/experimental_data/wordpress_info'  # '/Users/jseverin/Documents'
-    exp_name = 'wordpress_fourteen_2_autoscaling_testNewWordpreses'
+    exp_name = 'wordpress_fourteen_2_autoscaling_hopefullyFinalTest'
     # exp_name = 'sockshop_autoscaling_tests'
     mimir_1 = 'c240g5-110205.wisc.cloudlab.us'  #'c240g5-110119.wisc.cloudlab.us'
     mimir_2 = 'c240g5-110117.wisc.cloudlab.us'

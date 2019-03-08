@@ -361,7 +361,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
         time.sleep(3)
         # start the pod creation logger
         subprocess.Popen(['python', './src/pod_creation_looper.py', './' + exp_name + '_pod_creation_log.txt', './' + end_sentinal_file_loc], shell=False, stdin=None, stdout=None, stderr=None, close_fds=True)
-        subprocess.Popen(['bash', './src/hpa_looper.sh ', str(int(math.ceil(float(experiment_length)/60))),
+        subprocess.Popen(['bash', './src/hpa_looper.sh', str(int(math.ceil(float(experiment_length)/60))),
                           ' ./' + exp_name + '_hpa_log.txt'],  shell=False, stdin=None, stdout=None,
                          stderr=None, close_fds=True)
         print "DET part going!"
@@ -1296,7 +1296,9 @@ def setup_experiment(config_file):
 # if the experiment name is in the file name and then move it accordingly
 def copy_experimental_info_to_experimental_folder(exp_name):
     for filename in os.listdir('./'):
+        print "found_filename", filename
         if exp_name in filename:
+            print "exp_name_in_filename", filename
             shutil.move("./"+filename, './experimental_data/' + exp_name + '/' + filename)
 
 # def generate_analysis_json ??? -> ??
