@@ -9,11 +9,19 @@ import time
 import csv
 import json
 import os
+from filelock import FileLock
+
 
 # this way we can simulate users using already-existing accounts
 #users = pickle.load( open( "users.pickle", "rb" ) )
 urls = []
-failures_list = [0]
+#failures_list = [0]
+
+with open('./load_generators/failures_list.txt', 'r') as f:
+    lines = f.readlines()
+    failures_list = [i.rstrip() for i in lines]
+    failures_list = list(set(failures_list))
+
 #with open('./load_generators/wordpress_users.csv', 'rb') as csvfile:
 with open('./load_generators/wordpress_users.csv', 'rb') as csvfile:
     spamreader = csv.reader(csvfile, delimiter=' ', quotechar='|')
@@ -86,6 +94,7 @@ class BackgroundTraffic(TaskSet):
                 except:
                     print 'sorry buddy, but that post # was invalid'
                     failures_list.append(random_post)
+
             time.sleep(randint(min_wait,max_wait) / 1000.0) # going to wait a bit between events
 
 
@@ -173,6 +182,11 @@ class BackgroundTraffic(TaskSet):
         # (d) randomly request different posts (done)
         # (e) i want to upload some pictures too, b/c I think that'll be fun from a data perspective
             # (done)
+
+    def teardown(self):
+        with open('./load_generators/failures_list.txt', 'w') as f:
+            for item in failures_list:
+                f.write(item + '\n')
 
 class GenBackgroundTraffic(HttpLocust):
     print "Can I see this??" # yes, yes I can

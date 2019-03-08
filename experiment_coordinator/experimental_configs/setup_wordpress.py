@@ -316,6 +316,9 @@ def main(ip_of_wp, port_of_wp, admin_pwd):
     with open('../load_generators/wordpress_api_pwd.txt', 'w') as f:
         f.write(new_pdw)
 
+    with open('../load_generators/failures_list.txt', 'w') as f:
+        f.write('')
+
     return new_pdw#, path_to_csv_file
 
 if __name__ == "__main__":

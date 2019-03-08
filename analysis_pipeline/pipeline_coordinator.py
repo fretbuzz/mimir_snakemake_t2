@@ -178,9 +178,10 @@ def pipeline_one_exfil_rate(rate_counter,
         experiment_object.calculate_values(end_of_training=end_of_train_portions[counter],
                                            synthetic_exfil_paths_train=training_exfil_paths[counter],
                                            synthetic_exfil_paths_test=testing_exfil_paths[counter],
-                                           avg_exfil_per_min=avg_exfil_per_min[counter],
-                                           exfil_per_min_variance=exfil_per_min_variance[counter],
-                                           avg_pkt_size=avg_pkt_size[counter], pkt_size_variance=pkt_size_variance[counter])
+                                           avg_exfil_per_min=avg_exfil_per_min[rate_counter],
+                                           exfil_per_min_variance=exfil_per_min_variance[rate_counter],
+                                           avg_pkt_size=avg_pkt_size[rate_counter],
+                                           pkt_size_variance=pkt_size_variance[rate_counter])
 
         print "exps_exfil_pathas[time_gran_to_mod_zscore_df]", time_gran_to_mod_zscore_df
         print time_gran_to_mod_zscore_df[time_gran_to_mod_zscore_df.keys()[0]].columns.values
