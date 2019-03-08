@@ -18,7 +18,8 @@ def pod_logger(log_file_loc, sentinal_file_loc):
             if line != '':
                 line = [i for i in line.split('   ') if i != '']
                 name,ip = line[1],line[-2]
-                current_mapping[name] = ip
+                if '<none>' not in ip:
+                    current_mapping[name] = ip
 
         # now compare to old mapping
         changes_this_time_step = {}
