@@ -9,7 +9,6 @@ import time
 import csv
 import json
 import os
-from filelock import FileLock
 
 
 # this way we can simulate users using already-existing accounts
@@ -19,7 +18,7 @@ urls = []
 
 with open('./load_generators/failures_list.txt', 'r') as f:
     lines = f.readlines()
-    failures_list = [i.rstrip() for i in lines]
+    failures_list = [int(i.rstrip()) for i in lines]
     failures_list = list(set(failures_list))
 
 #with open('./load_generators/wordpress_users.csv', 'rb') as csvfile:
@@ -186,7 +185,7 @@ class BackgroundTraffic(TaskSet):
     def teardown(self):
         with open('./load_generators/failures_list.txt', 'w') as f:
             for item in failures_list:
-                f.write(item + '\n')
+                f.write(str(item) + '\n')
 
 class GenBackgroundTraffic(HttpLocust):
     print "Can I see this??" # yes, yes I can
