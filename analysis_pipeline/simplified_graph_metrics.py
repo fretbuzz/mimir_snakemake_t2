@@ -679,11 +679,17 @@ def update_mapping(container_to_ip, pod_creation_log, time_gran, time_counter):
     if pod_creation_log is None:
         return container_to_ip
 
-    last_entry_into_log = time_gran * (time_counter - 1)
+    last_entry_into_log = max(0, time_gran * (time_counter - 1))
     current_entry_into_log =  time_gran * time_counter
 
+    print "time_counter",time_counter,"time_gran",time_gran
     for i in range(last_entry_into_log, current_entry_into_log):
-        container_to_ip.update( pod_creation_log[i] )
+        # recall that: container_to_ip[container_ip] = (container_name, network_name)
+        mod_cur_creation_log = {}
+        for cur_pod,cur_ip in pod_creation_log[i].iteritems():
+            mod_cur_creation_log[cur_ip] = (cur_pod, None)
+
+        container_to_ip.update( mod_cur_creation_log )
 
     return container_to_ip
 

@@ -7,6 +7,6 @@ echo '' > $hpa_file
 for i in $(seq 1 "$((exp_time_min))");
 do
     cur_hpa=$(kubectl get hpa --all-namespaces)
-    cur_hpa >> $hpa_file
+    $cur_hpa >> $hpa_file
     sleep 60
 done

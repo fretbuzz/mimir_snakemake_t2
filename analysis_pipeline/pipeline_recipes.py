@@ -25,7 +25,7 @@ There are a lot of parameters, and some of them are rather long, so I decided to
 #                         'payment', 'queue-master', 'rabbitmq', 'session-db', 'shipping', 'user-db', 'user',
 #                          'load-test']
 # NOTE: useed to be carts, not cart
-microservices_sockshop = ['carts-db', 'carts', 'catalogue-db', 'catalogue', 'front-end', 'orders-db', 'orders',
+microservices_sockshop = ['carts-db', 'cart', 'catalogue-db', 'catalogue', 'front-end', 'orders-db', 'orders',
                          'payment', 'queue-master', 'rabbitmq', 'shipping', 'user-db', 'user']
 minikube_infrastructure = ['etcd', 'kube-addon-manager', 'kube-apiserver', 'kube-controller-manager',
                            'kube-dns', 'kube-proxy', 'kube-scheduler', 'kubernetes-dashboard', 'metrics-server',
@@ -1839,7 +1839,7 @@ def wordpress_fourteen_REALDEAL(time_of_synethic_exfil=None, only_exp_info=False
     physical_exfil_path = []
 
 
-    make_edgefiles = True ## already done!
+    make_edgefiles = False ## already done!
     wordpress_fourteen_REALDEAL_object = data_anylsis_pipline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
                                    make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
                                    wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,

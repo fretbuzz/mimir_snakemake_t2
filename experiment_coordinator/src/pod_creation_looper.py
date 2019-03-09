@@ -11,6 +11,7 @@ def pod_logger(log_file_loc, sentinal_file_loc):
     time_step_to_changes = {}
     while (not os.path.exists(sentinal_file_loc)):
         #print "current_loop: ", timestep_counter
+        loop_starttime = time.time()
         current_mapping = {}
         out = subprocess.check_output(['kubectl', 'get', 'po', '-o','wide', '--all-namespaces'])
 
@@ -28,7 +29,7 @@ def pod_logger(log_file_loc, sentinal_file_loc):
                 changes_this_time_step[cur_name] = cur_ip
 
         # wait a bit
-        time.sleep(1)
+        time.sleep(1.0 - (time.time() - loop_starttime))
         time_step_to_changes[timestep_counter] = changes_this_time_step
         timestep_counter += 1
         last_timestep_mapping = current_mapping
