@@ -74,6 +74,9 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         # effect the information that I need to feed into the report generation component??) - in particular
         # the heatmap and ROC component
         clf.fit(X_train, y_train)
+
+        clf = sklearn.linear_model.LinearRegression()
+        clf.fit(X_train, y_train)
         trained_models[time_gran] = clf
         score_val = clf.score(X_test, y_test)
         #print "score_val", score_val
