@@ -232,6 +232,15 @@ def drop_useless_columns_aggreg_DF(aggregate_mod_score_dfs):
     # '''
 
     #amt_of_out_traffic_pkts
+    ''' ## put in at some point -- right now it is interesting that it cannot get 100% when the literal
+        ## answer is there!
+    try:
+        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(
+            columns='attack_labels')  # might wanna just stop these from being generated...
+    except:
+        pass
+    '''
+
     try:
         aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(
             columns='Communication Between Pods not through VIPs (no abs)_')  # might wanna just stop these from being generated...

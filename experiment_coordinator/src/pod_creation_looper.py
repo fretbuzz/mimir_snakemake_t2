@@ -26,7 +26,10 @@ def pod_logger(log_file_loc, sentinal_file_loc):
         changes_this_time_step = {}
         for cur_name, cur_ip in current_mapping.iteritems():
             if cur_name not in last_timestep_mapping:
-                changes_this_time_step[cur_name] = cur_ip
+                changes_this_time_step[cur_name] = (cur_ip, '+')
+        for last_name,last_ip_tup in last_timestep_mapping.iteritems():
+            if last_name not in current_mapping:
+                changes_this_time_step[last_name] = (last_ip_tup, '-')
 
         # wait a bit
         time.sleep(1.0 - (time.time() - loop_starttime))

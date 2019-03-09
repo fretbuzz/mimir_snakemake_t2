@@ -519,7 +519,7 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
 
         ### TODO: want to update::: container_to_ip using the pod/creation log (this is called: pod_creation_log)
         ## okay, testing this ATM. if it works, then I can delete the line above
-        update_mapping(container_to_ip, pod_creation_log, time_interval, counter)
+        container_to_ip = update_mapping(container_to_ip, pod_creation_log, time_interval, counter)
 
         # nx.read_edgelist(file_path,
         #                 create_using=G, delimiter=',', data=(('weight', float),))
@@ -686,8 +686,16 @@ def update_mapping(container_to_ip, pod_creation_log, time_gran, time_counter):
     for i in range(last_entry_into_log, current_entry_into_log):
         # recall that: container_to_ip[container_ip] = (container_name, network_name)
         mod_cur_creation_log = {}
-        for cur_pod,cur_ip in pod_creation_log[i].iteritems():
-            mod_cur_creation_log[cur_ip] = (cur_pod, None)
+        for cur_pod,curIP_PlusMinus in pod_creation_log[i].iteritems():
+            cur_ip = curIP_PlusMinus[0]
+            plus_minus = curIP_PlusMinus[1]
+            if plus_minus == '+':
+                mod_cur_creation_log[cur_ip] = (cur_pod, None)
+            elif plus_minus == '-': # not sure if I want/need this but might be useful for bug checking
+                del container_to_ip[cur_ip]
+            else:
+                print "+/- in pod_creation_log was neither + or -!!"
+                exit(300)
 
         container_to_ip.update( mod_cur_creation_log )
 

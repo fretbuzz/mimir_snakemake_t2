@@ -25,10 +25,24 @@ def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
             filename = "comp_bargraph_" + str(rate) + "_" + str(timegran) + ".png"
             temp_graph_loc = "./temp_outputs/" + filename
             graph_loc = base_output_name + filename
+
+            # TODO: okay, so would want to define a figure here + probably pass it to per_attack_bar_graphs +
+            # some indicator for the positionthat is should be located (so, would need to determine
+            # all the sizing information before this loop starts and then just execute it in the inner part).
+            # this'll also require modify rendering portion b/c we only want a single graph + better titles
+            # obviously... ACTUALLY want one graph per time granularity, with one subfigure per exfiltration rates
             df_attack_identites = per_attack_bar_graphs(methods_to_attacks_found_dfs, temp_graph_loc, graph_loc)
 
             with pandas.option_context('display.max_colwidth', -1):
                 df_attack_identites_html = df_attack_identites.to_html()
+
+            ## TODO: okay, this is where I'd want to create the other graph???? so what is the other graph again??
+            ## well, it is f1 score vs exfiltration_rate... w/ one subfigure for each attack + one figure for
+            ## each time gran (+ an aggregate graph of all the attacks just because that makes my life easier imho)
+            ## steps: (1a): Need to get f1_vs_rate per attack
+            ##        (1b): actually make it into some graphs
+            ##        (1c) adjust the rendering appropriately
+
 
             sections.append(aggreg_res_section.render(
                 time_gran = timegran,
