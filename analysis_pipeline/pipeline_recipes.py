@@ -1959,10 +1959,10 @@ def new_wordpress_recipe():
 
     #####
     # IN MEGABYTES / MINUTE
-    avg_exfil_per_min = [10.0, 2.0, 1.0, 0.25, 0.1]
-    exfil_per_min_variance = [0.3, 0.2, 0.15, 0.08, 0.05]
-    avg_pkt_size = [500.0, 500.0, 500.00, 500.00, 500.0]
-    pkt_size_variance = [100, 100, 100, 100, 100]
+    avg_exfil_per_min = [0.1]#[10.0]#, 2.0, 1.0, 0.25, 0.1]
+    exfil_per_min_variance = [0.05]#0.3]#, 0.2, 0.15, 0.08, 0.05]
+    avg_pkt_size = [500.0]#, 500.0, 500.00, 500.00, 500.0]
+    pkt_size_variance = [100]#, 100, 100, 100, 100]
 
     BytesPerMegabyte = 1000000
     avg_exfil_per_min = [BytesPerMegabyte * i for i in avg_exfil_per_min]

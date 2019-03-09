@@ -242,6 +242,16 @@ def drop_useless_columns_aggreg_DF(aggregate_mod_score_dfs):
     '''
 
     try:
+        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='fraction_pod_comm_but_not_VIP_comms_')
+    except:
+        pass
+
+    try:
+        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='fraction_pod_comm_but_not_VIP_comms_no_abs_')
+    except:
+        pass
+
+    try:
         aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(
             columns='Communication Between Pods not through VIPs (no abs)_')  # might wanna just stop these from being generated...
     except:

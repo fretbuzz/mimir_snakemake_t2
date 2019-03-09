@@ -19,8 +19,15 @@ def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
 
     ## STEP (1): composite bar graph
     ### so right now it is rate -> (time_gran  -> (method -> tp/fp/tn/fn on each attack))
+    time_gran_to_attack_to_methods_to_f1s = {} # map to another dict, which maps attacks to another dict,
+                                                # which maps attack to a list of f1s, one for each exfil rate @ a given time granularity
+    time_gran_to_attack_to_rate = {}
     for rate, timegran_to_methods_to_attacks_found_dfs in rate_to_timegran_to_methods_to_attacks_found_dfs.iteritems():
         for timegran, methods_to_attacks_found_dfs in timegran_to_methods_to_attacks_found_dfs.iteritems():
+            if timegran not in time_gran_to_attack_to_methods_to_f1s:
+                time_gran_to_attack_to_methods_to_f1s[timegran] = {}
+                time_gran_to_attack_to_rate[timegran] = {}
+
             ## okay, one graph for each of these set of params should be made
             filename = "comp_bargraph_" + str(rate) + "_" + str(timegran) + ".png"
             temp_graph_loc = "./temp_outputs/" + filename
@@ -40,6 +47,11 @@ def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
             ## well, it is f1 score vs exfiltration_rate... w/ one subfigure for each attack + one figure for
             ## each time gran (+ an aggregate graph of all the attacks just because that makes my life easier imho)
             ## steps: (1a): Need to get f1_vs_rate per attack
+                        ## so, a dict mapping [time_gran] -> ([list_of_f1s], [list_of_rates_per_attack])
+                        ## okay, so the order of these loops is suboptimal but that's okay. i'll just need to
+                        ## store everything in a dict and then use it later
+            update_attack_rate_linegraph_dicts(time_gran_to_attack_to_methods_to_f1s, time_gran_to_attack_to_rate, timegran,
+                                               methods_to_attacks_found_dfs)
             ##        (1b): actually make it into some graphs
             ##        (1c) adjust the rendering appropriately
 
@@ -77,6 +89,13 @@ def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
     options={"print-media-type": None}
     pdfkit.from_file("mulval_inouts/aggregate_report.html", aggregate_report_location, configuration=config, options=options)
     out = subprocess.check_output(['open', aggregate_report_location])
+
+def update_attack_rate_linegraph_dicts(time_gran_to_attack_to_methods_to_f1s, time_gran_to_attack_to_rate, timegran,
+                                       methods_to_attacks_found_dfs):
+    ## TODO: this function is probably the meat of adding the new kind of graphs... the actual function will
+    ## be relatively straight-forward indexing (plus somethign complicated w/ figs/subfigs but that isn't super
+    ## important IMHO)
+    pass
 
 def results_df_to_attack_fones(results_df):
     attacks = results_df.index

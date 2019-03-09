@@ -12,6 +12,7 @@ import analysis_pipeline.generate_aggregate_report as generate_aggregate_report
 pyximport.install() # to leverage cpython
 import math
 from sklearn.linear_model import LassoCV, LogisticRegressionCV
+import sklearn
 import operator
 import copy
 import multiprocessing
@@ -244,6 +245,21 @@ def pipeline_one_exfil_rate(rate_counter,
                                                              pkt_size_variance[rate_counter])
 
     '''
+    '''
+    '''
+
+    clf = sklearn.linear_model.LinearRegression()
+    _, _, _, _, _, _,_,_,_ = \
+        statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p,
+                                             cur_base_output_name + 'least_squares_normalized',
+                                             names, starts_of_testing, path_occurence_training_df,
+                                             path_occurence_testing_df, recipes_used, skip_model_part, clf,
+                                             ignore_physical_attacks_p,
+                                             avg_exfil_per_min[rate_counter],
+                                             avg_pkt_size[rate_counter],
+                                             exfil_per_min_variance[rate_counter],
+                                             pkt_size_variance[rate_counter])
+
     clf = LassoCV(cv=3, max_iter=80000)
     list_of_optimal_fone_scores_at_this_exfil_rates, Xs,Ys,Xts,Yts, trained_models, list_of_attacks_found_dfs, \
     list_of_attacks_found_training_df,experiment_info = \
