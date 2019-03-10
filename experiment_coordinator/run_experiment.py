@@ -407,6 +407,9 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
         # I don't wanna return while the other threads are still doing stuff b/c I'll get confused
         time.sleep(time_left_in_experiment)
 
+        with open(end_sentinal_file_loc, 'w') as f:
+            f.write('all_done')
+
         if exfil_p:
             exfil_info_file_name = './' + experiment_name + '_det_server_local_output.txt'
             bytes_exfil, start_ex, end_ex = parse_local_det_output(exfil_info_file_name, exfil_protocol)
@@ -438,8 +441,6 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
                                                                            # back to using Docker Swarm at some point
         recover_pcap(orchestrator, filename + 'any' + '.pcap')
 
-    with open(end_sentinal_file_loc, 'w') as f:
-        f.write('all_done')
     time.sleep(2)
 
     # stopping the proxies can be done the same way (useful if e.g., switching
