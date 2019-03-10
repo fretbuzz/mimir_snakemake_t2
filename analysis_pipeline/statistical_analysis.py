@@ -57,6 +57,12 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
             ide_test, X_train_exfil_weight, X_test_exfil_weight, exfil_paths, exfil_paths_train = \
             prepare_data(aggregate_mod_score_dfs, skip_model_part, ignore_physical_attacks_p, time_gran_to_debugging_csv, time_gran)
 
+        # method_to_trainTest = {}
+        # method_to_trainTest['ensemble_of_features'] = (X_train, X_test)
+        # method_to_trainTest['ide_angle'] = (ide_train, ide_test)
+        # method_to_trainTest['labels'] = (y_train, y_test)
+
+
         # TODO: probably want to pass in the feature selection capabilities as a first class function
         if 'lass_feat_sel' in base_output_name:
             X_train, X_test = lasso_feature_selection(X_train, y_train, X_test, y_test)
@@ -75,7 +81,7 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         # the heatmap and ROC component
         clf.fit(X_train, y_train)
 
-        clf = sklearn.linear_model.LinearRegression()
+        #clf = sklearn.linear_model.LinearRegression()
         clf.fit(X_train, y_train)
         trained_models[time_gran] = clf
         score_val = clf.score(X_test, y_test)
@@ -235,14 +241,41 @@ def drop_useless_columns_aggreg_DF(aggregate_mod_score_dfs):
     # '''
 
     #amt_of_out_traffic_pkts
-    ''' ## put in at some point -- right now it is interesting that it cannot get 100% when the literal
+    #''' ## put in at some point -- right now it is interesting that it cannot get 100% when the literal
         ## answer is there!
     try:
         aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(
             columns='attack_labels')  # might wanna just stop these from being generated...
     except:
         pass
-    '''
+    #'''
+
+    try:
+        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(
+            columns='pod_1si_density_list_')
+        pass
+    except:
+        pass
+
+    try:
+        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='new_neighbors_outside')
+    except:
+        pass
+
+    try:
+        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='new_neighbors_dns')
+    except:
+        pass
+
+    try:
+        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns=u'new_neighbors_all')
+    except:
+        pass
+
+    try:
+        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns=u'new_neighbors_all ')
+    except:
+        pass
 
     try:
         aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='fraction_pod_comm_but_not_VIP_comms_')
@@ -490,6 +523,7 @@ def drop_useless_columns_aggreg_DF(aggregate_mod_score_dfs):
 
 # if we drop it in this function, it'll still show up in some of the debugging information that it wouldn't if
 # we had dropped it in drop_useless_columns_aggreg_DF
+'''
 def drop_useless_columns_aggreg_testtrain_DF( aggregate_mod_score_dfs_training, aggregate_mod_score_dfs_testing):
     try:
         aggregate_mod_score_dfs_training = aggregate_mod_score_dfs_training.drop(columns='new_neighbors_outside')
@@ -512,6 +546,7 @@ def drop_useless_columns_aggreg_testtrain_DF( aggregate_mod_score_dfs_training, 
     except:
         pass
     return aggregate_mod_score_dfs_training, aggregate_mod_score_dfs_testing
+'''
 
 def extract_comparison_methods(X_train, X_test):
     try:
@@ -688,8 +723,8 @@ def prepare_data(aggregate_mod_score_dfs, skip_model_part, ignore_physical_attac
             aggregate_mod_score_dfs_testing.copy(deep=True))
 
     print aggregate_mod_score_dfs_training.index
-    aggregate_mod_score_dfs_training, aggregate_mod_score_dfs_testing = \
-        drop_useless_columns_aggreg_testtrain_DF(aggregate_mod_score_dfs_training, aggregate_mod_score_dfs_testing)
+    #aggregate_mod_score_dfs_training, aggregate_mod_score_dfs_testing = \
+    #    drop_useless_columns_aggreg_testtrain_DF(aggregate_mod_score_dfs_training, aggregate_mod_score_dfs_testing)
 
     X_train = aggregate_mod_score_dfs_training.loc[:, aggregate_mod_score_dfs_training.columns != 'labels']
     y_train = aggregate_mod_score_dfs_training.loc[:, aggregate_mod_score_dfs_training.columns == 'labels']
@@ -735,6 +770,7 @@ def prepare_data(aggregate_mod_score_dfs, skip_model_part, ignore_physical_attac
 
     return X_train, y_train, X_test, y_test, pre_drop_X_train, time_gran_to_debugging_csv, dropped_feature_list, \
            ide_train, ide_test, X_train_exfil_weight, X_test_exfil_weight, exfil_paths, exfil_paths_train
+
 
 def lasso_feature_selection(X_train, y_train, X_test, y_test):
     clf_featuree_selection = LassoCV(cv=5)

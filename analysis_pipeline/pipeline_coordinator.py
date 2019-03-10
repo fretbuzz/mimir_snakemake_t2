@@ -88,6 +88,8 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
     test_results_df_loc = base_output_name + 'test_results_df_loc.txt'
     training_results_df_loc = base_output_name + 'train_results_df_loc.txt'
     rates_to_experiment_info_loc = base_output_name + 'rates_to_experiment_info_loc.txt'
+    rate_to_time_gran_to_xs = {}
+    rate_to_time_gran_to_ys = {}
 
     if get_endresult_from_memory:
         with open(test_results_df_loc, 'r') as input_file:
@@ -134,6 +136,14 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
             rate_to_timegran_list_of_methods_to_attacks_found_training_df[avg_exfil_per_min[rate_counter]] = timegran_to_methods_toattacks_found_training_df
             list_of_optimal_fone_scores_at_exfil_rates.append(optimal_fones)
 
+            if avg_exfil_per_min[rate_counter] not in rate_to_time_gran_to_xs:
+                rate_to_time_gran_to_xs[avg_exfil_per_min[rate_counter]] = []
+                rate_to_time_gran_to_ys[avg_exfil_per_min[rate_counter]] = []
+
+            for time_counter,time_gran in enumerate(rate_to_timegran_to_methods_to_attacks_found_dfs[avg_exfil_per_min[rate_counter]].keys()):
+                rate_to_time_gran_to_xs[avg_exfil_per_min[rate_counter]].append((Xs[time_gran], Xts[time_gran]))
+                rate_to_time_gran_to_ys[avg_exfil_per_min[rate_counter]].append((Ys[time_gran], Yts[time_gran]))
+
         with open(test_results_df_loc, 'wb') as f:  # Just use 'w' mode in 3.x
             f.write(pickle.dumps(rate_to_timegran_to_methods_to_attacks_found_dfs))
         with open(training_results_df_loc, 'wb') as f:  # Just use 'w' mode in 3.x
@@ -144,6 +154,9 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
     generate_aggregate_report.generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
                               rate_to_timegran_list_of_methods_to_attacks_found_training_df,
                               base_output_name, rates_to_experiment_info)
+
+
+    return rate_to_time_gran_to_xs, rate_to_time_gran_to_ys
 
 
 def pipeline_one_exfil_rate(rate_counter,
