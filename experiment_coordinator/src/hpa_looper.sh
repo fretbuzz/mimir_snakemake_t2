@@ -3,6 +3,8 @@
 exp_time_min=$1
 hpa_file=$2
 
+hpa_file="${hpa_file//\" \"}"
+hpa_file="${hpa_file//\"\n"}"
 echo ' ' > "$hpa_file"
 for i in $(seq 1 "$((exp_time_min))");
 do

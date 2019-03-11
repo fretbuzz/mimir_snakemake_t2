@@ -5,6 +5,7 @@ import pdfkit
 import subprocess
 import numpy as np
 import pandas
+import math
 
 def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
                               rate_to_timegran_list_to_methods_to_attacks_found_training_df,
@@ -21,16 +22,44 @@ def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
     ### so right now it is rate -> (time_gran  -> (method -> tp/fp/tn/fn on each attack))
     time_gran_to_attack_to_methods_to_f1s = {} # map to another dict, which maps attacks to another dict,
                                                 # which maps attack to a list of f1s, one for each exfil rate @ a given time granularity
-    time_gran_to_attack_to_rate = {}
+    time_gran_to_rate = {}
+    time_gran_to_attack_to_methods_to_rates = {}
+
+    # okay, first I need to calculate the dimensions of the grid of graphs..
+    # well it's just the number of rates
+    num_of_rates = len(rate_to_timegran_to_methods_to_attacks_found_dfs.keys())
+    num_of_timegrans = len(rate_to_timegran_to_methods_to_attacks_found_dfs[rate_to_timegran_to_methods_to_attacks_found_dfs.keys()[0]].keys())
+    num_of_attacks = None
+    bargraph_locs = []
+
+    # each plot corresponds to a certain rate... let's fix the columns at 3 and then do the necessary corresponding amt of rows.
+    time_gran_to_comp_bargraph_info = {}
+    for time_gran in rate_to_timegran_to_methods_to_attacks_found_dfs[rate_to_timegran_to_methods_to_attacks_found_dfs.keys()[0]].keys():
+        filename = "subplots_comp-bargraph" + str(time_gran) + ".png"
+        cur_lineGraph_loc = "./temp_outputs/" + filename
+
+        nrows = int(math.ceil(num_of_rates / 3.0))
+        ncolumns = 3
+        print "nrows",nrows, "ncolumns",ncolumns, "num_of_rates",num_of_rates, math.ceil(num_of_rates / 3.0)
+        bar_fig, bar_axes = plt.subplots(nrows=nrows, ncols=ncolumns, figsize=(30, 30))
+        time_gran_to_comp_bargraph_info[time_gran] = (bar_fig, bar_axes, cur_lineGraph_loc)
+
+    rate_counter = 0
     for rate, timegran_to_methods_to_attacks_found_dfs in rate_to_timegran_to_methods_to_attacks_found_dfs.iteritems():
+        plt.clf()
         for timegran, methods_to_attacks_found_dfs in timegran_to_methods_to_attacks_found_dfs.iteritems():
             if timegran not in time_gran_to_attack_to_methods_to_f1s:
                 time_gran_to_attack_to_methods_to_f1s[timegran] = {}
-                time_gran_to_attack_to_rate[timegran] = {}
+                time_gran_to_rate[timegran] = []
+                time_gran_to_attack_to_methods_to_rates[timegran] = {}
+            maybe_attack_found_df = methods_to_attacks_found_dfs[methods_to_attacks_found_dfs.keys()[0]]
+            num_of_attacks = len(maybe_attack_found_df.index.values)
+
 
             ## okay, one graph for each of these set of params should be made
             filename = "comp_bargraph_" + str(rate) + "_" + str(timegran) + ".png"
             temp_graph_loc = "./temp_outputs/" + filename
+            bargraph_locs.append(temp_graph_loc)
             graph_loc = base_output_name + filename
 
             # TODO: okay, so would want to define a figure here + probably pass it to per_attack_bar_graphs +
@@ -38,21 +67,39 @@ def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
             # all the sizing information before this loop starts and then just execute it in the inner part).
             # this'll also require modify rendering portion b/c we only want a single graph + better titles
             # obviously... ACTUALLY want one graph per time granularity, with one subfigure per exfiltration rates
-            df_attack_identites = per_attack_bar_graphs(methods_to_attacks_found_dfs, temp_graph_loc, graph_loc)
+            bar_axes = time_gran_to_comp_bargraph_info[timegran][1]
+            cur_bar_axes = bar_axes[int(rate_counter / 3)][(rate_counter % 3)]
 
+            df_attack_identites = per_attack_bar_graphs(methods_to_attacks_found_dfs, temp_graph_loc, graph_loc,
+                                                        cur_bar_axes)
+
+            # TODO: finish the current bar subgraphs
+            ### TODO: PROBLEM THE ATTACKS MIGHT NOT BE IN THE SAME ORDER <--- top priority.
+            #### ^^^ do this, and then can start on all the tasks below...
+            ### TODO: (a) DEBUG THE GAPHS, (b) DEBUG IDE results, (c) make sure I get some (at least semi-) decent autoscaling results
+            ### plus autoscaling graphs plz. (d) stick the new and improved graphs into a (very simple) aggregate report.
+            BytesPerMegabyte = 1000000.0
+            cur_bar_axes.set_title(str(rate / BytesPerMegabyte ) + ' MB Per Minute')
+            cur_bar_axes.set_ylabel('f1 scores')
+            cur_bar_axes.set_xlabel('attack')
+            cur_bar_axes.legend()
+
+            #cur_bar_axes.set_xtick
 
             with pandas.option_context('display.max_colwidth', -1):
                 df_attack_identites_html = df_attack_identites.to_html()
 
-            ## TODO: okay, this is where I'd want to create the other graph???? so what is the other graph again??
+            ## note: I have some decent graphs, but I need to debug them still because some of the behavior seems off
+            ## okay, this is where I'd want to create the other graph???? so what is the other graph again??
             ## well, it is f1 score vs exfiltration_rate... w/ one subfigure for each attack + one figure for
             ## each time gran (+ an aggregate graph of all the attacks just because that makes my life easier imho)
             ## steps: (1a): Need to get f1_vs_rate per attack
                         ## so, a dict mapping [time_gran] -> ([list_of_f1s], [list_of_rates_per_attack])
                         ## okay, so the order of these loops is suboptimal but that's okay. i'll just need to
                         ## store everything in a dict and then use it later
-            update_attack_rate_linegraph_dicts(time_gran_to_attack_to_methods_to_f1s, time_gran_to_attack_to_rate, timegran,
-                                               methods_to_attacks_found_dfs)
+            update_attack_rate_linegraph_dicts(time_gran_to_attack_to_methods_to_f1s, timegran,
+                                               methods_to_attacks_found_dfs, time_gran_to_attack_to_methods_to_rates, rate)
+            time_gran_to_rate[timegran].append(rate)
             ##        (1b): actually make it into some graphs
             ##        (1c) adjust the rendering appropriately
 
@@ -67,8 +114,46 @@ def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
                 composite_results_bargraph = '.' + temp_graph_loc,
                 df_attack_identites = df_attack_identites_html
             ))
+        rate_counter += 1
+
+    for time_gran, comp_graph_info in time_gran_to_comp_bargraph_info.iteritems():
+        comp_graph_info[0].savefig(comp_graph_info[2])
+    #time_gran_to_comp_bargraph_info[timegran][0]
+    #time_gran_to_comp_bargraph_info[time_gran].savefig
+    #bar_fig.savefig(cur_lineGraph_loc)
+
 
     # STEP (2): that other graph that I wanted [[TODO TODO TODO]]
+    # using: time_gran_to_attack_to_methods_to_f1s
+    # and using: time_gran_to_rate
+    for time_gran, attack_to_methods_to_f1s in time_gran_to_attack_to_methods_to_f1s.iteritems():
+        plt.clf()
+        filename = "comp_linegraph_" + str(time_gran) + ".png"
+        cur_lineGraph_loc = "./temp_outputs/" + filename
+        # for the outer loop, want to make a new figure (i.e. the whole grid)
+        # (note: I'd still want it be 2D even if the theree was only enough to fill a single row...)
+        fig, axes = plt.subplots(nrows=int(math.ceil(num_of_attacks /3.0)), ncols=3, figsize=(30,30))
+        fig.suptitle(str(time_gran))
+        j = 0
+        markers = ['o', 's', '*']
+        for attack, methods_to_f1s in attack_to_methods_to_f1s.iteritems():
+            # okay, for this loop, want to make a new figure inside the grid
+            # the figures are already created. so I just need to make the variables to index into axes
+            m = 0
+            for method,f1s in methods_to_f1s.iteritems():
+                y = f1s # f1s go here
+                #x = time_gran_to_rate[time_gran] # rates go here
+                x = time_gran_to_attack_to_methods_to_rates[time_gran][attack][method]
+                # need to titl ethis.
+                axes[int(j / 3)][(j % 3)].plot(x,y, label=str(method), marker=markers[m])
+                axes[int(j / 3)][(j % 3)].set_title(str(attack))
+                axes[int(j / 3)][(j % 3)].set_ylabel('f1 scores')
+                axes[int(j / 3)][(j % 3)].set_xlabel('rates')
+                axes[int(j / 3)][(j % 3)].legend()
+                m+=1
+            j += 1
+        ## okay, well now I would probably want to store it somewhere...
+        fig.savefig(cur_lineGraph_loc)
 
     # Step (3) put it all into a handy-dandy report
     base_template = env.get_template("report_template.html")
@@ -91,12 +176,25 @@ def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
     pdfkit.from_file("mulval_inouts/aggregate_report.html", aggregate_report_location, configuration=config, options=options)
     out = subprocess.check_output(['open', aggregate_report_location])
 
-def update_attack_rate_linegraph_dicts(time_gran_to_attack_to_methods_to_f1s, time_gran_to_attack_to_rate, timegran,
-                                       methods_to_attacks_found_dfs):
+def update_attack_rate_linegraph_dicts(time_gran_to_attack_to_methods_to_f1s, timegran,
+                                       methods_to_attacks_found_dfs, time_gran_to_attack_to_methods_to_rates, rate):
     ## TODO: this function is probably the meat of adding the new kind of graphs... the actual function will
     ## be relatively straight-forward indexing (plus somethign complicated w/ figs/subfigs but that isn't super
     ## important IMHO)
-    pass
+    for method, attacks_found in methods_to_attacks_found_dfs.iteritems():
+        attacks_to_fones = results_df_to_attack_fones(attacks_found)
+        for attack,fones in attacks_to_fones.iteritems():
+            #if attack not in time_gran_to_attack_to_methods_to_f1s[timegran]:
+            #    time_gran_to_attack_to_methods_to_f1s[timegran][attack] = {}
+            # print "perf", perf, "==endperf"
+            if attack not in time_gran_to_attack_to_methods_to_f1s[timegran]:
+                time_gran_to_attack_to_methods_to_f1s[timegran][attack] = {}
+                time_gran_to_attack_to_methods_to_rates[timegran][attack] = {}
+            if method not in time_gran_to_attack_to_methods_to_f1s[timegran][attack]:
+                time_gran_to_attack_to_methods_to_f1s[timegran][attack][method] = []
+                time_gran_to_attack_to_methods_to_rates[timegran][attack][method] = []
+            time_gran_to_attack_to_methods_to_f1s[timegran][attack][method].append(fones)
+            time_gran_to_attack_to_methods_to_rates[timegran][attack][method].append(rate)
 
 def results_df_to_attack_fones(results_df):
     attacks = results_df.index
@@ -123,7 +221,7 @@ def results_df_to_attack_fones(results_df):
 
     return attack_to_fone
 
-def per_attack_bar_graphs(method_to_results_df, temp_location, file_storage_location):
+def per_attack_bar_graphs(method_to_results_df, temp_location, file_storage_location, relevant_subplots_axis):
     '''Taken more-or-less wholesale from https://matplotlib.org/gallery/statistics/barchart_demo.html'''
     fig, ax = plt.subplots()
     attacks = method_to_results_df[method_to_results_df.keys()[0]].index
@@ -147,6 +245,11 @@ def per_attack_bar_graphs(method_to_results_df, temp_location, file_storage_loca
         attack_fones = [attack_to_fone[attack] for attack in attacks]
 
         rects1 = ax.bar(current_bar_locations, attack_fones, bar_width,
+                        alpha=opacity, color=colors_to_use[i],
+                        error_kw=error_config,
+                        label=cur_method)
+
+        relevant_subplots_axis.bar(current_bar_locations, attack_fones, bar_width,
                         alpha=opacity, color=colors_to_use[i],
                         error_kw=error_config,
                         label=cur_method)
