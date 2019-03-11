@@ -78,6 +78,8 @@ def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
             #### ^^^ do this, and then can start on all the tasks below...
             ### TODO: (a) DEBUG THE GAPHS, (b) DEBUG IDE results, (c) make sure I get some (at least semi-) decent autoscaling results
             ### plus autoscaling graphs plz. (d) stick the new and improved graphs into a (very simple) aggregate report.
+            ### TODO: NEED TO PLAN HOW MULTI-RATE IS GOING TO WORK!!!!
+            ### AND GET SOCKSHOP WORKING!!! THAT's REALLY IMPORTANT!!!
             BytesPerMegabyte = 1000000.0
             cur_bar_axes.set_title(str(rate / BytesPerMegabyte ) + ' MB Per Minute')
             cur_bar_axes.set_ylabel('f1 scores')
