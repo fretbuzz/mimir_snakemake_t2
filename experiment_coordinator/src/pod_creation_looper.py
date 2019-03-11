@@ -32,14 +32,15 @@ def pod_logger(log_file_loc, sentinal_file_loc):
                 changes_this_time_step[last_name] = (last_ip_tup, '-')
 
         # wait a bit
-        time.sleep(1.0 - (time.time() - loop_starttime))
+
         time_step_to_changes[timestep_counter] = changes_this_time_step
+
+        with open(log_file_loc, 'wb') as f:  # Just use 'w' mode in 3.x
+            f.write(pickle.dumps(time_step_to_changes))
+
+        time.sleep(1.0 - (time.time() - loop_starttime))
         timestep_counter += 1
         last_timestep_mapping = current_mapping
-
-    # now write changes to file (we're doing it all at the end b/c that's easier...)
-    with open(log_file_loc, 'wb') as f:  # Just use 'w' mode in 3.x
-        f.write(pickle.dumps(time_step_to_changes))
 
 if __name__=="__main__":
     if len(sys.argv) < 3:

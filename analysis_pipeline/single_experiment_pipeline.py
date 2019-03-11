@@ -14,6 +14,7 @@ import analysis_pipeline.prepare_graph
 from analysis_pipeline import gen_attack_templates, process_pcap, process_graph_metrics, simplified_graph_metrics
 from analysis_pipeline.pcap_to_edgelists import create_mappings
 import random
+from analysis_pipeline.statistical_analysis import drop_useless_columns_aggreg_DF
 
 ## TODO: this function is an atrocity and should be converted into a snakemake spec so we can use that instead...###
 ## todo (aim to get it done today...) : change  run_data_analysis_pipeline signature plus the feeder...
@@ -350,6 +351,10 @@ class data_anylsis_pipline(object):
             except:
                 pass
             print "feature_dataframe_columns", time_gran_to_feature_dataframe[time_gran].columns
+
+        for time_gran, feature_df in time_gran_to_feature_dataframe.iteritems():
+            time_gran_to_feature_dataframe[time_gran] = \
+                drop_useless_columns_aggreg_DF(  feature_df  )
 
         self.time_gran_to_feature_dataframe=time_gran_to_feature_dataframe
         self.time_gran_to_attack_labels=time_gran_to_attack_labels

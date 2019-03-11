@@ -697,7 +697,7 @@ def get_coef_dict(clf, X_train_columns, base_output_name, X_train_dtypes):
     return coef_dict
 
 def prepare_data(aggregate_mod_score_dfs, skip_model_part, ignore_physical_attacks_p, time_gran_to_debugging_csv, time_gran):
-    aggregate_mod_score_dfs = drop_useless_columns_aggreg_DF(aggregate_mod_score_dfs)
+    #aggregate_mod_score_dfs = drop_useless_columns_aggreg_DF(aggregate_mod_score_dfs)
 
     if not skip_model_part:
         if ignore_physical_attacks_p:

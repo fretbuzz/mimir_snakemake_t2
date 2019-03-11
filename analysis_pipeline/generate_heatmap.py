@@ -64,4 +64,4 @@ def generate_heatmap(coef_impact_df, path, non_local_path):
     plt.setp(ax.set_xticklabels(x_labels))
 
     fig.savefig(path)
-    fig.savefig(non_local_path)
+    #fig.savefig(non_local_path)
