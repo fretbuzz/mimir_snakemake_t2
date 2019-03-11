@@ -47,7 +47,7 @@ def main(autoscale_p=False, cpu_percent_cuttoff=80):
         print "metrics_server_str_response ", out
         wait_until_pods_done("kube-system")
 
-        autoscale_cmd_str = ["kubectl", "autoscale", "deployment", "wwwppp-wordpress", "--min=" + str(15), "--max=" + str(
+        autoscale_cmd_str = ["kubectl", "autoscale", "deployment", "wwwppp-wordpress", "--min=" + str(10), "--max=" + str(
             goal_wp_containers),"--cpu-percent=" + str(cpu_percent_cuttoff)]
         out = subprocess.check_output(autoscale_cmd_str)
         print "autoscale_out: ", out

@@ -156,7 +156,8 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
                               base_output_name, rates_to_experiment_info)
 
 
-    return rate_to_time_gran_to_xs, rate_to_time_gran_to_ys
+    return rate_to_time_gran_to_xs, rate_to_time_gran_to_ys, rate_to_timegran_list_of_methods_to_attacks_found_training_df, \
+           rate_to_timegran_to_methods_to_attacks_found_dfs
 
 
 def pipeline_one_exfil_rate(rate_counter,

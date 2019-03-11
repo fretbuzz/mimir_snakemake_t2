@@ -295,11 +295,16 @@ def normalize_data_v2(time_gran_to_feature_dataframe, time_gran_to_attack_labels
         # normalizes each column of the input matrix
         transformed_data = transformer.transform(feature_dataframe)
 
+
         # TODO: modify this at some point-- prob not the way to do it at the end...
         transformed_data = np.minimum(transformed_data, 100)
 
         time_gran_to_normalized_df[time_gran] = pandas.DataFrame(transformed_data, index=feature_dataframe.index,\
                                                                  columns=feature_dataframe.columns.values) #df_normalized
+
+        # note whether or not I actually want to do this is TBD...
+        time_gran_to_normalized_df[time_gran] = time_gran_to_normalized_df[time_gran].fillna(time_gran_to_normalized_df[time_gran].median())
+        time_gran_to_normalized_df[time_gran] = time_gran_to_normalized_df[time_gran].dropna(axis=1)
 
     return time_gran_to_normalized_df
 

@@ -40,6 +40,7 @@ def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
             # obviously... ACTUALLY want one graph per time granularity, with one subfigure per exfiltration rates
             df_attack_identites = per_attack_bar_graphs(methods_to_attacks_found_dfs, temp_graph_loc, graph_loc)
 
+
             with pandas.option_context('display.max_colwidth', -1):
                 df_attack_identites_html = df_attack_identites.to_html()
 

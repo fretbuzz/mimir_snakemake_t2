@@ -1969,17 +1969,17 @@ def new_wordpress_recipe():
     exfil_per_min_variance = [BytesPerMegabyte * i for i in exfil_per_min_variance]
     ######
 
-    calc_vals = True
+    calc_vals = False
     calculate_z_scores = True
 
     ####
     cur_experiment_name = "v2_testingNewPipeline"  # can modify if you want, probably with:  new_wordpress_recipe.__name__
-    base_output_location = '/Volumes/exM2/experimental_data/wordpress_summary/new_'# + 'lasso_roc'
+    base_output_location = '/Volumes/exM2/experimental_data/wordpress_summary_new/new_'# + 'lasso_roc'
     base_output_location += cur_experiment_name
     #####
 
     skip_graph_injection = False
-    get_endresult_from_memory = False # in this case, you'd skip literally the whole pipeline and just get the
+    get_endresult_from_memory = True # in this case, you'd skip literally the whole pipeline and just get the
                                       # trained model + the results (from that model) out of memory
                                       # I anticpate that this'll mostly be useful for working on generating
                                       # the final results report + the graphs + other stuff kinda...
@@ -2014,7 +2014,7 @@ def new_wordpress_recipe():
     ## NOTE: process_wordpress8 could be here too, but I'm for the moment I'm keeping each kind of injected
     ## attack w/ two different experiments in which it occurss...
 
-    multi_experiment_pipeline(experiment_classes, base_output_location, True, time_of_synethic_exfil,
+    return multi_experiment_pipeline(experiment_classes, base_output_location, True, time_of_synethic_exfil,
                               goal_train_test_split_training, goal_attack_NoAttack_split_training, training_window_size,
                               size_of_neighbor_training_window, calc_vals, skip_model_part, ignore_physical_attacks_p,
                               calculate_z_scores_p=calculate_z_scores,

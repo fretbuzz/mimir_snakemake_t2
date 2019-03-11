@@ -352,10 +352,6 @@ class data_anylsis_pipline(object):
                 pass
             print "feature_dataframe_columns", time_gran_to_feature_dataframe[time_gran].columns
 
-        for time_gran, feature_df in time_gran_to_feature_dataframe.iteritems():
-            time_gran_to_feature_dataframe[time_gran] = \
-                drop_useless_columns_aggreg_DF(  feature_df  )
-
         self.time_gran_to_feature_dataframe=time_gran_to_feature_dataframe
         self.time_gran_to_attack_labels=time_gran_to_attack_labels
         self.time_gran_to_synthetic_exfil_paths_series=time_gran_to_synthetic_exfil_paths_series
@@ -371,6 +367,10 @@ class data_anylsis_pipline(object):
 
     def calculate_z_scores_and_get_stat_vals(self):
         mod_z_score_df_basefile_name = self.alert_file + 'mod_z_score_' + self.sub_path
+
+        for time_gran, feature_df in self.time_gran_to_feature_dataframe.iteritems():
+            self.time_gran_to_feature_dataframe[time_gran] = \
+                drop_useless_columns_aggreg_DF(  self.time_gran_to_feature_dataframe[time_gran]  )
 
         if self.calc_zscore_p:
             # note: it's not actually mod_z_score anymore, but I'm keeping the name for compatibility...
@@ -397,11 +397,12 @@ class data_anylsis_pipline(object):
 
         print "analysis_pipeline about to return!"
 
+        # no longer a thing.
+        #for time_gran, mod_z_score_df in time_gran_to_mod_zscore_df.iteritems():
+        #    time_gran_to_mod_zscore_df[time_gran] = mod_z_score_df.drop(mod_z_score_df.index[:self.minimum_training_window])
 
-        for time_gran, mod_z_score_df in time_gran_to_mod_zscore_df.iteritems():
-            time_gran_to_mod_zscore_df[time_gran] = mod_z_score_df.drop(mod_z_score_df.index[:self.minimum_training_window])
-
-        return time_gran_to_mod_zscore_df, None, self.time_gran_to_feature_dataframe_copy, \
+        # self.time_gran_to_feature_dataframe_copy, \
+        return time_gran_to_mod_zscore_df, None, self.time_gran_to_feature_dataframe,\
                self.time_gran_to_synthetic_exfil_paths_series, self.end_of_training
 
 
