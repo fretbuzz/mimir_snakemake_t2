@@ -41,7 +41,7 @@ def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
         nrows = int(math.ceil(num_of_rates / 3.0))
         ncolumns = 3
         print "nrows",nrows, "ncolumns",ncolumns, "num_of_rates",num_of_rates, math.ceil(num_of_rates / 3.0)
-        bar_fig, bar_axes = plt.subplots(nrows=nrows, ncols=ncolumns, figsize=(30, 30))
+        bar_fig, bar_axes = plt.subplots(nrows=nrows, ncols=ncolumns, figsize=(26, 13), subplot_kw={ 'adjustable' : 'box'})
         time_gran_to_comp_bargraph_info[time_gran] = (bar_fig, bar_axes, cur_lineGraph_loc)
 
     rate_counter = 0
@@ -54,6 +54,7 @@ def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
                 time_gran_to_attack_to_methods_to_rates[timegran] = {}
             maybe_attack_found_df = methods_to_attacks_found_dfs[methods_to_attacks_found_dfs.keys()[0]]
             num_of_attacks = len(maybe_attack_found_df.index.values)
+
 
 
             ## okay, one graph for each of these set of params should be made
@@ -74,17 +75,28 @@ def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
                                                         cur_bar_axes)
 
             # TODO: finish the current bar subgraphs
+            ### TODO: STILL THESE ::://// This is at least like 3-4 hours of work... :::///
             ### TODO: PROBLEM THE ATTACKS MIGHT NOT BE IN THE SAME ORDER <--- top priority.
             #### ^^^ do this, and then can start on all the tasks below...
             ### TODO: (a) DEBUG THE GAPHS, (b) DEBUG IDE results, (c) make sure I get some (at least semi-) decent autoscaling results
             ### plus autoscaling graphs plz. (d) stick the new and improved graphs into a (very simple) aggregate report.
             ### TODO: NEED TO PLAN HOW MULTI-RATE IS GOING TO WORK!!!!
             ### AND GET SOCKSHOP WORKING!!! THAT's REALLY IMPORTANT!!!
+            ##### lol... well, I kinda got (c).... okay, so I actually do need to get this done today, plus get autoscaling
+            ##### sockshop to work too (since I'll need to re-do the exfil path element + modify viz's before the end
+            ##### I am ready to report results)
+            ## todo: (1) ide. is it fine? I understand it was probably working fine before b/c it was clearing edges, but you'd expect better
+            ## todo: (2) wordpress autoscaling (analysis)
+            ## todo: (3) sockshop autoscaling (analysis)
+            ## todo: (4) overhaul the aggregate report w/ the new graph grids + change single to have a new page, using
+            # that trick I learned...
             BytesPerMegabyte = 1000000.0
             cur_bar_axes.set_title(str(rate / BytesPerMegabyte ) + ' MB Per Minute')
             cur_bar_axes.set_ylabel('f1 scores')
             cur_bar_axes.set_xlabel('attack')
-            cur_bar_axes.legend()
+            #cur_bar_axes.legend()
+            cur_bar_axes.legend(loc='upper center', bbox_to_anchor=(0.5, -0.05), fancybox=True, shadow=True, ncol=5)
+
 
             #cur_bar_axes.set_xtick
 
@@ -118,7 +130,16 @@ def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
             ))
         rate_counter += 1
 
+
+    #  cur_bar_axes.set(adjustable='box', aspect='equal')
+    for timegran, comp_bargraph_info in time_gran_to_comp_bargraph_info.iteritems():
+        cur_axis_set = comp_bargraph_info[1]
+        for cur_axis_row in cur_axis_set:
+            for cur_axis in cur_axis_row:
+                cur_axis.set(adjustable='box', aspect='auto')
+
     for time_gran, comp_graph_info in time_gran_to_comp_bargraph_info.iteritems():
+        #comp_graph_info[0].tight_layout()
         comp_graph_info[0].savefig(comp_graph_info[2])
     #time_gran_to_comp_bargraph_info[timegran][0]
     #time_gran_to_comp_bargraph_info[time_gran].savefig
@@ -128,14 +149,15 @@ def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
     # STEP (2): that other graph that I wanted [[TODO TODO TODO]]
     # using: time_gran_to_attack_to_methods_to_f1s
     # and using: time_gran_to_rate
+    plt.rcParams.update({'font.size': 62})
     for time_gran, attack_to_methods_to_f1s in time_gran_to_attack_to_methods_to_f1s.iteritems():
         plt.clf()
         filename = "comp_linegraph_" + str(time_gran) + ".png"
         cur_lineGraph_loc = "./temp_outputs/" + filename
         # for the outer loop, want to make a new figure (i.e. the whole grid)
         # (note: I'd still want it be 2D even if the theree was only enough to fill a single row...)
-        fig, axes = plt.subplots(nrows=int(math.ceil(num_of_attacks /3.0)), ncols=3, figsize=(30,30))
-        fig.suptitle(str(time_gran))
+        fig, axes = plt.subplots(nrows=int(math.ceil(num_of_attacks /3.0)), ncols=3, figsize=(30, 25))
+        fig.suptitle(str(time_gran) + ' sec time gran')
         j = 0
         markers = ['o', 's', '*']
         for attack, methods_to_f1s in attack_to_methods_to_f1s.iteritems():
@@ -146,12 +168,19 @@ def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
                 y = f1s # f1s go here
                 #x = time_gran_to_rate[time_gran] # rates go here
                 x = time_gran_to_attack_to_methods_to_rates[time_gran][attack][method]
-                # need to titl ethis.
-                axes[int(j / 3)][(j % 3)].plot(x,y, label=str(method), marker=markers[m])
-                axes[int(j / 3)][(j % 3)].set_title(str(attack))
-                axes[int(j / 3)][(j % 3)].set_ylabel('f1 scores')
-                axes[int(j / 3)][(j % 3)].set_xlabel('rates')
+                x = [math.log10(float(i)) for i in x]
+                x, y = zip(*sorted(zip(x, y)))
+                print "exfil rates", x
+
+                axes[int(j / 3)][(j % 3)].plot(x,y, label=str(method), marker=markers[m], alpha=0.5, linewidth=3.0)
+                axes[int(j / 3)][(j % 3)].set_title(str(attack), fontsize=15) # TODO: either want to modify names or use wrap-around
+                axes[int(j / 3)][(j % 3)].set_ylabel('f1 scores', fontsize=25)
+                axes[int(j / 3)][(j % 3)].set_xlabel('log rates', fontsize=25)
                 axes[int(j / 3)][(j % 3)].legend()
+                #axes[int(j / 3)][(j % 3)].set_xscale(value="log")
+
+                axes[int(j / 3)][(j % 3)].set_ylim(top=1.1,bottom=-0.1)
+
                 m+=1
             j += 1
         ## okay, well now I would probably want to store it somewhere...

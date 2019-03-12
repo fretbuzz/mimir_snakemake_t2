@@ -451,6 +451,10 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
                 stop_det_client(container)
     copy_experimental_info_to_experimental_folder(exp_name)
 
+    try:
+        os.remove(end_sentinal_file_loc)
+    except OSError:
+        pass
 
 def prepare_app(app_name, config_params, ip, port):
     if app_name == "sockshop":

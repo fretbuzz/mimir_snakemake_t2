@@ -10,13 +10,13 @@ import ast
 def determine_optimal_threshold(y_true, test_predictions, thresholds):
     list_of_f1_scores = []
     for counter,threshold in enumerate(thresholds):
+        #print counter,threshold
         y_pred = [int(i > threshold) for i in test_predictions]
         f1_score = sklearn.metrics.f1_score(y_true, y_pred, pos_label=1, average='binary')
         list_of_f1_scores.append(f1_score)
     max_f1_score = max(list_of_f1_scores)
     max_f1_score_threshold_pos = [i for i,j in enumerate(list_of_f1_scores) if j == max_f1_score]
     threshold_corresponding_max_f1 = thresholds[max_f1_score_threshold_pos[0]]
-
     return max_f1_score, threshold_corresponding_max_f1
 
 def determine_categorical_labels(y_test, optimal_predictions, exfil_paths, exfil_weights):

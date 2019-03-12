@@ -207,6 +207,7 @@ class injected_graph():
         # yah, not so sure about this... need to store training/testing status in the graph object
         # (b/c if it is testing, then can use injected. else should use the fine ones)...
         self.graph_feature_dict['past_end_of_training'] = self.past_end_of_training
+        print "past_end_of_training", self.past_end_of_training
         if self.past_end_of_training:
             adjacency_matri = nx.to_pandas_adjacency(self.cur_1si_G, nodelist=self.current_total_node_list)
         else:
@@ -363,7 +364,7 @@ class set_of_injected_graphs():
 
         self.calculated_values['into_dns_eigenval_angles'] = into_dns_eigenval_angles
         self.calculated_values['ide_angles'] = ide_angles_results
-        self.calculated_values['ide_angles (w abs)'] = [abs(i) for i in ide_angles_results]
+        self.calculated_values['ide_angles_w_abs'] = [abs(i) for i in ide_angles_results]
 
         self.calculated_values_keys = self.calculated_values.keys()
 
@@ -461,7 +462,7 @@ class set_of_injected_graphs():
             carryover = out_q.get()
             amt_of_out_traffic_bytes = out_q.get()
             amt_of_out_traffic_pkts = out_q.get()
-            mapping = out_q.get()
+            container_to_ip = out_q.get()
             p.join()
 
             ## okay, literally the code above should be wrapped in a function call...
@@ -488,7 +489,11 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
 
     for counter_add, file_path in enumerate(file_paths):
         counter = counter_starting + counter_add
-        past_end_of_training = (counter * time_interval) > end_of_training
+        cur_time = (counter * time_interval)
+        past_end_of_training = cur_time > end_of_training
+        print "cur_time",cur_time, "end_of_training",end_of_training, "cur_time > end_of_training",cur_time > end_of_training
+        if past_end_of_training:
+            print "wowsers!!"
         gc.collect()
         G = nx.DiGraph()
         print "path to file is ", file_path
@@ -687,7 +692,7 @@ def update_mapping(container_to_ip, pod_creation_log, time_gran, time_counter):
         # recall that: container_to_ip[container_ip] = (container_name, network_name)
         mod_cur_creation_log = {}
         for cur_pod,curIP_PlusMinus in pod_creation_log[i].iteritems():
-            cur_ip = curIP_PlusMinus[0]
+            cur_ip = curIP_PlusMinus[0].rstrip().lstrip()
             plus_minus = curIP_PlusMinus[1]
             if plus_minus == '+':
                 mod_cur_creation_log[cur_ip] = (cur_pod, None)

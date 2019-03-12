@@ -582,7 +582,8 @@ def assign_attacks_to_first_available_spots(time_gran_to_attack_labels, largest_
                 exit(1244) # should break now b/c infinite loop (note: we're not handling the case where it is fragmented...)
 
             random.seed(0)
-            current_possible_steps = int(float(extra_spots) / len(current_exfil_paths[j:]))  #int(extra_spots/10.0) #int(extra_spots)
+            #current_possible_steps = int(float(extra_spots) / len(current_exfil_paths[j:]))
+            current_possible_steps = int(extra_spots/10.0) #int(extra_spots)
             time_periods_between_attacks = random.randint(0, current_possible_steps)  # don't wan to bias it too much towards the end
             extra_spots -= time_periods_between_attacks
             counter += time_periods_between_attacks

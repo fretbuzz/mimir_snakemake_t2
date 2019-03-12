@@ -474,7 +474,9 @@ def drop_useless_columns_aggreg_DF(aggregate_mod_score_dfs):
         pass
     ################
     try:
-        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='ide_angles (w abs)_')
+        #ide_angles
+        #aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='ide_angles (w abs)_')
+        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='ide_angles')
     except:
         pass
 
@@ -590,17 +592,20 @@ def extract_comparison_methods(X_train, X_test):
     try:
         # if True:
         print X_train.columns
-        ide_train = copy.deepcopy(X_train['ide_angles_'])
+
+        # TODO: prob wanna switch the column name here, b/c I'm getting rid of the parenthesis...
+        ide_train = copy.deepcopy(X_train['ide_angles_w_abs_'])
         #ide_train.fillna(ide_train.mean())
         print "ide_train", ide_train
         # exit(1222)
         copy_of_X_test = X_test.copy(deep=True)
-        ide_test = copy.deepcopy(copy_of_X_test['ide_angles_'])
+        ide_test = copy.deepcopy(copy_of_X_test['ide_angles_w_abs_'])
+
 
         #ide_test = ide_test.fillna(ide_train.mean())
         print "ide_test", ide_test
-        X_train = X_train.drop(columns='ide_angles_')
-        X_test = X_test.drop(columns='ide_angles_')
+        X_train = X_train.drop(columns='ide_angles_w_abs_')
+        X_test = X_test.drop(columns='ide_angles_w_abs_')
         # if np. ide_test.tolist():
         #    ide_train = [0 for i in range(0, len(X_train))]
         #    ide_test = [0 for i in range(0, len(X_test))]
