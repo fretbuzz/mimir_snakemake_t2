@@ -32,6 +32,8 @@ elif [ "$1" = "sockshop" ]; then
 
   if [ -n "$autoscale_p" ]; then
     # activate autoscaling
+    minikube addons enable heapster
+    minikube addons enable metrics-server
     git clone https://github.com/microservices-demo/microservices-demo.git
     kubectl apply -f ./microservices-demo/deploy/kubernetes/autoscaling/
   fi
