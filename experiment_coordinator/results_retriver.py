@@ -287,7 +287,7 @@ if __name__ == "__main__":
     #exp_name = 'wordpress_fourteen_mark7_final'
     exp_name = 'sockshop_thirteen_autoscale_mark2'
     # exp_name = 'sockshop_autoscaling_tests'
-    mimir_1 = 'c240g5-110231.wisc.cloudlab.us'  #'c240g5-110119.wisc.cloudlab.us'
+    mimir_1 = 'c240g5-110101.wisc.cloudlab.us'  #'c240g5-110119.wisc.cloudlab.us'
     mimir_2 = 'c240g5-110117.wisc.cloudlab.us'
     cloudlab_server_ip = mimir_1  # note: remove the username@ from the beggining
     exp_length = 10800  # 10800 #7200 # in seconds

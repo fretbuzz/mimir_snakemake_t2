@@ -208,10 +208,13 @@ class injected_graph():
         # (b/c if it is testing, then can use injected. else should use the fine ones)...
         self.graph_feature_dict['past_end_of_training'] = self.past_end_of_training
         print "past_end_of_training", self.past_end_of_training
+
+        # not sure why I actually cared about this... but I cannot any real negatives... so let's just go with it, I guess...
         if self.past_end_of_training:
             adjacency_matri = nx.to_pandas_adjacency(self.cur_1si_G, nodelist=self.current_total_node_list)
         else:
             adjacency_matri = nx.to_pandas_adjacency(self.cur_1si_G_non_injected, nodelist=self.current_total_node_list)
+
         self.graph_feature_dict['adjacency_matrix'] = adjacency_matri
 
         dns_outside_inside_ratios, dns_list_outside, dns_list_inside = \

@@ -4,7 +4,6 @@ import unittest
 import networkx as nx
 import numpy as np
 import pandas as pd
-from analysis_pipeline.process_graph_metrics import calc_modified_z_score
 
 from analysis_pipeline.generate_graphs import get_points_to_plot
 from analysis_pipeline.src.analyze_edgefiles import change_point_detection, find_angles, ide_angles, calc_VIP_metric
@@ -99,11 +98,15 @@ class testSyntheticAttackInjector(unittest.TestCase):
         exfil_per_min_variance = 0
         avg_pkt_size = 500
         pkt_size_variance = 0
+
+        end_of_training= 200
+        pod_creation_log = None
         analysis_pipeline.simplified_graph_metrics.process_and_inject_single_graph(counter_starting, file_paths, svcs,
                         is_swarm, ms_s, container_to_ip, infra_service, synthetic_exfil_paths, initiator_info_for_paths,
                         attacks_to_times, time_interval, total_edgelist_nodes, svc_to_pod, avg_dns_weight, avg_dns_pkts,
                         node_attack_mapping, out_q, current_total_node_list, name_of_dns_pod_node, last_attack_injected,
-                        carryover, avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance)
+                        carryover, avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
+                        end_of_training, pod_creation_log )
 
         # okay, now I actually need to see if it did the right thing...
         #G = nx.DiGraph()
@@ -183,6 +186,10 @@ class testSyntheticAttackInjector(unittest.TestCase):
         exfil_per_min_variance = 0
         avg_pkt_size = 500
         pkt_size_variance = 0
+
+        end_of_training = 200
+        pod_creation_log = None # this is GOOD b/c there's no pod_creation_log
+
         analysis_pipeline.simplified_graph_metrics.process_and_inject_single_graph(counter_starting, file_paths,
                                                                                    svcs,
                                                                                    is_swarm, ms_s, container_to_ip,
@@ -198,7 +205,9 @@ class testSyntheticAttackInjector(unittest.TestCase):
                                                                                    last_attack_injected,
                                                                                    carryover, avg_exfil_per_min,
                                                                                    exfil_per_min_variance,
-                                                                                   avg_pkt_size, pkt_size_variance)
+                                                                                   avg_pkt_size, pkt_size_variance,
+                                                                                   end_of_training,
+                                                                                   pod_creation_log)
 
         # okay, now I actually need to see if it did the right thing...
         # G = nx.DiGraph()
@@ -279,6 +288,9 @@ class testSyntheticAttackInjector(unittest.TestCase):
         exfil_per_min_variance = 0
         avg_pkt_size = 500
         pkt_size_variance = 0
+
+        end_of_training = 200
+        pod_creation_log = None
         analysis_pipeline.simplified_graph_metrics.process_and_inject_single_graph(counter_starting, file_paths,
                                                                                    svcs,
                                                                                    is_swarm, ms_s, container_to_ip,
@@ -294,7 +306,8 @@ class testSyntheticAttackInjector(unittest.TestCase):
                                                                                    last_attack_injected,
                                                                                    carryover, avg_exfil_per_min,
                                                                                    exfil_per_min_variance,
-                                                                                   avg_pkt_size, pkt_size_variance)
+                                                                                   avg_pkt_size, pkt_size_variance,
+                                                                                   end_of_training, pod_creation_log)
 
         # okay, now I actually need to see if it did the right thing...
         # G = nx.DiGraph()
@@ -796,43 +809,6 @@ class TestChangePoint(unittest.TestCase):
         # expect vals to be [30]
         print "vals for test_get_points_to_plot", vals
         self.assertEquals(vals, ([19, 30, 20],4,6))
-
-    def test_modified_z_score_normal(self):
-        test_array = [0.271052632, 0.326797386, 0.268421053, 0.292397661, 0.320261438, 0.304093567, 0.298245614,
-                      0.307189542, 0.263157895, 0.287581699, 0.294117647, 0.287581699, 0.287581699, 0.307189542,
-                      0.278947368, 0.292397661, 0.320261438, 0.298245614, 0.274853801, 0.326797386]
-
-        mod_z_scores = calc_modified_z_score(test_array, 10, 5, float('inf'), False)
-        print "mod_z_scores", mod_z_scores,len(mod_z_scores)
-        for i in range(0,5):
-            self.assertTrue(math.isnan(mod_z_scores[i]))
-        #self.assertEquals(mod_z_scores[0:5], [float('nan') for i in range(0,5)])
-        for i in range(5, len(test_array)):
-            #self.assertNotEqual(mod_z_scores[i], float('nan'))
-            self.assertFalse(math.isnan(mod_z_scores[i]))
-            self.assertNotEqual(mod_z_scores[i], float('inf'))
-            self.assertNotEqual(mod_z_scores[i], float('-inf'))
-            #self.assertNotEqual(mod_z_scores[i], 0.0)
-
-
-    def test_modified_z_score_all_zeroes(self):
-        test_array = [0 for i in range(0,20)]
-        mod_z_scores = calc_modified_z_score(test_array, 10, 5, float('inf'), False)
-        print "mod_z_scores_zeroes", mod_z_scores,len(mod_z_scores)
-        for i in range(0,5):
-            self.assertTrue(math.isnan(mod_z_scores[i]))
-        #self.assertEquals(mod_z_scores[0:5], [float('nan') for i in range(0,5)])
-        self.assertEquals(mod_z_scores[5:], [0.0 for i in range(0,15)])
-
-    def test_modified_z_score_min_bigger_than_ts(self):
-        test_array = [float('nan') for i in range(0,10)] + [0.320261438, 0.298245614, 0.274853801, 0.326797386]
-        mod_z_scores = calc_modified_z_score(test_array, 10, 15, float('inf'), False)
-        print "mod_z_scores_zeroes_too_small", mod_z_scores, len(mod_z_scores)
-        #self.assertEquals(mod_z_scores, [float('nan') for i in range(0,len(test_array))])
-        for i in range(0,len(test_array)):
-            self.assertTrue(math.isnan(mod_z_scores[i]))
-
-    # TODO: think of some more tests...
 
 
     ## TODO tests for:: ide_angles_results = ide_angles(adjacency_matrixes, 6, total_edgelist_nodes)

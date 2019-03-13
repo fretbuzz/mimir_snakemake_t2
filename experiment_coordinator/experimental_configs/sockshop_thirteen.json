@@ -11,11 +11,11 @@
     "network_plugin": "none",
     "setup" : {
       "number_customer_records": "10000",
-      "number_background_locusts": "100",
+      "number_background_locusts": "80",
       "background_locust_spawn_rate": "10"
     },
     "experiment" : {
-      "number_background_locusts": "900",
+      "number_background_locusts": "500",
       "background_locust_spawn_rate": "40",
       "experiment_length_sec": "10800",
       "traffic_type" : "normal",
