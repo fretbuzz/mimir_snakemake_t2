@@ -31,6 +31,7 @@ import pyximport
 pyximport.install() # am I sure that I want this???
 import multiprocessing
 import numpy.random
+import pandas as pd
 
 # okay, so things to be aware of:
 # (a) we are assuming that if we cannot label the node and it is not loopback or in the '10.X.X.X' subnet, then it is outside
@@ -308,6 +309,8 @@ class set_of_injected_graphs():
         self.list_of_amt_of_out_traffic_bytes = []
         self.list_of_amt_of_out_traffic_pkts = []
 
+        self.current_total_node_list = None # TODO
+
     def save(self):
         #with open(self.current_set_of_graphs_loc, 'wb') as output:  # Overwrites any existing file.
         #    pickle.dump(self, output, pickle.HIGHEST_PROTOCOL)
@@ -383,7 +386,7 @@ class set_of_injected_graphs():
         out_q.put([])  # new_neighbors_all
         out_q.put(self.list_of_amt_of_out_traffic_bytes)
         out_q.put(self.list_of_amt_of_out_traffic_pkts)
-        out_q.put(self.mapping)
+        out_q.put(self.container_to_ip)
 
     def load_serialized_metrics(self):
         with open(self.collected_metrics_location, mode='rb') as f:
@@ -405,6 +408,28 @@ class set_of_injected_graphs():
             injected_graph_obj.save_metrics_dict()
 
             injected_graph_obj.save()
+
+    def generate_aggregate_csv(self):
+        self.calculated_values = {}
+        out_df = pd.DataFrame(None, index=None, columns=self.current_total_node_list)
+
+        for injected_graph_loc in self.list_of_injected_graphs_loc:
+            print "injected_graph_loc",injected_graph_loc
+            with open(injected_graph_loc, 'rb') as pickle_input_file:
+                injected_graph = pickle.load(pickle_input_file)
+
+            ## okay, well with the injected graph, it is go-time...
+            # okay, let's take the networkx graph.
+            # let's make a dict.
+            # let's turn the dict into a dataframe (default value zero)
+            # let's append this dict to the out_dict
+            # at the end, let's print the dict to a file.
+
+            # PROBLEM: the func is to_dict_of_dicts
+            # BUT: I just want a single dict!!
+            ## okay, well, what to do???
+
+        pass
 
     def generate_injected_edgefiles(self):
         current_total_node_list = []
@@ -476,6 +501,7 @@ class set_of_injected_graphs():
             self.list_of_amt_of_out_traffic_bytes.extend(amt_of_out_traffic_bytes)
             self.list_of_amt_of_out_traffic_pkts.extend(amt_of_out_traffic_pkts)
 
+            self.current_total_node_list = current_total_node_list
 
 def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm, ms_s, container_to_ip, infra_service,
                                     synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,

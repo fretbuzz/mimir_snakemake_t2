@@ -285,7 +285,7 @@ if __name__ == "__main__":
     #local_dir = '/Volumes/exM2/experimental_data/wordpress_info'
     local_dir = '/Volumes/exM2/experimental_data/sockshop_info'
     #exp_name = 'wordpress_fourteen_mark7_final'
-    exp_name = 'sockshop_thirteen_autoscale_mark2'
+    exp_name = 'sockshop_thirteen_autoscale_mark3'
     # exp_name = 'sockshop_autoscaling_tests'
     mimir_1 = 'c240g5-110101.wisc.cloudlab.us'  #'c240g5-110119.wisc.cloudlab.us'
     mimir_2 = 'c240g5-110117.wisc.cloudlab.us'
