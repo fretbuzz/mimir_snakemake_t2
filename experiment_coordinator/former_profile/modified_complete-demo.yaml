@@ -71,11 +71,11 @@ spec:
         image: weaveworksdemos/carts:0.4.8
         resources:
           limits:
-            cpu: 800m
-            memory: 1000Mi
+            cpu: 300m
+            memory: 500Mi
           requests:
-            cpu: 800m
-            memory: 1000Mi
+            cpu: 300m
+            memory: 500Mi
         ports:
          - containerPort: 80
         env:
@@ -229,9 +229,12 @@ spec:
       - name: front-end
         image: weaveworksdemos/front-end:0.3.12
         resources:
+          limits:
+            cpu: 300m
+            memory: 1000Mi
           requests:
             cpu: 100m
-            memory: 100Mi
+            memory: 300Mi
         ports:
         - containerPort: 8079
         securityContext:
@@ -338,11 +341,11 @@ spec:
            value: -Xms64m -Xmx128m -XX:PermSize=32m -XX:MaxPermSize=64m -XX:+UseG1GC -Djava.security.egd=file:/dev/urandom
         resources:
           limits:
-            cpu: 800m
-            memory: 1000Mi
+            cpu: 500m
+            memory: 500Mi
           requests:
-            cpu: 800m
-            memory: 1000Mi
+            cpu: 200m
+            memory: 500Mi
         ports:
         - containerPort: 80
         securityContext:
@@ -451,11 +454,11 @@ spec:
         image: weaveworksdemos/queue-master:0.3.1
         resources:
           limits:
-            cpu: 750m
-            memory: 3000Mi
+            cpu: 300m
+            memory: 500Mi
           requests:
-            cpu: 750m
-            memory: 3000Mi
+            cpu: 300m
+            memory: 500Mi
         ports:
         - containerPort: 80
       nodeSelector:
@@ -549,11 +552,11 @@ spec:
            value: -Xms64m -Xmx128m -XX:PermSize=32m -XX:MaxPermSize=64m -XX:+UseG1GC -Djava.security.egd=file:/dev/urandom
         resources:
           limits:
-            cpu: 750m
-            memory: 1000Mi
+            cpu: 300m
+            memory: 500Mi
           requests:
-            cpu: 750m
-            memory: 1000Mi
+            cpu: 300m
+            memory: 500Mi
         ports:
         - containerPort: 80
         securityContext:
