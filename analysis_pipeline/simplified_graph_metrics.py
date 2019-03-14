@@ -379,6 +379,10 @@ class set_of_injected_graphs():
         with open(self.collected_metrics_location, 'wb') as f:  # Just use 'w' mode in 3.x
             f.write(pickle.dumps(self.calculated_values))
 
+    # TODO: this'll need to interact with the common lisp clml library to do stuff...
+    def calc_ide_angles(self):
+        pass
+
     def put_values_into_outq(self, out_q):
         out_q.put(self.calculated_values)
         out_q.put(self.list_of_concrete_container_exfil_paths)
@@ -1034,7 +1038,7 @@ def pairwise_metrics(G, svc_to_nodes):
                 if svc_one < svc_two:
                     svc_pair_to_density[(svc_one, svc_two)] = bipartite_density
                     svc_pair_to_reciprocity[(svc_one,svc_two)] = weighted_reciprocity
-                svc_pair_to_coef_of_var[(svc_one,svc_two)] = coef_of_var
+                    svc_pair_to_coef_of_var[(svc_one,svc_two)] = coef_of_var
                 #print "between_stuff", svc_one, svc_two, len(subgraph.edges(data=True)), subgraph.edges(data=True)
 
                 '''
@@ -1081,12 +1085,14 @@ def pairwise_metrics(G, svc_to_nodes):
                 svc_pair_to_reciprocity[(svc_one, svc_two)] = weighted_reciprocity
                 #print "self_stuff", svc_one, subgraph.edges(data=True)
 
+                '''
                 service_one_degrees = subgraph.degree(nbunch=orig_nodes_one)
                 service_one_degrees_list = []
                 for svc_one_node_node_degree_tuple in service_one_degrees:
                     svc_one_node = svc_one_node_node_degree_tuple[0]
                     node_degree = svc_one_node_node_degree_tuple[1]
                     service_one_degrees_list.append( node_degree )
+                '''
                 #svc_triple_to_degree_coef_of_var[(svc_one, svc_two, svc_one)] = np.std(service_one_degrees_list) / np.mean(service_one_degrees_list)
 
 
@@ -1129,7 +1135,6 @@ def make_bipartite(G, node_set_one, node_set_two):
     #print "node_set_two", node_set_two
     #print [i for i in G.nodes()]
     #exit(34)
-
     return G
 
 # https://en.wikipedia.org/wiki/Coefficient_of_variation

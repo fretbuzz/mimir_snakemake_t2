@@ -2025,7 +2025,7 @@ def new_wordpress_autoscaling_recipe():
     exfil_per_min_variance = [BytesPerMegabyte * i for i in exfil_per_min_variance]
     ######
 
-    calc_vals = True
+    calc_vals = False
     calculate_z_scores = True
 
     ####
@@ -2261,8 +2261,8 @@ if __name__=="__main__":
     if len(sys.argv) == 1:
         print "running_preset..."
         ## NO NO No::: new_new_wordpress_recipe() # testing autoscaling stuff...
-        #new_wordpress_autoscaling_recipe()
-        new_wordpress_recipe()
+        new_wordpress_autoscaling_recipe()
+        #new_wordpress_recipe()
         #multi_experiment_wordpress_recipe()
         #time.sleep(14400)
         #multi_experiment_sockshop_recipe()
