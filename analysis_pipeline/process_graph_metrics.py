@@ -304,7 +304,9 @@ def normalize_data_v2(time_gran_to_feature_dataframe, time_gran_to_attack_labels
                                                                  columns=feature_dataframe.columns.values) #df_normalized
 
         # note whether or not I actually want to do this is TBD...
-        time_gran_to_normalized_df[time_gran] = time_gran_to_normalized_df[time_gran].fillna(transformed_training_noAttack_values.median())
+        # TODO: TEST TEST TEST
+        time_gran_to_normalized_df[time_gran] = time_gran_to_normalized_df[time_gran].fillna( \
+            pd.DataFrame(transformed_training_noAttack_values, columns=feature_dataframe.columns.values).median())
         time_gran_to_normalized_df[time_gran] = time_gran_to_normalized_df[time_gran].dropna(axis=1)
 
     return time_gran_to_normalized_df

@@ -42,7 +42,7 @@ class injected_graph():
                  current_total_node_list,
                  svcs, is_swarm, ms_s, container_to_ip, infra_service, injected_class_graph_loc, name_of_injected_file,
                  nodeAttrib_injected_graph_loc, nodeAttrib_injected_graph_loc_class, pruned_graph_nodeAttrib_loc,
-                 past_end_of_training):
+                 past_end_of_training, attack_happened_p):
         self.name = name
         self.injected_graph_loc = injected_graph_loc
         self.name_of_injected_file = name_of_injected_file
@@ -75,6 +75,7 @@ class injected_graph():
         self.cur_class_G = None
         self.pruned_graph_nodeAttrib_loc = pruned_graph_nodeAttrib_loc
         self.cur_1si_G_non_injected = None
+        self.attack_happened_p = attack_happened_p
 
     def save(self):
         with open(self.where_to_save_this_obj, 'wb') as output:  # Overwrites any existing file.
@@ -411,9 +412,10 @@ class set_of_injected_graphs():
             injected_graph_obj.save()
 
     def generate_aggregate_csv(self):
-        self.calculated_values = {}
-        col_list = self.current_total_node_list + ['labels']
-        out_df = pd.DataFrame(None, index=None, columns=col_list)
+        col_list = self.current_total_node_list
+        joint_col_list = [(col_item1 + '-' + col_item2) for col_item1 in col_list for col_item2 in col_list if col_item1 != col_item2]
+        joint_col_list +=  ['labels']
+        out_df = pd.DataFrame(None, index=None, columns=joint_col_list)
 
         for injected_graph_loc in self.list_of_injected_graphs_loc:
             print "injected_graph_loc",injected_graph_loc
@@ -436,14 +438,15 @@ class set_of_injected_graphs():
                     col_name = src_node + '-' + dest_node
                     adj_dict[col_name] = [edge_data['weight']]
 
-            adj_dict['labels'] = [injected_graph.past_end_of_training]
+            adj_dict['labels'] = [injected_graph.attack_happened_p]
 
             ## TODO TODO TODO TODO: PROBLEM: The columns are wrong!! the columns
             # are NOT the nodes... they aree pairs of nodes combined with a -
             ### THEREFORE!! NEXT STEP IS TO FIX THIS.
             ## TODO: remaining entries are filled with NANs... that is NOT right!!
             ## the remaining entries should be filled with ZEROS!!!!
-            cur_df = pd.DataFrame(adj_dict, columns=col_list)
+            cur_df = pd.DataFrame(adj_dict, columns=joint_col_list)
+            cur_df = cur_df.fillna(0)
             out_df = out_df.append(cur_df, sort=True)
 
         out_df.to_csv(path_or_buf=self.aggregate_csv_edgefile_loc)
@@ -652,6 +655,10 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
                                  name_of_dns_pod_node, carryover, attack_injected, time_interval, avg_exfil_per_min,
                                  exfil_per_min_variance, avg_pkt_size, pkt_size_variance)
 
+        attack_happened_p = False
+        if pre_specified_data_attribs:
+            attack_happened_p = True
+
         cur_class_G = prepare_graph(cur_1si_G, svcs, 'class', is_swarm, counter, file_path, ms_s, container_to_ip,
                                     infra_service)
 
@@ -694,7 +701,7 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
                                             edgefile_injected_folder_path + 'with_nodeAttribs' + name_of_injected_file,
                                             edgefile_injected_folder_path + 'class_' + 'with_nodeAttribs' + name_of_injected_file,
                                             edgefile_pruned_folder_path + 'with_nodeAttribs' + name_of_file,
-                                            past_end_of_training)
+                                            past_end_of_training, attack_happened_p)
 
         injected_graph_obj.save()
         # at 53: 4.04 GB
