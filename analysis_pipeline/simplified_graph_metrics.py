@@ -310,6 +310,7 @@ class set_of_injected_graphs():
         self.list_of_amt_of_out_traffic_pkts = []
 
         self.current_total_node_list = None
+        self.aggregate_csv_edgefile_loc = self.collected_metrics_location + '_aggregate_edgefile.csv'
 
     def save(self):
         #with open(self.current_set_of_graphs_loc, 'wb') as output:  # Overwrites any existing file.
@@ -411,7 +412,8 @@ class set_of_injected_graphs():
 
     def generate_aggregate_csv(self):
         self.calculated_values = {}
-        out_df = pd.DataFrame(None, index=None, columns=self.current_total_node_list)
+        col_list = self.current_total_node_list + ['labels']
+        out_df = pd.DataFrame(None, index=None, columns=col_list)
 
         for injected_graph_loc in self.list_of_injected_graphs_loc:
             print "injected_graph_loc",injected_graph_loc
@@ -423,25 +425,22 @@ class set_of_injected_graphs():
             # let's make a dict. [done]
             # let's turn the dict into a dataframe (default value zero) [done]
             # let's append this dict to the out_dict [done]
-            # at the end, let's print the dict to a file.
-
-            # PROBLEM: the func is to_dict_of_dicts
-            # BUT: I just want a single dict!!
-            ## okay, well, what to do???
-            # well, we gotta do the thing I discussed before.
-            ## (take the two keys and add a hyphen in-between)
+            # at the end, let's print the dict to a file. [done]
 
             adj_dict = {}
             adj_dict_of_dicts = nx.to_dict_of_dicts(injected_graph.cur_1si_G, edge_data='weight')
+
             for src_node,inner_dict in adj_dict_of_dicts.iteritems():
                 for dest_node, weight in inner_dict.iteritems():
                     col_name = src_node + '-' + dest_node
                     adj_dict[col_name] = [weight]
 
-            cur_df = pd.DataFrame(adj_dict, columns=self.current_total_node_list)
+            adj_dict['labels'] = injected_graph.past_end_of_training
+            cur_df = pd.DataFrame(adj_dict, columns=col_list)
             out_df = out_df.append(cur_df, sort=True)
 
-        out_df.to_csv(path_or_buf=self.collected_metrics_location + '_aggregate_csv_file.csv')
+
+        out_df.to_csv(path_or_buf=self.aggregate_csv_edgefile_loc)
 
     def generate_injected_edgefiles(self):
         current_total_node_list = []
