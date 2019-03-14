@@ -2103,7 +2103,7 @@ def new_wordpress_recipe():
     base_output_location += cur_experiment_name
     #####
 
-    skip_graph_injection = False
+    skip_graph_injection = True
     get_endresult_from_memory = False # in this case, you'd skip literally the whole pipeline and just get the
                                       # trained model + the results (from that model) out of memory
                                       # I anticpate that this'll mostly be useful for working on generating
@@ -2261,8 +2261,8 @@ if __name__=="__main__":
     if len(sys.argv) == 1:
         print "running_preset..."
         ## NO NO No::: new_new_wordpress_recipe() # testing autoscaling stuff...
-        new_wordpress_autoscaling_recipe()
-        #new_wordpress_recipe()
+        #new_wordpress_autoscaling_recipe()
+        new_wordpress_recipe()
         #multi_experiment_wordpress_recipe()
         #time.sleep(14400)
         #multi_experiment_sockshop_recipe()

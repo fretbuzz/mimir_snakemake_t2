@@ -419,6 +419,7 @@ class set_of_injected_graphs():
             print "injected_graph_loc",injected_graph_loc
             with open(injected_graph_loc, 'rb') as pickle_input_file:
                 injected_graph = pickle.load(pickle_input_file)
+                injected_graph._load_graph()
 
             ## okay, well with the injected graph, it is go-time...
             # okay, let's take the networkx graph. [done]
@@ -428,17 +429,22 @@ class set_of_injected_graphs():
             # at the end, let's print the dict to a file. [done]
 
             adj_dict = {}
-            adj_dict_of_dicts = nx.to_dict_of_dicts(injected_graph.cur_1si_G, edge_data='weight')
+            adj_dict_of_dicts = nx.to_dict_of_dicts(injected_graph.cur_1si_G)
 
             for src_node,inner_dict in adj_dict_of_dicts.iteritems():
-                for dest_node, weight in inner_dict.iteritems():
+                for dest_node, edge_data in inner_dict.iteritems():
                     col_name = src_node + '-' + dest_node
-                    adj_dict[col_name] = [weight]
+                    adj_dict[col_name] = [edge_data['weight']]
 
-            adj_dict['labels'] = injected_graph.past_end_of_training
+            adj_dict['labels'] = [injected_graph.past_end_of_training]
+
+            ## TODO TODO TODO TODO: PROBLEM: The columns are wrong!! the columns
+            # are NOT the nodes... they aree pairs of nodes combined with a -
+            ### THEREFORE!! NEXT STEP IS TO FIX THIS.
+            ## TODO: remaining entries are filled with NANs... that is NOT right!!
+            ## the remaining entries should be filled with ZEROS!!!!
             cur_df = pd.DataFrame(adj_dict, columns=col_list)
             out_df = out_df.append(cur_df, sort=True)
-
 
         out_df.to_csv(path_or_buf=self.aggregate_csv_edgefile_loc)
 
@@ -724,23 +730,24 @@ def update_mapping(container_to_ip, pod_creation_log, time_gran, time_counter):
     if pod_creation_log is None:
         return container_to_ip
 
-    last_entry_into_log = max(0, time_gran * (time_counter - 1))
-    current_entry_into_log =  time_gran * time_counter
+    last_entry_into_log = max(0, time_gran * (time_counter ))
+    current_entry_into_log =  time_gran * (time_counter +1)
 
     print "time_counter",time_counter,"time_gran",time_gran
     for i in range(last_entry_into_log, current_entry_into_log):
         # recall that: container_to_ip[container_ip] = (container_name, network_name)
         mod_cur_creation_log = {}
-        for cur_pod,curIP_PlusMinus in pod_creation_log[i].iteritems():
-            cur_ip = curIP_PlusMinus[0].rstrip().lstrip()
-            plus_minus = curIP_PlusMinus[1]
-            if plus_minus == '+':
-                mod_cur_creation_log[cur_ip] = (cur_pod, None)
-            elif plus_minus == '-': # not sure if I want/need this but might be useful for bug checking
-                del container_to_ip[cur_ip]
-            else:
-                print "+/- in pod_creation_log was neither + or -!!"
-                exit(300)
+        if i in pod_creation_log: # sometimes the last value isn't included
+            for cur_pod,curIP_PlusMinus in pod_creation_log[i].iteritems():
+                cur_ip = curIP_PlusMinus[0].rstrip().lstrip()
+                plus_minus = curIP_PlusMinus[1]
+                if plus_minus == '+':
+                    mod_cur_creation_log[cur_ip] = (cur_pod, None)
+                elif plus_minus == '-': # not sure if I want/need this but might be useful for bug checking
+                    del container_to_ip[cur_ip]
+                else:
+                    print "+/- in pod_creation_log was neither + or -!!"
+                    exit(300)
 
         container_to_ip.update( mod_cur_creation_log )
 
