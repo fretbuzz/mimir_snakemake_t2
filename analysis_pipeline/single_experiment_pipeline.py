@@ -428,7 +428,7 @@ def process_one_set_of_graphs(time_interval_length, window_size,
         else:
             current_set_of_graphs.generate_injected_edgefiles()
 
-
+        current_set_of_graphs.generate_aggregate_csv()
         current_set_of_graphs.calcuated_single_step_metrics()
         current_set_of_graphs.calc_serialize_metrics()
         current_set_of_graphs.save()
