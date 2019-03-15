@@ -1,0 +1,5 @@
+/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t2/graphs/test_ide.csv
+1191
+12
+720
+./ide_clml_test.txt

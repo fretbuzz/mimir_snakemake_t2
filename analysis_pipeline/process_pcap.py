@@ -1,7 +1,7 @@
 import subprocess
 import os, errno
 import json
-
+import simplified_graph_metrics
 
 def convert_tshark_stats_to_edgefile(edgefile_path, edgefile_name, tshark_path, tshark_name, make_edgefiles_p, mapping):
     if make_edgefiles_p:
@@ -110,7 +110,7 @@ def process_pcap_via_tshark(path, pcap_name, tshark_stats_dir_path, make_edgefil
 
     return tshark_stats_dir_path, pcap_name
 
-def process_pcap(experiment_folder_path, pcap_file, intervals, exp_name, make_edgefiles_p, mapping):
+def process_pcap(experiment_folder_path, pcap_file, intervals, exp_name, make_edgefiles_p, mapping, pod_creation_log):
     # first off, gotta make this new folder
     print "starting to process the pcap!"
     path_to_split_pcap_dir = experiment_folder_path + 'split_pcaps/'
@@ -143,11 +143,14 @@ def process_pcap(experiment_folder_path, pcap_file, intervals, exp_name, make_ed
 
             # for each file, create the edgefiles
             edgefiles = []
-            for split_pcap_file in split_pcaps:
+            for edgefile_counter, split_pcap_file in enumerate(split_pcaps):
                 tshark_stats_path, tshark_stats_file = process_pcap_via_tshark(path_to_split_pcap_dir, split_pcap_file,
                                                                                path_to_tshark_dir, make_edgefiles_p)
                 edgefile_path = path_to_edgefile_dir
                 edgefile_name = tshark_stats_file + '_edges.txt'
+
+                mapping = simplified_graph_metrics.update_mapping(mapping, pod_creation_log, interval, edgefile_counter)
+
                 edgefile = convert_tshark_stats_to_edgefile(edgefile_path, edgefile_name, tshark_stats_path, tshark_stats_file,
                                                             make_edgefiles_p,mapping)
                 edgefiles.append(edgefile)
@@ -170,7 +173,7 @@ def process_pcap(experiment_folder_path, pcap_file, intervals, exp_name, make_ed
             print interval_to_files, type(interval_to_files)
 
 
-    return interval_to_files
+    return interval_to_files, mapping
 
 '''
 path = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/split_pcap_test/'

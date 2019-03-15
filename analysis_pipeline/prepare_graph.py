@@ -42,6 +42,8 @@ def map_nodes_to_svcs(G, svcs):
     return containers_to_ms
 
 def is_ip(node_str):
+    if not node_str:
+        pass
     addr_bytes = node_str.split('.')
     if len(addr_bytes) != 4:
         return None

@@ -134,8 +134,8 @@ class data_anylsis_pipline(object):
         return synthetic_exfil_paths, initiator_info_for_paths
 
     def process_pcaps(self):
-        self.interval_to_filenames = process_pcap.process_pcap(self.experiment_folder_path, self.pcap_file, self.time_interval_lengths,
-                                                          self.exp_name, self.make_edgefiles_p, self.mapping)
+        self.interval_to_filenames,self.mapping = process_pcap.process_pcap(self.experiment_folder_path, self.pcap_file, self.time_interval_lengths,
+                                                          self.exp_name, self.make_edgefiles_p, self.mapping, self.pod_creation_log)
 
     def get_exp_info(self):
         time_grans = [int(i) for i in self.interval_to_filenames.keys()]

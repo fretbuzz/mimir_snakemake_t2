@@ -1895,7 +1895,7 @@ def wordpress_fourteen_mark7(time_of_synethic_exfil=None, only_exp_info=False, i
     physical_exfil_path = []
 
 
-    make_edgefiles = False ## already done!
+    make_edgefiles = True ## already done!
     wordpress_fourteen_mark7_object = data_anylsis_pipline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
                                    make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
                                    wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,
@@ -2025,7 +2025,7 @@ def new_wordpress_autoscaling_recipe():
     exfil_per_min_variance = [BytesPerMegabyte * i for i in exfil_per_min_variance]
     ######
 
-    calc_vals = False
+    calc_vals = True
     calculate_z_scores = True
 
     ####

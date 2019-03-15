@@ -23,12 +23,33 @@
 (defvar output-file-loc)
 (setq output-file-loc (car (cdr (cdr (cdr (cdr (cdr *posix-argv*)))))))  ;;"./ide_clml_test.txt"
 
-
-
 (load "~/quicklisp/setup.lisp")
 (setf *read-default-float-format* 'double-float)
 (ql:quickload :clml :verbose t)
 (in-package :CLML.TIME-SERIES.ANOMALY-DETECTION)
+
+(defvar in)
+(setq in (open "./clml_ide_params.txt" :if-does-not-exist nil))
+(print "inOpened")
+
+(defvar csv-file)
+(setq csv-file (read-line in)) ;; e.g. "/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t2/graphs/test_ide.csv"
+(print "csvFileSet")
+(print csv-file)
+(defvar num-cols)
+(setq num-cols (parse-integer (read-line in)))  ;; e.g. 1191
+(print "num-cols here")
+(defvar window-size)
+(setq window-size (parse-integer (read-line in))) ;; e.g. 12
+(print "window-size here")
+(print window-size)
+(defvar total-length-timesteps)
+(setq total-length-timesteps (parse-integer (read-line in))) ;; 720
+(print "total-length-timesteps here")
+(defvar output-file-loc)
+(print total-length-timesteps)
+(setq output-file-loc (read-line in))  ;;"./ide_clml_test.txt"
+(print "all-vars-set")
 
 
 (defvar relevantData)
@@ -38,9 +59,15 @@
 
 (defvar results)
 
-(setq results (loop with detector = (make-db-detector (sub-ts relevantData :start '(1 1) :end '(window-size num-cols)))
-	for p across (ts-points (sub-ts relevantData :start '((+ window-size 1) 1) :end '(total-length-timesteps num-cols)))
+(print "about to do ide portion")
+(print (list (+ window-size 1) 1))
+
+
+(setq results (loop with detector = (make-db-detector (sub-ts relevantData :start '(1 1) :end (list window-size num-cols)))
+	for p across (ts-points (sub-ts relevantData :start (list (+ window-size 1) 1) :end (list total-length-timesteps num-cols)))
 	collect (funcall detector (ts-p-pos p))))
+
+(print "about to write results to file")
 
 (with-open-file (str output-file-loc :direction :output :if-exists :supersede  :if-does-not-exist :create)
 	(format str "~A~%" stuff))

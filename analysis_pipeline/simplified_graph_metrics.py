@@ -81,15 +81,6 @@ class injected_graph():
         with open(self.where_to_save_this_obj, 'wb') as output:  # Overwrites any existing file.
             pickle.dump(self, output, pickle.HIGHEST_PROTOCOL)
 
-    '''
-    def calc_existing_single_step_metrics(self):
-        self._load_nonInjected_graph()
-
-        adjacency_matri = nx.to_pandas_adjacency(self.cur_1si_G_non_injected, nodelist=self.current_total_node_list)
-        self.graph_feature_dict['adjacency_matrix'] = adjacency_matri
-        self.graph_feature_dict_keys = self.graph_feature_dict.keys()
-    '''
-
     def calc_single_step_metrics(self):
         self.graph_feature_dict = {}
         self._load_graph()
@@ -140,12 +131,16 @@ class injected_graph():
 
         #eigenvector_centrality_classes = nx.eigenvector_centrality(self.cur_class_G, weight='weight')
         #information_centrality_classes = nx.information_centrality(self.cur_class_G, weight='weight') # not implemented for directed
+
+        ### NOTE: I THINK THAT I've Implemeneted the below comments -- after testing, remove plz.
+        ### TODO: these values below are stupid. they should be averages of the contanier granularity graphs, not
+        ### raw values from the class values...
+        #### TODO: USE VALUES BELOWWWWW!!!!!!!
+        '''
         betweeness_centrality_classes = nx.betweenness_centrality(self.cur_class_G, weight='weight')
-        #current_flow_betweenness_centrality_classes = nx.current_flow_betweenness_centrality(self.cur_class_G, weight='weight')
         load_centrality_classes = nx.load_centrality(self.cur_class_G, weight='weight')
         harmonic_centrality_classes = nx.harmonic_centrality(self.cur_class_G, distance='weight')
 
-        degree_classes_list = list(nx.degree(self.cur_class_G)) # all we can get is the list
         for service in self.svc_to_pod.keys():
             #self.graph_feature_dict['eigenvector_centrality_of_' + str(service)] = eigenvector_centrality_classes[service]
             #self.graph_feature_dict['information_centrality_of_' + str(service)] = information_centrality_classes[service]
@@ -155,32 +150,23 @@ class injected_graph():
                 self.graph_feature_dict['harmonic_centrality_classes_of_' + str(service)] = harmonic_centrality_classes[
                     service]
                 #self.graph_feature_dict['current_flow_betweeness_centrality_of_' + str(service)] = current_flow_betweenness_centrality_classes[service]
+                
             except:
                 print "eomthing kinda fishy with the centrality stuff...", betweeness_centrality_classes
                 self.graph_feature_dict['betweeness_centrality_of_' + str(service)] = float('nan')
                 self.graph_feature_dict['load_centrality_of_' + str(service)] = float('nan')
                 self.graph_feature_dict['harmonic_centrality_classes_of_' + str(service)] = float('nan')
-
-        ''' # yah, idt that I want this...
-        for class_val_degree_val_tuple in degree_classes_list:
-            class_val = class_val_degree_val_tuple[0]
-            degree_val = class_val_degree_val_tuple[1]
-            if class_val in self.svc_to_pod.keys():
-                self.graph_feature_dict['class_degree_of_' + str(class_val)] = degree_val
         '''
 
         #eigenvector_centrality_nodes = nx.eigenvector_centrality(self.cur_1si_G, weight='weight')
-        #eigenvector_centrality_coef_var_of_classes = find_coef_of_var_for_nodes(eigenvector_centrality_nodes, self.svc_to_pod)
         #information_centrality_nodes = nx.information_centrality(self.cur_1si_G, weight='weight')
-        #information_centrality_coef_var_of_classes = find_coef_of_var_for_nodes(information_centrality_nodes, self.svc_to_pod)
-        betweeness_centrality_nodes = nx.betweenness_centrality(self.cur_1si_G, weight='weight')
-        betweeness_centrality_coef_var_of_classes = find_coef_of_var_for_nodes(betweeness_centrality_nodes, self.svc_to_pod)
         #current_flow_betweenness_centrality_nodes = nx.current_flow_betweenness_centrality(self.cur_1si_G, weight='weight')
-        #current_flow_betweenness_centrality_coef_var_of_classes = find_coef_of_var_for_nodes(current_flow_betweenness_centrality_nodes, self.svc_to_pod)
+        betweeness_centrality_nodes = nx.betweenness_centrality(self.cur_1si_G, weight='weight')
+        betweeness_centrality_coef_var_of_classes,betweeness_centrality_mean = find_coef_of_var_for_nodes(betweeness_centrality_nodes, self.svc_to_pod)
         load_centrality_nodes = nx.load_centrality(self.cur_1si_G, weight='weight')
-        load_centrality_coef_var_of_classes = find_coef_of_var_for_nodes(load_centrality_nodes, self.svc_to_pod)
+        load_centrality_coef_var_of_classes,load_centrality_mean = find_coef_of_var_for_nodes(load_centrality_nodes, self.svc_to_pod)
         harmonic_centrality_nodes = nx.harmonic_centrality(self.cur_1si_G, distance='weight')
-        harmonic_centrality_coef_var_of_classes = find_coef_of_var_for_nodes(harmonic_centrality_nodes, self.svc_to_pod)
+        harmonic_centrality_coef_var_of_classes, harmonic_centrality_mean = find_coef_of_var_for_nodes(harmonic_centrality_nodes, self.svc_to_pod)
 
         for service in self.svc_to_pod.keys():
             #self.graph_feature_dict['eigenvector_centrality_coef_of_var_' + str(service)] = eigenvector_centrality_coef_var_of_classes[service]
@@ -193,18 +179,17 @@ class injected_graph():
             dict_of_clustering_coef = nx.clustering(self.cur_1si_G, nodes=self.svc_to_pod[service], weight='weight')
             avg_clustering_coef = np.sum(dict_of_clustering_coef.values()) / len(dict_of_clustering_coef.keys())
             self.graph_feature_dict['avg_clustering_coef_of' + str(service)] = avg_clustering_coef
-            clustering_coef_coef_of_var = find_coef_of_var_for_nodes(dict_of_clustering_coef,
-                                                                                 self.svc_to_pod)
+            clustering_coef_coef_of_var,clustering_coef_mean = \
+                                find_coef_of_var_for_nodes(dict_of_clustering_coef, self.svc_to_pod)
             self.graph_feature_dict['clustering_coef_of_var_' + str(service)] = clustering_coef_coef_of_var[service]
+            self.graph_feature_dict['avg_clustering_coef_' + str(service)] = clustering_coef_mean[service]
 
-        '''
-        for svcOne_svcTwo_svcInQuestion, degree_coef_of_var in svc_triple_to_degree_coef_of_var.iteritems():
-            svc_one = svcOne_svcTwo_svcInQuestion[0]
-            svc_two = svcOne_svcTwo_svcInQuestion[1]
-            svc_the_metric_is_for = svcOne_svcTwo_svcInQuestion[2]
-            self.graph_feature_dict[str(svc_the_metric_is_for) + "_degree_coef_of_var_in_biparite_graph_of_" + \
-                                    str(svc_one) + '_' + str(svc_two)] = degree_coef_of_var
-        '''
+            self.graph_feature_dict['avg_betweeness_centrality_' + str(service)] = betweeness_centrality_mean[service]
+            self.graph_feature_dict['avg_load_centrality_' + str(service)] = load_centrality_mean[service]
+            self.graph_feature_dict['avg_harmonic_centrality_' + str(service)] = harmonic_centrality_mean[service]
+
+        if math.isnan(self.graph_feature_dict['outside_to_wwwppp-wordpress_edge_coef_of_var']):
+            print "huston, we have a problem over here"
 
         # yah, not so sure about this... need to store training/testing status in the graph object
         # (b/c if it is testing, then can use injected. else should use the fine ones)...
@@ -381,6 +366,9 @@ class set_of_injected_graphs():
 
     # TODO: this'll need to interact with the common lisp clml library to do stuff...
     def calc_ide_angles(self):
+        # okay, so what this'll probably be is just a way of interacting with common lisp...
+        #
+        #
         pass
 
     def put_values_into_outq(self, out_q):
@@ -416,6 +404,7 @@ class set_of_injected_graphs():
             injected_graph_obj.save()
 
     def generate_aggregate_csv(self):
+        ''''
         col_list = self.current_total_node_list
         joint_col_list = [(col_item1 + '-' + col_item2) for col_item1 in col_list for col_item2 in col_list if col_item1 != col_item2]
         joint_col_list +=  ['labels']
@@ -454,6 +443,8 @@ class set_of_injected_graphs():
             out_df = out_df.append(cur_df, sort=True)
 
         out_df.to_csv(path_or_buf=self.aggregate_csv_edgefile_loc)
+        #'''
+        return
 
     def generate_injected_edgefiles(self):
         current_total_node_list = []
@@ -577,7 +568,8 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
 
         ### TODO: want to update::: container_to_ip using the pod/creation log (this is called: pod_creation_log)
         ## okay, testing this ATM. if it works, then I can delete the line above
-        container_to_ip = update_mapping(container_to_ip, pod_creation_log, time_interval, counter)
+        ###### WAIT, I DON'T THINK THIS ACTUALLY DOES ANYTHING!!! ##########
+        #container_to_ip = update_mapping(container_to_ip, pod_creation_log, time_interval, counter)
 
         # nx.read_edgelist(file_path,
         #                 create_using=G, delimiter=',', data=(('weight', float),))
@@ -659,9 +651,9 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
                                  name_of_dns_pod_node, carryover, attack_injected, time_interval, avg_exfil_per_min,
                                  exfil_per_min_variance, avg_pkt_size, pkt_size_variance)
 
-        attack_happened_p = False
-        if pre_specified_data_attribs:
-            attack_happened_p = True
+        attack_happened_p = 0
+        if attack_injected:
+            attack_happened_p = 1
 
         cur_class_G = prepare_graph(cur_1si_G, svcs, 'class', is_swarm, counter, file_path, ms_s, container_to_ip,
                                     infra_service)
@@ -690,7 +682,7 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
         # injected_filenmames[counter] = edgefile_injected_folder_path + name_of_file
 
         name = name_of_file
-        injected_graph_obj_loc = graph_obj_folder_path + 'graph_obj_' + name_of_injected_file  # TODO:: QQQ need new file path...
+        injected_graph_obj_loc = graph_obj_folder_path + 'graph_obj_' + name_of_injected_file
         print("injected_graph_obj_loc", injected_graph_obj_loc)
         injected_graph_obj = injected_graph(name, edgefile_injected_folder_path + name_of_injected_file,
                                             edgefile_pruned_folder_path + name_of_file,
@@ -744,6 +736,7 @@ def update_mapping(container_to_ip, pod_creation_log, time_gran, time_counter):
     last_entry_into_log = max(0, time_gran * (time_counter ))
     current_entry_into_log =  time_gran * (time_counter +1)
 
+
     print "time_counter",time_counter,"time_gran",time_gran
     for i in range(last_entry_into_log, current_entry_into_log):
         # recall that: container_to_ip[container_ip] = (container_name, network_name)
@@ -751,11 +744,15 @@ def update_mapping(container_to_ip, pod_creation_log, time_gran, time_counter):
         if i in pod_creation_log: # sometimes the last value isn't included
             for cur_pod,curIP_PlusMinus in pod_creation_log[i].iteritems():
                 cur_ip = curIP_PlusMinus[0].rstrip().lstrip()
+                cur_pod = cur_pod.rstrip().lstrip()
                 plus_minus = curIP_PlusMinus[1]
+
                 if plus_minus == '+':
-                    mod_cur_creation_log[cur_ip] = (cur_pod, None)
+                    if cur_ip not in container_to_ip:
+                        mod_cur_creation_log[cur_ip] = ('k8s_POD_' + cur_pod, None)
                 elif plus_minus == '-': # not sure if I want/need this but might be useful for bug checking
                     del container_to_ip[cur_ip]
+                    #pass
                 else:
                     print "+/- in pod_creation_log was neither + or -!!"
                     exit(300)
@@ -1023,11 +1020,24 @@ def pairwise_metrics(G, svc_to_nodes):
                 ## (a) add VIPs to the lists
                 ## (b) make subgraph [done]
                 subgraph = G.subgraph(nodes_one_with_vip + nodes_two_with_vip).copy()
+
+                print "nodes_one_with_vip", nodes_one_with_vip
+                print "nodes_two_with_vip", nodes_two_with_vip
+                print [node for node in G.nodes]
+                print subgraph.nodes
+                for (u, v, weight) in G.edges(data='weight'):
+                    print (u, v, weight)
+                print "@@@"
+                for (u, v, weight) in subgraph.edges(data='weight'):
+                    print (u, v, weight)
+                print "subgraph-end"
+
                 subgraph = make_bipartite(subgraph, nodes_one_with_vip, nodes_two_with_vip)
                 ## (c) calculate subgraph values [done]
                 # bipartite_density = bipartite.density(subgraph, nodes_one_with_vip)
                 bipartite_density = nx.density(subgraph)
                 weighted_reciprocity, _, _ = network_weidge_weighted_reciprocity(subgraph)
+                print svc_one, "to", svc_two
                 coef_of_var = find_coef_of_variation(subgraph, nodes_one)
                 # ^^^ NOTE: using nodes_one instead of nodes_one_with_vip b/c we don't want the vip in the
                 # coef_of_variation calculation b/c that value is different than the normal container-to-container
@@ -1141,12 +1151,21 @@ def make_bipartite(G, node_set_one, node_set_two):
 def find_coef_of_variation(G, start_nodes):
     edge_weights = []
     for (u,v,weight) in G.edges(data='weight'):
+        print (u,v,weight)
         if u in start_nodes:
             edge_weights.append(weight)
     # now find the coef of var...
     # recall: is std_dev / mean
     stddev_of_edge_weights = np.std(edge_weights)
     mean_of_edge_weights = np.mean(edge_weights)
+
+    print "start_nodes", start_nodes
+    print "edge_weights",edge_weights
+    print "stddev_of_edge_weights",stddev_of_edge_weights
+    print "mean_of_edge_weights",mean_of_edge_weights,
+    print "coef_of_var", stddev_of_edge_weights / mean_of_edge_weights
+    print "-----"
+
     return stddev_of_edge_weights / mean_of_edge_weights
 
 
@@ -1225,6 +1244,7 @@ def make_edgelist_dict(cur_1si_G, total_edgelist_nodes):
 
 def find_coef_of_var_for_nodes(node_feature_val_dict, svc_to_pod):
     class_to_coef_var_dict = {}
+    class_to_mean_dict = {}
     for svc,list_of_pods in svc_to_pod.iteritems():
         current_feature_list = []
         for pod in list_of_pods:
@@ -1237,8 +1257,10 @@ def find_coef_of_var_for_nodes(node_feature_val_dict, svc_to_pod):
         feature_stddev = np.std(current_feature_list)
         feature_mean = np.mean(current_feature_list)
         class_to_coef_var_dict[svc] = feature_stddev / feature_mean
+        class_to_mean_dict[svc] = feature_mean
 
-    return class_to_coef_var_dict
+    return class_to_coef_var_dict, class_to_mean_dict
+
 
 def update_total_edgelist_nodes_if_needed(cur_1si_G, total_edgelist_nodes):
     for node_one in cur_1si_G.nodes():
