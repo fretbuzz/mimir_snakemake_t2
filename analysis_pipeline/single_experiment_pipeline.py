@@ -38,7 +38,7 @@ class data_anylsis_pipline(object):
                                synthetic_exfil_paths_train=None, synthetic_exfil_paths_test=None,
                                skip_model_part=False, max_number_of_paths=None, netsec_policy=None,
                                 startup_time=200, skip_graph_injection=False,
-                                pod_creation_log=None):
+                                pod_creation_log=None): #, include_ide=False):
         self.ms_s = ms_s
         print "log file can be found at: " + str(basefile_name) + '_logfile.log'
         logging.basicConfig(filename=basefile_name + '_logfile.log', level=logging.INFO)
@@ -124,6 +124,7 @@ class data_anylsis_pipline(object):
                 self.sensitive_ms = ms
 
         self.process_pcaps()
+        #self.include_ide = include_ide
 
     def generate_synthetic_exfil_paths(self, max_number_of_paths):
         self.netsec_policy = gen_attack_templates.parse_netsec_policy(self.netsec_policy)
@@ -163,7 +164,8 @@ class data_anylsis_pipline(object):
         return time_gran_to_new_attack_labels
 
     def calculate_values(self,end_of_training, synthetic_exfil_paths_train, synthetic_exfil_paths_test,
-                         avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance):
+                         avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
+                         calc_ide, include_ide):
         self.end_of_training = end_of_training
         if self.calc_vals or self.graph_p:
             # TODO: 90% sure that there is a problem with this function...
@@ -237,7 +239,7 @@ class data_anylsis_pipline(object):
                                             self.size_of_neighbor_training_window,
                                             avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
                                             self.skip_graph_injection, self.end_of_training,
-                                            self.pod_creation_log)
+                                            self.pod_creation_log, calc_ide, include_ide)
 
             ## time_gran_to_attack_labels needs to be corrected using time_gran_to_list_of_concrete_exfil_paths
             ## because just because it was assigned, doesn't mean that it is necessarily going to be injected (might
@@ -412,7 +414,7 @@ def process_one_set_of_graphs(time_interval_length, window_size,
                                 synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
                                collected_metrics_location, current_set_of_graphs_loc, calc_vals, out_q,
                               avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
-                              skip_graph_injection, end_of_training, pod_creation_log):
+                              skip_graph_injection, end_of_training, pod_creation_log, calc_ide, include_ide):
 
     if calc_vals:
         current_set_of_graphs = simplified_graph_metrics.set_of_injected_graphs(time_interval_length, window_size,
@@ -430,16 +432,19 @@ def process_one_set_of_graphs(time_interval_length, window_size,
             current_set_of_graphs.generate_injected_edgefiles()
 
         # these relate to ide
-        current_set_of_graphs.generate_aggregate_csv()
-        cur_out_q, ide_p = current_set_of_graphs.ide_calculations()
+        if include_ide or calc_ide:
+            current_set_of_graphs.generate_aggregate_csv()
+            cur_out_q, ide_p = current_set_of_graphs.ide_calculations(calc_ide)
 
         current_set_of_graphs.calcuated_single_step_metrics()
         current_set_of_graphs.calc_serialize_metrics()
 
         # these also relate to ide
-        real_ide_angles = cur_out_q.get()
-        ide_p.join()
-        current_set_of_graphs.calculated_values['real_ide_angles'] = real_ide_angles
+        if include_ide or calc_ide:
+            print "waiting for ide angles to finish...."
+            real_ide_angles = cur_out_q.get()
+            ide_p.join()
+            current_set_of_graphs.calculated_values['real_ide_angles'] = real_ide_angles
 
         current_set_of_graphs.save()
     else:
@@ -458,7 +463,7 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
                                 initiator_info_for_paths, time_gran_to_attacks_to_times, size_of_neighbor_training_window,
                                 avg_exfil_per_min,
                                 exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
-                                skip_graph_injection, end_of_training, pod_creation_log):
+                                skip_graph_injection, end_of_training, pod_creation_log, calc_ide, include_ide):
     total_calculated_vals = {}
     time_gran_to_list_of_concrete_exfil_paths = {}
     time_gran_to_list_of_exfil_amts = {}
@@ -485,7 +490,7 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
                 list_of_infra_services, synthetic_exfil_paths,  initiator_info_for_paths,
                 time_gran_to_attacks_to_times[time_interval_length], collected_metrics_location, current_set_of_graphs_loc,
                 calc_vals, out_q, avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
-                skip_graph_injection, end_of_training, pod_creation_log]
+                skip_graph_injection, end_of_training, pod_creation_log, calc_ide, include_ide]
         p = multiprocessing.Process(
             target=process_one_set_of_graphs,
             args=args)

@@ -1895,7 +1895,7 @@ def wordpress_fourteen_mark7(time_of_synethic_exfil=None, only_exp_info=False, i
     physical_exfil_path = []
 
 
-    make_edgefiles = True ## already done!
+    make_edgefiles = False ## already done!
     wordpress_fourteen_mark7_object = data_anylsis_pipline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
                                    make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
                                    wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,
@@ -1999,7 +1999,7 @@ def new_wordpress_autoscaling_recipe():
     goal_attack_NoAttack_split_training = 0.6
     goal_attack_NoAttack_split_testing = 0.2
 
-    time_interval_lengths = [30, 10] #[30, 10, 1] #[30, 10, 1] #[30, 10, 1]#,
+    time_interval_lengths = [10, 30]#, 10] #[30, 10, 1] #[30, 10, 1] #[30, 10, 1]#,
 
     # this doesn't actually do anything
     size_of_neighbor_training_window = 0
@@ -2027,6 +2027,8 @@ def new_wordpress_autoscaling_recipe():
 
     calc_vals = True
     calculate_z_scores = True
+    include_ide = False # include ide vals? this'll involve either calculating them (below) or grabbing them from the file location
+    calc_ide = False
 
     ####
     cur_experiment_name = "autoscaling_mark7_"  # can modify if you want, probably with:  new_wordpress_recipe.__name__
@@ -2034,7 +2036,7 @@ def new_wordpress_autoscaling_recipe():
     base_output_location += cur_experiment_name
     #####
 
-    skip_graph_injection = False
+    skip_graph_injection = True
     get_endresult_from_memory = False # in this case, you'd skip literally the whole pipeline and just get the
                                       # trained model + the results (from that model) out of memory
                                       # I anticpate that this'll mostly be useful for working on generating
@@ -2057,7 +2059,8 @@ def new_wordpress_autoscaling_recipe():
                               avg_pkt_size=avg_pkt_size, pkt_size_variance=pkt_size_variance,
                               skip_graph_injection=skip_graph_injection,
                               get_endresult_from_memory=get_endresult_from_memory,
-                              goal_attack_NoAttack_split_testing=goal_attack_NoAttack_split_testing)
+                              goal_attack_NoAttack_split_testing=goal_attack_NoAttack_split_testing,
+                              calc_ide=calc_ide, include_ide=include_ide)
 
 def new_wordpress_recipe():
     skip_model_part = False
@@ -2068,7 +2071,7 @@ def new_wordpress_recipe():
     goal_attack_NoAttack_split_training = 0.6
     goal_attack_NoAttack_split_testing = 0.2
 
-    time_interval_lengths = [30, 10] #[30, 10, 1] #[30, 10, 1] #[30, 10, 1]#,
+    time_interval_lengths = [10] #[30, 10] #[30, 10, 1] #[30, 10, 1] #[30, 10, 1]#,
 
     # this doesn't actually do anything
     size_of_neighbor_training_window = 0
@@ -2096,6 +2099,9 @@ def new_wordpress_recipe():
 
     calc_vals = True
     calculate_z_scores = True
+    calc_ide = False
+    include_ide = False
+    ###############include_ide = True
 
     ####
     cur_experiment_name = "v2_testingNewPipeline"  # can modify if you want, probably with:  new_wordpress_recipe.__name__
@@ -2103,7 +2109,7 @@ def new_wordpress_recipe():
     base_output_location += cur_experiment_name
     #####
 
-    skip_graph_injection = True
+    skip_graph_injection = False
     get_endresult_from_memory = False # in this case, you'd skip literally the whole pipeline and just get the
                                       # trained model + the results (from that model) out of memory
                                       # I anticpate that this'll mostly be useful for working on generating
@@ -2147,7 +2153,8 @@ def new_wordpress_recipe():
                               avg_pkt_size=avg_pkt_size, pkt_size_variance=pkt_size_variance,
                               skip_graph_injection=skip_graph_injection,
                               get_endresult_from_memory=get_endresult_from_memory,
-                              goal_attack_NoAttack_split_testing=goal_attack_NoAttack_split_testing)
+                              goal_attack_NoAttack_split_testing=goal_attack_NoAttack_split_testing,
+                              calc_ide=calc_ide, include_ide=include_ide)
 
 
 # this function feeds a set of wordpress experiments into the multi_experiment_pipeline() function found in the

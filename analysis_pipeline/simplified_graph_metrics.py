@@ -307,13 +307,14 @@ class set_of_injected_graphs():
         with open(self.current_set_of_graphs_loc, 'wb') as f:  # Just use 'w' mode in 3.x
             f.write(pickle.dumps(self))
 
-    def ide_calculations(self):
+    def ide_calculations(self, calc_ide):
         cur_out_q = multiprocessing.Queue()
-        args = [self.aggregate_csv_edgefile_loc, self.joint_col_list, self.window_size, self.raw_edgefile_names, cur_out_q]
+        args = [self.aggregate_csv_edgefile_loc, self.joint_col_list, self.window_size, self.raw_edgefile_names,
+                cur_out_q, calc_ide]
         ide_p = multiprocessing.Process(
             target=calc_ide_angles,
             args=args)
-        ide_p.p.start()
+        ide_p.start()
 
         # okay, return these values so that we can do stuff with them later...
         return cur_out_q, ide_p
@@ -516,32 +517,36 @@ class set_of_injected_graphs():
             self.list_of_concrete_container_exfil_paths.extend(concrete_cont_node_path)
             self.list_of_exfil_amts.extend(pre_specified_data_attribs)
             self.list_of_injected_graphs_loc.extend(injected_graph_obj_loc)
+            if amt_of_out_traffic_bytes == 0:
+                print "okay, something MUST be wrong!!"
+
             self.list_of_amt_of_out_traffic_bytes.extend(amt_of_out_traffic_bytes)
             self.list_of_amt_of_out_traffic_pkts.extend(amt_of_out_traffic_pkts)
 
             self.current_total_node_list = current_total_node_list
 
 # not a great choice as a module becase then I can't run a multiprocess
-def calc_ide_angles(aggregate_csv_edgefile_loc, joint_col_list, window_size, raw_edgefile_names, out_q):
+def calc_ide_angles(aggregate_csv_edgefile_loc, joint_col_list, window_size, raw_edgefile_names, out_q, calc_ide):
     # okay, so what this'll probably be is just a way of interacting with common lisp...
 
     ## TODO: actually you'd probably want this whole thing to be non-blocking, so maybe wrap it in another process???
 
+    if calc_ide:
     # step 1: setup the file with the params...
-    with open('./clml_ide_params.txt', 'w') as f:
-        # first thing: location of aggregatee-edgefile
-        f.write(aggregate_csv_edgefile_loc)
-        # second thing: number of columns
-        f.write(len(joint_col_list))
-        # third thing: sliding window size
-        f.write(window_size)
-        # fourth thing: total time
-        f.write( len(raw_edgefile_names) )
-        # fifth thing: output file location
-        f.write( aggregate_csv_edgefile_loc + '_clml_ide_results.txt' )
+        with open('./clml_ide_params.txt', 'w') as f:
+            # first thing: location of aggregatee-edgefile
+            f.write(aggregate_csv_edgefile_loc)
+            # second thing: number of columns
+            f.write(len(joint_col_list))
+            # third thing: sliding window size
+            f.write(window_size)
+            # fourth thing: total time
+            f.write( len(raw_edgefile_names) )
+            # fifth thing: output file location
+            f.write( aggregate_csv_edgefile_loc + '_clml_ide_results.txt' )
 
-    # step 2: start sbcl on the appropriate script...
-    out = subprocess.check_output(['sbcl', "--script", "clml_ide.lisp"])
+        # step 2: start sbcl on the appropriate script...
+        out = subprocess.check_output(['sbcl', "--script", "clml_ide.lisp"])
 
     # step 3: copy the results into the appropriate location...
     ## okay, let's just store it in a seperate location, cause that'll be easier, I guess...
@@ -577,6 +582,9 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
         gc.collect()
         G = nx.DiGraph()
         print "path to file is ", file_path
+
+        if counter == 6:
+            print "let's walk through it  manually..."
 
         f = open(file_path, 'r')
         lines = f.readlines()
@@ -741,6 +749,14 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
         concrete_cont_node_path_list.append(concrete_cont_node_path)
         pre_specified_data_attribs_list.append(pre_specified_data_attribs)
         injected_graph_obj_loc_list.append(injected_graph_obj_loc)
+
+        print "into_outside_bytes", into_outside_bytes
+        if into_outside_bytes == 0:
+            #for (u,v,d) in G.edges(data=True):
+            #    if 'outside' in u or 'outside' in v:
+            #        print (u,v,d)
+            print "into_outside_bytes equals ZERO!! CRAZY!!!"
+            exit(222)
 
         del injected_graph_obj  # help??
         cur_1si_G.clear()
@@ -1057,6 +1073,7 @@ def pairwise_metrics(G, svc_to_nodes):
                 ## (b) make subgraph [done]
                 subgraph = G.subgraph(nodes_one_with_vip + nodes_two_with_vip).copy()
 
+                '''
                 print "nodes_one_with_vip", nodes_one_with_vip
                 print "nodes_two_with_vip", nodes_two_with_vip
                 print [node for node in G.nodes]
@@ -1067,13 +1084,14 @@ def pairwise_metrics(G, svc_to_nodes):
                 for (u, v, weight) in subgraph.edges(data='weight'):
                     print (u, v, weight)
                 print "subgraph-end"
+                '''
 
                 subgraph = make_bipartite(subgraph, nodes_one_with_vip, nodes_two_with_vip)
                 ## (c) calculate subgraph values [done]
                 # bipartite_density = bipartite.density(subgraph, nodes_one_with_vip)
                 bipartite_density = nx.density(subgraph)
                 weighted_reciprocity, _, _ = network_weidge_weighted_reciprocity(subgraph)
-                print svc_one, "to", svc_two
+                #print svc_one, "to", svc_two
                 coef_of_var = find_coef_of_variation(subgraph, nodes_one)
                 # ^^^ NOTE: using nodes_one instead of nodes_one_with_vip b/c we don't want the vip in the
                 # coef_of_variation calculation b/c that value is different than the normal container-to-container
@@ -1187,7 +1205,7 @@ def make_bipartite(G, node_set_one, node_set_two):
 def find_coef_of_variation(G, start_nodes):
     edge_weights = []
     for (u,v,weight) in G.edges(data='weight'):
-        print (u,v,weight)
+        #print (u,v,weight)
         if u in start_nodes:
             edge_weights.append(weight)
     # now find the coef of var...
@@ -1195,12 +1213,12 @@ def find_coef_of_variation(G, start_nodes):
     stddev_of_edge_weights = np.std(edge_weights)
     mean_of_edge_weights = np.mean(edge_weights)
 
-    print "start_nodes", start_nodes
-    print "edge_weights",edge_weights
-    print "stddev_of_edge_weights",stddev_of_edge_weights
-    print "mean_of_edge_weights",mean_of_edge_weights,
-    print "coef_of_var", stddev_of_edge_weights / mean_of_edge_weights
-    print "-----"
+    #print "start_nodes", start_nodes
+    #print "edge_weights",edge_weights
+    #print "stddev_of_edge_weights",stddev_of_edge_weights
+    #print "mean_of_edge_weights",mean_of_edge_weights,
+    #print "coef_of_var", stddev_of_edge_weights / mean_of_edge_weights
+    #print "-----"
 
     return stddev_of_edge_weights / mean_of_edge_weights
 

@@ -593,22 +593,30 @@ def extract_comparison_methods(X_train, X_test):
         # if True:
         print X_train.columns
 
-        # TODO: prob wanna switch the column name here, b/c I'm getting rid of the parenthesis...
-        ide_train = copy.deepcopy(X_train['ide_angles_w_abs_'])
-        #ide_train.fillna(ide_train.mean())
-        print "ide_train", ide_train
-        # exit(1222)
-        copy_of_X_test = X_test.copy(deep=True)
-        ide_test = copy.deepcopy(copy_of_X_test['ide_angles_w_abs_'])
+        try:
+            pass
+            ide_train = copy.deepcopy(X_train['real_ide_angles'])
+            copy_of_X_test = X_test.copy(deep=True)
+            ide_test = copy.deepcopy(copy_of_X_test['real_ide_angles'])
+            X_train = X_train.drop(columns='real_ide_angles')
+            X_test = X_test.drop(columns='real_ide_angles')
+        except:
+
+            ide_train = copy.deepcopy(X_train['ide_angles_w_abs_'])
+            #ide_train.fillna(ide_train.mean())
+            print "ide_train", ide_train
+            # exit(1222)
+            copy_of_X_test = X_test.copy(deep=True)
+            ide_test = copy.deepcopy(copy_of_X_test['ide_angles_w_abs_'])
 
 
-        #ide_test = ide_test.fillna(ide_train.mean())
-        print "ide_test", ide_test
-        X_train = X_train.drop(columns='ide_angles_w_abs_')
-        X_test = X_test.drop(columns='ide_angles_w_abs_')
-        # if np. ide_test.tolist():
-        #    ide_train = [0 for i in range(0, len(X_train))]
-        #    ide_test = [0 for i in range(0, len(X_test))]
+            #ide_test = ide_test.fillna(ide_train.mean())
+            print "ide_test", ide_test
+            X_train = X_train.drop(columns='ide_angles_w_abs_')
+            X_test = X_test.drop(columns='ide_angles_w_abs_')
+            # if np. ide_test.tolist():
+            #    ide_train = [0 for i in range(0, len(X_train))]
+            #    ide_test = [0 for i in range(0, len(X_test))]
     except:
         try:
             # ide_train = copy.deepcopy(X_train['ide_angles_mod_z_score'])

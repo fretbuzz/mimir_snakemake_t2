@@ -27,6 +27,10 @@ def is_private_ip(addr_bytes):
     # todo: this is a heuristic way to identify the host machine's IP
     elif addr_bytes[0] == '192' and addr_bytes[1] == '168'  and addr_bytes[3] != '1':
        return True # assuming that the only 192.168.XX.1 addresses will be the hosting computer
+    # actually 172.17.0.1 can effectively be treated as an outside entity, due to NAT-like behavior
+    #elif addr_bytes[0] == '172' and addr_bytes[1] == '17' and addr_bytes[2] == '0':
+    #    # this corresponds to pods in the minikube cluster... tho if I change the experimental apparatus, that might change too
+    #    return True
     else:
         return False
 
@@ -92,11 +96,15 @@ def aggregate_outside_nodes(G):
         for new_edge in new_edges:
             if H.has_edge(new_edge[0], new_edge[1]):
                 #print("modify exist edge",G[new_edge[0]][new_edge[1]])
-                G[new_edge[0]][new_edge[1]]['weight']=  G[new_edge[0]][new_edge[1]]['weight'] + new_edge[2]['weight']
-                G[new_edge[0]][new_edge[1]]['frames'] =  G[new_edge[0]][new_edge[1]]['frames'] + new_edge[2]['frames']
+                #G[new_edge[0]][new_edge[1]]['weight']=  G[new_edge[0]][new_edge[1]]['weight'] + new_edge[2]['weight']
+                #G[new_edge[0]][new_edge[1]]['frames'] =  G[new_edge[0]][new_edge[1]]['frames'] + new_edge[2]['frames']
+                H[new_edge[0]][new_edge[1]]['weight'] = H[new_edge[0]][new_edge[1]]['weight'] + new_edge[2]['weight']
+                H[new_edge[0]][new_edge[1]]['frames'] = H[new_edge[0]][new_edge[1]]['frames'] + new_edge[2]['frames']
             else:
                 #print("newe_edge",new_edge)
-                G.add_edge(new_edge[0],new_edge[1], frames=new_edge[2]['frames'], weight=new_edge[2]['weight'])
+                #G.add_edge(new_edge[0],new_edge[1], frames=new_edge[2]['frames'], weight=new_edge[2]['weight'])
+                H.add_edge(new_edge[0], new_edge[1], frames=new_edge[2]['frames'], weight=new_edge[2]['weight'])
+
                 #G.add_edge(*new_edge)
         #print("removing...", cur_node)
         H.remove_node(cur_node)

@@ -346,6 +346,7 @@ class testSyntheticAttackInjector(unittest.TestCase):
         self.assertEqual(len(weight_differences), 10)
         self.assertEqual(len([i for i in weight_differences if i == 400]), 5)
         self.assertEqual(len([i for i in weight_differences if i == 5000]), 5)
+        print "edges_in_inject_but_not_pruned",edges_in_inject_but_not_pruned
         self.assertEqual(len(edges_in_inject_but_not_pruned), 4)
 
 

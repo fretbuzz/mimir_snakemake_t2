@@ -1,5 +1,1 @@
-/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t2/graphs/test_ide.csv
-1191
-12
-720
-./ide_clml_test.txt
+/Volumes/exM2/experimental_data/wordpress_info/wordpress_fourteen_mark7_final/graphs/wordpress_fourteen_mark7_final_avg_exfil_10000000.0:300000.0_avg_pkt_500.0:100_collected_metrics_time_gran_30.csv_aggregate_edgefile.csv
