@@ -11,17 +11,17 @@
 (format t "~&~S~&" *posix-argv*)
 (format t "~&~S~&" (car (cdr *posix-argv*)))
 
-(defvar csv-file)
-(setq csv-file (car (cdr *posix-argv*))) ;; e.g. "/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t2/graphs/test_ide.csv"
-(print csv-file)
-(defvar num-cols)
-(setq num-cols (parse-integer (car (cdr (cdr *posix-argv*)))))  ;; e.g. 1191
-(defvar window-size)
-(setq window-size (parse-integer (car (cdr (cdr (cdr *posix-argv*)))))) ;; e.g. 12
-(defvar total-length-timesteps)
-(setq total-length-timesteps (parse-integer (car (cdr (cdr (cdr (cdr *posix-argv*))))))) ;; 720
-(defvar output-file-loc)
-(setq output-file-loc (car (cdr (cdr (cdr (cdr (cdr *posix-argv*)))))))  ;;"./ide_clml_test.txt"
+;;(defvar csv-file)
+;;(setq csv-file (car (cdr *posix-argv*))) ;; e.g. "/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t2/graphs/test_ide.csv"
+;;(print csv-file)
+;;(defvar num-cols)
+;;(setq num-cols (parse-integer (car (cdr (cdr *posix-argv*)))))  ;; e.g. 1191
+;;(defvar window-size)
+;;(setq window-size (parse-integer (car (cdr (cdr (cdr *posix-argv*)))))) ;; e.g. 12
+;;(defvar total-length-timesteps)
+;;(setq total-length-timesteps (parse-integer (car (cdr (cdr (cdr (cdr *posix-argv*))))))) ;; 720
+;;(defvar output-file-loc)
+;;(setq output-file-loc (car (cdr (cdr (cdr (cdr (cdr *posix-argv*)))))))  ;;"./ide_clml_test.txt"
 
 (load "~/quicklisp/setup.lisp")
 (setf *read-default-float-format* 'double-float)
@@ -70,4 +70,4 @@
 (print "about to write results to file")
 
 (with-open-file (str output-file-loc :direction :output :if-exists :supersede  :if-does-not-exist :create)
-	(format str "~A~%" stuff))
+	(format str "~A~%" results))

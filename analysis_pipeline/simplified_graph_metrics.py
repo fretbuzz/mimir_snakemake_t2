@@ -32,6 +32,7 @@ pyximport.install() # am I sure that I want this???
 import multiprocessing
 import numpy.random
 import pandas as pd
+import subprocess
 
 # okay, so things to be aware of:
 # (a) we are assuming that if we cannot label the node and it is not loopback or in the '10.X.X.X' subnet, then it is outside
@@ -297,6 +298,7 @@ class set_of_injected_graphs():
 
         self.current_total_node_list = None
         self.aggregate_csv_edgefile_loc = self.collected_metrics_location + '_aggregate_edgefile.csv'
+        self.joint_col_list = None
 
     def save(self):
         #with open(self.current_set_of_graphs_loc, 'wb') as output:  # Overwrites any existing file.
@@ -304,6 +306,17 @@ class set_of_injected_graphs():
 
         with open(self.current_set_of_graphs_loc, 'wb') as f:  # Just use 'w' mode in 3.x
             f.write(pickle.dumps(self))
+
+    def ide_calculations(self):
+        cur_out_q = multiprocessing.Queue()
+        args = [self.aggregate_csv_edgefile_loc, self.joint_col_list, self.window_size, self.raw_edgefile_names, cur_out_q]
+        ide_p = multiprocessing.Process(
+            target=calc_ide_angles,
+            args=args)
+        ide_p.p.start()
+
+        # okay, return these values so that we can do stuff with them later...
+        return cur_out_q, ide_p
 
     def calc_serialize_metrics(self):
         adjacency_matrixes = []
@@ -364,13 +377,6 @@ class set_of_injected_graphs():
         with open(self.collected_metrics_location, 'wb') as f:  # Just use 'w' mode in 3.x
             f.write(pickle.dumps(self.calculated_values))
 
-    # TODO: this'll need to interact with the common lisp clml library to do stuff...
-    def calc_ide_angles(self):
-        # okay, so what this'll probably be is just a way of interacting with common lisp...
-        #
-        #
-        pass
-
     def put_values_into_outq(self, out_q):
         out_q.put(self.calculated_values)
         out_q.put(self.list_of_concrete_container_exfil_paths)
@@ -404,10 +410,10 @@ class set_of_injected_graphs():
             injected_graph_obj.save()
 
     def generate_aggregate_csv(self):
-        ''''
+        #''''
         col_list = self.current_total_node_list
         joint_col_list = [(col_item1 + '-' + col_item2) for col_item1 in col_list for col_item2 in col_list if col_item1 != col_item2]
-        joint_col_list +=  ['labels']
+        #joint_col_list +=  ['labels']
         out_df = pd.DataFrame(None, index=None, columns=joint_col_list)
 
         for injected_graph_loc in self.list_of_injected_graphs_loc:
@@ -431,20 +437,17 @@ class set_of_injected_graphs():
                     col_name = src_node + '-' + dest_node
                     adj_dict[col_name] = [edge_data['weight']]
 
-            adj_dict['labels'] = [injected_graph.attack_happened_p]
+            # eh, i don't think this is needed (if I want them, I can go do it manually)
+            #adj_dict['labels'] = [injected_graph.attack_happened_p]
 
-            ## TODO TODO TODO TODO: PROBLEM: The columns are wrong!! the columns
-            # are NOT the nodes... they aree pairs of nodes combined with a -
-            ### THEREFORE!! NEXT STEP IS TO FIX THIS.
-            ## TODO: remaining entries are filled with NANs... that is NOT right!!
-            ## the remaining entries should be filled with ZEROS!!!!
             cur_df = pd.DataFrame(adj_dict, columns=joint_col_list)
             cur_df = cur_df.fillna(0)
             out_df = out_df.append(cur_df, sort=True)
 
+        self.joint_col_list = joint_col_list
         out_df.to_csv(path_or_buf=self.aggregate_csv_edgefile_loc)
         #'''
-        return
+        #return
 
     def generate_injected_edgefiles(self):
         current_total_node_list = []
@@ -517,6 +520,39 @@ class set_of_injected_graphs():
             self.list_of_amt_of_out_traffic_pkts.extend(amt_of_out_traffic_pkts)
 
             self.current_total_node_list = current_total_node_list
+
+# not a great choice as a module becase then I can't run a multiprocess
+def calc_ide_angles(aggregate_csv_edgefile_loc, joint_col_list, window_size, raw_edgefile_names, out_q):
+    # okay, so what this'll probably be is just a way of interacting with common lisp...
+
+    ## TODO: actually you'd probably want this whole thing to be non-blocking, so maybe wrap it in another process???
+
+    # step 1: setup the file with the params...
+    with open('./clml_ide_params.txt', 'w') as f:
+        # first thing: location of aggregatee-edgefile
+        f.write(aggregate_csv_edgefile_loc)
+        # second thing: number of columns
+        f.write(len(joint_col_list))
+        # third thing: sliding window size
+        f.write(window_size)
+        # fourth thing: total time
+        f.write( len(raw_edgefile_names) )
+        # fifth thing: output file location
+        f.write( aggregate_csv_edgefile_loc + '_clml_ide_results.txt' )
+
+    # step 2: start sbcl on the appropriate script...
+    out = subprocess.check_output(['sbcl', "--script", "clml_ide.lisp"])
+
+    # step 3: copy the results into the appropriate location...
+    ## okay, let's just store it in a seperate location, cause that'll be easier, I guess...
+    with open(aggregate_csv_edgefile_loc + '_clml_ide_results.txt', 'r') as f:
+        cont = f.read()
+    cont_list = cont.split(" ")
+    angles_list = []
+    for i in cont_list:
+        angles_list.append( i.replace("(", "").replace(")", "").rstrip().lstrip() )
+
+    out_q.put(angles_list)
 
 def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm, ms_s, container_to_ip, infra_service,
                                     synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,

@@ -15,6 +15,7 @@ from analysis_pipeline import gen_attack_templates, process_pcap, process_graph_
 from analysis_pipeline.pcap_to_edgelists import create_mappings
 import random
 from analysis_pipeline.statistical_analysis import drop_useless_columns_aggreg_DF
+from analysis_pipeline.simplified_graph_metrics import calc_ide_angles
 
 ## TODO: this function is an atrocity and should be converted into a snakemake spec so we can use that instead...###
 ## todo (aim to get it done today...) : change  run_data_analysis_pipeline signature plus the feeder...
@@ -417,9 +418,9 @@ def process_one_set_of_graphs(time_interval_length, window_size,
         current_set_of_graphs = simplified_graph_metrics.set_of_injected_graphs(time_interval_length, window_size,
                                          filenames, svcs, is_swarm, ms_s, mapping, list_of_infra_services,
                                          synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
-                                          collected_metrics_location, current_set_of_graphs_loc,
-                                          avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
-                                        end_of_training, pod_creation_log)
+                                         collected_metrics_location, current_set_of_graphs_loc,
+                                         avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
+                                         end_of_training, pod_creation_log)
 
         if skip_graph_injection:
          with open(current_set_of_graphs_loc, mode='rb') as f:
@@ -428,9 +429,18 @@ def process_one_set_of_graphs(time_interval_length, window_size,
         else:
             current_set_of_graphs.generate_injected_edgefiles()
 
+        # these relate to ide
         current_set_of_graphs.generate_aggregate_csv()
+        cur_out_q, ide_p = current_set_of_graphs.ide_calculations()
+
         current_set_of_graphs.calcuated_single_step_metrics()
         current_set_of_graphs.calc_serialize_metrics()
+
+        # these also relate to ide
+        real_ide_angles = cur_out_q.get()
+        ide_p.join()
+        current_set_of_graphs.calculated_values['real_ide_angles'] = real_ide_angles
+
         current_set_of_graphs.save()
     else:
         with open(current_set_of_graphs_loc, mode='rb') as f:
