@@ -2074,18 +2074,18 @@ def new_wordpress_autoscaling_recipe():
 
     #####
     # IN MEGABYTES / MINUTE
-    avg_exfil_per_min = [ 1.0, 0.25, 0.1 ] #[10.0, 2.0,
-    exfil_per_min_variance = [ 0.15, 0.08, 0.05] # 0.3, 0.2,
-    avg_pkt_size = [ 500.00, 500.00, 500.0] # 500.0, 500.0,
-    pkt_size_variance = [ 100, 100, 100] # 100, 100,
+    avg_exfil_per_min = [10.0, 2.0, 1.0, 0.25, 0.1 ] #[10.0, 2.0,
+    exfil_per_min_variance = [0.3, 0.2, 0.15, 0.08, 0.05] # 0.3, 0.2,
+    avg_pkt_size = [500.0, 500.0, 500.00, 500.00, 500.0] # 500.0, 500.0,
+    pkt_size_variance = [100, 100, 100, 100, 100] # 100, 100,
 
     BytesPerMegabyte = 1000000
     avg_exfil_per_min = [BytesPerMegabyte * i for i in avg_exfil_per_min]
     exfil_per_min_variance = [BytesPerMegabyte * i for i in exfil_per_min_variance]
     ######
 
-    calc_vals = True
-    calculate_z_scores = True
+    calc_vals = False
+    calculate_z_scores = False
     include_ide = False # include ide vals? this'll involve either calculating them (below) or grabbing them from the file location
     calc_ide = False
 
@@ -2327,9 +2327,9 @@ if __name__=="__main__":
     if len(sys.argv) == 1:
         print "running_preset..."
         ## NO NO No::: new_new_wordpress_recipe() # testing autoscaling stuff...
-        #new_wordpress_autoscaling_recipe()
+        new_wordpress_autoscaling_recipe()
         #new_wordpress_recipe()
-        autoscaling_sockshop_recipe()
+        #autoscaling_sockshop_recipe()
 
         #multi_experiment_wordpress_recipe()
         #time.sleep(14400)

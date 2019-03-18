@@ -16,6 +16,7 @@ def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
         loader=FileSystemLoader(searchpath="src")
     )
     aggreg_res_section = env.get_template("aggreg_res_section.html")
+    comp_res_section = env.get_template("comp_graph_section.html")
     sections = []
 
     ## STEP (1): composite bar graph
@@ -44,6 +45,7 @@ def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
         bar_fig, bar_axes = plt.subplots(nrows=nrows, ncols=ncolumns, figsize=(26, 13), subplot_kw={ 'adjustable' : 'box'})
         time_gran_to_comp_bargraph_info[time_gran] = (bar_fig, bar_axes, cur_lineGraph_loc)
 
+    df_attack_identites = None
     rate_counter = 0
     for rate, timegran_to_methods_to_attacks_found_dfs in rate_to_timegran_to_methods_to_attacks_found_dfs.iteritems():
         plt.clf()
@@ -118,6 +120,7 @@ def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
             ##        (1c) adjust the rendering appropriately
 
 
+
             sections.append(aggreg_res_section.render(
                 time_gran = timegran,
                 test_or_train = "test",
@@ -128,6 +131,7 @@ def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
                 composite_results_bargraph = '.' + temp_graph_loc,
                 df_attack_identites = df_attack_identites_html
             ))
+
         rate_counter += 1
 
 
@@ -150,6 +154,7 @@ def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
     # using: time_gran_to_attack_to_methods_to_f1s
     # and using: time_gran_to_rate
     plt.rcParams.update({'font.size': 62})
+    timegran_to_linecomp_loc = {}
     for time_gran, attack_to_methods_to_f1s in time_gran_to_attack_to_methods_to_f1s.iteritems():
         plt.clf()
         filename = "comp_linegraph_" + str(time_gran) + ".png"
@@ -185,6 +190,16 @@ def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
             j += 1
         ## okay, well now I would probably want to store it somewhere...
         fig.savefig(cur_lineGraph_loc)
+        timegran_to_linecomp_loc[time_gran] = cur_lineGraph_loc
+
+        #'''
+        sections.append(comp_res_section.render(
+            time_gran=time_gran,
+            comp_bargraph='.' + time_gran_to_comp_bargraph_info[time_gran][2],
+            comp_linegraph='.' + cur_lineGraph_loc,
+            df_attack_identites=df_attack_identites.to_html()
+        ))
+        #'''
 
     # Step (3) put it all into a handy-dandy report
     base_template = env.get_template("report_template.html")
@@ -265,8 +280,10 @@ def per_attack_bar_graphs(method_to_results_df, temp_location, file_storage_loca
     colors_to_use = ['b', 'r']
     x_tick_labels = ('A', 'B', 'C', 'D', 'E', 'F', 'G',  'H', 'I')#list(attacks)
     df_attack_identites = {}
+    print "attacks", attacks
     for counter,tick_val in enumerate(x_tick_labels):
-        df_attack_identites[tick_val] = (attacks[counter],)
+        if counter < len(attacks):
+            df_attack_identites[tick_val] = (attacks[counter],)
 
     i = 0
     for cur_method, cur_results in method_to_results_df.iteritems():
