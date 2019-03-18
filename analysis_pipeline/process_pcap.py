@@ -61,6 +61,7 @@ def convert_tshark_stats_to_edgefile(edgefile_path, edgefile_name, tshark_path, 
 # pcap_file -> list_of_pcap_files
 # (split)
 def split_pcap(path, pcap_file, out_pcap_path, out_pcap_basename, interval):
+    ## Notes (3/16): the cmd below is failing, which is breaking downstream functions...
 
     cmd_list = ["editcap", "-i " + str(interval), path + pcap_file, out_pcap_path + out_pcap_basename]
     out = subprocess.check_output(cmd_list)
@@ -79,14 +80,22 @@ def split_pcap(path, pcap_file, out_pcap_path, out_pcap_basename, interval):
         if out_pcap_basename  in file:
             files.append(file)
 
+    # the code below makes the last entry wierd... let's just get rid of it entirely...
+    files = files[:-1] # there, now its everything but the last file...
+
     # need to get rid of any partial packets at end of trace b/c killing tcpdump
-    cmd_list = ["editcap", files[-1], files[-1]]
+    ## NOTE: put path in theere
+    # if problems persist, move this inside the loop above... but I don't understand WHY what is going on??
+    ## NOTE: NEW IDEA:: try it with file inside of files[-1]... prob still the same result tho...
+    '''
+    cmd_list = ["editcap", out_pcap_path + files[-1], out_pcap_path + files[-1]]
     try:
+        print "editcap command", cmd_list
         out = subprocess.check_output(cmd_list)
         print out
     except:
         pass # will trigger the split packet error, but will fix it regardless
-
+    '''
     return files
 
 def process_pcap_via_tshark(path, pcap_name, tshark_stats_dir_path, make_edgefiles_p):

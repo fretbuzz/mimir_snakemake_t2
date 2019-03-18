@@ -73,6 +73,11 @@ def determine_cm_vals_for_categories(attack_type_to_predictions, attack_type_to_
             print "truth_and_predictions_not_empty"
             print sklearn.metrics.confusion_matrix(truth, predictions,labels=[0,1]).ravel()
             tn, fp, fn, tp = sklearn.metrics.confusion_matrix(truth, predictions, labels=[0,1]).ravel()
+
+            # for no attack, negatives are really positive and vice-versa...
+            if 'No Attack' in attack_type:
+                tn,fn,tp,fp = tp,fp,tn,fn
+
         else:
             print "truth_and_predictions_empty"
             tn, fp, fn, tp = 0, 0, 0, 0

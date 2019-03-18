@@ -45,6 +45,7 @@ def determine_injection_times(exps_info, goal_train_test_split,goal_attack_NoAtt
         if time_split > exp_info['exfil_start_time']:
             time_split = exp_info['exfil_start_time']
         end_of_train_portions.append(time_split)
+        print "end_of_train_portions", end_of_train_portions
         ## now to find how much time to spending injecting during training and testing...
         ## okay, let's do testing first b/c it should be relatively straightforward...
         testing_time = exp_info['total_experiment_length'] - time_split

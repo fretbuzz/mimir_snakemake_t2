@@ -189,8 +189,11 @@ class injected_graph():
             self.graph_feature_dict['avg_load_centrality_' + str(service)] = load_centrality_mean[service]
             self.graph_feature_dict['avg_harmonic_centrality_' + str(service)] = harmonic_centrality_mean[service]
 
-        if math.isnan(self.graph_feature_dict['outside_to_wwwppp-wordpress_edge_coef_of_var']):
-            print "huston, we have a problem over here"
+        try: # this try-except exists b/c sockshop doesn't have this entry in the graph_feature_dict
+            if math.isnan(self.graph_feature_dict['outside_to_wwwppp-wordpress_edge_coef_of_var']):
+                print "huston, we have a problem over here"
+        except:
+            pass
 
         # yah, not so sure about this... need to store training/testing status in the graph object
         # (b/c if it is testing, then can use injected. else should use the fine ones)...
@@ -308,6 +311,7 @@ class set_of_injected_graphs():
             f.write(pickle.dumps(self))
 
     def ide_calculations(self, calc_ide):
+        '''
         cur_out_q = multiprocessing.Queue()
         args = [self.aggregate_csv_edgefile_loc, self.joint_col_list, self.window_size, self.raw_edgefile_names,
                 cur_out_q, calc_ide]
@@ -318,6 +322,9 @@ class set_of_injected_graphs():
 
         # okay, return these values so that we can do stuff with them later...
         return cur_out_q, ide_p
+        '''
+        return calc_ide_angles(self.aggregate_csv_edgefile_loc, self.joint_col_list, self.window_size, self.raw_edgefile_names,
+                None, calc_ide)
 
     def calc_serialize_metrics(self):
         adjacency_matrixes = []
@@ -535,18 +542,21 @@ def calc_ide_angles(aggregate_csv_edgefile_loc, joint_col_list, window_size, raw
     # step 1: setup the file with the params...
         with open('./clml_ide_params.txt', 'w') as f:
             # first thing: location of aggregatee-edgefile
-            f.write(aggregate_csv_edgefile_loc)
+            f.write(aggregate_csv_edgefile_loc + '\n')
             # second thing: number of columns
-            f.write(len(joint_col_list))
+            f.write(str(len(joint_col_list) + 1) + '\n') # plus one is for the unamed column (TODO: figure outwhat is it)
             # third thing: sliding window size
-            f.write(window_size)
+            f.write( str( window_size) + '\n')
             # fourth thing: total time
-            f.write( len(raw_edgefile_names) )
+            f.write( str( len(raw_edgefile_names))  + '\n')
             # fifth thing: output file location
             f.write( aggregate_csv_edgefile_loc + '_clml_ide_results.txt' )
 
+        time.sleep(10)
+
         # step 2: start sbcl on the appropriate script...
         out = subprocess.check_output(['sbcl', "--script", "clml_ide.lisp"])
+        print "ide_out", out
 
     # step 3: copy the results into the appropriate location...
     ## okay, let's just store it in a seperate location, cause that'll be easier, I guess...
@@ -557,7 +567,10 @@ def calc_ide_angles(aggregate_csv_edgefile_loc, joint_col_list, window_size, raw
     for i in cont_list:
         angles_list.append( i.replace("(", "").replace(")", "").rstrip().lstrip() )
 
-    out_q.put(angles_list)
+    if out_q:
+        out_q.put(angles_list)
+    else:
+        return angles_list
 
 def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm, ms_s, container_to_ip, infra_service,
                                     synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,

@@ -154,11 +154,21 @@ class data_anylsis_pipline(object):
         for time_gran, attack_labels in time_gran_to_attack_labels.iteritems():
             new_attack_labels = []
             list_of_exfil_amts = time_gran_to_list_of_exfil_amts[time_gran]
-            for counter,label in enumerate(attack_labels):
-                if list_of_exfil_amts[counter] == 0: # if it equals zero, then we know there isn't an actual attack
-                    new_attack_labels.append(0)
-                else:
-                    new_attack_labels.append(label) # otherwise go w/ existing
+            for counter in range(0, max(len(attack_labels), len(list_of_exfil_amts))):
+                try:
+                    label = attack_labels[counter]
+                except:
+                    label = 0
+
+                print counter, label, len(attack_labels)
+                if counter == 237:
+                    print "take manual control here..."
+
+                if counter < len(list_of_exfil_amts):
+                    if list_of_exfil_amts[counter] == 0: # if it equals zero, then we know there isn't an actual attack
+                        new_attack_labels.append(0)
+                    else:
+                        new_attack_labels.append(label) # otherwise go w/ existing
             time_gran_to_new_attack_labels[time_gran] = new_attack_labels
 
         return time_gran_to_new_attack_labels
@@ -260,6 +270,7 @@ class data_anylsis_pipline(object):
                                                          time_gran_to_list_of_amt_of_out_traffic_bytes,
                                                          time_gran_to_list_of_amt_of_out_traffic_pkts)
 
+            ''' # i never look @ these graphs, so I'm going to stop making them...
             try: # this thing returns some kinda error but i don't care.
                 analysis_pipeline.generate_graphs.generate_feature_multitime_boxplots(total_calculated_vals, self.basegraph_name,
                                                                                   self.window_size, self.colors,
@@ -269,6 +280,7 @@ class data_anylsis_pipline(object):
 
             except:
                 pass
+            '''
         else:
             time_gran_to_feature_dataframe = {}
             time_gran_to_attack_labels = {}
@@ -431,19 +443,14 @@ def process_one_set_of_graphs(time_interval_length, window_size,
         else:
             current_set_of_graphs.generate_injected_edgefiles()
 
-        # these relate to ide
-        if include_ide or calc_ide:
-            current_set_of_graphs.generate_aggregate_csv()
-            cur_out_q, ide_p = current_set_of_graphs.ide_calculations(calc_ide)
-
+        current_set_of_graphs.generate_aggregate_csv()
         current_set_of_graphs.calcuated_single_step_metrics()
         current_set_of_graphs.calc_serialize_metrics()
 
-        # these also relate to ide
+        # these relate to ide
         if include_ide or calc_ide:
             print "waiting for ide angles to finish...."
-            real_ide_angles = cur_out_q.get()
-            ide_p.join()
+            real_ide_angles = current_set_of_graphs.ide_calculations(calc_ide)
             current_set_of_graphs.calculated_values['real_ide_angles'] = real_ide_angles
 
         current_set_of_graphs.save()
@@ -585,6 +592,7 @@ def assign_attacks_to_first_available_spots(time_gran_to_attack_labels, largest_
     number_spots_needed = len(current_exfil_paths) * time_periods_attack +  \
                           time_gran_to_attack_labels[largest_time_gran][counter:end_time_interval_largestTimeGran].count(1)
     extra_spots = total_number_free_spots - number_spots_needed - 1
+    num_attacks_to_inject = float(len(current_exfil_paths))
 
     j = 0
     for synthetic_exfil_path in current_exfil_paths: # synthetic_exfil_paths:
@@ -597,7 +605,7 @@ def assign_attacks_to_first_available_spots(time_gran_to_attack_labels, largest_
                 exit(1244) # should break now b/c infinite loop (note: we're not handling the case where it is fragmented...)
 
             random.seed(0)
-            current_possible_steps = int(float(extra_spots) / len(current_exfil_paths[j:]))
+            current_possible_steps = int(math.ceil(float(extra_spots) / (num_attacks_to_inject - j)))
             #current_possible_steps = int(extra_spots/10.0) #int(extra_spots)
             time_periods_between_attacks = random.randint(0, current_possible_steps)  # don't wan to bias it too much towards the end
             extra_spots -= time_periods_between_attacks
