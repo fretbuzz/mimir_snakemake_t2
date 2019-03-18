@@ -2015,6 +2015,7 @@ def autoscaling_sockshop_recipe():
     calculate_z_scores = True
     include_ide = False # include ide vals? this'll involve either calculating them (below) or grabbing them from the file location
     calc_ide = False
+    only_ide = False ## ONLY calculate the ide values... this'll be useful if I wanna first calc all the other values and THEN ide...
 
     ####
     cur_experiment_name = ""  # can modify if you want, probably with:  new_wordpress_recipe.__name__
@@ -2046,7 +2047,7 @@ def autoscaling_sockshop_recipe():
                               skip_graph_injection=skip_graph_injection,
                               get_endresult_from_memory=get_endresult_from_memory,
                               goal_attack_NoAttack_split_testing=goal_attack_NoAttack_split_testing,
-                              calc_ide=calc_ide, include_ide=include_ide)
+                              calc_ide=calc_ide, include_ide=include_ide, only_ide=only_ide)
 
 
 def new_wordpress_autoscaling_recipe():
@@ -2088,6 +2089,7 @@ def new_wordpress_autoscaling_recipe():
     calculate_z_scores = False
     include_ide = False # include ide vals? this'll involve either calculating them (below) or grabbing them from the file location
     calc_ide = False
+    only_ide = False ## ONLY calculate the ide values... this'll be useful if I wanna first calc all the other values and THEN ide...
 
     ####
     cur_experiment_name = "autoscaling_mark7_"  # can modify if you want, probably with:  new_wordpress_recipe.__name__
@@ -2119,7 +2121,7 @@ def new_wordpress_autoscaling_recipe():
                               skip_graph_injection=skip_graph_injection,
                               get_endresult_from_memory=get_endresult_from_memory,
                               goal_attack_NoAttack_split_testing=goal_attack_NoAttack_split_testing,
-                              calc_ide=calc_ide, include_ide=include_ide)
+                              calc_ide=calc_ide, include_ide=include_ide, only_ide=only_ide)
 
 def new_wordpress_recipe():
     skip_model_part = False
@@ -2160,6 +2162,8 @@ def new_wordpress_recipe():
     calculate_z_scores = True
     calc_ide = False
     include_ide = False
+    only_ide = False ## ONLY calculate the ide values... this'll be useful if I wanna first calc all the other values and THEN ide...
+
     ###############include_ide = True
 
     ####
@@ -2213,7 +2217,7 @@ def new_wordpress_recipe():
                               skip_graph_injection=skip_graph_injection,
                               get_endresult_from_memory=get_endresult_from_memory,
                               goal_attack_NoAttack_split_testing=goal_attack_NoAttack_split_testing,
-                              calc_ide=calc_ide, include_ide=include_ide)
+                              calc_ide=calc_ide, include_ide=include_ide, only_ide=only_ide)
 
 
 # this function feeds a set of wordpress experiments into the multi_experiment_pipeline() function found in the

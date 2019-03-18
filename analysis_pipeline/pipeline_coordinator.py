@@ -80,7 +80,8 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
                               calculate_z_scores_p=True, avg_exfil_per_min=None, exfil_per_min_variance=None,
                               avg_pkt_size=None, pkt_size_variance=None,
                               skip_graph_injection=False, get_endresult_from_memory=False,
-                              goal_attack_NoAttack_split_testing=0.0, calc_ide=False, include_ide=False):
+                              goal_attack_NoAttack_split_testing=0.0, calc_ide=False, include_ide=False,
+                              only_ide=False):
 
     list_of_optimal_fone_scores_at_exfil_rates = []
     rate_to_timegran_to_methods_to_attacks_found_dfs = {}
@@ -116,7 +117,7 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
                     calculate_z_scores_p, calc_vals, end_of_train_portions,training_exfil_paths,
                     testing_exfil_paths, ignore_physical_attacks_p, skip_model_part, out_q,
                     ROC_curve_p, avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
-                    skip_graph_injection, calc_ide, include_ide]
+                    skip_graph_injection, calc_ide, include_ide, only_ide]
             p = multiprocessing.Process(
                 target=pipeline_one_exfil_rate,
                 args=args)
@@ -166,7 +167,7 @@ def pipeline_one_exfil_rate(rate_counter,
                             calculate_z_scores_p, calc_vals, end_of_train_portions, training_exfil_paths,
                             testing_exfil_paths, ignore_physical_attacks_p, skip_model_part, out_q,
                             ROC_curve_p, avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
-                            skip_graph_injection, calc_ide, include_ide):
+                            skip_graph_injection, calc_ide, include_ide, only_ide):
     ## step (1) : iterate through individual experiments...
     ##  # 1a. list of inputs [done]
     ##  # 1b. acculate DFs
@@ -198,7 +199,8 @@ def pipeline_one_exfil_rate(rate_counter,
                                            exfil_per_min_variance=exfil_per_min_variance[rate_counter],
                                            avg_pkt_size=avg_pkt_size[rate_counter],
                                            pkt_size_variance=pkt_size_variance[rate_counter],
-                                           calc_ide=calc_ide, include_ide=include_ide)
+                                           calc_ide=calc_ide, include_ide=include_ide,
+                                           only_ide=only_ide)
 
         print "exps_exfil_pathas[time_gran_to_mod_zscore_df]", time_gran_to_mod_zscore_df
         print time_gran_to_mod_zscore_df[time_gran_to_mod_zscore_df.keys()[0]].columns.values
