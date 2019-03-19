@@ -9,7 +9,7 @@ import math
 
 def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
                               rate_to_timegran_list_to_methods_to_attacks_found_training_df,
-                              base_output_name, rates_to_experiment_info):
+                              base_output_name, rates_to_experiment_info, rate_to_time_gran_to_outtraffic):
 
     date = str(datetime.datetime.now())
     env = Environment(
@@ -71,7 +71,10 @@ def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
             # this'll also require modify rendering portion b/c we only want a single graph + better titles
             # obviously... ACTUALLY want one graph per time granularity, with one subfigure per exfiltration rates
             bar_axes = time_gran_to_comp_bargraph_info[timegran][1]
-            cur_bar_axes = bar_axes[int(rate_counter / 3)][(rate_counter % 3)]
+            try:
+                cur_bar_axes = bar_axes[int(rate_counter / 3)][(rate_counter % 3)]
+            except:
+                cur_bar_axes = bar_axes[(rate_counter % 3)]
 
             df_attack_identites = per_attack_bar_graphs(methods_to_attacks_found_dfs, temp_graph_loc, graph_loc,
                                                         cur_bar_axes)
@@ -139,8 +142,11 @@ def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
     for timegran, comp_bargraph_info in time_gran_to_comp_bargraph_info.iteritems():
         cur_axis_set = comp_bargraph_info[1]
         for cur_axis_row in cur_axis_set:
-            for cur_axis in cur_axis_row:
-                cur_axis.set(adjustable='box', aspect='auto')
+            try:
+                for cur_axis in cur_axis_row:
+                    cur_axis.set(adjustable='box', aspect='auto')
+            except:
+                cur_axis_row.set(adjustable='box', aspect='auto')
 
     for time_gran, comp_graph_info in time_gran_to_comp_bargraph_info.iteritems():
         #comp_graph_info[0].tight_layout()

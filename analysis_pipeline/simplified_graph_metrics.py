@@ -424,8 +424,7 @@ class set_of_injected_graphs():
         #joint_col_list +=  ['labels']
         out_df = pd.DataFrame(None, index=None, columns=joint_col_list)
 
-        # TODO: first graph is too different from the other graphs and causes problems... might want to debug further...
-        for injected_graph_loc in self.list_of_injected_graphs_loc[1:]:
+        for injected_graph_loc in self.list_of_injected_graphs_loc:
             print "injected_graph_loc",injected_graph_loc
             with open(injected_graph_loc, 'rb') as pickle_input_file:
                 injected_graph = pickle.load(pickle_input_file)
@@ -542,7 +541,7 @@ def calc_ide_angles(aggregate_csv_edgefile_loc, joint_col_list, window_size, raw
 
     ## TODO: actually you'd probably want this whole thing to be non-blocking, so maybe wrap it in another process???
 
-    if calc_ide:
+    if calc_ide: #False: #calc_ide:
     # step 1: setup the file with the params...
         with open('./clml_ide_params.txt', 'w') as f:
             # first thing: location of aggregatee-edgefile
@@ -571,9 +570,9 @@ def calc_ide_angles(aggregate_csv_edgefile_loc, joint_col_list, window_size, raw
     for i in cont_list:
         angles_list.append( i.replace("(", "").replace(")", "").rstrip().lstrip() )
 
-    ## TODO: remove this if I ever find out the problem behind including the first graph in the ide calculation...
-    angles_list = [0] + angles_list
+    angles_list = [float('NaN') for i in range(0, window_size)] + angles_list
 
+    angles_list = [float(i) for i in angles_list]
     if out_q:
         out_q.put(angles_list)
     else:

@@ -454,6 +454,11 @@ def process_one_set_of_graphs(time_interval_length, window_size,
             real_ide_angles = current_set_of_graphs.ide_calculations(calc_ide)
             current_set_of_graphs.calculated_values['real_ide_angles'] = real_ide_angles
 
+            # okay, now save all of the values coherently..
+            current_set_of_graphs.calculated_values_keys = current_set_of_graphs.calculated_values.keys()
+            with open(current_set_of_graphs.collected_metrics_location, 'wb') as f:  # Just use 'w' mode in 3.x
+                f.write(pickle.dumps(current_set_of_graphs.calculated_values))
+
         current_set_of_graphs.save()
     else:
         with open(current_set_of_graphs_loc, mode='rb') as f:
@@ -469,6 +474,13 @@ def process_one_set_of_graphs(time_interval_length, window_size,
             #current_set_of_graphs.generate_aggregate_csv() ## TODO: <<---- REMOVE THIS LINE!!!!
             real_ide_angles = current_set_of_graphs.ide_calculations(True)
             current_set_of_graphs.calculated_values['real_ide_angles'] = real_ide_angles
+
+            # okay, now save all of the values coherently..
+            current_set_of_graphs.calculated_values_keys = current_set_of_graphs.calculated_values.keys()
+            with open(current_set_of_graphs.collected_metrics_location, 'wb') as f:  # Just use 'w' mode in 3.x
+                f.write(pickle.dumps(current_set_of_graphs.calculated_values))
+
+            # okay,now save the whole hting coherently...
             current_set_of_graphs.save()
 
     current_set_of_graphs.put_values_into_outq(out_q)

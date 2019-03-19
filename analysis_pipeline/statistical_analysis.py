@@ -44,6 +44,7 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
     X_tests = {}
     Y_tests = {}
     trained_models = {}
+    time_gran_to_outtraffic = {}
 
     list_of_attacks_to_found_dfs = []
     list_of_attacks_to_found_training_df = []
@@ -54,9 +55,10 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         method_to_training_df = {}
 
         X_train, y_train, X_test, y_test, pre_drop_X_train, time_gran_to_debugging_csv, dropped_feature_list, ide_train,\
-            ide_test, X_train_exfil_weight, X_test_exfil_weight, exfil_paths, exfil_paths_train = \
+            ide_test, X_train_exfil_weight, X_test_exfil_weight, exfil_paths, exfil_paths_train, out_traffic = \
             prepare_data(aggregate_mod_score_dfs, skip_model_part, ignore_physical_attacks_p, time_gran_to_debugging_csv, time_gran)
 
+        time_gran_to_outtraffic[time_gran] = out_traffic
         # method_to_trainTest = {}
         # method_to_trainTest['ensemble_of_features'] = (X_train, X_test)
         # method_to_trainTest['ide_angle'] = (ide_train, ide_test)
@@ -212,10 +214,6 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
 
     starts_of_testing_df = pd.DataFrame(starts_of_testing_dict, index=['start_of_testing_phase'])
 
-    # TODO: this is kinda a bit of work.
-    # per_attack_bar_graphs(method_to_results_df, temp_location, file_storage_location)
-    #list_of_attacks_to_found_dfs, list_of_attacks_to_found_training_df
-
     print "list_of_rocs", list_of_rocs
     generate_report.generate_report(list_of_rocs, list_of_feat_coefs_dfs, list_of_attacks_found_dfs,
                                     recipes_used, base_output_name, time_grans, list_of_model_parameters,
@@ -235,7 +233,7 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
     experiment_info["pkt_size_variance"] = pkt_size_variance
 
     return list_of_optimal_fone_scores,X_trains,Y_trains,X_tests,Y_tests, trained_models, time_gran_to_attacks_found_df, \
-           time_gran_to_attacks_found_df_training,experiment_info
+           time_gran_to_attacks_found_df_training,experiment_info, time_gran_to_outtraffic
 
 def drop_useless_columns_aggreg_DF(aggregate_mod_score_dfs):
     # '''
@@ -455,6 +453,12 @@ def drop_useless_columns_aggreg_DF(aggregate_mod_score_dfs):
         aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='dns_list_outside_')
     except:
         pass
+
+    try:
+        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='ide_angles_')
+    except:
+        pass
+
     try:
         aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='dns_list_inside_')
     except:
@@ -595,11 +599,11 @@ def extract_comparison_methods(X_train, X_test):
 
         try:
             pass
-            ide_train = copy.deepcopy(X_train['real_ide_angles'])
+            ide_train = copy.deepcopy(X_train['real_ide_angles_'])
             copy_of_X_test = X_test.copy(deep=True)
-            ide_test = copy.deepcopy(copy_of_X_test['real_ide_angles'])
-            X_train = X_train.drop(columns='real_ide_angles')
-            X_test = X_test.drop(columns='real_ide_angles')
+            ide_test = copy.deepcopy(copy_of_X_test['real_ide_angles_'])
+            X_train = X_train.drop(columns='real_ide_angles_')
+            X_test = X_test.drop(columns='real_ide_angles_')
         except:
 
             ide_train = copy.deepcopy(X_train['ide_angles_w_abs_'])
@@ -739,6 +743,16 @@ def get_coef_dict(clf, X_train_columns, base_output_name, X_train_dtypes):
     return coef_dict
 
 def prepare_data(aggregate_mod_score_dfs, skip_model_part, ignore_physical_attacks_p, time_gran_to_debugging_csv, time_gran):
+    out_traffic=None
+    '''
+    try:
+        out_traffic = aggregate_mod_score_dfs['amt_of_out_traffic_bytes']
+        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(
+            columns='amt_of_out_traffic_bytes')  # might wanna just stop these from being generated...
+    except:
+        pass
+    '''
+
     aggregate_mod_score_dfs = drop_useless_columns_aggreg_DF(aggregate_mod_score_dfs)
 
     if not skip_model_part:
@@ -811,7 +825,7 @@ def prepare_data(aggregate_mod_score_dfs, skip_model_part, ignore_physical_attac
     X_test = X_test.dropna(axis=1)
 
     return X_train, y_train, X_test, y_test, pre_drop_X_train, time_gran_to_debugging_csv, dropped_feature_list, \
-           ide_train, ide_test, X_train_exfil_weight, X_test_exfil_weight, exfil_paths, exfil_paths_train
+           ide_train, ide_test, X_train_exfil_weight, X_test_exfil_weight, exfil_paths, exfil_paths_train, out_traffic
 
 
 def lasso_feature_selection(X_train, y_train, X_test, y_test):

@@ -74,8 +74,9 @@ def determine_cm_vals_for_categories(attack_type_to_predictions, attack_type_to_
             print sklearn.metrics.confusion_matrix(truth, predictions,labels=[0,1]).ravel()
             tn, fp, fn, tp = sklearn.metrics.confusion_matrix(truth, predictions, labels=[0,1]).ravel()
 
+            ### TODO: FIX THIS AT SOME POINT... since
             # for no attack, negatives are really positive and vice-versa...
-            if 'No Attack' in attack_type:
+            if 'No Attack' in attack_type or attack_type == ():
                 tn,fn,tp,fp = tp,fp,tn,fn
 
         else:

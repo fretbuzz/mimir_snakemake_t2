@@ -90,8 +90,10 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
     test_results_df_loc = base_output_name + 'test_results_df_loc.txt'
     training_results_df_loc = base_output_name + 'train_results_df_loc.txt'
     rates_to_experiment_info_loc = base_output_name + 'rates_to_experiment_info_loc.txt'
+    rates_to_outtraffic_info = base_output_name + 'outtraffic_bytese.txt'
     rate_to_time_gran_to_xs = {}
     rate_to_time_gran_to_ys = {}
+    rate_to_time_gran_to_outtraffic = {}
 
     if get_endresult_from_memory:
         with open(test_results_df_loc, 'r') as input_file:
@@ -100,6 +102,8 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
             rate_to_timegran_list_of_methods_to_attacks_found_training_df = pickle.load(input_file)
         with open(rates_to_experiment_info_loc, 'r') as input_file:
             rates_to_experiment_info = pickle.load(input_file)
+        #with open(rates_to_outtraffic_info, 'r') as input_file:
+        #    rate_to_time_gran_to_outtraffic = pickle.load(input_file)
     else:
         # step(0): need to find out the  meta-data for each experiment so we can coordinate the
         # synthetic attack injections between experiments
@@ -131,6 +135,7 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
             timegran_to_methods_to_attacks_found_dfs  = out_q.get()
             timegran_to_methods_toattacks_found_training_df  = out_q.get()
             experiment_info = out_q.get()
+            time_gran_to_outtraffic = out_q.get()
             p.join()
 
             rates_to_experiment_info[avg_exfil_per_min[rate_counter]] = experiment_info
@@ -141,10 +146,13 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
             if avg_exfil_per_min[rate_counter] not in rate_to_time_gran_to_xs:
                 rate_to_time_gran_to_xs[avg_exfil_per_min[rate_counter]] = []
                 rate_to_time_gran_to_ys[avg_exfil_per_min[rate_counter]] = []
+                rate_to_time_gran_to_outtraffic[avg_exfil_per_min[rate_counter]] = []
 
             for time_counter,time_gran in enumerate(rate_to_timegran_to_methods_to_attacks_found_dfs[avg_exfil_per_min[rate_counter]].keys()):
                 rate_to_time_gran_to_xs[avg_exfil_per_min[rate_counter]].append((Xs[time_gran], Xts[time_gran]))
                 rate_to_time_gran_to_ys[avg_exfil_per_min[rate_counter]].append((Ys[time_gran], Yts[time_gran]))
+                rate_to_time_gran_to_outtraffic[avg_exfil_per_min[rate_counter]].append(time_gran_to_outtraffic)
+
 
         with open(test_results_df_loc, 'wb') as f:  # Just use 'w' mode in 3.x
             f.write(pickle.dumps(rate_to_timegran_to_methods_to_attacks_found_dfs))
@@ -152,10 +160,12 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
             f.write(pickle.dumps(rate_to_timegran_list_of_methods_to_attacks_found_training_df))
         with open(rates_to_experiment_info_loc, 'wb') as f:  # Just use 'w' mode in 3.x
             f.write(pickle.dumps(rates_to_experiment_info))
+        with open(rates_to_outtraffic_info, 'wb') as f:  # Just use 'w' mode in 3.x
+            f.write(pickle.dumps(rate_to_time_gran_to_outtraffic))
 
     generate_aggregate_report.generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
                               rate_to_timegran_list_of_methods_to_attacks_found_training_df,
-                              base_output_name, rates_to_experiment_info)
+                              base_output_name, rates_to_experiment_info, rate_to_time_gran_to_outtraffic)
 
 
     return rate_to_time_gran_to_xs, rate_to_time_gran_to_ys, rate_to_timegran_list_of_methods_to_attacks_found_training_df, \
@@ -281,7 +291,7 @@ def pipeline_one_exfil_rate(rate_counter,
 
     clf = LassoCV(cv=3, max_iter=80000)
     list_of_optimal_fone_scores_at_this_exfil_rates, Xs,Ys,Xts,Yts, trained_models, list_of_attacks_found_dfs, \
-    list_of_attacks_found_training_df,experiment_info = \
+    list_of_attacks_found_training_df,experiment_info, time_gran_to_outtraffic = \
         statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p,
                                              cur_base_output_name + 'lasso_mod_z_',
                                              names, starts_of_testing, path_occurence_training_df,
@@ -302,7 +312,7 @@ def pipeline_one_exfil_rate(rate_counter,
     #''' # appears to be strictly worse than lasso regression...
     # lass_feat_sel
     clf = LogisticRegressionCV(penalty="l1", cv=10, max_iter=10000, solver='saga')
-    _, _, _, _, _, _,_,_,_ = statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p,
+    _, _, _, _, _, _,_,_,_,_ = statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p,
                                                             cur_base_output_name + 'logistic_l1_mod_z_lass_feat_sel_',
                                                             names, starts_of_testing, path_occurence_training_df,
                                                             path_occurence_testing_df, recipes_used, skip_model_part, clf,
@@ -353,6 +363,7 @@ def pipeline_one_exfil_rate(rate_counter,
     out_q.put(list_of_attacks_found_dfs)
     out_q.put(list_of_attacks_found_training_df)
     out_q.put(experiment_info)
+    out_q.put(time_gran_to_outtraffic)
 
 def determine_and_assign_exfil_paths(calc_vals, skip_model_part, function_list, goal_train_test_split, goal_attack_NoAttack_split_training,
                                      ignore_physical_attacks_p, time_each_synthetic_exfil, goal_attack_NoAttack_split_testing):
