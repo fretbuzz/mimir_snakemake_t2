@@ -424,7 +424,8 @@ class set_of_injected_graphs():
         #joint_col_list +=  ['labels']
         out_df = pd.DataFrame(None, index=None, columns=joint_col_list)
 
-        for injected_graph_loc in self.list_of_injected_graphs_loc:
+        # TODO: first graph is too different from the other graphs and causes problems... might want to debug further...
+        for injected_graph_loc in self.list_of_injected_graphs_loc[1:]:
             print "injected_graph_loc",injected_graph_loc
             with open(injected_graph_loc, 'rb') as pickle_input_file:
                 injected_graph = pickle.load(pickle_input_file)
@@ -450,6 +451,9 @@ class set_of_injected_graphs():
 
             cur_df = pd.DataFrame(adj_dict, columns=joint_col_list)
             cur_df = cur_df.fillna(0)
+            cur_df['192.168.99.100-outside'] = 0 # TODO: remove this from the graph entirely when I get a chance...
+            # but for now, just set it equal to zero (it's so large that it causes scaling problems w.r.t. the other entries)
+
             out_df = out_df.append(cur_df, sort=True)
 
         self.joint_col_list = joint_col_list
@@ -543,7 +547,7 @@ def calc_ide_angles(aggregate_csv_edgefile_loc, joint_col_list, window_size, raw
         with open('./clml_ide_params.txt', 'w') as f:
             # first thing: location of aggregatee-edgefile
             f.write(aggregate_csv_edgefile_loc + '\n')
-            # second thing: number of columns
+            # second thing: number of columns ## NOTE: USED TO BE +1
             f.write(str(len(joint_col_list) + 1) + '\n') # plus one is for the unamed column (TODO: figure outwhat is it)
             # third thing: sliding window size
             f.write( str( window_size) + '\n')
@@ -555,7 +559,7 @@ def calc_ide_angles(aggregate_csv_edgefile_loc, joint_col_list, window_size, raw
         time.sleep(10)
 
         # step 2: start sbcl on the appropriate script...
-        out = subprocess.check_output(['sbcl', "--script", "clml_ide.lisp"])
+        out = subprocess.check_output(['sbcl', "--dynamic-space-size", "2560", "--script", "clml_ide.lisp"])
         print "ide_out", out
 
     # step 3: copy the results into the appropriate location...
@@ -566,6 +570,9 @@ def calc_ide_angles(aggregate_csv_edgefile_loc, joint_col_list, window_size, raw
     angles_list = []
     for i in cont_list:
         angles_list.append( i.replace("(", "").replace(")", "").rstrip().lstrip() )
+
+    ## TODO: remove this if I ever find out the problem behind including the first graph in the ide calculation...
+    angles_list = [0] + angles_list
 
     if out_q:
         out_q.put(angles_list)
@@ -624,6 +631,7 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
         logging.info("end straight_G_edges")
 
         ### TODO: want to update::: container_to_ip using the pod/creation log (this is called: pod_creation_log)
+        ## UPDATE: CORRECT. THAT'S WHY I TOOK IT OUT. can remove all these comments (included commented out code, at some point...)
         ## okay, testing this ATM. if it works, then I can delete the line above
         ###### WAIT, I DON'T THINK THIS ACTUALLY DOES ANYTHING!!! ##########
         #container_to_ip = update_mapping(container_to_ip, pod_creation_log, time_interval, counter)

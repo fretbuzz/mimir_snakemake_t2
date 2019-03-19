@@ -39,6 +39,7 @@
 (defvar num-cols)
 (setq num-cols (parse-integer (read-line in)))  ;; e.g. 1191
 (print "num-cols here")
+(print num-cols)
 (defvar window-size)
 (setq window-size (parse-integer (read-line in))) ;; e.g. 12
 (print "window-size here")
@@ -62,7 +63,6 @@
 (print "about to do ide portion")
 (print (list (+ window-size 1) 1))
 
-
 (setq results (loop with detector = (make-db-detector (sub-ts relevantData :start '(1 1) :end (list window-size num-cols)))
 	for p across (ts-points (sub-ts relevantData :start (list (+ window-size 1) 1) :end (list total-length-timesteps num-cols)))
 	collect (funcall detector (ts-p-pos p))))
@@ -71,3 +71,4 @@
 
 (with-open-file (str output-file-loc :direction :output :if-exists :supersede  :if-does-not-exist :create)
 	(format str "~A~%" results))
+

@@ -2059,7 +2059,7 @@ def new_wordpress_autoscaling_recipe():
     goal_attack_NoAttack_split_training = 0.6
     goal_attack_NoAttack_split_testing = 0.2
 
-    time_interval_lengths = [30, 10]#, 10] #[30, 10, 1] #[30, 10, 1] #[30, 10, 1]#,
+    time_interval_lengths = [10]#, 10] #[30, 10, 1] #[30, 10, 1] #[30, 10, 1]#,
 
     # this doesn't actually do anything
     size_of_neighbor_training_window = 0
@@ -2075,21 +2075,21 @@ def new_wordpress_autoscaling_recipe():
 
     #####
     # IN MEGABYTES / MINUTE
-    avg_exfil_per_min = [10.0, 2.0, 1.0, 0.25, 0.1 ] #[10.0, 2.0,
-    exfil_per_min_variance = [0.3, 0.2, 0.15, 0.08, 0.05] # 0.3, 0.2,
-    avg_pkt_size = [500.0, 500.0, 500.00, 500.00, 500.0] # 500.0, 500.0,
-    pkt_size_variance = [100, 100, 100, 100, 100] # 100, 100,
+    avg_exfil_per_min = [0.25]#, 10.0. 2.0, 1.0, 0.25, 0.1 ] #[10.0, 2.0,
+    exfil_per_min_variance = [0.08]#, 0.3, 0.2, 0.15, 0.08, 0.05] # 0.3, 0.2,
+    avg_pkt_size = [500.0]#, 500.0, 500.00, 500.00, 500.0] # 500.0, 500.0,
+    pkt_size_variance = [100]#, 100, 100, 100, 100] # 100, 100,
 
     BytesPerMegabyte = 1000000
     avg_exfil_per_min = [BytesPerMegabyte * i for i in avg_exfil_per_min]
     exfil_per_min_variance = [BytesPerMegabyte * i for i in exfil_per_min_variance]
     ######
 
-    calc_vals = False
+    calc_vals = True
     calculate_z_scores = False
     include_ide = False # include ide vals? this'll involve either calculating them (below) or grabbing them from the file location
     calc_ide = False
-    only_ide = False ## ONLY calculate the ide values... this'll be useful if I wanna first calc all the other values and THEN ide...
+    only_ide = True ## ONLY calculate the ide values... this'll be useful if I wanna first calc all the other values and THEN ide...
 
     ####
     cur_experiment_name = "autoscaling_mark7_"  # can modify if you want, probably with:  new_wordpress_recipe.__name__
@@ -2132,7 +2132,7 @@ def new_wordpress_recipe():
     goal_attack_NoAttack_split_training = 0.6
     goal_attack_NoAttack_split_testing = 0.2
 
-    time_interval_lengths = [10, 30] #[30, 10] #[30, 10, 1] #[30, 10, 1] #[30, 10, 1]#,
+    time_interval_lengths = [10] #[30, 10] #[30, 10, 1] #[30, 10, 1] #[30, 10, 1]#,
 
     # this doesn't actually do anything
     size_of_neighbor_training_window = 0
@@ -2148,8 +2148,8 @@ def new_wordpress_recipe():
 
     #####
     # IN MEGABYTES / MINUTE
-    avg_exfil_per_min = [10.0, 2.0, 1.0, 0.25, 0.1] #[100000000.0] # [100.0
-    exfil_per_min_variance = [0.3, 0.2, 0.15, 0.08, 0.05] #[100.0] # 1.0,
+    avg_exfil_per_min = [0.25] #[10.0, 2.0, 1.0, 0.25, 0.1] #[100000000.0] # [100.0
+    exfil_per_min_variance = [0.08] #[0.3, 0.2, 0.15, 0.08, 0.05] #[100.0] # 1.0,
     avg_pkt_size = [500.0, 500.0, 500.00, 500.00, 500.0] #[1000.0] # 500.0,
     pkt_size_variance = [100, 100, 100, 100, 100] #[100] #100,
 
@@ -2162,7 +2162,7 @@ def new_wordpress_recipe():
     calculate_z_scores = True
     calc_ide = False
     include_ide = False
-    only_ide = False ## ONLY calculate the ide values... this'll be useful if I wanna first calc all the other values and THEN ide...
+    only_ide = True ## ONLY calculate the ide values... this'll be useful if I wanna first calc all the other values and THEN ide...
 
     ###############include_ide = True
 
@@ -2331,8 +2331,8 @@ if __name__=="__main__":
     if len(sys.argv) == 1:
         print "running_preset..."
         ## NO NO No::: new_new_wordpress_recipe() # testing autoscaling stuff...
-        new_wordpress_autoscaling_recipe()
-        #new_wordpress_recipe()
+        #new_wordpress_autoscaling_recipe()
+        new_wordpress_recipe()
         #autoscaling_sockshop_recipe()
 
         #multi_experiment_wordpress_recipe()
