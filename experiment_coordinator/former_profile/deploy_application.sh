@@ -39,4 +39,13 @@ elif [ "$1" = "sockshop" ]; then
   fi
 elif [ "$1" = "drupal" ]; then
   echo "see, it was drupal" >> /local/repository/deploy_test.txt
+elif [ "$1" = "hipster" ]; then
+  echo "see, it was hipsterStore" >> /local/repository/deploy_test.txt
+  bash /mydata/mimir_snakemake_t2/experiment_coordinator/former_profile/deploy_hipsterStore.sh
+  if [ -z "autoscale_p" ]
+  then
+      echo "WARNING: NEED TO DO MORE WORK ON NON-AUTOSCALING HIPSTER"
+  else
+      bash /mydata/mimir_snakemake_t2/experiment_coordinator/former_profile/autoscale_hipsterStore.sh
+  fi
 fi

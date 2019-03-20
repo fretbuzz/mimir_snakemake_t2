@@ -42,7 +42,7 @@ def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
         nrows = int(math.ceil(num_of_rates / 3.0))
         ncolumns = 3
         print "nrows",nrows, "ncolumns",ncolumns, "num_of_rates",num_of_rates, math.ceil(num_of_rates / 3.0)
-        bar_fig, bar_axes = plt.subplots(nrows=nrows, ncols=ncolumns, figsize=(26, 13), subplot_kw={ 'adjustable' : 'box'})
+        bar_fig, bar_axes = plt.subplots(nrows=nrows, ncols=ncolumns, figsize=(26, 36), subplot_kw={ 'adjustable' : 'box'})
         time_gran_to_comp_bargraph_info[time_gran] = (bar_fig, bar_axes, cur_lineGraph_loc)
 
     df_attack_identites = None
@@ -70,11 +70,17 @@ def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
             # all the sizing information before this loop starts and then just execute it in the inner part).
             # this'll also require modify rendering portion b/c we only want a single graph + better titles
             # obviously... ACTUALLY want one graph per time granularity, with one subfigure per exfiltration rates
+
             bar_axes = time_gran_to_comp_bargraph_info[timegran][1]
             try:
                 cur_bar_axes = bar_axes[int(rate_counter / 3)][(rate_counter % 3)]
             except:
                 cur_bar_axes = bar_axes[(rate_counter % 3)]
+
+            attacks = methods_to_attacks_found_dfs[methods_to_attacks_found_dfs.keys()[0]].index
+            n_groups = len(attacks)
+            index = np.arange(n_groups)
+            bar_width = 0.35
 
             df_attack_identites = per_attack_bar_graphs(methods_to_attacks_found_dfs, temp_graph_loc, graph_loc,
                                                         cur_bar_axes)
@@ -101,7 +107,6 @@ def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
             cur_bar_axes.set_xlabel('attack')
             #cur_bar_axes.legend()
             cur_bar_axes.legend(loc='upper center', bbox_to_anchor=(0.5, -0.05), fancybox=True, shadow=True, ncol=5)
-
 
             #cur_bar_axes.set_xtick
 
@@ -139,12 +144,18 @@ def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
 
 
     #  cur_bar_axes.set(adjustable='box', aspect='equal')
+    ## TODO: NOTE: These labels apply only for the wordpress experiments...
+    #x_tick_labels = ('wp_VIP', 'no_VIP_DNS', 'just_DNS', 'Norm_Path', 'no_VIP_norm', 'No_Attack', 'Norm_DNS',  'Out', 'wp_VIP_DNS')#list(attacks)
+    x_tick_labels = ('A', 'B', 'C', 'D', 'E', 'No_Attack', 'G',  'H', 'I')#list(attacks)
+
     for timegran, comp_bargraph_info in time_gran_to_comp_bargraph_info.iteritems():
         cur_axis_set = comp_bargraph_info[1]
         for cur_axis_row in cur_axis_set:
             try:
                 for cur_axis in cur_axis_row:
                     cur_axis.set(adjustable='box', aspect='auto')
+                    cur_axis.set_xticks(index + bar_width / 2)
+                    cur_axis.set_xticklabels(x_tick_labels)
             except:
                 cur_axis_row.set(adjustable='box', aspect='auto')
 
@@ -285,6 +296,11 @@ def per_attack_bar_graphs(method_to_results_df, temp_location, file_storage_loca
     error_config = {'ecolor': '0.3'}
     colors_to_use = ['b', 'r']
     x_tick_labels = ('A', 'B', 'C', 'D', 'E', 'F', 'G',  'H', 'I')#list(attacks)
+
+    ## TODO: NOTE: THESE APPLY ONLY TO THE WORDPRESS EXPERIMENTS!!!
+    #x_tick_labels = ('wp_VIP', 'no_VIP_DNS', 'just_DNS', 'Normal_Path', 'no_VIP_normal', 'No_Attack', 'Normal_DNS',  'Straight_Out', 'wp_VIP_DNS')#list(attacks)
+
+
     df_attack_identites = {}
     print "attacks", attacks
     for counter,tick_val in enumerate(x_tick_labels):
@@ -294,7 +310,11 @@ def per_attack_bar_graphs(method_to_results_df, temp_location, file_storage_loca
     i = 0
     for cur_method, cur_results in method_to_results_df.iteritems():
         attack_to_fone = results_df_to_attack_fones(cur_results)
+
         current_bar_locations = index + bar_width * i
+
+        print "attack_to_fone",attack_to_fone
+        print "---"
 
         attack_fones = [attack_to_fone[attack] for attack in attacks]
 

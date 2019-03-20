@@ -281,7 +281,11 @@ class data_anylsis_pipline(object):
             except:
                 pass
             '''
-        else:
+        #else:
+        if True: # due to the behavior of some later components, why actually wanna read the values from memory everytime
+                 # (even if we literally have those values in memory) b/c writing/loading changes some values (in particular
+                 # types) in a way that makes the latter part actually work (other option is extensive debugging, which I do
+                 # not have time to do at the moment)
             time_gran_to_feature_dataframe = {}
             time_gran_to_attack_labels = {}
             time_gran_to_synthetic_exfil_paths_series = {}
@@ -291,6 +295,7 @@ class data_anylsis_pipline(object):
             time_gran_to_list_of_amt_of_out_traffic_pkts = {}
             time_gran_to_new_neighbors_outside, time_gran_to_new_neighbors_dns, time_gran_to_new_neighbors_all = {}, {}, {}
             min_interval = min(self.time_interval_lengths)
+
             for interval in self.time_interval_lengths:
                 # if interval in time_interval_lengths:
                 print "time_interval_lengths", self.time_interval_lengths, "interval", interval
@@ -298,6 +303,7 @@ class data_anylsis_pipline(object):
                 time_gran_to_feature_dataframe[interval] = pd.read_csv(self.alert_file + self.sub_path + str(interval) + '.csv',
                                                                        na_values='?')
                 # time_gran_to_feature_dataframe[interval] = time_gran_to_feature_dataframe[interval].apply(lambda x: np.real(x))
+                # this just extracts the various necessary components into seperate variables...
                 print "dtypes_of_df", time_gran_to_feature_dataframe[interval].dtypes
                 time_gran_to_attack_labels[interval] = time_gran_to_feature_dataframe[interval]['labels']
 
@@ -629,6 +635,10 @@ def assign_attacks_to_first_available_spots(time_gran_to_attack_labels, largest_
             random.seed(0)
             current_possible_steps = int(math.ceil(float(extra_spots) / (num_attacks_to_inject - j)))
             #current_possible_steps = int(extra_spots/10.0) #int(extra_spots)
+            if current_possible_steps > extra_spots:
+                current_possible_steps = extra_spots
+
+            print "current_possible_steps", current_possible_steps, "extra_spots", extra_spots
             time_periods_between_attacks = random.randint(0, current_possible_steps)  # don't wan to bias it too much towards the end
             extra_spots -= time_periods_between_attacks
             counter += time_periods_between_attacks
@@ -638,6 +648,9 @@ def assign_attacks_to_first_available_spots(time_gran_to_attack_labels, largest_
             while not attack_spot_found:
                 inner_loop_counter += 1
                 potential_starting_point = int(counter)
+                #print "potential_starting_point", potential_starting_point
+                if potential_starting_point == 107:
+                    print "take manual control..."
 
                 attack_spot_found = exfil_time_valid(potential_starting_point, time_periods_attack,
                                                      time_gran_to_attack_labels[largest_time_gran])
@@ -649,8 +662,9 @@ def assign_attacks_to_first_available_spots(time_gran_to_attack_labels, largest_
                         time_gran_to_attack_labels[largest_time_gran][i] = 1
                 else:
                     extra_spots -= 1
+                    print "spot_not_found!"
 
-                counter += 1
+                counter += int(time_periods_attack)
         else:
             ### by making these two points the same, this value will be 'passed over' by the other functions...
             potential_starting_point = int( counter)

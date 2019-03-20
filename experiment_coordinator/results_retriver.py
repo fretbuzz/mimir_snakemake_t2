@@ -12,7 +12,7 @@ import json
 ################################
 
 cloudlab_private_key = '/Users/jseverin/Dropbox/cloudlab.pem'
-possible_apps = ['drupal', 'sockshop', 'gitlab', 'eShop', 'wordpress']
+possible_apps = ['drupal', 'sockshop', 'gitlab', 'eShop', 'wordpress', 'hipster']
 experiment_sentinal_file = '/mydata/mimir_snakemake_t2/experiment_coordinator/experiment_done.txt'
 sentinal_file = '/mydata/all_done.txt'
 
@@ -241,6 +241,11 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, autoscale
         line_rec = sh.recvline(timeout=100)
         print("recieved line", line_rec)
 
+    ## TODO: remove when hipster is better setup!!
+    if app_name == 'hipster':
+        print "hipsterStore (microservice from google) doesn't have an actual run_experiment component defined"
+        exit(233)
+
     start_actual_experiment = 'python /mydata/mimir_snakemake_t2/experiment_coordinator/run_experiment.py --exp_name ' +\
                               exp_name  + ' --config_file ' + config_file_name + ' --prepare_app_p --port ' + \
                               front_facing_port + ' --ip ' + minikube_ip + ' --no_exfil'
@@ -287,7 +292,7 @@ if __name__ == "__main__":
     #exp_name = 'wordpress_fourteen_mark7_final'
     exp_name = 'sockshop_thirteen_autoscale_mark5' #mark3 is good too
     # exp_name = 'sockshop_autoscaling_tests'
-    mimir_1 = 'c240g5-110231.wisc.cloudlab.us'  #'c240g5-110119.wisc.cloudlab.us'
+    mimir_1 = 'c220g2-011328.wisc.cloudlab.us'  #'c240g5-110119.wisc.cloudlab.us'
     #mimir_2 = 'c240g5-110117.wisc.cloudlab.us'
     cloudlab_server_ip = mimir_1  # note: remove the username@ from the beggining
     exp_length = 10800  # 10800 #7200 # in seconds

@@ -558,7 +558,11 @@ def calc_ide_angles(aggregate_csv_edgefile_loc, joint_col_list, window_size, raw
         time.sleep(10)
 
         # step 2: start sbcl on the appropriate script...
-        out = subprocess.check_output(['sbcl', "--dynamic-space-size", "2560", "--script", "clml_ide.lisp"])
+        #        out = subprocess.check_output(['sbcl', "--dynamic-space-size", "2560", "--script", "clml_ide.lisp"])
+        print "calling sbcl now..."
+        # note: http://quickdocs.org/clml/ indicates that a dynamic-space-size of 2560 should be sufficient, but
+        # in my experience, that's actually not big enough (i.e. it'll crash unless you give it more)
+        out = subprocess.check_output(['sbcl', "--dynamic-space-size", "4560", "--script", "clml_ide.lisp"])
         print "ide_out", out
 
     # step 3: copy the results into the appropriate location...
