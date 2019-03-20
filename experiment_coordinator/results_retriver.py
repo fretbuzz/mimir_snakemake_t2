@@ -38,6 +38,9 @@ def get_ip_and_port(app_name, sh):
     elif app_name == 'wordpress':
         # step 1: get the appropriate ip / port (like above -- need for next step)
         sh.sendline('minikube service wwwppp-wordpress  --url')
+    elif app_name == 'hipster':
+        sh.sendline('minikube service frontend --url')
+        pass
     else:
         pass  # TODO
 
@@ -279,8 +282,9 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, autoscale
 if __name__ == "__main__":
 
     #################################
-    #app_name = possible_apps[4]
-    app_name = possible_apps[1]
+    #app_name = possible_apps[4] # wordpress
+    #app_name = possible_apps[1] # sockshop
+    app_name = possible_apps[5] # hipsterStore (google's example microservice)
     sock_config_file_name = '/mydata/mimir_snakemake_t2/experiment_coordinator/experimental_configs/sockshop_thirteen'
     wp_config_file_name = '/mydata/mimir_snakemake_t2/experiment_coordinator/experimental_configs/wordpress_fourteen'
     config_file_name = sock_config_file_name #wp_config_file_name
