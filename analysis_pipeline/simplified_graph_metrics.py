@@ -446,7 +446,7 @@ class set_of_injected_graphs():
 
             for src_node,inner_dict in adj_dict_of_dicts.iteritems():
                 for dest_node, edge_data in inner_dict.iteritems():
-                    col_name = src_node + '-' + dest_node
+                    col_name = src_node + '-to-' + dest_node
                     adj_dict[col_name] = [edge_data['weight']]
 
             # eh, i don't think this is needed (if I want them, I can go do it manually)
@@ -454,7 +454,7 @@ class set_of_injected_graphs():
 
             cur_df = pd.DataFrame(adj_dict, columns=joint_col_list)
             cur_df = cur_df.fillna(0)
-            cur_df['192.168.99.100-outside'] = 0 # TODO: remove this from the graph entirely when I get a chance...
+            #cur_df['192.168.99.100-outside'] = 0 # TODO: remove this from the graph entirely when I get a chance...maybe...
             # but for now, just set it equal to zero (it's so large that it causes scaling problems w.r.t. the other entries)
 
             out_df = out_df.append(cur_df, sort=True)

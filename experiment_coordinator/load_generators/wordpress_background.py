@@ -27,7 +27,9 @@ with open('./load_generators/wordpress_users.csv', 'rb') as csvfile:
     i = 0
     for row in spamreader:
         if 'http' in row[0]:
+            row = row.replace('http', "https")
             urls.append(row[0].strip(','))
+
 
 # id's refer to posts
 lowest_id = 1

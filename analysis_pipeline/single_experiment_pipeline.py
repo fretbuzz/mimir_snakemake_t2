@@ -436,8 +436,8 @@ class data_anylsis_pipline(object):
         self.cilium_component_time_length = time_length
 
         print "calling_cilium_component_now..."
-        cilium_config_generator.cilium_component(time_length, self.experiment_folder_path + self.pcap_file, self.cilium_component_dir, self.make_edgefiles_p,
-                                                 self.ms_s, self.mapping, self.pod_creation_log, self.make_edgefiles_p)
+        cilium_config_generator.cilium_component(time_length, self.experiment_folder_path + self.pcap_file, self.cilium_component_dir,
+                                                 self.make_edgefiles_p, self.ms_s, self.mapping, self.pod_creation_log)
 
 def process_one_set_of_graphs(time_interval_length, window_size,
                                 filenames, svcs, is_swarm, ms_s, mapping,  list_of_infra_services,
