@@ -1,5 +1,6 @@
 import subprocess
 import time
+import sys
 
 def wait_until_pods_done(namespace):
         # wait until  pods are started
@@ -73,3 +74,8 @@ def get_svc_ip(name_of_svc, namespace=None):
 		if out_vals[0] == name_of_svc:
 			return out_vals[1]
 	return None
+
+
+if __name__ == "__main__":
+    namespace = sys.argv[1]
+    wait_until_pods_done(namespace)

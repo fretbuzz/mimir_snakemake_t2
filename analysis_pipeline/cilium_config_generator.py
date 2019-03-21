@@ -5,19 +5,49 @@ from process_pcap import process_pcap_via_tshark, convert_tshark_stats_to_edgefi
 import os,errno
 import subprocess
 from simplified_graph_metrics import update_mapping
+import glob
+import time
+
 
 # generate_pcap_slice: int file_location -> file_location
 # Takes the location of the full pcap file and creates a slice consisting of the first time_length seconds
 # (note: time_length should be in seconds (and be a float))
 def generate_pcap_slice(time_length, pcap_location, split_pcap_dir, make_edgefile_p):
-    split_pcap_loc = split_pcap_dir + '/first_' + str(time_length) + "_sec.py"
+    #split_pcap_loc = split_pcap_dir + '/first_' + str(time_length) + "_sec.pap"
+    split_pcap_loc = split_pcap_dir + '/split_cap_'
+    new_files = []
 
     if True: #if make_edgefile_p: ## TODO: put back in!!!!
-        print "splitting with tshark now..."
-        split_cmds = ["tshark", "-r", pcap_location, "-Y", "frame.time_relative <= " + str(time_length), "-w", split_pcap_loc]
-        out = subprocess.check_output(split_cmds)
+        # okay, this is stupid, but what I am going to need to do is monitor the creation of the files in the system
+        # and then kill the editcap process once one of the files comes into existance...
+
+        # need to delete existing files to get some stuff later on to work...
+        files = glob.glob(split_pcap_dir + '/*')
+        for f in files:
+            os.remove(f)
+
+        print "splitting with editcap now..."
+        #split_cmds = ["tshark", "-r", pcap_location, "-Y", "frame.time_relative <= " + str(time_length), "-w", split_pcap_loc]
+        split_cmds = ["editcap", "-i " + str(time_length), pcap_location, split_pcap_loc]
+
+        proc = subprocess.Popen(split_cmds)
+
+        # TODO: monitor directory for existance the split file and then...
+        new_split_pcap_exists = False
+        inital_files_in_split_dir = set([name for name in os.listdir(split_pcap_dir) if os.path.isfile(os.path.join(split_pcap_dir, name))])
+        while not new_split_pcap_exists:
+            time.sleep(10)
+            files_in_split_dir = set([name for name in os.listdir(split_pcap_dir) if os.path.isfile(os.path.join(split_pcap_dir, name))])
+            new_files = list(inital_files_in_split_dir.difference(files_in_split_dir))
+            if len(new_files) >= 1:
+                new_split_pcap_exists = True
+
+        proc.terminate()
+        proc.kill()
+
         print "generate_pcap_slice_out", out
 
+    split_pcap_loc = new_files[1]
     return split_pcap_loc
 
 # TODO: probably wanna incorporate who is initiating the flows at some point..
