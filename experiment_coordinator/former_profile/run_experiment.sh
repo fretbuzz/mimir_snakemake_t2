@@ -1,6 +1,7 @@
 app_name=$1
-autoscale_p=$2
-cpu_cutoff=$3
+cilium_p=$2
+autoscale_p=$3
+cpu_cutoff=$4
 
 #minikube_ip=$2
 #front_facing_port=$3
@@ -11,7 +12,7 @@ rm -f /mydata/done_with_setup.txt
 
 echo 'start run_experiment' >> /local/repository/run_experiment_note1.txt
 
-bash ./kubernetes_setup.sh
+bash ./kubernetes_setup.sh $cilium_p
 
 echo 'start run_experiment n2' >> /local/repository/run_experiment_note2.txt
 

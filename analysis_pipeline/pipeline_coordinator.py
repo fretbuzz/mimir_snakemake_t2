@@ -71,6 +71,7 @@ def determine_injection_times(exps_info, goal_train_test_split,goal_attack_NoAtt
     #exit(34)
     return exp_injection_info,end_of_train_portions
 
+
 # this function loops through multiple experiments (or even just a single experiment), accumulates the relevant
 # feature dataframes, and then performs LASSO regression to determine a concise graphical model that can detect
 # the injected synthetic attacks
@@ -81,7 +82,9 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
                               avg_pkt_size=None, pkt_size_variance=None,
                               skip_graph_injection=False, get_endresult_from_memory=False,
                               goal_attack_NoAttack_split_testing=0.0, calc_ide=False, include_ide=False,
-                              only_ide=False):
+                              only_ide=False, perform_cilium_component=True, only_perform_cilium_component=True,
+                              cilium_component_time=100):
+    ## TODO: the default value of the last parameter should definitly be False!!
 
     list_of_optimal_fone_scores_at_exfil_rates = []
     rate_to_timegran_to_methods_to_attacks_found_dfs = {}
@@ -111,7 +114,11 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
                 determine_and_assign_exfil_paths(calc_vals, skip_model_part, function_list, goal_train_test_split,
                                                  goal_attack_NoAttack_split_training, ignore_physical_attacks_p, 
                                                  time_each_synthetic_exfil,goal_attack_NoAttack_split_testing)
-
+        if perform_cilium_component:
+            for counter, experiment_object in enumerate(function_list):
+                experiment_object.run_cilium_component(cilium_component_time)
+            if only_perform_cilium_component:
+                return
 
         for rate_counter in range(0,len(avg_pkt_size)):
             out_q = multiprocessing.Queue()

@@ -16,6 +16,7 @@ from analysis_pipeline.pcap_to_edgelists import create_mappings
 import random
 from analysis_pipeline.statistical_analysis import drop_useless_columns_aggreg_DF
 from analysis_pipeline.simplified_graph_metrics import calc_ide_angles
+import cilium_config_generator
 
 ## TODO: this function is an atrocity and should be converted into a snakemake spec so we can use that instead...###
 ## todo (aim to get it done today...) : change  run_data_analysis_pipeline signature plus the feeder...
@@ -37,8 +38,8 @@ class data_anylsis_pipline(object):
                                initiator_info_for_paths=None,
                                synthetic_exfil_paths_train=None, synthetic_exfil_paths_test=None,
                                skip_model_part=False, max_number_of_paths=None, netsec_policy=None,
-                                startup_time=200, skip_graph_injection=False,
-                                pod_creation_log=None): #, include_ide=False):
+                               startup_time=200, skip_graph_injection=False,
+                               pod_creation_log=None): #, include_ide=False):
         self.ms_s = ms_s
         print "log file can be found at: " + str(basefile_name) + '_logfile.log'
         logging.basicConfig(filename=basefile_name + '_logfile.log', level=logging.INFO)
@@ -73,6 +74,7 @@ class data_anylsis_pipline(object):
         self.minimum_training_window = minimum_training_window
         self.experiment_folder_path = basefile_name.split('edgefiles')[0]
         self.pcap_file = pcap_paths[0].split('/')[-1]  # NOTE: assuming only a single pcap file...
+        self.cilium_component_dir = '/'.join(basefile_name.split('/')[:-1]) + '/cilium_stuff'
         self.exp_name = basefile_name.split('/')[-1]
         self.base_exp_name = self.exp_name
         self.make_edgefiles_p = make_edgefiles_p and only_exp_info
@@ -90,6 +92,7 @@ class data_anylsis_pipline(object):
         self.orig_basegraph_name = self.basegraph_name
         self.orig_exp_name = self.exp_name
         self.skip_graph_injection = skip_graph_injection
+        self.cilium_component_time_length= None # will be assigned @ call time...
 
         self.synthetic_exfil_paths = None
         self.initiator_info_for_paths = None
@@ -426,6 +429,15 @@ class data_anylsis_pipline(object):
         return time_gran_to_mod_zscore_df, None, self.time_gran_to_feature_dataframe,\
                self.time_gran_to_synthetic_exfil_paths_series, self.end_of_training
 
+    def run_cilium_component(self, time_length):
+        #if self.cilium_component_time_lengthL
+        #    time_length = self.cilium_component_time_length
+        #else:
+        self.cilium_component_time_length = time_length
+
+        print "calling_cilium_component_now..."
+        cilium_config_generator.cilium_component(time_length, self.experiment_folder_path + self.pcap_file, self.cilium_component_dir, self.make_edgefiles_p,
+                                                 self.ms_s, self.mapping, self.pod_creation_log, self.make_edgefiles_p)
 
 def process_one_set_of_graphs(time_interval_length, window_size,
                                 filenames, svcs, is_swarm, ms_s, mapping,  list_of_infra_services,
@@ -450,9 +462,8 @@ def process_one_set_of_graphs(time_interval_length, window_size,
         else:
             current_set_of_graphs.generate_injected_edgefiles()
 
-        # todo: put back in!!
-        #current_set_of_graphs.generate_aggregate_csv()
-        #current_set_of_graphs.calcuated_single_step_metrics()
+        current_set_of_graphs.generate_aggregate_csv()
+        current_set_of_graphs.calcuated_single_step_metrics()
         current_set_of_graphs.calc_serialize_metrics()
 
         # these relate to ide

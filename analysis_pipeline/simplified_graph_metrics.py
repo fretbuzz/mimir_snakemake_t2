@@ -222,6 +222,8 @@ class injected_graph():
 
         self.graph_feature_dict_keys = self.graph_feature_dict.keys()
 
+        return self.graph_feature_dict.keys()
+
     def save_metrics_dict(self):
         with open(self.metrics_file, 'wb') as f:  # Just use 'w' mode in 3.x
             f.write(pickle.dumps(self.graph_feature_dict))
@@ -302,6 +304,7 @@ class set_of_injected_graphs():
         self.current_total_node_list = None
         self.aggregate_csv_edgefile_loc = self.collected_metrics_location + '_aggregate_edgefile.csv'
         self.joint_col_list = None
+        self.feature_graph_keys = None
 
     def save(self):
         #with open(self.current_set_of_graphs_loc, 'wb') as output:  # Overwrites any existing file.
@@ -339,23 +342,24 @@ class set_of_injected_graphs():
             injected_graph.load_metrics()
             current_graph_feature_dict = injected_graph.graph_feature_dict
 
+
             # need to calculate the metrics that require all data to be known here...
             print("current_graph_feature_dict.keys()", current_graph_feature_dict.keys())
             adjacency_matrixes.append( current_graph_feature_dict['adjacency_matrix'] )
             dns_in_metric_dicts.append( current_graph_feature_dict['weight_into_dns_dict'] )
 
-            for value_name, value_value in current_graph_feature_dict.iteritems():
+            #for value_name, value_value in current_graph_feature_dict.iteritems():
+            for value_name in self.feature_graph_keys:
                 if 'adjacency_matrix' in value_name or 'weight_into_dns_dict' in value_name or 'dns_out_metric_dicts' in value_name:
-
                     # these are handled seperately b/c we gotta get all the data then do some postprocessing
                     continue
 
                 if value_name not in self.calculated_values.keys():
                     self.calculated_values[value_name] = []
                 try:
-                    self.calculated_values[value_name].append(value_value)
+                    self.calculated_values[value_name].append(current_graph_feature_dict[value_name])
                 except:
-                    self.calculated_values[value_name].append(0.0)
+                    self.calculated_values[value_name].append( float('NaN') )
 
             total_edgelist_nodes = injected_graph.total_edgelist_nodes
             current_total_node_list = injected_graph.current_total_node_list
@@ -365,7 +369,6 @@ class set_of_injected_graphs():
         #current_total_node_list = self.list_of_injected_graphs[-1].current_total_node_list
         ide_angles_results = ide_angles(adjacency_matrixes, self.window_size, total_edgelist_nodes)
         into_dns_eigenval_angles = change_point_detection(dns_in_metric_dicts, self.window_size, current_total_node_list)
-
 
         ## need to store these new results into the format that I've been using this far...
         #self.calculated_values[
@@ -379,8 +382,6 @@ class set_of_injected_graphs():
         self.calculated_values['into_dns_eigenval_angles'] = into_dns_eigenval_angles
         self.calculated_values['ide_angles'] = ide_angles_results
         self.calculated_values['ide_angles_w_abs'] = [abs(i) for i in ide_angles_results]
-
-        self.calculated_values_keys = self.calculated_values.keys()
 
         with open(self.collected_metrics_location, 'wb') as f:  # Just use 'w' mode in 3.x
             f.write(pickle.dumps(self.calculated_values))
@@ -404,6 +405,7 @@ class set_of_injected_graphs():
 
     def calcuated_single_step_metrics(self):
         print("self.list_of_injected_graphs_loc",self.list_of_injected_graphs_loc)
+        overall_graph_feature_dict_keys = set()
         for counter, injected_obj_loc in enumerate(self.list_of_injected_graphs_loc):
             print("counter",counter)
             gc.collect()
@@ -411,11 +413,13 @@ class set_of_injected_graphs():
             with open(injected_obj_loc, 'r') as input_file:
                 injected_graph_obj = pickle.load(input_file)
 
-            injected_graph_obj.calc_single_step_metrics()
+            graph_feature_dict_keys = injected_graph_obj.calc_single_step_metrics()
+            overall_graph_feature_dict_keys = overall_graph_feature_dict_keys.union(set(graph_feature_dict_keys))
             #injected_graph_obj.calc_existing_single_step_metrics()
             injected_graph_obj.save_metrics_dict()
 
             injected_graph_obj.save()
+        self.feature_graph_keys = list(overall_graph_feature_dict_keys)
 
     def generate_aggregate_csv(self):
         #''''
@@ -562,7 +566,7 @@ def calc_ide_angles(aggregate_csv_edgefile_loc, joint_col_list, window_size, raw
         print "calling sbcl now..."
         # note: http://quickdocs.org/clml/ indicates that a dynamic-space-size of 2560 should be sufficient, but
         # in my experience, that's actually not big enough (i.e. it'll crash unless you give it more)
-        out = subprocess.check_output(['sbcl', "--dynamic-space-size", "4560", "--script", "clml_ide.lisp"])
+        out = subprocess.check_output(['sbcl', "--dynamic-space-size", "4260", "--script", "clml_ide.lisp"])
         print "ide_out", out
 
     # step 3: copy the results into the appropriate location...

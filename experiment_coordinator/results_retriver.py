@@ -39,7 +39,7 @@ def get_ip_and_port(app_name, sh):
         # step 1: get the appropriate ip / port (like above -- need for next step)
         sh.sendline('minikube service wwwppp-wordpress  --url')
     elif app_name == 'hipster':
-        sh.sendline('minikube service frontend --url')
+        sh.sendline('minikube service frontend-external --url')
         pass
     else:
         pass  # TODO
@@ -58,7 +58,7 @@ def get_ip_and_port(app_name, sh):
     print "minikube_ip", minikube_ip, "front_facing_port", front_facing_port
     return minikube_ip, front_facing_port
 
-def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, autoscale_p):
+def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, autoscale_p, use_cilium):
     #start_minikube_p = False
     s = None
     while s == None:
@@ -150,11 +150,11 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, autoscale
         print "autoscale_p",autoscale_p
         if autoscale_p:
             sh.sendline('bash /mydata/mimir_snakemake_t2/experiment_coordinator/former_profile/run_experiment.sh ' +
-                        app_name + ' ' + str(autoscale_p) + ' ' + str(cpu_threshold))
+                        app_name + ' ' + str(use_cilium) + ' ' + str(autoscale_p) + ' ' + str(cpu_threshold))
 
         else:
             sh.sendline('bash /mydata/mimir_snakemake_t2/experiment_coordinator/former_profile/run_experiment.sh ' + \
-                        app_name)
+                        app_name + ' ' + str(use_cilium))
 
         line_rec = 'start'
         last_line = ''
@@ -249,6 +249,10 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, autoscale
         print "hipsterStore (microservice from google) doesn't have an actual run_experiment component defined"
         exit(233)
 
+    ## TODO: probably wanna modify the config_file_name here to incorporate the cilium information...
+    ## should be easy enough... just read it in w/ a json library (in python). modify the one value and then
+    ## write it back out... seems like it'd take ~10 min...
+
     start_actual_experiment = 'python /mydata/mimir_snakemake_t2/experiment_coordinator/run_experiment.py --exp_name ' +\
                               exp_name  + ' --config_file ' + config_file_name + ' --prepare_app_p --port ' + \
                               front_facing_port + ' --ip ' + minikube_ip + ' --no_exfil'
@@ -282,13 +286,13 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, autoscale
 if __name__ == "__main__":
 
     #################################
-    #app_name = possible_apps[4] # wordpress
+    app_name = possible_apps[4] # wordpress
     #app_name = possible_apps[1] # sockshop
-    app_name = possible_apps[5] # hipsterStore (google's example microservice)
+    #app_name = possible_apps[5] # hipsterStore (google's example microservice)
     sock_config_file_name = '/mydata/mimir_snakemake_t2/experiment_coordinator/experimental_configs/sockshop_thirteen'
     wp_config_file_name = '/mydata/mimir_snakemake_t2/experiment_coordinator/experimental_configs/wordpress_fourteen'
     config_file_name = sock_config_file_name #wp_config_file_name
-
+    use_cilium = True # note: if actually running an experiment, will probably want "False"
 
     #local_dir = '/Volumes/exM2/experimental_data/wordpress_info'  # '/Users/jseverin/Documents'
     #local_dir = '/Volumes/exM2/experimental_data/wordpress_info'
@@ -296,7 +300,7 @@ if __name__ == "__main__":
     #exp_name = 'wordpress_fourteen_mark7_final'
     exp_name = 'sockshop_thirteen_autoscale_mark5' #mark3 is good too
     # exp_name = 'sockshop_autoscaling_tests'
-    mimir_1 = 'c220g2-011328.wisc.cloudlab.us'  #'c240g5-110119.wisc.cloudlab.us'
+    mimir_1 = 'c220g1-031116.wisc.cloudlab.us'  #'c240g5-110119.wisc.cloudlab.us'
     #mimir_2 = 'c240g5-110117.wisc.cloudlab.us'
     cloudlab_server_ip = mimir_1  # note: remove the username@ from the beggining
     exp_length = 10800  # 10800 #7200 # in seconds
@@ -336,5 +340,5 @@ if __name__ == "__main__":
 
     # NOTE: remember: dont put the .json in the filename!! ^^^
     remote_dir = '/mydata/mimir_snakemake_t2/experiment_coordinator/experimental_data/' + exp_name  # TODO
-    s = run_experiment(app_name, config_file_name, exp_name, args.skip_setup_p, args.autoscale_p)
+    s = run_experiment(app_name, config_file_name, exp_name, args.skip_setup_p, args.autoscale_p, use_cilium)
     retrieve_results(s)

@@ -1,3 +1,5 @@
+cilium_p=$1
+
 cd /mydata/
 sudo chown -R jsev ./
 set +e
@@ -40,7 +42,13 @@ curl -Lo docker-machine-driver-kvm2 https://storage.googleapis.com/minikube/rele
 export MINIKUBE_HOME=/mydata
 
 #minikube start --vm-driver kvm2 --cpus=16 --memory=100000 --disk-size 65g
-minikube start --cpus=12 --memory=32000 --disk-size 65g
+
+if [ "$cilium_p" = "True" ]; then
+    minikube start --network-plugin=cni --cpus=12 --memory=32000 --disk-size 65g
+    kubectl create -f https://raw.githubusercontent.com/cilium/cilium/HEAD/examples/kubernetes/1.14/cilium-minikube.yaml
+else
+    minikube start --cpus=12 --memory=32000 --disk-size 65g
+fi
 
 echo "At end"
 EONG

@@ -1895,7 +1895,7 @@ def wordpress_fourteen_mark7(time_of_synethic_exfil=None, only_exp_info=False, i
     physical_exfil_path = []
 
 
-    make_edgefiles = True ## already done!
+    make_edgefiles = False ## already done!
     wordpress_fourteen_mark7_object = data_anylsis_pipline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
                                    make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
                                    wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,
@@ -2001,8 +2001,8 @@ def autoscaling_sockshop_recipe():
 
     #####
     # IN MEGABYTES / MINUTE
-    avg_exfil_per_min = [10.0] #[2.0, 1.0, 0.25, 0.1] # [10.0, 2.0, 1.0, 0.25, 0.1]
-    exfil_per_min_variance = [0.3] #[0.2, 0.15, 0.08, 0.05] #[0.3, 0.2, 0.15, 0.08, 0.05]
+    avg_exfil_per_min = [ 2.0, 1.0, 0.25, 0.1] # [10.0, 2.0, 1.0, 0.25, 0.1] # [10.0, 2.0, 1.0, 0.25, 0.1]
+    exfil_per_min_variance = [0.2, 0.15, 0.08, 0.05] # [0.3. 0.2, 0.15, 0.08, 0.05] #[0.3, 0.2, 0.15, 0.08, 0.05]
     avg_pkt_size = [500.0, 500.0, 500.00, 500.00, 500.0]
     pkt_size_variance = [100, 100, 100, 100, 100]
 
@@ -2013,9 +2013,9 @@ def autoscaling_sockshop_recipe():
 
     calc_vals = True
     calculate_z_scores = True
-    include_ide = False # include ide vals? this'll involve either calculating them (below) or grabbing them from the file location
-    calc_ide = False
-    only_ide = True ## ONLY calculate the ide values... this'll be useful if I wanna first calc all the other values and THEN ide...
+    include_ide = True # include ide vals? this'll involve either calculating them (below) or grabbing them from the file location
+    calc_ide = True
+    only_ide = False ## ONLY calculate the ide values... this'll be useful if I wanna first calc all the other values and THEN ide...
 
     ####
     cur_experiment_name = "withIDE_"  # can modify if you want, probably with:  new_wordpress_recipe.__name__
@@ -2023,7 +2023,7 @@ def autoscaling_sockshop_recipe():
     base_output_location += cur_experiment_name
     #####
 
-    skip_graph_injection = True
+    skip_graph_injection = False
     get_endresult_from_memory = False # in this case, you'd skip literally the whole pipeline and just get the
                                       # trained model + the results (from that model) out of memory
                                       # I anticpate that this'll mostly be useful for working on generating
@@ -2060,7 +2060,7 @@ def new_wordpress_autoscaling_recipe():
     goal_attack_NoAttack_split_testing = 0.2
 
     #time_interval_lengths = [10, 30]#, 10] #[30, 10, 1] #[30, 10, 1] #[30, 10, 1]#,
-    time_interval_lengths = [1]#, 10, 100]#, 10] #[30, 10, 1] #[30, 10, 1] #[30, 10, 1]#,
+    time_interval_lengths = [10]#, 10, 100]#, 10] #[30, 10, 1] #[30, 10, 1] #[30, 10, 1]#,
 
     # this doesn't actually do anything
     size_of_neighbor_training_window = 0
@@ -2332,9 +2332,9 @@ if __name__=="__main__":
     if len(sys.argv) == 1:
         print "running_preset..."
         ## NO NO No::: new_new_wordpress_recipe() # testing autoscaling stuff...
-        #new_wordpress_autoscaling_recipe()
+        new_wordpress_autoscaling_recipe()
         #new_wordpress_recipe()
-        autoscaling_sockshop_recipe()
+        #autoscaling_sockshop_recipe()
 
         #multi_experiment_wordpress_recipe()
         #time.sleep(14400)
