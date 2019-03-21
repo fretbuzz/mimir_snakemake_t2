@@ -74,7 +74,7 @@ class data_anylsis_pipline(object):
         self.minimum_training_window = minimum_training_window
         self.experiment_folder_path = basefile_name.split('edgefiles')[0]
         self.pcap_file = pcap_paths[0].split('/')[-1]  # NOTE: assuming only a single pcap file...
-        self.cilium_component_dir = '/'.join(basefile_name.split('/')[:-1]) + '/cilium_stuff'
+        self.cilium_component_dir = self.experiment_folder_path + 'cilium_stuff'
         self.exp_name = basefile_name.split('/')[-1]
         self.base_exp_name = self.exp_name
         self.make_edgefiles_p = make_edgefiles_p and only_exp_info
