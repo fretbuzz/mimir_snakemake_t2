@@ -17,7 +17,7 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
                                          avg_exfil_per_min,
                                          avg_pkt_size,
                                          exfil_per_min_variance,
-                                         pkt_size_variance):
+                                         pkt_size_variance, drop_pairwise_features):
     #print time_gran_to_aggregate_mod_score_dfs['60']
     ######### 2a.II. do the actual splitting
     # note: labels have the column name 'labels' (noice)
@@ -55,8 +55,9 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         method_to_training_df = {}
 
         X_train, y_train, X_test, y_test, pre_drop_X_train, time_gran_to_debugging_csv, dropped_feature_list, ide_train,\
-            ide_test, X_train_exfil_weight, X_test_exfil_weight, exfil_paths, exfil_paths_train, out_traffic = \
-            prepare_data(aggregate_mod_score_dfs, skip_model_part, ignore_physical_attacks_p, time_gran_to_debugging_csv, time_gran)
+            ide_test, X_train_exfil_weight, X_test_exfil_weight, exfil_paths, exfil_paths_train, out_traffic, cilium_train,\
+            cilium_test = prepare_data(aggregate_mod_score_dfs, skip_model_part, ignore_physical_attacks_p,
+                                       time_gran_to_debugging_csv, time_gran, drop_pairwise_features)
 
         time_gran_to_outtraffic[time_gran] = out_traffic
         # method_to_trainTest = {}
@@ -140,7 +141,8 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
 
         ### step (3): Make ROCs and determine performance at optimal F1 operating point
         optimal_predictions, optimal_thresh, plot_path, ide_threshold = generate_ROC_curves(y_test, test_predictions, base_output_name,
-                                                            time_gran, ide_test, ide_train, list_of_optimal_fone_scores)
+                                                            time_gran, ide_test, ide_train, list_of_optimal_fone_scores,
+                                                            cilium_train, cilium_test)
         optimal_ide_prediction = [int(i > ide_threshold) for i in ide_test]
         ide_optimal_train_predictions = [int(i > ide_threshold) for i in ide_train]
         ideal_thresholds.append(optimal_thresh)
@@ -161,6 +163,15 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
                                                                  X_train_exfil_weight)
         method_to_training_df['ide'] = ide_categorical_cm_df_training
         method_to_testing_df['ide'] = ide_categorical_cm_df
+
+        cilium_optimal_train_predictons = [(i > 0.5) for i in cilium_train]
+        cilium_categorical_cm_df_training = determine_categorical_cm_df(y_train, cilium_optimal_train_predictons, exfil_paths_train,
+                                                                 X_train_exfil_weight)
+        cilium_optimal_test_predictons = [(i > 0.5) for i in cilium_test]
+        cilium_categorical_cm_df_test = determine_categorical_cm_df(y_train, cilium_optimal_test_predictons, exfil_paths_train,
+                                                                 X_train_exfil_weight)
+        method_to_training_df['cilium'] = cilium_categorical_cm_df_training
+        method_to_testing_df['cilium'] = cilium_categorical_cm_df_test
 
         '''
         method_to_testing_df['mimir'] = categorical_cm_df
@@ -642,7 +653,22 @@ def extract_comparison_methods(X_train, X_test):
         except:
             ide_test = [0 for i in range(0, len(X_test))]
 
-    return ide_train, ide_test, X_train, X_test
+    # cilium_for_first_sec_
+    try:
+        cilium_columns = []
+        for column in X_train:
+            if 'cilium_for_first_sec_' in column:
+                cilium_columns.append(column)
+        cilium_train = copy.deepcopy( X_train[cilium_columns[0]] )
+        cilium_test = copy.deepcopy( X_test[cilium_columns[0]] )
+        X_train = X_train.drop(columns=cilium_columns[0])
+        X_test = X_test.drop(columns=cilium_columns[0])
+
+    except:
+        cilium_train = [0 for i in range(0, len(X_train))]
+        cilium_test = [0 for i in range(0, len(X_test))]
+
+    return ide_train, ide_test, X_train, X_test, cilium_train, cilium_test
 
 def drop_useless_columns_testTrain_Xs( X_train, X_test ):
     X_train = X_train.drop(columns='exfil_path')
@@ -742,7 +768,8 @@ def get_coef_dict(clf, X_train_columns, base_output_name, X_train_dtypes):
 
     return coef_dict
 
-def prepare_data(aggregate_mod_score_dfs, skip_model_part, ignore_physical_attacks_p, time_gran_to_debugging_csv, time_gran):
+def prepare_data(aggregate_mod_score_dfs, skip_model_part, ignore_physical_attacks_p,
+                 time_gran_to_debugging_csv, time_gran, drop_pairwise_features):
     out_traffic=None
     '''
     try:
@@ -754,6 +781,9 @@ def prepare_data(aggregate_mod_score_dfs, skip_model_part, ignore_physical_attac
     '''
 
     aggregate_mod_score_dfs = drop_useless_columns_aggreg_DF(aggregate_mod_score_dfs)
+
+    if drop_pairwise_features:
+        aggregate_mod_score_dfs = drop_pairwise_features_func(aggregate_mod_score_dfs)
 
     if not skip_model_part:
         if ignore_physical_attacks_p:
@@ -788,7 +818,7 @@ def prepare_data(aggregate_mod_score_dfs, skip_model_part, ignore_physical_attac
     y_test = aggregate_mod_score_dfs_testing.loc[:, aggregate_mod_score_dfs_training.columns == 'labels']
 
     # get method to compare against and remove them from the DF...
-    ide_train, ide_test, X_train, X_test = extract_comparison_methods(X_train, X_test)
+    ide_train, ide_test, X_train, X_test, cilium_train, cilium_test = extract_comparison_methods(X_train, X_test)
 
     exfil_paths = X_test['exfil_path']
     exfil_paths_train = X_train['exfil_path']
@@ -804,6 +834,7 @@ def prepare_data(aggregate_mod_score_dfs, skip_model_part, ignore_physical_attac
 
     X_train, X_test, dropped_feature_list, X_train_exfil_weight, X_test_exfil_weight = \
         drop_useless_columns_testTrain_Xs(X_train, X_test)
+
 
     print '-------'
     print type(X_train)
@@ -825,7 +856,8 @@ def prepare_data(aggregate_mod_score_dfs, skip_model_part, ignore_physical_attac
     X_test = X_test.dropna(axis=1)
 
     return X_train, y_train, X_test, y_test, pre_drop_X_train, time_gran_to_debugging_csv, dropped_feature_list, \
-           ide_train, ide_test, X_train_exfil_weight, X_test_exfil_weight, exfil_paths, exfil_paths_train, out_traffic
+           ide_train, ide_test, X_train_exfil_weight, X_test_exfil_weight, exfil_paths, exfil_paths_train, out_traffic,\
+            cilium_train, cilium_test
 
 
 def lasso_feature_selection(X_train, y_train, X_test, y_test):
@@ -839,7 +871,15 @@ def lasso_feature_selection(X_train, y_train, X_test, y_test):
     # X_test = sfm.transform(X_test)
     return X_train, X_test
 
-def generate_ROC_curves(y_test, test_predictions, base_output_name, time_gran, ide_test, ide_train, list_of_optimal_fone_scores):
+def drop_pairwise_features_func(aggregate_mod_score_dfs):
+
+    for column in aggregate_mod_score_dfs:
+        if '_to_' in column:
+            aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns=column)
+    return aggregate_mod_score_dfs
+
+def generate_ROC_curves(y_test, test_predictions, base_output_name, time_gran, ide_test, ide_train,
+                        list_of_optimal_fone_scores, cilium_train, cilium_test):
     ## use the generate sklearn model to create the detection ROC
     fpr, tpr, thresholds = sklearn.metrics.roc_curve(y_true=y_test, y_score=test_predictions, pos_label=1)
     x_vals = fpr
@@ -871,6 +911,14 @@ def generate_ROC_curves(y_test, test_predictions, base_output_name, time_gran, i
         line_titles = ['ensemble model']
         list_of_x_vals = [x_vals]
         list_of_y_vals = [y_vals]
+
+    try:
+        fpr_cil, tpr_cil, thresholds_cil = sklearn.metrics.roc_curve(y_true=y_test, y_score=cilium_test, pos_label=1)
+        line_titles.append('cilium')
+        list_of_x_vals.append(fpr_cil)
+        list_of_y_vals.append(tpr_cil)
+    except:
+        pass
 
     ax, _, plot_path = generate_alerts.construct_ROC_curve(list_of_x_vals, list_of_y_vals, title, ROC_path + plot_name, \
                                                            line_titles, show_p=False)

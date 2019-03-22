@@ -14,8 +14,10 @@ def construct_ROC_curve(list_of_x_vals, list_of_y_vals, title, plot_name, line_t
     plt.xlabel('FPR')
     plt.ylabel('TPR')
     plt.title(title)
+
+    line_markers = ['s', '*', 'h', '+', '1']
     for counter,x_vals in enumerate(list_of_x_vals):
-        plt.plot(x_vals, list_of_y_vals[counter], label = line_titles[counter])
+        plt.plot(x_vals, list_of_y_vals[counter], label = line_titles[counter], marker=line_markers[counter])
 
     plt.legend()
     plt.savefig( plot_name + '.png', format='png', dpi=1000)

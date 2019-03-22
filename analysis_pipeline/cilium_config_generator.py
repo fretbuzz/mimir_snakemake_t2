@@ -7,7 +7,9 @@ import subprocess
 from simplified_graph_metrics import update_mapping
 import glob
 import time
-
+import ast
+import networkx as nx
+import prepare_graph
 
 # generate_pcap_slice: int file_location -> file_location
 # Takes the location of the full pcap file and creates a slice consisting of the first time_length seconds
@@ -61,19 +63,101 @@ def find_communicating_ips():
     # else, we can't know
     pass
 
-# gen_service_to_ip_mapping file_path list_of_svcs :
-#
-# following logic from map_nodes_to_svcs(G, svcs) in process_graph.py
-def gen_service_to_ip_mapping(edgefile, svc):
-    # step (1
-    pass
-    '''
-    for u in G.nodes():
+def host2_host_comm(edgefile):
+    communicating_ips = set()
+    ips = set()
+    with open(edgefile, 'r') as f:
+        cont = f.read()
+    print "cont", cont
+    cont = cont.split('\n')
+    print "cont", cont
+    for line in cont:
+        if len(line) > 0:
+            print "line", line
+            words = line.split(' ')
+            print "words",words
+            src_ip = words[0]
+            dst_ip = words[1]
+            edge_attribDict = words[2]
+            edge_attribDict = ast.literal_eval(edge_attribDict)
+            if edge_attribDict['frames'] > 0:
+                communicating_ips.add((src_ip, dst_ip))
+                ips.add(src_ip)
+                ips.add(dst_ip)
+
+    return communicating_ips, ips
+
+def cal_host2svc(hosts, svcs):
+    host2svc = {}
+    for host in hosts:
         for svc in svcs:
-            if svc in u:
-                containers_to_ms[u] = svc
+            if svc in host:
+                host2svc[host] = svc
                 break
-    '''
+    return host2svc
+
+def calc_svc2svc_communcating(host2svc, communicating_hosts):
+    communicatng_svcs = set()
+    for comm_host_pair in communicating_hosts:
+        if comm_host_pair[0] in host2svc:
+            src_svc = host2svc[ comm_host_pair[0] ]
+        else:
+            src_svc = comm_host_pair[0]
+
+
+        if comm_host_pair[1] in host2svc:
+            dst_svc = host2svc[ comm_host_pair[1] ]
+        else:
+            dst_svc = comm_host_pair[1]
+
+        communicatng_svcs.add( (src_svc, dst_svc) )
+
+    # now filter communicatng_svcs so that only real services remain...
+    svc_pairs_to_remove = []
+    svc_pairs_to_append = []
+    for comm_svc in communicatng_svcs:
+        src_svc = comm_svc[0]
+        dst_svc = comm_svc[1]
+        src_svc_is_outside = False
+        dst_svc_is_outside = False
+
+        if prepare_graph.is_ip(src_svc):
+            addr_bytes = prepare_graph.is_ip(src_svc)
+            if not prepare_graph.is_private_ip(addr_bytes):
+                #src_svc = 'outside'
+                src_svc_is_outside = True
+        if prepare_graph.is_ip(dst_svc):
+            addr_bytes = prepare_graph.is_ip(dst_svc)
+            if not prepare_graph.is_private_ip(addr_bytes):
+                #dst_svc = 'outside'
+                dst_svc_is_outside = True
+
+        if 'POD' in src_svc or 'VIP' in src_svc or prepare_graph.is_ip(src_svc):
+            svc_pairs_to_remove.append((src_svc,dst_svc))
+        elif 'POD' in dst_svc or 'VIP' in dst_svc or prepare_graph.is_ip(dst_svc):
+            svc_pairs_to_remove.append((src_svc,dst_svc))
+
+        if (not ('POD' in dst_svc or 'VIP' in dst_svc)) and ( src_svc_is_outside or dst_svc_is_outside ):
+            if src_svc_is_outside and not prepare_graph.is_ip(dst_svc):
+                svc_pairs_to_append.append( ('outside', dst_svc) )
+            elif dst_svc_is_outside and not prepare_graph.is_ip(src_svc):
+                svc_pairs_to_append.append( (src_svc, 'outside') )
+
+    for svc_pair in svc_pairs_to_remove:
+        communicatng_svcs.remove(svc_pair)
+
+    for svc_pair in svc_pairs_to_append:
+        communicatng_svcs.add(svc_pair)
+
+    return communicatng_svcs
+
+# TODO:: this is NOT DONE ATM... it's mostly just some starter code to
+# play around with ATM, but I'll try to fill the whole thing out later...
+def generate_cilium_policy(communicating_svc, basefilename):
+    for comm_svc_pair in communicating_svc:
+        pass
+
+    pass
 
 # this function coordinates the overall functionality of the cilium component of MIMIR
 # for more information, please see comment at top of page
@@ -110,6 +194,19 @@ def cilium_component(time_length, pcap_location, cilium_component_dir, make_edge
     print "edgefile", edgefile
     print 'remainder of cilium component is... TODO'
     # step (4) generate service-to-ip mapping
+    communicating_hosts, hosts = host2_host_comm(edgefile)
+    ip_to_svc = cal_host2svc(hosts, svcs)
+    communicatng_svcs = calc_svc2svc_communcating(ip_to_svc, communicating_hosts)
+
+    with open('./cilium_comp_inouts/cur_cilium_comms.txt', 'w') as f:
+        for comm_svc in communicatng_svcs:
+            f.write(str(comm_svc) + '\n')
+
+    basefilename = None # TODO TODO TODO
+    generate_cilium_policy(communicatng_svcs, basefilename)
+
+    return communicatng_svcs
+
     ## TODO: is there a function that already does this for me???
     ## update: kinda... map_nodes_to_svcs(G, svcs) in process_graph has the logic, but doesn't directly
     ## apply b/c we are not doing stuff with graphs here...
@@ -120,11 +217,20 @@ def cilium_component(time_length, pcap_location, cilium_component_dir, make_edge
     # (b) so then we'll have sets of communicating hostnames. Then just map to communicating svc using the logical
     # already above
 
-
-
     # step (5) find which services communicate
 
     # step (6) [[might not necessarily take place here]],, but make sure that directionality is taken into account...
     ## (i think initiator info might be in the specs generated from the attack template component??)
     ## NOTE: NOT DOING THIS ATM...
 
+# this function takes a series of logical attack paths (i.e. at time 1, attack path 1, at time 10, attack path 5,
+# etc.) and returns a series (of equivalent length) on whether the attack would/would_not be allowed.
+# TODO: how should I test/evaluate if it interferes w/ normal application function.... correct. Ideally...
+# it'd actually make more sense to pass in the list of the injected edgefiles and determine using that...
+## well... it's something to think about, certainly...
+## well... we could maybe test this later idea?? I mean, as long as it is easy
+## to pass the injected edgefiles at service granularity, then we can just iterate
+## over the edges (wait, I take it back, this might be hard)
+## edgesfiles are injeceted
+def calc_cilium_component_performnace(class_edgefiles, allowed_intersvc_comm):
+    pass

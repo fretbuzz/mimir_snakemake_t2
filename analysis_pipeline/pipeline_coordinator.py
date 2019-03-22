@@ -20,6 +20,7 @@ import pyximport
 pyximport.install()
 import pickle
 import numpy as np
+import statistical_analysis
 
 def generate_rocs(time_gran_to_anom_score_df, alert_file, sub_path):
     for time_gran, df_with_anom_features in time_gran_to_anom_score_df.iteritems():
@@ -83,8 +84,11 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
                               skip_graph_injection=False, get_endresult_from_memory=False,
                               goal_attack_NoAttack_split_testing=0.0, calc_ide=False, include_ide=False,
                               only_ide=False, perform_cilium_component=True, only_perform_cilium_component=True,
-                              cilium_component_time=100):
-    ## TODO: the default value of the last parameter should definitly be False!!
+                              cilium_component_time=100, drop_pairwise_features=False):
+
+    #if only_perform_cilium_component:
+    #    calc_vals = False
+    #    # is this it ???
 
     list_of_optimal_fone_scores_at_exfil_rates = []
     rate_to_timegran_to_methods_to_attacks_found_dfs = {}
@@ -114,13 +118,8 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
                 determine_and_assign_exfil_paths(calc_vals, skip_model_part, function_list, goal_train_test_split,
                                                  goal_attack_NoAttack_split_training, ignore_physical_attacks_p, 
                                                  time_each_synthetic_exfil,goal_attack_NoAttack_split_testing)
-        if perform_cilium_component:
-            for counter, experiment_object in enumerate(function_list):
-                experiment_object.run_cilium_component(cilium_component_time)
-            if only_perform_cilium_component:
-                return
 
-        for rate_counter in range(0,len(avg_pkt_size)):
+        for rate_counter in range(0,len(avg_exfil_per_min)):
             out_q = multiprocessing.Queue()
             cur_function_list = [copy.deepcopy(i) for i in function_list]
             args = [rate_counter,
@@ -128,7 +127,8 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
                     calculate_z_scores_p, calc_vals, end_of_train_portions,training_exfil_paths,
                     testing_exfil_paths, ignore_physical_attacks_p, skip_model_part, out_q,
                     ROC_curve_p, avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
-                    skip_graph_injection, calc_ide, include_ide, only_ide]
+                    skip_graph_injection, calc_ide, include_ide, only_ide, drop_pairwise_features,
+                    perform_cilium_component, only_perform_cilium_component, cilium_component_time]
             p = multiprocessing.Process(
                 target=pipeline_one_exfil_rate,
                 args=args)
@@ -159,8 +159,6 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
                 rate_to_time_gran_to_xs[avg_exfil_per_min[rate_counter]].append((Xs[time_gran], Xts[time_gran]))
                 rate_to_time_gran_to_ys[avg_exfil_per_min[rate_counter]].append((Ys[time_gran], Yts[time_gran]))
                 rate_to_time_gran_to_outtraffic[avg_exfil_per_min[rate_counter]].append(time_gran_to_outtraffic)
-
-
         with open(test_results_df_loc, 'wb') as f:  # Just use 'w' mode in 3.x
             f.write(pickle.dumps(rate_to_timegran_to_methods_to_attacks_found_dfs))
         with open(training_results_df_loc, 'wb') as f:  # Just use 'w' mode in 3.x
@@ -184,7 +182,8 @@ def pipeline_one_exfil_rate(rate_counter,
                             calculate_z_scores_p, calc_vals, end_of_train_portions, training_exfil_paths,
                             testing_exfil_paths, ignore_physical_attacks_p, skip_model_part, out_q,
                             ROC_curve_p, avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
-                            skip_graph_injection, calc_ide, include_ide, only_ide):
+                            skip_graph_injection, calc_ide, include_ide, only_ide, drop_pairwise_features,
+                            perform_cilium_component, only_perform_cilium_component, cilium_component_time):
     ## step (1) : iterate through individual experiments...
     ##  # 1a. list of inputs [done]
     ##  # 1b. acculate DFs
@@ -207,7 +206,6 @@ def pipeline_one_exfil_rate(rate_counter,
         experiment_object.calc_zscore_p = calculate_z_scores_p or calc_vals
         experiment_object.skip_graph_injection = skip_graph_injection
 
-
         time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, _, start_of_testing = \
         experiment_object.calculate_values(end_of_training=end_of_train_portions[counter],
                                            synthetic_exfil_paths_train=training_exfil_paths[counter],
@@ -219,6 +217,17 @@ def pipeline_one_exfil_rate(rate_counter,
                                            calc_ide=calc_ide, include_ide=include_ide,
                                            only_ide=only_ide)
 
+        if perform_cilium_component:
+            experiment_object.run_cilium_component(cilium_component_time)
+            time_gran_to_cilium_alerts = experiment_object.calc_cilium_performance(avg_exfil_per_min[rate_counter],
+                    exfil_per_min_variance[rate_counter], avg_pkt_size[rate_counter], pkt_size_variance[rate_counter])
+            # okay, so now I probably need to do something with these alerts...
+            # and then actually do something with all of this stuff...
+            print 'at rate', avg_exfil_per_min[rate_counter], "cilium_performance", time_gran_to_cilium_alerts
+
+            for time_gran, cilium_alerts in time_gran_to_cilium_alerts.iteritems():
+                time_gran_to_mod_zscore_df[time_gran]['cilium_for_first_sec_' + str(cilium_component_time)] = cilium_alerts
+
         print "exps_exfil_pathas[time_gran_to_mod_zscore_df]", time_gran_to_mod_zscore_df
         print time_gran_to_mod_zscore_df[time_gran_to_mod_zscore_df.keys()[0]].columns.values
         list_time_gran_to_mod_zscore_df.append(time_gran_to_mod_zscore_df)
@@ -228,6 +237,8 @@ def pipeline_one_exfil_rate(rate_counter,
         list_time_gran_to_mod_zscore_df_testing.append(generate_time_gran_sub_dataframes(time_gran_to_mod_zscore_df, 'is_test', 1))
         starts_of_testing.append(start_of_testing)
         gc.collect()
+
+
 
     # step (2) :  store aggregated DFs for reference purposes
     print "about_to_do_list_time_gran_to_mod_zscore_df"
@@ -307,7 +318,7 @@ def pipeline_one_exfil_rate(rate_counter,
                                              avg_exfil_per_min[rate_counter],
                                              avg_pkt_size[rate_counter],
                                              exfil_per_min_variance[rate_counter],
-                                             pkt_size_variance[rate_counter])
+                                             pkt_size_variance[rate_counter], drop_pairwise_features)
 
 
     '''
@@ -326,7 +337,7 @@ def pipeline_one_exfil_rate(rate_counter,
                                                             ignore_physical_attacks_p, avg_exfil_per_min[rate_counter],
                                                              avg_pkt_size[rate_counter],
                                                              exfil_per_min_variance[rate_counter],
-                                                             pkt_size_variance[rate_counter])
+                                                             pkt_size_variance[rate_counter], drop_pairwise_features)
 
     #'''
     '''

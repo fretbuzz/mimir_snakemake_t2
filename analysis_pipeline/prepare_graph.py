@@ -28,9 +28,9 @@ def is_private_ip(addr_bytes):
     elif addr_bytes[0] == '192' and addr_bytes[1] == '168'  and addr_bytes[3] != '1':
        return True # assuming that the only 192.168.XX.1 addresses will be the hosting computer
     # actually 172.17.0.1 can effectively be treated as an outside entity, due to NAT-like behavior
-    #elif addr_bytes[0] == '172' and addr_bytes[1] == '17' and addr_bytes[2] == '0':
+    elif addr_bytes[0] == '172' and addr_bytes[1] == '17' and addr_bytes[2] == '0' and addr_bytes[3] != '1':
     #    # this corresponds to pods in the minikube cluster... tho if I change the experimental apparatus, that might change too
-    #    return True
+        return True
     else:
         return False
 

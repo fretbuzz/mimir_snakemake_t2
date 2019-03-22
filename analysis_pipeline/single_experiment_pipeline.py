@@ -101,6 +101,7 @@ class data_anylsis_pipline(object):
         print training_window_size,size_of_neighbor_training_window
         self.system_startup_time = start_time #training_window_size + size_of_neighbor_training_window
         self.calc_vals = calc_vals
+        self.cilium_allowed_svc_comm = None
 
         if pod_creation_log is  None:
             self.pod_creation_log=None
@@ -436,8 +437,25 @@ class data_anylsis_pipline(object):
         self.cilium_component_time_length = time_length
 
         print "calling_cilium_component_now..."
-        cilium_config_generator.cilium_component(time_length, self.experiment_folder_path + self.pcap_file, self.cilium_component_dir,
+        self.cilium_allowed_svc_comm = cilium_config_generator.cilium_component(time_length, self.experiment_folder_path + self.pcap_file, self.cilium_component_dir,
                                                  self.make_edgefiles_p, self.ms_s, self.mapping, self.pod_creation_log)
+
+    def calc_cilium_performance(self, avg_exfil_per_min, exfil_var_per_min, avg_pkt_size, avg_pkt_var):
+        time_gran_to_cil_alerts = {}
+        for time_gran in self.time_interval_lengths:
+            prefix_for_inject_params = 'avg_exfil_' + str(avg_exfil_per_min) + ':' + str(
+                exfil_var_per_min) + '_avg_pkt_' + str(avg_pkt_size) + ':' + str(
+                avg_pkt_var) + '_'
+            self.basegraph_name = self.orig_basegraph_name + prefix_for_inject_params
+
+            current_set_of_graphs_loc = self.basegraph_name + 'set_of_graphs' + str(time_gran) + '.csv'
+            with open(current_set_of_graphs_loc, mode='rb') as f:
+                current_set_of_graphs_loc_contents = f.read()
+                current_set_of_graphs = pickle.loads(current_set_of_graphs_loc_contents)
+
+            cilium_alerts = current_set_of_graphs.calculate_cilium_performance(self.cilium_allowed_svc_comm)
+            time_gran_to_cil_alerts[time_gran] = cilium_alerts
+        return time_gran_to_cil_alerts
 
 def process_one_set_of_graphs(time_interval_length, window_size,
                                 filenames, svcs, is_swarm, ms_s, mapping,  list_of_infra_services,

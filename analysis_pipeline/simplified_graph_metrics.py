@@ -12,7 +12,7 @@ from analysis_pipeline.next_gen_metrics import calc_neighbor_metric, generate_ne
     calc_dns_metric, calc_outside_inside_ratio_dns_metric, find_dns_node_name, sum_max_pod_to_dns_from_each_svc,\
     reverse_svc_to_pod_dict,turn_into_list, single_step_outside_inside_ratio_dns_metric
 from analysis_pipeline.src.analyze_edgefiles import calc_VIP_metric, change_point_detection, ide_angles
-from analysis_pipeline.prepare_graph import prepare_graph, get_svc_equivalents
+from analysis_pipeline.prepare_graph import prepare_graph, get_svc_equivalents, is_ip
 import random
 import copy
 import logging
@@ -313,6 +313,41 @@ class set_of_injected_graphs():
         with open(self.current_set_of_graphs_loc, 'wb') as f:  # Just use 'w' mode in 3.x
             f.write(pickle.dumps(self))
 
+    def calculate_cilium_performance(self, allowed_intersvc_comm):
+        alert_vals = []
+        for counter,injected_graph_loc in enumerate(self.list_of_injected_graphs_loc):
+            trigger_alert = False
+            print "injected_graph_loc",injected_graph_loc
+            with open(injected_graph_loc, 'rb') as pickle_input_file:
+                injected_graph = pickle.load(pickle_input_file)
+
+
+            #class_edgefile = injected_graph.nodeAttrib_injected_graph_loc_class
+            class_edgefile = injected_graph.nodeAttrib_injected_graph_loc_class
+            class_graph = nx.read_gpickle(class_edgefile)
+            container_graph = nx.read_gpickle(injected_graph.nodeAttrib_injected_graph_loc)
+
+            container_graph_non_injected = nx.DiGraph()
+            with open(injected_graph.non_injected_graph_loc, 'r') as f:
+                lines = f.readlines()
+                nx.parse_edgelist(lines, delimiter=' ', create_using=container_graph_non_injected, data=[('frames',int), ('weight',int)])
+
+            for (u,v,d) in class_graph.edges(data=True):
+                if d['frames'] > 0:
+                    if (u,v) not in allowed_intersvc_comm:
+                        if 'VIP' not in u and 'VIP' not in v and not is_ip(u) \
+                        and not is_ip(v) and 'POD' not in u and 'POD' not in v and u != v:
+                            trigger_alert=True
+
+                            break
+
+            if trigger_alert:
+                alert_vals.append(1)
+            else:
+                alert_vals.append(0)
+
+        return alert_vals
+
     def ide_calculations(self, calc_ide):
         '''
         cur_out_q = multiprocessing.Queue()
@@ -424,7 +459,7 @@ class set_of_injected_graphs():
     def generate_aggregate_csv(self):
         #''''
         col_list = self.current_total_node_list
-        joint_col_list = [(col_item1 + '-' + col_item2) for col_item1 in col_list for col_item2 in col_list if col_item1 != col_item2]
+        joint_col_list = [(col_item1 + '-to-' + col_item2) for col_item1 in col_list for col_item2 in col_list if col_item1 != col_item2]
         #joint_col_list +=  ['labels']
         out_df = pd.DataFrame(None, index=None, columns=joint_col_list)
 
@@ -566,7 +601,7 @@ def calc_ide_angles(aggregate_csv_edgefile_loc, joint_col_list, window_size, raw
         print "calling sbcl now..."
         # note: http://quickdocs.org/clml/ indicates that a dynamic-space-size of 2560 should be sufficient, but
         # in my experience, that's actually not big enough (i.e. it'll crash unless you give it more)
-        out = subprocess.check_output(['sbcl', "--dynamic-space-size", "4260", "--script", "clml_ide.lisp"])
+        out = subprocess.check_output(['sbcl', "--dynamic-space-size", "5540", "--script", "clml_ide.lisp"])
         print "ide_out", out
 
     # step 3: copy the results into the appropriate location...
@@ -816,7 +851,6 @@ def update_mapping(container_to_ip, pod_creation_log, time_gran, time_counter):
     last_entry_into_log = max(0, time_gran * (time_counter ))
     current_entry_into_log =  time_gran * (time_counter +1)
 
-
     print "time_counter",time_counter,"time_gran",time_gran
     for i in range(last_entry_into_log, current_entry_into_log):
         # recall that: container_to_ip[container_ip] = (container_name, network_name)
@@ -831,11 +865,22 @@ def update_mapping(container_to_ip, pod_creation_log, time_gran, time_counter):
                     if cur_ip not in container_to_ip:
                         mod_cur_creation_log[cur_ip] = ('k8s_POD_' + cur_pod, None)
                 elif plus_minus == '-': # not sure if I want/need this but might be useful for bug checking
-                    del container_to_ip[cur_ip]
+                    pass
+                    # passing here b/c can't delete pods that disappear in the current
+                    # time frame b/c they end up being mislabeled.
+                    #del container_to_ip[cur_ip]
                     #pass
                 else:
                     print "+/- in pod_creation_log was neither + or -!!"
                     exit(300)
+
+        if i - (time_gran) >= 0:
+            for cur_pod, curIP_PlusMinus in pod_creation_log[i - time_gran].iteritems():
+                cur_ip = curIP_PlusMinus[0].rstrip().lstrip()
+                cur_pod = cur_pod.rstrip().lstrip()
+                plus_minus = curIP_PlusMinus[1]
+                if plus_minus == '-': # not sure if I want/need this but might be useful for bug checking
+                    del container_to_ip[cur_ip]
 
         container_to_ip.update( mod_cur_creation_log )
 

@@ -2001,8 +2001,8 @@ def autoscaling_sockshop_recipe():
 
     #####
     # IN MEGABYTES / MINUTE
-    avg_exfil_per_min = [ 2.0, 1.0, 0.25, 0.1] # [10.0, 2.0, 1.0, 0.25, 0.1] # [10.0, 2.0, 1.0, 0.25, 0.1]
-    exfil_per_min_variance = [0.2, 0.15, 0.08, 0.05] # [0.3. 0.2, 0.15, 0.08, 0.05] #[0.3, 0.2, 0.15, 0.08, 0.05]
+    avg_exfil_per_min = [10.0, 2.0, 1.0, 0.25, 0.1] # [10.0, 2.0, 1.0, 0.25, 0.1] # [10.0, 2.0, 1.0, 0.25, 0.1]
+    exfil_per_min_variance = [0.3, 0.2, 0.15, 0.08, 0.05] # [0.3. 0.2, 0.15, 0.08, 0.05] #[0.3, 0.2, 0.15, 0.08, 0.05]
     avg_pkt_size = [500.0, 500.0, 500.00, 500.00, 500.0]
     pkt_size_variance = [100, 100, 100, 100, 100]
 
@@ -2016,14 +2016,18 @@ def autoscaling_sockshop_recipe():
     include_ide = True # include ide vals? this'll involve either calculating them (below) or grabbing them from the file location
     calc_ide = True
     only_ide = False ## ONLY calculate the ide values... this'll be useful if I wanna first calc all the other values and THEN ide...
+    drop_pairwise_features = False # drops pairwise features (i.e. serviceX_to_serviceY_reciprocity)
 
     ####
-    cur_experiment_name = "withIDE_"  # can modify if you want, probably with:  new_wordpress_recipe.__name__
+    cur_experiment_name = "mark4_withIDE_"  # can modify if you want, probably with:  new_wordpress_recipe.__name__
     base_output_location = '/Volumes/exM2/experimental_data/sockshop_summary_new/new_'# + 'lasso_roc'
     base_output_location += cur_experiment_name
+    if drop_pairwise_features:
+        base_output_location += 'dropPairWise_'
+
     #####
 
-    skip_graph_injection = False
+    skip_graph_injection = True
     get_endresult_from_memory = False # in this case, you'd skip literally the whole pipeline and just get the
                                       # trained model + the results (from that model) out of memory
                                       # I anticpate that this'll mostly be useful for working on generating
@@ -2047,7 +2051,8 @@ def autoscaling_sockshop_recipe():
                               skip_graph_injection=skip_graph_injection,
                               get_endresult_from_memory=get_endresult_from_memory,
                               goal_attack_NoAttack_split_testing=goal_attack_NoAttack_split_testing,
-                              calc_ide=calc_ide, include_ide=include_ide, only_ide=only_ide)
+                              calc_ide=calc_ide, include_ide=include_ide, only_ide=only_ide,
+                              drop_pairwise_features=drop_pairwise_features)
 
 
 def new_wordpress_autoscaling_recipe():
@@ -2086,16 +2091,19 @@ def new_wordpress_autoscaling_recipe():
     exfil_per_min_variance = [BytesPerMegabyte * i for i in exfil_per_min_variance]
     ######
 
-    calc_vals = True
+    calc_vals = False
     calculate_z_scores = True
     include_ide = False # include ide vals? this'll involve either calculating them (below) or grabbing them from the file location
     calc_ide = False
     only_ide = False ## ONLY calculate the ide values... this'll be useful if I wanna first calc all the other values and THEN ide...
+    drop_pairwise_features = False # drops pairwise features (i.e. serviceX_to_serviceY_reciprocity)
 
     ####
     cur_experiment_name = "autoscaling_mark7_orderMagTimeGran_"  # can modify if you want, probably with:  new_wordpress_recipe.__name__
     base_output_location = '/Volumes/exM2/experimental_data/wordpress_summary_new/new_'# + 'lasso_roc'
     base_output_location += cur_experiment_name
+    if drop_pairwise_features:
+        base_output_location += 'dropPairWise_'
     #####
 
     skip_graph_injection = False
@@ -2122,7 +2130,8 @@ def new_wordpress_autoscaling_recipe():
                               skip_graph_injection=skip_graph_injection,
                               get_endresult_from_memory=get_endresult_from_memory,
                               goal_attack_NoAttack_split_testing=goal_attack_NoAttack_split_testing,
-                              calc_ide=calc_ide, include_ide=include_ide, only_ide=only_ide)
+                              calc_ide=calc_ide, include_ide=include_ide, only_ide=only_ide,
+                              drop_pairwise_features=drop_pairwise_features)
 
 def new_wordpress_recipe():
     skip_model_part = False
@@ -2164,6 +2173,7 @@ def new_wordpress_recipe():
     calc_ide = True
     include_ide = True
     only_ide = False ## ONLY calculate the ide values... this'll be useful if I wanna first calc all the other values and THEN ide...
+    drop_pairwise_features = False # drops pairwise features (i.e. serviceX_to_serviceY_reciprocity)
 
     ###############include_ide = True
 
@@ -2171,6 +2181,8 @@ def new_wordpress_recipe():
     cur_experiment_name = "v2_testingNewPipeline"  # can modify if you want, probably with:  new_wordpress_recipe.__name__
     base_output_location = '/Volumes/exM2/experimental_data/wordpress_summary_new/new_'# + 'lasso_roc'
     base_output_location += cur_experiment_name
+    if drop_pairwise_features:
+        base_output_location += 'dropPairWise_'
     #####
 
     skip_graph_injection = False
@@ -2218,7 +2230,8 @@ def new_wordpress_recipe():
                               skip_graph_injection=skip_graph_injection,
                               get_endresult_from_memory=get_endresult_from_memory,
                               goal_attack_NoAttack_split_testing=goal_attack_NoAttack_split_testing,
-                              calc_ide=calc_ide, include_ide=include_ide, only_ide=only_ide)
+                              calc_ide=calc_ide, include_ide=include_ide, only_ide=only_ide,
+                              drop_pairwise_features=drop_pairwise_features)
 
 
 # this function feeds a set of wordpress experiments into the multi_experiment_pipeline() function found in the
@@ -2333,8 +2346,8 @@ if __name__=="__main__":
         print "running_preset..."
         ## NO NO No::: new_new_wordpress_recipe() # testing autoscaling stuff...
         new_wordpress_autoscaling_recipe()
-        #new_wordpress_recipe()
         #autoscaling_sockshop_recipe()
+        #new_wordpress_recipe()
 
         #multi_experiment_wordpress_recipe()
         #time.sleep(14400)
