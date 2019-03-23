@@ -55,6 +55,7 @@ def determine_categorical_labels(y_test, optimal_predictions, exfil_paths, exfil
     #print "y_test", y_test['labels'], type(y_test['labels'])
     attack_type_to_weights = {}
     for exfil_type,indexes in attack_type_to_index.iteritems():
+        print len(indexes), len(optimal_predictions), indexes
         attack_type_to_predictions[exfil_type] = [optimal_predictions[i] for i in indexes]
         attack_type_to_truth[exfil_type] = [y_test[i] for i in indexes]
         print len(y_test), type(y_test), y_test

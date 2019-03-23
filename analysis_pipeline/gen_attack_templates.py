@@ -33,7 +33,7 @@ def run_mulval():
     #print client.containers.prune(filters={'id': container.id})
 
 ## NOTE: there can be NO - chars in mulval input... it causes problems with the trace parser!!
-def prepare_mulval_input(ms_s, mapping, sensitive_ms, netsec_policy):
+def prepare_mulval_input(ms_s, mapping, sensitive_ms, netsec_policy, intersvc_vip_pairs):
     # this is going to need to take the k8s input files and then convert to the input format for mulval
     ### TODO: okay, I think that this is the next step...
     ### Stuff to include:
@@ -120,6 +120,7 @@ def prepare_mulval_input(ms_s, mapping, sensitive_ms, netsec_policy):
                     pass
 
             print port, proto
+            # intersvc_vip_pairs
             if svc_two != svc:
                 print "svc_two", svc_two[0], svc[1],proto,port
                 if 'dns_pod' not in svc_two[0] and 'dns_vip' not in svc_two[0]:
@@ -321,11 +322,11 @@ def post_process_mulval_result(sensitive_node, max_number_of_paths):
     print "has the graph been drawn???? yes, yes they have"
     return paths, initiator_info
 
-def generate_synthetic_attack_templates(mapping, ms_s,sensitive_ms, max_number_of_paths, netsec_policy):
+def generate_synthetic_attack_templates(mapping, ms_s,sensitive_ms, max_number_of_paths, netsec_policy, intersvc_vip_pairs):
     if not max_number_of_paths:
         return [],{}
 
-    sensitive_node = prepare_mulval_input(ms_s, mapping, sensitive_ms, netsec_policy)
+    sensitive_node = prepare_mulval_input(ms_s, mapping, sensitive_ms, netsec_policy, intersvc_vip_pairs)
     run_mulval()
     paths, initiator_info = post_process_mulval_result(sensitive_node, max_number_of_paths)
     return paths, initiator_info
@@ -369,23 +370,33 @@ def parse_netsec_policy(netsec_policy):
 
     allowed_dict = {}
     allow_all = []
+    intersvc_vip_pairs = set()
+
     with open(netsec_policy, 'r') as f:
         lines = f.readlines()
+        hit_divider=False
         for line in lines:
-            if line[0] != '#':
+            if '----------'  in line:
+                hit_divider = True
+
+            if not hit_divider:
+                if line[0] != '#':
+                    line_split = line.split(' ')
+                    #print "line_split", line_split
+                    if line_split[1].rstrip().lstrip() == 'ALLOWED':
+                        if line_split[2].rstrip().lstrip() == 'all':
+                            #print "found the allowed all!"
+                            allow_all.append(line_split[0].rstrip().lstrip())
+                            continue
+                        #print "did not find the allowed all"
+                        if line_split[0].rstrip().lstrip() in allowed_dict:
+                            allowed_dict[line_split[0].rstrip().lstrip()].append(line_split[2].rstrip().lstrip())
+                        else:
+                            allowed_dict[line_split[0].rstrip().lstrip()] = [line_split[2].rstrip().lstrip()]
+                    print line
+            else:
                 line_split = line.split(' ')
-                #print "line_split", line_split
-                if line_split[1].rstrip().lstrip() == 'ALLOWED':
-                    if line_split[2].rstrip().lstrip() == 'all':
-                        #print "found the allowed all!"
-                        allow_all.append(line_split[0].rstrip().lstrip())
-                        continue
-                    #print "did not find the allowed all"
-                    if line_split[0].rstrip().lstrip() in allowed_dict:
-                        allowed_dict[line_split[0].rstrip().lstrip()].append(line_split[2].rstrip().lstrip())
-                    else:
-                        allowed_dict[line_split[0].rstrip().lstrip()] = [line_split[2].rstrip().lstrip()]
-                print line
+                intersvc_vip_pairs.add((line_split[0], line_split[1]))
     allowed_dict_keys = allowed_dict.keys()
     allowed_dict_vals = list(itertools.chain(*allowed_dict.values()))
     allowed_dict_keys = list(set(allowed_dict_keys+allowed_dict_vals))
@@ -401,7 +412,7 @@ def parse_netsec_policy(netsec_policy):
 
     print allowed_dict
     #exit(34)
-    return allowed_dict
+    return allowed_dict,intersvc_vip_pairs
 
 def path_is_valid(path):
     print '------'

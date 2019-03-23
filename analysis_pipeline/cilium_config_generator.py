@@ -96,16 +96,16 @@ def cal_host2svc(hosts, svcs):
                 break
     return host2svc
 
-def calc_svc2svc_communcating(host2svc, communicating_hosts):
+def calc_svc2svc_communcating(host2svc, communicating_hosts, vip_debugging):
     communicatng_svcs = set()
     for comm_host_pair in communicating_hosts:
-        if comm_host_pair[0] in host2svc:
+        if comm_host_pair[0] in host2svc and not ('VIP' in comm_host_pair[0] and vip_debugging):
             src_svc = host2svc[ comm_host_pair[0] ]
         else:
             src_svc = comm_host_pair[0]
 
 
-        if comm_host_pair[1] in host2svc:
+        if comm_host_pair[1] in host2svc and not ('VIP' in comm_host_pair[1] and vip_debugging):
             dst_svc = host2svc[ comm_host_pair[1] ]
         else:
             dst_svc = comm_host_pair[1]
@@ -132,10 +132,11 @@ def calc_svc2svc_communcating(host2svc, communicating_hosts):
                 #dst_svc = 'outside'
                 dst_svc_is_outside = True
 
-        if 'POD' in src_svc or 'VIP' in src_svc or prepare_graph.is_ip(src_svc):
-            svc_pairs_to_remove.append((src_svc,dst_svc))
-        elif 'POD' in dst_svc or 'VIP' in dst_svc or prepare_graph.is_ip(dst_svc):
-            svc_pairs_to_remove.append((src_svc,dst_svc))
+        if not vip_debugging:
+            if 'POD' in src_svc or 'VIP' in src_svc or prepare_graph.is_ip(src_svc):
+                svc_pairs_to_remove.append((src_svc,dst_svc))
+            elif 'POD' in dst_svc or 'VIP' in dst_svc or prepare_graph.is_ip(dst_svc):
+                svc_pairs_to_remove.append((src_svc,dst_svc))
 
         if (not ('POD' in dst_svc or 'VIP' in dst_svc)) and ( src_svc_is_outside or dst_svc_is_outside ):
             if src_svc_is_outside and not prepare_graph.is_ip(dst_svc):
@@ -164,6 +165,9 @@ def generate_cilium_policy(communicating_svc, basefilename):
 def cilium_component(time_length, pcap_location, cilium_component_dir, make_edgefiles_p, svcs, inital_mapping,
                      pod_creation_log):
     make_edgefiles_p = True ## TODO PROBABLY WANT TO REMOVE AT SOME POINT
+    vip_debugging = False # this function exists for debugging purposes. It makese the cur_cilium_comms
+                         # also print the relevant VIPS and then quit right after. This is useful for
+                         # setting up the netsec policy.
 
     # step (0) make sure the directory where we are going to store all the MIMIR cilium component files exist
     try:
@@ -196,11 +200,34 @@ def cilium_component(time_length, pcap_location, cilium_component_dir, make_edge
     # step (4) generate service-to-ip mapping
     communicating_hosts, hosts = host2_host_comm(edgefile)
     ip_to_svc = cal_host2svc(hosts, svcs)
-    communicatng_svcs = calc_svc2svc_communcating(ip_to_svc, communicating_hosts)
+    communicatng_svcs = calc_svc2svc_communcating(ip_to_svc, communicating_hosts, vip_debugging)
 
-    with open('./cilium_comp_inouts/cur_cilium_comms.txt', 'w') as f:
+    output_file_name = './cilium_comp_inouts/cur_cilium_comms'
+    if vip_debugging:
+        additional_output_file_name = output_file_name +  '_vip_debugging'
+        vips_present = set()
+        for comm_pair in communicatng_svcs:
+            #if 'VIP' in comm_pair[0] or 'VIP' in comm_pair[1]:
+
+            # w/ current tshark setup, 'VIP' being in either 0 or 1 is semantically equivalent.
+            if 'VIP' in comm_pair[1]:
+                vips_present.add(comm_pair)
+            #if 'VIP' in comm_pair[1]:
+            #    vips_present.add(comm_pair[1])
+        with open(additional_output_file_name + '.txt', 'w') as f:
+            for item in vips_present:
+                src = item[0].lower().replace('-', '_')
+                dst = item[1].lower().replace('-', '_')
+                src += '_pod'
+                f.write(src + " " + dst  + '\n')
+
+    with open(output_file_name + '.txt', 'w') as f:
         for comm_svc in communicatng_svcs:
             f.write(str(comm_svc) + '\n')
+
+    if vip_debugging:
+        print "existing b/c vip_debugging is true. can check output file safely now."
+        exit(233)
 
     basefilename = None # TODO TODO TODO
     generate_cilium_policy(communicatng_svcs, basefilename)

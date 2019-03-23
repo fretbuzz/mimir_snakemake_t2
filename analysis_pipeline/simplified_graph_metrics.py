@@ -880,7 +880,8 @@ def update_mapping(container_to_ip, pod_creation_log, time_gran, time_counter):
                 cur_pod = cur_pod.rstrip().lstrip()
                 plus_minus = curIP_PlusMinus[1]
                 if plus_minus == '-': # not sure if I want/need this but might be useful for bug checking
-                    del container_to_ip[cur_ip]
+                    if cur_ip in container_to_ip:
+                        del container_to_ip[cur_ip]
 
         container_to_ip.update( mod_cur_creation_log )
 

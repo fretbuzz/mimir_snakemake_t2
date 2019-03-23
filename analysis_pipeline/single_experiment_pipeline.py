@@ -120,6 +120,7 @@ class data_anylsis_pipline(object):
         self.time_gran_to_new_neighbors_all=None
         self.time_gran_to_list_of_amt_of_out_traffic_bytes = None
         self.time_gran_to_list_of_amt_of_out_traffic_pkts = None
+        self.intersvc_vip_pairs = None
 
         for ms in ms_s:
             if 'user' in ms and 'db' in ms:
@@ -131,10 +132,11 @@ class data_anylsis_pipline(object):
         #self.include_ide = include_ide
 
     def generate_synthetic_exfil_paths(self, max_number_of_paths):
-        self.netsec_policy = gen_attack_templates.parse_netsec_policy(self.netsec_policy)
+        self.netsec_policy,self.intersvc_vip_pairs = gen_attack_templates.parse_netsec_policy(self.netsec_policy)
         synthetic_exfil_paths, initiator_info_for_paths = \
             gen_attack_templates.generate_synthetic_attack_templates(self.mapping, self.ms_s, self.sensitive_ms,
-                                                                     max_number_of_paths, self.netsec_policy)
+                                                                     max_number_of_paths, self.netsec_policy,
+                                                                     self.intersvc_vip_pairs)
         self.synthetic_exfil_paths = synthetic_exfil_paths
         self.initiator_info_for_paths = initiator_info_for_paths
         return synthetic_exfil_paths, initiator_info_for_paths

@@ -1,5 +1,5 @@
 /Volumes/exM2/experimental_data/sockshop_info/sockshop_thirteen_autoscale_mark4/graphs/sockshop_thirteen_autoscale_mark4_avg_exfil_10000000.0:300000.0_avg_pkt_500.0:100_collected_metrics_time_gran_10.csv_aggregate_edgefile.csv
-7311
+4423
 10
-1080
+1079
 /Volumes/exM2/experimental_data/sockshop_info/sockshop_thirteen_autoscale_mark4/graphs/sockshop_thirteen_autoscale_mark4_avg_exfil_10000000.0:300000.0_avg_pkt_500.0:100_collected_metrics_time_gran_10.csv_aggregate_edgefile.csv_clml_ide_results.txt

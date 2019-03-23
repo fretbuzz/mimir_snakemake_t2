@@ -128,7 +128,7 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
                     testing_exfil_paths, ignore_physical_attacks_p, skip_model_part, out_q,
                     ROC_curve_p, avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
                     skip_graph_injection, calc_ide, include_ide, only_ide, drop_pairwise_features,
-                    perform_cilium_component, only_perform_cilium_component, cilium_component_time]
+                    perform_cilium_component, cilium_component_time]
             p = multiprocessing.Process(
                 target=pipeline_one_exfil_rate,
                 args=args)
@@ -183,7 +183,7 @@ def pipeline_one_exfil_rate(rate_counter,
                             testing_exfil_paths, ignore_physical_attacks_p, skip_model_part, out_q,
                             ROC_curve_p, avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
                             skip_graph_injection, calc_ide, include_ide, only_ide, drop_pairwise_features,
-                            perform_cilium_component, only_perform_cilium_component, cilium_component_time):
+                            perform_cilium_component, cilium_component_time):
     ## step (1) : iterate through individual experiments...
     ##  # 1a. list of inputs [done]
     ##  # 1b. acculate DFs
@@ -226,6 +226,9 @@ def pipeline_one_exfil_rate(rate_counter,
             print 'at rate', avg_exfil_per_min[rate_counter], "cilium_performance", time_gran_to_cilium_alerts
 
             for time_gran, cilium_alerts in time_gran_to_cilium_alerts.iteritems():
+                length_alerts = len(time_gran_to_mod_zscore_df[time_gran].index.values)
+                cilium_alerts = cilium_alerts[:length_alerts]
+                print len(time_gran_to_mod_zscore_df[time_gran].index.values), len(cilium_alerts), length_alerts
                 time_gran_to_mod_zscore_df[time_gran]['cilium_for_first_sec_' + str(cilium_component_time)] = cilium_alerts
 
         print "exps_exfil_pathas[time_gran_to_mod_zscore_df]", time_gran_to_mod_zscore_df
