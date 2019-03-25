@@ -84,7 +84,8 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
                               skip_graph_injection=False, get_endresult_from_memory=False,
                               goal_attack_NoAttack_split_testing=0.0, calc_ide=False, include_ide=False,
                               only_ide=False, perform_cilium_component=True, only_perform_cilium_component=True,
-                              cilium_component_time=100, drop_pairwise_features=False):
+                              cilium_component_time=100, drop_pairwise_features=False,
+                              max_path_length=15, max_dns_porportion=1.0):
 
     #if only_perform_cilium_component:
     #    calc_vals = False
@@ -117,7 +118,8 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
         exps_exfil_paths, end_of_train_portions, training_exfil_paths, testing_exfil_paths, exps_initiator_info = \
                 determine_and_assign_exfil_paths(calc_vals, skip_model_part, function_list, goal_train_test_split,
                                                  goal_attack_NoAttack_split_training, ignore_physical_attacks_p, 
-                                                 time_each_synthetic_exfil,goal_attack_NoAttack_split_testing)
+                                                 time_each_synthetic_exfil,goal_attack_NoAttack_split_testing,
+                                                 max_path_length, max_dns_porportion)
         # TODO: REMOVE
         exit(233)
 
@@ -389,7 +391,8 @@ def pipeline_one_exfil_rate(rate_counter,
     out_q.put(time_gran_to_outtraffic)
 
 def determine_and_assign_exfil_paths(calc_vals, skip_model_part, function_list, goal_train_test_split, goal_attack_NoAttack_split_training,
-                                     ignore_physical_attacks_p, time_each_synthetic_exfil, goal_attack_NoAttack_split_testing):
+                                     ignore_physical_attacks_p, time_each_synthetic_exfil, goal_attack_NoAttack_split_testing,
+                                     max_path_length, dns_porportion):
     if True: #calc_vals and not skip_model_part:
         print function_list
         exp_infos = []
@@ -414,7 +417,9 @@ def determine_and_assign_exfil_paths(calc_vals, skip_model_part, function_list, 
         for experiment_object in function_list:
             print "experiment_object", experiment_object
             synthetic_exfil_paths, initiator_info_for_paths = \
-                experiment_object.generate_synthetic_exfil_paths(max_number_of_paths=max_number_of_paths)
+                experiment_object.generate_synthetic_exfil_paths(max_number_of_paths=max_number_of_paths,
+                                                                 max_path_length=max_path_length,
+                                                                 dns_porportion=dns_porportion)
             max_number_of_paths = None
             exps_exfil_paths.append(synthetic_exfil_paths)
             exps_initiator_info.append(initiator_info_for_paths)

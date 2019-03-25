@@ -131,12 +131,12 @@ class data_anylsis_pipline(object):
         self.process_pcaps()
         #self.include_ide = include_ide
 
-    def generate_synthetic_exfil_paths(self, max_number_of_paths):
+    def generate_synthetic_exfil_paths(self, max_number_of_paths, max_path_length, dns_porportion):
         self.netsec_policy,self.intersvc_vip_pairs = gen_attack_templates.parse_netsec_policy(self.netsec_policy)
         synthetic_exfil_paths, initiator_info_for_paths = \
             gen_attack_templates.generate_synthetic_attack_templates(self.mapping, self.ms_s, self.sensitive_ms,
                                                                      max_number_of_paths, self.netsec_policy,
-                                                                     self.intersvc_vip_pairs)
+                                                                     self.intersvc_vip_pairs, max_path_length, dns_porportion)
         self.synthetic_exfil_paths = synthetic_exfil_paths
         self.initiator_info_for_paths = initiator_info_for_paths
         return synthetic_exfil_paths, initiator_info_for_paths

@@ -7,724 +7,225 @@
                (7) RULE 2 : remote exploit of a server program
                   <8>||--netAccess(user_pod,_,27017)
                      (9) RULE 5 : multi-hop access
-                        [10]-hacl(catalogue_vip,user_pod,_,27017)
-                        <11>|--execCode(catalogue_vip,_)
+                        [10]-hacl(user_db_pod,user_pod,_,27017)
+                        <11>||--execCode(user_db_pod,_)
                            (12) RULE 2 : remote exploit of a server program
-                              <13>||--netAccess(catalogue_vip,_,80)
+                              <13>|--netAccess(user_db_pod,_,27017)
                                  (14) RULE 5 : multi-hop access
-                                    [15]-hacl(catalogue_db_pod,catalogue_vip,_,80)
-                                    <16>||--execCode(catalogue_db_pod,_)
-                                       (17) RULE 2 : remote exploit of a server program
-                                          <18>|--netAccess(catalogue_db_pod,_,3306)
-                                             (19) RULE 5 : multi-hop access
-                                                [20]-hacl(catalogue_vip,catalogue_db_pod,_,3306)
-                                                execCode(catalogue_vip,_)==><11>
-                                          [21]-networkServiceInfo(catalogue_db_pod,is_computer,_,3306,_)
-                                          [22]-vulExists(catalogue_db_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-                                       (23) RULE 2 : remote exploit of a server program
-                                          <24>|--netAccess(catalogue_db_pod,_,80)
-                                             (25) RULE 5 : multi-hop access
-                                                [26]-hacl(catalogue_pod,catalogue_db_pod,_,80)
-                                                <27>||--execCode(catalogue_pod,_)
-                                                   (28) RULE 2 : remote exploit of a server program
-                                                      <29>|--netAccess(catalogue_pod,_,27017)
-                                                         (30) RULE 5 : multi-hop access
-                                                            [31]-hacl(user_pod,catalogue_pod,_,27017)
-                                                            execCode(user_pod,_)==><6>
-                                                      [32]-networkServiceInfo(catalogue_pod,is_computer,_,27017,_)
-                                                      [33]-vulExists(catalogue_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-                                                   (34) RULE 2 : remote exploit of a server program
-                                                      <35>|--netAccess(catalogue_pod,_,3306)
-                                                         (36) RULE 5 : multi-hop access
-                                                            [37]-hacl(catalogue_db_pod,catalogue_pod,_,3306)
-                                                            execCode(catalogue_db_pod,_)==><16>
-                                                      [38]-networkServiceInfo(catalogue_pod,is_computer,_,3306,_)
-                                                      [33]-vulExists(catalogue_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-                                                   (39) RULE 2 : remote exploit of a server program
-                                                      <40>||--netAccess(catalogue_pod,_,80)
-                                                         (41) RULE 5 : multi-hop access
-                                                            [42]-hacl(catalogue_db_vip,catalogue_pod,_,80)
-                                                            <43>|--execCode(catalogue_db_vip,_)
-                                                               (44) RULE 2 : remote exploit of a server program
-                                                                  <45>||--netAccess(catalogue_db_vip,_,3306)
-                                                                     (46) RULE 5 : multi-hop access
-                                                                        [47]-hacl(catalogue_db_pod,catalogue_db_vip,_,3306)
-                                                                        execCode(catalogue_db_pod,_)==><16>
-                                                                     (48) RULE 5 : multi-hop access
-                                                                        [49]-hacl(catalogue_pod,catalogue_db_vip,_,3306)
-                                                                        execCode(catalogue_pod,_)==><27>
-                                                                     (50) RULE 5 : multi-hop access
-                                                                        [51]-hacl(internet,catalogue_db_vip,_,3306)
-                                                                        execCode(internet,_)==><1>
-                                                                  [52]-networkServiceInfo(catalogue_db_vip,is_vip,_,3306,_)
-                                                                  [53]-vulExists(catalogue_db_vip,is_a_vip,is_vip,remoteExploit,privEscalation)
-                                                         (54) RULE 5 : multi-hop access
-                                                            [55]-hacl(front_end_pod,catalogue_pod,_,80)
-                                                            <56>||--execCode(front_end_pod,_)
-                                                               (57) RULE 2 : remote exploit of a server program
-                                                                  <58>|--netAccess(front_end_pod,_,27017)
-                                                                     (59) RULE 5 : multi-hop access
-                                                                        [60]-hacl(user_pod,front_end_pod,_,27017)
-                                                                        execCode(user_pod,_)==><6>
-                                                                  [61]-networkServiceInfo(front_end_pod,is_computer,_,27017,_)
-                                                                  [62]-vulExists(front_end_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-                                                               (63) RULE 2 : remote exploit of a server program
-                                                                  <64>||--netAccess(front_end_pod,_,80)
-                                                                     (65) RULE 5 : multi-hop access
-                                                                        [66]-hacl(cart_pod,front_end_pod,_,80)
-                                                                        <67>||--execCode(cart_pod,_)
-                                                                           (68) RULE 2 : remote exploit of a server program
-                                                                              <69>|--netAccess(cart_pod,_,27017)
-                                                                                 (70) RULE 5 : multi-hop access
-                                                                                    [71]-hacl(carts_db_pod,cart_pod,_,27017)
-                                                                                    <72>||--execCode(carts_db_pod,_)
-                                                                                       (73) RULE 2 : remote exploit of a server program
-                                                                                          <74>|--netAccess(carts_db_pod,_,27017)
-                                                                                             (75) RULE 5 : multi-hop access
-                                                                                                [76]-hacl(cart_vip,carts_db_pod,_,27017)
-                                                                                                <77>|--execCode(cart_vip,_)
-                                                                                                   (78) RULE 2 : remote exploit of a server program
-                                                                                                      <79>||--netAccess(cart_vip,_,80)
-                                                                                                         (80) RULE 5 : multi-hop access
-                                                                                                            [81]-hacl(cart_pod,cart_vip,_,80)
-                                                                                                            execCode(cart_pod,_)==><67>
-                                                                                                         (82) RULE 5 : multi-hop access
-                                                                                                            [83]-hacl(carts_db_pod,cart_vip,_,80)
-                                                                                                            execCode(carts_db_pod,_)==><72>
-                                                                                                         (84) RULE 5 : multi-hop access
-                                                                                                            [85]-hacl(front_end_pod,cart_vip,_,80)
-                                                                                                            execCode(front_end_pod,_)==><56>
-                                                                                                         (86) RULE 5 : multi-hop access
-                                                                                                            [87]-hacl(internet,cart_vip,_,80)
-                                                                                                            execCode(internet,_)==><1>
-                                                                                                         (88) RULE 5 : multi-hop access
-                                                                                                            [89]-hacl(orders_pod,cart_vip,_,80)
-                                                                                                            <90>||--execCode(orders_pod,_)
-                                                                                                               (91) RULE 2 : remote exploit of a server program
-                                                                                                                  <92>||--netAccess(orders_pod,_,27017)
-                                                                                                                     (93) RULE 5 : multi-hop access
-                                                                                                                        [94]-hacl(orders_db_pod,orders_pod,_,27017)
-                                                                                                                        <95>||--execCode(orders_db_pod,_)
-                                                                                                                           (96) RULE 2 : remote exploit of a server program
-                                                                                                                              <97>|--netAccess(orders_db_pod,_,27017)
-                                                                                                                                 (98) RULE 5 : multi-hop access
-                                                                                                                                    [99]-hacl(orders_vip,orders_db_pod,_,27017)
-                                                                                                                                    <100>|--execCode(orders_vip,_)
-                                                                                                                                       (101) RULE 2 : remote exploit of a server program
-                                                                                                                                          <102>||--netAccess(orders_vip,_,80)
-                                                                                                                                             (103) RULE 5 : multi-hop access
-                                                                                                                                                [104]-hacl(cart_pod,orders_vip,_,80)
-                                                                                                                                                execCode(cart_pod,_)==><67>
-                                                                                                                                             (105) RULE 5 : multi-hop access
-                                                                                                                                                [106]-hacl(front_end_pod,orders_vip,_,80)
-                                                                                                                                                execCode(front_end_pod,_)==><56>
-                                                                                                                                             (107) RULE 5 : multi-hop access
-                                                                                                                                                [108]-hacl(internet,orders_vip,_,80)
-                                                                                                                                                execCode(internet,_)==><1>
-                                                                                                                                             (109) RULE 5 : multi-hop access
-                                                                                                                                                [110]-hacl(orders_db_pod,orders_vip,_,80)
-                                                                                                                                                execCode(orders_db_pod,_)==><95>
-                                                                                                                                             (111) RULE 5 : multi-hop access
-                                                                                                                                                [112]-hacl(orders_pod,orders_vip,_,80)
-                                                                                                                                                execCode(orders_pod,_)==><90>
-                                                                                                                                             (113) RULE 5 : multi-hop access
-                                                                                                                                                [114]-hacl(payment_pod,orders_vip,_,80)
-                                                                                                                                                <115>||--execCode(payment_pod,_)
-                                                                                                                                                   (116) RULE 2 : remote exploit of a server program
-                                                                                                                                                      <117>||--netAccess(payment_pod,_,80)
-                                                                                                                                                         (118) RULE 5 : multi-hop access
-                                                                                                                                                            [119]-hacl(orders_pod,payment_pod,_,80)
-                                                                                                                                                            execCode(orders_pod,_)==><90>
-                                                                                                                                                         (120) RULE 5 : multi-hop access
-                                                                                                                                                            [121]-hacl(orders_vip,payment_pod,_,80)
-                                                                                                                                                            execCode(orders_vip,_)==><100>
-                                                                                                                                                      [122]-networkServiceInfo(payment_pod,is_computer,_,80,_)
-                                                                                                                                                      [123]-vulExists(payment_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-                                                                                                                                                   (124) RULE 2 : remote exploit of a server program
-                                                                                                                                                      <125>||--netAccess(payment_pod,_,_)
-                                                                                                                                                         (126) RULE 5 : multi-hop access
-                                                                                                                                                            [127]-hacl(internet,payment_pod,_,_)
-                                                                                                                                                            execCode(internet,_)==><1>
-                                                                                                                                                         (128) RULE 5 : multi-hop access
-                                                                                                                                                            [129]-hacl(payment_vip,payment_pod,_,_)
-                                                                                                                                                            <130>|--execCode(payment_vip,_)
-                                                                                                                                                               (131) RULE 2 : remote exploit of a server program
-                                                                                                                                                                  <132>||--netAccess(payment_vip,_,80)
-                                                                                                                                                                     (133) RULE 5 : multi-hop access
-                                                                                                                                                                        [134]-hacl(internet,payment_vip,_,80)
-                                                                                                                                                                        execCode(internet,_)==><1>
-                                                                                                                                                                     (135) RULE 5 : multi-hop access
-                                                                                                                                                                        [136]-hacl(orders_pod,payment_vip,_,80)
-                                                                                                                                                                        execCode(orders_pod,_)==><90>
-                                                                                                                                                                     (137) RULE 5 : multi-hop access
-                                                                                                                                                                        [138]-hacl(payment_pod,payment_vip,_,80)
-                                                                                                                                                                        execCode(payment_pod,_)==><115>
-                                                                                                                                                                  [139]-networkServiceInfo(payment_vip,is_vip,_,80,_)
-                                                                                                                                                                  [140]-vulExists(payment_vip,is_a_vip,is_vip,remoteExploit,privEscalation)
-                                                                                                                                                      [141]-networkServiceInfo(payment_pod,is_computer,_,_,_)
-                                                                                                                                                      [123]-vulExists(payment_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-                                                                                                                                             (142) RULE 5 : multi-hop access
-                                                                                                                                                [143]-hacl(shipping_pod,orders_vip,_,80)
-                                                                                                                                                <144>||--execCode(shipping_pod,_)
-                                                                                                                                                   (145) RULE 2 : remote exploit of a server program
-                                                                                                                                                      <146>|--netAccess(shipping_pod,_,5672)
-                                                                                                                                                         (147) RULE 5 : multi-hop access
-                                                                                                                                                            [148]-hacl(rabbitmq_pod,shipping_pod,_,5672)
-                                                                                                                                                            <149>||--execCode(rabbitmq_pod,_)
-                                                                                                                                                               (150) RULE 2 : remote exploit of a server program
-                                                                                                                                                                  <151>||--netAccess(rabbitmq_pod,_,5672)
-                                                                                                                                                                     (152) RULE 5 : multi-hop access
-                                                                                                                                                                        [153]-hacl(queue_master_vip,rabbitmq_pod,_,5672)
-                                                                                                                                                                        <154>|--execCode(queue_master_vip,_)
-                                                                                                                                                                           (155) RULE 2 : remote exploit of a server program
-                                                                                                                                                                              <156>||--netAccess(queue_master_vip,_,80)
-                                                                                                                                                                                 (157) RULE 5 : multi-hop access
-                                                                                                                                                                                    [158]-hacl(internet,queue_master_vip,_,80)
-                                                                                                                                                                                    execCode(internet,_)==><1>
-                                                                                                                                                                                 (159) RULE 5 : multi-hop access
-                                                                                                                                                                                    [160]-hacl(queue_master_pod,queue_master_vip,_,80)
-                                                                                                                                                                                    <161>||--execCode(queue_master_pod,_)
-                                                                                                                                                                                       (162) RULE 2 : remote exploit of a server program
-                                                                                                                                                                                          <163>|--netAccess(queue_master_pod,_,5672)
-                                                                                                                                                                                             (164) RULE 5 : multi-hop access
-                                                                                                                                                                                                [165]-hacl(rabbitmq_pod,queue_master_pod,_,5672)
-                                                                                                                                                                                                execCode(rabbitmq_pod,_)==><149>
-                                                                                                                                                                                          [166]-networkServiceInfo(queue_master_pod,is_computer,_,5672,_)
-                                                                                                                                                                                          [167]-vulExists(queue_master_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-                                                                                                                                                                                       (168) RULE 2 : remote exploit of a server program
-                                                                                                                                                                                          <169>|--netAccess(queue_master_pod,_,80)
-                                                                                                                                                                                             (170) RULE 5 : multi-hop access
-                                                                                                                                                                                                [171]-hacl(rabbitmq_vip,queue_master_pod,_,80)
-                                                                                                                                                                                                <172>|--execCode(rabbitmq_vip,_)
-                                                                                                                                                                                                   (173) RULE 2 : remote exploit of a server program
-                                                                                                                                                                                                      <174>||--netAccess(rabbitmq_vip,_,5672)
-                                                                                                                                                                                                         (175) RULE 5 : multi-hop access
-                                                                                                                                                                                                            [176]-hacl(internet,rabbitmq_vip,_,5672)
-                                                                                                                                                                                                            execCode(internet,_)==><1>
-                                                                                                                                                                                                         (177) RULE 5 : multi-hop access
-                                                                                                                                                                                                            [178]-hacl(queue_master_pod,rabbitmq_vip,_,5672)
-                                                                                                                                                                                                            execCode(queue_master_pod,_)==><161>
-                                                                                                                                                                                                         (179) RULE 5 : multi-hop access
-                                                                                                                                                                                                            [180]-hacl(rabbitmq_pod,rabbitmq_vip,_,5672)
-                                                                                                                                                                                                            execCode(rabbitmq_pod,_)==><149>
-                                                                                                                                                                                                         (181) RULE 5 : multi-hop access
-                                                                                                                                                                                                            [182]-hacl(shipping_pod,rabbitmq_vip,_,5672)
-                                                                                                                                                                                                            execCode(shipping_pod,_)==><144>
-                                                                                                                                                                                                      [183]-networkServiceInfo(rabbitmq_vip,is_vip,_,5672,_)
-                                                                                                                                                                                                      [184]-vulExists(rabbitmq_vip,is_a_vip,is_vip,remoteExploit,privEscalation)
-                                                                                                                                                                                          [185]-networkServiceInfo(queue_master_pod,is_computer,_,80,_)
-                                                                                                                                                                                          [167]-vulExists(queue_master_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-                                                                                                                                                                                       (186) RULE 2 : remote exploit of a server program
-                                                                                                                                                                                          <187>||--netAccess(queue_master_pod,_,_)
-                                                                                                                                                                                             (188) RULE 5 : multi-hop access
-                                                                                                                                                                                                [189]-hacl(internet,queue_master_pod,_,_)
-                                                                                                                                                                                                execCode(internet,_)==><1>
-                                                                                                                                                                                             (190) RULE 5 : multi-hop access
-                                                                                                                                                                                                [191]-hacl(queue_master_vip,queue_master_pod,_,_)
-                                                                                                                                                                                                execCode(queue_master_vip,_)==><154>
-                                                                                                                                                                                          [192]-networkServiceInfo(queue_master_pod,is_computer,_,_,_)
-                                                                                                                                                                                          [167]-vulExists(queue_master_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-                                                                                                                                                                                 (193) RULE 5 : multi-hop access
-                                                                                                                                                                                    [194]-hacl(rabbitmq_pod,queue_master_vip,_,80)
-                                                                                                                                                                                    execCode(rabbitmq_pod,_)==><149>
-                                                                                                                                                                              [195]-networkServiceInfo(queue_master_vip,is_vip,_,80,_)
-                                                                                                                                                                              [196]-vulExists(queue_master_vip,is_a_vip,is_vip,remoteExploit,privEscalation)
-                                                                                                                                                                     (197) RULE 5 : multi-hop access
-                                                                                                                                                                        [198]-hacl(shipping_vip,rabbitmq_pod,_,5672)
-                                                                                                                                                                        <199>|--execCode(shipping_vip,_)
-                                                                                                                                                                           (200) RULE 2 : remote exploit of a server program
-                                                                                                                                                                              <201>||--netAccess(shipping_vip,_,80)
-                                                                                                                                                                                 (202) RULE 5 : multi-hop access
-                                                                                                                                                                                    [203]-hacl(internet,shipping_vip,_,80)
-                                                                                                                                                                                    execCode(internet,_)==><1>
-                                                                                                                                                                                 (204) RULE 5 : multi-hop access
-                                                                                                                                                                                    [205]-hacl(orders_pod,shipping_vip,_,80)
-                                                                                                                                                                                    execCode(orders_pod,_)==><90>
-                                                                                                                                                                                 (206) RULE 5 : multi-hop access
-                                                                                                                                                                                    [207]-hacl(rabbitmq_pod,shipping_vip,_,80)
-                                                                                                                                                                                    execCode(rabbitmq_pod,_)==><149>
-                                                                                                                                                                                 (208) RULE 5 : multi-hop access
-                                                                                                                                                                                    [209]-hacl(shipping_pod,shipping_vip,_,80)
-                                                                                                                                                                                    execCode(shipping_pod,_)==><144>
-                                                                                                                                                                              [210]-networkServiceInfo(shipping_vip,is_vip,_,80,_)
-                                                                                                                                                                              [211]-vulExists(shipping_vip,is_a_vip,is_vip,remoteExploit,privEscalation)
-                                                                                                                                                                  [212]-networkServiceInfo(rabbitmq_pod,is_computer,_,5672,_)
-                                                                                                                                                                  [213]-vulExists(rabbitmq_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-                                                                                                                                                               (214) RULE 2 : remote exploit of a server program
-                                                                                                                                                                  <215>||--netAccess(rabbitmq_pod,_,80)
-                                                                                                                                                                     (216) RULE 5 : multi-hop access
-                                                                                                                                                                        [217]-hacl(queue_master_pod,rabbitmq_pod,_,80)
-                                                                                                                                                                        execCode(queue_master_pod,_)==><161>
-                                                                                                                                                                     (218) RULE 5 : multi-hop access
-                                                                                                                                                                        [219]-hacl(shipping_pod,rabbitmq_pod,_,80)
-                                                                                                                                                                        execCode(shipping_pod,_)==><144>
-                                                                                                                                                                  [220]-networkServiceInfo(rabbitmq_pod,is_computer,_,80,_)
-                                                                                                                                                                  [213]-vulExists(rabbitmq_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-                                                                                                                                                               (221) RULE 2 : remote exploit of a server program
-                                                                                                                                                                  <222>||--netAccess(rabbitmq_pod,_,_)
-                                                                                                                                                                     (223) RULE 5 : multi-hop access
-                                                                                                                                                                        [224]-hacl(internet,rabbitmq_pod,_,_)
-                                                                                                                                                                        execCode(internet,_)==><1>
-                                                                                                                                                                     (225) RULE 5 : multi-hop access
-                                                                                                                                                                        [226]-hacl(rabbitmq_vip,rabbitmq_pod,_,_)
-                                                                                                                                                                        execCode(rabbitmq_vip,_)==><172>
-                                                                                                                                                                  [227]-networkServiceInfo(rabbitmq_pod,is_computer,_,_,_)
-                                                                                                                                                                  [213]-vulExists(rabbitmq_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-                                                                                                                                                      [228]-networkServiceInfo(shipping_pod,is_computer,_,5672,_)
-                                                                                                                                                      [229]-vulExists(shipping_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-                                                                                                                                                   (230) RULE 2 : remote exploit of a server program
-                                                                                                                                                      <231>||--netAccess(shipping_pod,_,80)
-                                                                                                                                                         (232) RULE 5 : multi-hop access
-                                                                                                                                                            [233]-hacl(orders_pod,shipping_pod,_,80)
-                                                                                                                                                            execCode(orders_pod,_)==><90>
-                                                                                                                                                         (234) RULE 5 : multi-hop access
-                                                                                                                                                            [235]-hacl(orders_vip,shipping_pod,_,80)
-                                                                                                                                                            execCode(orders_vip,_)==><100>
-                                                                                                                                                         (236) RULE 5 : multi-hop access
-                                                                                                                                                            [237]-hacl(rabbitmq_vip,shipping_pod,_,80)
-                                                                                                                                                            execCode(rabbitmq_vip,_)==><172>
-                                                                                                                                                      [238]-networkServiceInfo(shipping_pod,is_computer,_,80,_)
-                                                                                                                                                      [229]-vulExists(shipping_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-                                                                                                                                                   (239) RULE 2 : remote exploit of a server program
-                                                                                                                                                      <240>||--netAccess(shipping_pod,_,_)
-                                                                                                                                                         (241) RULE 5 : multi-hop access
-                                                                                                                                                            [242]-hacl(internet,shipping_pod,_,_)
-                                                                                                                                                            execCode(internet,_)==><1>
-                                                                                                                                                         (243) RULE 5 : multi-hop access
-                                                                                                                                                            [244]-hacl(shipping_vip,shipping_pod,_,_)
-                                                                                                                                                            execCode(shipping_vip,_)==><199>
-                                                                                                                                                      [245]-networkServiceInfo(shipping_pod,is_computer,_,_,_)
-                                                                                                                                                      [229]-vulExists(shipping_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-                                                                                                                                             (246) RULE 5 : multi-hop access
-                                                                                                                                                [247]-hacl(user_pod,orders_vip,_,80)
-                                                                                                                                                execCode(user_pod,_)==><6>
-                                                                                                                                          [248]-networkServiceInfo(orders_vip,is_vip,_,80,_)
-                                                                                                                                          [249]-vulExists(orders_vip,is_a_vip,is_vip,remoteExploit,privEscalation)
-                                                                                                                              [250]-networkServiceInfo(orders_db_pod,is_computer,_,27017,_)
-                                                                                                                              [251]-vulExists(orders_db_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-                                                                                                                           (252) RULE 2 : remote exploit of a server program
-                                                                                                                              <253>|--netAccess(orders_db_pod,_,80)
-                                                                                                                                 (254) RULE 5 : multi-hop access
-                                                                                                                                    [255]-hacl(orders_pod,orders_db_pod,_,80)
-                                                                                                                                    execCode(orders_pod,_)==><90>
-                                                                                                                              [256]-networkServiceInfo(orders_db_pod,is_computer,_,80,_)
-                                                                                                                              [251]-vulExists(orders_db_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-                                                                                                                           (257) RULE 2 : remote exploit of a server program
-                                                                                                                              <258>||--netAccess(orders_db_pod,_,_)
-                                                                                                                                 (259) RULE 5 : multi-hop access
-                                                                                                                                    [260]-hacl(internet,orders_db_pod,_,_)
-                                                                                                                                    execCode(internet,_)==><1>
-                                                                                                                                 (261) RULE 5 : multi-hop access
-                                                                                                                                    [262]-hacl(orders_db_vip,orders_db_pod,_,_)
-                                                                                                                                    <263>|--execCode(orders_db_vip,_)
-                                                                                                                                       (264) RULE 2 : remote exploit of a server program
-                                                                                                                                          <265>||--netAccess(orders_db_vip,_,27017)
-                                                                                                                                             (266) RULE 5 : multi-hop access
-                                                                                                                                                [267]-hacl(internet,orders_db_vip,_,27017)
-                                                                                                                                                execCode(internet,_)==><1>
-                                                                                                                                             (268) RULE 5 : multi-hop access
-                                                                                                                                                [269]-hacl(orders_db_pod,orders_db_vip,_,27017)
-                                                                                                                                                execCode(orders_db_pod,_)==><95>
-                                                                                                                                             (270) RULE 5 : multi-hop access
-                                                                                                                                                [271]-hacl(orders_pod,orders_db_vip,_,27017)
-                                                                                                                                                execCode(orders_pod,_)==><90>
-                                                                                                                                          [272]-networkServiceInfo(orders_db_vip,is_vip,_,27017,_)
-                                                                                                                                          [273]-vulExists(orders_db_vip,is_a_vip,is_vip,remoteExploit,privEscalation)
-                                                                                                                              [274]-networkServiceInfo(orders_db_pod,is_computer,_,_,_)
-                                                                                                                              [251]-vulExists(orders_db_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-                                                                                                                     (275) RULE 5 : multi-hop access
-                                                                                                                        [276]-hacl(user_pod,orders_pod,_,27017)
-                                                                                                                        execCode(user_pod,_)==><6>
-                                                                                                                  [277]-networkServiceInfo(orders_pod,is_computer,_,27017,_)
-                                                                                                                  [278]-vulExists(orders_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-                                                                                                               (279) RULE 2 : remote exploit of a server program
-                                                                                                                  <280>||--netAccess(orders_pod,_,80)
-                                                                                                                     (281) RULE 5 : multi-hop access
-                                                                                                                        [282]-hacl(cart_pod,orders_pod,_,80)
-                                                                                                                        execCode(cart_pod,_)==><67>
-                                                                                                                     (283) RULE 5 : multi-hop access
-                                                                                                                        [284]-hacl(cart_vip,orders_pod,_,80)
-                                                                                                                        execCode(cart_vip,_)==><77>
-                                                                                                                     (285) RULE 5 : multi-hop access
-                                                                                                                        [286]-hacl(front_end_pod,orders_pod,_,80)
-                                                                                                                        execCode(front_end_pod,_)==><56>
-                                                                                                                     (287) RULE 5 : multi-hop access
-                                                                                                                        [288]-hacl(front_end_vip,orders_pod,_,80)
-                                                                                                                        <289>|--execCode(front_end_vip,_)
-                                                                                                                           (290) RULE 2 : remote exploit of a server program
-                                                                                                                              <291>||--netAccess(front_end_vip,_,80)
-                                                                                                                                 (292) RULE 5 : multi-hop access
-                                                                                                                                    [293]-hacl(cart_pod,front_end_vip,_,80)
-                                                                                                                                    execCode(cart_pod,_)==><67>
-                                                                                                                                 (294) RULE 5 : multi-hop access
-                                                                                                                                    [295]-hacl(catalogue_pod,front_end_vip,_,80)
-                                                                                                                                    execCode(catalogue_pod,_)==><27>
-                                                                                                                                 (296) RULE 5 : multi-hop access
-                                                                                                                                    [297]-hacl(front_end_pod,front_end_vip,_,80)
-                                                                                                                                    execCode(front_end_pod,_)==><56>
-                                                                                                                                 (298) RULE 5 : multi-hop access
-                                                                                                                                    [299]-hacl(internet,front_end_vip,_,80)
-                                                                                                                                    execCode(internet,_)==><1>
-                                                                                                                                 (300) RULE 5 : multi-hop access
-                                                                                                                                    [301]-hacl(orders_pod,front_end_vip,_,80)
-                                                                                                                                    execCode(orders_pod,_)==><90>
-                                                                                                                                 (302) RULE 5 : multi-hop access
-                                                                                                                                    [303]-hacl(user_pod,front_end_vip,_,80)
-                                                                                                                                    execCode(user_pod,_)==><6>
-                                                                                                                              [304]-networkServiceInfo(front_end_vip,is_vip,_,80,_)
-                                                                                                                              [305]-vulExists(front_end_vip,is_a_vip,is_vip,remoteExploit,privEscalation)
-                                                                                                                     (306) RULE 5 : multi-hop access
-                                                                                                                        [307]-hacl(orders_db_vip,orders_pod,_,80)
-                                                                                                                        execCode(orders_db_vip,_)==><263>
-                                                                                                                     (308) RULE 5 : multi-hop access
-                                                                                                                        [309]-hacl(payment_pod,orders_pod,_,80)
-                                                                                                                        execCode(payment_pod,_)==><115>
-                                                                                                                     (310) RULE 5 : multi-hop access
-                                                                                                                        [311]-hacl(payment_vip,orders_pod,_,80)
-                                                                                                                        execCode(payment_vip,_)==><130>
-                                                                                                                     (312) RULE 5 : multi-hop access
-                                                                                                                        [313]-hacl(shipping_pod,orders_pod,_,80)
-                                                                                                                        execCode(shipping_pod,_)==><144>
-                                                                                                                     (314) RULE 5 : multi-hop access
-                                                                                                                        [315]-hacl(shipping_vip,orders_pod,_,80)
-                                                                                                                        execCode(shipping_vip,_)==><199>
-                                                                                                                     (316) RULE 5 : multi-hop access
-                                                                                                                        [317]-hacl(user_vip,orders_pod,_,80)
-                                                                                                                        <318>|--execCode(user_vip,_)
-                                                                                                                           (319) RULE 2 : remote exploit of a server program
-                                                                                                                              <320>||--netAccess(user_vip,_,27017)
-                                                                                                                                 (321) RULE 5 : multi-hop access
-                                                                                                                                    [322]-hacl(catalogue_pod,user_vip,_,27017)
-                                                                                                                                    execCode(catalogue_pod,_)==><27>
-                                                                                                                                 (323) RULE 5 : multi-hop access
-                                                                                                                                    [324]-hacl(front_end_pod,user_vip,_,27017)
-                                                                                                                                    execCode(front_end_pod,_)==><56>
-                                                                                                                                 (325) RULE 5 : multi-hop access
-                                                                                                                                    [326]-hacl(internet,user_vip,_,27017)
-                                                                                                                                    execCode(internet,_)==><1>
-                                                                                                                                 (327) RULE 5 : multi-hop access
-                                                                                                                                    [328]-hacl(orders_pod,user_vip,_,27017)
-                                                                                                                                    execCode(orders_pod,_)==><90>
-                                                                                                                                 (329) RULE 5 : multi-hop access
-                                                                                                                                    [330]-hacl(user_db_pod,user_vip,_,27017)
-                                                                                                                                    <331>||--execCode(user_db_pod,_)
-                                                                                                                                       (332) RULE 2 : remote exploit of a server program
-                                                                                                                                          <333>||--netAccess(user_db_pod,_,27017)
-                                                                                                                                             (334) RULE 5 : multi-hop access
-                                                                                                                                                [335]-hacl(user_pod,user_db_pod,_,27017)
-                                                                                                                                                execCode(user_pod,_)==><6>
-                                                                                                                                             (336) RULE 5 : multi-hop access
-                                                                                                                                                [337]-hacl(user_vip,user_db_pod,_,27017)
-                                                                                                                                                execCode(user_vip,_)==><318>
-                                                                                                                                          [338]-networkServiceInfo(user_db_pod,is_computer,_,27017,_)
-                                                                                                                                          [339]-vulExists(user_db_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-                                                                                                                                       (340) RULE 2 : remote exploit of a server program
-                                                                                                                                          <341>||--netAccess(user_db_pod,_,_)
-                                                                                                                                             (342) RULE 5 : multi-hop access
-                                                                                                                                                [343]-hacl(internet,user_db_pod,_,_)
-                                                                                                                                                execCode(internet,_)==><1>
-                                                                                                                                             (344) RULE 5 : multi-hop access
-                                                                                                                                                [345]-hacl(user_db_vip,user_db_pod,_,_)
-                                                                                                                                                <346>|--execCode(user_db_vip,_)
-                                                                                                                                                   (347) RULE 2 : remote exploit of a server program
-                                                                                                                                                      <348>||--netAccess(user_db_vip,_,27017)
-                                                                                                                                                         (349) RULE 5 : multi-hop access
-                                                                                                                                                            [350]-hacl(internet,user_db_vip,_,27017)
-                                                                                                                                                            execCode(internet,_)==><1>
-                                                                                                                                                         (351) RULE 5 : multi-hop access
-                                                                                                                                                            [352]-hacl(user_db_pod,user_db_vip,_,27017)
-                                                                                                                                                            execCode(user_db_pod,_)==><331>
-                                                                                                                                                         (353) RULE 5 : multi-hop access
-                                                                                                                                                            [354]-hacl(user_pod,user_db_vip,_,27017)
-                                                                                                                                                            execCode(user_pod,_)==><6>
-                                                                                                                                                         (355) RULE 6 : direct network access
-                                                                                                                                                            [352]-hacl(user_db_pod,user_db_vip,_,27017)
-                                                                                                                                                            [356]-attackerLocated(user_db_pod)
-                                                                                                                                                      [357]-networkServiceInfo(user_db_vip,is_vip,_,27017,_)
-                                                                                                                                                      [358]-vulExists(user_db_vip,is_a_vip,is_vip,remoteExploit,privEscalation)
-                                                                                                                                             (359) RULE 7 : direct on-host access
-                                                                                                                                                [356]-attackerLocated(user_db_pod)
-                                                                                                                                          [360]-networkServiceInfo(user_db_pod,is_computer,_,_,_)
-                                                                                                                                          [339]-vulExists(user_db_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-                                                                                                                                 (361) RULE 5 : multi-hop access
-                                                                                                                                    [362]-hacl(user_pod,user_vip,_,27017)
-                                                                                                                                    execCode(user_pod,_)==><6>
-                                                                                                                                 (363) RULE 6 : direct network access
-                                                                                                                                    [330]-hacl(user_db_pod,user_vip,_,27017)
-                                                                                                                                    [356]-attackerLocated(user_db_pod)
-                                                                                                                              [364]-networkServiceInfo(user_vip,is_vip,_,27017,_)
-                                                                                                                              [365]-vulExists(user_vip,is_a_vip,is_vip,remoteExploit,privEscalation)
-                                                                                                                  [366]-networkServiceInfo(orders_pod,is_computer,_,80,_)
-                                                                                                                  [278]-vulExists(orders_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-                                                                                                               (367) RULE 2 : remote exploit of a server program
-                                                                                                                  <368>||--netAccess(orders_pod,_,_)
-                                                                                                                     (369) RULE 5 : multi-hop access
-                                                                                                                        [370]-hacl(internet,orders_pod,_,_)
-                                                                                                                        execCode(internet,_)==><1>
-                                                                                                                     (371) RULE 5 : multi-hop access
-                                                                                                                        [372]-hacl(orders_vip,orders_pod,_,_)
-                                                                                                                        execCode(orders_vip,_)==><100>
-                                                                                                                  [373]-networkServiceInfo(orders_pod,is_computer,_,_,_)
-                                                                                                                  [278]-vulExists(orders_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-                                                                                                      [374]-networkServiceInfo(cart_vip,is_vip,_,80,_)
-                                                                                                      [375]-vulExists(cart_vip,is_a_vip,is_vip,remoteExploit,privEscalation)
-                                                                                          [376]-networkServiceInfo(carts_db_pod,is_computer,_,27017,_)
-                                                                                          [377]-vulExists(carts_db_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-                                                                                       (378) RULE 2 : remote exploit of a server program
-                                                                                          <379>|--netAccess(carts_db_pod,_,80)
-                                                                                             (380) RULE 5 : multi-hop access
-                                                                                                [381]-hacl(cart_pod,carts_db_pod,_,80)
-                                                                                                execCode(cart_pod,_)==><67>
-                                                                                          [382]-networkServiceInfo(carts_db_pod,is_computer,_,80,_)
-                                                                                          [377]-vulExists(carts_db_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-                                                                                       (383) RULE 2 : remote exploit of a server program
-                                                                                          <384>||--netAccess(carts_db_pod,_,_)
-                                                                                             (385) RULE 5 : multi-hop access
-                                                                                                [386]-hacl(carts_db_vip,carts_db_pod,_,_)
-                                                                                                <387>|--execCode(carts_db_vip,_)
-                                                                                                   (388) RULE 2 : remote exploit of a server program
-                                                                                                      <389>||--netAccess(carts_db_vip,_,27017)
-                                                                                                         (390) RULE 5 : multi-hop access
-                                                                                                            [391]-hacl(cart_pod,carts_db_vip,_,27017)
-                                                                                                            execCode(cart_pod,_)==><67>
-                                                                                                         (392) RULE 5 : multi-hop access
-                                                                                                            [393]-hacl(carts_db_pod,carts_db_vip,_,27017)
-                                                                                                            execCode(carts_db_pod,_)==><72>
-                                                                                                         (394) RULE 5 : multi-hop access
-                                                                                                            [395]-hacl(internet,carts_db_vip,_,27017)
-                                                                                                            execCode(internet,_)==><1>
-                                                                                                      [396]-networkServiceInfo(carts_db_vip,is_vip,_,27017,_)
-                                                                                                      [397]-vulExists(carts_db_vip,is_a_vip,is_vip,remoteExploit,privEscalation)
-                                                                                             (398) RULE 5 : multi-hop access
-                                                                                                [399]-hacl(internet,carts_db_pod,_,_)
-                                                                                                execCode(internet,_)==><1>
-                                                                                          [400]-networkServiceInfo(carts_db_pod,is_computer,_,_,_)
-                                                                                          [377]-vulExists(carts_db_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-                                                                              [401]-networkServiceInfo(cart_pod,is_computer,_,27017,_)
-                                                                              [402]-vulExists(cart_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-                                                                           (403) RULE 2 : remote exploit of a server program
-                                                                              <404>||--netAccess(cart_pod,_,80)
-                                                                                 (405) RULE 5 : multi-hop access
-                                                                                    [406]-hacl(carts_db_vip,cart_pod,_,80)
-                                                                                    execCode(carts_db_vip,_)==><387>
-                                                                                 (407) RULE 5 : multi-hop access
-                                                                                    [408]-hacl(front_end_pod,cart_pod,_,80)
-                                                                                    execCode(front_end_pod,_)==><56>
-                                                                                 (409) RULE 5 : multi-hop access
-                                                                                    [410]-hacl(front_end_vip,cart_pod,_,80)
-                                                                                    execCode(front_end_vip,_)==><289>
-                                                                                 (411) RULE 5 : multi-hop access
-                                                                                    [412]-hacl(orders_pod,cart_pod,_,80)
-                                                                                    execCode(orders_pod,_)==><90>
-                                                                                 (413) RULE 5 : multi-hop access
-                                                                                    [414]-hacl(orders_vip,cart_pod,_,80)
-                                                                                    execCode(orders_vip,_)==><100>
-                                                                              [415]-networkServiceInfo(cart_pod,is_computer,_,80,_)
-                                                                              [402]-vulExists(cart_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-                                                                           (416) RULE 2 : remote exploit of a server program
-                                                                              <417>||--netAccess(cart_pod,_,_)
-                                                                                 (418) RULE 5 : multi-hop access
-                                                                                    [419]-hacl(cart_vip,cart_pod,_,_)
-                                                                                    execCode(cart_vip,_)==><77>
-                                                                                 (420) RULE 5 : multi-hop access
-                                                                                    [421]-hacl(internet,cart_pod,_,_)
-                                                                                    execCode(internet,_)==><1>
-                                                                              [422]-networkServiceInfo(cart_pod,is_computer,_,_,_)
-                                                                              [402]-vulExists(cart_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-                                                                     (423) RULE 5 : multi-hop access
-                                                                        [424]-hacl(cart_vip,front_end_pod,_,80)
-                                                                        execCode(cart_vip,_)==><77>
-                                                                     (425) RULE 5 : multi-hop access
-                                                                        [426]-hacl(catalogue_pod,front_end_pod,_,80)
-                                                                        execCode(catalogue_pod,_)==><27>
-                                                                     (427) RULE 5 : multi-hop access
-                                                                        [428]-hacl(catalogue_vip,front_end_pod,_,80)
-                                                                        execCode(catalogue_vip,_)==><11>
-                                                                     (429) RULE 5 : multi-hop access
-                                                                        [430]-hacl(internet,front_end_pod,_,80)
-                                                                        execCode(internet,_)==><1>
-                                                                     (431) RULE 5 : multi-hop access
-                                                                        [432]-hacl(orders_pod,front_end_pod,_,80)
-                                                                        execCode(orders_pod,_)==><90>
-                                                                     (433) RULE 5 : multi-hop access
-                                                                        [434]-hacl(orders_vip,front_end_pod,_,80)
-                                                                        execCode(orders_vip,_)==><100>
-                                                                     (435) RULE 5 : multi-hop access
-                                                                        [436]-hacl(user_vip,front_end_pod,_,80)
-                                                                        execCode(user_vip,_)==><318>
-                                                                  [437]-networkServiceInfo(front_end_pod,is_computer,_,80,_)
-                                                                  [62]-vulExists(front_end_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-                                                               (438) RULE 2 : remote exploit of a server program
-                                                                  <439>||--netAccess(front_end_pod,_,_)
-                                                                     (440) RULE 5 : multi-hop access
-                                                                        [441]-hacl(front_end_vip,front_end_pod,_,_)
-                                                                        execCode(front_end_vip,_)==><289>
-                                                                     (442) RULE 5 : multi-hop access
-                                                                        [443]-hacl(internet,front_end_pod,_,_)
-                                                                        execCode(internet,_)==><1>
-                                                                  [444]-networkServiceInfo(front_end_pod,is_computer,_,_,_)
-                                                                  [62]-vulExists(front_end_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-                                                         (445) RULE 5 : multi-hop access
-                                                            [446]-hacl(front_end_vip,catalogue_pod,_,80)
-                                                            execCode(front_end_vip,_)==><289>
-                                                      [447]-networkServiceInfo(catalogue_pod,is_computer,_,80,_)
-                                                      [33]-vulExists(catalogue_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-                                                   (448) RULE 2 : remote exploit of a server program
-                                                      <449>||--netAccess(catalogue_pod,_,_)
-                                                         (450) RULE 5 : multi-hop access
-                                                            [451]-hacl(catalogue_vip,catalogue_pod,_,_)
-                                                            execCode(catalogue_vip,_)==><11>
-                                                         (452) RULE 5 : multi-hop access
-                                                            [453]-hacl(internet,catalogue_pod,_,_)
-                                                            execCode(internet,_)==><1>
-                                                      [454]-networkServiceInfo(catalogue_pod,is_computer,_,_,_)
-                                                      [33]-vulExists(catalogue_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-                                          [455]-networkServiceInfo(catalogue_db_pod,is_computer,_,80,_)
-                                          [22]-vulExists(catalogue_db_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-                                       (456) RULE 2 : remote exploit of a server program
-                                          <457>||--netAccess(catalogue_db_pod,_,_)
-                                             (458) RULE 5 : multi-hop access
-                                                [459]-hacl(catalogue_db_vip,catalogue_db_pod,_,_)
-                                                execCode(catalogue_db_vip,_)==><43>
-                                             (460) RULE 5 : multi-hop access
-                                                [461]-hacl(internet,catalogue_db_pod,_,_)
-                                                execCode(internet,_)==><1>
-                                          [462]-networkServiceInfo(catalogue_db_pod,is_computer,_,_,_)
-                                          [22]-vulExists(catalogue_db_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-                                 (463) RULE 5 : multi-hop access
-                                    [464]-hacl(catalogue_pod,catalogue_vip,_,80)
-                                    execCode(catalogue_pod,_)==><27>
-                                 (465) RULE 5 : multi-hop access
-                                    [466]-hacl(front_end_pod,catalogue_vip,_,80)
-                                    execCode(front_end_pod,_)==><56>
-                                 (467) RULE 5 : multi-hop access
-                                    [468]-hacl(internet,catalogue_vip,_,80)
-                                    execCode(internet,_)==><1>
-                              [469]-networkServiceInfo(catalogue_vip,is_vip,_,80,_)
-                              [470]-vulExists(catalogue_vip,is_a_vip,is_vip,remoteExploit,privEscalation)
-                     (471) RULE 5 : multi-hop access
-                        [472]-hacl(front_end_vip,user_pod,_,27017)
-                        execCode(front_end_vip,_)==><289>
-                     (473) RULE 5 : multi-hop access
-                        [474]-hacl(internet,user_pod,_,27017)
-                        execCode(internet,_)==><1>
-                     (475) RULE 5 : multi-hop access
-                        [476]-hacl(orders_vip,user_pod,_,27017)
-                        execCode(orders_vip,_)==><100>
-                     (477) RULE 5 : multi-hop access
-                        [478]-hacl(user_db_pod,user_pod,_,27017)
-                        execCode(user_db_pod,_)==><331>
-                     (479) RULE 5 : multi-hop access
-                        [480]-hacl(user_db_vip,user_pod,_,27017)
-                        execCode(user_db_vip,_)==><346>
-                     (481) RULE 6 : direct network access
-                        [478]-hacl(user_db_pod,user_pod,_,27017)
-                        [356]-attackerLocated(user_db_pod)
-                  [482]-networkServiceInfo(user_pod,is_computer,_,27017,_)
-                  [483]-vulExists(user_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-               (484) RULE 2 : remote exploit of a server program
-                  <485>||--netAccess(user_pod,_,80)
-                     (486) RULE 5 : multi-hop access
-                        [487]-hacl(front_end_pod,user_pod,_,80)
-                        execCode(front_end_pod,_)==><56>
-                     (488) RULE 5 : multi-hop access
-                        [489]-hacl(orders_pod,user_pod,_,80)
-                        execCode(orders_pod,_)==><90>
-                  [490]-networkServiceInfo(user_pod,is_computer,_,80,_)
-                  [483]-vulExists(user_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-               (491) RULE 2 : remote exploit of a server program
-                  <492>||--netAccess(user_pod,_,_)
-                     (493) RULE 5 : multi-hop access
-                        [494]-hacl(internet,user_pod,_,_)
-                        execCode(internet,_)==><1>
-                     (495) RULE 5 : multi-hop access
-                        [496]-hacl(user_vip,user_pod,_,_)
-                        execCode(user_vip,_)==><318>
-                  [497]-networkServiceInfo(user_pod,is_computer,_,_,_)
-                  [483]-vulExists(user_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-      [498]-networkServiceInfo(internet,is_computer,_,27017,_)
-      [499]-vulExists(internet,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-   (500) RULE 2 : remote exploit of a server program
-      <501>|--netAccess(internet,_,53)
-         (502) RULE 5 : multi-hop access
-            [503]-hacl(kube_dns_pod,internet,_,53)
-            <504>|--execCode(kube_dns_pod,_)
-               (505) RULE 2 : remote exploit of a server program
-                  <506>||--netAccess(kube_dns_pod,_,_)
-                     (507) RULE 5 : multi-hop access
-                        [508]-hacl(internet,kube_dns_pod,_,_)
-                        execCode(internet,_)==><1>
-                     (509) RULE 5 : multi-hop access
-                        [510]-hacl(kube_dns_vip,kube_dns_pod,_,_)
-                        <511>|--execCode(kube_dns_vip,_)
-                           (512) RULE 2 : remote exploit of a server program
-                              <513>||--netAccess(kube_dns_vip,_,53)
-                                 (514) RULE 5 : multi-hop access
-                                    [515]-hacl(cart_pod,kube_dns_vip,_,53)
-                                    execCode(cart_pod,_)==><67>
-                                 (516) RULE 5 : multi-hop access
-                                    [517]-hacl(carts_db_pod,kube_dns_vip,_,53)
-                                    execCode(carts_db_pod,_)==><72>
-                                 (518) RULE 5 : multi-hop access
-                                    [519]-hacl(catalogue_db_pod,kube_dns_vip,_,53)
-                                    execCode(catalogue_db_pod,_)==><16>
-                                 (520) RULE 5 : multi-hop access
-                                    [521]-hacl(catalogue_pod,kube_dns_vip,_,53)
-                                    execCode(catalogue_pod,_)==><27>
-                                 (522) RULE 5 : multi-hop access
-                                    [523]-hacl(front_end_pod,kube_dns_vip,_,53)
-                                    execCode(front_end_pod,_)==><56>
-                                 (524) RULE 5 : multi-hop access
-                                    [525]-hacl(internet,kube_dns_vip,_,53)
-                                    execCode(internet,_)==><1>
-                                 (526) RULE 5 : multi-hop access
-                                    [527]-hacl(kube_dns_pod,kube_dns_vip,_,53)
-                                    execCode(kube_dns_pod,_)==><504>
-                                 (528) RULE 5 : multi-hop access
-                                    [529]-hacl(orders_db_pod,kube_dns_vip,_,53)
-                                    execCode(orders_db_pod,_)==><95>
-                                 (530) RULE 5 : multi-hop access
-                                    [531]-hacl(orders_pod,kube_dns_vip,_,53)
-                                    execCode(orders_pod,_)==><90>
-                                 (532) RULE 5 : multi-hop access
-                                    [533]-hacl(payment_pod,kube_dns_vip,_,53)
-                                    execCode(payment_pod,_)==><115>
-                                 (534) RULE 5 : multi-hop access
-                                    [535]-hacl(queue_master_pod,kube_dns_vip,_,53)
-                                    execCode(queue_master_pod,_)==><161>
-                                 (536) RULE 5 : multi-hop access
-                                    [537]-hacl(rabbitmq_pod,kube_dns_vip,_,53)
-                                    execCode(rabbitmq_pod,_)==><149>
-                                 (538) RULE 5 : multi-hop access
-                                    [539]-hacl(shipping_pod,kube_dns_vip,_,53)
-                                    execCode(shipping_pod,_)==><144>
-                                 (540) RULE 5 : multi-hop access
-                                    [541]-hacl(user_db_pod,kube_dns_vip,_,53)
-                                    execCode(user_db_pod,_)==><331>
-                                 (542) RULE 5 : multi-hop access
-                                    [543]-hacl(user_pod,kube_dns_vip,_,53)
+                                    [15]-hacl(user_pod,user_db_pod,_,27017)
                                     execCode(user_pod,_)==><6>
-                                 (544) RULE 6 : direct network access
-                                    [541]-hacl(user_db_pod,kube_dns_vip,_,53)
-                                    [356]-attackerLocated(user_db_pod)
-                              [545]-networkServiceInfo(kube_dns_vip,is_vip,_,53,_)
-                              [546]-vulExists(kube_dns_vip,is_a_vip,is_vip,remoteExploit,privEscalation)
-                  [547]-networkServiceInfo(kube_dns_pod,is_computer,_,_,_)
-                  [548]-vulExists(kube_dns_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-      [549]-networkServiceInfo(internet,is_computer,_,53,_)
-      [499]-vulExists(internet,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-   (550) RULE 2 : remote exploit of a server program
-      <551>|--netAccess(internet,_,80)
-         (552) RULE 5 : multi-hop access
-            [553]-hacl(front_end_pod,internet,_,80)
-            execCode(front_end_pod,_)==><56>
-      [554]-networkServiceInfo(internet,is_computer,_,80,_)
-      [499]-vulExists(internet,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-   (555) RULE 2 : remote exploit of a server program
-      <556>|--netAccess(internet,_,_)
-         (557) RULE 5 : multi-hop access
-            [558]-hacl(internet,internet,_,_)
-            execCode(internet,_)==><1>
-      [559]-networkServiceInfo(internet,is_computer,_,_,_)
-      [499]-vulExists(internet,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+                              [16]-networkServiceInfo(user_db_pod,is_computer,_,27017,_)
+                              [17]-vulExists(user_db_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+                           (18) RULE 2 : remote exploit of a server program
+                              <19>|--netAccess(user_db_pod,_,_)
+                                 (20) RULE 7 : direct on-host access
+                                    [21]-attackerLocated(user_db_pod)
+                              [22]-networkServiceInfo(user_db_pod,is_computer,_,_,_)
+                              [17]-vulExists(user_db_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+                     (23) RULE 6 : direct network access
+                        [10]-hacl(user_db_pod,user_pod,_,27017)
+                        [21]-attackerLocated(user_db_pod)
+                  [24]-networkServiceInfo(user_pod,is_computer,_,27017,_)
+                  [25]-vulExists(user_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+               (26) RULE 2 : remote exploit of a server program
+                  <27>||--netAccess(user_pod,_,80)
+                     (28) RULE 5 : multi-hop access
+                        [29]-hacl(front_end_pod,user_pod,_,80)
+                        <30>||--execCode(front_end_pod,_)
+                           (31) RULE 2 : remote exploit of a server program
+                              <32>|--netAccess(front_end_pod,_,27017)
+                                 (33) RULE 5 : multi-hop access
+                                    [34]-hacl(user_pod,front_end_pod,_,27017)
+                                    execCode(user_pod,_)==><6>
+                              [35]-networkServiceInfo(front_end_pod,is_computer,_,27017,_)
+                              [36]-vulExists(front_end_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+                           (37) RULE 2 : remote exploit of a server program
+                              <38>||--netAccess(front_end_pod,_,80)
+                                 (39) RULE 5 : multi-hop access
+                                    [40]-hacl(cart_pod,front_end_pod,_,80)
+                                    <41>||--execCode(cart_pod,_)
+                                       (42) RULE 2 : remote exploit of a server program
+                                          <43>|--netAccess(cart_pod,_,27017)
+                                             (44) RULE 5 : multi-hop access
+                                                [45]-hacl(carts_db_pod,cart_pod,_,27017)
+                                                <46>|--execCode(carts_db_pod,_)
+                                                   (47) RULE 2 : remote exploit of a server program
+                                                      <48>|--netAccess(carts_db_pod,_,80)
+                                                         (49) RULE 5 : multi-hop access
+                                                            [50]-hacl(cart_pod,carts_db_pod,_,80)
+                                                            execCode(cart_pod,_)==><41>
+                                                      [51]-networkServiceInfo(carts_db_pod,is_computer,_,80,_)
+                                                      [52]-vulExists(carts_db_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+                                          [53]-networkServiceInfo(cart_pod,is_computer,_,27017,_)
+                                          [54]-vulExists(cart_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+                                       (55) RULE 2 : remote exploit of a server program
+                                          <56>||--netAccess(cart_pod,_,80)
+                                             (57) RULE 5 : multi-hop access
+                                                [58]-hacl(front_end_pod,cart_pod,_,80)
+                                                execCode(front_end_pod,_)==><30>
+                                             (59) RULE 5 : multi-hop access
+                                                [60]-hacl(orders_pod,cart_pod,_,80)
+                                                <61>||--execCode(orders_pod,_)
+                                                   (62) RULE 2 : remote exploit of a server program
+                                                      <63>||--netAccess(orders_pod,_,27017)
+                                                         (64) RULE 5 : multi-hop access
+                                                            [65]-hacl(orders_db_pod,orders_pod,_,27017)
+                                                            <66>|--execCode(orders_db_pod,_)
+                                                               (67) RULE 2 : remote exploit of a server program
+                                                                  <68>|--netAccess(orders_db_pod,_,80)
+                                                                     (69) RULE 5 : multi-hop access
+                                                                        [70]-hacl(orders_pod,orders_db_pod,_,80)
+                                                                        execCode(orders_pod,_)==><61>
+                                                                  [71]-networkServiceInfo(orders_db_pod,is_computer,_,80,_)
+                                                                  [72]-vulExists(orders_db_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+                                                         (73) RULE 5 : multi-hop access
+                                                            [74]-hacl(user_pod,orders_pod,_,27017)
+                                                            execCode(user_pod,_)==><6>
+                                                      [75]-networkServiceInfo(orders_pod,is_computer,_,27017,_)
+                                                      [76]-vulExists(orders_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+                                                   (77) RULE 2 : remote exploit of a server program
+                                                      <78>||--netAccess(orders_pod,_,80)
+                                                         (79) RULE 5 : multi-hop access
+                                                            [80]-hacl(cart_pod,orders_pod,_,80)
+                                                            execCode(cart_pod,_)==><41>
+                                                         (81) RULE 5 : multi-hop access
+                                                            [82]-hacl(front_end_pod,orders_pod,_,80)
+                                                            execCode(front_end_pod,_)==><30>
+                                                         (83) RULE 5 : multi-hop access
+                                                            [84]-hacl(payment_pod,orders_pod,_,80)
+                                                            <85>|--execCode(payment_pod,_)
+                                                               (86) RULE 2 : remote exploit of a server program
+                                                                  <87>|--netAccess(payment_pod,_,80)
+                                                                     (88) RULE 5 : multi-hop access
+                                                                        [89]-hacl(orders_pod,payment_pod,_,80)
+                                                                        execCode(orders_pod,_)==><61>
+                                                                  [90]-networkServiceInfo(payment_pod,is_computer,_,80,_)
+                                                                  [91]-vulExists(payment_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+                                                         (92) RULE 5 : multi-hop access
+                                                            [93]-hacl(shipping_pod,orders_pod,_,80)
+                                                            <94>||--execCode(shipping_pod,_)
+                                                               (95) RULE 2 : remote exploit of a server program
+                                                                  <96>|--netAccess(shipping_pod,_,5672)
+                                                                     (97) RULE 5 : multi-hop access
+                                                                        [98]-hacl(rabbitmq_pod,shipping_pod,_,5672)
+                                                                        <99>|--execCode(rabbitmq_pod,_)
+                                                                           (100) RULE 2 : remote exploit of a server program
+                                                                              <101>||--netAccess(rabbitmq_pod,_,80)
+                                                                                 (102) RULE 5 : multi-hop access
+                                                                                    [103]-hacl(queue_master_pod,rabbitmq_pod,_,80)
+                                                                                    <104>|--execCode(queue_master_pod,_)
+                                                                                       (105) RULE 2 : remote exploit of a server program
+                                                                                          <106>|--netAccess(queue_master_pod,_,5672)
+                                                                                             (107) RULE 5 : multi-hop access
+                                                                                                [108]-hacl(rabbitmq_pod,queue_master_pod,_,5672)
+                                                                                                execCode(rabbitmq_pod,_)==><99>
+                                                                                          [109]-networkServiceInfo(queue_master_pod,is_computer,_,5672,_)
+                                                                                          [110]-vulExists(queue_master_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+                                                                                 (111) RULE 5 : multi-hop access
+                                                                                    [112]-hacl(shipping_pod,rabbitmq_pod,_,80)
+                                                                                    execCode(shipping_pod,_)==><94>
+                                                                              [113]-networkServiceInfo(rabbitmq_pod,is_computer,_,80,_)
+                                                                              [114]-vulExists(rabbitmq_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+                                                                  [115]-networkServiceInfo(shipping_pod,is_computer,_,5672,_)
+                                                                  [116]-vulExists(shipping_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+                                                               (117) RULE 2 : remote exploit of a server program
+                                                                  <118>|--netAccess(shipping_pod,_,80)
+                                                                     (119) RULE 5 : multi-hop access
+                                                                        [120]-hacl(orders_pod,shipping_pod,_,80)
+                                                                        execCode(orders_pod,_)==><61>
+                                                                  [121]-networkServiceInfo(shipping_pod,is_computer,_,80,_)
+                                                                  [116]-vulExists(shipping_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+                                                      [122]-networkServiceInfo(orders_pod,is_computer,_,80,_)
+                                                      [76]-vulExists(orders_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+                                          [123]-networkServiceInfo(cart_pod,is_computer,_,80,_)
+                                          [54]-vulExists(cart_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+                                 (124) RULE 5 : multi-hop access
+                                    [125]-hacl(catalogue_pod,front_end_pod,_,80)
+                                    <126>||--execCode(catalogue_pod,_)
+                                       (127) RULE 2 : remote exploit of a server program
+                                          <128>|--netAccess(catalogue_pod,_,27017)
+                                             (129) RULE 5 : multi-hop access
+                                                [130]-hacl(user_pod,catalogue_pod,_,27017)
+                                                execCode(user_pod,_)==><6>
+                                          [131]-networkServiceInfo(catalogue_pod,is_computer,_,27017,_)
+                                          [132]-vulExists(catalogue_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+                                       (133) RULE 2 : remote exploit of a server program
+                                          <134>|--netAccess(catalogue_pod,_,3306)
+                                             (135) RULE 5 : multi-hop access
+                                                [136]-hacl(catalogue_db_pod,catalogue_pod,_,3306)
+                                                <137>|--execCode(catalogue_db_pod,_)
+                                                   (138) RULE 2 : remote exploit of a server program
+                                                      <139>|--netAccess(catalogue_db_pod,_,80)
+                                                         (140) RULE 5 : multi-hop access
+                                                            [141]-hacl(catalogue_pod,catalogue_db_pod,_,80)
+                                                            execCode(catalogue_pod,_)==><126>
+                                                      [142]-networkServiceInfo(catalogue_db_pod,is_computer,_,80,_)
+                                                      [143]-vulExists(catalogue_db_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+                                          [144]-networkServiceInfo(catalogue_pod,is_computer,_,3306,_)
+                                          [132]-vulExists(catalogue_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+                                       (145) RULE 2 : remote exploit of a server program
+                                          <146>|--netAccess(catalogue_pod,_,80)
+                                             (147) RULE 5 : multi-hop access
+                                                [148]-hacl(front_end_pod,catalogue_pod,_,80)
+                                                execCode(front_end_pod,_)==><30>
+                                          [149]-networkServiceInfo(catalogue_pod,is_computer,_,80,_)
+                                          [132]-vulExists(catalogue_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+                                 (150) RULE 5 : multi-hop access
+                                    [151]-hacl(orders_pod,front_end_pod,_,80)
+                                    execCode(orders_pod,_)==><61>
+                              [152]-networkServiceInfo(front_end_pod,is_computer,_,80,_)
+                              [36]-vulExists(front_end_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+                     (153) RULE 5 : multi-hop access
+                        [154]-hacl(orders_pod,user_pod,_,80)
+                        execCode(orders_pod,_)==><61>
+                  [155]-networkServiceInfo(user_pod,is_computer,_,80,_)
+                  [25]-vulExists(user_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+      [156]-networkServiceInfo(internet,is_computer,_,27017,_)
+      [157]-vulExists(internet,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+   (158) RULE 2 : remote exploit of a server program
+      <159>|--netAccess(internet,_,53)
+         (160) RULE 5 : multi-hop access
+            [161]-hacl(kube_dns_pod,internet,_,53)
+            <162>||--execCode(kube_dns_pod,_)
+               (163) RULE 2 : remote exploit of a server program
+                  <164>||--netAccess(kube_dns_pod,_,27017)
+                     (165) RULE 5 : multi-hop access
+                        [166]-hacl(user_db_pod,kube_dns_pod,_,27017)
+                        execCode(user_db_pod,_)==><11>
+                     (167) RULE 5 : multi-hop access
+                        [168]-hacl(user_pod,kube_dns_pod,_,27017)
+                        execCode(user_pod,_)==><6>
+                     (169) RULE 6 : direct network access
+                        [166]-hacl(user_db_pod,kube_dns_pod,_,27017)
+                        [21]-attackerLocated(user_db_pod)
+                  [170]-networkServiceInfo(kube_dns_pod,is_computer,_,27017,_)
+                  [171]-vulExists(kube_dns_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+               (172) RULE 2 : remote exploit of a server program
+                  <173>||--netAccess(kube_dns_pod,_,80)
+                     (174) RULE 5 : multi-hop access
+                        [175]-hacl(cart_pod,kube_dns_pod,_,80)
+                        execCode(cart_pod,_)==><41>
+                     (176) RULE 5 : multi-hop access
+                        [177]-hacl(catalogue_pod,kube_dns_pod,_,80)
+                        execCode(catalogue_pod,_)==><126>
+                     (178) RULE 5 : multi-hop access
+                        [179]-hacl(front_end_pod,kube_dns_pod,_,80)
+                        execCode(front_end_pod,_)==><30>
+                     (180) RULE 5 : multi-hop access
+                        [181]-hacl(orders_pod,kube_dns_pod,_,80)
+                        execCode(orders_pod,_)==><61>
+                     (182) RULE 5 : multi-hop access
+                        [183]-hacl(shipping_pod,kube_dns_pod,_,80)
+                        execCode(shipping_pod,_)==><94>
+                  [184]-networkServiceInfo(kube_dns_pod,is_computer,_,80,_)
+                  [171]-vulExists(kube_dns_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+      [185]-networkServiceInfo(internet,is_computer,_,53,_)
+      [157]-vulExists(internet,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+   (186) RULE 2 : remote exploit of a server program
+      <187>|--netAccess(internet,_,80)
+         (188) RULE 5 : multi-hop access
+            [189]-hacl(front_end_pod,internet,_,80)
+            execCode(front_end_pod,_)==><30>
+      [190]-networkServiceInfo(internet,is_computer,_,80,_)
+      [157]-vulExists(internet,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
 
