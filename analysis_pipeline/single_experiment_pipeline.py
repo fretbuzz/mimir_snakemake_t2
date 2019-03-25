@@ -487,6 +487,7 @@ def process_one_set_of_graphs(time_interval_length, window_size,
         current_set_of_graphs.calc_serialize_metrics()
 
         # these relate to ide
+        '''
         if include_ide or calc_ide:
             print "waiting for ide angles to finish...."
             real_ide_angles = current_set_of_graphs.ide_calculations(calc_ide)
@@ -496,8 +497,10 @@ def process_one_set_of_graphs(time_interval_length, window_size,
             current_set_of_graphs.calculated_values_keys = current_set_of_graphs.calculated_values.keys()
             with open(current_set_of_graphs.collected_metrics_location, 'wb') as f:  # Just use 'w' mode in 3.x
                 f.write(pickle.dumps(current_set_of_graphs.calculated_values))
+        '''
 
         current_set_of_graphs.save()
+        #print "hi"
     else:
         with open(current_set_of_graphs_loc, mode='rb') as f:
             current_set_of_graphs_loc_contents = f.read()

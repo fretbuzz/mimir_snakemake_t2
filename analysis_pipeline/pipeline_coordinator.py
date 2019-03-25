@@ -118,6 +118,8 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
                 determine_and_assign_exfil_paths(calc_vals, skip_model_part, function_list, goal_train_test_split,
                                                  goal_attack_NoAttack_split_training, ignore_physical_attacks_p, 
                                                  time_each_synthetic_exfil,goal_attack_NoAttack_split_testing)
+        # TODO: REMOVE
+        exit(233)
 
         for rate_counter in range(0,len(avg_exfil_per_min)):
             out_q = multiprocessing.Queue()
@@ -216,7 +218,6 @@ def pipeline_one_exfil_rate(rate_counter,
                                            pkt_size_variance=pkt_size_variance[rate_counter],
                                            calc_ide=calc_ide, include_ide=include_ide,
                                            only_ide=only_ide)
-
         if perform_cilium_component:
             experiment_object.run_cilium_component(cilium_component_time)
             time_gran_to_cilium_alerts = experiment_object.calc_cilium_performance(avg_exfil_per_min[rate_counter],
@@ -230,6 +231,7 @@ def pipeline_one_exfil_rate(rate_counter,
                 cilium_alerts = cilium_alerts[:length_alerts]
                 print len(time_gran_to_mod_zscore_df[time_gran].index.values), len(cilium_alerts), length_alerts
                 time_gran_to_mod_zscore_df[time_gran]['cilium_for_first_sec_' + str(cilium_component_time)] = cilium_alerts
+
 
         print "exps_exfil_pathas[time_gran_to_mod_zscore_df]", time_gran_to_mod_zscore_df
         print time_gran_to_mod_zscore_df[time_gran_to_mod_zscore_df.keys()[0]].columns.values
@@ -388,7 +390,7 @@ def pipeline_one_exfil_rate(rate_counter,
 
 def determine_and_assign_exfil_paths(calc_vals, skip_model_part, function_list, goal_train_test_split, goal_attack_NoAttack_split_training,
                                      ignore_physical_attacks_p, time_each_synthetic_exfil, goal_attack_NoAttack_split_testing):
-    if calc_vals and not skip_model_part:
+    if True: #calc_vals and not skip_model_part:
         print function_list
         exp_infos = []
         for experiment_object in function_list:

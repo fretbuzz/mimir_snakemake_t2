@@ -168,8 +168,8 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         cilium_categorical_cm_df_training = determine_categorical_cm_df(y_train, cilium_optimal_train_predictons, exfil_paths_train,
                                                                  X_train_exfil_weight)
         cilium_optimal_test_predictons = [(i > 0.5) for i in cilium_test]
-        cilium_categorical_cm_df_test = determine_categorical_cm_df(y_train, cilium_optimal_test_predictons, exfil_paths_train,
-                                                                 X_train_exfil_weight)
+        cilium_categorical_cm_df_test = determine_categorical_cm_df(y_test, cilium_optimal_test_predictons, exfil_paths,
+                                                                    X_test_exfil_weight)
         method_to_training_df['cilium'] = cilium_categorical_cm_df_training
         method_to_testing_df['cilium'] = cilium_categorical_cm_df_test
 
@@ -316,20 +316,15 @@ def drop_useless_columns_aggreg_DF(aggregate_mod_score_dfs):
         pass
 
     try:
-        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='fraction_pod_comm_but_not_VIP_comms_')
-    except:
-        pass
-
-    try:
         aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='fraction_pod_comm_but_not_VIP_comms_no_abs_')
     except:
         pass
 
-    try:
-        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(
-            columns='Communication Between Pods not through VIPs (no abs)_')  # might wanna just stop these from being generated...
-    except:
-        pass
+    #try:
+    #    aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(
+    #        columns='Communication Between Pods not through VIPs (no abs)_')  # might wanna just stop these from being generated...
+    #except:
+    #    pass
 
     try:
         aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(
@@ -440,10 +435,10 @@ def drop_useless_columns_aggreg_DF(aggregate_mod_score_dfs):
     except:
         pass
 
-    try:
-        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='Communication Between Pods not through VIPs (w abs)_')
-    except:
-        pass
+    #try:
+    #    aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='Communication Between Pods not through VIPs (w abs)_')
+    #except:
+    #    pass
 
     try:
         aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='Fraction of Communication Between Pods not through VIPs (no abs)_')
@@ -504,7 +499,11 @@ def drop_useless_columns_aggreg_DF(aggregate_mod_score_dfs):
         aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='into_dns_eigenval_angles_')
     except:
         pass
-    ###############
+
+    try:
+        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='fraction_pod_comm_but_not_VIP_comms')
+    except:
+        pass
 
     try:
         aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='Unnamed: 0')
@@ -683,6 +682,15 @@ def drop_useless_columns_testTrain_Xs( X_train, X_test ):
     X_test = X_test.drop(columns='exfil_weight')
     X_test = X_test.drop(columns='exfil_pkts')
     X_test = X_test.drop(columns='is_test')
+
+    try:
+        X_test = X_test.drop( columns = 'Communication Between Pods not through VIPs (w abs)' )
+    except:
+        pass
+    try:
+        X_train = X_train.drop( columns = 'Communication Between Pods not through VIPs (w abs)' )
+    except:
+        pass
 
     print "X_train_columns", X_train.columns, "---"
     try:

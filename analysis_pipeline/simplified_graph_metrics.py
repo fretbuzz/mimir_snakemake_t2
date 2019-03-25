@@ -405,6 +405,12 @@ class set_of_injected_graphs():
         ide_angles_results = ide_angles(adjacency_matrixes, self.window_size, total_edgelist_nodes)
         into_dns_eigenval_angles = change_point_detection(dns_in_metric_dicts, self.window_size, current_total_node_list)
 
+        ''' # no point having these exist. they are just time consuming and confusing b/c I'm using CLML ide implementation now.
+        self.calculated_values['into_dns_eigenval_angles'] = into_dns_eigenval_angles
+        self.calculated_values['ide_angles'] = ide_angles_results
+        self.calculated_values['ide_angles_w_abs'] = [abs(i) for i in ide_angles_results]
+        '''
+
         ## need to store these new results into the format that I've been using this far...
         #self.calculated_values[
         #    'Fraction of Communication Between Pods not through VIPs (no abs)'] = fraction_pod_comm_but_not_VIP_comms_no_abs
@@ -413,10 +419,6 @@ class set_of_injected_graphs():
             [abs(i) for i in self.calculated_values['fraction_pod_comm_but_not_VIP_comms']]
         self.calculated_values['Communication Between Pods not through VIPs (w abs)'] = \
             [abs(i) for i in self.calculated_values['pod_comm_but_not_VIP_comms_no_abs']]
-
-        self.calculated_values['into_dns_eigenval_angles'] = into_dns_eigenval_angles
-        self.calculated_values['ide_angles'] = ide_angles_results
-        self.calculated_values['ide_angles_w_abs'] = [abs(i) for i in ide_angles_results]
 
         with open(self.collected_metrics_location, 'wb') as f:  # Just use 'w' mode in 3.x
             f.write(pickle.dumps(self.calculated_values))
@@ -875,13 +877,14 @@ def update_mapping(container_to_ip, pod_creation_log, time_gran, time_counter):
                     exit(300)
 
         if i - (time_gran) >= 0:
-            for cur_pod, curIP_PlusMinus in pod_creation_log[i - time_gran].iteritems():
-                cur_ip = curIP_PlusMinus[0].rstrip().lstrip()
-                cur_pod = cur_pod.rstrip().lstrip()
-                plus_minus = curIP_PlusMinus[1]
-                if plus_minus == '-': # not sure if I want/need this but might be useful for bug checking
-                    if cur_ip in container_to_ip:
-                        del container_to_ip[cur_ip]
+            if (i - time_gran) in pod_creation_log:  # sometimes the last value isn't included
+                for cur_pod, curIP_PlusMinus in pod_creation_log[i - time_gran].iteritems():
+                    cur_ip = curIP_PlusMinus[0].rstrip().lstrip()
+                    cur_pod = cur_pod.rstrip().lstrip()
+                    plus_minus = curIP_PlusMinus[1]
+                    if plus_minus == '-': # not sure if I want/need this but might be useful for bug checking
+                        if cur_ip in container_to_ip:
+                            del container_to_ip[cur_ip]
 
         container_to_ip.update( mod_cur_creation_log )
 

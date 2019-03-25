@@ -294,7 +294,7 @@ def per_attack_bar_graphs(method_to_results_df, temp_location, file_storage_loca
 
     opacity = 0.4
     error_config = {'ecolor': '0.3'}
-    colors_to_use = ['b', 'r']
+    colors_to_use = ['b', 'r', 'g', 'y']
     x_tick_labels = ('A', 'B', 'C', 'D', 'E', 'F', 'G',  'H', 'I')#list(attacks)
 
     ## TODO: NOTE: THESE APPLY ONLY TO THE WORDPRESS EXPERIMENTS!!!

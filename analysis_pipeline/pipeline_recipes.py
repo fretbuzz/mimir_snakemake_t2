@@ -1882,7 +1882,7 @@ def sockshop_thirteen_NOautoscale_mark1(time_of_synethic_exfil=None, only_exp_in
     pcap_paths = [
         "/Volumes/exM2/experimental_data/sockshop_info/sockshop_thirteen_NOautoscale_mark1/sockshop_thirteen_NOautoscale_mark1_default_bridge_0any.pcap"
     ]
-    netsec_policy = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/sockshop_nine_better_exfil_netsec_seg.txt'
+    netsec_policy = '/Volumes/exM2/experimental_data/sockshop_info/sockshop_nine_better_exfil_netsec_seg.txt'
     is_swarm = 0
     ms_s = microservices_sockshop
     start_time = False
@@ -1954,7 +1954,7 @@ def wordpress_fourteen_mark7(time_of_synethic_exfil=None, only_exp_info=False, i
     physical_exfil_path = []
 
 
-    make_edgefiles = True ## already done!
+    make_edgefiles = False ## already done!
     wordpress_fourteen_mark7_object = data_anylsis_pipline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
                                    make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
                                    wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,
@@ -1997,7 +1997,7 @@ def sockshop_thirteen_autoscale_mark4(time_of_synethic_exfil=None, only_exp_info
     kubernetes_pod_info = '/Volumes/exM2/experimental_data/sockshop_info/sockshop_thirteen_autoscale_mark4/sockshop_thirteen_autoscale_mark4_pod_config_0.txt'
     pcap_paths = [
         "/Volumes/exM2/experimental_data/sockshop_info/sockshop_thirteen_autoscale_mark4/sockshop_thirteen_autoscale_mark4_default_bridge_0any.pcap"]
-    netsec_policy = '/Volumes/Seagate Backup Plus Drive/experimental_data/sockshop_info/sockshop_nine_better_exfil_netsec_seg.txt'
+    netsec_policy = '/Volumes/exM2/experimental_data/sockshop_info/sockshop_nine_better_exfil_netsec_seg.txt'
 
     is_swarm = 0
     ms_s = microservices_sockshop
@@ -2142,8 +2142,8 @@ def autoscaling_sockshop_recipe():
 
     #####
     # IN MEGABYTES / MINUTE
-    avg_exfil_per_min = [10.0] #[10.0, 2.0, 1.0, 0.25, 0.1] # [10.0, 2.0, 1.0, 0.25, 0.1] # [10.0, 2.0, 1.0, 0.25, 0.1]
-    exfil_per_min_variance = [0.3, 0.2, 0.15, 0.08, 0.05] # [0.3. 0.2, 0.15, 0.08, 0.05] #[0.3, 0.2, 0.15, 0.08, 0.05]
+    avg_exfil_per_min = [10.0] #[2.0, 1.0, 0.25, 0.1] #[10.0, 2.0, 1.0, 0.25, 0.1] # [10.0, 2.0, 1.0, 0.25, 0.1] # [10.0, 2.0, 1.0, 0.25, 0.1]
+    exfil_per_min_variance = [0.3] #[0.2, 0.15, 0.08, 0.05] #[0.3, 0.2, 0.15, 0.08, 0.05] # [0.3. 0.2, 0.15, 0.08, 0.05] #[0.3, 0.2, 0.15, 0.08, 0.05]
     avg_pkt_size = [500.0, 500.0, 500.00, 500.00, 500.0]
     pkt_size_variance = [100, 100, 100, 100, 100]
 
@@ -2155,14 +2155,14 @@ def autoscaling_sockshop_recipe():
     ######
 
     calc_vals = False
-    calculate_z_scores = True
+    calculate_z_scores = False
     include_ide = False # include ide vals? this'll involve either calculating them (below) or grabbing them from the file location
     calc_ide = False
     only_ide = False ## ONLY calculate the ide values... this'll be useful if I wanna first calc all the other values and THEN ide...
     drop_pairwise_features = False # drops pairwise features (i.e. serviceX_to_serviceY_reciprocity)
 
     ####
-    cur_experiment_name = "mark4_withIDE_"  # can modify if you want, probably with:  new_wordpress_recipe.__name__
+    cur_experiment_name = "mark4_24_"  # can modify if you want, probably with:  new_wordpress_recipe.__name__
     base_output_location = '/Volumes/exM2/experimental_data/sockshop_summary_new/new_'# + 'lasso_roc'
     base_output_location += cur_experiment_name
     if drop_pairwise_features:
@@ -2170,7 +2170,7 @@ def autoscaling_sockshop_recipe():
 
     #####
 
-    skip_graph_injection = True
+    skip_graph_injection = False
     get_endresult_from_memory = False # in this case, you'd skip literally the whole pipeline and just get the
                                       # trained model + the results (from that model) out of memory
                                       # I anticpate that this'll mostly be useful for working on generating
@@ -2490,7 +2490,7 @@ if __name__=="__main__":
         print "running_preset..."
         ## NO NO No::: new_new_wordpress_recipe() # testing autoscaling stuff...
         autoscaling_sockshop_recipe()
-        nonauto_sockshop_recipe()
+        #nonauto_sockshop_recipe()
         #new_wordpress_autoscaling_recipe()
         #new_wordpress_recipe()
 

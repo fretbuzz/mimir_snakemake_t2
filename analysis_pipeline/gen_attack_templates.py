@@ -366,7 +366,7 @@ def determine_initator(paths):
 
 def parse_netsec_policy(netsec_policy):
     if netsec_policy is None:
-        return None
+        return None,None
 
     allowed_dict = {}
     allow_all = []
@@ -395,8 +395,12 @@ def parse_netsec_policy(netsec_policy):
                             allowed_dict[line_split[0].rstrip().lstrip()] = [line_split[2].rstrip().lstrip()]
                     print line
             else:
-                line_split = line.split(' ')
-                intersvc_vip_pairs.add((line_split[0], line_split[1]))
+                try:
+                    line_split = line.split(' ')
+                    print "line_split", line_split
+                    intersvc_vip_pairs.add((line_split[0], line_split[1]))
+                except:
+                    pass
     allowed_dict_keys = allowed_dict.keys()
     allowed_dict_vals = list(itertools.chain(*allowed_dict.values()))
     allowed_dict_keys = list(set(allowed_dict_keys+allowed_dict_vals))
