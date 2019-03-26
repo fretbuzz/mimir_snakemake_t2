@@ -85,7 +85,7 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
                               goal_attack_NoAttack_split_testing=0.0, calc_ide=False, include_ide=False,
                               only_ide=False, perform_cilium_component=True, only_perform_cilium_component=True,
                               cilium_component_time=100, drop_pairwise_features=False,
-                              max_path_length=15, max_dns_porportion=1.0):
+                              max_path_length=15, max_dns_porportion=1.0,drop_infra_from_graph=False):
 
     #if only_perform_cilium_component:
     #    calc_vals = False

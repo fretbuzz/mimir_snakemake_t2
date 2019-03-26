@@ -26,12 +26,12 @@ import cilium_config_generator
 # (4) makes graphs of the graph metrics
 # Note: see run_analysis_pipeline_recipes for pre-configured sets of parameters (there are rather a lot)
 class data_anylsis_pipline(object):
-    def __init__(self, pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
-                               make_edgefiles_p, basegraph_name, ide_window_size=10, colors=('r','g','b'), exfil_start_time=0, exfil_end_time=0,
+    def __init__(self, pcap_paths=None, is_swarm=0, basefile_name=None, container_info_path=None, time_interval_lengths=None, ms_s=None,
+                               make_edgefiles_p=False, basegraph_name=None, ide_window_size=10, colors=('r','g','b'), exfil_start_time=0, exfil_end_time=0,
                                wiggle_room=None, start_time=None, end_time=None, calc_vals=True, graph_p=True,
                                kubernetes_svc_info=None, make_net_graphs_p=False, cilium_config_path=None,
                                rdpcap_p=False, kubernetes_pod_info=None, alert_file=None, ROC_curve_p=False,
-                               calc_zscore_p=False, training_window_size=200, minimum_training_window=5,
+                               training_window_size=200, minimum_training_window=5,
                                sec_between_exfil_events=1, time_of_synethic_exfil=30,
                                size_of_neighbor_training_window=300,
                                end_of_training=None, injected_exfil_path='None', only_exp_info=False,
@@ -40,8 +40,6 @@ class data_anylsis_pipline(object):
                                skip_model_part=False, max_number_of_paths=None, netsec_policy=None,
                                startup_time=200, skip_graph_injection=False,
                                pod_creation_log=None): #, include_ide=False):
-
-
 
         self.ms_s = ms_s
         print "log file can be found at: " + str(basefile_name) + '_logfile.log'
@@ -62,7 +60,7 @@ class data_anylsis_pipline(object):
         self.mapping, self.list_of_infra_services = create_mappings(is_swarm, container_info_path, kubernetes_svc_info,
                                                           kubernetes_pod_info, cilium_config_path, ms_s)
 
-        self.calc_zscore_p=calc_zscore_p
+        self.calc_zscore_p=False
         self.is_swarm = is_swarm
         self.container_info_path = container_info_path
         self.kubernetes_svc_info = kubernetes_svc_info
@@ -71,7 +69,7 @@ class data_anylsis_pipline(object):
         self.time_interval_lengths = time_interval_lengths
         self.basegraph_name = basegraph_name
         self.ide_window_size = ide_window_size
-        self.colors = colors
+        #self.colors = colors
         self.exfil_start_time = exfil_start_time
         self.exfil_end_time = exfil_end_time
         #self.minimum_training_window = minimum_training_window
@@ -83,7 +81,7 @@ class data_anylsis_pipline(object):
         self.make_edgefiles_p = make_edgefiles_p and only_exp_info
         self.netsec_policy = netsec_policy
         self.make_edgefiles_p=make_edgefiles_p
-        self.graph_p = graph_p
+        #self.graph_p = graph_p
         self.sensitive_ms = None
         self.time_of_synethic_exfil = time_of_synethic_exfil
         self.injected_exfil_path = injected_exfil_path
@@ -186,7 +184,7 @@ class data_anylsis_pipline(object):
                          avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
                          calc_ide, include_ide, only_ide):
         self.end_of_training = end_of_training
-        if self.calc_vals or self.graph_p:
+        if self.calc_vals:
             # TODO: 90% sure that there is a problem with this function...
             # largest_interval = int(min(interval_to_filenames.keys()))
             exp_length = len(self.interval_to_filenames[str(self.smallest_time_gran)]) * self.smallest_time_gran
