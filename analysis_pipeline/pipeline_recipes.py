@@ -73,6 +73,7 @@ def run_analysis_pipeline_recipes_json(json_file, path_to_experimental_data):
                                    ROC_curve_p=ROC_curve_p, calc_zscore_p=calc_tpr_fpr_p,
                                    sec_between_exfil_events=sec_between_exfil_events)
         '''
+
 # TODO: the plan is to fill in all of the relevant values from a file... well, no that's not quite it. I am also
 # going to assume that the pod_creation_log contains all of the necessary ip info. note: I'll also wanna store the
 # existing svc someehere
@@ -83,26 +84,85 @@ def parse_experimental_data_json(config_file, experimental_folder, experiment_na
         basegraph_name = experimental_folder + 'alerts/' + experiment_name + '_'
         alert_file = experimental_folder + 'alerts/' + experiment_name + '_'
         ms_s = config_file['ms_s']
-        exfil_StartEnd_times = config_file['exfil_StartEnd_times']
         sec_between_exfil_events = config_file['sec_between_exfil_events']
         pcap_paths = [ experimental_folder + config_file['pcap_file_name']]
         pod_creation_log = [ experimental_folder + config_file['pod_creation_log_name']]
+        sensitive_ms = config_file['sensitive_ms']
+
+        ## TODO: these values need to be encorporated into the pipeline.
+        exfil_StartEnd_times = config_file['exfil_StartEnd_times']
         physical_exfil_paths = config_file['physical_exfil_paths']
 
         pipeline_object = data_anylsis_pipline(pcap_paths=pcap_paths, basefile_name=basefile_name,
                                                time_interval_lengths=time_interval_lengths,
                                                ms_s=ms_s, make_edgefiles_p=make_edgefiles,
                                                basegraph_name=basegraph_name,
-                                               calc_vals=calc_vals,
                                                alert_file=alert_file,
                                                sec_between_exfil_events=sec_between_exfil_events,
                                                pod_creation_log=pod_creation_log,
-                                               netsec_policy=None)
+                                               netsec_policy=None,
+                                               sensitive_ms=sensitive_ms)
     return pipeline_object
 
-# TODO
-def parse_experimental_config():
-    pass
+# TODO: the plan is to take all of these and create the multi-experiment thing.
+def parse_experimental_config(experimental_config_file):
+    with open(experimental_config_file) as f:
+        config_file = json.load(f)
+
+        skip_model_part = config_file['skip_model_part']
+        ignore_physical_attacks_p = config_file['ignore_physical_attacks_p']
+
+        time_of_synethic_exfil = config_file['time_of_synethic_exfil']
+        goal_train_test_split_training = config_file['goal_train_test_split_training']
+        goal_attack_NoAttack_split_training = config_file['goal_attack_NoAttack_split_training']
+        goal_attack_NoAttack_split_testing = config_file['goal_attack_NoAttack_split_testing']
+
+        time_interval_lengths = config_file['time_interval_lengths']
+        ide_window_size = config_file['ide_window_size']
+
+        avg_exfil_per_min = config_file['avg_exfil_per_min']
+        exfil_per_min_variance = config_file['exfil_per_min_variance']
+        avg_pkt_size = config_file['avg_pkt_size']
+        pkt_size_variance = config_file['pkt_size_variance']
+
+        BytesPerMegabyte = 1000000
+        avg_exfil_per_min = [BytesPerMegabyte * i for i in avg_exfil_per_min]
+        exfil_per_min_variance = [BytesPerMegabyte * i for i in exfil_per_min_variance]
+
+        calc_vals = config_file['calc_vals']
+        calculate_z_scores = config_file['calculate_z_scores']
+        include_ide = config_file['include_ide']
+        calc_ide = config_file['calc_ide']
+        only_ide = config_file['only_ide']
+        drop_pairwise_features = config_file['drop_pairwise_features']
+
+        cur_experiment_name = config_file['cur_experiment_name']
+        base_output_location = config_file['base_output_location']
+        base_output_location += cur_experiment_name
+        if drop_pairwise_features:
+            base_output_location += 'dropPairWise_'
+
+        skip_graph_injection = config_file['skip_graph_injection']
+        get_endresult_from_memory = config_file['get_endresult_from_memory']
+
+        make_edgefiles = config_file['make_edgefiles']
+        experimental_folder = config_file['experimental_folder']
+
+        experiment_classes = [parse_experimental_data_json(config_file, experimental_folder, cur_experiment_name,
+                                                           make_edgefiles, time_interval_lengths)]
+
+        return multi_experiment_pipeline(experiment_classes, base_output_location, True, time_of_synethic_exfil,
+                                  goal_train_test_split_training, goal_attack_NoAttack_split_training, None,
+                                  None, calc_vals, skip_model_part, ignore_physical_attacks_p,
+                                  calculate_z_scores_p=calculate_z_scores,
+                                  avg_exfil_per_min=avg_exfil_per_min, exfil_per_min_variance=exfil_per_min_variance,
+                                  avg_pkt_size=avg_pkt_size, pkt_size_variance=pkt_size_variance,
+                                  skip_graph_injection=skip_graph_injection,
+                                  get_endresult_from_memory=get_endresult_from_memory,
+                                  goal_attack_NoAttack_split_testing=goal_attack_NoAttack_split_testing,
+                                  calc_ide=calc_ide, include_ide=include_ide, only_ide=only_ide,
+                                  drop_pairwise_features=drop_pairwise_features,
+                                  ide_window_size=ide_window_size)
 
 
 def wordpress_thirteen_t2(time_of_synethic_exfil=None, time_interval_lengths=None):
@@ -293,8 +353,6 @@ def nonauto_sockshop_recipe():
 
     time_interval_lengths = [30, 10]#, 10] #[30, 10, 1] #[30, 10, 1] #[30, 10, 1]#,
 
-    ide_window_size = 10
-
     #####
     # IN MEGABYTES / MINUTE
     avg_exfil_per_min = [10.0, 2.0, 1.0, 0.25, 0.1] # [10.0, 2.0, 1.0, 0.25, 0.1] # [10.0, 2.0, 1.0, 0.25, 0.1]
@@ -312,6 +370,7 @@ def nonauto_sockshop_recipe():
     include_ide = False # include ide vals? this'll involve either calculating them (below) or grabbing them from the file location
     calc_ide = False
     only_ide = False ## ONLY calculate the ide values... this'll be useful if I wanna first calc all the other values and THEN ide...
+    ide_window_size = 10
     drop_pairwise_features = False # drops pairwise features (i.e. serviceX_to_serviceY_reciprocity)
 
     ####
@@ -329,7 +388,8 @@ def nonauto_sockshop_recipe():
                                       # I anticpate that this'll mostly be useful for working on generating
                                       # the final results report + the graphs + other stuff kinda...
 
-    experiment_classes = [sockshop_thirteen_NOautoscale_mark1(time_of_synethic_exfil=None, time_interval_lengths=None)]
+    experiment_classes = [sockshop_thirteen_NOautoscale_mark1(time_of_synethic_exfil=time_of_synethic_exfil,
+                                                              time_interval_lengths=time_interval_lengths)]
 
     return multi_experiment_pipeline(experiment_classes, base_output_location, True, time_of_synethic_exfil,
                               goal_train_test_split_training, goal_attack_NoAttack_split_training, None,
@@ -342,7 +402,7 @@ def nonauto_sockshop_recipe():
                               goal_attack_NoAttack_split_testing=goal_attack_NoAttack_split_testing,
                               calc_ide=calc_ide, include_ide=include_ide, only_ide=only_ide,
                               drop_pairwise_features=drop_pairwise_features,
-                              ide_window_size=10)
+                              ide_window_size=ide_window_size)
 
 
 def autoscaling_sockshop_recipe():
@@ -477,6 +537,7 @@ def new_wordpress_autoscaling_recipe():
                               drop_pairwise_features=drop_pairwise_features,
                               ide_window_size=ide_window_size)
 
+
 def new_wordpress_recipe():
     skip_model_part = False
     ignore_physical_attacks_p = True
@@ -526,7 +587,8 @@ def new_wordpress_recipe():
                                       # I anticpate that this'll mostly be useful for working on generating
                                       # the final results report + the graphs + other stuff kinda...
 
-    experiment_classes = [wordpress_thirteen_t2(time_of_synethic_exfil=None,  time_interval_lengths=None)]
+    experiment_classes = [wordpress_thirteen_t2(time_of_synethic_exfil=time_of_synethic_exfil,
+                                                time_interval_lengths=time_interval_lengths)]
 
     return multi_experiment_pipeline(experiment_classes, base_output_location, True, time_of_synethic_exfil,
                               goal_train_test_split_training, goal_attack_NoAttack_split_training, None,
@@ -547,9 +609,9 @@ if __name__=="__main__":
 
     if len(sys.argv) == 1:
         print "running_preset..."
-        autoscaling_sockshop_recipe()
+        #autoscaling_sockshop_recipe()
         #nonauto_sockshop_recipe()
-        #new_wordpress_autoscaling_recipe()
+        new_wordpress_autoscaling_recipe()
         #new_wordpress_recipe()
     else:
         print "too many args!"
