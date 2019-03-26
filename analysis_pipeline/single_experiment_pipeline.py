@@ -18,30 +18,16 @@ from analysis_pipeline.statistical_analysis import drop_useless_columns_aggreg_D
 from analysis_pipeline.simplified_graph_metrics import calc_ide_angles
 import cilium_config_generator
 
-## TODO: this function is an atrocity and should be converted into a snakemake spec so we can use that instead...###
-## todo (aim to get it done today...) : change  run_data_analysis_pipeline signature plus the feeder...
-
-# run_data_anaylsis_pipeline : runs the whole analysis_pipeline pipeline (or a part of it)
-# (1) creates edgefiles, (2) creates communication graphs from edgefiles, (3) calculates (and stores) graph metrics
-# (4) makes graphs of the graph metrics
 # Note: see run_analysis_pipeline_recipes for pre-configured sets of parameters (there are rather a lot)
 class data_anylsis_pipline(object):
-    def __init__(self, pcap_paths=None, is_swarm=0, basefile_name=None, container_info_path=None, time_interval_lengths=None, ms_s=None,
-                               make_edgefiles_p=False, basegraph_name=None, ide_window_size=10, colors=('r','g','b'), exfil_start_time=0, exfil_end_time=0,
-                               wiggle_room=None, start_time=None, end_time=None, calc_vals=True, graph_p=True,
-                               kubernetes_svc_info=None, make_net_graphs_p=False, cilium_config_path=None,
-                               rdpcap_p=False, kubernetes_pod_info=None, alert_file=None, ROC_curve_p=False,
-                               training_window_size=200, minimum_training_window=5,
-                               sec_between_exfil_events=1, time_of_synethic_exfil=30,
-                               size_of_neighbor_training_window=300,
-                               end_of_training=None, injected_exfil_path='None', only_exp_info=False,
-                               initiator_info_for_paths=None,
-                               synthetic_exfil_paths_train=None, synthetic_exfil_paths_test=None,
-                               skip_model_part=False, max_number_of_paths=None, netsec_policy=None,
-                               startup_time=200, skip_graph_injection=False,
-                               pod_creation_log=None): #, include_ide=False):
+    def __init__(self, pcap_paths=None, is_swarm=0, basefile_name=None, container_info_path=None,
+                 time_interval_lengths=None, ms_s=None, make_edgefiles_p=False, basegraph_name=None,
+                 exfil_start_time=0, exfil_end_time=0, calc_vals=True, kubernetes_svc_info=None,
+                 make_net_graphs_p=False, cilium_config_path=None, kubernetes_pod_info=None, alert_file=None,
+                 sec_between_exfil_events=1, time_of_synethic_exfil=30, injected_exfil_path='None',
+                 netsec_policy=None, skip_graph_injection=False, pod_creation_log=None,
+                 sensitive_ms=None):
 
-        self.ms_s = ms_s
         print "log file can be found at: " + str(basefile_name) + '_logfile.log'
         logging.basicConfig(filename=basefile_name + '_logfile.log', level=logging.INFO)
         logging.info('run_data_anaylsis_pipeline Started')
@@ -52,14 +38,10 @@ class data_anylsis_pipline(object):
         gc.collect()
 
         print "starting pipeline..."
-
-        # sub_path = 'sub_only_edge_corr_'  # NOTE: make this an empty string if using the full pipeline (and not the subset)
-        # sub_path = 'sub_only_ide_'  # NOTE: make this an empty string if using the full pipeline (and not the subset)
-        ### TODO put VVV back in...
+        self.ms_s = ms_s
         self.sub_path = 'sub_'  # NOTE: make this an empty string if using the full pipeline (and not the subset)
         self.mapping, self.list_of_infra_services = create_mappings(is_swarm, container_info_path, kubernetes_svc_info,
                                                           kubernetes_pod_info, cilium_config_path, ms_s)
-
         self.calc_zscore_p=False
         self.is_swarm = is_swarm
         self.container_info_path = container_info_path
@@ -68,26 +50,21 @@ class data_anylsis_pipline(object):
         self.cilium_config_path = cilium_config_path
         self.time_interval_lengths = time_interval_lengths
         self.basegraph_name = basegraph_name
-        self.ide_window_size = ide_window_size
-        #self.colors = colors
         self.exfil_start_time = exfil_start_time
         self.exfil_end_time = exfil_end_time
-        #self.minimum_training_window = minimum_training_window
         self.experiment_folder_path = basefile_name.split('edgefiles')[0]
         self.pcap_file = pcap_paths[0].split('/')[-1]  # NOTE: assuming only a single pcap file...
         self.cilium_component_dir = self.experiment_folder_path + 'cilium_stuff'
         self.exp_name = basefile_name.split('/')[-1]
         self.base_exp_name = self.exp_name
-        self.make_edgefiles_p = make_edgefiles_p and only_exp_info
+        self.make_edgefiles_p = make_edgefiles_p #and only_exp_info
         self.netsec_policy = netsec_policy
         self.make_edgefiles_p=make_edgefiles_p
-        #self.graph_p = graph_p
         self.sensitive_ms = None
         self.time_of_synethic_exfil = time_of_synethic_exfil
         self.injected_exfil_path = injected_exfil_path
         self.make_net_graphs_p=make_net_graphs_p
         self.alert_file=alert_file
-        #self.wiggle_room=wiggle_room
         self.sec_between_exfil_events=sec_between_exfil_events
         self.orig_alert_file = self.alert_file
         self.orig_basegraph_name = self.basegraph_name
@@ -97,10 +74,6 @@ class data_anylsis_pipline(object):
 
         self.synthetic_exfil_paths = None
         self.initiator_info_for_paths = None
-        #self.training_window_size = training_window_size
-        #self.size_of_neighbor_training_window = size_of_neighbor_training_window
-        #print training_window_size,size_of_neighbor_training_window
-        #self.system_startup_time = start_time #training_window_size + size_of_neighbor_training_window
         self.calc_vals = calc_vals
         self.cilium_allowed_svc_comm = None
 
@@ -122,15 +95,9 @@ class data_anylsis_pipline(object):
         self.time_gran_to_list_of_amt_of_out_traffic_bytes = None
         self.time_gran_to_list_of_amt_of_out_traffic_pkts = None
         self.intersvc_vip_pairs = None
-
-        for ms in ms_s:
-            if 'user' in ms and 'db' in ms:
-                self.sensitive_ms = ms
-            if 'my-release' in ms:
-                self.sensitive_ms = ms
+        self.sensitive_ms = sensitive_ms
 
         self.process_pcaps()
-        #self.include_ide = include_ide
 
     def generate_synthetic_exfil_paths(self, max_number_of_paths, max_path_length, dns_porportion):
         self.netsec_policy,self.intersvc_vip_pairs = gen_attack_templates.parse_netsec_policy(self.netsec_policy)
@@ -182,7 +149,7 @@ class data_anylsis_pipline(object):
 
     def calculate_values(self,end_of_training, synthetic_exfil_paths_train, synthetic_exfil_paths_test,
                          avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
-                         calc_ide, include_ide, only_ide):
+                         calc_ide, include_ide, only_ide, ide_window_size):
         self.end_of_training = end_of_training
         if self.calc_vals:
             # TODO: 90% sure that there is a problem with this function...
@@ -249,7 +216,7 @@ class data_anylsis_pipline(object):
             time_gran_to_list_of_amt_of_out_traffic_bytes, time_gran_to_list_of_amt_of_out_traffic_pkts= \
                 calculate_raw_graph_metrics(self.time_interval_lengths, self.interval_to_filenames, self.ms_s, self.basegraph_name,
                                             self.calc_vals,
-                                            self.ide_window_size, self.mapping, self.is_swarm, self.make_net_graphs_p,
+                                            ide_window_size, self.mapping, self.is_swarm, self.make_net_graphs_p,
                                             self.list_of_infra_services,
                                             synthetic_exfil_paths, self.initiator_info_for_paths, time_gran_to_attack_ranges,
                                             avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,

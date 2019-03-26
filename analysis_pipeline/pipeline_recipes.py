@@ -63,6 +63,7 @@ def run_analysis_pipeline_recipes_json(json_file, path_to_experimental_data):
         calc_tpr_fpr_p =  data["calc_tpr_fpr_p"]
         sec_between_exfil_events = data['sec_between_exfil_events']
 
+        '''
         run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
                                    ms_s, make_edgefiles, basegraph_name, window_size, colors, exfil_start_time,
                                    exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
@@ -71,17 +72,40 @@ def run_analysis_pipeline_recipes_json(json_file, path_to_experimental_data):
                                    kubernetes_pod_info=kubernetes_pod_info, alert_file=alert_file,
                                    ROC_curve_p=ROC_curve_p, calc_zscore_p=calc_tpr_fpr_p,
                                    sec_between_exfil_events=sec_between_exfil_events)
+        '''
+# TODO: the plan is to fill in all of the relevant values from a file... well, no that's not quite it. I am also
+# going to assume that the pod_creation_log contains all of the necessary ip info. note: I'll also wanna store the
+# existing svc someehere
+def parse_experimental_data_json(config_file, experimental_folder, experiment_name, make_edgefiles, time_interval_lengths):
+    with open(config_file) as f:
+        config_file = json.load(f)
+        basefile_name = experimental_folder + 'alerts/' + experiment_name + '_'
+        basegraph_name = experimental_folder + 'alerts/' + experiment_name + '_'
+        alert_file = experimental_folder + 'alerts/' + experiment_name + '_'
+        ms_s = config_file['ms_s']
+        exfil_StartEnd_times = config_file['exfil_StartEnd_times']
+        sec_between_exfil_events = config_file['sec_between_exfil_events']
+        pcap_paths = [ experimental_folder + config_file['pcap_file_name']]
+        pod_creation_log = [ experimental_folder + config_file['pod_creation_log_name']]
+        physical_exfil_paths = config_file['physical_exfil_paths']
+
+        pipeline_object = data_anylsis_pipline(pcap_paths=pcap_paths, basefile_name=basefile_name,
+                                               time_interval_lengths=time_interval_lengths,
+                                               ms_s=ms_s, make_edgefiles_p=make_edgefiles,
+                                               basegraph_name=basegraph_name,
+                                               calc_vals=calc_vals,
+                                               alert_file=alert_file,
+                                               sec_between_exfil_events=sec_between_exfil_events,
+                                               pod_creation_log=pod_creation_log,
+                                               netsec_policy=None)
+    return pipeline_object
+
+# TODO
+def parse_experimental_config():
+    pass
 
 
-
-def wordpress_thirteen_t2(time_of_synethic_exfil=None, only_exp_info=False, initiator_info_for_paths=None,
-                            portion_for_training=None, training_window_size=None, size_of_neighbor_training_window=None,
-                            synthetic_exfil_paths_train=None,
-                            synthetic_exfil_paths_test=None, calc_vals=False,
-                            skip_model_part=False,max_number_of_paths=None,
-                            time_interval_lengths=None,
-                            window_size=6, minimum_training_window=6,
-                          startup_time=200):
+def wordpress_thirteen_t2(time_of_synethic_exfil=None, time_interval_lengths=None):
 
     basefile_name = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t2/edgefiles/wordpress_thirteen_t2_'
     basegraph_name = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t2/graphs/wordpress_thirteen_t2_'
@@ -93,49 +117,36 @@ def wordpress_thirteen_t2(time_of_synethic_exfil=None, only_exp_info=False, init
     kubernetes_pod_info = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t2/wordpress_thirteen_t2_pod_config_0.txt'
     pcap_paths = [
         "/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t2/wordpress_thirteen_t2_default_bridge_0any.pcap"]
+    pod_creation_log = None
 
-    is_swarm = 0
     ms_s = ["my-release-pxc", "wwwppp-wordpress"]
-    start_time = False
-    end_time = None
+    sensitive_ms = "my-release-pxc"
     exfil_start_time = 6090
     exfil_end_time = 6090
-    graph_p = False  # should I make graphs?
-    colors = ['b', 'r']
-    wiggle_room = 2  # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
     sec_between_exfil_events = 15
     physical_exfil_path = []
 
-
     make_edgefiles = False ## already done!
-    wordpress_thirteen_t2_object = data_anylsis_pipline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
-                                   make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
-                                   wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,
-                                   graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
-                                   cilium_config_path=cilium_config_path, rdpcap_p=False,
-                                   kubernetes_pod_info=kubernetes_pod_info, alert_file=alert_file, ROC_curve_p=True,
-                                   calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events,
-                                   injected_exfil_path = physical_exfil_path, only_exp_info=only_exp_info,
-                                   time_of_synethic_exfil=time_of_synethic_exfil,
-                                   initiator_info_for_paths=initiator_info_for_paths,
-                                   end_of_training=portion_for_training,
-                                   training_window_size=training_window_size, size_of_neighbor_training_window=size_of_neighbor_training_window,
-                                   synthetic_exfil_paths_train=synthetic_exfil_paths_train, synthetic_exfil_paths_test=synthetic_exfil_paths_test,
-                                   skip_model_part=skip_model_part,
-                                   max_number_of_paths=max_number_of_paths,
-                                   minimum_training_window=minimum_training_window,
-                                   startup_time=startup_time)
+    wordpress_thirteen_t2_object = data_anylsis_pipline(pcap_paths=pcap_paths,
+                                                                    basefile_name=basefile_name, container_info_path=container_info_path,
+                                                                    time_interval_lengths=time_interval_lengths,
+                                                                    ms_s=ms_s, make_edgefiles_p=make_edgefiles,
+                                                                    basegraph_name=basegraph_name,
+                                                                    exfil_start_time=exfil_start_time,
+                                                                    exfil_end_time=exfil_end_time,
+                                                                    kubernetes_svc_info=kubernetes_svc_info,
+                                                                    cilium_config_path=cilium_config_path,
+                                                                    kubernetes_pod_info=kubernetes_pod_info,
+                                                                    alert_file=alert_file,
+                                                                    sec_between_exfil_events=sec_between_exfil_events,
+                                                                    injected_exfil_path = physical_exfil_path,
+                                                                    time_of_synethic_exfil=time_of_synethic_exfil,
+                                                                    pod_creation_log=pod_creation_log,
+                                                                    netsec_policy=None, sensitive_ms=sensitive_ms)
 
     return wordpress_thirteen_t2_object
 
-def sockshop_thirteen_NOautoscale_mark1(time_of_synethic_exfil=None, only_exp_info=False, initiator_info_for_paths=None,
-                            portion_for_training=None, training_window_size=None, size_of_neighbor_training_window=None,
-                            synthetic_exfil_paths_train=None,
-                            synthetic_exfil_paths_test=None, calc_vals=False,
-                            skip_model_part=False,max_number_of_paths=None,
-                            time_interval_lengths=None,
-                            window_size=6, minimum_training_window=6,
-                            startup_time=200):
+def sockshop_thirteen_NOautoscale_mark1(time_of_synethic_exfil=None, time_interval_lengths=None):
 
     basefile_name = '/Volumes/exM2/experimental_data/sockshop_info/sockshop_thirteen_NOautoscale_mark1/edgefiles/sockshop_thirteen_NOautoscale_mark1_'
     basegraph_name = '/Volumes/exM2/experimental_data/sockshop_info/sockshop_thirteen_NOautoscale_mark1/graphs/sockshop_thirteen_NOautoscale_mark1_'
@@ -150,45 +161,37 @@ def sockshop_thirteen_NOautoscale_mark1(time_of_synethic_exfil=None, only_exp_in
         "/Volumes/exM2/experimental_data/sockshop_info/sockshop_thirteen_NOautoscale_mark1/sockshop_thirteen_NOautoscale_mark1_default_bridge_0any.pcap"
     ]
     netsec_policy = '/Volumes/exM2/experimental_data/sockshop_info/sockshop_nine_better_exfil_netsec_seg.txt'
-    is_swarm = 0
     ms_s = microservices_sockshop
-    start_time = False
-    end_time = None
+    sensitive_ms = 'user-db'
     exfil_start_time = 8000
     exfil_end_time = 8000
-    graph_p = False  # should I make graphs?
-    colors = ['b', 'r']
-    wiggle_room = 2  # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
     sec_between_exfil_events = 15
     physical_exfil_path = []
 
 
     make_edgefiles = False ## already done!
-    sockshop_thirteen_NOautoscale_mark1_object = data_anylsis_pipline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
-                                   make_edgefiles, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
-                                   wiggle_room, start_time=start_time, end_time=end_time, calc_vals=calc_vals,
-                                   graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
-                                   cilium_config_path=cilium_config_path, rdpcap_p=False,
-                                   kubernetes_pod_info=kubernetes_pod_info, alert_file=alert_file, ROC_curve_p=True,
-                                   calc_zscore_p=True, sec_between_exfil_events=sec_between_exfil_events,
-                                   injected_exfil_path = physical_exfil_path, only_exp_info=only_exp_info,
-                                   time_of_synethic_exfil=time_of_synethic_exfil,
-                                   initiator_info_for_paths=initiator_info_for_paths,
-                                   end_of_training=portion_for_training,
-                                   training_window_size=training_window_size, size_of_neighbor_training_window=size_of_neighbor_training_window,
-                                   synthetic_exfil_paths_train=synthetic_exfil_paths_train, synthetic_exfil_paths_test=synthetic_exfil_paths_test,
-                                   skip_model_part=skip_model_part,
-                                   max_number_of_paths=max_number_of_paths,
-                                   minimum_training_window=minimum_training_window,
-                                   startup_time=startup_time,
-                                   pod_creation_log=pod_creation_log,
-                                   netsec_policy=netsec_policy)
+    sockshop_thirteen_NOautoscale_mark1_object = data_anylsis_pipline(pcap_paths=pcap_paths,
+                                                                    basefile_name=basefile_name, container_info_path=container_info_path,
+                                                                    time_interval_lengths=time_interval_lengths,
+                                                                    ms_s=ms_s, make_edgefiles_p=make_edgefiles,
+                                                                    basegraph_name=basegraph_name,
+                                                                    exfil_start_time=exfil_start_time,
+                                                                    exfil_end_time=exfil_end_time,
+                                                                    kubernetes_svc_info=kubernetes_svc_info,
+                                                                    cilium_config_path=cilium_config_path,
+                                                                    kubernetes_pod_info=kubernetes_pod_info,
+                                                                    alert_file=alert_file,
+                                                                    sec_between_exfil_events=sec_between_exfil_events,
+                                                                    injected_exfil_path = physical_exfil_path,
+                                                                    time_of_synethic_exfil=time_of_synethic_exfil,
+                                                                    pod_creation_log=pod_creation_log,
+                                                                    netsec_policy=netsec_policy,
+                                                                    sensitive_ms=sensitive_ms)
 
     return sockshop_thirteen_NOautoscale_mark1_object
 
 
-def wordpress_fourteen_mark7(time_of_synethic_exfil=None, only_exp_info=False, calc_vals=False,
-                                      time_interval_lengths=None, ide_window_size=10):
+def wordpress_fourteen_mark7(time_of_synethic_exfil=None, time_interval_lengths=None):
 
     basefile_name = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_fourteen_mark7_final/edgefiles/wordpress_fourteen_mark7_final_'
     basegraph_name = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_fourteen_mark7_final/graphs/wordpress_fourteen_mark7_final_'
@@ -205,6 +208,7 @@ def wordpress_fourteen_mark7(time_of_synethic_exfil=None, only_exp_info=False, c
         "/Volumes/exM2/experimental_data/wordpress_info/wordpress_fourteen_mark7_final/wordpress_fourteen_mark7_final_default_bridge_0any.pcap"]
 
     ms_s = ["my-release-pxc", "wwwppp-wordpress"]
+    sensitive_ms = "my-release-pxc"
     exfil_start_time = 8000
     exfil_end_time = 8000
     sec_between_exfil_events = 15
@@ -216,26 +220,23 @@ def wordpress_fourteen_mark7(time_of_synethic_exfil=None, only_exp_info=False, c
                                                                     time_interval_lengths=time_interval_lengths,
                                                                     ms_s=ms_s, make_edgefiles_p=make_edgefiles,
                                                                     basegraph_name=basegraph_name,
-                                                                    ide_window_size = ide_window_size,
                                                                     exfil_start_time=exfil_start_time,
                                                                     exfil_end_time=exfil_end_time,
-                                                                    calc_vals=calc_vals,
                                                                     kubernetes_svc_info=kubernetes_svc_info,
                                                                     cilium_config_path=cilium_config_path,
                                                                     kubernetes_pod_info=kubernetes_pod_info,
                                                                     alert_file=alert_file,
                                                                     sec_between_exfil_events=sec_between_exfil_events,
                                                                     injected_exfil_path = physical_exfil_path,
-                                                                    only_exp_info=only_exp_info,
                                                                     time_of_synethic_exfil=time_of_synethic_exfil,
                                                                     pod_creation_log=pod_creation_log,
-                                                                    netsec_policy=None)
+                                                                    netsec_policy=None,
+                                                                    sensitive_ms=sensitive_ms)
 
     return wordpress_fourteen_mark7_object
 
 
-def sockshop_thirteen_autoscale_mark4(time_of_synethic_exfil=None, only_exp_info=False, calc_vals=False,
-                                      time_interval_lengths=None, ide_window_size=10):
+def sockshop_thirteen_autoscale_mark4(time_of_synethic_exfil=None, time_interval_lengths=None):
 
     experiment_folder = '/Volumes/exM2/experimental_data/sockshop_info/sockshop_thirteen_autoscale_mark4/'
 
@@ -253,6 +254,7 @@ def sockshop_thirteen_autoscale_mark4(time_of_synethic_exfil=None, only_exp_info
 
     cilium_config_path = None # does NOT use cilium on reps 2-4
     ms_s = microservices_sockshop
+    sensitive_ms = 'user-db'
     exfil_start_time = 8000
     exfil_end_time = 8000
     physical_exfil_path = []
@@ -265,20 +267,18 @@ def sockshop_thirteen_autoscale_mark4(time_of_synethic_exfil=None, only_exp_info
                                                                     time_interval_lengths=time_interval_lengths,
                                                                     ms_s=ms_s, make_edgefiles_p=make_edgefiles,
                                                                     basegraph_name=basegraph_name,
-                                                                    ide_window_size = ide_window_size,
                                                                     exfil_start_time=exfil_start_time,
                                                                     exfil_end_time=exfil_end_time,
-                                                                    calc_vals=calc_vals,
                                                                     kubernetes_svc_info=kubernetes_svc_info,
                                                                     cilium_config_path=cilium_config_path,
                                                                     kubernetes_pod_info=kubernetes_pod_info,
                                                                     alert_file=alert_file,
                                                                     sec_between_exfil_events=sec_between_exfil_events,
                                                                     injected_exfil_path = physical_exfil_path,
-                                                                    only_exp_info=only_exp_info,
                                                                     time_of_synethic_exfil=time_of_synethic_exfil,
                                                                     pod_creation_log=pod_creation_log,
-                                                                    netsec_policy=netsec_policy)
+                                                                    netsec_policy=netsec_policy,
+                                                                    sensitive_ms=sensitive_ms)
 
     return sockshop_thirteen_autoscale_mark4_object
 
@@ -293,17 +293,7 @@ def nonauto_sockshop_recipe():
 
     time_interval_lengths = [30, 10]#, 10] #[30, 10, 1] #[30, 10, 1] #[30, 10, 1]#,
 
-    # this doesn't actually do anything
-    size_of_neighbor_training_window = 0
-    # window size is for ide_angles and the other things that use the angle between the principal
-    # eigenvectors
-    window_size = 10
-    # these are for the moz-z-score-calculation
-    training_window_size = 400
-    minimum_training_window = 12
-    # note: attack injection doesn't start until startup_time has elapsed
-    startup_time = 25 * np.max(time_interval_lengths)
-    ###
+    ide_window_size = 10
 
     #####
     # IN MEGABYTES / MINUTE
@@ -339,18 +329,11 @@ def nonauto_sockshop_recipe():
                                       # I anticpate that this'll mostly be useful for working on generating
                                       # the final results report + the graphs + other stuff kinda...
 
-    experiment_classes = [sockshop_thirteen_NOautoscale_mark1(training_window_size=training_window_size,
-                                                size_of_neighbor_training_window=size_of_neighbor_training_window,
-                                                calc_vals=calc_vals,
-                                                time_of_synethic_exfil=time_of_synethic_exfil,
-                                                time_interval_lengths=time_interval_lengths,
-                                                window_size=window_size,
-                                                minimum_training_window=minimum_training_window,
-                                                startup_time=startup_time)]
+    experiment_classes = [sockshop_thirteen_NOautoscale_mark1(time_of_synethic_exfil=None, time_interval_lengths=None)]
 
     return multi_experiment_pipeline(experiment_classes, base_output_location, True, time_of_synethic_exfil,
-                              goal_train_test_split_training, goal_attack_NoAttack_split_training, training_window_size,
-                              size_of_neighbor_training_window, calc_vals, skip_model_part, ignore_physical_attacks_p,
+                              goal_train_test_split_training, goal_attack_NoAttack_split_training, None,
+                              None, calc_vals, skip_model_part, ignore_physical_attacks_p,
                               calculate_z_scores_p=calculate_z_scores,
                               avg_exfil_per_min=avg_exfil_per_min, exfil_per_min_variance=exfil_per_min_variance,
                               avg_pkt_size=avg_pkt_size, pkt_size_variance=pkt_size_variance,
@@ -358,7 +341,8 @@ def nonauto_sockshop_recipe():
                               get_endresult_from_memory=get_endresult_from_memory,
                               goal_attack_NoAttack_split_testing=goal_attack_NoAttack_split_testing,
                               calc_ide=calc_ide, include_ide=include_ide, only_ide=only_ide,
-                              drop_pairwise_features=drop_pairwise_features)
+                              drop_pairwise_features=drop_pairwise_features,
+                              ide_window_size=10)
 
 
 def autoscaling_sockshop_recipe():
@@ -410,10 +394,9 @@ def autoscaling_sockshop_recipe():
                                       # I anticpate that this'll mostly be useful for working on generating
                                       # the final results report + the graphs + other stuff kinda...
 
-    experiment_classes = [sockshop_thirteen_autoscale_mark4(calc_vals=calc_vals,
-                                                time_of_synethic_exfil=time_of_synethic_exfil,
-                                                time_interval_lengths=time_interval_lengths,
-                                                ide_window_size=ide_window_size)]
+    # let's actually remove rest of these too...
+    experiment_classes = [sockshop_thirteen_autoscale_mark4(time_of_synethic_exfil=time_of_synethic_exfil,
+                                                time_interval_lengths=time_interval_lengths)]
 
     return multi_experiment_pipeline(experiment_classes, base_output_location, True, time_of_synethic_exfil,
                               goal_train_test_split_training, goal_attack_NoAttack_split_training, None,
@@ -425,7 +408,9 @@ def autoscaling_sockshop_recipe():
                               get_endresult_from_memory=get_endresult_from_memory,
                               goal_attack_NoAttack_split_testing=goal_attack_NoAttack_split_testing,
                               calc_ide=calc_ide, include_ide=include_ide, only_ide=only_ide,
-                              drop_pairwise_features=drop_pairwise_features, drop_infra_from_graph=drop_infra_from_graph)
+                              drop_pairwise_features=drop_pairwise_features,
+                              drop_infra_from_graph=drop_infra_from_graph,
+                              ide_window_size=ide_window_size)
 
 
 def new_wordpress_autoscaling_recipe():
@@ -476,10 +461,8 @@ def new_wordpress_autoscaling_recipe():
                                       # I anticpate that this'll mostly be useful for working on generating
                                       # the final results report + the graphs + other stuff kinda...
 
-    experiment_classes = [wordpress_fourteen_mark7(calc_vals=calc_vals,
-                                                time_of_synethic_exfil=time_of_synethic_exfil,
-                                                time_interval_lengths=time_interval_lengths,
-                                                ide_window_size=ide_window_size)]
+    experiment_classes = [wordpress_fourteen_mark7(time_of_synethic_exfil=time_of_synethic_exfil,
+                                                time_interval_lengths=time_interval_lengths)]
 
     return multi_experiment_pipeline(experiment_classes, base_output_location, True, time_of_synethic_exfil,
                               goal_train_test_split_training, goal_attack_NoAttack_split_training, None,
@@ -491,7 +474,8 @@ def new_wordpress_autoscaling_recipe():
                               get_endresult_from_memory=get_endresult_from_memory,
                               goal_attack_NoAttack_split_testing=goal_attack_NoAttack_split_testing,
                               calc_ide=calc_ide, include_ide=include_ide, only_ide=only_ide,
-                              drop_pairwise_features=drop_pairwise_features)
+                              drop_pairwise_features=drop_pairwise_features,
+                              ide_window_size=ide_window_size)
 
 def new_wordpress_recipe():
     skip_model_part = False
@@ -504,16 +488,6 @@ def new_wordpress_recipe():
 
     time_interval_lengths = [10, 30] #[30, 10] #[30, 10, 1] #[30, 10, 1] #[30, 10, 1]#,
 
-    # this doesn't actually do anything
-    size_of_neighbor_training_window = 0
-    # window size is for ide_angles and the other things that use the angle between the principal
-    # eigenvectors
-    window_size = 12
-    # these are for the moz-z-score-calculation
-    training_window_size = 400
-    minimum_training_window = 12
-    # note: attack injection doesn't start until startup_time has elapsed
-    startup_time = 25 * np.max(time_interval_lengths)
     ###
 
     #####
@@ -533,6 +507,7 @@ def new_wordpress_recipe():
     calc_ide = False
     include_ide = True
     only_ide = False ## ONLY calculate the ide values... this'll be useful if I wanna first calc all the other values and THEN ide...
+    ide_window_size = 10
     drop_pairwise_features = False # drops pairwise features (i.e. serviceX_to_serviceY_reciprocity)
 
     ###############
@@ -551,18 +526,11 @@ def new_wordpress_recipe():
                                       # I anticpate that this'll mostly be useful for working on generating
                                       # the final results report + the graphs + other stuff kinda...
 
-    experiment_classes = [wordpress_thirteen_t2(training_window_size=training_window_size,
-                                                size_of_neighbor_training_window=size_of_neighbor_training_window,
-                                                calc_vals=calc_vals,
-                                                time_of_synethic_exfil=time_of_synethic_exfil,
-                                                time_interval_lengths=time_interval_lengths,
-                                                window_size=window_size,
-                                                minimum_training_window=minimum_training_window,
-                                                startup_time=startup_time)
+    experiment_classes = [wordpress_thirteen_t2(time_of_synethic_exfil=None,  time_interval_lengths=None)]
 
     return multi_experiment_pipeline(experiment_classes, base_output_location, True, time_of_synethic_exfil,
-                              goal_train_test_split_training, goal_attack_NoAttack_split_training, training_window_size,
-                              size_of_neighbor_training_window, calc_vals, skip_model_part, ignore_physical_attacks_p,
+                              goal_train_test_split_training, goal_attack_NoAttack_split_training, None,
+                              None, calc_vals, skip_model_part, ignore_physical_attacks_p,
                               calculate_z_scores_p=calculate_z_scores,
                               avg_exfil_per_min=avg_exfil_per_min, exfil_per_min_variance=exfil_per_min_variance,
                               avg_pkt_size=avg_pkt_size, pkt_size_variance=pkt_size_variance,
@@ -570,7 +538,8 @@ def new_wordpress_recipe():
                               get_endresult_from_memory=get_endresult_from_memory,
                               goal_attack_NoAttack_split_testing=goal_attack_NoAttack_split_testing,
                               calc_ide=calc_ide, include_ide=include_ide, only_ide=only_ide,
-                              drop_pairwise_features=drop_pairwise_features)
+                              drop_pairwise_features=drop_pairwise_features,
+                              ide_window_size=ide_window_size)
 
 if __name__=="__main__":
     print "RUNNING"
@@ -579,5 +548,8 @@ if __name__=="__main__":
     if len(sys.argv) == 1:
         print "running_preset..."
         autoscaling_sockshop_recipe()
+        #nonauto_sockshop_recipe()
+        #new_wordpress_autoscaling_recipe()
+        #new_wordpress_recipe()
     else:
         print "too many args!"

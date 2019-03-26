@@ -85,7 +85,8 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
                               goal_attack_NoAttack_split_testing=0.0, calc_ide=False, include_ide=False,
                               only_ide=False, perform_cilium_component=True, only_perform_cilium_component=True,
                               cilium_component_time=100, drop_pairwise_features=False,
-                              max_path_length=15, max_dns_porportion=1.0,drop_infra_from_graph=False):
+                              max_path_length=15, max_dns_porportion=1.0,drop_infra_from_graph=False,
+                              ide_window_size=10):
 
     #if only_perform_cilium_component:
     #    calc_vals = False
@@ -132,7 +133,7 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
                     testing_exfil_paths, ignore_physical_attacks_p, skip_model_part, out_q,
                     ROC_curve_p, avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
                     skip_graph_injection, calc_ide, include_ide, only_ide, drop_pairwise_features,
-                    perform_cilium_component, cilium_component_time]
+                    perform_cilium_component, cilium_component_time, ide_window_size]
             p = multiprocessing.Process(
                 target=pipeline_one_exfil_rate,
                 args=args)
@@ -187,7 +188,7 @@ def pipeline_one_exfil_rate(rate_counter,
                             testing_exfil_paths, ignore_physical_attacks_p, skip_model_part, out_q,
                             ROC_curve_p, avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
                             skip_graph_injection, calc_ide, include_ide, only_ide, drop_pairwise_features,
-                            perform_cilium_component, cilium_component_time):
+                            perform_cilium_component, cilium_component_time, ide_window_size):
     ## step (1) : iterate through individual experiments...
     ##  # 1a. list of inputs [done]
     ##  # 1b. acculate DFs
@@ -207,6 +208,7 @@ def pipeline_one_exfil_rate(rate_counter,
         experiment_object.alert_file = experiment_object.orig_alert_file + prefix_for_inject_params
         experiment_object.basegraph_name = experiment_object.orig_basegraph_name + prefix_for_inject_params
         experiment_object.exp_name = experiment_object.orig_exp_name + prefix_for_inject_params
+        experiment_object.calc_vals = calc_vals
         experiment_object.calc_zscore_p = calculate_z_scores_p or calc_vals
         experiment_object.skip_graph_injection = skip_graph_injection
 
@@ -219,7 +221,7 @@ def pipeline_one_exfil_rate(rate_counter,
                                            avg_pkt_size=avg_pkt_size[rate_counter],
                                            pkt_size_variance=pkt_size_variance[rate_counter],
                                            calc_ide=calc_ide, include_ide=include_ide,
-                                           only_ide=only_ide)
+                                           only_ide=only_ide, ide_window_size=ide_window_size)
         if perform_cilium_component:
             experiment_object.run_cilium_component(cilium_component_time)
             time_gran_to_cilium_alerts = experiment_object.calc_cilium_performance(avg_exfil_per_min[rate_counter],
