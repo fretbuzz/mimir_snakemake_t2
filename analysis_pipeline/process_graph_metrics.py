@@ -177,7 +177,9 @@ def save_feature_datafames(time_gran_to_feature_dataframe, csv_path, time_gran_t
         #print "attack_labels",attack_labels, len(attack_labels), "time_gran", time_gran
         feature_dataframe['labels'] = pandas.Series(attack_labels, index=feature_dataframe.index)
         print "time_gran_to_synthetic_exfil_paths_series[time_gran]", time_gran_to_synthetic_exfil_paths_series[time_gran]
-        time_gran_to_synthetic_exfil_paths_series[time_gran].index = feature_dataframe.index
+        if len(time_gran_to_synthetic_exfil_paths_series[time_gran].index.values) > len(feature_dataframe.index.values):
+            time_gran_to_synthetic_exfil_paths_series[time_gran] = time_gran_to_synthetic_exfil_paths_series[time_gran][:len(feature_dataframe.index.values)]
+        time_gran_to_synthetic_exfil_paths_series[time_gran].index = feature_dataframe.index[:len(time_gran_to_synthetic_exfil_paths_series[time_gran])]
         feature_dataframe['exfil_path'] = pandas.Series(time_gran_to_synthetic_exfil_paths_series[time_gran], index=feature_dataframe.index)
         feature_dataframe['concrete_exfil_path'] = pandas.Series(time_gran_to_list_of_concrete_exfil_paths[time_gran], index=feature_dataframe.index)
         feature_dataframe['exfil_weight'] = pandas.Series([i['weight'] for i in time_gran_to_list_of_exfil_amts[time_gran]], index=feature_dataframe.index)

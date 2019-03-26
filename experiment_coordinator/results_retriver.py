@@ -13,7 +13,7 @@ import json
 
 cloudlab_private_key = '/Users/jseverin/Dropbox/cloudlab.pem'
 possible_apps = ['drupal', 'sockshop', 'gitlab', 'eShop', 'wordpress', 'hipster']
-experiment_sentinal_file = '/mydata/mimir_snakemake_t2/experiment_coordinator/experiment_done.txt'
+experiment_sentinal_file = '/mydata/mimir_v2/experiment_coordinator/experiment_done.txt'
 sentinal_file = '/mydata/all_done.txt'
 
 ###############################
@@ -119,7 +119,7 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, autoscale
                 sh.sendline('n')
             print("recieved line", line_rec)
 
-        clone_mimir_str = "cd /mydata/; git clone https://github.com/fretbuzz/mimir_snakemake_t2"
+        clone_mimir_str = "cd /mydata/; git clone https://github.com/fretbuzz/mimir_v2"
         sh.sendline(clone_mimir_str)
 
         '''
@@ -146,14 +146,14 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, autoscale
         else:
             cpu_threshold = None # b/c doesn't matter
 
-        sh.sendline('cd /mydata/mimir_snakemake_t2/experiment_coordinator/former_profile/')
+        sh.sendline('cd /mydata/mimir_v2/experiment_coordinator/former_profile/')
         print "autoscale_p",autoscale_p
         if autoscale_p:
-            sh.sendline('bash /mydata/mimir_snakemake_t2/experiment_coordinator/former_profile/run_experiment.sh ' +
+            sh.sendline('bash /mydata/mimir_v2/experiment_coordinator/former_profile/run_experiment.sh ' +
                         app_name + ' ' + str(use_cilium) + ' ' + str(autoscale_p) + ' ' + str(cpu_threshold))
 
         else:
-            sh.sendline('bash /mydata/mimir_snakemake_t2/experiment_coordinator/former_profile/run_experiment.sh ' + \
+            sh.sendline('bash /mydata/mimir_v2/experiment_coordinator/former_profile/run_experiment.sh ' + \
                         app_name + ' ' + str(use_cilium))
 
         line_rec = 'start'
@@ -193,9 +193,9 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, autoscale
             # todo: it's not local you know... it doesn't make any sense for it be called locally...
             #wp_api_pwd = setup_wordpress.main(minikube_ip, front_facing_port, 'hi')
             sh.sendline("exit") # need to be a normal user when using selenium
-            sh.sendline("cd /mydata/mimir_snakemake_t2/experiment_coordinator/experimental_configs")
+            sh.sendline("cd /mydata/mimir_v2/experiment_coordinator/experimental_configs")
 
-            prepare_wp_str = "python /mydata/mimir_snakemake_t2/experiment_coordinator/experimental_configs/setup_wordpress.py " + \
+            prepare_wp_str = "python /mydata/mimir_v2/experiment_coordinator/experimental_configs/setup_wordpress.py " + \
                     minikube_ip + " " + front_facing_port + " " + "hi"
             print "prepare_wp_str",prepare_wp_str
             sh.sendline(prepare_wp_str)
@@ -212,11 +212,11 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, autoscale
             # need to get back to the other group now
             sh.sendline('sudo newgrp docker')
             sh.sendline('export MINIKUBE_HOME=/mydata/')
-            sh.sendline('cd /mydata/mimir_snakemake_t2/experiment_coordinator/')
+            sh.sendline('cd /mydata/mimir_v2/experiment_coordinator/')
             #wp_api_pwd = pwd_line.split("pwd")[1].lstrip()
             #print "wp_api_pwd",wp_api_pwd
             # this is kinda silly... just put the pwd in a file and have the background function read it...
-            #change_cwd = 'cd /mydata/mimir_snakemake_t2/experiment_coordinator/load_generators'
+            #change_cwd = 'cd /mydata/mimir_v2/experiment_coordinator/load_generators'
             #change_pwd_cmd = "sed -e 's/app_pass.*$/app_pass = \"" + wp_api_pwd +  "\"/g' wordpress_background.py"
             #sh.sendline(change_cwd)
             #sh.sendline(change_pwd_cmd)
@@ -253,11 +253,11 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, autoscale
     ## should be easy enough... just read it in w/ a json library (in python). modify the one value and then
     ## write it back out... seems like it'd take ~10 min...
 
-    start_actual_experiment = 'python /mydata/mimir_snakemake_t2/experiment_coordinator/run_experiment.py --exp_name ' +\
+    start_actual_experiment = 'python /mydata/mimir_v2/experiment_coordinator/run_experiment.py --exp_name ' +\
                               exp_name  + ' --config_file ' + config_file_name + ' --prepare_app_p --port ' + \
                               front_facing_port + ' --ip ' + minikube_ip + ' --no_exfil'
 
-    #start_actual_experiment = 'python /mydata/mimir_snakemake_t2/experiment_coordinator/run_experiment.py --exp_name ' +\
+    #start_actual_experiment = 'python /mydata/mimir_v2/experiment_coordinator/run_experiment.py --exp_name ' +\
     #                          exp_name  + ' --config_file ' + config_file_name + ' --port ' + \
     #                          front_facing_port + ' --ip ' + minikube_ip + ' --no_exfil'
 
@@ -265,11 +265,11 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, autoscale
     start_actual_experiment += create_experiment_sential_file
 
     print "start_actual_experiment: ", start_actual_experiment
-    sh.sendline('cd /mydata/mimir_snakemake_t2/experiment_coordinator/')
+    sh.sendline('cd /mydata/mimir_v2/experiment_coordinator/')
     sh.sendline(start_actual_experiment)
     timeout = exp_length / 12.0
     #sh.stream()
-    #sh.process([start_actual_experiment], cwd='/mydata/mimir_snakemake_t2/experiment_coordinator/',executable='python').stream()
+    #sh.process([start_actual_experiment], cwd='/mydata/mimir_v2/experiment_coordinator/',executable='python').stream()
     line_rec = 'start'
     last_line = ''
     while line_rec != '':
@@ -289,8 +289,8 @@ if __name__ == "__main__":
     #app_name = possible_apps[4] # wordpress
     app_name = possible_apps[1] # sockshop
     #app_name = possible_apps[5] # hipsterStore (google's example microservice)
-    sock_config_file_name = '/mydata/mimir_snakemake_t2/experiment_coordinator/experimental_configs/sockshop_thirteen'
-    wp_config_file_name = '/mydata/mimir_snakemake_t2/experiment_coordinator/experimental_configs/wordpress_fourteen'
+    sock_config_file_name = '/mydata/mimir_v2/experiment_coordinator/experimental_configs/sockshop_thirteen'
+    wp_config_file_name = '/mydata/mimir_v2/experiment_coordinator/experimental_configs/wordpress_fourteen'
     config_file_name = sock_config_file_name #wp_config_file_name
     use_cilium = False # note: if actually running an experiment, will probably want "False"
 
@@ -339,6 +339,6 @@ if __name__ == "__main__":
                 # here (in the params) and in run_experiment...
 
     # NOTE: remember: dont put the .json in the filename!! ^^^
-    remote_dir = '/mydata/mimir_snakemake_t2/experiment_coordinator/experimental_data/' + exp_name  # TODO
+    remote_dir = '/mydata/mimir_v2/experiment_coordinator/experimental_data/' + exp_name  # TODO
     s = run_experiment(app_name, config_file_name, exp_name, args.skip_setup_p, args.autoscale_p, use_cilium)
     retrieve_results(s)

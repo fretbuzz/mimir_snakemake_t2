@@ -3,84 +3,19 @@ attackGoal(execCode(internet, _)).
 vulExists(internet, 'attacker_can_access_anything', is_computer).
 networkServiceInfo(internet, is_computer, _, _, _).
 vulProperty('attacker_can_access_anything', remoteExploit, privEscalation).
+attackerLocated(my_release_pxc_pod).
 
-hacl(carts_db_pod,cart_pod, TCP, 27017).
-vulExists(carts_db_pod, 'attacker_can_access_anything', is_computer).
-networkServiceInfo(carts_db_pod, is_computer,  _, _ , _).
+hacl(my_release_pxc_pod,wwwppp_wordpress_pod, TCP, 3306).
+hacl(my_release_pxc_pod,kube_dns_pod, TCP, 3306).
+hacl(my_release_pxc_pod,internet, TCP, 3306).
+vulExists(my_release_pxc_pod, 'attacker_can_access_anything', is_computer).
+networkServiceInfo(my_release_pxc_pod, is_computer,  _, _ , _).
 
-hacl(cart_pod,carts_db_pod, TCP, 80).
-hacl(cart_pod,front_end_pod, TCP, 80).
-hacl(cart_pod,orders_pod, TCP, 80).
-hacl(cart_pod,kube_dns_pod, TCP, 80).
-vulExists(cart_pod, 'attacker_can_access_anything', is_computer).
-networkServiceInfo(cart_pod, is_computer,  _, _ , _).
-
-hacl(catalogue_db_pod,catalogue_pod, TCP, 3306).
-vulExists(catalogue_db_pod, 'attacker_can_access_anything', is_computer).
-networkServiceInfo(catalogue_db_pod, is_computer,  _, _ , _).
-
-hacl(catalogue_pod,catalogue_db_pod, TCP, 80).
-hacl(catalogue_pod,front_end_pod, TCP, 80).
-hacl(catalogue_pod,kube_dns_pod, TCP, 80).
-vulExists(catalogue_pod, 'attacker_can_access_anything', is_computer).
-networkServiceInfo(catalogue_pod, is_computer,  _, _ , _).
-
-hacl(front_end_pod,cart_pod, TCP, 80).
-hacl(front_end_pod,catalogue_pod, TCP, 80).
-hacl(front_end_pod,orders_pod, TCP, 80).
-hacl(front_end_pod,user_pod, TCP, 80).
-hacl(front_end_pod,kube_dns_pod, TCP, 80).
-hacl(front_end_pod,internet, TCP, 80).
-vulExists(front_end_pod, 'attacker_can_access_anything', is_computer).
-networkServiceInfo(front_end_pod, is_computer,  _, _ , _).
-
-hacl(orders_db_pod,orders_pod, TCP, 27017).
-vulExists(orders_db_pod, 'attacker_can_access_anything', is_computer).
-networkServiceInfo(orders_db_pod, is_computer,  _, _ , _).
-
-hacl(orders_pod,cart_pod, TCP, 80).
-hacl(orders_pod,front_end_pod, TCP, 80).
-hacl(orders_pod,orders_db_pod, TCP, 80).
-hacl(orders_pod,payment_pod, TCP, 80).
-hacl(orders_pod,shipping_pod, TCP, 80).
-hacl(orders_pod,user_pod, TCP, 80).
-hacl(orders_pod,kube_dns_pod, TCP, 80).
-vulExists(orders_pod, 'attacker_can_access_anything', is_computer).
-networkServiceInfo(orders_pod, is_computer,  _, _ , _).
-
-hacl(payment_pod,orders_pod, TCP, 80).
-vulExists(payment_pod, 'attacker_can_access_anything', is_computer).
-networkServiceInfo(payment_pod, is_computer,  _, _ , _).
-
-hacl(queue_master_pod,rabbitmq_pod, TCP, 80).
-vulExists(queue_master_pod, 'attacker_can_access_anything', is_computer).
-networkServiceInfo(queue_master_pod, is_computer,  _, _ , _).
-
-hacl(rabbitmq_pod,queue_master_pod, TCP, 5672).
-hacl(rabbitmq_pod,shipping_pod, TCP, 5672).
-vulExists(rabbitmq_pod, 'attacker_can_access_anything', is_computer).
-networkServiceInfo(rabbitmq_pod, is_computer,  _, _ , _).
-
-hacl(shipping_pod,orders_pod, TCP, 80).
-hacl(shipping_pod,rabbitmq_pod, TCP, 80).
-hacl(shipping_pod,kube_dns_pod, TCP, 80).
-vulExists(shipping_pod, 'attacker_can_access_anything', is_computer).
-networkServiceInfo(shipping_pod, is_computer,  _, _ , _).
-attackerLocated(user_db_pod).
-
-hacl(user_db_pod,user_pod, TCP, 27017).
-hacl(user_db_pod,kube_dns_pod, TCP, 27017).
-vulExists(user_db_pod, 'attacker_can_access_anything', is_computer).
-networkServiceInfo(user_db_pod, is_computer,  _, _ , _).
-
-hacl(user_pod,catalogue_pod, TCP, 27017).
-hacl(user_pod,front_end_pod, TCP, 27017).
-hacl(user_pod,orders_pod, TCP, 27017).
-hacl(user_pod,user_db_pod, TCP, 27017).
-hacl(user_pod,kube_dns_pod, TCP, 27017).
-hacl(user_pod,internet, TCP, 27017).
-vulExists(user_pod, 'attacker_can_access_anything', is_computer).
-networkServiceInfo(user_pod, is_computer,  _, _ , _).
+hacl(wwwppp_wordpress_pod,my_release_pxc_pod, TCP, 80).
+hacl(wwwppp_wordpress_pod,kube_dns_pod, TCP, 80).
+hacl(wwwppp_wordpress_pod,internet, TCP, 80).
+vulExists(wwwppp_wordpress_pod, 'attacker_can_access_anything', is_computer).
+networkServiceInfo(wwwppp_wordpress_pod, is_computer,  _, _ , _).
 
 vulExists(kube_dns_pod, 'attacker_can_access_anything', is_computer).
 networkServiceInfo(kube_dns_pod, is_computer,  _, _ , _).

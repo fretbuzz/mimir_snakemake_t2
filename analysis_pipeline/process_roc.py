@@ -75,10 +75,12 @@ def determine_cm_vals_for_categories(attack_type_to_predictions, attack_type_to_
             print sklearn.metrics.confusion_matrix(truth, predictions,labels=[0,1]).ravel()
             tn, fp, fn, tp = sklearn.metrics.confusion_matrix(truth, predictions, labels=[0,1]).ravel()
 
-            ### TODO: FIX THIS AT SOME POINT... since
+            ### FIX THIS AT SOME POINT... since
             # for no attack, negatives are really positive and vice-versa...
-            if 'No Attack' in attack_type or attack_type == ():
-                tn,fn,tp,fp = tp,fp,tn,fn
+            ##### UPDATE: NO!!! This made sense at the time b/c I was trying to shoe-horn in f1's for graphs, but
+            ##### it does NOT actually make sense!!!
+            #if 'No Attack' in attack_type or attack_type == ():
+            #    tn,fn,tp,fp = tp,fp,tn,fn
 
         else:
             print "truth_and_predictions_empty"

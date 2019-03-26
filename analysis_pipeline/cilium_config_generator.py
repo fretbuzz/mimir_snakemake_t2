@@ -39,12 +39,12 @@ def generate_pcap_slice(time_length, pcap_location, split_pcap_dir, make_edgefil
         # now monitor directory for existance the split file and then...
         new_split_pcap_exists = False
         while not new_split_pcap_exists:
-            time.sleep(5)
+            time.sleep(20)
             files_in_split_dir = set([name for name in os.listdir(split_pcap_dir) if os.path.isfile(os.path.join(split_pcap_dir, name))])
             print "files_in_split_dir...", files_in_split_dir
             new_files = list(files_in_split_dir.difference(inital_files_in_split_dir))
             print "new_files", new_files
-            if len(new_files) >= 1:
+            if len(new_files) >= 2: # need >= 2 b/c first file is created before being completely written too... leads to problems if stopped before writing is done...
                 new_split_pcap_exists = True
 
         proc.terminate()
@@ -186,12 +186,14 @@ def cilium_component(time_length, pcap_location, cilium_component_dir, make_edge
     pcap_slice_path = '/'.join(pcap_slice_location_components[:-1]) + '/'
     pcap_slice_name = pcap_slice_location_components[-1]
     print "getting convo stats via tshark now..."
+    time.sleep(5)
     tshark_stats_path, tshark_stats_file = process_pcap_via_tshark(pcap_slice_path, pcap_slice_name,
                                                                    cilium_component_dir , make_edgefiles_p)
 
     # step (3) generate edgefile (hostnames rather than ip addresses)
     edgefile_name = cilium_component_dir + '/edgefile_first_' + str(time_length) + '_sec.txt'
     mapping = update_mapping(inital_mapping, pod_creation_log, time_length, 0)
+
     edgefile =  convert_tshark_stats_to_edgefile('', edgefile_name, tshark_stats_path, tshark_stats_file,
                                      make_edgefiles_p, mapping)
 

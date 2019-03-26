@@ -121,7 +121,7 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
                                                  time_each_synthetic_exfil,goal_attack_NoAttack_split_testing,
                                                  max_path_length, max_dns_porportion)
         # TODO: REMOVE
-        exit(233)
+        #exit(233)
 
         for rate_counter in range(0,len(avg_exfil_per_min)):
             out_q = multiprocessing.Queue()
@@ -393,16 +393,16 @@ def pipeline_one_exfil_rate(rate_counter,
 def determine_and_assign_exfil_paths(calc_vals, skip_model_part, function_list, goal_train_test_split, goal_attack_NoAttack_split_training,
                                      ignore_physical_attacks_p, time_each_synthetic_exfil, goal_attack_NoAttack_split_testing,
                                      max_path_length, dns_porportion):
-    if True: #calc_vals and not skip_model_part:
+    if calc_vals and not skip_model_part:
         print function_list
         exp_infos = []
         for experiment_object in function_list:
             print "calc_vals", calc_vals
-            total_experiment_length, exfil_start_time, exfil_end_time, system_startup_time = \
+            total_experiment_length, exfil_start_time, exfil_end_time, _ = \
                 experiment_object.get_exp_info()
             print "func_exp_info", total_experiment_length, exfil_start_time, exfil_end_time
             exp_infos.append({"total_experiment_length":total_experiment_length, "exfil_start_time":exfil_start_time,
-                             "exfil_end_time":exfil_end_time, "startup_time": system_startup_time})
+                             "exfil_end_time":exfil_end_time})
 
         ## get the exfil_paths that were generated using the mulval component...
         ## this'll require passing a parameter to the single-experiment pipeline and then getting the set of paths

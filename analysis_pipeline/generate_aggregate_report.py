@@ -85,25 +85,9 @@ def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
             df_attack_identites = per_attack_bar_graphs(methods_to_attacks_found_dfs, temp_graph_loc, graph_loc,
                                                         cur_bar_axes)
 
-            # TODO: finish the current bar subgraphs
-            ### TODO: STILL THESE ::://// This is at least like 3-4 hours of work... :::///
-            ### TODO: PROBLEM THE ATTACKS MIGHT NOT BE IN THE SAME ORDER <--- top priority.
-            #### ^^^ do this, and then can start on all the tasks below...
-            ### TODO: (a) DEBUG THE GAPHS, (b) DEBUG IDE results, (c) make sure I get some (at least semi-) decent autoscaling results
-            ### plus autoscaling graphs plz. (d) stick the new and improved graphs into a (very simple) aggregate report.
-            ### TODO: NEED TO PLAN HOW MULTI-RATE IS GOING TO WORK!!!!
-            ### AND GET SOCKSHOP WORKING!!! THAT's REALLY IMPORTANT!!!
-            ##### lol... well, I kinda got (c).... okay, so I actually do need to get this done today, plus get autoscaling
-            ##### sockshop to work too (since I'll need to re-do the exfil path element + modify viz's before the end
-            ##### I am ready to report results)
-            ## todo: (1) ide. is it fine? I understand it was probably working fine before b/c it was clearing edges, but you'd expect better
-            ## todo: (2) wordpress autoscaling (analysis)
-            ## todo: (3) sockshop autoscaling (analysis)
-            ## todo: (4) overhaul the aggregate report w/ the new graph grids + change single to have a new page, using
-            # that trick I learned...
             BytesPerMegabyte = 1000000.0
             cur_bar_axes.set_title(str(rate / BytesPerMegabyte ) + ' MB Per Minute')
-            cur_bar_axes.set_ylabel('f1 scores')
+            cur_bar_axes.set_ylabel('accuracy')
             cur_bar_axes.set_xlabel('attack')
             #cur_bar_axes.legend()
             cur_bar_axes.legend(loc='upper center', bbox_to_anchor=(0.5, -0.05), fancybox=True, shadow=True, ncol=5)
@@ -146,7 +130,8 @@ def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
     #  cur_bar_axes.set(adjustable='box', aspect='equal')
     ## TODO: NOTE: These labels apply only for the wordpress experiments...
     #x_tick_labels = ('wp_VIP', 'no_VIP_DNS', 'just_DNS', 'Norm_Path', 'no_VIP_norm', 'No_Attack', 'Norm_DNS',  'Out', 'wp_VIP_DNS')#list(attacks)
-    x_tick_labels = ('A', 'B', 'C', 'D', 'E', 'No_Attack', 'G',  'H', 'I')#list(attacks)
+    #x_tick_labels = ('A', 'B', 'C', 'D', 'E', 'No_Attack', 'G',  'H', 'I')#list(attacks)
+    x_tick_labels = ('A', 'B', 'C', 'D', 'E', 'G',  'H', 'I')#list(attacks)
 
     for timegran, comp_bargraph_info in time_gran_to_comp_bargraph_info.iteritems():
         cur_axis_set = comp_bargraph_info[1]
@@ -165,7 +150,6 @@ def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
     #time_gran_to_comp_bargraph_info[timegran][0]
     #time_gran_to_comp_bargraph_info[time_gran].savefig
     #bar_fig.savefig(cur_lineGraph_loc)
-
 
     # STEP (2): that other graph that I wanted [[TODO TODO TODO]]
     # using: time_gran_to_attack_to_methods_to_f1s
@@ -209,14 +193,80 @@ def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
         fig.savefig(cur_lineGraph_loc)
         timegran_to_linecomp_loc[time_gran] = cur_lineGraph_loc
 
+
+    # step (??): okay, I want another graph now... I want to show # of FPs at each exfil rate. (per method,
+    # obviously)
+    timegran_to_method_to_rates_to_fps = {}
+    rate_order = []
+    for rate, timegran_to_methods_to_attacks_found_dfs in rate_to_timegran_to_methods_to_attacks_found_dfs.iteritems():
+        rate_order.append(rate)
+        plt.clf()
+        for timegran, methods_to_attacks_found_dfs in timegran_to_methods_to_attacks_found_dfs.iteritems():
+            if timegran not in timegran_to_method_to_rates_to_fps:
+                timegran_to_method_to_rates_to_fps[timegran] = {}
+            for method, attacks_found_df in methods_to_attacks_found_dfs.iteritems():
+                number_of_fps = find_num_fps(attacks_found_df)
+                if method not in timegran_to_method_to_rates_to_fps[timegran]:
+                    timegran_to_method_to_rates_to_fps[timegran][method] = []
+                timegran_to_method_to_rates_to_fps[timegran][method].append(number_of_fps)
+
+    #colors_to_use = ['b', 'r', 'g', 'y']
+    colors_to_use = ['b', 'g', 'r', 'y']
+    fp_comp_locs = {}
+    bar_width = 0.2
+    for timegran, method_to_rates_to_fps in timegran_to_method_to_rates_to_fps.iteritems():
+        plt.clf()
+        plt.figure(figsize=(15,15))
+        fp_com_filename = "comp_fps_bar_" + str(timegran) + ".png"
+        fp_com_loc = "./temp_outputs/" + fp_com_filename
+        k = 0
+        axe = plt.subplot()
+        index = range(0, len(rate_order))
+        for method in reversed(sorted(method_to_rates_to_fps.keys())):
+            #for method, rates_to_fps in method_to_rates_to_fps.iteritems():
+            rates_to_fps = method_to_rates_to_fps[method]
+            current_bar_locations = [item + bar_width * k for item in index]
+            print "method_ex", method, "current_bar_locations", current_bar_locations
+            axe.bar(current_bar_locations, rates_to_fps, bar_width,
+                    alpha=0.4, color=colors_to_use[k],
+                    label=method)
+            k += 1
+        #axe.savefig(fp_com_loc)
+
+        axe.set_xlabel('Exfil Rate (MB/s)')
+        axe.set_ylabel('log FPs')
+        axe.set_title('FPs per Method per Rate')
+        #axe.set_xticks(len(rate_to_method_to_fps.keys()) + bar_width / 2)
+        #axe.set_xticklabels(tuple(x_tick_labels))
+        BytesPerMegabyte = 1000000.0
+        print "rate_order", rate_order
+        r_order = [r/BytesPerMegabyte for r in rate_order]
+        axe.set_xticks(index)
+        axe.set_xticklabels(tuple(r_order))
+        # ax.legend()
+        axe.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+
+        plt.yscale('log')
+        plt.tight_layout()
+        plt.savefig(fp_com_loc)
+        fp_comp_locs[timegran] = fp_com_loc
+
         #'''
         sections.append(comp_res_section.render(
-            time_gran=time_gran,
-            comp_bargraph='.' + time_gran_to_comp_bargraph_info[time_gran][2],
-            comp_linegraph='.' + cur_lineGraph_loc,
-            df_attack_identites=df_attack_identites.to_html()
+            time_gran=timegran,
+            comp_bargraph='.' + time_gran_to_comp_bargraph_info[timegran][2],
+            comp_linegraph='.' + timegran_to_linecomp_loc[timegran],
+            df_attack_identites= df_attack_identites.to_html(),
+            comp_fps_bar = '.' +  fp_comp_locs[timegran]
         ))
         #'''
+
+    '''
+    timegran_to_fp_loc = {}
+    for time_gran, attack_to_methods_to_f1s in time_gran_to_attack_to_methods_to_f1s.iteritems():
+        fig.savefig(cur_g_loc)
+        timegran_to_fp_loc[time_gran] = cur_g_loc
+    '''
 
     # Step (3) put it all into a handy-dandy report
     base_template = env.get_template("report_template.html")
@@ -245,7 +295,7 @@ def update_attack_rate_linegraph_dicts(time_gran_to_attack_to_methods_to_f1s, ti
     ## be relatively straight-forward indexing (plus somethign complicated w/ figs/subfigs but that isn't super
     ## important IMHO)
     for method, attacks_found in methods_to_attacks_found_dfs.iteritems():
-        attacks_to_fones = results_df_to_attack_fones(attacks_found)
+        attacks_to_fones = results_df_to_attack_accuracy(attacks_found)
         for attack,fones in attacks_to_fones.iteritems():
             #if attack not in time_gran_to_attack_to_methods_to_f1s[timegran]:
             #    time_gran_to_attack_to_methods_to_f1s[timegran][attack] = {}
@@ -259,42 +309,58 @@ def update_attack_rate_linegraph_dicts(time_gran_to_attack_to_methods_to_f1s, ti
             time_gran_to_attack_to_methods_to_f1s[timegran][attack][method].append(fones)
             time_gran_to_attack_to_methods_to_rates[timegran][attack][method].append(rate)
 
-def results_df_to_attack_fones(results_df):
+def find_num_fps(results_df):
     attacks = results_df.index
-    attack_to_fone = {}
+    attacks = [attack for attack in attacks]
+    total_fps = 0
+
+    #print "results_df",results_df
+    for attack in attacks:
+        fp = float(results_df['fp'][attack])
+        total_fps += fp
+    return total_fps
+
+def results_df_to_attack_accuracy(results_df):
+    attacks = results_df.index
+    attacks = [attack for attack in attacks if attack != 'No Attack']
+    attack_to_accuracy = {}
 
     #print "results_df",results_df
     for attack in attacks:
         tp = float(results_df['tp'][attack])
         fp = float(results_df['fp'][attack])
-        if tp + fp == 0:
-            precision = 1.0 # found everything perfectly, even though there was nothing
-        else:
-            precision = tp / (tp + fp)    # TP / (TP + FP)
+        #if tp + fp == 0:
+        #    precision = 1.0 # found everything perfectly, even though there was nothing
+        #else:
+        #    precision = tp / (tp + fp)    # TP / (TP + FP)
         fn = float(results_df['fn'][attack])
         print "tp",tp,"fn",fn,"attack",attack
 
-        # NOTE: AM i sure that this is right??
-        if tp + fn == 0:
-            recall = 1.0 # found everything, even tho there was noting
-        else:
-            recall = tp / (tp + fn)    # TP / (TP + FN)
-        cur_fOne = (2 * precision * recall) / (precision + recall)
-        attack_to_fone[attack] = cur_fOne
+        ## NOTE: AM i sure that this is right??
+        #if tp + fn == 0:
+        #    recall = 1.0 # found everything, even tho there was noting
+        #else:
+        #    recall = tp / (tp + fn)    # TP / (TP + FN)
+        #cur_fOne = (2 * precision * recall) / (precision + recall)
+        curAccuracy = (tp) / (tp + fn)
 
-    return attack_to_fone
+        attack_to_accuracy[attack] = curAccuracy
+
+    return attack_to_accuracy
 
 def per_attack_bar_graphs(method_to_results_df, temp_location, file_storage_location, relevant_subplots_axis):
     '''Taken more-or-less wholesale from https://matplotlib.org/gallery/statistics/barchart_demo.html'''
     fig, ax = plt.subplots()
     attacks = method_to_results_df[method_to_results_df.keys()[0]].index
+    attacks = [attack for attack in attacks if attack != 'No Attack']
     n_groups = len(attacks)
     index = np.arange(n_groups)
-    bar_width = 0.35
+    bar_width = 0.2
 
-    opacity = 0.4
+    opacity = 0.3
     error_config = {'ecolor': '0.3'}
-    colors_to_use = ['b', 'r', 'g', 'y']
+    #colors_to_use = ['b', 'r', 'g', 'y']
+    colors_to_use = ['b', 'g', 'r', 'y']
     x_tick_labels = ('A', 'B', 'C', 'D', 'E', 'F', 'G',  'H', 'I')#list(attacks)
 
     ## TODO: NOTE: THESE APPLY ONLY TO THE WORDPRESS EXPERIMENTS!!!
@@ -308,15 +374,18 @@ def per_attack_bar_graphs(method_to_results_df, temp_location, file_storage_loca
             df_attack_identites[tick_val] = (attacks[counter],)
 
     i = 0
-    for cur_method, cur_results in method_to_results_df.iteritems():
-        attack_to_fone = results_df_to_attack_fones(cur_results)
+    for cur_method in reversed(sorted(method_to_results_df.keys())):
+    #for cur_method, cur_results in method_to_results_df.iteritems():
+
+        cur_results = method_to_results_df[cur_method]
+        attack_to_accuracy = results_df_to_attack_accuracy(cur_results)
 
         current_bar_locations = index + bar_width * i
 
-        print "attack_to_fone",attack_to_fone
+        print "attack_to_accuracy",attack_to_accuracy
         print "---"
 
-        attack_fones = [attack_to_fone[attack] for attack in attacks]
+        attack_fones = [attack_to_accuracy[attack] for attack in attack_to_accuracy.keys()]
 
         rects1 = ax.bar(current_bar_locations, attack_fones, bar_width,
                         alpha=opacity, color=colors_to_use[i],
@@ -331,7 +400,7 @@ def per_attack_bar_graphs(method_to_results_df, temp_location, file_storage_loca
 
 
     ax.set_xlabel('Attacks')
-    ax.set_ylabel('Optimal F1')
+    ax.set_ylabel('Accuracy')
     ax.set_title('Optimal F1 per Attacks')
     ax.set_xticks(index + bar_width / 2)
     ax.set_xticklabels( tuple(x_tick_labels) )

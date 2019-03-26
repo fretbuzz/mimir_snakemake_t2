@@ -33,6 +33,7 @@ import multiprocessing
 import numpy.random
 import pandas as pd
 import subprocess
+import re
 
 # okay, so things to be aware of:
 # (a) we are assuming that if we cannot label the node and it is not loopback or in the '10.X.X.X' subnet, then it is outside
@@ -263,7 +264,7 @@ class injected_graph():
                                     self.ms_s, self.container_to_ip, self.infra_service)
 
 class set_of_injected_graphs():
-    def __init__(self, time_granularity, window_size, raw_edgefile_names,
+    def __init__(self, time_granularity, raw_edgefile_names,
                 svcs, is_swarm, ms_s, container_to_ip, infra_service, synthetic_exfil_paths, initiator_info_for_paths,
                 attacks_to_times, collected_metrics_location, current_set_of_graphs_loc,
                  avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
@@ -271,7 +272,6 @@ class set_of_injected_graphs():
 
         self.list_of_injected_graphs_loc = []
         self.time_granularity = time_granularity
-        self.window_size = window_size
         self.raw_edgefile_names = raw_edgefile_names
         self.svcs = svcs
         self.is_swarm = is_swarm
@@ -348,7 +348,7 @@ class set_of_injected_graphs():
 
         return alert_vals
 
-    def ide_calculations(self, calc_ide):
+    def ide_calculations(self, calc_ide, ide_window_size):
         '''
         cur_out_q = multiprocessing.Queue()
         args = [self.aggregate_csv_edgefile_loc, self.joint_col_list, self.window_size, self.raw_edgefile_names,
@@ -361,8 +361,8 @@ class set_of_injected_graphs():
         # okay, return these values so that we can do stuff with them later...
         return cur_out_q, ide_p
         '''
-        return calc_ide_angles(self.aggregate_csv_edgefile_loc, self.joint_col_list, self.window_size, self.raw_edgefile_names,
-                None, calc_ide)
+        return calc_ide_angles(self.aggregate_csv_edgefile_loc, self.joint_col_list, ide_window_size, self.raw_edgefile_names,
+                               None, calc_ide)
 
     def calc_serialize_metrics(self):
         adjacency_matrixes = []
@@ -402,10 +402,10 @@ class set_of_injected_graphs():
 
         #total_edgelist_nodes = self.list_of_injected_graphs[-1].total_edgelist_nodes
         #current_total_node_list = self.list_of_injected_graphs[-1].current_total_node_list
+        ''' # no point having these exist. they are just time consuming and confusing b/c I'm using CLML ide implementation now.
         ide_angles_results = ide_angles(adjacency_matrixes, self.window_size, total_edgelist_nodes)
         into_dns_eigenval_angles = change_point_detection(dns_in_metric_dicts, self.window_size, current_total_node_list)
 
-        ''' # no point having these exist. they are just time consuming and confusing b/c I'm using CLML ide implementation now.
         self.calculated_values['into_dns_eigenval_angles'] = into_dns_eigenval_angles
         self.calculated_values['ide_angles'] = ide_angles_results
         self.calculated_values['ide_angles_w_abs'] = [abs(i) for i in ide_angles_results]
@@ -1040,7 +1040,9 @@ def abstract_to_concrete_mapping(abstract_node, graph, excluded_list):
             exit(453)
 
     print "modified abstract_node", abstract_node
-    matching_concrete_nodes = [node for node in graph.nodes() if abstract_node in node if node not in excluded_list]
+    #matching_concrete_nodes = [node for node in graph.nodes() if abstract_node in node if node not in excluded_list]
+    matching_concrete_nodes = [node for node in graph.nodes() if match_name_to_pod(abstract_node, node) if node not in excluded_list]
+
     '''
     if len(matching_concrete_nodes) == 0:
         # if no matching concrete nodes, then we are adding a new node to the graph, which'll be a
@@ -1057,6 +1059,19 @@ def abstract_to_concrete_mapping(abstract_node, graph, excluded_list):
         concrete_node = abstract_node # must be a node that isn't present in the graph
     print "concrete_node", concrete_node, "abstract_node", abstract_node
     return concrete_node
+
+def match_name_to_pod(abstract_node_name, concrete_pod_name):
+    # OLD VERISON
+    #matching_concrete_nodes = [node for node in graph.nodes() if abstract_node in node if node not in excluded_list]
+    if '_VIP' in abstract_node_name:
+        return abstract_node_name in concrete_pod_name
+    else:
+        valid = re.compile('.*' + abstract_node_name + '-[0-9].*')
+        match_status = valid.match(concrete_pod_name)
+        if match_status:
+            return True
+        else:
+            return False
 
 def add_edge_weight_graph(graph, concrete_node_src, concrete_node_dst, fraction_of_weight_median,
                           fraction_of_pkt_median):

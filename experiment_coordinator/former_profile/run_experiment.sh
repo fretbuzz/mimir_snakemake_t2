@@ -20,7 +20,7 @@ bash ./deploy_application.sh $app_name $autoscale_p $cpu_cutoff
 
 echo 'start run_experiment n3' >> /local/repository/run_experiment_note3.txt
 
-#python /mydata/mimir_snakemake_t2/experiment_coordinator/run_experiment.py --exp_name $exp_name --config_file $config_file_name --prepare_app_p --port $front_facing_port -ip $minikube_ip --no_exfil
+#python /mydata/mimir_v2/experiment_coordinator/run_experiment.py --exp_name $exp_name --config_file $config_file_name --prepare_app_p --port $front_facing_port -ip $minikube_ip --no_exfil
 
 echo 'start run_experiment n4' >> /local/repository/run_experiment_note4.txt
 echo 'done_with_that' >> /mydata/done_with_setup.txt

@@ -164,6 +164,11 @@ def prepare_mulval_input(ms_s, mapping, sensitive_ms, netsec_policy, intersvc_vi
 def post_process_mulval_result(sensitive_node, max_number_of_paths, intersvc_vip_pairs, max_path_length, max_dns_porportion):
     # well, not in accordance with the architecture document, if we're putting orchestrator logic into the
     # mulval component, then we'd need to include the 'chaining' together of various steps
+    if intersvc_vip_pairs is None:
+        intersvc_vip_pairs = set()
+        intersvc_vip_pairs.add(('ALL', 'kube_dns_vip'))
+        #print "it is necessary to specify at least some parts of the netsec polciy file. Concretly, at least give vip behavior w.r.t. dns "
+        #exit(992)
 
     graph = open('./mulval_inouts/AttackGraph.txt', 'r')
     lines = graph.readlines()
@@ -250,6 +255,9 @@ def post_process_mulval_result(sensitive_node, max_number_of_paths, intersvc_vip
 
         if len(paths) >= max_number_of_paths:
             break
+
+    #print "paths", paths
+    #exit(344)
 
     print paths
 

@@ -27,8 +27,8 @@ import cilium_config_generator
 # Note: see run_analysis_pipeline_recipes for pre-configured sets of parameters (there are rather a lot)
 class data_anylsis_pipline(object):
     def __init__(self, pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths, ms_s,
-                               make_edgefiles_p, basegraph_name, window_size, colors, exfil_start_time, exfil_end_time,
-                               wiggle_room, start_time=None, end_time=None, calc_vals=True, graph_p=True,
+                               make_edgefiles_p, basegraph_name, ide_window_size=10, colors=('r','g','b'), exfil_start_time=0, exfil_end_time=0,
+                               wiggle_room=None, start_time=None, end_time=None, calc_vals=True, graph_p=True,
                                kubernetes_svc_info=None, make_net_graphs_p=False, cilium_config_path=None,
                                rdpcap_p=False, kubernetes_pod_info=None, alert_file=None, ROC_curve_p=False,
                                calc_zscore_p=False, training_window_size=200, minimum_training_window=5,
@@ -40,6 +40,9 @@ class data_anylsis_pipline(object):
                                skip_model_part=False, max_number_of_paths=None, netsec_policy=None,
                                startup_time=200, skip_graph_injection=False,
                                pod_creation_log=None): #, include_ide=False):
+
+
+
         self.ms_s = ms_s
         print "log file can be found at: " + str(basefile_name) + '_logfile.log'
         logging.basicConfig(filename=basefile_name + '_logfile.log', level=logging.INFO)
@@ -67,11 +70,11 @@ class data_anylsis_pipline(object):
         self.cilium_config_path = cilium_config_path
         self.time_interval_lengths = time_interval_lengths
         self.basegraph_name = basegraph_name
-        self.window_size = window_size
+        self.ide_window_size = ide_window_size
         self.colors = colors
         self.exfil_start_time = exfil_start_time
         self.exfil_end_time = exfil_end_time
-        self.minimum_training_window = minimum_training_window
+        #self.minimum_training_window = minimum_training_window
         self.experiment_folder_path = basefile_name.split('edgefiles')[0]
         self.pcap_file = pcap_paths[0].split('/')[-1]  # NOTE: assuming only a single pcap file...
         self.cilium_component_dir = self.experiment_folder_path + 'cilium_stuff'
@@ -86,7 +89,7 @@ class data_anylsis_pipline(object):
         self.injected_exfil_path = injected_exfil_path
         self.make_net_graphs_p=make_net_graphs_p
         self.alert_file=alert_file
-        self.wiggle_room=wiggle_room
+        #self.wiggle_room=wiggle_room
         self.sec_between_exfil_events=sec_between_exfil_events
         self.orig_alert_file = self.alert_file
         self.orig_basegraph_name = self.basegraph_name
@@ -96,10 +99,10 @@ class data_anylsis_pipline(object):
 
         self.synthetic_exfil_paths = None
         self.initiator_info_for_paths = None
-        self.training_window_size = training_window_size
-        self.size_of_neighbor_training_window = size_of_neighbor_training_window
-        print training_window_size,size_of_neighbor_training_window
-        self.system_startup_time = start_time #training_window_size + size_of_neighbor_training_window
+        #self.training_window_size = training_window_size
+        #self.size_of_neighbor_training_window = size_of_neighbor_training_window
+        #print training_window_size,size_of_neighbor_training_window
+        #self.system_startup_time = start_time #training_window_size + size_of_neighbor_training_window
         self.calc_vals = calc_vals
         self.cilium_allowed_svc_comm = None
 
@@ -151,9 +154,9 @@ class data_anylsis_pipline(object):
         self.smallest_time_gran = smallest_time_gran
         self.total_experiment_length = len(self.interval_to_filenames[str(smallest_time_gran)]) * smallest_time_gran
         print "about to return from only_exp_info section", self.total_experiment_length, self.exfil_start_time, self.exfil_end_time, \
-            self.system_startup_time, None
+            None, None
         #return total_experiment_length, self.exfil_start_time, self.exfil_end_time, self.system_startup_time
-        return self.total_experiment_length, self.exfil_start_time, self.exfil_end_time, self.system_startup_time
+        return self.total_experiment_length, self.exfil_start_time, self.exfil_end_time, None
 
     def correct_attacks_labels_using_exfil_amts(self, time_gran_to_attack_labels, time_gran_to_list_of_exfil_amts):
         time_gran_to_new_attack_labels = {}
@@ -223,8 +226,7 @@ class data_anylsis_pipline(object):
             print "synthetic_exfil_paths", synthetic_exfil_paths
             time_gran_to_attack_labels, time_gran_to_attack_ranges, time_gran_to_physical_attack_ranges = \
                 determine_attacks_to_times(time_gran_to_attack_labels, synthetic_exfil_paths,
-                                           time_of_synethic_exfil=self.time_of_synethic_exfil,
-                                           min_starting=self.system_startup_time, end_of_train=end_of_training,
+                                           time_of_synethic_exfil=self.time_of_synethic_exfil, end_of_train=end_of_training,
                                            synthetic_exfil_paths_train=synthetic_exfil_paths_train,
                                            synthetic_exfil_paths_test=synthetic_exfil_paths_test)
             print "time_gran_to_attack_labels", time_gran_to_attack_labels
@@ -249,10 +251,9 @@ class data_anylsis_pipline(object):
             time_gran_to_list_of_amt_of_out_traffic_bytes, time_gran_to_list_of_amt_of_out_traffic_pkts= \
                 calculate_raw_graph_metrics(self.time_interval_lengths, self.interval_to_filenames, self.ms_s, self.basegraph_name,
                                             self.calc_vals,
-                                            self.window_size, self.mapping, self.is_swarm, self.make_net_graphs_p,
+                                            self.ide_window_size, self.mapping, self.is_swarm, self.make_net_graphs_p,
                                             self.list_of_infra_services,
                                             synthetic_exfil_paths, self.initiator_info_for_paths, time_gran_to_attack_ranges,
-                                            self.size_of_neighbor_training_window,
                                             avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
                                             self.skip_graph_injection, self.end_of_training,
                                             self.pod_creation_log, calc_ide, include_ide, only_ide)
@@ -459,7 +460,7 @@ class data_anylsis_pipline(object):
             time_gran_to_cil_alerts[time_gran] = cilium_alerts
         return time_gran_to_cil_alerts
 
-def process_one_set_of_graphs(time_interval_length, window_size,
+def process_one_set_of_graphs(time_interval_length, ide_window_size,
                                 filenames, svcs, is_swarm, ms_s, mapping,  list_of_infra_services,
                                 synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
                                collected_metrics_location, current_set_of_graphs_loc, calc_vals, out_q,
@@ -468,7 +469,7 @@ def process_one_set_of_graphs(time_interval_length, window_size,
                               only_ide):
 
     if calc_vals and not only_ide:
-        current_set_of_graphs = simplified_graph_metrics.set_of_injected_graphs(time_interval_length, window_size,
+        current_set_of_graphs = simplified_graph_metrics.set_of_injected_graphs(time_interval_length,
                                          filenames, svcs, is_swarm, ms_s, mapping, list_of_infra_services,
                                          synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
                                          collected_metrics_location, current_set_of_graphs_loc,
@@ -487,17 +488,17 @@ def process_one_set_of_graphs(time_interval_length, window_size,
         current_set_of_graphs.calc_serialize_metrics()
 
         # these relate to ide
-        '''
+        #'''
         if include_ide or calc_ide:
             print "waiting for ide angles to finish...."
-            real_ide_angles = current_set_of_graphs.ide_calculations(calc_ide)
+            real_ide_angles = current_set_of_graphs.ide_calculations(calc_ide, ide_window_size)
             current_set_of_graphs.calculated_values['real_ide_angles'] = real_ide_angles
 
             # okay, now save all of the values coherently..
             current_set_of_graphs.calculated_values_keys = current_set_of_graphs.calculated_values.keys()
             with open(current_set_of_graphs.collected_metrics_location, 'wb') as f:  # Just use 'w' mode in 3.x
                 f.write(pickle.dumps(current_set_of_graphs.calculated_values))
-        '''
+        #'''
 
         current_set_of_graphs.save()
         #print "hi"
@@ -513,7 +514,7 @@ def process_one_set_of_graphs(time_interval_length, window_size,
         if only_ide:
             print "waiting for ide angles to finish...."
             #current_set_of_graphs.generate_aggregate_csv() ## TODO: <<---- REMOVE THIS LINE!!!!
-            real_ide_angles = current_set_of_graphs.ide_calculations(True)
+            real_ide_angles = current_set_of_graphs.ide_calculations(True, ide_window_size)
             current_set_of_graphs.calculated_values['real_ide_angles'] = real_ide_angles
 
             # okay, now save all of the values coherently..
@@ -527,9 +528,9 @@ def process_one_set_of_graphs(time_interval_length, window_size,
     current_set_of_graphs.put_values_into_outq(out_q)
 
 
-def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms_s, basegraph_name, calc_vals, window_size,
+def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms_s, basegraph_name, calc_vals, ide_window_size,
                                 mapping, is_swarm, make_net_graphs_p, list_of_infra_services,synthetic_exfil_paths,
-                                initiator_info_for_paths, time_gran_to_attacks_to_times, size_of_neighbor_training_window,
+                                initiator_info_for_paths, time_gran_to_attacks_to_times,
                                 avg_exfil_per_min,
                                 exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
                                 skip_graph_injection, end_of_training, pod_creation_log, calc_ide, include_ide,
@@ -555,7 +556,7 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
 
         collected_metrics_location = basegraph_name + 'collected_metrics_time_gran_' + str(time_interval_length) + '.csv'
         current_set_of_graphs_loc = basegraph_name + 'set_of_graphs' + str(time_interval_length) + '.csv'
-        args = [time_interval_length, window_size,
+        args = [time_interval_length, ide_window_size,
                 interval_to_filenames[str(time_interval_length)], svcs, is_swarm, ms_s, mapping,
                 list_of_infra_services, synthetic_exfil_paths,  initiator_info_for_paths,
                 time_gran_to_attacks_to_times[time_interval_length], collected_metrics_location, current_set_of_graphs_loc,
@@ -593,14 +594,13 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
 
 ## NOTE: portion_for_training is the percentage to devote to using for the training period (b/c attacks will be injected
 ## into both the training period and the testing period)
-def determine_attacks_to_times(time_gran_to_attack_labels, synthetic_exfil_paths, time_of_synethic_exfil, min_starting,
+def determine_attacks_to_times(time_gran_to_attack_labels, synthetic_exfil_paths, time_of_synethic_exfil,
                                end_of_train, synthetic_exfil_paths_train, synthetic_exfil_paths_test):
     time_grans = time_gran_to_attack_labels.keys()
     largest_time_gran = sorted(time_grans)[-1]
     print "LARGEST_TIME_GRAN", largest_time_gran
     print "time_of_synethic_exfil",time_of_synethic_exfil
     time_periods_attack = float(time_of_synethic_exfil) / float(largest_time_gran)
-    time_periods_startup = math.ceil(float(min_starting) / float(largest_time_gran))
     time_gran_to_attack_ranges = {} # a list that'll correspond w/ the synthetic exfil paths
     for time_gran in time_gran_to_attack_labels.keys():
         time_gran_to_attack_ranges[time_gran] = []
