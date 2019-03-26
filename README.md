@@ -5,6 +5,8 @@ Mimir is an experimental apparatus designed to test the potential for anomaly-ba
 ## To Run
 Currently, it only works off-line (with network pcap files). Add the desired configuration to analysis_pipeline/pipeline_recipes.py and that'll run it (see current contents of file for usage example). Note: If your thinking of running this yourself, you should probably talk to fretbuzz first.
 
+Detailed setup/running instructions are being worked on at the moment and should be available soon. If you need to run it before then, send fretbuzz a message.
+
  ## Tech/framework used
 
 <b>Built with:</b>
