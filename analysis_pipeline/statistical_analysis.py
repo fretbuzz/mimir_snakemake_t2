@@ -46,6 +46,17 @@ class statistical_pipeline():
 
         self.train_predictions = None
         self.test_predictions = None
+        self._train_model()
+        self._fit_model_on_test_data()
+
+        self.coef_dict  = get_coef_dict(self.clf, self.X_train.columns.values, self.base_output_name, self.X_train.dtypes)
+        self.coef_feature_df = pd.DataFrame.from_dict(self.coef_dict, orient='index')
+        self.coef_feature_df.columns = ['Coefficient']
+        self.model_params = clf.get_params()
+        try:
+            self.model_params['alpha_val'] = clf.alpha_
+        except:
+            pass
 
     def _prepare_data(self):
         pass # will want to move the prepare_data function over here... since it is cringy to have

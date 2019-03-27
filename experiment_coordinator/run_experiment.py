@@ -1309,7 +1309,8 @@ if __name__=="__main__":
     #print args.restart_minikube, args.setup_sockshop, args.run_experiment, args.analyze, args.output_dict, args.tcpdump, args.on_cloudlab, args.app, args.istio_p, args.hpa
     print args.exp_name, args.config_file, args.prepare_app_p, args.port_number, args.vm_ip, args.localhostip, args.install_det_depen_p, args.exfil_p
 
-    with open(args.config_file + '.json') as f:
+    print os.getcwd()
+    with open(args.config_file) as f:
         config_params = json.load(f)
     orchestrator = config_params["orchestrator"]
 
