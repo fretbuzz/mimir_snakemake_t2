@@ -42,7 +42,7 @@ CLIENT_RATIO_CYBER = [0.0328, 0.0255, 0.0178, 0.0142, 0.0119, 0.0112, 0.0144, 0.
 
 def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, install_det_depen_p, exfil_p):
     # step (1) read in the config file
-    with open(config_file) as f:
+    with open(config_file.rstrip().lstrip()) as f:
         config_params = json.load(f)
     orchestrator = "kubernetes"
     class_to_installer = config_params["exfiltration_info"]["exfiltration_path_class_which_installer"]

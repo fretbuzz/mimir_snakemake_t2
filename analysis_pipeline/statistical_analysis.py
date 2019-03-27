@@ -12,7 +12,8 @@ class statistical_pipeline():
     def __init__(self, aggregate_mod_score_df,base_output_name, names, starts_of_testing,
                  path_occurence_training_df, path_occurence_testing_df, recipes_used, skip_model_part, clf,
                  ignore_physical_attacks_p, avg_exfil_per_min, avg_pkt_size, exfil_per_min_variance,
-                 pkt_size_variance, drop_pairwise_features, rate, timegran, time_gran_to_debugging_csv):
+                 pkt_size_variance, drop_pairwise_features, rate, timegran, time_gran_to_debugging_csv,
+                 lasso_feature_selection_p):
 
         self.aggregate_mod_score_df = aggregate_mod_score_df
         self.base_output_name = base_output_name
@@ -32,6 +33,7 @@ class statistical_pipeline():
         self.rate = rate
         self.time_gran = timegran
         self.time_gran_to_debugging_csv = time_gran_to_debugging_csv
+        self.lasso_feature_selection_p = lasso_feature_selection_p
 
         self.X_train, self.y_train, self.X_test, self.y_test, self.pre_drop_X_train, self.time_gran_to_debugging_csv,\
             self.dropped_feature_list, self.ide_train, self.ide_test, self.X_train_exfil_weight, self.X_test_exfil_weight,\
@@ -40,18 +42,24 @@ class statistical_pipeline():
             self.time_gran_to_debugging_csv, self.time_gran, self.drop_pairwise_features)
 
 
+        self.dropped_columns = list(self.pre_drop_X_train.columns.difference(self.X_train.columns))
+
+        self.train_predictions = None
+        self.test_predictions = None
+
     def _prepare_data(self):
         pass # will want to move the prepare_data function over here... since it is cringy to have
         # it all in a seperate function with a bazillion parameters/returns (like above)
 
-    def train_model(self):
-        pass
+    def _train_model(self):
+        self.clf.fit(self.X_train, self.y_train)
+        self.train_predictions = self.clf.predict(X=self.X_train)
 
     def generate_train_report_sections(self):
         pass
 
-    def fit_model(self):
-        pass
+    def _fit_model_on_test_data(self):
+        self.test_predictions = self.clf.predict(X=self.X_test)
 
     def generate_fit_report_sections(self):
         pass
@@ -127,7 +135,6 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
         # if I want to do logistic regresesion, this is probably where I'd need to do it (but would it
         # effect the information that I need to feed into the report generation component??) - in particular
         # the heatmap and ROC component
-        clf.fit(X_train, y_train)
 
         #clf = sklearn.linear_model.LinearRegression()
         clf.fit(X_train, y_train)
