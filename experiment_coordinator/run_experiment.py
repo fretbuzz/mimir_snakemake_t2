@@ -265,6 +265,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
                       './' + exp_name + '_hpa_log.txt'],  shell=False, stdin=None, stdout=None,
                      stderr=None, close_fds=True)
     print "DET part going!"
+
     ##################
     # now loop through the various exfiltration scenarios listed in the experimental configuration specification
     start_time = time.time()
@@ -276,34 +277,36 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
         if exfil_p:
             # setup config files for proxy DET instances and start them
             # note: this is only going to work for a single src and a single dst, ATM
+
             for class_name, container_instances in selected_proxies.iteritems():
                 # going to determine srcs and dests by looking backword into the src class, index into the selected proxies,
                 # and then indexing into instances_to_network_to_ips
-                dsts, srcs = find_dst_and_srcs_ips_for_det(exfil_paths, class_name, selected_containers, localhostip,
+                dsts, srcs = find_dst_and_srcs_ips_for_det(exfil_paths[exfil_counter], class_name, selected_containers, localhostip,
                                                            proxy_instance_to_networks_to_ip, class_to_networks)
                 for container in container_instances:
                     for dst in dsts:
                         print "config stuff", container.name, srcs, dst, proxy_instance_to_networks_to_ip[container]
+
+
                         start_det_proxy_mode(orchestrator, container, srcs, dst, cur_exfil_method,
                                             maxsleep, DET_max_exfil_bytes_in_packet, DET_min_exfil_bytes_in_packet)
 
             start_det_server_local(cur_exfil_method, [ip], maxsleep, DET_max_exfil_bytes_in_packet,
                                    DET_min_exfil_bytes_in_packet, experiment_name)
 
-        # now setup the originator (i.e. the client that originates the exfiltrated data)
-        next_instance_ips, _ = find_dst_and_srcs_ips_for_det(exfil_paths, originator_class,
-                                                             selected_containers, localhostip,
-                                                             proxy_instance_to_networks_to_ip,
-                                                             class_to_networks)
+            # now setup the originator (i.e. the client that originates the exfiltrated data)
+            next_instance_ips, _ = find_dst_and_srcs_ips_for_det(exfil_paths[exfil_counter], originator_class,
+                                                                 selected_containers, localhostip,
+                                                                 proxy_instance_to_networks_to_ip,
+                                                                 class_to_networks)
 
-        print "next ip(s) for the originator to send to", next_instance_ips
-        directory_to_exfil = config_params["exfiltration_info"]["folder_to_exfil"]
-        regex_to_exfil = config_params["exfiltration_info"]["regex_of_file_to_exfil"]
-        files_to_exfil = []
-        for class_name, container_instances in selected_originators.iteritems():
-            for container in container_instances:
-                for next_instance_ip in next_instance_ips:
-                    if exfil_p:
+            print "next ip(s) for the originator to send to", next_instance_ips
+            directory_to_exfil = config_params["exfiltration_info"]["folder_to_exfil"]
+            regex_to_exfil = config_params["exfiltration_info"]["regex_of_file_to_exfil"]
+            files_to_exfil = []
+            for class_name, container_instances in selected_originators.iteritems():
+                for container in container_instances:
+                    for next_instance_ip in next_instance_ips:
                         # this just sets up the config file for DET... I'm not sure why there is a loop over the next_instance_ips
                         # but I suspect it's because the base implementation requires a new instance for each exfil path,
                         # so if you want to do multiple exfiltration path simultaneously, you need multiple instances and
@@ -312,17 +315,13 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
                                                                      regex_to_exfil,
                                                                      maxsleep, DET_min_exfil_bytes_in_packet,
                                                                      DET_max_exfil_bytes_in_packet)
-                    else:
-                        file_to_exfil = ''
-                    files_to_exfil.append(file_to_exfil)
-
-        print "files_to_exfil", files_to_exfil
+                        files_to_exfil.append(file_to_exfil)
 
 
-        time.sleep(start_time + next_exfil_start_time - time.time())
-        print start_time, next_exfil_start_time, time.time(), start_time + next_exfil_start_time - time.time()
 
-        if exfil_p:
+            time.sleep(start_time + next_exfil_start_time - time.time())
+            print start_time, next_exfil_start_time, time.time(), start_time + next_exfil_start_time - time.time()
+
             file_to_exfil = files_to_exfil[0]
             for class_name, container_instances in selected_originators.iteritems():
                 for container in container_instances:
@@ -333,8 +332,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
                     else:
                         print "that exfiltration method was not recognized!"
 
-        time.sleep(start_time + next_exfil_end_time - time.time())
-        if exfil_p:
+            time.sleep(start_time + next_exfil_end_time - time.time())
             for class_name, container_instances in selected_originators.iteritems():
                 for container in container_instances:
                     if cur_exfil_method == 'DET':
@@ -344,18 +342,18 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
                     else:
                         print "that exfiltration method was not recognized!"
 
+            exfil_info_file_name = './' + experiment_name + '_det_server_local_output.txt'
+            bytes_exfil, start_ex, end_ex = parse_local_det_output(exfil_info_file_name, exfil_protocols[exfil_counter])
+            print bytes_exfil, "bytes exfiltrated"
+            print "starting at ", start_ex, "and ending at", end_ex
+    ################
+
     # step (7) wait, all the tasks are being taken care of elsewhere
     time_left_in_experiment = start_time + int(experiment_length) + 7 - time.time()
     time.sleep(time_left_in_experiment)
 
     with open(end_sentinal_file_loc, 'w') as f:
         f.write('all_done')
-
-    if exfil_p:
-        exfil_info_file_name = './' + experiment_name + '_det_server_local_output.txt'
-        bytes_exfil, start_ex, end_ex = parse_local_det_output(exfil_info_file_name, exfil_protocol)
-        print bytes_exfil, "bytes exfiltrated"
-        print "starting at ", start_ex, "and ending at", end_ex
 
     subprocess.call(['cat', './' + experiment_name + '_locust_info.csv' ])
 
@@ -1014,22 +1012,6 @@ def start_det_server_local(protocol, srcs, maxsleep, maxbytesread, minbytesread,
     # note: this will remove the files existing contents (which is fine w/ me!)
     with open('./' + experiment_name + '_det_server_local_output.txt', 'w') as f:
         cmd = subprocess.Popen(cmds, cwd='/DET/', preexec_fn=os.setsid, stdout=f)
-    #print cmd # okay, I guess I'll just analyze the output manually... (Since this fancy thing doe
-    '''
-    parsing_thread = thread.start_new_thread(parse_local_det_output, (cmd, exfil_info_file_name))
-
-    # now wait for a certain amount of time and then kill both of those
-    # threads, so that we can start on the next experiment
-    print "about to start waiting for", exp_time, "seconds!"
-    time.sleep(exp_time)
-    # honestly, I don't really need to kill it, b/c it'll stop getting input and then it'll
-    # just die with the process (i think)...
-    parsing_thread.kill()
-    if cmd:
-        #os.killpg(os.getpgid(cmd.pid), signal.SIGTERM)
-        os.system("sudo kill %s" % (cmd.pid,))
-    print cmd
-    '''
 
 def parse_local_det_output(exfil_info_file_name, protocol):
     print "this is the local det server parsing function!"
