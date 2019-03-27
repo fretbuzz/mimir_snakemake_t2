@@ -1,7 +1,7 @@
 {
     "application_name": "sockshop",
     "experiment_name": "sockshop_one",
-    "experiment_length_sec": 10800,
+    "experiment_length_sec": 108,
     "network_plugin": "none",
     "setup" : {
       "number_customer_records": 10000,
@@ -25,7 +25,7 @@
       "exfil_paths": [],
       "DET_min_exfil_data_per_packet_bytes": [300],
       "DET_max_exfil_data_per_packet_bytes": [400],
-      "DET_avg_exfiltration_rate_KB_per_sec": [1]
+      "DET_avg_exfiltration_rate_KB_per_sec": [1],
       "sec_between_exfil_pkts":["None"]
     }
 }
