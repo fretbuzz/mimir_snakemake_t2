@@ -1314,69 +1314,38 @@ def copy_experimental_info_to_experimental_folder(exp_name):
 # this function generates the json that will be used be the analysis_pipeline pipeline
 def generate_analysis_json(path_to_exp_folder, analysis_json_name, exp_config_json, exp_name):
     # okay, so what I want is just a dict with the relevant values...
+
     analysis_dict = {}
-    if exp_config_json["orchestrator"] == "docker_swarm":
-        analysis_dict['is_swarm'] = str(1)
-    else:
-        analysis_dict['is_swarm'] = str(0)
 
-    pcap_path = exp_name + '_default_bridge_0any.pcap'
-    analysis_dict["pcap_paths"] = [path_to_exp_folder + pcap_path]
+    analysis_dict["application_name"] = exp_config_json["application_name"]
+    analysis_dict["experiment_name"] = exp_config_json["experiment_name"]
+    analysis_dict["experiment_length_sec"] = exp_config_json["experiment_length_sec"]
+    analysis_dict["network_plugin"] = exp_config_json["network_plugin"]
 
-    analysis_dict["basefile_name"] = 'edgefiles/' + exp_name + '_'
-    analysis_dict["basegraph_name"] = 'graphs/' + exp_name + '_'
-    analysis_dict["container_info_path"] = exp_name + "_docker_0_network_configs.txt"
-    analysis_dict["container_info_path"] = exp_name + "_docker_0_network_configs.txt"
+    analysis_dict["setup"] = {}
+    analysis_dict["setup"]["number_customer_records"] = exp_config_json["setup"]["number_customer_records"]
+    analysis_dict["setup"]["number_background_locusts"] = exp_config_json["setup"]["number_background_locusts"]
+    analysis_dict["setup"]["background_locust_spawn_rate"] = exp_config_json["setup"]["background_locust_spawn_rate"]
 
-    using_cilium_p = True if exp_config_json['network_plugin'] == 'cilium' else False
-    if using_cilium_p:
-        cilium_config_path = exp_name + '_0_cilium_network_configs.txt'
-    else:
-        cilium_config_path = None
-    analysis_dict["cilium_config_path"] = cilium_config_path
+    analysis_dict["experiment"] = {}
+    analysis_dict["experiment"]["number_background_locusts"] = exp_config_json["experiment"]["number_background_locusts"]
+    analysis_dict["experiment"]["background_locust_spawn_rate"] = exp_config_json["experiment"]["background_locust_spawn_rate"]
+    analysis_dict["experiment"]["traffic_type"] = exp_config_json["experiment"]["traffic_type"]
 
-    analysis_dict["kubernetes_svc_info"] = exp_name + '_svc_config_0.txt'
-    analysis_dict["kubernetes_pod_info"] = exp_name + '_pod_config_0.txt'
+    analysis_dict["exfiltration_info"] = {}
+    analysis_dict["exfiltration_info"]["sensitive_ms"] = exp_config_json["exfiltration_info"]["sensitive_ms"]
+    analysis_dict["exfiltration_info"]["exfiltration_path_class_which_installer"] = exp_config_json["exfiltration_info"]["exfiltration_path_class_which_installer"]
+    analysis_dict["exfiltration_info"]["folder_to_exfil"] = exp_config_json["exfiltration_info"]["folder_to_exfil"]
+    analysis_dict["exfiltration_info"]["regex_of_file_to_exfil"] = exp_config_json["exfiltration_info"]["regex_of_file_to_exfil"]
+    analysis_dict["exfiltration_info"]["exfil_methods"] = exp_config_json["exfiltration_info"]["exfil_methods"]
+    analysis_dict["exfiltration_info"]["exfil_protocols"] = exp_config_json["exfiltration_info"]["exfil_protocols"]
+    analysis_dict["exfiltration_info"]["exfil_StartEnd_times"] = exp_config_json["exfiltration_info"]["exfil_StartEnd_times"]
+    analysis_dict["exfiltration_info"]["DET_min_exfil_data_per_packet_bytes"] = exp_config_json["exfiltration_info"]["DET_min_exfil_data_per_packet_bytes"]
+    analysis_dict["exfiltration_info"]["DET_max_exfil_data_per_packet_bytes"] = exp_config_json["exfiltration_info"]["DET_max_exfil_data_per_packet_bytes"]
+    analysis_dict["exfiltration_info"]["DET_avg_exfiltration_rate_KB_per_sec"] = exp_config_json["exfiltration_info"]["DET_avg_exfiltration_rate_KB_per_sec"]
 
-    if exp_config_json["application_name"] == 'sockshop':
-        ms_s = ['carts-db', 'carts', 'catalogue-db', 'catalogue', 'front-end', 'orders-db', 'orders',
-                              'payment', 'queue-master', 'rabbitmq', 'session-db', 'shipping', 'user-db', 'user',
-                              'load-test']
-    elif exp_config_json["application_name"] == 'wordpress':
-        ms_s = ["my-release-pxc", "wwwppp-wordpress"]
-    else:
-        print "unrecognzied application"
-        exit(1)
-
-    analysis_dict['exfil_methods'] = exp_config_json["exfil_method"]
-    analysis_dict["exfil_start_time"] = exp_config_json["exfiltration_info"]["exfil_start_time"]
-    analysis_dict["exfil_end_time"] = exp_config_json["exfiltration_info"]["exfil_end_time"]
-    analysis_dict["number_background_locusts"] = exp_config_json["experiment"]["number_background_locusts"]
-    analysis_dict["background_locust_spawn_rate"] = exp_config_json["experiment"]["background_locust_spawn_rate"]
-    analysis_dict["experiment_length_sec"] = exp_config_json["experiment"]["experiment_length_sec"]
-    analysis_dict["traffic_type"] = exp_config_json["experiment"]["traffic_type"]
-
-
-
-    '''
-    analysis_dict["ms_s"] = ms_s
-    analysis_dict["make_edgefiles"] = True
-    analysis_dict["start_time"] = None
-    analysis_dict["end_time"] = None
-    analysis_dict["time_interval_lengths"] = [60, 30, 10]
-
-    analysis_dict['calc_vals'] = True
-    analysis_dict['window_size'] = 6
-    analysis_dict['graph_p'] = True
-    analysis_dict['colors'] = ['b', 'r']
-    analysis_dict['wiggle_room'] = 2
-    analysis_dict['percentile_thresholds'] = [25, 35, 45, 50, 60, 75, 85, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100]
-    analysis_dict['anomaly_window'] = [1, 4]
-    analysis_dict['anom_num_outlier_vals_in_window'] = [1, 2]
-    analysis_dict['alert_file'] = 'alerts/' + exp_name + '_'
-    analysis_dict['ROC_curve_p'] = True
-    analysis_dict['calc_tpr_fpr_p'] = True
-    '''
+    analysis_dict["pod_creation_log_name"] = exp_name + '_default_bridge_0any.pcap'
+    analysis_dict["pcap_file_name"] = exp_name + '_cluster_creation_log.txt'
 
     if 'dnscat' in exp_config_json["exfil_method"]:
         analysis_dict['sec_between_exfil_events'] = exp_config_json["seconds_per_dns_packet"]
@@ -1385,7 +1354,7 @@ def generate_analysis_json(path_to_exp_folder, analysis_json_name, exp_config_js
 
 
     json_path = path_to_exp_folder + analysis_json_name
-    r = json.dumps(analysis_dict)
+    r = json.dumps(analysis_dict, indent=4)
     with open(json_path, 'w') as f:
         f.write(r + "\n" )
 
