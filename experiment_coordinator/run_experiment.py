@@ -269,6 +269,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
     ##################
     # now loop through the various exfiltration scenarios listed in the experimental configuration specification
     start_time = time.time()
+    i = 0
     for exfil_counter, next_StartEnd_time in enumerate(exfil_StartEnd_times):
         next_exfil_start_time = next_StartEnd_time[0]
         next_exfil_end_time = next_StartEnd_time[1]
@@ -503,7 +504,7 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
             #                        stdout=devnull, stderr=devnull, preexec_fn=os.setsid)
             elif app_name == "wordpress":
                 wordpress_cmds = ["locust", "-f", "./load_generators/wordpress_background.py", "--host=https://"+ip+ ":" +str(port),
-                                  "--no-web", "-c", client_count, "-r", spawn_rate, "--csv=" + locust_info_file]
+                                  "--no-web", "-c", str(client_count), "-r", str(spawn_rate), "--csv=" + locust_info_file]
                 print "wordpress_cmds", wordpress_cmds
                 proc = subprocess.Popen(wordpress_cmds, preexec_fn=os.setsid, stdout=devnull, stderr=devnull)
             else:
@@ -1312,7 +1313,7 @@ if __name__=="__main__":
     print os.getcwd()
     with open(args.config_file) as f:
         config_params = json.load(f)
-    orchestrator = config_params["orchestrator"]
+    orchestrator = "kubernetes"
 
     if args.vm_ip == 'None':
         ip = get_IP(orchestrator)

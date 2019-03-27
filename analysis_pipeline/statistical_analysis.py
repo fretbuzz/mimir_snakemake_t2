@@ -34,6 +34,10 @@ class statistical_pipeline():
         self.time_gran = timegran
         self.time_gran_to_debugging_csv = time_gran_to_debugging_csv
         self.lasso_feature_selection_p = lasso_feature_selection_p
+        self.feature_activation_heatmaps = []
+        self.feature_raw_heatmaps = []
+        self.feature_activation_heatmaps_training = []
+        self.feature_raw_heatmaps_training = []
 
         self.X_train, self.y_train, self.X_test, self.y_test, self.pre_drop_X_train, self.time_gran_to_debugging_csv,\
             self.dropped_feature_list, self.ide_train, self.ide_test, self.X_train_exfil_weight, self.X_test_exfil_weight,\
@@ -65,6 +69,34 @@ class statistical_pipeline():
     def _train_model(self):
         self.clf.fit(self.X_train, self.y_train)
         self.train_predictions = self.clf.predict(X=self.X_train)
+
+    def _generate_heatmap(self, training_p):
+        if training_p:
+            train_test = 'training_'
+        else:
+            train_test = 'test_'
+
+        # make heatmaps so I can see which features are contributing
+        current_heatmap_val_path = self.base_output_name + train_test + 'coef_val_heatmap_' + str(self.time_gran) + '.png'
+        local_heatmap_val_path = 'temp_outputs/' + train_test + 'heatmap_coef_val_at_' +  str(self.time_gran) + '.png'
+        current_heatmap_path = self.base_output_name + train_test + 'coef_act_heatmap_' + str(self.time_gran) + '.png'
+        local_heatmap_path = 'temp_outputs/' + train_test + 'heatmap_coef_contribs_at_' +  str(self.time_gran) + '.png'
+
+        if training_p:
+            coef_impact_df, raw_feature_val_df = generate_heatmap.generate_covariate_heatmap(self.coef_dict, self.X_train, self.exfil_paths_train)
+        else:
+            coef_impact_df, raw_feature_val_df = generate_heatmap.generate_covariate_heatmap(self.coef_dict, self.X_test, self.exfil_paths)
+
+        generate_heatmap.generate_heatmap(coef_impact_df, local_heatmap_path, current_heatmap_path)
+        generate_heatmap.generate_heatmap(raw_feature_val_df, local_heatmap_val_path, current_heatmap_val_path)
+
+        if training_p:
+            self.feature_activation_heatmaps_training.append('../' + local_heatmap_path)
+            self.feature_raw_heatmaps_training.append('../' + local_heatmap_val_path)
+        else:
+            self.feature_activation_heatmaps.append('../' + local_heatmap_path)
+            self.feature_raw_heatmaps.append('../' + local_heatmap_val_path)
+        print coef_impact_df
 
     def generate_train_report_sections(self):
         pass
