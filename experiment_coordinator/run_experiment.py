@@ -44,7 +44,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
     # step (1) read in the config file
     with open(config_file + '.json') as f:
         config_params = json.load(f)
-    orchestrator = config_params["orchestrator"]
+    orchestrator = "kubernetes"
     class_to_installer = config_params["exfiltration_info"]["exfiltration_path_class_which_installer"]
     network_plugin = 'none'
     try:
@@ -52,9 +52,9 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
     except:
         pass
 
-    exfil_method = 'DET'
+    exfil_methods = ['DET']
     try:
-        exfil_method = config_params["exfil_method"]
+        exfil_methods = config_params["exfiltration_info"]["exfil_methods"]
     except:
         pass
 
@@ -70,17 +70,20 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
     except OSError:
         pass
 
-    min_exfil_bytes_in_packet = int(config_params["exfiltration_info"]["min_exfil_data_per_packet_bytes"])
-    max_exfil_bytes_in_packet = int(config_params["exfiltration_info"]["max_exfil_data_per_packet_bytes"])
-    avg_exfil_rate_KB_per_sec = float(config_params["exfiltration_info"]["avg_exfiltration_rate_KB_per_sec"])
+    DET_min_exfil_bytes_in_packet = list(config_params["exfiltration_info"]["DET_min_exfil_data_per_packet_bytes"])
+    DET_max_exfil_bytes_in_packet = list(config_params["exfiltration_info"]["DET_max_exfil_data_per_packet_bytes"])
+    DET_avg_exfil_rate_KB_per_sec = list(config_params["exfiltration_info"]["DET_avg_exfiltration_rate_KB_per_sec"])
     # okay, now need to calculate the time between packetes (and throw an error if necessary)
-    avg_exfil_bytes_in_packet = (float(min_exfil_bytes_in_packet) + float(max_exfil_bytes_in_packet)) / 2.0
-    BYTES_PER_MB = 1024
-    avg_number_of_packets_per_second = (avg_exfil_rate_KB_per_sec * BYTES_PER_MB) / avg_exfil_bytes_in_packet
-    average_seconds_between_packets = 1.0 / avg_number_of_packets_per_second
-    maxsleep = average_seconds_between_packets * 2 # take random value between 0 and the max, so 2*average gives the right
-    # will need to calculate the MAX_SLEEP_TIME after I load the webapp (and hence
-    # the corresponding database)
+    avg_exfil_bytes_in_packet = [(float(DET_min_exfil_bytes_in_packet[i]) + float(DET_max_exfil_bytes_in_packet[i])) \
+                                 / 2.0 for i in range(0,len(DET_max_exfil_bytes_in_packet))]
+
+    BYTES_PER_KB = 1000
+    avg_number_of_packets_per_second = [(DET_avg_exfil_rate_KB_per_sec[i] * BYTES_PER_KB) / avg_exfil_bytes_in_packet[i] for i
+                                        in range(0, len(DET_avg_exfil_rate_KB_per_sec))]
+    average_seconds_between_packets = [1.0 / avg_number_of_packets_per_second[i] for i in range(0,len(avg_number_of_packets_per_second))]
+    maxsleep = [average_seconds_between_packets[i] * 2 for i in range(0,len(average_seconds_between_packets))]
+    # take random value between 0 and the max, so 2*average gives the right will need to calculate the MAX_SLEEP_TIME
+    # after I load the webapp (and hence the corresponding database)
 
     # step (2) setup the application, if necessary (e.g. fill up the DB, etc.)
     # note: it is assumed that the application is already deployed
@@ -90,8 +93,6 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
     if prepare_app_p:
         prepare_app(config_params["application_name"], config_params["setup"], ip, port)
 
-    class_to_net = config_params["class_to_networks"]
-    print "class_to_net", class_to_net
     # determine the network namespaces
     # this will require mapping the name of the network to the network id, which
     # is then present (in truncated form) in the network namespace
@@ -111,6 +112,8 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
     class_to_networks = {}
     # the furthest will be the originator, the others will be proxies (endpoint will be local)
     index = 0
+    ## TODO: keep going from here!! (man, this is a LOT of work...)
+
     exfil_path = config_params["exfiltration_info"]["exfiltration_path_class"]
     for proxy_class in exfil_path[:-1]:
         print "current proxy class", proxy_class
@@ -195,7 +198,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
                 print "config stuff", container.name, srcs, dst, proxy_instance_to_networks_to_ip[ container ]
                 if exfil_p:
                     start_det_proxy_mode(orchestrator, container, srcs, dst, exfil_protocol,
-                                            maxsleep, max_exfil_bytes_in_packet, min_exfil_bytes_in_packet)
+                                            maxsleep, DET_max_exfil_bytes_in_packet, DET_min_exfil_bytes_in_packet)
 
     # start the endpoint (assuming the pre-reqs are installed prior to the running of this script)
     # todo: modify this for the k8s scaneario
@@ -229,8 +232,8 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
     #'''
 
     if exfil_p:
-        start_det_server_local(exfil_protocol, srcs, maxsleep, max_exfil_bytes_in_packet,
-                           min_exfil_bytes_in_packet, experiment_name)
+        start_det_server_local(exfil_protocol, srcs, maxsleep, DET_max_exfil_bytes_in_packet,
+                           DET_min_exfil_bytes_in_packet, experiment_name)
     #'''
     # now setup the originator (i.e. the client that originates the exfiltrated data)
     # explicit_target from the config file (exp_six)... if it has corresponding src and dst values
@@ -256,7 +259,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
             for next_instance_ip in next_instance_ips:
                 if exfil_p:
                     file_to_exfil = setup_config_file_det_client(next_instance_ip, container, directory_to_exfil, regex_to_exfil,
-                                                             maxsleep, min_exfil_bytes_in_packet, max_exfil_bytes_in_packet)
+                                                             maxsleep, DET_min_exfil_bytes_in_packet, DET_max_exfil_bytes_in_packet)
                 else:
                     file_to_exfil = ''
                 files_to_exfil.append(file_to_exfil)
@@ -377,9 +380,9 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
             file_to_exfil = files_to_exfil[0]
             for class_name, container_instances in selected_originators.iteritems():
                 for container in container_instances:
-                    if exfil_method == 'DET':
+                    if exfil_methods == 'DET':
                         thread.start_new_thread(start_det_client, (file_to_exfil, exfil_protocol, container))
-                    elif exfil_method == 'dnscat':
+                    elif exfil_methods == 'dnscat':
                         thread.start_new_thread(start_dnscat_client, (container,))
                     else:
                         print "that exfiltration method was not recognized!"
@@ -390,9 +393,9 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
         if exfil_p:
             for class_name, container_instances in selected_originators.iteritems():
                 for container in container_instances:
-                    if exfil_method == 'DET':
+                    if exfil_methods == 'DET':
                         stop_det_client(container)
-                    elif exfil_method == 'dnscat':
+                    elif exfil_methods == 'dnscat':
                         stop_dnscat_client(container)
                     else:
                         print "that exfiltration method was not recognized!"
@@ -1278,24 +1281,6 @@ def sanity_check_locust_performance(locust_csv_file):
     except ZeroDivisionError:
         fail_percentage = 0
     return total_requests, total_fails, fail_percentage
-
-# this is an experimental function for handling scaling up/down
-def setup_experiment(config_file):
-    client = docker.from_env()
-    with open(config_file + '.json') as f:
-        config_params = json.load(f)
-    service_scaling = config_params['scale']
-    services = client.services.list()
-    # scale down to zero, so we can start w/ a fresh slate
-    for service in services:
-        service.update(mode={'Replicated': {'Replicas': 0}})
-        # todo: wait until they are all gone
-
-    for serv, scale in service_scaling.iteritems():
-        # todo: okay, so theoretically this is where we'd scale back up
-        # might make more sense to go through the services, index into the dict, and then
-        # use the value for the # of replicas. Also, need to test when/if ready
-        pass
 
 # note: this function exists b/c there are lots of staments scattered around that print stuff to current
 # directory, and I want to move all of that info into the experimental folder. Probably easiest just to check
