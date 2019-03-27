@@ -15,13 +15,14 @@
     },
     "exfiltration_info" : {
       "sensitive_ms":[ "user-db" ],
-      "exfiltration_path_class_which_installer": { "user-db":"apt" },
       "folder_to_exfil": "/data/db-users/",
       "regex_of_file_to_exfil": "\"index-0*\"",
+      "exfiltration_path_class_which_installer": { "user-db":"apt" },
 
       "exfil_methods": "none",
       "exfil_protocols": ["tcp"],
       "exfil_StartEnd_times": [[2100,3000]],
+      "exfil_paths": [],
       "DET_min_exfil_data_per_packet_bytes": [300],
       "DET_max_exfil_data_per_packet_bytes": [400],
       "DET_avg_exfiltration_rate_KB_per_sec": [1]

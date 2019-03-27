@@ -1335,6 +1335,7 @@ def generate_analysis_json(path_to_exp_folder, analysis_json_name, exp_config_js
     analysis_dict["exfiltration_info"] = {}
     analysis_dict["exfiltration_info"]["sensitive_ms"] = exp_config_json["exfiltration_info"]["sensitive_ms"]
     analysis_dict["exfiltration_info"]["exfiltration_path_class_which_installer"] = exp_config_json["exfiltration_info"]["exfiltration_path_class_which_installer"]
+    analysis_dict["exfiltration_info"]["exfil_paths"] = exp_config_json["exfiltration_info"]["exfil_paths"]
     analysis_dict["exfiltration_info"]["folder_to_exfil"] = exp_config_json["exfiltration_info"]["folder_to_exfil"]
     analysis_dict["exfiltration_info"]["regex_of_file_to_exfil"] = exp_config_json["exfiltration_info"]["regex_of_file_to_exfil"]
     analysis_dict["exfiltration_info"]["exfil_methods"] = exp_config_json["exfiltration_info"]["exfil_methods"]
