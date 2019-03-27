@@ -138,11 +138,12 @@ def wordpress_thirteen_t2(time_of_synethic_exfil=None, time_interval_lengths=Non
     cilium_config_path = None # does NOT use cilium on reps 2-4
     kubernetes_svc_info = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t2/wordpress_thirteen_t2_svc_config_0.txt'
     kubernetes_pod_info = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t2/wordpress_thirteen_t2_pod_config_0.txt'
+    ms_s = ["my-release-pxc", "wwwppp-wordpress"]
+
     pcap_paths = [
         "/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t2/wordpress_thirteen_t2_default_bridge_0any.pcap"]
     pod_creation_log = None
 
-    ms_s = ["my-release-pxc", "wwwppp-wordpress"]
     sensitive_ms = "my-release-pxc"
     exfil_start_time = 6090
     exfil_end_time = 6090

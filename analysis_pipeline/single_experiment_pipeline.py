@@ -20,34 +20,29 @@ import cilium_config_generator
 
 # Note: see run_analysis_pipeline_recipes for pre-configured sets of parameters (there are rather a lot)
 class data_anylsis_pipline(object):
-    def __init__(self, pcap_paths=None, is_swarm=0, basefile_name=None, container_info_path=None,
-                 time_interval_lengths=None, ms_s=None, make_edgefiles_p=False, basegraph_name=None,
-                 exfil_start_time=0, exfil_end_time=0, calc_vals=True, kubernetes_svc_info=None,
-                 make_net_graphs_p=False, cilium_config_path=None, kubernetes_pod_info=None, alert_file=None,
+    def __init__(self, pcap_paths=None, is_swarm=0, basefile_name=None,
+                 time_interval_lengths=None, make_edgefiles_p=False, basegraph_name=None,
+                 exfil_start_time=0, exfil_end_time=0, calc_vals=True,
+                 make_net_graphs_p=False, alert_file=None,
                  sec_between_exfil_events=1, time_of_synethic_exfil=30, injected_exfil_path='None',
                  netsec_policy=None, skip_graph_injection=False, cluster_creation_log=None,
                  sensitive_ms=None):
+
+        # ms_s
+
 
         print "log file can be found at: " + str(basefile_name) + '_logfile.log'
         logging.basicConfig(filename=basefile_name + '_logfile.log', level=logging.INFO)
         logging.info('run_data_anaylsis_pipeline Started')
 
-        self.ms_s = ms_s
-        if 'kube-dns' not in ms_s:
-            self.ms_s.append('kube-dns')  # going to put this here so I don't need to re-write all the recipes...
-
         gc.collect()
 
         print "starting pipeline..."
         self.sub_path = 'sub_'  # NOTE: make this an empty string if using the full pipeline (and not the subset)
-        self.mapping, self.list_of_infra_services = create_mappings(is_swarm, container_info_path, kubernetes_svc_info,
-                                                          kubernetes_pod_info, cilium_config_path, ms_s)
+        self.mapping, self.list_of_infra_services, self.ms_s = create_mappings(cluster_creation_log)
+        # NOTE: if you follow the whole path, self.list_of_infra_services isn't really used for anything atm...
         self.calc_zscore_p=False
         self.is_swarm = is_swarm
-        self.container_info_path = container_info_path
-        self.kubernetes_svc_info = kubernetes_svc_info
-        self.kubernetes_pod_info = kubernetes_pod_info
-        self.cilium_config_path = cilium_config_path
         self.time_interval_lengths = time_interval_lengths
         self.basegraph_name = basegraph_name
         self.exfil_start_time = exfil_start_time

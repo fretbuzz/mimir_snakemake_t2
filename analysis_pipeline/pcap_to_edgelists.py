@@ -2,151 +2,6 @@ import json
 import yaml
 import os
 
-'''
-from scapy.all import rdpcap,PcapReader,wrpcap
-# parse_pcap : packet_array seconds_per_time_interval ip_to_container_and_network, basename_of_output pcap_start_time
-#    shouldnt_delete_old_edgefiles_p  -> unidentified_IPs list_of_filenames endtime (+ filenames filled w/ edgelists)
-# this file creates edgefiles passed on the packet array. each edgefile lasts for a certain length of time.
-def parse_pcap(a, time_intervals, mapping, basefile_name, start_time, dont_delete_old_edgefiles):
-    time_to_graphs = {}
-    time_to_packet_graphs = {}
-
-    current_time_interval = 0
-    time_to_graphs[current_time_interval] = {}
-    time_to_packet_graphs[current_time_interval] = {}
-    weird_timing_pkts = []
-    unidentified_pkts = []
-
-    for a_pkt in a:
-
-        # note: if you only want to record DNS packets
-    	#if not a_pkt.haslayer(DNS):
-		#continue
-
-        pkt_messed_up = False
-        while(a_pkt.time - (start_time + current_time_interval * time_intervals) > time_intervals):
-            if (a_pkt.time - (start_time + current_time_interval * time_intervals)) > 900:
-                a_pkt.show()
-                weird_timing_pkts.append(a_pkt)
-                pkt_messed_up = True
-                print "about to break", a_pkt.time, current_time_interval, start_time + current_time_interval * time_intervals
-                break
-            current_time_interval += 1
-            time_to_graphs[current_time_interval] = {}
-            time_to_packet_graphs[current_time_interval] = {}
-            print "current time interval", current_time_interval
-
-        if pkt_messed_up:
-            continue
-        #a_pkt.show()
-        #print len(a_pkt)
-        #print "#####"
-
-        src_dst = ()
-        src_dst_ports = ()
-        #print "TIME", a_pkt.time # this is the unix time when packet was recieved
-        # so it is in seconds
-        if 'IP' in a_pkt:
-            src_dst = (a_pkt['IP'].src, a_pkt['IP'].dst)
-        elif 'ARP' in a_pkt:
-            #print "there is an ARP packet!"
-            pass
-        elif 'IPv6' in a_pkt:
-            pass
-        else:
-            print "so this is not an IP/ARP packet..."
-            print a_pkt.show()
-            #exit(105)
-            unidentified_pkts.append(a_pkt)
-        if 'TCP' in a_pkt:
-            src_dst_ports = (a_pkt['TCP'].sport, a_pkt['TCP'].dport)
-            if a_pkt['TCP'].flags & 0x02: # check if it is a syn packet
-                pass
-        if src_dst == ():
-            continue
-
-        # NAT-ing is clearly happening, can turn on the line below and observe it if you want...
-        #src_dst = (src_dst[0]+':'+str(src_dst_ports[0]), src_dst[1] +':'+ str(src_dst_ports[1]))
-
-        if src_dst in time_to_graphs[current_time_interval]:
-            if 'IP' in a_pkt:
-                time_to_graphs[current_time_interval][src_dst] += a_pkt['IP'].len
-                time_to_packet_graphs[current_time_interval][src_dst] += 1
-        else:
-            if 'IP' in a_pkt:
-                time_to_graphs[current_time_interval][src_dst] = a_pkt['IP'].len
-                time_to_packet_graphs[current_time_interval][src_dst] = 1
-        #str_payload = ''.join(["".join(n) if n != '\x08' else '' for n in pkt.load])
-        #print str_payload
-    time_to_parsed_mapping = {}
-    time_to_parsed_packet_mapping = {}
-    for time in time_to_graphs:
-        time_to_parsed_mapping[time] = {}
-        time_to_parsed_packet_mapping[time] = {}
-    no_mapping_found = []
-    for time,graph_dictionary in time_to_graphs.iteritems():
-        for item, weight in graph_dictionary.iteritems():
-            print item, weight
-            src = item[0]
-            dst = item[1]
-            try:
-                src_ms = mapping[src][0]
-            except:
-                #print "not_mapped_src", src
-                src_ms = src
-                no_mapping_found.append(src)
-            try:
-                dst_ms = mapping[dst][0]
-            except:
-                #print "not_mapped_dst", dst
-                dst_ms = dst
-                no_mapping_found.append(dst)
-            print "index stuff", time, src_ms, dst_ms
-            time_to_parsed_mapping[time][src_ms, dst_ms] = weight
-            time_to_parsed_packet_mapping[time][src_ms, dst_ms] = time_to_packet_graphs[time][item]
-        for item, weight in time_to_parsed_mapping[time].iteritems():
-            print item, weight
-
-    time_counter = 0
-    filesnames = []
-    filesnames_packets = []
-    for interval in range(0,current_time_interval):
-        ending = '_' + '%.2f' % (time_counter) + '_' + '%.2f' % (time_intervals)
-        filename = basefile_name + ending + '.txt'
-        filename_packets = basefile_name + '_packets' + ending + '.txt'
-        # first time through, want to delete the old edgefiles
-        if not dont_delete_old_edgefiles:
-            try:
-                os.remove(filename)
-            except:
-                print filename, "   ", "does not exist"
-            try:
-                os.remove(filename_packets)
-            except:
-                print filename_packets, "   ", "does not exist"
-
-        ## TODO: let's modfify this stuff... we only want there to be a single
-        ## edgefile w/ all the attributes (b/c we might calculate even more later on...)
-
-
-        with open(filename, 'ab') as csvfile:
-            #spamwriter = csv.writer(csvfile, delimiter=',',
-            #                        quotechar='|', quoting=csv.QUOTE_MINIMAL)
-            for item, weight in time_to_parsed_mapping[interval].iteritems():
-                #spamwriter.writerow([item[0], item[1], weight])
-                # going to dump a value dictinoary, so that the edgefiles have more info
-                csvfile.write(item[0]+','+item[1]+',')
-                val_dict = {"weight": weight, "packets": time_to_parsed_packet_mapping}
-                csvfile.write(json.dumps(val_dict))
-                csvfile.write('\n')
-
-        time_counter += time_intervals
-        filesnames.append(filename)
-
-    print "unidentified IPs present", list(set(no_mapping_found))
-    return list(set(no_mapping_found)), filesnames,  time_counter, unidentified_pkts, weird_timing_pkts
-'''
-
 # swarm_container_ips : file_path -> dictionary mapping IPs to (container_name, network_name)
 # parses file containing all docker network -v output to find out the container that each IP refers to
 # (note: virtual IPs of services as well as the IPs of network gateways are now included as well)
@@ -249,37 +104,53 @@ def parse_kubernetes_pod_info(kubernetes_pod_info):
                 pod_ip_info[split_line[6]] = (split_line[1], 'pod')
     return pod_ip_info
 
-def create_mappings(is_swarm, container_info_path, kubernetes_svc_info, kubernetes_pod_info, cilium_config_path, ms_s):
+
+# self.mapping, self.list_of_infra_services, self.ms_s = create_mappings(cluster_creation_log)
+
+
+def create_mappings(cluster_creation_log):
     #First, get a mapping of IPs to(container_name, network_name)
-    mapping = ips_on_docker_networks(container_info_path)
+    initial_ips = cluster_creation_log[0]
+    mapping = {}
+    infra_services = {}
+    ms_s = set()
+    #            container_to_ip[container_ip] = (container_name, network_name)
+
+    for name, ip_info in initial_ips.iteritems():
+        mapping[ip_info[0]] = (name, None, ip_info[2], ip_info[3])
+        if ip_info[3] == 'svc' and ip_info[2] == 'kube-system':
+            infra_services[name] = ip_info[0]
+        if ip_info[3] == 'svc':
+            ms_s.add(name + '_VIP')
+
+    '''
+    #mapping = ips_on_docker_networks(container_info_path)
     list_of_infra_services = []
-    kubernetes_services = None
-    if not is_swarm:
-        # if it is kubernetes, then it is also necessary to read in that file with all the
-        # info about the svc's, b/c kubernetes service VIPs don't show up in the docker configs
-        # pass
-        kubernetes_service_VIPs, total_list_of_services = parse_kubernetes_svc_info(kubernetes_svc_info)
-        print "kubernetes_service_VIPs", kubernetes_service_VIPs
-        mapping.update(kubernetes_service_VIPs)
-        list_of_infra_services = []
-        for total_svc in total_list_of_services:
-            if total_svc not in ms_s:
-                list_of_infra_services.append(total_svc)
-        print "list_of_infra_services", list_of_infra_services
-        # print [i for i in kubernetes_service_VIPs.items() ]
-        # kubernetes_services = [i[1][0].split('_')[0] for i in kubernetes_service_VIPs.items()]
-        # print "kubernetes_services", kubernetes_services
+    # if it is kubernetes, then it is also necessary to read in that file with all the
+    # info about the svc's, b/c kubernetes service VIPs don't show up in the docker configs
+    # pass
+    kubernetes_service_VIPs, total_list_of_services = parse_kubernetes_svc_info(kubernetes_svc_info)
+    print "kubernetes_service_VIPs", kubernetes_service_VIPs
+    mapping.update(kubernetes_service_VIPs)
+    list_of_infra_services = []
+    for total_svc in total_list_of_services:
+        if total_svc not in ms_s:
+            list_of_infra_services.append(total_svc)
+    #print "list_of_infra_services", list_of_infra_services
+    # print [i for i in kubernetes_service_VIPs.items() ]
+    # kubernetes_services = [i[1][0].split('_')[0] for i in kubernetes_service_VIPs.items()]
+    # print "kubernetes_services", kubernetes_services
 
-        if kubernetes_pod_info:
-            kubernetes_pod_VIPS = parse_kubernetes_pod_info(kubernetes_pod_info)
-            for ip, name_and_network in kubernetes_pod_VIPS.iteritems():
-                if ip not in mapping:
-                    mapping[ip] = name_and_network
-            print "mapping updated with kubernetes_pod_info", mapping
+    if kubernetes_pod_info:
+        kubernetes_pod_VIPS = parse_kubernetes_pod_info(kubernetes_pod_info)
+        for ip, name_and_network in kubernetes_pod_VIPS.iteritems():
+            if ip not in mapping:
+                mapping[ip] = name_and_network
+        print "mapping updated with kubernetes_pod_info", mapping
 
-        if cilium_config_path:
-            cilium_mapping = parse_cilium(cilium_config_path)
-            mapping.update(cilium_mapping)
+    if cilium_config_path:
+        cilium_mapping = parse_cilium(cilium_config_path)
+        mapping.update(cilium_mapping)
     try:
         del mapping['<nil>'] # sometimes this nonsense value shows up b/c of the host Docker network (no IP = just noise)
     except:
@@ -294,7 +165,8 @@ def create_mappings(is_swarm, container_info_path, kubernetes_svc_info, kubernet
     print "list_of_infra_services", list_of_infra_services
     print "ms_s",ms_s
     #exit()
-    return mapping, list_of_infra_services
+    '''
+    return mapping, infra_services, list(ms_s)
 
 '''
 def create_edgelists(pcap_paths, start_time, make_edgefiles_p, time_interval_lengths, rdpcap_p, basefile_name,
