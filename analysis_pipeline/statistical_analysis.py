@@ -1,15 +1,60 @@
 import copy
 import errno
 import os
-
 import numpy as np
 import pandas as pd
 import sklearn
 from sklearn.linear_model import LassoCV
 from sklearn.model_selection import train_test_split
-
 from analysis_pipeline import generate_heatmap, generate_alerts, process_roc, generate_report
 
+class statistical_pipeline():
+    def __init__(self, aggregate_mod_score_df,base_output_name, names, starts_of_testing,
+                 path_occurence_training_df, path_occurence_testing_df, recipes_used, skip_model_part, clf,
+                 ignore_physical_attacks_p, avg_exfil_per_min, avg_pkt_size, exfil_per_min_variance,
+                 pkt_size_variance, drop_pairwise_features, rate, timegran, time_gran_to_debugging_csv):
+
+        self.aggregate_mod_score_df = aggregate_mod_score_df
+        self.base_output_name = base_output_name
+        self.names = names
+        self.starts_of_testing = starts_of_testing
+        self.path_occurence_training_df = path_occurence_training_df
+        self.path_occurence_testing_df = path_occurence_testing_df
+        self.recipes_used = recipes_used
+        self.skip_model_part = skip_model_part
+        self.clf = clf
+        self.ignore_physical_attacks_p = ignore_physical_attacks_p
+        self.avg_exfil_per_min = avg_exfil_per_min
+        self.avg_pkt_size = avg_pkt_size
+        self.exfil_per_min_variance = exfil_per_min_variance
+        self.pkt_size_variance = pkt_size_variance
+        self.drop_pairwise_features = drop_pairwise_features
+        self.rate = rate
+        self.time_gran = timegran
+        self.time_gran_to_debugging_csv = time_gran_to_debugging_csv
+
+        self.X_train, self.y_train, self.X_test, self.y_test, self.pre_drop_X_train, self.time_gran_to_debugging_csv,\
+            self.dropped_feature_list, self.ide_train, self.ide_test, self.X_train_exfil_weight, self.X_test_exfil_weight,\
+            self.exfil_paths, self.exfil_paths_train, self.out_traffic, self.cilium_train, self.cilium_test =\
+            prepare_data(self.aggregate_mod_score_df, self.skip_model_part, self.ignore_physical_attacks_p,
+            self.time_gran_to_debugging_csv, self.time_gran, self.drop_pairwise_features)
+
+
+    def _prepare_data(self):
+        pass # will want to move the prepare_data function over here... since it is cringy to have
+        # it all in a seperate function with a bazillion parameters/returns (like above)
+
+    def train_model(self):
+        pass
+
+    def generate_train_report_sections(self):
+        pass
+
+    def fit_model(self):
+        pass
+
+    def generate_fit_report_sections(self):
+        pass
 
 def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, base_output_name, names,
                                          starts_of_testing, path_occurence_training_df, path_occurence_testing_df,

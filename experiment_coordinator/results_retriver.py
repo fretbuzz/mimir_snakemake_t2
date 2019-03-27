@@ -289,7 +289,7 @@ if __name__ == "__main__":
     #app_name = possible_apps[4] # wordpress
     app_name = possible_apps[1] # sockshop
     #app_name = possible_apps[5] # hipsterStore (google's example microservice)
-    sock_config_file_name = '/mydata/mimir_v2/experiment_coordinator/experimental_configs/sockshop_thirteen'
+    sock_config_file_name = '/mydata/mimir_v2/experiment_coordinator/new_experimental_configs/sockshop_exp_one.json'
     wp_config_file_name = '/mydata/mimir_v2/experiment_coordinator/experimental_configs/wordpress_fourteen'
     config_file_name = sock_config_file_name #wp_config_file_name
     use_cilium = False # note: if actually running an experiment, will probably want "False"

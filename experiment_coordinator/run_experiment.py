@@ -42,7 +42,7 @@ CLIENT_RATIO_CYBER = [0.0328, 0.0255, 0.0178, 0.0142, 0.0119, 0.0112, 0.0144, 0.
 
 def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, install_det_depen_p, exfil_p):
     # step (1) read in the config file
-    with open(config_file + '.json') as f:
+    with open(config_file) as f:
         config_params = json.load(f)
     orchestrator = "kubernetes"
     class_to_installer = config_params["exfiltration_info"]["exfiltration_path_class_which_installer"]
@@ -1240,6 +1240,7 @@ def generate_analysis_json(path_to_exp_folder, analysis_json_name, exp_config_js
     analysis_dict["exfiltration_info"]["DET_min_exfil_data_per_packet_bytes"] = exp_config_json["exfiltration_info"]["DET_min_exfil_data_per_packet_bytes"]
     analysis_dict["exfiltration_info"]["DET_max_exfil_data_per_packet_bytes"] = exp_config_json["exfiltration_info"]["DET_max_exfil_data_per_packet_bytes"]
     analysis_dict["exfiltration_info"]["DET_avg_exfiltration_rate_KB_per_sec"] = exp_config_json["exfiltration_info"]["DET_avg_exfiltration_rate_KB_per_sec"]
+    analysis_dict["exfiltration_info"]["sec_between_exfil_pkts"] = exp_config_json["exfiltration_info"]["sec_between_exfil_pkts"]
 
     analysis_dict["pod_creation_log_name"] = exp_name + '_default_bridge_0any.pcap'
     analysis_dict["pcap_file_name"] = exp_name + '_cluster_creation_log.txt'
