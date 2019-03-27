@@ -1305,7 +1305,10 @@ def copy_experimental_info_to_experimental_folder(exp_name):
         print "found_filename", filename, "    ", "exp_name", exp_name, exp_name in filename
         if exp_name in filename:
             print "exp_name_in_filename", filename
-            shutil.move("./"+filename, './experimental_data/' + exp_name + '/' + filename)
+            if 'creation_log' in filename or 'json' in filename or 'pcap' in filename:
+                shutil.move("./"+filename, './experimental_data/' + exp_name + '/' + filename)
+            else:
+                shutil.move("./"+filename, './experimental_data/debug/' + exp_name + '/' + filename)
 
 # def generate_analysis_json ??? -> ??
 # this function generates the json that will be used be the analysis_pipeline pipeline
@@ -1403,6 +1406,7 @@ def setup_directories(exp_name):
     os.makedirs('./experimental_data/'+exp_name+'/edgefiles/')
     os.makedirs('./experimental_data/'+exp_name+'/graphs/')
     os.makedirs('./experimental_data/'+exp_name+'/alerts')
+    os.makedirs('./experimental_data/'+exp_name+'/debug')
     print "Just setup directories!"
 
 if __name__=="__main__":
