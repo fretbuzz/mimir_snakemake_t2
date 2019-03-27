@@ -298,9 +298,10 @@ if __name__ == "__main__":
     #local_dir = '/Volumes/exM2/experimental_data/wordpress_info'
     local_dir = '/Volumes/exM2/experimental_data/sockshop_info'
     #exp_name = 'wordpress_fourteen_mark7_final'
-    exp_name = 'sockshop_thirteen_NOautoscale_mark1' #mark3 is good too
+    #exp_name = 'sockshop_thirteen_NOautoscale_mark1' #mark3 is good too
     # exp_name = 'sockshop_autoscaling_tests'
-    mimir_1 = 'c220g2-011129.wisc.cloudlab.us'  #'c240g5-110119.wisc.cloudlab.us'
+    exp_name = 'modifying_pod_creation_looper'
+    mimir_1 = 'c220g5-111314.wisc.cloudlab.us'  #'c240g5-110119.wisc.cloudlab.us'
     #mimir_2 = 'c240g5-110117.wisc.cloudlab.us'
     cloudlab_server_ip = mimir_1  # note: remove the username@ from the beggining
     exp_length = 10800  # 10800 #7200 # in seconds

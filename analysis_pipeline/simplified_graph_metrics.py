@@ -846,8 +846,8 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
     out_q.put(amt_of_out_traffic_pkts)
     out_q.put(container_to_ip)
 
-def update_mapping(container_to_ip, pod_creation_log, time_gran, time_counter):
-    if pod_creation_log is None:
+def update_mapping(container_to_ip, cluster_creation_log, time_gran, time_counter):
+    if cluster_creation_log is None:
         return container_to_ip
 
     last_entry_into_log = max(0, time_gran * (time_counter ))
@@ -857,8 +857,8 @@ def update_mapping(container_to_ip, pod_creation_log, time_gran, time_counter):
     for i in range(last_entry_into_log, current_entry_into_log):
         # recall that: container_to_ip[container_ip] = (container_name, network_name)
         mod_cur_creation_log = {}
-        if i in pod_creation_log: # sometimes the last value isn't included
-            for cur_pod,curIP_PlusMinus in pod_creation_log[i].iteritems():
+        if i in cluster_creation_log: # sometimes the last value isn't included
+            for cur_pod,curIP_PlusMinus in cluster_creation_log[i].iteritems():
                 cur_ip = curIP_PlusMinus[0].rstrip().lstrip()
                 cur_pod = cur_pod.rstrip().lstrip()
                 plus_minus = curIP_PlusMinus[1]
@@ -877,8 +877,8 @@ def update_mapping(container_to_ip, pod_creation_log, time_gran, time_counter):
                     exit(300)
 
         if i - (time_gran) >= 0:
-            if (i - time_gran) in pod_creation_log:  # sometimes the last value isn't included
-                for cur_pod, curIP_PlusMinus in pod_creation_log[i - time_gran].iteritems():
+            if (i - time_gran) in cluster_creation_log:  # sometimes the last value isn't included
+                for cur_pod, curIP_PlusMinus in cluster_creation_log[i - time_gran].iteritems():
                     cur_ip = curIP_PlusMinus[0].rstrip().lstrip()
                     cur_pod = cur_pod.rstrip().lstrip()
                     plus_minus = curIP_PlusMinus[1]

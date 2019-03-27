@@ -42,7 +42,7 @@ def determine_injection_times(exps_info, goal_train_test_split,goal_attack_NoAtt
     print "exps_info",exps_info
     for exp_info in exps_info:
         print "exp_info", exp_info['total_experiment_length'], "float(goal_train_test_split)", float(goal_train_test_split)
-        time_split = ((exp_info['total_experiment_length'] - exp_info['startup_time']) * float(goal_train_test_split)) + exp_info['startup_time']
+        time_split = ((exp_info['total_experiment_length']) * float(goal_train_test_split))
         if time_split > exp_info['exfil_start_time']:
             time_split = exp_info['exfil_start_time']
         end_of_train_portions.append(time_split)
@@ -62,7 +62,7 @@ def determine_injection_times(exps_info, goal_train_test_split,goal_attack_NoAtt
 
         # now let's find the time to inject during training... this'll be a percentage of the time between
         # system startup and the training/testing split point...
-        training_time_after_startup = time_split - exp_info["startup_time"]
+        training_time_after_startup = time_split # - exp_info["startup_time"]
         training_time_for_attack_injection = training_time_after_startup * goal_attack_NoAttack_split_training
 
         exp_injection_info.append({'testing': testing_time_for_attack_injection,

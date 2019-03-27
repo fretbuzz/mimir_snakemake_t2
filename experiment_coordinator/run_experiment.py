@@ -360,7 +360,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
         # now wait for 3 more seconds so that the background load generator can get started before this and tcpdump start
         time.sleep(3)
         # start the pod creation logger
-        subprocess.Popen(['python', './src/pod_creation_looper.py', './' + exp_name + '_pod_creation_log.txt', './' + end_sentinal_file_loc], shell=False, stdin=None, stdout=None, stderr=None, close_fds=True)
+        subprocess.Popen(['python', './src/cluster_creation_looper.py', './' + exp_name + '_cluster_creation_log.txt', './' + end_sentinal_file_loc], shell=False, stdin=None, stdout=None, stderr=None, close_fds=True)
         subprocess.Popen(['bash', './src/hpa_looper.sh', str(int(math.ceil(float(experiment_length)/60))),
                           './' + exp_name + '_hpa_log.txt'],  shell=False, stdin=None, stdout=None,
                          stderr=None, close_fds=True)

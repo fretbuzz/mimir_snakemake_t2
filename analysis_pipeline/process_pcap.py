@@ -119,7 +119,7 @@ def process_pcap_via_tshark(path, pcap_name, tshark_stats_dir_path, make_edgefil
 
     return tshark_stats_dir_path, pcap_name
 
-def process_pcap(experiment_folder_path, pcap_file, intervals, exp_name, make_edgefiles_p, mapping, pod_creation_log):
+def process_pcap(experiment_folder_path, pcap_file, intervals, exp_name, make_edgefiles_p, mapping, cluster_creation_log):
     # first off, gotta make this new folder
     print "starting to process the pcap!"
     path_to_split_pcap_dir = experiment_folder_path + 'split_pcaps/'
@@ -158,7 +158,7 @@ def process_pcap(experiment_folder_path, pcap_file, intervals, exp_name, make_ed
                 edgefile_path = path_to_edgefile_dir
                 edgefile_name = tshark_stats_file + '_edges.txt'
 
-                mapping = simplified_graph_metrics.update_mapping(mapping, pod_creation_log, interval, edgefile_counter)
+                mapping = simplified_graph_metrics.update_mapping(mapping, cluster_creation_log, interval, edgefile_counter)
 
                 edgefile = convert_tshark_stats_to_edgefile(edgefile_path, edgefile_name, tshark_stats_path, tshark_stats_file,
                                                             make_edgefiles_p,mapping)

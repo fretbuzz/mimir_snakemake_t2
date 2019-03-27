@@ -25,20 +25,20 @@ class data_anylsis_pipline(object):
                  exfil_start_time=0, exfil_end_time=0, calc_vals=True, kubernetes_svc_info=None,
                  make_net_graphs_p=False, cilium_config_path=None, kubernetes_pod_info=None, alert_file=None,
                  sec_between_exfil_events=1, time_of_synethic_exfil=30, injected_exfil_path='None',
-                 netsec_policy=None, skip_graph_injection=False, pod_creation_log=None,
+                 netsec_policy=None, skip_graph_injection=False, cluster_creation_log=None,
                  sensitive_ms=None):
 
         print "log file can be found at: " + str(basefile_name) + '_logfile.log'
         logging.basicConfig(filename=basefile_name + '_logfile.log', level=logging.INFO)
         logging.info('run_data_anaylsis_pipeline Started')
 
+        self.ms_s = ms_s
         if 'kube-dns' not in ms_s:
             self.ms_s.append('kube-dns')  # going to put this here so I don't need to re-write all the recipes...
 
         gc.collect()
 
         print "starting pipeline..."
-        self.ms_s = ms_s
         self.sub_path = 'sub_'  # NOTE: make this an empty string if using the full pipeline (and not the subset)
         self.mapping, self.list_of_infra_services = create_mappings(is_swarm, container_info_path, kubernetes_svc_info,
                                                           kubernetes_pod_info, cilium_config_path, ms_s)
@@ -77,12 +77,12 @@ class data_anylsis_pipline(object):
         self.calc_vals = calc_vals
         self.cilium_allowed_svc_comm = None
 
-        if pod_creation_log is  None:
-            self.pod_creation_log=None
+        if cluster_creation_log is  None:
+            self.cluster_creation_log=None
         else:
-            with open(pod_creation_log, 'r') as f:
+            with open(cluster_creation_log, 'r') as f:
                 contents = f.read()
-                self.pod_creation_log = pickle.loads(contents)
+                self.cluster_creation_log = pickle.loads(contents)
 
         self.time_gran_to_feature_dataframe=None
         self.time_gran_to_attack_labels=None
@@ -111,7 +111,7 @@ class data_anylsis_pipline(object):
 
     def process_pcaps(self):
         self.interval_to_filenames,self.mapping = process_pcap.process_pcap(self.experiment_folder_path, self.pcap_file, self.time_interval_lengths,
-                                                          self.exp_name, self.make_edgefiles_p, self.mapping, self.pod_creation_log)
+                                                                            self.exp_name, self.make_edgefiles_p, self.mapping, self.cluster_creation_log)
 
     def get_exp_info(self):
         time_grans = [int(i) for i in self.interval_to_filenames.keys()]
@@ -221,7 +221,7 @@ class data_anylsis_pipline(object):
                                             synthetic_exfil_paths, self.initiator_info_for_paths, time_gran_to_attack_ranges,
                                             avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
                                             self.skip_graph_injection, self.end_of_training,
-                                            self.pod_creation_log, calc_ide, include_ide, only_ide)
+                                            self.cluster_creation_log, calc_ide, include_ide, only_ide)
 
             ## time_gran_to_attack_labels needs to be corrected using time_gran_to_list_of_concrete_exfil_paths
             ## because just because it was assigned, doesn't mean that it is necessarily going to be injected (might
@@ -406,7 +406,7 @@ class data_anylsis_pipline(object):
 
         print "calling_cilium_component_now..."
         self.cilium_allowed_svc_comm = cilium_config_generator.cilium_component(time_length, self.experiment_folder_path + self.pcap_file, self.cilium_component_dir,
-                                                 self.make_edgefiles_p, self.ms_s, self.mapping, self.pod_creation_log)
+                                                                                self.make_edgefiles_p, self.ms_s, self.mapping, self.cluster_creation_log)
 
     def calc_cilium_performance(self, avg_exfil_per_min, exfil_var_per_min, avg_pkt_size, avg_pkt_var):
         time_gran_to_cil_alerts = {}
