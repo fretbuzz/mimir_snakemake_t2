@@ -96,7 +96,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
     # determine the network namespaces
     # this will require mapping the name of the network to the network id, which
     # is then present (in truncated form) in the network namespace
-    full_network_ids = get_network_ids(orchestrator, config_params["networks_to_tcpdump_on"])
+    full_network_ids = get_network_ids(orchestrator, "bridge")
     network_ids_to_namespaces = map_network_ids_to_namespaces(orchestrator, full_network_ids)
     # okay, so I have the full network id's now, but these aren't the id's of the network namespace,
     # so I need to do two things: (1) get list of network namespaces, (2) parse the list to get the mapping
@@ -112,28 +112,26 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
     class_to_networks = {}
     # the furthest will be the originator, the others will be proxies (endpoint will be local)
     index = 0
-    ## TODO: keep going from here!! (man, this is a LOT of work...)
 
-    exfil_path = config_params["exfiltration_info"]["exfiltration_path_class"]
-    for proxy_class in exfil_path[:-1]:
-        print "current proxy class", proxy_class
-        possible_proxies[proxy_class], class_to_networks[proxy_class] = get_class_instances(orchestrator, proxy_class, class_to_net)
-        print "new possible proxies", possible_proxies[proxy_class]
-        print "new class_to_network mapping", class_to_networks[proxy_class]
-        num_proxies_of_this_class = int(config_params["exfiltration_info"]
-                                        ["exfiltration_path_how_many_instances_for_each_class"][index])
-        selected_proxies[proxy_class] = random.sample(possible_proxies[proxy_class], num_proxies_of_this_class)
-        print "new selected proxies", selected_proxies[proxy_class]
-        index += 1
+    exfil_paths = config_params["exfiltration_info"]["exfiltration_path_class"]
+    for exfil_path in exfil_paths:
+        for proxy_class in exfil_path[:-1]:
+            print "current proxy class", proxy_class
+            possible_proxies[proxy_class], class_to_networks[proxy_class] = get_class_instances(orchestrator, proxy_class, "None")
+            print "new possible proxies", possible_proxies[proxy_class]
+            print "new class_to_network mapping", class_to_networks[proxy_class]
+            num_proxies_of_this_class = 1
+            selected_proxies[proxy_class] = random.sample(possible_proxies[proxy_class], num_proxies_of_this_class)
+            print "new selected proxies", selected_proxies[proxy_class]
+            index += 1
 
     # determine which container instances should be the originator point
-    originator_class = config_params["exfiltration_info"]["exfiltration_path_class"][-1]
+    originator_class = config_params["exfiltration_info"]["sensitive_ms"]
     possible_originators = {}
-    print "originator class", originator_class
-    possible_originators[originator_class], class_to_networks[originator_class] = get_class_instances(orchestrator, originator_class, class_to_net)
+    print "originator classes", originator_class
+    possible_originators[originator_class], class_to_networks[originator_class] = get_class_instances(orchestrator, originator_class, "None")
     print "originator instances", possible_originators[originator_class]
-    num_originators = int(config_params["exfiltration_info"]
-                                    ["exfiltration_path_how_many_instances_for_each_class"][-1])
+    num_originators = 1
     print "num originators", num_originators
     selected_originators = {}
     selected_originators[originator_class] = random.sample(possible_originators[originator_class], num_originators)
@@ -157,11 +155,11 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
     for name_of_class, network in class_to_networks.iteritems():
         print name_of_class, [i.name for i in network]
 
-    exfil_protocol = config_params["exfiltration_info"]["exfil_protocol"]
+    exfil_protocols = config_params["exfiltration_info"]["exfil_protocols"]
     #'''
     # need to install the pre-reqs for each of the containers (proxies + orgiinator)
     # note: assuming endpoint (i.e. local) pre-reqs are already installed
-    if install_det_depen_p:
+    if install_det_depen_p and 'DET' in exfil_protocols:
         for class_name, container_instances in selected_proxies.iteritems():
             for container in container_instances:
                 install_det_dependencies(orchestrator, container, class_to_installer[class_name])
@@ -170,27 +168,26 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
         for class_name, container_instances in selected_originators.iteritems():
             for container in container_instances:
                 install_det_dependencies(orchestrator, container, class_to_installer[class_name])
+
+    ### TODO: KEEP GOING FROM HERE!!!!! It's going to get rougher tho. Because I need to actually take into
+    ### acount the fact that there is lot's of exfil paths now.
+
     # start thes proxy DET instances (note: will need to dynamically configure some
     # of the configuration file)
     # note: this is only going to work for a single src and a single dst ip, ATM
     for class_name, container_instances in selected_proxies.iteritems():
         # okay, gotta determine srcs and dst
-        # okay, so fine location in exfil_path
+        # okay, so find location in exfil_paths
         # look backward to find src class, then index into selected_proxies, and then index into
         # instances_to_network_to_ips (will need to match up networks)
 
-        # explicit_target from the config file (exp_six)... if it has corresponding src and dst values
-        # then use those, if one or more values is missing, use the values from below instead
-        try:
-            explicit_dsts,explicit_srcs = config_params["exfiltration_info"]["explicit_target_src"][class_name]
-        except:
-            explicit_dsts,explicit_srcs = 'None','None'
+        explicit_dsts, explicit_srcs = 'None', 'None'
 
-        dsts,srcs=find_dst_and_srcs_ips_for_det(exfil_path, class_name, selected_containers, localhostip,
+        dsts,srcs=find_dst_and_srcs_ips_for_det(exfil_paths, class_name, selected_containers, localhostip,
                                                 proxy_instance_to_networks_to_ip, class_to_networks)
         if explicit_dsts != 'None': #-> use expkicit_dsts (otherwise just keep going with dsts)
             dsts = explicit_dsts
-        if explicit_srcs != 'None': #-> use explicit_srcs (otherwise just keep going with sercs)
+        if explicit_srcs != 'None': #-> use explicit_srcs (otherwise just keep going with srcs)
             srcs = explicit_srcs
 
         for container in container_instances:
@@ -201,44 +198,15 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
                                             maxsleep, DET_max_exfil_bytes_in_packet, DET_min_exfil_bytes_in_packet)
 
     # start the endpoint (assuming the pre-reqs are installed prior to the running of this script)
-    # todo: modify this for the k8s scaneario
-    # todo: modify for 1-n, n-1, n-n
-    try:
-        print "ex", exfil_path[0], proxy_instance_to_networks_to_ip[ selected_proxies[exfil_path[0]][0] ]
-    except:
-        pass
-    srcs = []
-    if orchestrator == "docker_swarm":
-        for proxy_instance in selected_proxies[exfil_path[0]]:
-            for network, ip_ad in proxy_instance_to_networks_to_ip[ proxy_instance ].iteritems():
-                print "finding proxy for local", network.name, ip_ad
-                if network.name == 'ingress':
-                    srcs.append(ip_ad)
-                    break
-        if srcs == []:
-            print "cannot find the the hop-point immediately before the local DET instance"
-            exit(1)
-    elif orchestrator == 'kubernetes':
-        # okay, going things are a little different for the k8s case...
-        # how does k8s do ingress?
-        # i'm having a hard time figuring it out, but it appears that it'd appear as if
-        # the packets came from the vm
-        srcs = [ip]
-    else:
-        pass
-    #srcs = [ proxy_instance_to_networks_to_ip[ selected_proxies[exfil_path[0]][0] ]['ingress'] ]
-    #'''
-    print "srcs for local", srcs
-    #'''
+    srcs = [ip]
 
     if exfil_p:
         start_det_server_local(exfil_protocol, srcs, maxsleep, DET_max_exfil_bytes_in_packet,
                            DET_min_exfil_bytes_in_packet, experiment_name)
-    #'''
     # now setup the originator (i.e. the client that originates the exfiltrated data)
     # explicit_target from the config file (exp_six)... if it has corresponding src and dst values
 
-    next_instance_ips, _ = find_dst_and_srcs_ips_for_det(exfil_path, originator_class,
+    next_instance_ips, _ = find_dst_and_srcs_ips_for_det(exfil_paths, originator_class,
                                                                          selected_containers, localhostip,
                                                                          proxy_instance_to_networks_to_ip,
                                                                          class_to_networks)
@@ -264,185 +232,170 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
                     file_to_exfil = ''
                 files_to_exfil.append(file_to_exfil)
 
-    # todo: will want to enable of using cilium (b/c will need to deactive policies before this)
-    #a = raw_input("please enable cilium policies and then press any key to continue")
-
     print "files_to_exfil", files_to_exfil
     experiment_length = config_params["experiment"]["experiment_length_sec"]
-    for i in range(0, int(config_params["experiment"]["number_of_trials"])):
-        exfil_info_file_name = experiment_name + '_docker' + '_' + str(i) + '_exfil_info.txt'
 
-        # step (3b) get docker configs for docker containers (assuming # is constant for the whole experiment)
-        container_id_file = experiment_name + '_docker' + '_' + str(i) + '_networks.txt'
-        container_config_file = experiment_name + '_docker' '_' + str(i) +  '_network_configs.txt'
+    # step (3b) get docker configs for docker containers (assuming # is constant for the whole experiment)
+    container_id_file = experiment_name + '_docker' + '_' + str(i) + '_networks.txt'
+    container_config_file = experiment_name + '_docker' '_' + str(i) +  '_network_configs.txt'
 
+    try:
+        os.remove(container_id_file)
+    except:
+        print container_id_file, "   ", "does not exist"
+    try:
+        os.remove(container_config_file)
+    except:
+        print container_config_file, "   ", "does not exist"
+    out = subprocess.check_output(['pwd'])
+    print out
+
+    out = subprocess.check_output(['bash', './src/docker_network_configs.sh', container_id_file, container_config_file])
+    print out
+
+    if orchestrator == 'kubernetes':
+        # need some info about services, b/c they are not in the docker network configs
+        svc_config_file = experiment_name + '_svc_config' '_' + str(i) + '.txt'
         try:
-            os.remove(container_id_file)
+            os.remove(svc_config_file)
         except:
-            print container_id_file, "   ", "does not exist"
-        try:
-            os.remove(container_config_file)
-        except:
-            print container_config_file, "   ", "does not exist"
-        out = subprocess.check_output(['pwd'])
+            print svc_config_file, "   ", "does not exist"
+        out = subprocess.check_output(['bash', './src/kubernetes_svc_config.sh', svc_config_file])
         print out
 
-        out = subprocess.check_output(['bash', './src/docker_network_configs.sh', container_id_file, container_config_file])
+        pod_config_file = experiment_name + '_pod_config' '_' + str(i) + '.txt'
+        node_config_file = experiment_name + '_node_config' '_' + str(i) + '.txt'
+        try:
+            os.remove(pod_config_file)
+        except:
+            print pod_config_file, "   ", "does not exist"
+        try:
+            os.remove(node_config_file)
+        except:
+            print node_config_file, "   ", "does not exist"
+        out = subprocess.check_output(['bash', './src/kubernetes_pod_config.sh', pod_config_file, node_config_file])
         print out
 
-        if orchestrator == 'kubernetes':
-            # need some info about services, b/c they are not in the docker network configs
-            svc_config_file = experiment_name + '_svc_config' '_' + str(i) + '.txt'
-            try:
-                os.remove(svc_config_file)
-            except:
-                print svc_config_file, "   ", "does not exist"
-            out = subprocess.check_output(['bash', './src/kubernetes_svc_config.sh', svc_config_file])
-            print out
+    # step (5) start load generator (okay, this I can do!)
+    max_client_count = int( config_params["experiment"]["number_background_locusts"])
+    print "experiment length: ", experiment_length, "max_client_count", max_client_count, "traffic types", config_params["experiment"]["traffic_type"]
+    print "background_locust_spawn_rate", config_params["experiment"]["background_locust_spawn_rate"], "ip", ip, "port", port
+    thread.start_new_thread(generate_background_traffic, ((int(experiment_length)+2.4), max_client_count,
+                config_params["experiment"]["traffic_type"], config_params["experiment"]["background_locust_spawn_rate"],
+                                                          config_params["application_name"], ip, port, experiment_name,
+                                                          sentinal_file_loc))
 
-            pod_config_file = experiment_name + '_pod_config' '_' + str(i) + '.txt'
-            node_config_file = experiment_name + '_node_config' '_' + str(i) + '.txt'
-            try:
-                os.remove(pod_config_file)
-            except:
-                print pod_config_file, "   ", "does not exist"
-            try:
-                os.remove(node_config_file)
-            except:
-                print node_config_file, "   ", "does not exist"
-            out = subprocess.check_output(['bash', './src/kubernetes_pod_config.sh', pod_config_file, node_config_file])
-            print out
-
-        # step (5) start load generator (okay, this I can do!)
-        max_client_count = int( config_params["experiment"]["number_background_locusts"])
-        print "experiment length: ", experiment_length, "max_client_count", max_client_count, "traffic types", config_params["experiment"]["traffic_type"]
-        print "background_locust_spawn_rate", config_params["experiment"]["background_locust_spawn_rate"], "ip", ip, "port", port
-        thread.start_new_thread(generate_background_traffic, ((int(experiment_length)+2.4), max_client_count,
-                    config_params["experiment"]["traffic_type"], config_params["experiment"]["background_locust_spawn_rate"],
-                                                              config_params["application_name"], ip, port, experiment_name,
-                                                              sentinal_file_loc))
-
-        # step (4) setup testing infrastructure (i.e. tcpdump)
-        for network_id, network_namespace in network_ids_to_namespaces.iteritems():
-            if network_id == 'ingress_sbox':
-                current_network_name = 'ingress_sbox'
-            elif network_id == 'bridge': # for minikube
-                current_network_name = 'default_bridge'
-            else:
-                current_network =  client.networks.get(network_id)
-                current_network_name = current_network.name
-            print "about to tcpdump on:", current_network_name
-            filename = experiment_name + '_' + current_network_name + '_' + str(i)
-            if orchestrator == 'docker_swarm':
-                thread.start_new_thread(start_tcpdump, (None, network_namespace, str(int(experiment_length)), filename + '.pcap', orchestrator))
-            elif orchestrator == 'kubernetes':
-                interfaces = ['any'] #['docker0', 'eth0', 'eth1']
-                for interface in interfaces:
-                    thread.start_new_thread(start_tcpdump, (interface, network_namespace, str(int(experiment_length)),
-                                                            filename + interface + '.pcap', orchestrator, sentinal_file_loc))
-            else:
-                pass
-
-        # step (6) start data exfiltration at the relevant time
-        ## this will probably be a fairly simple modification of part of step 3
-        # for now, assume just a single exfiltration time
-        if exfil_p:
-            exfil_start_time = int(config_params["exfiltration_info"]["exfil_start_time"])
-            exfil_end_time = int(config_params["exfiltration_info"]["exfil_end_time"])
+    # step (4) setup testing infrastructure (i.e. tcpdump)
+    for network_id, network_namespace in network_ids_to_namespaces.iteritems():
+        if network_id == 'ingress_sbox':
+            current_network_name = 'ingress_sbox'
+        elif network_id == 'bridge': # for minikube
+            current_network_name = 'default_bridge'
         else:
-            exfil_start_time = 20 # just put these as random vals b/c nothing will happen anyway
-            exfil_end_time = 40
+            current_network =  client.networks.get(network_id)
+            current_network_name = current_network.name
+        print "about to tcpdump on:", current_network_name
+        filename = experiment_name + '_' + current_network_name + '_' + str(i)
+        if orchestrator == 'docker_swarm':
+            thread.start_new_thread(start_tcpdump, (None, network_namespace, str(int(experiment_length)), filename + '.pcap', orchestrator))
+        elif orchestrator == 'kubernetes':
+            interfaces = ['any'] #['docker0', 'eth0', 'eth1']
+            for interface in interfaces:
+                thread.start_new_thread(start_tcpdump, (interface, network_namespace, str(int(experiment_length)),
+                                                        filename + interface + '.pcap', orchestrator, sentinal_file_loc))
+        else:
+            pass
 
-        #################
-        ### sentinal_file_loc ;; should wait here and then create the file...
-        time.sleep(40) # going to wait for a longish-time so I know that the other threads/processes
-                       # have reached the waiting point before me.
-        ## now create the file that the other thread/processes are waiting for
-        with open(sentinal_file_loc, 'w') as f:
-            f.write('ready to go')
-        # now wait for 3 more seconds so that the background load generator can get started before this and tcpdump start
-        time.sleep(3)
-        # start the pod creation logger
-        subprocess.Popen(['python', './src/cluster_creation_looper.py', './' + exp_name + '_cluster_creation_log.txt', './' + end_sentinal_file_loc], shell=False, stdin=None, stdout=None, stderr=None, close_fds=True)
-        subprocess.Popen(['bash', './src/hpa_looper.sh', str(int(math.ceil(float(experiment_length)/60))),
-                          './' + exp_name + '_hpa_log.txt'],  shell=False, stdin=None, stdout=None,
-                         stderr=None, close_fds=True)
-        print "DET part going!"
-        ##################
-        start_time = time.time()
-        print "need to wait this long before starting the det client...", start_time + exfil_start_time - time.time()
-        print "current time", time.time(), "start time", start_time, "exfil_start_time", exfil_start_time, "exfil_end_time", exfil_end_time
+    # step (6) start data exfiltration at the relevant time
+    ## this will probably be a fairly simple modification of part of step 3
+    # for now, assume just a single exfiltration time
+    if exfil_p:
+        exfil_StartEnd_times = config_params["exfiltration_info"]["exfil_StartEnd_times"]
+    else:
+        exfil_StartEnd_times = []
 
-        print start_time, exfil_start_time, time.time(), start_time + exfil_start_time - time.time()
-        time.sleep(start_time + exfil_start_time - time.time())
-        #file_to_exfil = config_params["exfiltration_info"]["folder_to_exfil"]
+    #################
+    ### sentinal_file_loc ;; should wait here and then create the file...
+    time.sleep(40) # going to wait for a longish-time so I know that the other threads/processes
+                   # have reached the waiting point before me.
+    ## now create the file that the other thread/processes are waiting for
+    with open(sentinal_file_loc, 'w') as f:
+        f.write('ready to go')
+    # now wait for 3 more seconds so that the background load generator can get started before this and tcpdump start
+    time.sleep(3)
+    # start the pod creation logger
+    subprocess.Popen(['python', './src/cluster_creation_looper.py', './' + exp_name + '_cluster_creation_log.txt', './' + end_sentinal_file_loc], shell=False, stdin=None, stdout=None, stderr=None, close_fds=True)
+    subprocess.Popen(['bash', './src/hpa_looper.sh', str(int(math.ceil(float(experiment_length)/60))),
+                      './' + exp_name + '_hpa_log.txt'],  shell=False, stdin=None, stdout=None,
+                     stderr=None, close_fds=True)
+    print "DET part going!"
+    ##################
+    # now loop through the various exfiltration scenarios listed in the experimental configuration specification
+    start_time = time.time()
+    for exfil_counter, next_StartEnd_time in enumerate(exfil_StartEnd_times):
+        next_exfil_start_time = next_StartEnd_time[0]
+        next_exfil_end_time = next_StartEnd_time[1]
+        cur_exfil_method = exfil_methods[exfil_counter]
+        time.sleep(start_time + next_exfil_start_time - time.time())
+        print start_time, next_exfil_start_time, time.time(), start_time + next_exfil_start_time - time.time()
+
         if exfil_p:
             file_to_exfil = files_to_exfil[0]
             for class_name, container_instances in selected_originators.iteritems():
                 for container in container_instances:
-                    if exfil_methods == 'DET':
-                        thread.start_new_thread(start_det_client, (file_to_exfil, exfil_protocol, container))
-                    elif exfil_methods == 'dnscat':
+                    if cur_exfil_method == 'DET':
+                        thread.start_new_thread(start_det_client, (file_to_exfil, exfil_protocols[exfil_counter], container))
+                    elif cur_exfil_method == 'dnscat':
                         thread.start_new_thread(start_dnscat_client, (container,))
                     else:
                         print "that exfiltration method was not recognized!"
 
-
-        print "need to wait this long before stopping the det client...", start_time + exfil_end_time - time.time()
-        time.sleep(start_time + exfil_end_time - time.time())
+        time.sleep(start_time + next_exfil_end_time - time.time())
         if exfil_p:
             for class_name, container_instances in selected_originators.iteritems():
                 for container in container_instances:
-                    if exfil_methods == 'DET':
+                    if cur_exfil_method == 'DET':
                         stop_det_client(container)
-                    elif exfil_methods == 'dnscat':
+                    elif cur_exfil_method == 'dnscat':
                         stop_dnscat_client(container)
                     else:
                         print "that exfiltration method was not recognized!"
 
-        # step (7) wait, all the tasks are being taken care of elsewhere
-        time_left_in_experiment = start_time + int(experiment_length) + 7 - time.time()
-        #while(time_left_in_experiment > 0):
-        #    print "time left:", time_left_in_experiment
-        #    time_to_sleep = min(15, time_left_in_experiment)
-        #    time.sleep(time_to_sleep)
-        #    time_left_in_experiment -= time_to_sleep
-        # I don't wanna return while the other threads are still doing stuff b/c I'll get confused
-        time.sleep(time_left_in_experiment)
+    # step (7) wait, all the tasks are being taken care of elsewhere
+    time_left_in_experiment = start_time + int(experiment_length) + 7 - time.time()
+    time.sleep(time_left_in_experiment)
 
-        with open(end_sentinal_file_loc, 'w') as f:
-            f.write('all_done')
+    with open(end_sentinal_file_loc, 'w') as f:
+        f.write('all_done')
 
-        if exfil_p:
-            exfil_info_file_name = './' + experiment_name + '_det_server_local_output.txt'
-            bytes_exfil, start_ex, end_ex = parse_local_det_output(exfil_info_file_name, exfil_protocol)
-            print bytes_exfil, "bytes exfiltrated"
-            print "starting at ", start_ex, "and ending at", end_ex
+    if exfil_p:
+        exfil_info_file_name = './' + experiment_name + '_det_server_local_output.txt'
+        bytes_exfil, start_ex, end_ex = parse_local_det_output(exfil_info_file_name, exfil_protocol)
+        print bytes_exfil, "bytes exfiltrated"
+        print "starting at ", start_ex, "and ending at", end_ex
 
-        #succeeded_requests, failed_requests, fail_percentage = sanity_check_locust_performance('./'+ experiment_name + '_locust_info.csv')
-        #print "succeeded requests", succeeded_requests, 'failed_requests', failed_requests, "fail percentage", fail_percentage
-        subprocess.call(['cat', './' + experiment_name + '_locust_info.csv' ])
+    subprocess.call(['cat', './' + experiment_name + '_locust_info.csv' ])
 
-        subprocess.call(['cp', './' + experiment_name + '_locust_info.csv', './' + experiment_name + '_locust_info_' +
-                          str(i) + '.csv' ])
-        # for det, I think just cp and then delete the old file should do it?
-        if exfil_p:
-            subprocess.call(['cp', './' + experiment_name + '_det_server_local_output.txt', './' + experiment_name +
-                             '_det_server_local_output_' + str(i) + '.txt'])
-            subprocess.call(['truncate', '-s', '0' ,'./' + experiment_name + '_det_server_local_output.txt'])
+    subprocess.call(['cp', './' + experiment_name + '_locust_info.csv', './' + experiment_name + '_locust_info_' +
+                      str(i) + '.csv' ])
+    # for det, I think just cp and then delete the old file should do it?
+    if exfil_p:
+        subprocess.call(['cp', './' + experiment_name + '_det_server_local_output.txt', './' + experiment_name +
+                         '_det_server_local_output_' + str(i) + '.txt'])
+        subprocess.call(['truncate', '-s', '0' ,'./' + experiment_name + '_det_server_local_output.txt'])
 
-        #''' # enable if you are using cilium as the network plugin
-        if network_plugin == 'cilium':
-            cilium_endpoint_args = ["kubectl", "-n", "kube-system", "exec", "cilium-6lffs", "--", "cilium", "endpoint", "list",
-                                "-o", "json"]
-            out = subprocess.check_output(cilium_endpoint_args)
-            container_config_file = experiment_name + '_' + str(i) + '_cilium_network_configs.txt'
-            with open(container_config_file, 'w') as f:
-                f.write(out)
-        #'''
-        filename = experiment_name + '_' + 'default_bridge' + '_' + str(i) # note: will need to redo this if I want to go
-                                                                           # back to using Docker Swarm at some point
-        recover_pcap(orchestrator, filename + 'any' + '.pcap')
+    #''' # enable if you are using cilium as the network plugin
+    if network_plugin == 'cilium':
+        cilium_endpoint_args = ["kubectl", "-n", "kube-system", "exec", "cilium-6lffs", "--", "cilium", "endpoint", "list",
+                            "-o", "json"]
+        out = subprocess.check_output(cilium_endpoint_args)
+        container_config_file = experiment_name + '_' + str(i) + '_cilium_network_configs.txt'
+        with open(container_config_file, 'w') as f:
+            f.write(out)
+    #'''
+    filename = experiment_name + '_' + 'default_bridge' + '_' + str(i) # note: will need to redo this if I want to go
+                                                                       # back to using Docker Swarm at some point
+    recover_pcap(orchestrator, filename + 'any' + '.pcap')
 
     time.sleep(2)
 
@@ -492,7 +445,7 @@ def prepare_app(app_name, config_params, ip, port):
         print "wordpress must be prepared manually (via the the /admin panel and Fakerpress)"
         #exit(12) # yah yah I know. No need to exit b/c of it...
     else:
-        # TODO TODO TODO other applications will require other setup procedures (if they can be automated) #
+        # other applications will require other setup procedures (if they can be automated) #
         # note: some cannot be automated (i.e. wordpress)
         pass
 
@@ -609,7 +562,6 @@ def get_IP(orchestrator):
             if "https" in thing:
                 return thing.split(":")[2].split("//")[1]
     if orchestrator == "docker_swarm":
-        # TODO TODO TODO TODO
         return "0"
     return "-1"
 
@@ -644,7 +596,7 @@ def start_tcpdump(interface, network_namespace, tcpdump_time, filename, orchestr
             # this is stuff that arrives on the routing mesh
         else:
             interface = "br0"
-    # TODO: re-enable if you want rotation and compression!
+    # re-enable if you want rotation and compression!
     #tcpdump_time = str(int(tcpdump_time) / 10) # dividing by 10 b/c going to rotate
     #start_tcpdum = "tcpdump -G " + tcpdump_time + ' -W 10 -i ' + interface + ' -w /outside/\'' + filename \
     #               + '_%Y-%m-%d_%H:%M:%S.pcap\''+ ' -n' + ' -z gzip '
@@ -999,7 +951,6 @@ def start_det_proxy_mode(orchestrator, container, srcs, dst, protocol, maxsleep,
         out = subprocess.check_output(cp_command)
         print "cp command result", out
 
-        # TODO: modify the switches below for n-n / 1-n
         targetip_switch = "s/TARGETIP/\"" + dst + "\"/"
         print srcs[0], srcs
         src_string = ""
@@ -1133,7 +1084,6 @@ def setup_config_file_det_client(dst, container, directory_to_exfil, regex_to_ex
     print "cp command result", out
 
     print 'dst', dst
-    # todo: modify this for n-to-1 (you know what I mean)
     targetip_switch = "s/TARGETIP/\"" + dst + "\"/"
     print "targetip_switch", targetip_switch
     maxsleeptime_switch = "s/MAXTIMELSLEEP/" + "{:.2f}".format(maxsleep) + "/"
@@ -1208,7 +1158,6 @@ def find_dst_and_srcs_ips_for_det(exfil_path, current_class_name, selected_conta
     current_loc_in_exfil_path = exfil_path.index(current_class_name)
     current_class_networks = class_to_networks[current_class_name] #proxy_instance_to_networks_to_ip[current_class_name].keys()
 
-    # todo: modify this function to handle 1-n and n-1 situations
     # at originator -> no srcs (or rather, it is the src for itself):
     print current_class_name, current_loc_in_exfil_path+1, len(exfil_path)
     if current_loc_in_exfil_path+1 == len(exfil_path):
@@ -1217,8 +1166,6 @@ def find_dst_and_srcs_ips_for_det(exfil_path, current_class_name, selected_conta
     else: # then it has srcs other than itself
         prev_class_in_path = exfil_path[current_loc_in_exfil_path + 1]
         print selected_containers
-        # todo: this is one of the places to modify [[ this whole sectio will need to be modified so that
-        # todo: the srcs list has all of the previous ip's append to it ]]
         # iterate through selected_containers[prev_class_in_path] and append the IP's (seems easy but must wait until done w/ experiments)
         srcs = []
         # containers must be on same network to communicate...
@@ -1242,7 +1189,6 @@ def find_dst_and_srcs_ips_for_det(exfil_path, current_class_name, selected_conta
     else: # then it'll hop through another microservice
         # then can just pass to another proxy in the exfiltration path
 
-        # todo: this is another one of the places to modify, per the todos above,
         # going to want to do the same tpye of thing (follow the example of the code above)
         next_class_in_path = exfil_path[current_loc_in_exfil_path - 1]
         next_class_networks = class_to_networks[next_class_in_path]
