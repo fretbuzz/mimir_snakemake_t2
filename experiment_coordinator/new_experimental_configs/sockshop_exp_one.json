@@ -1,7 +1,7 @@
 {
     "application_name": "sockshop",
     "experiment_name": "sockshop_one",
-    "experiment_length_sec": 10800,
+    "experiment_length_sec": 108,
     "network_plugin": "none",
     "setup" : {
       "number_customer_records": 10000,

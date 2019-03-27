@@ -96,7 +96,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
     # determine the network namespaces
     # this will require mapping the name of the network to the network id, which
     # is then present (in truncated form) in the network namespace
-    full_network_ids = get_network_ids(orchestrator, "bridge")
+    full_network_ids = get_network_ids(orchestrator, ["bridge"])
     network_ids_to_namespaces = map_network_ids_to_namespaces(orchestrator, full_network_ids)
     # okay, so I have the full network id's now, but these aren't the id's of the network namespace,
     # so I need to do two things: (1) get list of network namespaces, (2) parse the list to get the mapping
@@ -113,7 +113,9 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
     # the furthest will be the originator, the others will be proxies (endpoint will be local)
     index = 0
 
-    exfil_paths = config_params["exfiltration_info"]["exfiltration_path_class"]
+    exfil_paths = config_params["exfiltration_info"]["exfil_paths"]
+    print "exfil_paths", exfil_paths
+    print "-----------------------"
     for exfil_path in exfil_paths:
         for proxy_class in exfil_path[:-1]:
             print "current proxy class", proxy_class
@@ -126,7 +128,8 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
             index += 1
 
     # determine which container instances should be the originator point
-    originator_class = config_params["exfiltration_info"]["sensitive_ms"]
+    originator_class = config_params["exfiltration_info"]["sensitive_ms"][0]
+    print "originator_class", originator_class
     possible_originators = {}
     print "originator classes", originator_class
     possible_originators[originator_class], class_to_networks[originator_class] = get_class_instances(orchestrator, originator_class, "None")
@@ -169,11 +172,11 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
             for container in container_instances:
                 install_det_dependencies(orchestrator, container, class_to_installer[class_name])
 
-    experiment_length = config_params["experiment"]["experiment_length_sec"]
+    experiment_length = config_params["experiment_length_sec"]
 
     # step (3b) get docker configs for docker containers (assuming # is constant for the whole experiment)
-    container_id_file = experiment_name + '_docker' + '_' + str(i) + '_networks.txt'
-    container_config_file = experiment_name + '_docker' '_' + str(i) +  '_network_configs.txt'
+    container_id_file = experiment_name + '_docker' + '_'  + '_networks.txt'
+    container_config_file = experiment_name + '_docker' '_' +  '_network_configs.txt'
 
     try:
         os.remove(container_id_file)
@@ -191,7 +194,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
 
     if orchestrator == 'kubernetes':
         # need some info about services, b/c they are not in the docker network configs
-        svc_config_file = experiment_name + '_svc_config' '_' + str(i) + '.txt'
+        svc_config_file = experiment_name + '_svc_config' '_' +  '.txt'
         try:
             os.remove(svc_config_file)
         except:
@@ -199,8 +202,8 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
         out = subprocess.check_output(['bash', './src/kubernetes_svc_config.sh', svc_config_file])
         print out
 
-        pod_config_file = experiment_name + '_pod_config' '_' + str(i) + '.txt'
-        node_config_file = experiment_name + '_node_config' '_' + str(i) + '.txt'
+        pod_config_file = experiment_name + '_pod_config' '_' + '.txt'
+        node_config_file = experiment_name + '_node_config' '_' + '.txt'
         try:
             os.remove(pod_config_file)
         except:
@@ -213,6 +216,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
         print out
 
     # step (5) start load generator (okay, this I can do!)
+    i = 0
     max_client_count = int( config_params["experiment"]["number_background_locusts"])
     print "experiment length: ", experiment_length, "max_client_count", max_client_count, "traffic types", config_params["experiment"]["traffic_type"]
     print "background_locust_spawn_rate", config_params["experiment"]["background_locust_spawn_rate"], "ip", ip, "port", port
@@ -231,7 +235,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
             current_network =  client.networks.get(network_id)
             current_network_name = current_network.name
         print "about to tcpdump on:", current_network_name
-        filename = experiment_name + '_' + current_network_name + '_' + str(i)
+        filename = experiment_name + '_' + current_network_name + '_' 
         if orchestrator == 'docker_swarm':
             thread.start_new_thread(start_tcpdump, (None, network_namespace, str(int(experiment_length)), filename + '.pcap', orchestrator))
         elif orchestrator == 'kubernetes':
@@ -359,11 +363,11 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
     subprocess.call(['cat', './' + experiment_name + '_locust_info.csv' ])
 
     subprocess.call(['cp', './' + experiment_name + '_locust_info.csv', './' + experiment_name + '_locust_info_' +
-                      str(i) + '.csv' ])
+                       '.csv' ])
     # for det, I think just cp and then delete the old file should do it?
     if exfil_p:
         subprocess.call(['cp', './' + experiment_name + '_det_server_local_output.txt', './' + experiment_name +
-                         '_det_server_local_output_' + str(i) + '.txt'])
+                         '_det_server_local_output_' + '.txt'])
         subprocess.call(['truncate', '-s', '0' ,'./' + experiment_name + '_det_server_local_output.txt'])
 
     #''' # enable if you are using cilium as the network plugin
@@ -371,11 +375,11 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
         cilium_endpoint_args = ["kubectl", "-n", "kube-system", "exec", "cilium-6lffs", "--", "cilium", "endpoint", "list",
                             "-o", "json"]
         out = subprocess.check_output(cilium_endpoint_args)
-        container_config_file = experiment_name + '_' + str(i) + '_cilium_network_configs.txt'
+        container_config_file = experiment_name + '_' +  + '_cilium_network_configs.txt'
         with open(container_config_file, 'w') as f:
             f.write(out)
     #'''
-    filename = experiment_name + '_' + 'default_bridge' + '_' + str(i) # note: will need to redo this if I want to go
+    filename = experiment_name + '_' + 'default_bridge' + '_' # note: will need to redo this if I want to go
                                                                        # back to using Docker Swarm at some point
     recover_pcap(orchestrator, filename + 'any' + '.pcap')
 
@@ -487,10 +491,12 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
         try:
             if app_name == "sockshop":
                 print "sockshop!"
-                proc = subprocess.Popen(["locust", "-f", "./sockshop_config/background_traffic.py",
+		locust_cmds = ["locust", "-f", "./sockshop_config/background_traffic.py",
                                          "--host=http://"+ip+ ":" +str(port), "--no-web", "-c",
-                                        client_count, "-r", spawn_rate, '--csv=' + locust_info_file],
-                                        preexec_fn=os.setsid, stdout=devnull, stderr=devnull)
+                                        client_count, "-r", str(spawn_rate), '--csv=' + locust_info_file]
+		print "locust_cmds", locust_cmds
+
+                proc = subprocess.Popen(locust_cmds, preexec_fn=os.setsid, stdout=devnull, stderr=devnull)
                 #print proc.stdout
             # for use w/ seastore:
             elif app_name == "atsea_store":
@@ -515,7 +521,7 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
             print "LOCUST CRASHED"
             raise RuntimeError("command '{}' return with error (code {}): {}".format(e.cmd, e.returncode, e.output))
 
-        print("Time: " + str(i) + ". Now running with " + client_count + " simultaneous clients")
+        print("Time: " + str(i) +  ". Now running with " + client_count + " simultaneous clients")
 
         #Run some number of background clients for 1/24th of the total test time
         time.sleep(timestep)
@@ -549,6 +555,7 @@ def get_IP(orchestrator):
 
 
 def start_tcpdump(interface, network_namespace, tcpdump_time, filename, orchestrator, sentinal_file_loc):
+    print "start_tcpdump_called"
     #if orchestrator == "kubernetes":
     #    pass
     #elif orchestrator == "docker_swarm":
@@ -790,7 +797,6 @@ def get_cilium_mapping():
     cilium_endpoint_args = ["kubectl", "-n", "kube-system", "exec", "cilium-6lffs", "--", "cilium", "endpoint", "list",
                           "-o", "json"]
     out = subprocess.check_output(cilium_endpoint_args)
-    #container_config_file = experiment_name + '_' + str(i) + '_cilium_network_configs.txt'
     container_config = json.loads(out)
     ip_to_pod = parse_cilium(container_config)
     return ip_to_pod
@@ -865,10 +871,13 @@ def install_det_dependencies(orchestrator, container, installer):
 
 
 def map_network_ids_to_namespaces(orchestrator, full_network_ids):
+    print "map_network_ids_to_namespaces", orchestrator, full_network_ids
     network_ids_to_namespaces = {}
     if orchestrator == 'kubernetes':
+	print "map_network_ids_to_namespaces in k8s part"
         network_ids_to_namespaces = {}
         for full_id in full_network_ids:
+	    print "full_id", full_id
             if full_id == 'bridge':
                 network_ids_to_namespaces['bridge'] = 'default'
         return network_ids_to_namespaces
@@ -1205,7 +1214,7 @@ def copy_experimental_info_to_experimental_folder(exp_name):
             if 'creation_log' in filename or 'json' in filename or 'pcap' in filename:
                 shutil.move("./"+filename, './experimental_data/' + exp_name + '/' + filename)
             else:
-                shutil.move("./"+filename, './experimental_data/debug/' + exp_name + '/' + filename)
+                shutil.move("./"+filename, './experimental_data/' + exp_name + '/debug/' + filename)
 
 # def generate_analysis_json ??? -> ??
 # this function generates the json that will be used be the analysis_pipeline pipeline
@@ -1246,10 +1255,7 @@ def generate_analysis_json(path_to_exp_folder, analysis_json_name, exp_config_js
     analysis_dict["pod_creation_log_name"] = exp_name + '_default_bridge_0any.pcap'
     analysis_dict["pcap_file_name"] = exp_name + '_cluster_creation_log.txt'
 
-    if 'dnscat' in exp_config_json["exfil_method"]:
-        analysis_dict['sec_between_exfil_events'] = exp_config_json["seconds_per_dns_packet"]
-    else:
-        analysis_dict['sec_between_exfil_events'] = 0.1
+    analysis_dict['exfiltration_info']['sec_between_exfil_pkts'] = exp_config_json["exfiltration_info"]["sec_between_exfil_pkts"]
 
 
     json_path = path_to_exp_folder + analysis_json_name
@@ -1354,12 +1360,12 @@ if __name__=="__main__":
         setup_directories(args.exp_name)
         exp_name = args.exp_name
     else:
-        with open(args.config_file + '.json') as f:
+        with open(args.config_file) as f:
             config_params = json.load(f)
             setup_directories(config_params['experiment_name'])
             exp_name = config_params['experiment_name']
 
-    with open(args.config_file + '.json') as f:
+    with open(args.config_file) as f:
         config_params = json.load(f)
         generate_analysis_json('./experimental_data/' + exp_name + '/', exp_name + '_analysis.json', config_params, exp_name)
 
