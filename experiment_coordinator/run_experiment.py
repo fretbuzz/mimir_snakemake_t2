@@ -169,70 +169,6 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
             for container in container_instances:
                 install_det_dependencies(orchestrator, container, class_to_installer[class_name])
 
-    ### TODO: KEEP GOING FROM HERE!!!!! It's going to get rougher tho. Because I need to actually take into
-    ### acount the fact that there is lot's of exfil paths now.
-
-    # start thes proxy DET instances (note: will need to dynamically configure some
-    # of the configuration file)
-    # note: this is only going to work for a single src and a single dst ip, ATM
-    for class_name, container_instances in selected_proxies.iteritems():
-        # okay, gotta determine srcs and dst
-        # okay, so find location in exfil_paths
-        # look backward to find src class, then index into selected_proxies, and then index into
-        # instances_to_network_to_ips (will need to match up networks)
-
-        explicit_dsts, explicit_srcs = 'None', 'None'
-
-        dsts,srcs=find_dst_and_srcs_ips_for_det(exfil_paths, class_name, selected_containers, localhostip,
-                                                proxy_instance_to_networks_to_ip, class_to_networks)
-        if explicit_dsts != 'None': #-> use expkicit_dsts (otherwise just keep going with dsts)
-            dsts = explicit_dsts
-        if explicit_srcs != 'None': #-> use explicit_srcs (otherwise just keep going with srcs)
-            srcs = explicit_srcs
-
-        for container in container_instances:
-            for dst in dsts:
-                print "config stuff", container.name, srcs, dst, proxy_instance_to_networks_to_ip[ container ]
-                if exfil_p:
-                    start_det_proxy_mode(orchestrator, container, srcs, dst, exfil_protocol,
-                                            maxsleep, DET_max_exfil_bytes_in_packet, DET_min_exfil_bytes_in_packet)
-
-    # start the endpoint (assuming the pre-reqs are installed prior to the running of this script)
-    srcs = [ip]
-
-    if exfil_p:
-        start_det_server_local(exfil_protocol, srcs, maxsleep, DET_max_exfil_bytes_in_packet,
-                           DET_min_exfil_bytes_in_packet, experiment_name)
-    # now setup the originator (i.e. the client that originates the exfiltrated data)
-    # explicit_target from the config file (exp_six)... if it has corresponding src and dst values
-
-    next_instance_ips, _ = find_dst_and_srcs_ips_for_det(exfil_paths, originator_class,
-                                                                         selected_containers, localhostip,
-                                                                         proxy_instance_to_networks_to_ip,
-                                                                         class_to_networks)
-
-    try:
-        explicit_dsts,explicit_srcs = config_params["exfiltration_info"]["explicit_target_src"][originator_class]
-    except:
-        explicit_dsts,explicit_srcs = 'None','None'
-    if explicit_dsts != 'None': 
-        next_instance_ips = explicit_dsts
-
-    print "next ip(s) for the originator to send to", next_instance_ips
-    directory_to_exfil = config_params["exfiltration_info"]["folder_to_exfil"]
-    regex_to_exfil = config_params["exfiltration_info"]["regex_of_file_to_exfil"]
-    files_to_exfil = []
-    for class_name, container_instances in selected_originators.iteritems():
-        for container in container_instances:
-            for next_instance_ip in next_instance_ips:
-                if exfil_p:
-                    file_to_exfil = setup_config_file_det_client(next_instance_ip, container, directory_to_exfil, regex_to_exfil,
-                                                             maxsleep, DET_min_exfil_bytes_in_packet, DET_max_exfil_bytes_in_packet)
-                else:
-                    file_to_exfil = ''
-                files_to_exfil.append(file_to_exfil)
-
-    print "files_to_exfil", files_to_exfil
     experiment_length = config_params["experiment"]["experiment_length_sec"]
 
     # step (3b) get docker configs for docker containers (assuming # is constant for the whole experiment)
@@ -336,6 +272,53 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
         next_exfil_start_time = next_StartEnd_time[0]
         next_exfil_end_time = next_StartEnd_time[1]
         cur_exfil_method = exfil_methods[exfil_counter]
+
+        if exfil_p:
+            # setup config files for proxy DET instances and start them
+            # note: this is only going to work for a single src and a single dst, ATM
+            for class_name, container_instances in selected_proxies.iteritems():
+                # going to determine srcs and dests by looking backword into the src class, index into the selected proxies,
+                # and then indexing into instances_to_network_to_ips
+                dsts, srcs = find_dst_and_srcs_ips_for_det(exfil_paths, class_name, selected_containers, localhostip,
+                                                           proxy_instance_to_networks_to_ip, class_to_networks)
+                for container in container_instances:
+                    for dst in dsts:
+                        print "config stuff", container.name, srcs, dst, proxy_instance_to_networks_to_ip[container]
+                        start_det_proxy_mode(orchestrator, container, srcs, dst, cur_exfil_method,
+                                            maxsleep, DET_max_exfil_bytes_in_packet, DET_min_exfil_bytes_in_packet)
+
+            start_det_server_local(cur_exfil_method, [ip], maxsleep, DET_max_exfil_bytes_in_packet,
+                                   DET_min_exfil_bytes_in_packet, experiment_name)
+
+        # now setup the originator (i.e. the client that originates the exfiltrated data)
+        next_instance_ips, _ = find_dst_and_srcs_ips_for_det(exfil_paths, originator_class,
+                                                             selected_containers, localhostip,
+                                                             proxy_instance_to_networks_to_ip,
+                                                             class_to_networks)
+
+        print "next ip(s) for the originator to send to", next_instance_ips
+        directory_to_exfil = config_params["exfiltration_info"]["folder_to_exfil"]
+        regex_to_exfil = config_params["exfiltration_info"]["regex_of_file_to_exfil"]
+        files_to_exfil = []
+        for class_name, container_instances in selected_originators.iteritems():
+            for container in container_instances:
+                for next_instance_ip in next_instance_ips:
+                    if exfil_p:
+                        # this just sets up the config file for DET... I'm not sure why there is a loop over the next_instance_ips
+                        # but I suspect it's because the base implementation requires a new instance for each exfil path,
+                        # so if you want to do multiple exfiltration path simultaneously, you need multiple instances and
+                        # therefore multiple config files
+                        file_to_exfil = setup_config_file_det_client(next_instance_ip, container, directory_to_exfil,
+                                                                     regex_to_exfil,
+                                                                     maxsleep, DET_min_exfil_bytes_in_packet,
+                                                                     DET_max_exfil_bytes_in_packet)
+                    else:
+                        file_to_exfil = ''
+                    files_to_exfil.append(file_to_exfil)
+
+        print "files_to_exfil", files_to_exfil
+
+
         time.sleep(start_time + next_exfil_start_time - time.time())
         print start_time, next_exfil_start_time, time.time(), start_time + next_exfil_start_time - time.time()
 
