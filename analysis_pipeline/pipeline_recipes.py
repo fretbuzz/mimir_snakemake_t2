@@ -32,52 +32,11 @@ minikube_infrastructure = ['etcd', 'kube-addon-manager', 'kube-apiserver', 'kube
                            'storage-provisioner']
 microservices_wordpress = ['mariadb-master', 'mariadb-slave', 'wordpress']
 
-def run_analysis_pipeline_recipes_json(json_file, path_to_experimental_data):
-    with open(path_to_experimental_data + json_file) as f:
-        data = json.load(f)
-        pcap_paths = [path_to_experimental_data + i for i in data["pcap_paths"]]
-        is_swarm = int(data["is_swarm"])
-        basefile_name = path_to_experimental_data + data["basefile_name"]
-        basegraph_name = path_to_experimental_data + data["basegraph_name"]
-        container_info_path =  path_to_experimental_data + data["container_info_path"]
-        cilium_config_path = (path_to_experimental_data + data["cilium_config_path"])[0] if (data["cilium_config_path"] and data["cilium_config_path"] != "None") else None
-        kubernetes_svc_info = path_to_experimental_data + data["kubernetes_svc_info"]
-        kubernetes_pod_info = path_to_experimental_data + data["kubernetes_pod_info"]
-        time_interval_lengths = data["time_interval_lengths"]
-        ms_s = data["ms_s"]
-        make_edgefiles =  data["make_edgefiles"]
-        start_time = data["start_time"]
-        end_time = data["end_time"]
-        exfil_start_time = data["exfil_start_time"]
-        exfil_end_time = data["exfil_end_time"]
-        calc_vals = data["calc_vals"]
-        window_size = data["window_size"]
-        graph_p = data["graph_p"]
-        colors = data["colors"]
-        wiggle_room = data["wiggle_room"] # the number of seconds to extend the start / end of exfil time (to account for imperfect synchronization)
-        #percentile_thresholds = data["percentile_thresholds"]
-        #anomaly_window = data["anomaly_window"]
-        #anom_num_outlier_vals_in_window = data["anom_num_outlier_vals_in_window"]
-        alert_file = path_to_experimental_data + data["alert_file"]
-        ROC_curve_p =  data["ROC_curve_p"]
-        calc_tpr_fpr_p =  data["calc_tpr_fpr_p"]
-        sec_between_exfil_events = data['sec_between_exfil_events']
-
-        '''
-        run_data_anaylsis_pipeline(pcap_paths, is_swarm, basefile_name, container_info_path, time_interval_lengths,
-                                   ms_s, make_edgefiles, basegraph_name, window_size, colors, exfil_start_time,
-                                   exfil_end_time, wiggle_room, start_time=start_time, end_time=end_time,
-                                   calc_vals=calc_vals, graph_p=graph_p, kubernetes_svc_info=kubernetes_svc_info,
-                                   cilium_config_path=cilium_config_path, rdpcap_p=False,
-                                   kubernetes_pod_info=kubernetes_pod_info, alert_file=alert_file,
-                                   ROC_curve_p=ROC_curve_p, calc_zscore_p=calc_tpr_fpr_p,
-                                   sec_between_exfil_events=sec_between_exfil_events)
-        '''
-
 # TODO: the plan is to fill in all of the relevant values from a file... well, no that's not quite it. I am also
 # going to assume that the pod_creation_log contains all of the necessary ip info. note: I'll also wanna store the
 # existing svc someehere
-def parse_experimental_data_json(config_file, experimental_folder, experiment_name, make_edgefiles, time_interval_lengths):
+def parse_experimental_data_json(config_file, experimental_folder, experiment_name, make_edgefiles,
+                                 time_interval_lengths, pcap_file_path):
     with open(config_file) as f:
         config_file = json.load(f)
         basefile_name = experimental_folder + 'alerts/' + experiment_name + '_'
@@ -85,7 +44,7 @@ def parse_experimental_data_json(config_file, experimental_folder, experiment_na
         alert_file = experimental_folder + 'alerts/' + experiment_name + '_'
         ms_s = config_file['ms_s']
         sec_between_exfil_events = config_file['sec_between_exfil_events']
-        pcap_paths = [ experimental_folder + config_file['pcap_file_name']]
+        pcap_paths = [ pcap_file_path + config_file['pcap_file_name']]
         pod_creation_log = [ experimental_folder + config_file['pod_creation_log_name']]
         sensitive_ms = config_file['sensitive_ms']
 
@@ -147,9 +106,10 @@ def parse_experimental_config(experimental_config_file):
 
         make_edgefiles = config_file['make_edgefiles']
         experimental_folder = config_file['experimental_folder']
+        pcap_file_path = config_file['pcap_file_path']
 
         experiment_classes = [parse_experimental_data_json(config_file, experimental_folder, cur_experiment_name,
-                                                           make_edgefiles, time_interval_lengths)]
+                                                           make_edgefiles, time_interval_lengths, pcap_file_path)]
 
         return multi_experiment_pipeline(experiment_classes, base_output_location, True, time_of_synethic_exfil,
                                   goal_train_test_split_training, goal_attack_NoAttack_split_training, None,
