@@ -1228,10 +1228,13 @@ def generate_analysis_json(path_to_exp_folder, analysis_json_name, exp_config_js
     analysis_dict["experiment_length_sec"] = exp_config_json["experiment_length_sec"]
     analysis_dict["network_plugin"] = exp_config_json["network_plugin"]
 
-    analysis_dict["setup"] = {}
-    analysis_dict["setup"]["number_customer_records"] = exp_config_json["setup"]["number_customer_records"]
-    analysis_dict["setup"]["number_background_locusts"] = exp_config_json["setup"]["number_background_locusts"]
-    analysis_dict["setup"]["background_locust_spawn_rate"] = exp_config_json["setup"]["background_locust_spawn_rate"]
+    try:
+        analysis_dict["setup"] = {}
+        analysis_dict["setup"]["number_customer_records"] = exp_config_json["setup"]["number_customer_records"]
+        analysis_dict["setup"]["number_background_locusts"] = exp_config_json["setup"]["number_background_locusts"]
+        analysis_dict["setup"]["background_locust_spawn_rate"] = exp_config_json["setup"]["background_locust_spawn_rate"]
+    except: # some of the setups handle app seteup seperately
+        pass
 
     analysis_dict["experiment"] = {}
     analysis_dict["experiment"]["number_background_locusts"] = exp_config_json["experiment"]["number_background_locusts"]
