@@ -90,7 +90,7 @@ def aggregate_outside_nodes(G):
     first_node = outside_nodes[0]
     H = G.copy()
     for cur_node in outside_nodes[1:]:
-        ## going to modify the src code for contracted_edges in networkx 1.10
+        ## going to modify the exp_support_scripts code for contracted_edges in networkx 1.10
         ##  ## https://networkx.github.io/documentation/networkx-1.10/_modules/networkx/algorithms/minors.html#contracted_nodes
         in_edges = ((w, first_node, d) for w, x, d in G.in_edges(cur_node, data=True))
         out_edges = ((first_node, w, d) for x, w, d in G.out_edges(cur_node, data=True))

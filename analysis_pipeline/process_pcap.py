@@ -1,6 +1,8 @@
 import subprocess
 import os, errno
 import json
+
+import analysis_pipeline.pcap_to_edgelists
 import simplified_graph_metrics
 
 def convert_tshark_stats_to_edgefile(edgefile_path, edgefile_name, tshark_path, tshark_name, make_edgefiles_p, mapping):
@@ -159,8 +161,8 @@ def process_pcap(experiment_folder_path, pcap_file, intervals, exp_name, make_ed
                 edgefile_path = path_to_edgefile_dir
                 edgefile_name = tshark_stats_file + '_edges.txt'
 
-                mapping,infra_instances = simplified_graph_metrics.update_mapping(mapping, cluster_creation_log, interval,
-                                                                  edgefile_counter, infra_instances=infra_instances)
+                mapping,infra_instances = analysis_pipeline.pcap_to_edgelists.update_mapping(mapping, cluster_creation_log, interval,
+                                                                                             edgefile_counter, infra_instances=infra_instances)
 
                 edgefile = convert_tshark_stats_to_edgefile(edgefile_path, edgefile_name, tshark_stats_path, tshark_stats_file,
                                                             make_edgefiles_p,mapping)

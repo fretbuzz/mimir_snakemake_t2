@@ -836,63 +836,6 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
     out_q.put(amt_of_out_traffic_pkts)
     out_q.put(container_to_ip)
 
-def update_mapping(container_to_ip, cluster_creation_log, time_gran, time_counter, infra_instances):
-    if cluster_creation_log is None:
-        return container_to_ip
-
-    last_entry_into_log = max(0, time_gran * (time_counter ))
-    current_entry_into_log =  time_gran * (time_counter +1)
-
-    print "time_counter",time_counter,"time_gran",time_gran
-    for i in range(last_entry_into_log, current_entry_into_log):
-        # recall that: container_to_ip[container_ip] = (container_name, network_name)
-        mod_cur_creation_log = {}
-        if i in cluster_creation_log: # sometimes the last value isn't included
-            for cur_pod,curIP_PlusMinus in cluster_creation_log[i].iteritems():
-                cur_ip = curIP_PlusMinus[0].rstrip().lstrip()
-                cur_pod = cur_pod.rstrip().lstrip()
-                plus_minus = curIP_PlusMinus[1]
-                namespace = curIP_PlusMinus[2]
-                entity = curIP_PlusMinus[3]
-
-
-                if plus_minus == '+':
-                    if cur_ip not in container_to_ip:
-                        if entity != 'svc':
-                            mod_cur_creation_log[cur_ip] = (cur_pod, None, namespace, entity)
-                        else:
-                            mod_cur_creation_log[cur_ip] = (cur_pod + '_VIP', None, namespace, entity)
-
-                        if namespace == 'kube-system':
-                            infra_instances[cur_pod] = [cur_ip, entity]
-
-                elif plus_minus == '-': # not sure if I want/need this but might be useful for bug checking
-                    pass
-                    # passing here b/c can't delete pods that disappear in the current
-                    # time frame b/c they end up being mislabeled.
-                else:
-                    print "+/- in pod_creation_log was neither + or -!!"
-                    exit(300)
-
-        if i - (time_gran) >= 0:
-            if (i - time_gran) in cluster_creation_log:  # sometimes the last value isn't included
-                for cur_pod, curIP_PlusMinus in cluster_creation_log[i - time_gran].iteritems():
-                    cur_ip = curIP_PlusMinus[0].rstrip().lstrip()
-                    namespace = curIP_PlusMinus[2]
-                    cur_pod = cur_pod.rstrip().lstrip()
-                    plus_minus = curIP_PlusMinus[1]
-                    if plus_minus == '-': # not sure if I want/need this but might be useful for bug checking
-                        if cur_ip in container_to_ip:
-                            del container_to_ip[cur_ip]
-                        # note: no point in deleting theme b/c I am indexing by names--- which
-                        # obviously will never be re-used by a non-infra component.
-                        #if cur_pod in infra_instances and namespace == 'kube-system':
-                        #    del infra_instances[cur_pod]
-
-        container_to_ip.update( mod_cur_creation_log )
-
-    return container_to_ip, infra_instances
-
 def find_amt_of_out_traffic(cur_1si_G):
     into_outside_bytes = 0
     into_outside_pkts = 0
@@ -902,15 +845,13 @@ def find_amt_of_out_traffic(cur_1si_G):
         into_outside_pkts +=  d['frames']
     return into_outside_bytes,into_outside_pkts
 
-## we have the times and the theoretical attacks... we just have to modify the graph
-## accordingly...
-# (1) identify whether a synthetic attack is injected here
-# (2) identify whether this is the first occurence of injection... if it was injected
-## earlier, then we need to re-use the mappings...
-# (3) add the weights...
 def inject_synthetic_attacks(graph, synthetic_exfil_paths, attacks_to_times, graph_number, attack_number_to_mapping,
                             name_of_dns_pod_node,old_carryover, last_attack, time_gran, avg_exfil_per_min, exfil_per_min_variance,
                              avg_pkt_size, pkt_size_variance):
+    # (1) identify whether a synthetic attack is injected here
+    # (2) identify whether this is the first occurence of injection... if it was injected
+    ## earlier, then we need to re-use the mappings...
+    # (3) add the weights...
 
     current_time = graph_number
     attack_occuring = None
@@ -984,8 +925,8 @@ def determine_concrete_node_path(current_exfil_path, current_abstract_to_physica
         print "concrete_possible_dst", concrete_possible_dst
 
         ### there are two subcases of this first case.
-        ### (1): first src initiates flow [pod (DST) and vip are same service]
-        ### (2). dst initiates flow [pod (src) and vip are same service
+        ### (1): first exp_support_scripts initiates flow [pod (DST) and vip are same service]
+        ### (2). dst initiates flow [pod (exp_support_scripts) and vip are same service
         if 'VIP' in concrete_possible_dst:
             ## in this case, we need to compensate for the VIP re-direction that occurs
             ## in the Kubernetes VIP.

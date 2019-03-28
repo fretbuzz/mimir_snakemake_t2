@@ -85,7 +85,7 @@ image = requests.post('https://' + minikube_ip + ':' + wp_port + '/wp-json/wp/v2
 print('Your image is published on ' + json.loads(image.content)['link'])
 image_link = json.loads(image.content)['source_url']
 
-cont = cont + ' ' + '<img src=' + image_link + '>'
+cont = cont + ' ' + '<img exp_support_scripts=' + image_link + '>'
 
 print cont
 
@@ -112,7 +112,7 @@ print r
 print "########"
 # following the same guide as above, I am now going to update the post
 cont = ''.join(random.choice(string.ascii_lowercase + ' ' + '.') for _ in range(random.randint(20,80)))
-cont = cont + ' ' + '<img src=' + image_link + '>'
+cont = cont + ' ' + '<img exp_support_scripts=' + image_link + '>'
 updatedpost = {'content' : cont}
 update = requests.post('https://' + minikube_ip + ':' + wp_port + '/wp-json/wp/v2' + '/posts/'
                        + str(postid), headers=headers, json=updatedpost, verify=False)

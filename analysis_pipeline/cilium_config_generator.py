@@ -4,7 +4,7 @@
 from process_pcap import process_pcap_via_tshark, convert_tshark_stats_to_edgefile
 import os,errno
 import subprocess
-from simplified_graph_metrics import update_mapping
+from analysis_pipeline.pcap_to_edgelists import update_mapping
 import glob
 import time
 import ast

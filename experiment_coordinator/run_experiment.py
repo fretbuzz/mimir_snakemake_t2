@@ -189,7 +189,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
     out = subprocess.check_output(['pwd'])
     print out
 
-    out = subprocess.check_output(['bash', './src/docker_network_configs.sh', container_id_file, container_config_file])
+    out = subprocess.check_output(['bash', './exp_support_scripts/docker_network_configs.sh', container_id_file, container_config_file])
     print out
 
     if orchestrator == 'kubernetes':
@@ -199,7 +199,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
             os.remove(svc_config_file)
         except:
             print svc_config_file, "   ", "does not exist"
-        out = subprocess.check_output(['bash', './src/kubernetes_svc_config.sh', svc_config_file])
+        out = subprocess.check_output(['bash', './exp_support_scripts/kubernetes_svc_config.sh', svc_config_file])
         print out
 
         pod_config_file = experiment_name + '_pod_config' '_' + '.txt'
@@ -212,7 +212,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
             os.remove(node_config_file)
         except:
             print node_config_file, "   ", "does not exist"
-        out = subprocess.check_output(['bash', './src/kubernetes_pod_config.sh', pod_config_file, node_config_file])
+        out = subprocess.check_output(['bash', './exp_support_scripts/kubernetes_pod_config.sh', pod_config_file, node_config_file])
         print out
 
     # step (5) start load generator (okay, this I can do!)
@@ -264,8 +264,9 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
     # now wait for 3 more seconds so that the background load generator can get started before this and tcpdump start
     time.sleep(3)
     # start the pod creation logger
-    subprocess.Popen(['python', './src/cluster_creation_looper.py', './' + exp_name + '_cluster_creation_log.txt', './' + end_sentinal_file_loc], shell=False, stdin=None, stdout=None, stderr=None, close_fds=True)
-    subprocess.Popen(['bash', './src/hpa_looper.sh', str(int(math.ceil(float(experiment_length)/60))),
+    subprocess.Popen(['python', './exp_support_scripts/cluster_creation_looper.py', './' + exp_name + '_cluster_creation_log.txt',
+                      './' + end_sentinal_file_loc], shell=False, stdin=None, stdout=None, stderr=None, close_fds=True)
+    subprocess.Popen(['bash', './exp_support_scripts/hpa_looper.sh', str(int(math.ceil(float(experiment_length)/60))),
                       './' + exp_name + '_hpa_log.txt'],  shell=False, stdin=None, stdout=None,
                      stderr=None, close_fds=True)
     print "DET part going!"
@@ -281,10 +282,10 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
 
         if exfil_p:
             # setup config files for proxy DET instances and start them
-            # note: this is only going to work for a single src and a single dst, ATM
+            # note: this is only going to work for a single exp_support_scripts and a single dst, ATM
 
             for class_name, container_instances in selected_proxies.iteritems():
-                # going to determine srcs and dests by looking backword into the src class, index into the selected proxies,
+                # going to determine srcs and dests by looking backword into the exp_support_scripts class, index into the selected proxies,
                 # and then indexing into instances_to_network_to_ips
                 dsts, srcs = find_dst_and_srcs_ips_for_det(exfil_paths[exfil_counter], class_name, selected_containers, localhostip,
                                                            proxy_instance_to_networks_to_ip, class_to_networks)
@@ -491,11 +492,10 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
         try:
             if app_name == "sockshop":
                 print "sockshop!"
-		locust_cmds = ["locust", "-f", "./sockshop_setup/background_traffic.py",
+                locust_cmds = ["locust", "-f", "./sockshop_setup/background_traffic.py",
                                          "--host=http://"+ip+ ":" +str(port), "--no-web", "-c",
                                         client_count, "-r", str(spawn_rate), '--csv=' + locust_info_file]
-		print "locust_cmds", locust_cmds
-
+                print "locust_cmds", locust_cmds
                 proc = subprocess.Popen(locust_cmds, preexec_fn=os.setsid, stdout=devnull, stderr=devnull)
                 #print proc.stdout
             # for use w/ seastore:
@@ -509,7 +509,7 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
             #                        "--no-web", "-c", client_count, "-r", spawn_rate],
             #                        stdout=devnull, stderr=devnull, preexec_fn=os.setsid)
             elif app_name == "wordpress":
-                wordpress_cmds = ["locust", "-f", "./load_generators/wordpress_background.py", "--host=https://"+ip+ ":" +str(port),
+                wordpress_cmds = ["locust", "-f", "./wordpress_setup/wordpress_background.py", "--host=https://"+ip+ ":" +str(port),
                                   "--no-web", "-c", str(client_count), "-r", str(spawn_rate), "--csv=" + locust_info_file]
                 print "wordpress_cmds", wordpress_cmds
                 proc = subprocess.Popen(wordpress_cmds, preexec_fn=os.setsid, stdout=devnull, stderr=devnull)
@@ -556,20 +556,8 @@ def get_IP(orchestrator):
 
 def start_tcpdump(interface, network_namespace, tcpdump_time, filename, orchestrator, sentinal_file_loc):
     print "start_tcpdump_called"
-    #if orchestrator == "kubernetes":
-    #    pass
-    #elif orchestrator == "docker_swarm":
-    # ssh root@MachineB 'bash -s' < local_script.sh
-    #args = ["docker-machine", "ssh", "default",  "-s", "./src/start_tcpdump.sh"]
-    #, network_namespace, tcpdump_time,
-            #orchestrator, filename
-    #out = subprocess.check_output(args)
-    #print out
-    #args = ['docker-machine', 'ssh', 'default', '-t', "sudo ls /var/run/docker/netns"]
 
     start_netshoot = "docker run -it --rm -v /var/run/docker/netns:/var/run/docker/netns -v /home/docker:/outside --privileged=true nicolaka/netshoot"
-    #tcpdump_time = str(int(tcpdump_time) / 5) # dividing by 5 b/c going to rotate
-    #tcpdump_time = str(int(tcpdump_time) / 10) # dividing by 10 b/c going to rotate
     print network_namespace, tcpdump_time
     switch_namespace =  'nsenter --net=/var/run/docker/netns/' + network_namespace + ' ' 'sh'
 
@@ -833,7 +821,7 @@ def install_det_dependencies(orchestrator, container, installer):
         # make a list of lists, where each list is a line
         # and then send each to the container
         #''' # Note: this is only needed for Atsea Shop
-        upload_config_command = ["docker", "cp", "./src/modify_resolve_conf.sh", container.id+ ":/modify_resolv.sh"]
+        upload_config_command = ["docker", "cp", "./exp_support_scripts/modify_resolve_conf.sh", container.id+ ":/modify_resolv.sh"]
         out = subprocess.check_output(upload_config_command)
         print "upload_config_command", upload_config_command, out
 
@@ -924,9 +912,6 @@ def map_network_ids_to_namespaces(orchestrator, full_network_ids):
 # note: det must be a single ip, in string form, ATM
 def start_det_proxy_mode(orchestrator, container, srcs, dst, protocol, maxsleep, maxbytesread, minbytesread):
     network_ids_to_namespaces = {}
-    #if orchestrator == 'kubernetes':
-        ## todo
-    #    pass
     if orchestrator == "docker_swarm" or orchestrator == 'kubernetes':
         # okay, so this is what we need to do here
         # (0) create a new config file
@@ -938,7 +923,7 @@ def start_det_proxy_mode(orchestrator, container, srcs, dst, protocol, maxsleep,
         # going to do a bit of a workaround below, since using pipes with the subprocesses
         # module is tricky, so let's make a copy of the file we want to modify and then we
         # can just modify it in place
-        cp_command = ['cp', './src/det_config_template.json', './current_det_config.json']
+        cp_command = ['cp', './exp_support_scripts/det_config_template.json', './current_det_config.json']
         out = subprocess.check_output(cp_command)
         print "cp command result", out
 
@@ -987,7 +972,7 @@ def start_det_proxy_mode(orchestrator, container, srcs, dst, protocol, maxsleep,
 def start_det_server_local(protocol, srcs, maxsleep, maxbytesread, minbytesread, experiment_name):
     # okay, need to modify this so that it can work (can use the working version above as a template)
     #'''
-    cp_command = ['sudo', 'cp', "./src/det_config_local_template.json", "/DET/det_config_local_configured.json"]
+    cp_command = ['sudo', 'cp', "./exp_support_scripts/det_config_local_template.json", "/DET/det_config_local_configured.json"]
     out = subprocess.check_output(cp_command)
     print "cp command result", out
 
@@ -1054,7 +1039,7 @@ def setup_config_file_det_client(dst, container, directory_to_exfil, regex_to_ex
     out = subprocess.check_output(['pwd'])
     print out
 
-    cp_command = ['cp', './src/det_config_client_template.json', './det_config_client.json']
+    cp_command = ['cp', './exp_support_scripts/det_config_client_template.json', './det_config_client.json']
     out = subprocess.check_output(cp_command)
     print "cp command result", out
 
@@ -1075,8 +1060,8 @@ def setup_config_file_det_client(dst, container, directory_to_exfil, regex_to_ex
     print "upload_config_command", upload_config_command
     print "upload_config_command result", out
 
-    # i also want to move ./src/loop.py here (so that I can call it easily later on)
-    upload_loop_command = ["docker", "cp", "./src/loop.py", container.id + ":/DET/loop.py"]
+    # i also want to move ./exp_support_scripts/loop.py here (so that I can call it easily later on)
+    upload_loop_command = ["docker", "cp", "./exp_support_scripts/loop.py", container.id + ":/DET/loop.py"]
     out = subprocess.check_output(upload_loop_command)
     print "upload_loop_command", upload_loop_command
     print "upload_loop_command result", out
@@ -1133,7 +1118,7 @@ def find_dst_and_srcs_ips_for_det(exfil_path, current_class_name, selected_conta
     current_loc_in_exfil_path = exfil_path.index(current_class_name)
     current_class_networks = class_to_networks[current_class_name] #proxy_instance_to_networks_to_ip[current_class_name].keys()
 
-    # at originator -> no srcs (or rather, it is the src for itself):
+    # at originator -> no srcs (or rather, it is the exp_support_scripts for itself):
     print current_class_name, current_loc_in_exfil_path+1, len(exfil_path)
     if current_loc_in_exfil_path+1 == len(exfil_path):
         srcs = None

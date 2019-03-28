@@ -138,7 +138,7 @@ class BackgroundTraffic(TaskSet):
                                       headers=headers, files=picture, verify=False)
                 print('Your image is published on ' + json.loads(image.content)['link'])
                 image_link = json.loads(image.content)['source_url']
-                cont = cont + ' ' + '<img src=' + image_link + '>'
+                cont = cont + ' ' + '<img exp_support_scripts=' + image_link + '>'
 
             post = {'date': date,  # '2017-06-19T20:00:35',
                     'title': title,

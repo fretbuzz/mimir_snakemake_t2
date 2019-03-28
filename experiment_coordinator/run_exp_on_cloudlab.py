@@ -122,25 +122,6 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, autoscale
         clone_mimir_str = "cd /mydata/; git clone https://github.com/fretbuzz/mimir_v2"
         sh.sendline(clone_mimir_str)
 
-        '''
-        sh.sendline('minikube ip')
-        # Receive output from the executed command
-        line_rec = 'start'
-        while line_rec != '':
-            line_rec = sh.recvline(timeout=5)
-            print("recieved line", line_rec)
-        print("--end minikube_ip ---")
-        '''
-        #print last_line.split(' ')
-        #print last_line.split(' ')[-1]
-        #print last_line.split(' ')[-1].split('/')
-        #print last_line.split(' ')[-1].split('/')[-1]
-        #print last_line.split(' ')[-1].split('/')[-1].rstrip().split(':')
-
-        #minikube_ip, front_facing_port = None, None
-        #print "minikube_ip", minikube_ip, "front_facing_port",front_facing_port
-
-        #sh.sendline('bash /local/repository/run_experiment.sh ' + app_name)
         if app_name == 'wordpress':
             cpu_threshold = 80
         else:
@@ -164,7 +145,6 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, autoscale
             print("recieved line", line_rec)
         print("did run_experiment work???")
 
-
         sentinal_file_setup = '/mydata/done_with_setup.txt'
         while True:
             # this is a special 'done' file used to indicate that
@@ -174,28 +154,15 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, autoscale
                 break
             time.sleep(20)
 
-        '''
-        def run_experiment(app_name, config_file_name, exp_name):
-        ## delete this part...
-        s = pwnlib.tubes.ssh.ssh(host=cloudlab_server_ip,
-            keyfile=cloudlab_private_key,
-            user='jsev')
-        sh = s.run('sh') # Create an initial process
-        sh.sendline('sudo newgrp docker')
-        sh.sendline('export MINIKUBE_HOME=/mydata/')
-        ## delete this part...
-        #'''
 
         minikube_ip, front_facing_port = get_ip_and_port(app_name, sh)
 
         if app_name == 'wordpress':
             # step 2: setup wordpress (must be done now rather than later in run_experiment like sockshop)
-            # todo: it's not local you know... it doesn't make any sense for it be called locally...
-            #wp_api_pwd = setup_wordpress.main(minikube_ip, front_facing_port, 'hi')
             sh.sendline("exit") # need to be a normal user when using selenium
             sh.sendline("cd /mydata/mimir_v2/experiment_coordinator/experimental_configs")
 
-            prepare_wp_str = "python /mydata/mimir_v2/experiment_coordinator/experimental_configs/setup_wordpress.py " + \
+            prepare_wp_str = "python /mydata/mimir_v2/experiment_coordinator/wordpress_setup/setup_wordpress.py " + \
                     minikube_ip + " " + front_facing_port + " " + "hi"
             print "prepare_wp_str",prepare_wp_str
             sh.sendline(prepare_wp_str)
@@ -206,21 +173,11 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, autoscale
                 last_line = line_rec
                 line_rec = sh.recvline(timeout=360)
                 print("recieved line", line_rec)
-                #if 'pwd' in line_rec:
-                #    pwd_line = line_rec
 
             # need to get back to the other group now
             sh.sendline('sudo newgrp docker')
             sh.sendline('export MINIKUBE_HOME=/mydata/')
             sh.sendline('cd /mydata/mimir_v2/experiment_coordinator/')
-            #wp_api_pwd = pwd_line.split("pwd")[1].lstrip()
-            #print "wp_api_pwd",wp_api_pwd
-            # this is kinda silly... just put the pwd in a file and have the background function read it...
-            #change_cwd = 'cd /mydata/mimir_v2/experiment_coordinator/load_generators'
-            #change_pwd_cmd = "sed -e 's/app_pass.*$/app_pass = \"" + wp_api_pwd +  "\"/g' wordpress_background.py"
-            #sh.sendline(change_cwd)
-            #sh.sendline(change_pwd_cmd)
-            #exit(2)
 
 
         time.sleep(170)
@@ -261,10 +218,6 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, autoscale
         start_actual_experiment = 'python /mydata/mimir_v2/experiment_coordinator/run_experiment.py --exp_name ' +\
                                   exp_name  + ' --config_file ' + config_file_name + ' --prepare_app_p --port ' + \
                                   front_facing_port + ' --ip ' + minikube_ip
-
-    #start_actual_experiment = 'python /mydata/mimir_v2/experiment_coordinator/run_experiment.py --exp_name ' +\
-    #                          exp_name  + ' --config_file ' + config_file_name + ' --port ' + \
-    #                          front_facing_port + ' --ip ' + minikube_ip + ' --no_exfil'
 
     create_experiment_sential_file = '; echo experimenet_done >> ' + experiment_sentinal_file
     start_actual_experiment += create_experiment_sential_file
