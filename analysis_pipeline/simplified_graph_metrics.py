@@ -694,13 +694,6 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise
-
-        try:
-            os.makedirs(edgefile_pruned_folder_path)
-        except OSError as e:
-            if e.errno != errno.EEXIST:
-                raise
-
         try:
             os.makedirs(edgefile_injected_folder_path)
         except OSError as e:

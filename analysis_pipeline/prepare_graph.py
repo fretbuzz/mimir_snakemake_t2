@@ -219,7 +219,7 @@ def prepare_graph(G, svcs, level_of_processing, is_swarm, counter, file_path, ms
         application_nodes = list(set(containers_to_ms.keys()).difference(set(infra_nodes)))
 
         if drop_infra_p:
-            induced_graph = G.subgraph(application_nodes)
+            induced_graph = G.subgraph(G.subgraph(application_nodes)).copy()
         else:
             induced_graph = G
 
