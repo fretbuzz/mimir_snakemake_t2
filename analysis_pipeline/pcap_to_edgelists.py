@@ -105,27 +105,6 @@ def parse_kubernetes_pod_info(kubernetes_pod_info):
                 pod_ip_info[split_line[6]] = (split_line[1], 'pod')
     return pod_ip_info
 
-def create_mappings(cluster_creation_log):
-    #First, get a mapping of IPs to(container_name, network_name)
-    initial_ips = cluster_creation_log[0]
-    mapping = {}
-    infra_instances = {}
-    ms_s = set()
-    #            container_to_ip[container_ip] = (container_name, network_name)
-
-    for name, ip_info in initial_ips.iteritems():
-        if ip_info[3] != 'svc':
-            mapping[ip_info[0]] = (name, None, ip_info[2], ip_info[3])
-        else:
-            mapping[ip_info[0]] = (name+'_VIP', None, ip_info[2], ip_info[3])
-            ms_s.add(name)
-
-        if ip_info[2] == 'kube-system':
-            if 'kube-dns' not in name:
-                infra_instances[name] = [ip_info[0], ip_info[3]]
-
-    return mapping, infra_instances, list(ms_s)
-
 def old_create_mappings(is_swarm, container_info_path, kubernetes_svc_info, kubernetes_pod_info, cilium_config_path, ms_s):
     #First, get a mapping of IPs to(container_name, network_name)
     mapping = ips_on_docker_networks(container_info_path)
@@ -173,4 +152,82 @@ def old_create_mappings(is_swarm, container_info_path, kubernetes_svc_info, kube
     #exit()
     return mapping, list_of_infra_services
 
+def create_mappings(cluster_creation_log):
+    #First, get a mapping of IPs to(container_name, network_name)
+    initial_ips = cluster_creation_log[0]
+    mapping = {}
+    infra_instances = {}
+    ms_s = set()
+    #            container_to_ip[container_ip] = (container_name, network_name)
 
+    for name, ip_info in initial_ips.iteritems():
+        if ip_info[3] != 'svc':
+            mapping[ip_info[0]] = (name, None, ip_info[2], ip_info[3])
+        else:
+            mapping[ip_info[0]] = (name+'_VIP', None, ip_info[2], ip_info[3])
+            ms_s.add(name)
+
+        if ip_info[2] == 'kube-system':
+            if 'kube-dns' not in name:
+                infra_instances[name] = [ip_info[0], ip_info[3]]
+
+    return mapping, infra_instances, list(ms_s)
+
+
+def update_mapping(container_to_ip, cluster_creation_log, time_gran, time_counter, infra_instances):
+    if cluster_creation_log is None:
+        return container_to_ip
+
+    last_entry_into_log = max(0, time_gran * (time_counter ))
+    current_entry_into_log =  time_gran * (time_counter +1)
+
+    print "time_counter",time_counter,"time_gran",time_gran
+    for i in range(last_entry_into_log, current_entry_into_log):
+        # recall that: container_to_ip[container_ip] = (container_name, network_name)
+        mod_cur_creation_log = {}
+        if i in cluster_creation_log: # sometimes the last value isn't included
+            for cur_pod,curIP_PlusMinus in cluster_creation_log[i].iteritems():
+                cur_ip = curIP_PlusMinus[0].rstrip().lstrip()
+                cur_pod = cur_pod.rstrip().lstrip()
+                plus_minus = curIP_PlusMinus[1]
+                namespace = curIP_PlusMinus[2]
+                entity = curIP_PlusMinus[3]
+
+
+                if plus_minus == '+':
+                    if cur_ip not in container_to_ip:
+                        if entity != 'svc':
+                            mod_cur_creation_log[cur_ip] = (cur_pod, None, namespace, entity)
+                        else:
+                            mod_cur_creation_log[cur_ip] = (cur_pod + '_VIP', None, namespace, entity)
+
+                        if namespace == 'kube-system':
+                            if 'kube-dns' not in cur_pod:
+                                infra_instances[cur_pod] = [cur_ip, entity]
+
+                elif plus_minus == '-': # not sure if I want/need this but might be useful for bug checking
+                    pass
+                    # passing here b/c can't delete pods that disappear in the current
+                    # time frame b/c they end up being mislabeled.
+                else:
+                    print "+/- in pod_creation_log was neither + or -!!"
+                    exit(300)
+
+        if i - (time_gran) >= 0:
+            if (i - time_gran) in cluster_creation_log:  # sometimes the last value isn't included
+                for cur_pod, curIP_PlusMinus in cluster_creation_log[i - time_gran].iteritems():
+                    cur_ip = curIP_PlusMinus[0].rstrip().lstrip()
+                    namespace = curIP_PlusMinus[2]
+                    cur_pod = cur_pod.rstrip().lstrip()
+                    plus_minus = curIP_PlusMinus[1]
+                    if plus_minus == '-': # not sure if I want/need this but might be useful for bug checking
+                        if cur_ip in container_to_ip:
+                            del container_to_ip[cur_ip]
+                        # note: no point in deleting theme b/c I am indexing by names--- which
+                        # obviously will never be re-used by a non-infra component.
+                        #if cur_pod in infra_instances and namespace == 'kube-system':
+                        #    del infra_instances[cur_pod]
+
+        container_to_ip.update( mod_cur_creation_log )
+
+    return container_to_ip, infra_instances

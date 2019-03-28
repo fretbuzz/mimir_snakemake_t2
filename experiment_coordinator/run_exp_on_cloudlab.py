@@ -260,7 +260,7 @@ if __name__ == "__main__":
     #exp_name = 'sockshop_thirteen_NOautoscale_mark1' #mark3 is good too
     # exp_name = 'sockshop_autoscaling_tests'
     #exp_name = 'sockshop_exp_one_v2'
-    exp_name = 'wordpress_exp_one_v2'
+    exp_name = 'wordpress_exp_one_v2_noauto'
     #mimir_1 = 'c220g5-111314.wisc.cloudlab.us'  #'c240g5-110119.wisc.cloudlab.us'
     mimir_1 = 'c240g5-110123.wisc.cloudlab.us'
     #mimir_2 = 'c220g5-111211.wisc.cloudlab.us' #

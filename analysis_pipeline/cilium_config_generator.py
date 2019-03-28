@@ -4,7 +4,7 @@
 from process_pcap import process_pcap_via_tshark, convert_tshark_stats_to_edgefile
 import os,errno
 import subprocess
-from analysis_pipeline.process_pcap import update_mapping
+from analysis_pipeline.pcap_to_edgelists import update_mapping
 import glob
 import time
 import ast
@@ -235,31 +235,3 @@ def cilium_component(time_length, pcap_location, cilium_component_dir, make_edge
     generate_cilium_policy(communicatng_svcs, basefilename)
 
     return communicatng_svcs
-
-    ## TODO: is there a function that already does this for me???
-    ## update: kinda... map_nodes_to_svcs(G, svcs) in process_graph has the logic, but doesn't directly
-    ## apply b/c we are not doing stuff with graphs here...
-    # okay, so now what we'd want to do is look at the generated edgefile and the communicating entities....
-    # (a) this is pretty simple for a parser...
-    # just look @ line and split by spaces. Then if # of bytes != 0, they communicate and you're done!
-
-    # (b) so then we'll have sets of communicating hostnames. Then just map to communicating svc using the logical
-    # already above
-
-    # step (5) find which services communicate
-
-    # step (6) [[might not necessarily take place here]],, but make sure that directionality is taken into account...
-    ## (i think initiator info might be in the specs generated from the attack template component??)
-    ## NOTE: NOT DOING THIS ATM...
-
-# this function takes a series of logical attack paths (i.e. at time 1, attack path 1, at time 10, attack path 5,
-# etc.) and returns a series (of equivalent length) on whether the attack would/would_not be allowed.
-# TODO: how should I test/evaluate if it interferes w/ normal application function.... correct. Ideally...
-# it'd actually make more sense to pass in the list of the injected edgefiles and determine using that...
-## well... it's something to think about, certainly...
-## well... we could maybe test this later idea?? I mean, as long as it is easy
-## to pass the injected edgefiles at service granularity, then we can just iterate
-## over the edges (wait, I take it back, this might be hard)
-## edgesfiles are injeceted
-def calc_cilium_component_performnace(class_edgefiles, allowed_intersvc_comm):
-    pass
