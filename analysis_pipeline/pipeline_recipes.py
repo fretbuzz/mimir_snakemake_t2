@@ -6,23 +6,32 @@ import matplotlib
 matplotlib.use('Agg',warn=False, force=True)
 from analysis_pipeline.pipeline_coordinator import multi_experiment_pipeline
 from analysis_pipeline.single_experiment_pipeline import data_anylsis_pipline
+import argparse
+import os
 
 '''
 This file is essentially just sets of parameters for the run_data_analysis_pipeline function in pipeline_coordinator.py
 There are a lot of parameters, and some of them are rather long, so I decided to make a function to store them in
 '''
 
+microservices_sockshop = ['carts-db', 'cart', 'catalogue-db', 'catalogue', 'front-end', 'orders-db', 'orders',
+                         'payment', 'queue-master', 'rabbitmq', 'shipping', 'user-db', 'user']
+minikube_infrastructure = ['etcd', 'kube-addon-manager', 'kube-apiserver', 'kube-controller-manager',
+                           'kube-dns', 'kube-proxy', 'kube-scheduler', 'kubernetes-dashboard', 'metrics-server',
+                           'storage-provisioner']
+microservices_wordpress = ['mariadb-master', 'mariadb-slave', 'wordpress']
+
 def parse_experimental_data_json(config_file, experimental_folder, experiment_name, make_edgefiles,
-                                 time_interval_lengths, pcap_file_path):
+                                 time_interval_lengths, pcap_file_path, pod_creation_log_path):
     with open(config_file) as f:
         config_file = json.load(f)
-        basefile_name = experimental_folder + 'alerts/' + experiment_name + '_'
-        basegraph_name = experimental_folder + 'alerts/' + experiment_name + '_'
+        basefile_name = experimental_folder + 'edgefiles/' + experiment_name + '_'
+        basegraph_name = experimental_folder + 'graphs/' + experiment_name + '_'
         alert_file = experimental_folder + 'alerts/' + experiment_name + '_'
 
         sec_between_exfil_pkts = config_file["exfiltration_info"]['sec_between_exfil_pkts']
         pcap_paths = [ pcap_file_path + config_file['pcap_file_name'] ]
-        pod_creation_log = [ experimental_folder + config_file['pod_creation_log_name']]
+        pod_creation_log = [ pod_creation_log_path + config_file['pod_creation_log_name']]
         sensitive_ms = config_file["exfiltration_info"]['sensitive_ms']
 
         exfil_StartEnd_times = config_file["exfiltration_info"]['exfil_StartEnd_times']
@@ -40,7 +49,6 @@ def parse_experimental_data_json(config_file, experimental_folder, experiment_na
                                                physical_exfil_paths=physical_exfil_paths)
     return pipeline_object
 
-# TODO: the plan is to take all of these and create the multi-experiment thing.
 def parse_experimental_config(experimental_config_file):
     with open(experimental_config_file) as f:
         config_file = json.load(f)
@@ -84,9 +92,12 @@ def parse_experimental_config(experimental_config_file):
         make_edgefiles = config_file['make_edgefiles']
         experimental_folder = config_file['experimental_folder']
         pcap_file_path = config_file['pcap_file_path']
+        pod_creation_log_path = config_file["pod_creation_log_path"]
+        exp_config_file = config_file['exp_config_file']
 
-        experiment_classes = [parse_experimental_data_json(config_file, experimental_folder, cur_experiment_name,
-                                                           make_edgefiles, time_interval_lengths, pcap_file_path)]
+        experiment_classes = [parse_experimental_data_json(exp_config_file, experimental_folder, cur_experiment_name,
+                                                           make_edgefiles, time_interval_lengths, pcap_file_path,
+                                                           pod_creation_log_path)]
 
         return multi_experiment_pipeline(experiment_classes, base_output_location, True, time_of_synethic_exfil,
                                   goal_train_test_split_training, goal_attack_NoAttack_split_training, None,
@@ -544,5 +555,11 @@ if __name__=="__main__":
         #nonauto_sockshop_recipe()
         #new_wordpress_autoscaling_recipe()
         new_wordpress_recipe()
+
+        #print os.getcwd()
+        #parse_experimental_config('./analysis_json/sockshop_one_v2.json')
+    elif len(sys.argv) == 2:
+        experimental_config_file = sys.argv[1]
+        parse_experimental_config(experimental_config_file)
     else:
         print "too many args!"

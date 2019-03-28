@@ -267,7 +267,7 @@ class set_of_injected_graphs():
                 svcs, ms_s, container_to_ip, infra_service, synthetic_exfil_paths, initiator_info_for_paths,
                 attacks_to_times, collected_metrics_location, current_set_of_graphs_loc,
                  avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
-                 end_of_training, pod_creation_log):#, out_q):
+                 end_of_training, pod_creation_log, processed_graph_loc):#, out_q):
 
         self.list_of_injected_graphs_loc = []
         self.time_granularity = time_granularity
@@ -281,7 +281,7 @@ class set_of_injected_graphs():
         self.attacks_to_times = attacks_to_times
         self.time_interval= time_granularity
         self.collected_metrics_location = collected_metrics_location
-        self.current_set_of_graphs_loc = current_set_of_graphs_loc
+        self.current_set_of_graphs_loc = processed_graph_loc #current_set_of_graphs_loc
         self.end_of_training = end_of_training
         #self.out_q = out_q
         self.pod_creation_log = pod_creation_log
@@ -303,6 +303,7 @@ class set_of_injected_graphs():
         self.aggregate_csv_edgefile_loc = self.collected_metrics_location + '_aggregate_edgefile.csv'
         self.joint_col_list = None
         self.feature_graph_keys = None
+        self.processed_graph_loc = processed_graph_loc
 
     def save(self):
         #with open(self.current_set_of_graphs_loc, 'wb') as output:  # Overwrites any existing file.
@@ -397,22 +398,6 @@ class set_of_injected_graphs():
             total_edgelist_nodes = injected_graph.total_edgelist_nodes
             current_total_node_list = injected_graph.current_total_node_list
 
-
-        #total_edgelist_nodes = self.list_of_injected_graphs[-1].total_edgelist_nodes
-        #current_total_node_list = self.list_of_injected_graphs[-1].current_total_node_list
-        ''' # no point having these exist. they are just time consuming and confusing b/c I'm using CLML ide implementation now.
-        ide_angles_results = ide_angles(adjacency_matrixes, self.window_size, total_edgelist_nodes)
-        into_dns_eigenval_angles = change_point_detection(dns_in_metric_dicts, self.window_size, current_total_node_list)
-
-        self.calculated_values['into_dns_eigenval_angles'] = into_dns_eigenval_angles
-        self.calculated_values['ide_angles'] = ide_angles_results
-        self.calculated_values['ide_angles_w_abs'] = [abs(i) for i in ide_angles_results]
-        '''
-
-        ## need to store these new results into the format that I've been using this far...
-        #self.calculated_values[
-        #    'Fraction of Communication Between Pods not through VIPs (no abs)'] = fraction_pod_comm_but_not_VIP_comms_no_abs
-        #self.calculated_values['Communication Between Pods not through VIPs (no abs)'] = pod_comm_but_not_VIP_comms_no_abs
         self.calculated_values['Fraction of Communication Between Pods not through VIPs (w abs)'] = \
             [abs(i) for i in self.calculated_values['fraction_pod_comm_but_not_VIP_comms']]
         self.calculated_values['Communication Between Pods not through VIPs (w abs)'] = \
@@ -536,7 +521,7 @@ class set_of_injected_graphs():
                     time_interval, total_edgelist_nodes, svc_to_pod, avg_dns_weight, avg_dns_pkts,
                     node_attack_mapping, out_q, current_total_node_list, name_of_dns_pod_node, last_attack_injected,
                     carryover, avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
-                    self.end_of_training, pod_creation_log]
+                    self.end_of_training, pod_creation_log, self.processed_graph_loc]
             p = multiprocessing.Process(
                 target=process_and_inject_single_graph,
                 args=args)
@@ -626,7 +611,7 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
                     time_interval, total_edgelist_nodes, svc_to_pod, avg_dns_weight, avg_dns_pkts,
                     node_attack_mapping, out_q, current_total_node_list,name_of_dns_pod_node,attack_injected, carryover,
                     avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance, end_of_training,
-                     pod_creation_log):
+                     pod_creation_log, injection_rate_exp_path):
 
     concrete_cont_node_path_list = []
     pre_specified_data_attribs_list = []
@@ -690,8 +675,9 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
         # let's save the processed version of the graph in a nested folder for easier comparison during the
         # debugging process... and some point I could even decouple creating/processing the edgefiles and
         # calculating the corresponding graph metrics
-        edgefile_folder_path = "/".join(file_path.split('/')[:-1])
-        experiment_info_path = "/".join(edgefile_folder_path.split('/')[:-1])
+        #edgefile_folder_path = "/".join(file_path.split('/')[:-1])
+        #experiment_info_path = "/".join(edgefile_folder_path.split('/')[:-1])
+
         name_of_file = file_path.split('/')[-1]
         #name_of_injected_file = str(fraction_of_edge_weights) + '_' + str(fraction_of_edge_pkts) + '_' + \
         #                        file_path.split('/')[-1]
@@ -701,8 +687,12 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
 
         name_of_injected_file =  prefix_for_inject_params +  file_path.split('/')[-1]
 
-        edgefile_pruned_folder_path = edgefile_folder_path + '/pruned_edgefiles/'
-        graph_obj_folder_path = experiment_info_path + '/graph_objs/'
+        edgefile_pruned_folder_path = injection_rate_exp_path + '/pruned_edgefiles/'
+        graph_obj_folder_path = injection_rate_exp_path #+ '/graph_objs/'
+
+        # let's save a copy of the edgefile for the graph w/ the injected attack b/c that'll help with debugging
+        # the system...
+        edgefile_injected_folder_path = injection_rate_exp_path + '/injected_edgefiles/'
 
         ## if the graph object folder directory doesn't currently exist, then we'd want to create it...
         ## using the technique from https://stackoverflow.com/questions/273192/how-can-i-safely-create-a-nested-directory-in-python
@@ -712,6 +702,17 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
             if e.errno != errno.EEXIST:
                 raise
 
+        try:
+            os.makedirs(edgefile_pruned_folder_path)
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
+
+        try:
+            os.makedirs(edgefile_injected_folder_path)
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
         ## if the pruned folder directory doesn't currently exist, then we'd want to create it...
         ## using the technique from https://stackoverflow.com/questions/273192/how-can-i-safely-create-a-nested-directory-in-python
         try:
@@ -765,9 +766,6 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
         cur_class_G = prepare_graph(cur_1si_G, svcs, 'class', is_swarm, counter, file_path, ms_s, container_to_ip,
                                     infra_service)
 
-        # let's save a copy of the edgefile for the graph w/ the injected attack b/c that'll help with debugging
-        # the system...
-        edgefile_injected_folder_path = edgefile_folder_path + '/injected_edgefiles/'
         ## if the injected folder directory doesn't currently exist, then we'd want to create it...
         ## using the technique from https://stackoverflow.com/questions/273192/how-can-i-safely-create-a-nested-directory-in-python
         try:
@@ -815,9 +813,9 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
 
         print "into_outside_bytes", into_outside_bytes
         if into_outside_bytes == 0:
-            #for (u,v,d) in G.edges(data=True):
-            #    if 'outside' in u or 'outside' in v:
-            #        print (u,v,d)
+            for (u,v,d) in G.edges(data=True):
+                if 'outside' in u or 'outside' in v:
+                    print (u,v,d)
             print "into_outside_bytes equals ZERO!! CRAZY!!!"
             exit(222)
 

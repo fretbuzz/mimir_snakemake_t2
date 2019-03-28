@@ -112,9 +112,11 @@ def prepare_mulval_input(ms_s, mapping, sensitive_ms, netsec_policy, intersvc_vi
             if svc_two != svc:
                 print "svc_two", svc_two[0], svc[1],proto,port
                 print svc_two, svc, proto
-                print 'hacl(', svc_two[0], ',', svc[1], ', ', proto, ', ', port[0], ').'
+                #print 'hacl(', svc_two[0], ',', svc[1], ', ', proto, ', ', port[0], ').'
+                print 'hacl(', svc_two[0], ',', svc[1], ', ', '_', ', ', '_', ').'
                 if 'dns_pod' not in svc[0]:
-                    lines.append(  'hacl(' + svc[0] +',' + svc_two[0] + ', ' + proto +', ' + port[0] + ').'  )
+                    #lines.append(  'hacl(' + svc[0] +',' + svc_two[0] + ', ' + proto +', ' + port[0] + ').'  )
+                    lines.append('hacl(' + svc[0] + ',' + svc_two[0] + ', ' + '_' + ', ' + '_' + ').')
 
         #exit(344)
         ## MODIFICATIONS END HERE!!!

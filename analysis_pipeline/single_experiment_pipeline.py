@@ -6,13 +6,14 @@ import math
 import multiprocessing
 from itertools import groupby
 from operator import itemgetter
+import errno, os
 
 import pandas as pd
 
 import analysis_pipeline.generate_graphs
 import analysis_pipeline.prepare_graph
 from analysis_pipeline import gen_attack_templates, process_pcap, process_graph_metrics, simplified_graph_metrics
-from analysis_pipeline.pcap_to_edgelists import create_mappings
+from analysis_pipeline.pcap_to_edgelists import create_mappings,old_create_mappings
 import random
 from analysis_pipeline.statistical_analysis import drop_useless_columns_aggreg_DF
 from analysis_pipeline.simplified_graph_metrics import calc_ide_angles
@@ -22,7 +23,7 @@ import cilium_config_generator
 class data_anylsis_pipline(object):
     def __init__(self, pcap_paths=None, basefile_name=None,
                  time_interval_lengths=None, make_edgefiles_p=False, basegraph_name=None,
-                 exfil_start_time=0, exfil_end_time=0, calc_vals=True,
+                 exfil_start_time=None, exfil_end_time=None, calc_vals=True,
                  make_net_graphs_p=False, alert_file=None,
                  sec_between_exfil_pkts=1, time_of_synethic_exfil=30, injected_exfil_path='None',
                  netsec_policy=None, skip_graph_injection=False, cluster_creation_log=None,
@@ -36,23 +37,33 @@ class data_anylsis_pipline(object):
 
         print "starting pipeline..."
         self.sub_path = 'sub_'  # NOTE: make this an empty string if using the full pipeline (and not the subset)
+        if cluster_creation_log is None:
+            self.cluster_creation_log = None
+        else:
+            if not old_mulval_info:
+                cluster_creation_log = cluster_creation_log[0]
+            with open(cluster_creation_log, 'r') as f:
+                cluster_creation_log = f.read()
+            self.cluster_creation_log = pickle.loads(cluster_creation_log)
+
         if old_mulval_info:
-            ms_s = old_mulval_info["ms_s"]
-            if 'kube-dns' not in ms_s:
+            self.ms_s = old_mulval_info["ms_s"]
+            if 'kube-dns' not in self.ms_s:
                 self.ms_s.append('kube-dns')
             container_info_path, kubernetes_svc_info = old_mulval_info["container_info_path"], old_mulval_info["kubernetes_svc_info"]
             kubernetes_pod_info, cilium_config_path = old_mulval_info["kubernetes_pod_info"], old_mulval_info["cilium_config_path"]
+            self.sensitive_ms = sensitive_ms
             self.mapping, self.list_of_infra_services = old_create_mappings(0, container_info_path, kubernetes_svc_info,
-                                                                            kubernetes_pod_info,cilium_config_path, ms_s)
+                                                                            kubernetes_pod_info,cilium_config_path, self.ms_s)
         else:
-            self.mapping, self.list_of_infra_services, self.ms_s = create_mappings(cluster_creation_log)
+            self.sensitive_ms = sensitive_ms[0]
+            self.mapping, self.list_of_infra_services, self.ms_s = create_mappings(self.cluster_creation_log)
 
         # NOTE: if you follow the whole path, self.list_of_infra_services isn't really used for anything atm...
         self.calc_zscore_p=False
         self.time_interval_lengths = time_interval_lengths
         self.basegraph_name = basegraph_name
-        self.exfil_start_time = exfil_start_time
-        self.exfil_end_time = exfil_end_time
+        self.basefile_name = basefile_name
         self.experiment_folder_path = basefile_name.split('edgefiles')[0]
         self.pcap_file = pcap_paths[0].split('/')[-1]  # NOTE: assuming only a single pcap file...
         self.cilium_component_dir = self.experiment_folder_path + 'cilium_stuff'
@@ -61,7 +72,6 @@ class data_anylsis_pipline(object):
         self.make_edgefiles_p = make_edgefiles_p #and only_exp_info
         self.netsec_policy = netsec_policy
         self.make_edgefiles_p=make_edgefiles_p
-        self.sensitive_ms = None
         self.time_of_synethic_exfil = time_of_synethic_exfil
         self.injected_exfil_path = injected_exfil_path
         self.make_net_graphs_p=make_net_graphs_p
@@ -78,13 +88,6 @@ class data_anylsis_pipline(object):
         self.calc_vals = calc_vals
         self.cilium_allowed_svc_comm = None
 
-        if cluster_creation_log is  None:
-            self.cluster_creation_log=None
-        else:
-            with open(cluster_creation_log, 'r') as f:
-                contents = f.read()
-                self.cluster_creation_log = pickle.loads(contents)
-
         self.time_gran_to_feature_dataframe=None
         self.time_gran_to_attack_labels=None
         self.time_gran_to_synthetic_exfil_paths_series=None
@@ -96,13 +99,22 @@ class data_anylsis_pipline(object):
         self.time_gran_to_list_of_amt_of_out_traffic_bytes = None
         self.time_gran_to_list_of_amt_of_out_traffic_pkts = None
         self.intersvc_vip_pairs = None
-        self.sensitive_ms = sensitive_ms
 
         ## TODO: these values need to be encorporated into the pipeline.
         self.exfil_StartEnd_times = exfil_StartEnd_times
         self.physical_exfil_paths = physical_exfil_paths
 
         self.process_pcaps()
+
+        if exfil_start_time is None or exfil_end_time is None:
+            min_time_gran = min([int(i) for i in self.interval_to_filenames.keys()])
+            exp_length = len(self.interval_to_filenames[str(min_time_gran)]) * min_time_gran
+            self.exfil_start_time = exp_length
+            self.exfil_end_time = exp_length
+        else:
+            self.exfil_start_time = exfil_start_time
+            self.exfil_end_time = exfil_end_time
+
 
     def generate_synthetic_exfil_paths(self, max_number_of_paths, max_path_length, dns_porportion):
         self.netsec_policy,self.intersvc_vip_pairs = gen_attack_templates.parse_netsec_policy(self.netsec_policy)
@@ -226,7 +238,8 @@ class data_anylsis_pipline(object):
                                             synthetic_exfil_paths, self.initiator_info_for_paths, time_gran_to_attack_ranges,
                                             avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
                                             self.skip_graph_injection, self.end_of_training,
-                                            self.cluster_creation_log, calc_ide, include_ide, only_ide)
+                                            self.cluster_creation_log, calc_ide, include_ide, only_ide,
+                                            self.basefile_name)
 
             ## time_gran_to_attack_labels needs to be corrected using time_gran_to_list_of_concrete_exfil_paths
             ## because just because it was assigned, doesn't mean that it is necessarily going to be injected (might
@@ -436,7 +449,7 @@ def process_one_set_of_graphs(time_interval_length, ide_window_size,
                                collected_metrics_location, current_set_of_graphs_loc, calc_vals, out_q,
                               avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
                               skip_graph_injection, end_of_training, pod_creation_log, calc_ide, include_ide,
-                              only_ide):
+                              only_ide, processed_graph_loc):
 
     if calc_vals and not only_ide:
         current_set_of_graphs = simplified_graph_metrics.set_of_injected_graphs(time_interval_length,
@@ -444,7 +457,7 @@ def process_one_set_of_graphs(time_interval_length, ide_window_size,
                                          synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
                                          collected_metrics_location, current_set_of_graphs_loc,
                                          avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
-                                         end_of_training, pod_creation_log)
+                                         end_of_training, pod_creation_log, processed_graph_loc)
 
         if skip_graph_injection:
             with open(current_set_of_graphs_loc, mode='rb') as f:
@@ -504,7 +517,7 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
                                 avg_exfil_per_min,
                                 exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
                                 skip_graph_injection, end_of_training, pod_creation_log, calc_ide, include_ide,
-                                only_ide):
+                                only_ide, edgefile_path):
     total_calculated_vals = {}
     time_gran_to_list_of_concrete_exfil_paths = {}
     time_gran_to_list_of_exfil_amts = {}
@@ -522,13 +535,20 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
         out_q = multiprocessing.Queue()
 
         collected_metrics_location = basegraph_name + 'collected_metrics_time_gran_' + str(time_interval_length) + '.csv'
+        processed_graph_loc = "/".join(edgefile_path.split("/")[:-1]) + '/exfil_at_' + str(avg_exfil_per_min) + '/'
+        try:
+            os.makedirs(processed_graph_loc)
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
+
         current_set_of_graphs_loc = basegraph_name + 'set_of_graphs' + str(time_interval_length) + '.csv'
         args = [time_interval_length, ide_window_size,
                 interval_to_filenames[str(time_interval_length)], svcs, ms_s, mapping,
                 list_of_infra_services, synthetic_exfil_paths,  initiator_info_for_paths,
                 time_gran_to_attacks_to_times[time_interval_length], collected_metrics_location, current_set_of_graphs_loc,
                 calc_vals, out_q, avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
-                skip_graph_injection, end_of_training, pod_creation_log, calc_ide, include_ide, only_ide]
+                skip_graph_injection, end_of_training, pod_creation_log, calc_ide, include_ide, only_ide, processed_graph_loc]
         p = multiprocessing.Process(
             target=process_one_set_of_graphs,
             args=args)

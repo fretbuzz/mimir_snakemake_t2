@@ -286,22 +286,24 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, autoscale
 if __name__ == "__main__":
 
     #################################
-    #app_name = possible_apps[4] # wordpress
-    app_name = possible_apps[1] # sockshop
+    app_name = possible_apps[4] # wordpress
+    #app_name = possible_apps[1] # sockshop
     #app_name = possible_apps[5] # hipsterStore (google's example microservice)
     sock_config_file_name = '/mydata/mimir_v2/experiment_coordinator/new_experimental_configs/sockshop_exp_one.json'
     wp_config_file_name = '/mydata/mimir_v2/experiment_coordinator/experimental_configs/wordpress_fourteen.json'
-    config_file_name = sock_config_file_name #wp_config_file_name
+    config_file_name = wp_config_file_name #wp_config_file_name
     use_cilium = False # note: if actually running an experiment, will probably want "False"
 
     #local_dir = '/Volumes/exM2/experimental_data/wordpress_info'  # '/Users/jseverin/Documents'
-    #local_dir = '/Volumes/exM2/experimental_data/wordpress_info'
-    local_dir = '/Volumes/exM2/experimental_data/sockshop_info'
+    local_dir = '/Volumes/exM2/experimental_data/wordpress_info'
+    #local_dir = '/Volumes/exM2/experimental_data/sockshop_info'
     #exp_name = 'wordpress_fourteen_mark7_final'
     #exp_name = 'sockshop_thirteen_NOautoscale_mark1' #mark3 is good too
     # exp_name = 'sockshop_autoscaling_tests'
-    exp_name = 'sockshop_exp_one_v2'
-    mimir_1 = 'c220g5-111314.wisc.cloudlab.us'  #'c240g5-110119.wisc.cloudlab.us'
+    #exp_name = 'sockshop_exp_one_v2'
+    exp_name = 'wordpress_exp_one_v2'
+    #mimir_1 = 'c220g5-111314.wisc.cloudlab.us'  #'c240g5-110119.wisc.cloudlab.us'
+    mimir_1 = 'c240g5-110123.wisc.cloudlab.us'
     #mimir_2 = 'c240g5-110117.wisc.cloudlab.us'
     cloudlab_server_ip = mimir_1  # note: remove the username@ from the beggining
     exp_length = 10800  # 10800 #7200 # in seconds

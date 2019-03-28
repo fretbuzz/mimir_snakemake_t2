@@ -113,11 +113,14 @@ def create_mappings(cluster_creation_log):
     #            container_to_ip[container_ip] = (container_name, network_name)
 
     for name, ip_info in initial_ips.iteritems():
-        mapping[ip_info[0]] = (name, None, ip_info[2], ip_info[3])
+        if ip_info[3] != 'svc':
+            mapping[ip_info[0]] = (name, None, ip_info[2], ip_info[3])
+        else:
+            mapping[ip_info[0]] = (name+'_VIP', None, ip_info[2], ip_info[3])
+            ms_s.add(name)
+
         if ip_info[3] == 'svc' and ip_info[2] == 'kube-system':
             infra_services[name] = ip_info[0]
-        if ip_info[3] == 'svc':
-            ms_s.add(name + '_VIP')
 
     return mapping, infra_services, list(ms_s)
 
