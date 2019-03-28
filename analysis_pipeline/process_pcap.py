@@ -161,8 +161,8 @@ def process_pcap(experiment_folder_path, pcap_file, intervals, exp_name, make_ed
                 edgefile_path = path_to_edgefile_dir
                 edgefile_name = tshark_stats_file + '_edges.txt'
 
-                mapping,infra_instances = analysis_pipeline.pcap_to_edgelists.update_mapping(mapping, cluster_creation_log, interval,
-                                                                                             edgefile_counter, infra_instances=infra_instances)
+                mapping,infra_instances = update_mapping(mapping, cluster_creation_log, interval,
+                                                         edgefile_counter, infra_instances=infra_instances)
 
                 edgefile = convert_tshark_stats_to_edgefile(edgefile_path, edgefile_name, tshark_stats_path, tshark_stats_file,
                                                             make_edgefiles_p,mapping)
@@ -187,3 +187,62 @@ def process_pcap(experiment_folder_path, pcap_file, intervals, exp_name, make_ed
 
 
     return interval_to_files, mapping, infra_instances
+
+
+def update_mapping(container_to_ip, cluster_creation_log, time_gran, time_counter, infra_instances):
+    if cluster_creation_log is None:
+        return container_to_ip
+
+    last_entry_into_log = max(0, time_gran * (time_counter ))
+    current_entry_into_log =  time_gran * (time_counter +1)
+
+    print "time_counter",time_counter,"time_gran",time_gran
+    for i in range(last_entry_into_log, current_entry_into_log):
+        # recall that: container_to_ip[container_ip] = (container_name, network_name)
+        mod_cur_creation_log = {}
+        if i in cluster_creation_log: # sometimes the last value isn't included
+            for cur_pod,curIP_PlusMinus in cluster_creation_log[i].iteritems():
+                cur_ip = curIP_PlusMinus[0].rstrip().lstrip()
+                cur_pod = cur_pod.rstrip().lstrip()
+                plus_minus = curIP_PlusMinus[1]
+                namespace = curIP_PlusMinus[2]
+                entity = curIP_PlusMinus[3]
+
+
+                if plus_minus == '+':
+                    if cur_ip not in container_to_ip:
+                        if entity != 'svc':
+                            mod_cur_creation_log[cur_ip] = (cur_pod, None, namespace, entity)
+                        else:
+                            mod_cur_creation_log[cur_ip] = (cur_pod + '_VIP', None, namespace, entity)
+
+                        if namespace == 'kube-system':
+                            if 'kube-dns' not in cur_pod:
+                                infra_instances[cur_pod] = [cur_ip, entity]
+
+                elif plus_minus == '-': # not sure if I want/need this but might be useful for bug checking
+                    pass
+                    # passing here b/c can't delete pods that disappear in the current
+                    # time frame b/c they end up being mislabeled.
+                else:
+                    print "+/- in pod_creation_log was neither + or -!!"
+                    exit(300)
+
+        if i - (time_gran) >= 0:
+            if (i - time_gran) in cluster_creation_log:  # sometimes the last value isn't included
+                for cur_pod, curIP_PlusMinus in cluster_creation_log[i - time_gran].iteritems():
+                    cur_ip = curIP_PlusMinus[0].rstrip().lstrip()
+                    namespace = curIP_PlusMinus[2]
+                    cur_pod = cur_pod.rstrip().lstrip()
+                    plus_minus = curIP_PlusMinus[1]
+                    if plus_minus == '-': # not sure if I want/need this but might be useful for bug checking
+                        if cur_ip in container_to_ip:
+                            del container_to_ip[cur_ip]
+                        # note: no point in deleting theme b/c I am indexing by names--- which
+                        # obviously will never be re-used by a non-infra component.
+                        #if cur_pod in infra_instances and namespace == 'kube-system':
+                        #    del infra_instances[cur_pod]
+
+        container_to_ip.update( mod_cur_creation_log )
+
+    return container_to_ip, infra_instances
