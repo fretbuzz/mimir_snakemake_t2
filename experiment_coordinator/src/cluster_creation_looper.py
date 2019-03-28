@@ -42,16 +42,16 @@ def pod_logger(log_file_loc, sentinal_file_loc):
             if last_name not in current_mapping:
                 changes_this_time_step[last_name] = (last_ip_tup[0], '-', last_ip_tup[1], last_ip_tup[2])
 
-        # TODO: do the same thing as above, but with services.
-
-        # wait a bit
 
         time_step_to_changes[timestep_counter] = changes_this_time_step
 
         with open(log_file_loc, 'wb') as f:  # Just use 'w' mode in 3.x
             f.write(pickle.dumps(time_step_to_changes))
 
-        time.sleep(1.0 - (time.time() - loop_starttime))
+        time_to_sleep = 1.0 - (time.time() - loop_starttime)
+        print "time_to_sleep", time
+        time_to_sleep = max(0.0, time_to_sleep)
+        time.sleep(time_to_sleep)
         timestep_counter += 1
         last_timestep_mapping = current_mapping
 

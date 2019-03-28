@@ -20,16 +20,13 @@ import cilium_config_generator
 
 # Note: see run_analysis_pipeline_recipes for pre-configured sets of parameters (there are rather a lot)
 class data_anylsis_pipline(object):
-    def __init__(self, pcap_paths=None, is_swarm=0, basefile_name=None,
+    def __init__(self, pcap_paths=None, basefile_name=None,
                  time_interval_lengths=None, make_edgefiles_p=False, basegraph_name=None,
                  exfil_start_time=0, exfil_end_time=0, calc_vals=True,
                  make_net_graphs_p=False, alert_file=None,
-                 sec_between_exfil_events=1, time_of_synethic_exfil=30, injected_exfil_path='None',
+                 sec_between_exfil_pkts=1, time_of_synethic_exfil=30, injected_exfil_path='None',
                  netsec_policy=None, skip_graph_injection=False, cluster_creation_log=None,
-                 sensitive_ms=None):
-
-        # ms_s
-
+                 sensitive_ms=None, exfil_StartEnd_times=[], physical_exfil_paths=[]):
 
         print "log file can be found at: " + str(basefile_name) + '_logfile.log'
         logging.basicConfig(filename=basefile_name + '_logfile.log', level=logging.INFO)
@@ -38,11 +35,12 @@ class data_anylsis_pipline(object):
         gc.collect()
 
         print "starting pipeline..."
+        self.exfil_StartEnd_times = exfil_StartEnd_times
+        self.physical_exfil_paths = physical_exfil_paths
         self.sub_path = 'sub_'  # NOTE: make this an empty string if using the full pipeline (and not the subset)
         self.mapping, self.list_of_infra_services, self.ms_s = create_mappings(cluster_creation_log)
         # NOTE: if you follow the whole path, self.list_of_infra_services isn't really used for anything atm...
         self.calc_zscore_p=False
-        self.is_swarm = is_swarm
         self.time_interval_lengths = time_interval_lengths
         self.basegraph_name = basegraph_name
         self.exfil_start_time = exfil_start_time
@@ -60,7 +58,7 @@ class data_anylsis_pipline(object):
         self.injected_exfil_path = injected_exfil_path
         self.make_net_graphs_p=make_net_graphs_p
         self.alert_file=alert_file
-        self.sec_between_exfil_events=sec_between_exfil_events
+        self.sec_between_exfil_events=sec_between_exfil_pkts
         self.orig_alert_file = self.alert_file
         self.orig_basegraph_name = self.basegraph_name
         self.orig_exp_name = self.exp_name
@@ -211,7 +209,7 @@ class data_anylsis_pipline(object):
             time_gran_to_list_of_amt_of_out_traffic_bytes, time_gran_to_list_of_amt_of_out_traffic_pkts= \
                 calculate_raw_graph_metrics(self.time_interval_lengths, self.interval_to_filenames, self.ms_s, self.basegraph_name,
                                             self.calc_vals,
-                                            ide_window_size, self.mapping, self.is_swarm, self.make_net_graphs_p,
+                                            ide_window_size, self.mapping, self.make_net_graphs_p,
                                             self.list_of_infra_services,
                                             synthetic_exfil_paths, self.initiator_info_for_paths, time_gran_to_attack_ranges,
                                             avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
@@ -421,7 +419,7 @@ class data_anylsis_pipline(object):
         return time_gran_to_cil_alerts
 
 def process_one_set_of_graphs(time_interval_length, ide_window_size,
-                                filenames, svcs, is_swarm, ms_s, mapping,  list_of_infra_services,
+                                filenames, svcs, ms_s, mapping,  list_of_infra_services,
                                 synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
                                collected_metrics_location, current_set_of_graphs_loc, calc_vals, out_q,
                               avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
@@ -430,7 +428,7 @@ def process_one_set_of_graphs(time_interval_length, ide_window_size,
 
     if calc_vals and not only_ide:
         current_set_of_graphs = simplified_graph_metrics.set_of_injected_graphs(time_interval_length,
-                                         filenames, svcs, is_swarm, ms_s, mapping, list_of_infra_services,
+                                         filenames, svcs, ms_s, mapping, list_of_infra_services,
                                          synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
                                          collected_metrics_location, current_set_of_graphs_loc,
                                          avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
@@ -489,7 +487,7 @@ def process_one_set_of_graphs(time_interval_length, ide_window_size,
 
 
 def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms_s, basegraph_name, calc_vals, ide_window_size,
-                                mapping, is_swarm, make_net_graphs_p, list_of_infra_services,synthetic_exfil_paths,
+                                mapping, make_net_graphs_p, list_of_infra_services,synthetic_exfil_paths,
                                 initiator_info_for_paths, time_gran_to_attacks_to_times,
                                 avg_exfil_per_min,
                                 exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
@@ -507,17 +505,14 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
     for time_interval_length in time_interval_lengths:
         print "analyzing edgefiles...", "timer_interval...", time_interval_length
 
-        if is_swarm:
-            svcs = analysis_pipeline.prepare_graph.get_svc_equivalents(is_swarm, mapping)
-        else:
-            print "this is k8s, so using these sevices", ms_s
-            svcs = ms_s
+        print "this is k8s, so using these sevices", ms_s
+        svcs = ms_s
         out_q = multiprocessing.Queue()
 
         collected_metrics_location = basegraph_name + 'collected_metrics_time_gran_' + str(time_interval_length) + '.csv'
         current_set_of_graphs_loc = basegraph_name + 'set_of_graphs' + str(time_interval_length) + '.csv'
         args = [time_interval_length, ide_window_size,
-                interval_to_filenames[str(time_interval_length)], svcs, is_swarm, ms_s, mapping,
+                interval_to_filenames[str(time_interval_length)], svcs, ms_s, mapping,
                 list_of_infra_services, synthetic_exfil_paths,  initiator_info_for_paths,
                 time_gran_to_attacks_to_times[time_interval_length], collected_metrics_location, current_set_of_graphs_loc,
                 calc_vals, out_q, avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,

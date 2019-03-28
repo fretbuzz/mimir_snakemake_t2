@@ -68,7 +68,6 @@ class injected_graph():
         self.past_end_of_training = past_end_of_training
 
         self.svcs = svcs
-        self.is_swarm = is_swarm
         self.counter = counter
         self.ms_s = ms_s
         self.container_to_ip = container_to_ip
@@ -265,7 +264,7 @@ class injected_graph():
 
 class set_of_injected_graphs():
     def __init__(self, time_granularity, raw_edgefile_names,
-                svcs, is_swarm, ms_s, container_to_ip, infra_service, synthetic_exfil_paths, initiator_info_for_paths,
+                svcs, ms_s, container_to_ip, infra_service, synthetic_exfil_paths, initiator_info_for_paths,
                 attacks_to_times, collected_metrics_location, current_set_of_graphs_loc,
                  avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
                  end_of_training, pod_creation_log):#, out_q):
@@ -274,7 +273,6 @@ class set_of_injected_graphs():
         self.time_granularity = time_granularity
         self.raw_edgefile_names = raw_edgefile_names
         self.svcs = svcs
-        self.is_swarm = is_swarm
         self.ms_s= ms_s
         self.container_to_ip = container_to_ip
         self.infra_service =infra_service
@@ -511,7 +509,7 @@ class set_of_injected_graphs():
         avg_dns_pkts = 0
 
         svcs = self.svcs
-        is_swarm = self.is_swarm
+        is_swarm = 0
         ms_s = self.ms_s
         container_to_ip = self.container_to_ip
         infra_service = self.infra_service
@@ -800,7 +798,7 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
                                             total_edgelist_nodes,
                                             injected_graph_obj_loc, counter, name_of_dns_pod_node,
                                             current_total_node_list,
-                                            svcs, is_swarm, ms_s, container_to_ip, infra_service,
+                                            svcs, 0, ms_s, container_to_ip, infra_service,
                                             edgefile_injected_folder_path + 'class_' + name_of_injected_file,
                                             name_of_injected_file,
                                             edgefile_injected_folder_path + 'with_nodeAttribs' + name_of_injected_file,
