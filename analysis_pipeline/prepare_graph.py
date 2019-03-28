@@ -1,9 +1,12 @@
 import copy
+import re
+
 import networkx as nx
 import numpy as np
 from matplotlib import pyplot as plt
 from networkx.drawing.nx_agraph import graphviz_layout
 from itertools import chain
+
 
 # TODO: at some point, what I probably want to do is pass in the hosting machine's IP addresses, b/c I'm justing using heuristics
 # to identify it ATM
@@ -185,7 +188,8 @@ def aggregate_graph(G, ms_s):
 # where app_only = 1-step induced subgraph of the application containers (so leaving out infrastructure)
 # where class = aggregate all containers of the same class into a single node
 # func returns a new graph (so doesn't modify the input graph)
-def prepare_graph(G, svcs, level_of_processing, is_swarm, counter, file_path, ms_s, container_to_ip, infra_service):
+def prepare_graph(G, svcs, level_of_processing, is_swarm, counter, file_path, ms_s, container_to_ip,
+                  infra_instances, drop_infra_p):
     G = copy.deepcopy(G)
     G = aggregate_outside_nodes(G)
     if level_of_processing == 'none':
@@ -209,6 +213,17 @@ def prepare_graph(G, svcs, level_of_processing, is_swarm, counter, file_path, ms
             G,_ = process_graph(G, is_swarm, container_to_ip, ms_s)
 
         containers_to_ms = map_nodes_to_svcs(G, svcs)
+        infra_nodes = []
+        for node in G.nodes():
+            for infra_instance_name, ip_and_type in infra_instances.iteritems():
+                infra_instance_name, infra_instance_PodSvc = infra_instance_name, ip_and_type[1]
+                if infra_instance_PodSvc == 'pod':
+                    if infra_instance_PodSvc == node:
+                        infra_nodes.append(node)
+                elif infra_instance_PodSvc == 'svc':
+                    if match_name_to_pod(infra_instance_name, node):
+                        infra_nodes.append(node)
+
         #print "services to map for", svcs
         #print "container to service mapping: ", containers_to_ms
         #print "graph before attribs", list(G.nodes(data=True))
@@ -216,12 +231,13 @@ def prepare_graph(G, svcs, level_of_processing, is_swarm, counter, file_path, ms
         #print "graph after attribs", list(G.nodes(data=True))
 
         # okay, we also want to include nodes that are a single hop away
-        application_nodes = containers_to_ms.keys()
+        application_nodes = list(set(containers_to_ms.keys()).difference(set(infra_nodes)))
         one_hop_away_nodes = []
 
         #I'm not sure if the whole 1-step induced thing is really necessary....
         # but changing it will break all types of things later on, so I guess we should keep it for now.
         # NOTE: should really encorporate finding the DNS thing later....
+        '''
         for (u, v, data) in G.edges(data=True):
             if u in application_nodes:
                 if v not in application_nodes and v not in one_hop_away_nodes:
@@ -229,9 +245,13 @@ def prepare_graph(G, svcs, level_of_processing, is_swarm, counter, file_path, ms
             if v in application_nodes:
                 if u not in application_nodes and u not in one_hop_away_nodes:
                     one_hop_away_nodes.append(u)
-        #'''
         #print "app nodes and one hop away", application_nodes + one_hop_away_nodes
         induced_graph = G.subgraph(G.subgraph(application_nodes+one_hop_away_nodes)).copy()
+        '''
+        if drop_infra_p:
+            induced_graph = G.subgraph(application_nodes)
+        else:
+            induced_graph = G
         # might want to put back in vvv
         #print "graph after induced", list(induced_graph.nodes(data=True))
 
@@ -430,3 +450,17 @@ def generate_network_graph_colormap(color_map, ms_s, G):
     print "color_map", color_map, len(color_map), len(G.nodes()), len(ms_s), np.array(color_map)
     print [i for i in G.nodes()]  # range(len(G.nodes()))
     return color_map
+
+
+def match_name_to_pod(abstract_node_name, concrete_pod_name):
+    # OLD VERISON
+    #matching_concrete_nodes = [node for node in graph.nodes() if abstract_node in node if node not in excluded_list]
+    if '_VIP' in abstract_node_name:
+        return abstract_node_name in concrete_pod_name
+    else:
+        valid = re.compile('.*' + abstract_node_name + '-[0-9].*')
+        match_status = valid.match(concrete_pod_name)
+        if match_status:
+            return True
+        else:
+            return False

@@ -108,7 +108,7 @@ def create_mappings(cluster_creation_log):
     #First, get a mapping of IPs to(container_name, network_name)
     initial_ips = cluster_creation_log[0]
     mapping = {}
-    infra_services = {}
+    infra_instances = {}
     ms_s = set()
     #            container_to_ip[container_ip] = (container_name, network_name)
 
@@ -119,10 +119,10 @@ def create_mappings(cluster_creation_log):
             mapping[ip_info[0]] = (name+'_VIP', None, ip_info[2], ip_info[3])
             ms_s.add(name)
 
-        if ip_info[3] == 'svc' and ip_info[2] == 'kube-system':
-            infra_services[name] = ip_info[0]
+        if ip_info[2] == 'kube-system':
+            infra_instances[name] = [ip_info[0], ip_info[3]]
 
-    return mapping, infra_services, list(ms_s)
+    return mapping, infra_instances, list(ms_s)
 
 def old_create_mappings(is_swarm, container_info_path, kubernetes_svc_info, kubernetes_pod_info, cilium_config_path, ms_s):
     #First, get a mapping of IPs to(container_name, network_name)

@@ -137,7 +137,7 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
                     testing_exfil_paths, ignore_physical_attacks_p, skip_model_part, out_q,
                     ROC_curve_p, avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
                     skip_graph_injection, calc_ide, include_ide, only_ide, drop_pairwise_features,
-                    perform_cilium_component, cilium_component_time, ide_window_size]
+                    perform_cilium_component, cilium_component_time, ide_window_size, drop_infra_from_graph]
             p = multiprocessing.Process(
                 target=pipeline_one_exfil_rate,
                 args=args)
@@ -192,7 +192,7 @@ def pipeline_one_exfil_rate(rate_counter,
                             testing_exfil_paths, ignore_physical_attacks_p, skip_model_part, out_q,
                             ROC_curve_p, avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
                             skip_graph_injection, calc_ide, include_ide, only_ide, drop_pairwise_features,
-                            perform_cilium_component, cilium_component_time, ide_window_size):
+                            perform_cilium_component, cilium_component_time, ide_window_size, drop_infra_from_graph):
     ## step (1) : iterate through individual experiments...
     ##  # 1a. list of inputs [done]
     ##  # 1b. acculate DFs
@@ -225,7 +225,8 @@ def pipeline_one_exfil_rate(rate_counter,
                                            avg_pkt_size=avg_pkt_size[rate_counter],
                                            pkt_size_variance=pkt_size_variance[rate_counter],
                                            calc_ide=calc_ide, include_ide=include_ide,
-                                           only_ide=only_ide, ide_window_size=ide_window_size)
+                                           only_ide=only_ide, ide_window_size=ide_window_size,
+                                           drop_infra_from_graph=drop_infra_from_graph)
         if perform_cilium_component:
             experiment_object.run_cilium_component(cilium_component_time)
             time_gran_to_cilium_alerts = experiment_object.calc_cilium_performance(avg_exfil_per_min[rate_counter],

@@ -4,27 +4,19 @@ sns.set()
 import seaborn as sns;
 sns.set()
 import math
-import csv
-import ast
 import gc
 import numpy as np
-from analysis_pipeline.next_gen_metrics import calc_neighbor_metric, generate_neig_dict, create_dict_for_dns_metric, \
-    calc_dns_metric, calc_outside_inside_ratio_dns_metric, find_dns_node_name, sum_max_pod_to_dns_from_each_svc,\
-    reverse_svc_to_pod_dict,turn_into_list, single_step_outside_inside_ratio_dns_metric
-from analysis_pipeline.src.analyze_edgefiles import calc_VIP_metric, change_point_detection, ide_angles
-from analysis_pipeline.prepare_graph import prepare_graph, get_svc_equivalents, is_ip
+from analysis_pipeline.next_gen_metrics import create_dict_for_dns_metric, \
+    find_dns_node_name, reverse_svc_to_pod_dict, single_step_outside_inside_ratio_dns_metric
+from analysis_pipeline.src.analyze_edgefiles import calc_VIP_metric
+from analysis_pipeline.prepare_graph import prepare_graph, is_ip, match_name_to_pod
 import random
-import copy
 import logging
 import time
 import matplotlib
 matplotlib.use('Agg',warn=False, force=True)
-from matplotlib import pyplot as plt
-from networkx.drawing.nx_agraph import graphviz_layout
 import os,errno
-from networkx.algorithms import bipartite
 import copy
-import process_control_chart
 #plt.switch_backend('gtkagg')
 import cPickle as pickle
 import pyximport
@@ -33,7 +25,7 @@ import multiprocessing
 import numpy.random
 import pandas as pd
 import subprocess
-import re
+
 
 # okay, so things to be aware of:
 # (a) we are assuming that if we cannot label the node and it is not loopback or in the '10.X.X.X' subnet, then it is outside
@@ -42,9 +34,10 @@ class injected_graph():
     def __init__(self, name, injected_graph_loc, non_injected_graph_loc, concrete_container_exfil_paths, exfil_amt,
                  svc_to_pod, pod_to_svc, total_edgelist_nodes, where_to_save_this_obj, counter, name_of_dns_pod_node,
                  current_total_node_list,
-                 svcs, is_swarm, ms_s, container_to_ip, infra_service, injected_class_graph_loc, name_of_injected_file,
+                 svcs, is_swarm, ms_s, container_to_ip, infra_instances, injected_class_graph_loc, name_of_injected_file,
                  nodeAttrib_injected_graph_loc, nodeAttrib_injected_graph_loc_class, pruned_graph_nodeAttrib_loc,
-                 past_end_of_training, attack_happened_p):
+                 past_end_of_training, attack_happened_p, drop_infra_from_graph):
+        self.drop_infra_from_graph = drop_infra_from_graph
         self.name = name
         self.injected_graph_loc = injected_graph_loc
         self.name_of_injected_file = name_of_injected_file
@@ -71,7 +64,7 @@ class injected_graph():
         self.counter = counter
         self.ms_s = ms_s
         self.container_to_ip = container_to_ip
-        self.infra_service = infra_service
+        self.infra_instances = infra_instances
 
         self.cur_class_G = None
         self.pruned_graph_nodeAttrib_loc = pruned_graph_nodeAttrib_loc
@@ -259,23 +252,24 @@ class injected_graph():
             self.graph_feature_dict = pickle.loads(dict_contents)
 
     def _create_class_level_graph(self):
-        self.cur_class_G = prepare_graph(self.cur_1si_G, self.svcs, 'class', self.is_swarm, self.counter, self.injected_graph_loc,
-                                    self.ms_s, self.container_to_ip, self.infra_service)
+        self.cur_class_G = prepare_graph(self.cur_1si_G, self.svcs, 'class', 0, self.counter, self.injected_graph_loc,
+                                    self.ms_s, self.container_to_ip, self.infra_instances)
 
 class set_of_injected_graphs():
     def __init__(self, time_granularity, raw_edgefile_names,
-                svcs, ms_s, container_to_ip, infra_service, synthetic_exfil_paths, initiator_info_for_paths,
+                svcs, ms_s, container_to_ip, infra_instances, synthetic_exfil_paths, initiator_info_for_paths,
                 attacks_to_times, collected_metrics_location, current_set_of_graphs_loc,
                  avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
-                 end_of_training, pod_creation_log, processed_graph_loc):#, out_q):
+                 end_of_training, pod_creation_log, processed_graph_loc, drop_infra_from_graph):#, out_q):
 
+        self.drop_infra_from_graph = drop_infra_from_graph
         self.list_of_injected_graphs_loc = []
         self.time_granularity = time_granularity
         self.raw_edgefile_names = raw_edgefile_names
         self.svcs = svcs
         self.ms_s= ms_s
         self.container_to_ip = container_to_ip
-        self.infra_service =infra_service
+        self.infra_instances =infra_instances
         self.synthetic_exfil_paths = synthetic_exfil_paths
         self.initiator_info_for_paths =initiator_info_for_paths
         self.attacks_to_times = attacks_to_times
@@ -497,7 +491,7 @@ class set_of_injected_graphs():
         is_swarm = 0
         ms_s = self.ms_s
         container_to_ip = self.container_to_ip
-        infra_service = self.infra_service
+        infra_instances = self.infra_instances
         synthetic_exfil_paths = self.synthetic_exfil_paths
         initiator_info_for_paths = self.initiator_info_for_paths
         attacks_to_times = self.attacks_to_times
@@ -516,12 +510,12 @@ class set_of_injected_graphs():
         for counter in range(0, len(self.raw_edgefile_names), num_graphs_to_process_at_once):
 
             file_paths = self.raw_edgefile_names[counter: counter + num_graphs_to_process_at_once]
-            args = [counter, file_paths, svcs, is_swarm, ms_s, container_to_ip, infra_service,
+            args = [counter, file_paths, svcs, is_swarm, ms_s, container_to_ip, infra_instances,
                     synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
                     time_interval, total_edgelist_nodes, svc_to_pod, avg_dns_weight, avg_dns_pkts,
                     node_attack_mapping, out_q, current_total_node_list, name_of_dns_pod_node, last_attack_injected,
                     carryover, avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
-                    self.end_of_training, pod_creation_log, self.processed_graph_loc]
+                    self.end_of_training, pod_creation_log, self.processed_graph_loc, self.drop_infra_from_graph]
             p = multiprocessing.Process(
                 target=process_and_inject_single_graph,
                 args=args)
@@ -606,12 +600,12 @@ def calc_ide_angles(aggregate_csv_edgefile_loc, joint_col_list, window_size, raw
     else:
         return angles_list
 
-def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm, ms_s, container_to_ip, infra_service,
+def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm, ms_s, container_to_ip, infra_instances,
                                     synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
                     time_interval, total_edgelist_nodes, svc_to_pod, avg_dns_weight, avg_dns_pkts,
                     node_attack_mapping, out_q, current_total_node_list,name_of_dns_pod_node,attack_injected, carryover,
                     avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance, end_of_training,
-                     pod_creation_log, injection_rate_exp_path):
+                     pod_creation_log, injection_rate_exp_path, drop_infra_from_graph):
 
     concrete_cont_node_path_list = []
     pre_specified_data_attribs_list = []
@@ -666,7 +660,7 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
         # nx.read_edgelist(file_path,
         #                 create_using=G, delimiter=',', data=(('weight', float),))
         cur_1si_G = prepare_graph(G, svcs, 'app_only', is_swarm, counter, file_path, ms_s,
-                                  container_to_ip, infra_service)
+                                  container_to_ip, infra_instances, drop_infra_p=drop_infra_from_graph)
 
         into_outside_bytes, into_outside_pkts = find_amt_of_out_traffic(cur_1si_G)
         amt_of_out_traffic_bytes.append(into_outside_bytes)
@@ -764,7 +758,7 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
             attack_happened_p = 1
 
         cur_class_G = prepare_graph(cur_1si_G, svcs, 'class', is_swarm, counter, file_path, ms_s, container_to_ip,
-                                    infra_service)
+                                    infra_instances, drop_infra_p=drop_infra_from_graph)
 
         ## if the injected folder directory doesn't currently exist, then we'd want to create it...
         ## using the technique from https://stackoverflow.com/questions/273192/how-can-i-safely-create-a-nested-directory-in-python
@@ -796,13 +790,14 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
                                             total_edgelist_nodes,
                                             injected_graph_obj_loc, counter, name_of_dns_pod_node,
                                             current_total_node_list,
-                                            svcs, 0, ms_s, container_to_ip, infra_service,
+                                            svcs, 0, ms_s, container_to_ip, infra_instances,
                                             edgefile_injected_folder_path + 'class_' + name_of_injected_file,
                                             name_of_injected_file,
                                             edgefile_injected_folder_path + 'with_nodeAttribs' + name_of_injected_file,
                                             edgefile_injected_folder_path + 'class_' + 'with_nodeAttribs' + name_of_injected_file,
                                             edgefile_pruned_folder_path + 'with_nodeAttribs' + name_of_file,
-                                            past_end_of_training, attack_happened_p)
+                                            past_end_of_training, attack_happened_p,
+                                            drop_infra_from_graph)
 
         injected_graph_obj.save()
         # at 53: 4.04 GB
@@ -1056,18 +1051,6 @@ def abstract_to_concrete_mapping(abstract_node, graph, excluded_list):
     print "concrete_node", concrete_node, "abstract_node", abstract_node
     return concrete_node
 
-def match_name_to_pod(abstract_node_name, concrete_pod_name):
-    # OLD VERISON
-    #matching_concrete_nodes = [node for node in graph.nodes() if abstract_node in node if node not in excluded_list]
-    if '_VIP' in abstract_node_name:
-        return abstract_node_name in concrete_pod_name
-    else:
-        valid = re.compile('.*' + abstract_node_name + '-[0-9].*')
-        match_status = valid.match(concrete_pod_name)
-        if match_status:
-            return True
-        else:
-            return False
 
 def add_edge_weight_graph(graph, concrete_node_src, concrete_node_dst, fraction_of_weight_median,
                           fraction_of_pkt_median):

@@ -25,9 +25,10 @@ def parse_experimental_data_json(config_file, experimental_folder, experiment_na
                                  time_interval_lengths, pcap_file_path, pod_creation_log_path):
     with open(config_file) as f:
         config_file = json.load(f)
-        basefile_name = experimental_folder + 'edgefiles/' + experiment_name + '_'
-        basegraph_name = experimental_folder + 'graphs/' + experiment_name + '_'
-        alert_file = experimental_folder + 'alerts/' + experiment_name + '_'
+        basefile_name = experimental_folder + experiment_name + '/edgefiles/' + experiment_name + '_'
+        basegraph_name = experimental_folder + experiment_name + '/graphs/' + experiment_name + '_'
+        alert_file = experimental_folder + experiment_name + 'alerts/' + experiment_name + '_'
+        base_experiment_file =  experimental_folder + experiment_name + '/'
 
         sec_between_exfil_pkts = config_file["exfiltration_info"]['sec_between_exfil_pkts']
         pcap_paths = [ pcap_file_path + config_file['pcap_file_name'] ]
@@ -46,7 +47,8 @@ def parse_experimental_data_json(config_file, experimental_folder, experiment_na
                                                cluster_creation_log=pod_creation_log,
                                                netsec_policy=None, sensitive_ms=sensitive_ms,
                                                exfil_StartEnd_times=exfil_StartEnd_times,
-                                               physical_exfil_paths=physical_exfil_paths)
+                                               physical_exfil_paths=physical_exfil_paths,
+                                               base_experiment_file=base_experiment_file)
     return pipeline_object
 
 def parse_experimental_config(experimental_config_file):
@@ -82,9 +84,12 @@ def parse_experimental_config(experimental_config_file):
 
         cur_experiment_name = config_file['cur_experiment_name']
         base_output_location = config_file['base_output_location']
-        base_output_location += cur_experiment_name
+        drop_infra_from_graph = config_file['drop_infra_from_graph']
         if drop_pairwise_features:
-            base_output_location += 'dropPairWise_'
+            cur_experiment_name += 'dropPairWise_'
+        if drop_infra_from_graph:
+            cur_experiment_name += 'dropInfra'
+        base_output_location += cur_experiment_name
 
         skip_graph_injection = config_file['skip_graph_injection']
         get_endresult_from_memory = config_file['get_endresult_from_memory']
@@ -110,7 +115,7 @@ def parse_experimental_config(experimental_config_file):
                                   goal_attack_NoAttack_split_testing=goal_attack_NoAttack_split_testing,
                                   calc_ide=calc_ide, include_ide=include_ide, only_ide=only_ide,
                                   drop_pairwise_features=drop_pairwise_features,
-                                  ide_window_size=ide_window_size)
+                                  ide_window_size=ide_window_size, drop_infra_from_graph=drop_infra_from_graph)
 
 
 def wordpress_thirteen_t2(time_of_synethic_exfil=None, time_interval_lengths=None):
@@ -554,10 +559,10 @@ if __name__=="__main__":
         #autoscaling_sockshop_recipe()
         #nonauto_sockshop_recipe()
         #new_wordpress_autoscaling_recipe()
-        new_wordpress_recipe()
+        #new_wordpress_recipe()
 
         #print os.getcwd()
-        #parse_experimental_config('./analysis_json/sockshop_one_v2.json')
+        parse_experimental_config('./analysis_json/sockshop_one_v2.json')
     elif len(sys.argv) == 2:
         experimental_config_file = sys.argv[1]
         parse_experimental_config(experimental_config_file)

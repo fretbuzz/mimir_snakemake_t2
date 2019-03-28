@@ -7,7 +7,7 @@
     "experiment" : {
       "number_background_locusts": "85",
       "background_locust_spawn_rate": "10",
-      "traffic_type" : "normal",
+      "traffic_type" : "normal"
     },
     "exfiltration_info" : {
       "sensitive_ms":[ "wwwppp-wordpress" ],

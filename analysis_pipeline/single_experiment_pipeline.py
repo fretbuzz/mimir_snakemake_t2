@@ -27,7 +27,15 @@ class data_anylsis_pipline(object):
                  make_net_graphs_p=False, alert_file=None,
                  sec_between_exfil_pkts=1, time_of_synethic_exfil=30, injected_exfil_path='None',
                  netsec_policy=None, skip_graph_injection=False, cluster_creation_log=None,
-                 sensitive_ms=None, exfil_StartEnd_times=[], physical_exfil_paths=[], old_mulval_info=None):
+                 sensitive_ms=None, exfil_StartEnd_times=[], physical_exfil_paths=[], old_mulval_info=None,
+                 base_experiment_file=''):
+
+        print "basefile_name", basefile_name
+        try:
+            os.makedirs(basefile_name)
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
 
         print "log file can be found at: " + str(basefile_name) + '_logfile.log'
         logging.basicConfig(filename=basefile_name + '_logfile.log', level=logging.INFO)
@@ -53,22 +61,25 @@ class data_anylsis_pipline(object):
             container_info_path, kubernetes_svc_info = old_mulval_info["container_info_path"], old_mulval_info["kubernetes_svc_info"]
             kubernetes_pod_info, cilium_config_path = old_mulval_info["kubernetes_pod_info"], old_mulval_info["cilium_config_path"]
             self.sensitive_ms = sensitive_ms
-            self.mapping, self.list_of_infra_services = old_create_mappings(0, container_info_path, kubernetes_svc_info,
-                                                                            kubernetes_pod_info,cilium_config_path, self.ms_s)
+            self.mapping, self.infra_instances = old_create_mappings(0, container_info_path, kubernetes_svc_info,
+                                                                     kubernetes_pod_info, cilium_config_path, self.ms_s)
         else:
             self.sensitive_ms = sensitive_ms[0]
-            self.mapping, self.list_of_infra_services, self.ms_s = create_mappings(self.cluster_creation_log)
+            self.mapping, self.infra_instances, self.ms_s = create_mappings(self.cluster_creation_log)
 
         # NOTE: if you follow the whole path, self.list_of_infra_services isn't really used for anything atm...
         self.calc_zscore_p=False
         self.time_interval_lengths = time_interval_lengths
         self.basegraph_name = basegraph_name
         self.basefile_name = basefile_name
-        self.experiment_folder_path = basefile_name.split('edgefiles')[0]
-        self.pcap_file = pcap_paths[0].split('/')[-1]  # NOTE: assuming only a single pcap file...
+        self.experiment_folder_path = base_experiment_file
         self.cilium_component_dir = self.experiment_folder_path + 'cilium_stuff'
         self.exp_name = basefile_name.split('/')[-1]
         self.base_exp_name = self.exp_name
+        self.orig_exp_name = self.exp_name
+
+        self.pcap_path = "/".join(pcap_paths[0].split('/')[:-1]) + '/'
+        self.pcap_file = pcap_paths[0].split('/')[-1]  # NOTE: assuming only a single pcap file...
         self.make_edgefiles_p = make_edgefiles_p #and only_exp_info
         self.netsec_policy = netsec_policy
         self.make_edgefiles_p=make_edgefiles_p
@@ -79,7 +90,6 @@ class data_anylsis_pipline(object):
         self.sec_between_exfil_events=sec_between_exfil_pkts
         self.orig_alert_file = self.alert_file
         self.orig_basegraph_name = self.basegraph_name
-        self.orig_exp_name = self.exp_name
         self.skip_graph_injection = skip_graph_injection
         self.cilium_component_time_length= None # will be assigned @ call time...
 
@@ -128,7 +138,8 @@ class data_anylsis_pipline(object):
 
     def process_pcaps(self):
         self.interval_to_filenames,self.mapping = process_pcap.process_pcap(self.experiment_folder_path, self.pcap_file, self.time_interval_lengths,
-                                                                            self.exp_name, self.make_edgefiles_p, self.mapping, self.cluster_creation_log)
+                                                                            self.exp_name, self.make_edgefiles_p, self.mapping,
+                                                                            self.cluster_creation_log, self.pcap_path)
 
     def get_exp_info(self):
         time_grans = [int(i) for i in self.interval_to_filenames.keys()]
@@ -166,7 +177,7 @@ class data_anylsis_pipline(object):
 
     def calculate_values(self,end_of_training, synthetic_exfil_paths_train, synthetic_exfil_paths_test,
                          avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
-                         calc_ide, include_ide, only_ide, ide_window_size):
+                         calc_ide, include_ide, only_ide, ide_window_size, drop_infra_from_graph):
         self.end_of_training = end_of_training
         if self.calc_vals:
             # TODO: 90% sure that there is a problem with this function...
@@ -234,12 +245,12 @@ class data_anylsis_pipline(object):
                 calculate_raw_graph_metrics(self.time_interval_lengths, self.interval_to_filenames, self.ms_s, self.basegraph_name,
                                             self.calc_vals,
                                             ide_window_size, self.mapping, self.make_net_graphs_p,
-                                            self.list_of_infra_services,
+                                            self.infra_instances,
                                             synthetic_exfil_paths, self.initiator_info_for_paths, time_gran_to_attack_ranges,
                                             avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
                                             self.skip_graph_injection, self.end_of_training,
                                             self.cluster_creation_log, calc_ide, include_ide, only_ide,
-                                            self.basefile_name)
+                                            self.basefile_name, drop_infra_from_graph, self.exp_name)
 
             ## time_gran_to_attack_labels needs to be corrected using time_gran_to_list_of_concrete_exfil_paths
             ## because just because it was assigned, doesn't mean that it is necessarily going to be injected (might
@@ -444,20 +455,20 @@ class data_anylsis_pipline(object):
         return time_gran_to_cil_alerts
 
 def process_one_set_of_graphs(time_interval_length, ide_window_size,
-                                filenames, svcs, ms_s, mapping,  list_of_infra_services,
+                                filenames, svcs, ms_s, mapping,  infra_instances,
                                 synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
                                collected_metrics_location, current_set_of_graphs_loc, calc_vals, out_q,
                               avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
                               skip_graph_injection, end_of_training, pod_creation_log, calc_ide, include_ide,
-                              only_ide, processed_graph_loc):
+                              only_ide, processed_graph_loc, drop_infra_from_graph):
 
     if calc_vals and not only_ide:
         current_set_of_graphs = simplified_graph_metrics.set_of_injected_graphs(time_interval_length,
-                                         filenames, svcs, ms_s, mapping, list_of_infra_services,
+                                         filenames, svcs, ms_s, mapping, infra_instances,
                                          synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
                                          collected_metrics_location, current_set_of_graphs_loc,
                                          avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
-                                         end_of_training, pod_creation_log, processed_graph_loc)
+                                         end_of_training, pod_creation_log, processed_graph_loc, drop_infra_from_graph)
 
         if skip_graph_injection:
             with open(current_set_of_graphs_loc, mode='rb') as f:
@@ -512,12 +523,12 @@ def process_one_set_of_graphs(time_interval_length, ide_window_size,
 
 
 def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms_s, basegraph_name, calc_vals, ide_window_size,
-                                mapping, make_net_graphs_p, list_of_infra_services,synthetic_exfil_paths,
+                                mapping, make_net_graphs_p, infra_instances,synthetic_exfil_paths,
                                 initiator_info_for_paths, time_gran_to_attacks_to_times,
                                 avg_exfil_per_min,
                                 exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
                                 skip_graph_injection, end_of_training, pod_creation_log, calc_ide, include_ide,
-                                only_ide, edgefile_path):
+                                only_ide, edgefile_path, drop_infra_from_graph, exp_name):
     total_calculated_vals = {}
     time_gran_to_list_of_concrete_exfil_paths = {}
     time_gran_to_list_of_exfil_amts = {}
@@ -535,7 +546,7 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
         out_q = multiprocessing.Queue()
 
         collected_metrics_location = basegraph_name + 'collected_metrics_time_gran_' + str(time_interval_length) + '.csv'
-        processed_graph_loc = "/".join(edgefile_path.split("/")[:-1]) + '/exfil_at_' + str(avg_exfil_per_min) + '/'
+        processed_graph_loc = "/".join(edgefile_path.split("/")[:-1]) + '/' + 'exfil_at_' + str(avg_exfil_per_min) + '/'
         try:
             os.makedirs(processed_graph_loc)
         except OSError as e:
@@ -545,10 +556,11 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
         current_set_of_graphs_loc = basegraph_name + 'set_of_graphs' + str(time_interval_length) + '.csv'
         args = [time_interval_length, ide_window_size,
                 interval_to_filenames[str(time_interval_length)], svcs, ms_s, mapping,
-                list_of_infra_services, synthetic_exfil_paths,  initiator_info_for_paths,
+                infra_instances, synthetic_exfil_paths,  initiator_info_for_paths,
                 time_gran_to_attacks_to_times[time_interval_length], collected_metrics_location, current_set_of_graphs_loc,
                 calc_vals, out_q, avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
-                skip_graph_injection, end_of_training, pod_creation_log, calc_ide, include_ide, only_ide, processed_graph_loc]
+                skip_graph_injection, end_of_training, pod_creation_log, calc_ide, include_ide, only_ide,
+                processed_graph_loc, drop_infra_from_graph]
         p = multiprocessing.Process(
             target=process_one_set_of_graphs,
             args=args)
