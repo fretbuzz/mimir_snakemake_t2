@@ -1,17 +1,9 @@
 import json
-import time
-
 import pyximport
-pyximport.install() # am I sure that I want this???
-
+pyximport.install()
 import sys
-import gc
-import functools
-import numpy as np
-
 import matplotlib
 matplotlib.use('Agg',warn=False, force=True)
-
 from analysis_pipeline.pipeline_coordinator import multi_experiment_pipeline
 from analysis_pipeline.single_experiment_pipeline import data_anylsis_pipline
 
@@ -20,24 +12,6 @@ This file is essentially just sets of parameters for the run_data_analysis_pipel
 There are a lot of parameters, and some of them are rather long, so I decided to make a function to store them in
 '''
 
-# these lists are only need for processing the k8s pod info
-#microservices_sockshop = ['carts-db', 'carts', 'catalogue-db', 'catalogue', 'front-end', 'orders-db', 'orders',
-#                         'payment', 'queue-master', 'rabbitmq', 'session-db', 'shipping', 'user-db', 'user',
-#                          'load-test']
-# NOTE: useed to be carts, not cart
-
-''' # these are being discontinued as part of the move to the new cluster_creation_log interface
-microservices_sockshop = ['carts-db', 'cart', 'catalogue-db', 'catalogue', 'front-end', 'orders-db', 'orders',
-                         'payment', 'queue-master', 'rabbitmq', 'shipping', 'user-db', 'user']
-minikube_infrastructure = ['etcd', 'kube-addon-manager', 'kube-apiserver', 'kube-controller-manager',
-                           'kube-dns', 'kube-proxy', 'kube-scheduler', 'kubernetes-dashboard', 'metrics-server',
-                           'storage-provisioner']
-microservices_wordpress = ['mariadb-master', 'mariadb-slave', 'wordpress']
-#'''
-
-# TODO: the plan is to fill in all of the relevant values from a file... well, no that's not quite it. I am also
-# going to assume that the pod_creation_log contains all of the necessary ip info. note: I'll also wanna store the
-# existing svc someehere
 def parse_experimental_data_json(config_file, experimental_folder, experiment_name, make_edgefiles,
                                  time_interval_lengths, pcap_file_path):
     with open(config_file) as f:
@@ -51,7 +25,6 @@ def parse_experimental_data_json(config_file, experimental_folder, experiment_na
         pod_creation_log = [ experimental_folder + config_file['pod_creation_log_name']]
         sensitive_ms = config_file["exfiltration_info"]['sensitive_ms']
 
-        ## TODO: these values need to be encorporated into the pipeline.
         exfil_StartEnd_times = config_file["exfiltration_info"]['exfil_StartEnd_times']
         physical_exfil_paths = config_file["exfiltration_info"]['exfil_paths']
 

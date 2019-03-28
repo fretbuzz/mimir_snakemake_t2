@@ -86,11 +86,15 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
                               only_ide=False, perform_cilium_component=True, only_perform_cilium_component=True,
                               cilium_component_time=100, drop_pairwise_features=False,
                               max_path_length=15, max_dns_porportion=1.0,drop_infra_from_graph=False,
-                              ide_window_size=10):
+                              ide_window_size=10 ,debug_basename=None):
 
     #if only_perform_cilium_component:
     #    calc_vals = False
     #    # is this it ???
+
+    # TODO: do stuff with the debug stuff
+    if not debug_basename:
+        debug_basename = base_output_name
 
     list_of_optimal_fone_scores_at_exfil_rates = []
     rate_to_timegran_to_methods_to_attacks_found_dfs = {}

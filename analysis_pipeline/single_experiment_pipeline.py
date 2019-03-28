@@ -35,8 +35,6 @@ class data_anylsis_pipline(object):
         gc.collect()
 
         print "starting pipeline..."
-        self.exfil_StartEnd_times = exfil_StartEnd_times
-        self.physical_exfil_paths = physical_exfil_paths
         self.sub_path = 'sub_'  # NOTE: make this an empty string if using the full pipeline (and not the subset)
         self.mapping, self.list_of_infra_services, self.ms_s = create_mappings(cluster_creation_log)
         # NOTE: if you follow the whole path, self.list_of_infra_services isn't really used for anything atm...
@@ -89,6 +87,10 @@ class data_anylsis_pipline(object):
         self.time_gran_to_list_of_amt_of_out_traffic_pkts = None
         self.intersvc_vip_pairs = None
         self.sensitive_ms = sensitive_ms
+
+        ## TODO: these values need to be encorporated into the pipeline.
+        self.exfil_StartEnd_times = exfil_StartEnd_times
+        self.physical_exfil_paths = physical_exfil_paths
 
         self.process_pcaps()
 
