@@ -1286,10 +1286,6 @@ def setup_directories(exp_name):
 if __name__=="__main__":
     print "RUNNING"
 
-    #file = open('./sockshop_config/pop_db.py', "r")
-    #for line in file:
-    #    print line,
-
     parser = argparse.ArgumentParser(description='Creates microservice-architecture application pcaps')
 
     parser.add_argument('--exp_name',dest="exp_name", default=None)
@@ -1313,7 +1309,6 @@ if __name__=="__main__":
     parser.add_argument('--localhostip',dest="localhostip", default="192.168.99.1")
 
     args = parser.parse_args()
-    #print args.restart_minikube, args.setup_sockshop, args.run_experiment, args.analyze, args.output_dict, args.tcpdump, args.on_cloudlab, args.app, args.istio_p, args.hpa
     print args.exp_name, args.config_file, args.prepare_app_p, args.port_number, args.vm_ip, args.localhostip, args.install_det_depen_p, args.exfil_p
 
     print os.getcwd()
@@ -1326,35 +1321,12 @@ if __name__=="__main__":
     else:
         ip = args.vm_ip
 
-    if os.path.isdir('/mydata/'):
-        on_cloudlab=True
-    else:
-        on_cloudlab=False
-
-
-    if orchestrator == "docker_swarm":
-        path_to_docker_machine_tls_certs = "/users/jsev/.docker/machine/machines/default"
-    elif orchestrator == "kubernetes":
-        # note: this assumes that minikube is deployed on my laptop (as opposed to on the cloud)
-        if not on_cloudlab:
-            path_to_docker_machine_tls_certs = "/Users/jseverin/.minikube/certs"
-        # note: the below is for cloudlab
-        #path_to_docker_machine_tls_certs = "/users/jsev/.minikube/certs"
-        else:
-            path_to_docker_machine_tls_certs = "/mydata/.minikube/certs"
-    else:
-        print "orchestrator not recognized"
-        exit(11)
-
     # need to setup some environmental variables so that the docker python api will interact with
     # the docker daemon on the docker machine
     docker_host_url = "tcp://" + ip + ":" + args.docker_daemon_port
     print "docker_host_url", docker_host_url
-    print "path_to_docker_machine_tls_certs", path_to_docker_machine_tls_certs
     os.environ['DOCKER_HOST'] = docker_host_url
     os.environ['DOCKER_TLS_VERIFY'] = "1"
-    os.environ['DOCKER_CERT_PATH'] = path_to_docker_machine_tls_certs
-    client =docker.from_env()
 
     if args.exp_name:
         setup_directories(args.exp_name)
@@ -1365,8 +1337,14 @@ if __name__=="__main__":
             setup_directories(config_params['experiment_name'])
             exp_name = config_params['experiment_name']
 
+    path_to_docker_machine_tls_certs = ''
     with open(args.config_file) as f:
         config_params = json.load(f)
         generate_analysis_json('./experimental_data/' + exp_name + '/', exp_name + '_analysis.json', config_params, exp_name)
+        path_to_docker_machine_tls_certs = config_params["path_to_docker_machine_tls_certs"]
+
+    print "path_to_docker_machine_tls_certs", path_to_docker_machine_tls_certs
+    os.environ['DOCKER_CERT_PATH'] = path_to_docker_machine_tls_certs
+    client =docker.from_env()
 
     main(exp_name, args.config_file, args.prepare_app_p, int(args.port_number), ip, args.localhostip, args.install_det_depen_p, args.exfil_p)
