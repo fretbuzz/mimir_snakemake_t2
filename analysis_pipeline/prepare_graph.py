@@ -43,7 +43,7 @@ def map_nodes_to_svcs(G, svcs):
     containers_to_ms = {}
     for u in G.nodes():
         for svc in svcs:
-            if svc in u:
+            if match_name_to_pod(svc, u):
                 containers_to_ms[u] = svc
                 break
     return containers_to_ms

@@ -49,7 +49,8 @@ def pod_logger(log_file_loc, sentinal_file_loc):
             f.write(pickle.dumps(time_step_to_changes))
 
         time_to_sleep = 1.0 - (time.time() - loop_starttime)
-        print "time_to_sleep", time_to_sleep
+        if time_to_sleep < 0.0:
+            print "time_to_sleep", time_to_sleep
         time_to_sleep = max(0.0, time_to_sleep)
         time.sleep(time_to_sleep)
         timestep_counter += 1

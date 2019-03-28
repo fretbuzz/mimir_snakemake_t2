@@ -837,7 +837,7 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
     out_q.put(amt_of_out_traffic_pkts)
     out_q.put(container_to_ip)
 
-def update_mapping(container_to_ip, cluster_creation_log, time_gran, time_counter):
+def update_mapping(container_to_ip, cluster_creation_log, time_gran, time_counter, infra_instances):
     if cluster_creation_log is None:
         return container_to_ip
 
@@ -853,16 +853,24 @@ def update_mapping(container_to_ip, cluster_creation_log, time_gran, time_counte
                 cur_ip = curIP_PlusMinus[0].rstrip().lstrip()
                 cur_pod = cur_pod.rstrip().lstrip()
                 plus_minus = curIP_PlusMinus[1]
+                namespace = curIP_PlusMinus[2]
+                entity = curIP_PlusMinus[3]
+
 
                 if plus_minus == '+':
                     if cur_ip not in container_to_ip:
-                        mod_cur_creation_log[cur_ip] = ('k8s_POD_' + cur_pod, None)
+                        if entity != 'svc':
+                            mod_cur_creation_log[cur_ip] = (cur_pod, None, namespace, entity)
+                        else:
+                            mod_cur_creation_log[cur_ip] = (cur_pod + '_VIP', None, namespace, entity)
+
+                        if namespace == 'kube-system':
+                            infra_instances[cur_pod] = [cur_ip, entity]
+
                 elif plus_minus == '-': # not sure if I want/need this but might be useful for bug checking
                     pass
                     # passing here b/c can't delete pods that disappear in the current
                     # time frame b/c they end up being mislabeled.
-                    #del container_to_ip[cur_ip]
-                    #pass
                 else:
                     print "+/- in pod_creation_log was neither + or -!!"
                     exit(300)
@@ -871,15 +879,20 @@ def update_mapping(container_to_ip, cluster_creation_log, time_gran, time_counte
             if (i - time_gran) in cluster_creation_log:  # sometimes the last value isn't included
                 for cur_pod, curIP_PlusMinus in cluster_creation_log[i - time_gran].iteritems():
                     cur_ip = curIP_PlusMinus[0].rstrip().lstrip()
+                    namespace = curIP_PlusMinus[2]
                     cur_pod = cur_pod.rstrip().lstrip()
                     plus_minus = curIP_PlusMinus[1]
                     if plus_minus == '-': # not sure if I want/need this but might be useful for bug checking
                         if cur_ip in container_to_ip:
                             del container_to_ip[cur_ip]
+                        # note: no point in deleting theme b/c I am indexing by names--- which
+                        # obviously will never be re-used by a non-infra component.
+                        #if cur_pod in infra_instances and namespace == 'kube-system':
+                        #    del infra_instances[cur_pod]
 
         container_to_ip.update( mod_cur_creation_log )
 
-    return container_to_ip
+    return container_to_ip, infra_instances
 
 def find_amt_of_out_traffic(cur_1si_G):
     into_outside_bytes = 0
@@ -1021,7 +1034,6 @@ def abstract_to_concrete_mapping(abstract_node, graph, excluded_list):
         if '_pod' in abstract_node:
             abstract_node = abstract_node.replace('_pod', '')
             abstract_node = abstract_node.replace('_', '-')
-            abstract_node = 'POD_' + abstract_node
         elif '_vip' in abstract_node:
             abstract_node = abstract_node.replace('_vip', '')
             abstract_node = abstract_node.replace('_', '-')
