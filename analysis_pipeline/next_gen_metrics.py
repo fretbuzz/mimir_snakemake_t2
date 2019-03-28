@@ -1,5 +1,6 @@
 import math
 
+import networkx as nx
 import numpy as np
 import logging
 
@@ -304,3 +305,106 @@ def find_dns_node_name(G):
         if 'kube-dns' in node and 'POD' in node:
             return node
     return None # doesn't matter because it is not present anyway
+
+
+def calc_VIP_metric(G, abs_val_p):
+    # okay, so this is a metric that applies only to kubernetes
+    # it says that if a container in service X sends data to a container in service Y
+    # then that data SHOULD go through either the VIP of X or VIP of Y (b/c NATing)
+    # so taking the DIFFERENCE has the potential to be a USEFUL metric
+    # okay, for now let's do a relatively simple, naive implementation
+    pod_to_containers_in_other_svc = {}
+    service_VIP_and_pod_comm = {} # in either direction (each direction seperately tho)
+    print "calc_VIP_metric"
+    attribs = nx.get_node_attributes(G, 'svc')
+    logging.info("calc_VIP_attribs, " + str(attribs))
+    for (node1, node2, data) in G.edges(data=True):
+        #print node1#, nx.get_node_attributes(G, node1)
+        #or node1 in G.nodes(data=True):
+        #    for node2 in G.nodes(data=True):
+        #        if node1 != node2:
+        try:
+            service1 = attribs[node1]
+            service2 = attribs[node2] #node2[1]['svc']
+            #print "calc_VIP_metric, svc to svc:", service1, service2
+            #print node1, node2, '\n'
+
+            data = data['weight']
+
+            #print "services found!"
+
+            if '_VIP' in node1 and '_VIP' in node2:
+                print (node1, node2, data)
+                print 'VIPs communicating??'
+                exit(10)
+
+            if '_VIP' in node1:
+                service_VIP_and_pod_comm[service1, node2] = data
+            elif '_VIP' in node2:
+                service_VIP_and_pod_comm[node1, service2] = data
+            else:
+                # okay, so now we now it is pod-to-pod communication
+                # I think I want to include both getting and recieving?? (so double-counting to a certain extent)
+                #print "pod_to_containers_going", data
+                if (node1, service2) in pod_to_containers_in_other_svc.keys():
+                    #print "pod_to_containers entry found to exist"
+                    pod_to_containers_in_other_svc[node1, service2] += data
+                    #pod_to_containers_in_other_svc[node1, node2] += data
+                else:
+                    #print "pod_to_containers entry found to NOT exist"
+                    pod_to_containers_in_other_svc[node1, service2] = data
+                    #pod_to_containers_in_other_svc[node1, node2] = data
+
+                if (service1, node2) in pod_to_containers_in_other_svc.keys():
+                    #print "pod_to_containers entry2 found to exist"
+                    pod_to_containers_in_other_svc[service1, node2] += data
+                    #pod_to_containers_in_other_svc[node1, node2] += data
+                else:
+                    #print "pod_to_containers entry2 found to NOT exist"
+                    pod_to_containers_in_other_svc[service1, node2] = data
+                    #pod_to_containers_in_other_svc[node1, node2] = data
+
+        except Exception as e:
+            logging.info("calc_VIP_metric exception flagged!, " + str(node1) + ' ' + str(node2)+ ' ' + str(e))
+    logging.info("service_VIP_and_pod_comm", service_VIP_and_pod_comm)
+    logging.info("pod_to_containers_in_other_svc", pod_to_containers_in_other_svc)
+
+    difference_between_pod_and_VIP = {}
+    # okay, so now I'd like to calculate the difference.
+    for comm_pair, bytes in service_VIP_and_pod_comm.iteritems():
+        src = comm_pair[0]
+        dest = comm_pair[1]
+        logging.info(comm_pair)
+
+        #try:
+        pod_to_service_VIP = service_VIP_and_pod_comm[src,dest]
+        #except:
+        #    pod_to_service_VIP = 0
+        #print pod_to_service_VIP
+
+        try:
+            pod_to_container =  pod_to_containers_in_other_svc[src,dest]
+        except:
+            # this is something that can happen (tho should only happen rarely)
+            pod_to_container = 0
+        #print pod_to_container
+
+
+        difference_between_pod_and_VIP[src,dest] = pod_to_service_VIP - pod_to_container
+    logging.info("difference_between_pod_and_VIP", difference_between_pod_and_VIP)
+    total_difference_between_pod_and_VIP = 0
+    for pair, data in difference_between_pod_and_VIP.iteritems():
+        if abs_val_p:
+            total_difference_between_pod_and_VIP += abs(data)
+        else:
+            total_difference_between_pod_and_VIP += data
+        if abs(data) > 0:
+            logging.info("pod_VIP_difference_not_zero " +  str(pair) + ' ' + str(data))
+    sum_of_all_pod_to_container = sum(i for i in pod_to_containers_in_other_svc.values())
+    logging.info("total_difference_between_pod_and_VIP, " +  str(total_difference_between_pod_and_VIP) + ', ' +
+                 "total pod_to_container, " +  str(sum_of_all_pod_to_container))
+    if sum_of_all_pod_to_container > 0:
+        fraction_of_total_difference_between_pod_and_VIP = float(total_difference_between_pod_and_VIP) / sum_of_all_pod_to_container
+    else:
+        fraction_of_total_difference_between_pod_and_VIP = float('NaN')
+    return total_difference_between_pod_and_VIP, fraction_of_total_difference_between_pod_and_VIP

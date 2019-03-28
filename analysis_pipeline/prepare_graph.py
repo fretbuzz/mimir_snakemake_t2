@@ -195,11 +195,7 @@ def prepare_graph(G, svcs, level_of_processing, is_swarm, counter, file_path, ms
     if level_of_processing == 'none':
         unprocessed_G = G.copy()
         containers_to_ms = map_nodes_to_svcs(unprocessed_G, svcs)# + infra_service)
-        #print "container to service mapping: ", containers_to_ms
-        #print "graph before attribs", list(G.nodes(data=True))
         nx.set_node_attributes(unprocessed_G, containers_to_ms, 'svc')
-        #print "graph after attribs", list(G.nodes(data=True))
-
         filename = file_path.replace('.txt', '') + 'unprocessed_network_graph_container.png'
         make_network_graph(unprocessed_G, edge_label_p=True, filename=filename, figsize=(54,32),
                            node_color_p=False, ms_s=ms_s)
@@ -207,11 +203,6 @@ def prepare_graph(G, svcs, level_of_processing, is_swarm, counter, file_path, ms
         return unprocessed_G
 
     elif level_of_processing == 'app_only':
-        if is_swarm:
-            G, svcs = process_graph(G, is_swarm, container_to_ip, ms_s)
-        else:
-            G,_ = process_graph(G, is_swarm, container_to_ip, ms_s)
-
         containers_to_ms = map_nodes_to_svcs(G, svcs)
         infra_nodes = []
         for node in G.nodes():
@@ -224,41 +215,13 @@ def prepare_graph(G, svcs, level_of_processing, is_swarm, counter, file_path, ms
                     if match_name_to_pod(infra_instance_name, node):
                         infra_nodes.append(node)
 
-        #print "services to map for", svcs
-        #print "container to service mapping: ", containers_to_ms
-        #print "graph before attribs", list(G.nodes(data=True))
         nx.set_node_attributes(G, containers_to_ms, 'svc')
-        #print "graph after attribs", list(G.nodes(data=True))
-
-        # okay, we also want to include nodes that are a single hop away
         application_nodes = list(set(containers_to_ms.keys()).difference(set(infra_nodes)))
-        one_hop_away_nodes = []
 
-        #I'm not sure if the whole 1-step induced thing is really necessary....
-        # but changing it will break all types of things later on, so I guess we should keep it for now.
-        # NOTE: should really encorporate finding the DNS thing later....
-        '''
-        for (u, v, data) in G.edges(data=True):
-            if u in application_nodes:
-                if v not in application_nodes and v not in one_hop_away_nodes:
-                    one_hop_away_nodes.append(v)
-            if v in application_nodes:
-                if u not in application_nodes and u not in one_hop_away_nodes:
-                    one_hop_away_nodes.append(u)
-        #print "app nodes and one hop away", application_nodes + one_hop_away_nodes
-        induced_graph = G.subgraph(G.subgraph(application_nodes+one_hop_away_nodes)).copy()
-        '''
         if drop_infra_p:
             induced_graph = G.subgraph(application_nodes)
         else:
             induced_graph = G
-        # might want to put back in vvv
-        #print "graph after induced", list(induced_graph.nodes(data=True))
-
-        # need to relabel again, so we can get the infrastructure services labeled
-        # actually don't wanna b/c inter-system stuff seems to handle VIPs differently
-        #containers_to_ms = map_nodes_to_svcs(G, svcs + infra_service)
-        #nx.set_node_attributes(G, containers_to_ms, 'svc')
 
         if counter < 85:  # keep # of network graphs to a reasonable amount
             filename = file_path.replace('.txt', '') + '_app_only_network_graph_container.png'
@@ -276,111 +239,6 @@ def prepare_graph(G, svcs, level_of_processing, is_swarm, counter, file_path, ms
     else:
         print "that type of processing not recognized"
         exit(1)
-
-# note: this does nothing if its not docker swarm (and it's not docker swarm ATM)
-def process_graph(G, is_swarm, container_to_ip, ms_s):
-    G = G.copy()
-    svcs = None
-    if is_swarm:
-        # okay, here is the deal. I probably want to have an unprocessed and a processed version
-        # of the graphs + metrics
-
-        # note a few edge cases not covered in 49-64, but i'll handle those as they occur
-        for container_list_and_network in container_to_ip.values():
-            # print "containerzzz", container_list_and_class[0]
-            for ms in ms_s:
-                if ms in container_list_and_network[0]:
-                    if 'VIP' not in container_list_and_network[0]:
-                        if container_list_and_network[0] not in G and 'endpoint' not in container_list_and_network[0]:
-                            G.add_node(container_list_and_network[0])
-                            break
-        for (u, v, data) in G.edges(data=True):
-            if 'VIP' in v:
-                # so this connects the services VIP to the endpoint of that service's network.
-                # however, it breaks down when the service is in more than one network.
-                # NOTE THIS SOLUTION MIGHT BREAK DOWN WHEN A LARGE NUMBER OF NETWORKS AND SERVICE
-                # ARE PRESENT
-                endpoints = []
-                for container_ip, container_name_and_net_name in container_to_ip.iteritems():
-                    if container_name_and_net_name[0] == v:
-                        # need to check if there is an edge between a container instance of the
-                        # service and the endpoint -- here's an alternative solution, let's just merge
-                        # all of the possible endpoints together, since who knows?
-                        print "container_name_and_net_name", container_name_and_net_name, v
-                        endpoint = container_name_and_net_name[1] + '-endpoint'
-                        # note: the code below is just for atsea shop exp3 v2, b/c I am too time
-                        # constrained to write general-purpose code
-                        # okay, should not hardcode this type of thing in, but i am going to do
-                        # it just this once, b/c i have other stuff to do
-                        # if container_name_and_net_name[0] == 'atsea_database_VIP' and 'back' in container_name_and_net_name[1]:
-                        #    break
-
-                print "endpoint", endpoint, '\n'
-                if G.has_edge(v, endpoint):
-                    G[v][endpoint]['weight'] += data['weight']
-                else:
-                    G.add_edge(v, endpoint, weight=data['weight'])
-        # '''
-        for (u, v, data) in G.edges(data=True):
-            if 'VIP' in u and 'endpoint' in v:
-                if not G.has_edge(v, u):
-                    # if only goes in a single direction, we
-                    print (u, v, data)
-                    # str() added below b/c it was being converted to unicode
-                    G = nx.contracted_nodes(G, v, u, self_loops=False)
-
-        # not this only applies for docker swarm (well maybe k8s? not sure...)
-        # need to merge 'ingress-endpoint' and 'gateway_ingress_sbox'
-        # b/c these are just two sides of the same NAT
-        for u in G.nodes():
-            for v in G.nodes():
-                if u != v:
-                    # print u,v, 'ingress-endpoint' in u, 'gateway_ingress-sbox' in v
-                    if 'ingress-endpoint' in u and 'gateway_ingress-sbox' in v:
-                        if not G.has_edge(u, v) and not G.has_edge(u, v):
-                            G = nx.contracted_nodes(G, v, u, self_loops=False)
-
-        # this section below is now outdated
-        # this is misleading for k8s b/c it talks to other outside IPs too
-        # 192.168.99.1 is really just the generic 'outside' here
-        '''
-        mapping = {'192.168.99.1': 'outside'}
-        try:
-            nx.relabel_nodes(G, mapping, copy=False)
-        except KeyError:
-            pass  # maybe it's not in the graph?
-        '''
-        svcs = get_svc_equivalents(is_swarm, container_to_ip)
-        print "these services were found:", svcs
-        containers_to_ms = map_nodes_to_svcs(G, svcs)
-        print "container to service mapping: ", containers_to_ms
-        nx.set_node_attributes(G, containers_to_ms, 'svc')
-    else:
-        pass
-        '''
-        # todo: this is ugly, make it nicer
-        # I'm going to merge all the traffic that is coming to/from the outside together
-        for u in G.nodes():#[:int(G.number_of_nodes() / 2.0)]:
-            for v in G.nodes():#[int(G.number_of_nodes() / 2.0):]:
-                if u != v:
-                    # print u,v, 'ingress-endpoint' in u, 'gateway_ingress-sbox' in v
-                    if 'k8s' not in u and '10.0.2' not in u:
-                        if 'k8s' not in v and '10.0.2' not in v:
-                            try:
-                                G = nx.contracted_nodes(G, v, u, self_loops=False)
-                            except:
-                                print u, "and", v, "have probably been merged already"
-        # note: this is not necessarily the case, but it seems like should more or less
-        # hold for all the minikube deployments that I'd do
-        
-        mapping = {'10.0.2.15': 'default-http-backend(NAT)'}
-        try:
-            nx.relabel_nodes(G, mapping, copy=False)
-        except KeyError:
-            pass  # maybe it's not in the graph?
-        '''
-    return G, svcs
-
 
 def get_svc_equivalents(is_swarm, container_to_ip):
     # going to set the node attributes with the svc now
@@ -453,8 +311,6 @@ def generate_network_graph_colormap(color_map, ms_s, G):
 
 
 def match_name_to_pod(abstract_node_name, concrete_pod_name):
-    # OLD VERISON
-    #matching_concrete_nodes = [node for node in graph.nodes() if abstract_node in node if node not in excluded_list]
     if '_VIP' in abstract_node_name:
         return abstract_node_name in concrete_pod_name
     else:

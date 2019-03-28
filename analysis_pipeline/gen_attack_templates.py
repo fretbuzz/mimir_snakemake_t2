@@ -204,9 +204,9 @@ def post_process_mulval_result(sensitive_node, max_number_of_paths, intersvc_vip
     nx.draw_networkx(G, pos, with_labels=True, arrows=True)
     #plt.show() ## remove!!! <---- <---- <----
     plt.draw()
-    if os.path.isfile('./propogation_graph.png'):
-        os.remove('./propogation_graph.png')  # Opt.: os.system("rm "+strFile)
-    plt.savefig('./propogation_graph.png', format='png', dpi=1000)
+    if os.path.isfile('./mulval_inouts/propogation_graph.png'):
+        os.remove('./mulval_inouts/propogation_graph.png')  # Opt.: os.system("rm "+strFile)
+    plt.savefig('./mulval_inouts/propogation_graph.png', format='png', dpi=1000)
     print os.getcwd()
     print G.number_of_nodes(), [i for i in G.nodes()]
     #time.sleep(34)

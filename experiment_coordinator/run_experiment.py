@@ -404,7 +404,7 @@ def prepare_app(app_name, config_params, ip, port):
         print type(config_params["number_background_locusts"]), type(config_params["background_locust_spawn_rate"]), type(config_params["number_customer_records"])
         request_url = "--host=http://" + ip + ":"+ str(port)
         print request_url
-        prepare_cmds = ["locust", "-f", "./sockshop_config/pop_db.py", request_url, "--no-web", "-c",
+        prepare_cmds = ["locust", "-f", "./sockshop_setup/pop_db.py", request_url, "--no-web", "-c",
              config_params["number_background_locusts"], "-r", config_params["background_locust_spawn_rate"],
              "-t", "10min"]
         print prepare_cmds
@@ -491,7 +491,7 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
         try:
             if app_name == "sockshop":
                 print "sockshop!"
-		locust_cmds = ["locust", "-f", "./sockshop_config/background_traffic.py",
+		locust_cmds = ["locust", "-f", "./sockshop_setup/background_traffic.py",
                                          "--host=http://"+ip+ ":" +str(port), "--no-web", "-c",
                                         client_count, "-r", str(spawn_rate), '--csv=' + locust_info_file]
 		print "locust_cmds", locust_cmds

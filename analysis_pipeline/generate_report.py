@@ -20,7 +20,7 @@ def generate_report(list_of_rocs, list_of_feat_coef, list_of_attacks_found_dfs, 
                     avg_exfil_per_min, avg_pkt_size, exfil_per_min_variance, pkt_size_variance):
     # setup jinga and the associated template
     env = Environment(
-        loader=FileSystemLoader(searchpath="src")
+        loader=FileSystemLoader(searchpath="./report_templates")
     )
     base_template = env.get_template("report_template.html")
     table_section_template = env.get_template("table_section.html")

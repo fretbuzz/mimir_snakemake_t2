@@ -1,3 +1,5 @@
+
+
 import math
 import unittest
 
@@ -6,7 +8,8 @@ import numpy as np
 import pandas as pd
 
 from analysis_pipeline.generate_graphs import get_points_to_plot
-from analysis_pipeline.src.analyze_edgefiles import change_point_detection, find_angles, ide_angles, calc_VIP_metric
+from analysis_pipeline.src.analyze_edgefiles import change_point_detection, find_angles, ide_angles
+from analysis_pipeline.next_gen_metrics import calc_VIP_metric
 import analysis_pipeline.simplified_graph_metrics
 import multiprocessing
 from analysis_pipeline.pcap_to_edgelists import create_mappings
@@ -60,7 +63,7 @@ class testSyntheticAttackInjector(unittest.TestCase):
 
     def test_injector(self):
         print "test_injector"
-        file_paths = ['./test_values/wordpress_thirteen_t1_default_bridge_0any_split_00036_20190220141725_edges.txt']
+        file_paths = ['./tests/wordpress_thirteen_t1_default_bridge_0any_split_00036_20190220141725_edges.txt']
         counter_starting = 0
         svcs = ["my-release-pxc", "wwwppp-wordpress"]
         is_swarm = 0
@@ -83,8 +86,8 @@ class testSyntheticAttackInjector(unittest.TestCase):
 
         initiator_info_for_paths = None # not actually need so no big deal
         name_of_dns_pod_node = None
-        injected_file_path = './test_values/injected_edgefiles/with_nodeAttribsavg_exfil_10000:0_avg_pkt_500:0_wordpress_thirteen_t1_default_bridge_0any_split_00036_20190220141725_edges.txt'
-        pruned_without_injected = './test_values/pruned_edgefiles/wordpress_thirteen_t1_default_bridge_0any_split_00036_20190220141725_edges.txt'
+        injected_file_path = './tests/injected_edgefiles/with_nodeAttribsavg_exfil_10000:0_avg_pkt_500:0_wordpress_thirteen_t1_default_bridge_0any_split_00036_20190220141725_edges.txt'
+        pruned_without_injected = './tests/pruned_edgefiles/wordpress_thirteen_t1_default_bridge_0any_split_00036_20190220141725_edges.txt'
 
         last_attack_injected = None
         carryover = 0
@@ -148,7 +151,7 @@ class testSyntheticAttackInjector(unittest.TestCase):
     def test_injector_not_doing_anything(self):
         print "test_injector"
         file_paths = [
-            './test_values/wordpress_thirteen_t1_default_bridge_0any_split_00036_20190220141725_edges.txt']
+            './tests/wordpress_thirteen_t1_default_bridge_0any_split_00036_20190220141725_edges.txt']
         counter_starting = 2
         svcs = ["my-release-pxc", "wwwppp-wordpress"]
         is_swarm = 0
@@ -171,8 +174,8 @@ class testSyntheticAttackInjector(unittest.TestCase):
 
         initiator_info_for_paths = None  # not actually need so no big deal
         name_of_dns_pod_node = None
-        injected_file_path = './test_values/injected_edgefiles/with_nodeAttribsavg_exfil_10000:0_avg_pkt_500:0_wordpress_thirteen_t1_default_bridge_0any_split_00036_20190220141725_edges.txt'
-        pruned_without_injected = './test_values/pruned_edgefiles/wordpress_thirteen_t1_default_bridge_0any_split_00036_20190220141725_edges.txt'
+        injected_file_path = './tests/injected_edgefiles/with_nodeAttribsavg_exfil_10000:0_avg_pkt_500:0_wordpress_thirteen_t1_default_bridge_0any_split_00036_20190220141725_edges.txt'
+        pruned_without_injected = './tests/pruned_edgefiles/wordpress_thirteen_t1_default_bridge_0any_split_00036_20190220141725_edges.txt'
 
         last_attack_injected = None
         carryover = 0
@@ -250,7 +253,7 @@ class testSyntheticAttackInjector(unittest.TestCase):
     def test_dns_injection(self):
         print "test_injector"
         file_paths = [
-            './test_values/wordpress_thirteen_t1_default_bridge_0any_split_00036_20190220141725_edges.txt']
+            './tests/wordpress_thirteen_t1_default_bridge_0any_split_00036_20190220141725_edges.txt']
         counter_starting = 0
         svcs = ["my-release-pxc", "wwwppp-wordpress"]
         is_swarm = 0
@@ -273,8 +276,8 @@ class testSyntheticAttackInjector(unittest.TestCase):
 
         initiator_info_for_paths = None  # not actually need so no big deal
         name_of_dns_pod_node = None
-        injected_file_path = './test_values/injected_edgefiles/with_nodeAttribsavg_exfil_10000:0_avg_pkt_500:0_wordpress_thirteen_t1_default_bridge_0any_split_00036_20190220141725_edges.txt'
-        pruned_without_injected = './test_values/pruned_edgefiles/wordpress_thirteen_t1_default_bridge_0any_split_00036_20190220141725_edges.txt'
+        injected_file_path = './tests/injected_edgefiles/with_nodeAttribsavg_exfil_10000:0_avg_pkt_500:0_wordpress_thirteen_t1_default_bridge_0any_split_00036_20190220141725_edges.txt'
+        pruned_without_injected = './tests/pruned_edgefiles/wordpress_thirteen_t1_default_bridge_0any_split_00036_20190220141725_edges.txt'
 
         last_attack_injected = None
         carryover = 0

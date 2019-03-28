@@ -9,8 +9,6 @@ from operator import itemgetter
 import errno, os
 
 import pandas as pd
-
-import analysis_pipeline.generate_graphs
 import analysis_pipeline.prepare_graph
 from analysis_pipeline import gen_attack_templates, process_pcap, process_graph_metrics, simplified_graph_metrics
 from analysis_pipeline.pcap_to_edgelists import create_mappings,old_create_mappings
@@ -271,17 +269,6 @@ class data_anylsis_pipline(object):
                                                          time_gran_to_list_of_amt_of_out_traffic_bytes,
                                                          time_gran_to_list_of_amt_of_out_traffic_pkts)
 
-            ''' # i never look @ these graphs, so I'm going to stop making them...
-            try: # this thing returns some kinda error but i don't care.
-                analysis_pipeline.generate_graphs.generate_feature_multitime_boxplots(total_calculated_vals, self.basegraph_name,
-                                                                                  self.window_size, self.colors,
-                                                                                  self.time_interval_lengths,
-                                                                                  self.exfil_start_time, self.exfil_end_time,
-                                                                                  self.wiggle_room)
-
-            except:
-                pass
-            '''
         #else:
         if True: # due to the behavior of some later components, why actually wanna read the values from memory everytime
                  # (even if we literally have those values in memory) b/c writing/loading changes some values (in particular

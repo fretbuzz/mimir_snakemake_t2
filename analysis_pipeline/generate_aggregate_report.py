@@ -13,7 +13,7 @@ def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
 
     date = str(datetime.datetime.now())
     env = Environment(
-        loader=FileSystemLoader(searchpath="src")
+        loader=FileSystemLoader(searchpath="./report_templates")
     )
     aggreg_res_section = env.get_template("aggreg_res_section.html")
     comp_res_section = env.get_template("comp_graph_section.html")

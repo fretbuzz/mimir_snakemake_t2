@@ -1,32 +1,20 @@
 import gc
-
 import pandas as pd
 import pyximport
 from matplotlib import pyplot as plt
-
-import generate_alerts
 from analysis_pipeline.single_experiment_pipeline import determine_attacks_to_times
 from analysis_pipeline.statistical_analysis import statistically_analyze_graph_features
 import analysis_pipeline.generate_aggregate_report as generate_aggregate_report
-
 pyximport.install() # to leverage cpython
 import math
 from sklearn.linear_model import LassoCV, LogisticRegressionCV
-import sklearn
 import operator
 import copy
 import multiprocessing
 import pyximport
 pyximport.install()
 import pickle
-import numpy as np
-import statistical_analysis
 
-def generate_rocs(time_gran_to_anom_score_df, alert_file, sub_path):
-    for time_gran, df_with_anom_features in time_gran_to_anom_score_df.iteritems():
-        cur_alert_function,features_to_use = generate_alerts.determine_alert_function(df_with_anom_features)
-        generate_alerts.generate_all_anom_ROCs(df_with_anom_features, time_gran, alert_file, sub_path, cur_alert_function,
-                               features_to_use)
 
 # this function determines how much time to is available for injection attacks in each experiment.
 # it takes into account when the physical attack starts (b/c need to split into training/testing set

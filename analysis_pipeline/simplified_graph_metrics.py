@@ -7,8 +7,7 @@ import math
 import gc
 import numpy as np
 from analysis_pipeline.next_gen_metrics import create_dict_for_dns_metric, \
-    find_dns_node_name, reverse_svc_to_pod_dict, single_step_outside_inside_ratio_dns_metric
-from analysis_pipeline.src.analyze_edgefiles import calc_VIP_metric
+    find_dns_node_name, reverse_svc_to_pod_dict, single_step_outside_inside_ratio_dns_metric, calc_VIP_metric
 from analysis_pipeline.prepare_graph import prepare_graph, is_ip, match_name_to_pod
 import random
 import logging

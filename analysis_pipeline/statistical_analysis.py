@@ -4,9 +4,10 @@ import os
 import numpy as np
 import pandas as pd
 import sklearn
+from matplotlib import pyplot as plt
 from sklearn.linear_model import LassoCV
 from sklearn.model_selection import train_test_split
-from analysis_pipeline import generate_heatmap, generate_alerts, process_roc, generate_report
+from analysis_pipeline import generate_heatmap, process_roc, generate_report
 
 class statistical_pipeline():
     def __init__(self, aggregate_mod_score_df,base_output_name, names, starts_of_testing,
@@ -1023,8 +1024,8 @@ def generate_ROC_curves(y_test, test_predictions, base_output_name, time_gran, i
     except:
         pass
 
-    ax, _, plot_path = generate_alerts.construct_ROC_curve(list_of_x_vals, list_of_y_vals, title, ROC_path + plot_name, \
-                                                           line_titles, show_p=False)
+    ax, _, plot_path = construct_ROC_curve(list_of_x_vals, list_of_y_vals, title, ROC_path + plot_name, \
+                                           line_titles, show_p=False)
 
     ### determination of the optimal operating point goes here (take all the thresh vals and predictions,
     ### find the corresponding f1 scores (using sklearn func), and then return the best.
@@ -1059,3 +1060,31 @@ def determine_categorical_cm_df(y_test, optimal_predictions, exfil_paths, exfil_
     categorical_cm_df = categorical_cm_df.rename({(): 'No Attack'}, axis='index')
     return categorical_cm_df
 
+
+def construct_ROC_curve(list_of_x_vals, list_of_y_vals, title, plot_name, line_titles, show_p=False):
+    # okay, what we want to do here is to construct
+    # x_vals should be FPR
+    # y_vals should be TPR
+    #plt.figure()
+    fig, axs = plt.subplots(1,1)
+    plt.ylim(-0.05,1.05)
+    plt.xlim(-0.05,1.05)
+    plt.xlabel('FPR')
+    plt.ylabel('TPR')
+    plt.title(title)
+
+    line_markers = ['s', '*', 'h', '+', '1']
+    for counter,x_vals in enumerate(list_of_x_vals):
+        plt.plot(x_vals, list_of_y_vals[counter], label = line_titles[counter], marker=line_markers[counter])
+
+    plt.legend()
+    plt.savefig( plot_name + '.png', format='png', dpi=1000)
+
+    local_graph_loc = './temp_outputs/' + title + '.png'
+    local_graph_loc = local_graph_loc.replace(' ', '_')
+    plt.savefig( local_graph_loc, format='png', dpi=1000)
+
+    if show_p:
+        plt.show()
+    plt.close()
+    return axs, plot_name + '.png', '../' + local_graph_loc[2:]

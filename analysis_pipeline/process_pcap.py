@@ -185,18 +185,3 @@ def process_pcap(experiment_folder_path, pcap_file, intervals, exp_name, make_ed
 
 
     return interval_to_files, mapping, infra_instances
-
-'''
-path = '/Volumes/Seagate Backup Plus Drive/experimental_data/wordpress_info/split_pcap_test/'
-pcap_name = 'wordpress_eight_rep_2_default_bridge_0any_COPY.pcap'
-out_pcap_name = 'wp_test_two'
-#res = split_pcap(path, pcap_name, out_pcap_name, 5)
-#print "res", res
-process_pcap(path, pcap_name, [5, 20], 'wordpress_test_repN', )
-'''
-
-#'''
-#pcap_tshark_name = 'wordpress_eight_rep_2_default_bridge_0any_COPY.pcap'
-#process_pcap_via_tshark(path, pcap_tshark_name)
-
-#'''
