@@ -108,11 +108,12 @@ def wordpress_thirteen_t2(time_of_synethic_exfil=None, time_interval_lengths=Non
     basegraph_name = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t2/graphs/wordpress_thirteen_t2_'
     alert_file = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t2/alerts/wordpress_thirteen_t2_'
 
-    container_info_path = "/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t2/wordpress_thirteen_t2_docker_0_network_configs.txt"
-    cilium_config_path = None # does NOT use cilium on reps 2-4
-    kubernetes_svc_info = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t2/wordpress_thirteen_t2_svc_config_0.txt'
-    kubernetes_pod_info = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t2/wordpress_thirteen_t2_pod_config_0.txt'
-    ms_s = ["my-release-pxc", "wwwppp-wordpress"]
+    old_mulval_info = {}
+    old_mulval_info["container_info_path"] = "/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t2/wordpress_thirteen_t2_docker_0_network_configs.txt"
+    old_mulval_info["cilium_config_path"] = None # does NOT use cilium on reps 2-4
+    old_mulval_info["kubernetes_svc_info"] = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t2/wordpress_thirteen_t2_svc_config_0.txt'
+    old_mulval_info["kubernetes_pod_info"] = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t2/wordpress_thirteen_t2_pod_config_0.txt'
+    old_mulval_info["ms_s"] = ["my-release-pxc", "wwwppp-wordpress"]
 
     pcap_paths = [
         "/Volumes/exM2/experimental_data/wordpress_info/wordpress_thirteen_t2/wordpress_thirteen_t2_default_bridge_0any.pcap"]
@@ -126,21 +127,19 @@ def wordpress_thirteen_t2(time_of_synethic_exfil=None, time_interval_lengths=Non
 
     make_edgefiles = False ## already done!
     wordpress_thirteen_t2_object = data_anylsis_pipline(pcap_paths=pcap_paths,
-                                                        basefile_name=basefile_name, container_info_path=container_info_path,
+                                                        basefile_name=basefile_name,
                                                         time_interval_lengths=time_interval_lengths,
-                                                        ms_s=ms_s, make_edgefiles_p=make_edgefiles,
+                                                        make_edgefiles_p=make_edgefiles,
                                                         basegraph_name=basegraph_name,
                                                         exfil_start_time=exfil_start_time,
                                                         exfil_end_time=exfil_end_time,
-                                                        kubernetes_svc_info=kubernetes_svc_info,
-                                                        cilium_config_path=cilium_config_path,
-                                                        kubernetes_pod_info=kubernetes_pod_info,
                                                         alert_file=alert_file,
                                                         sec_between_exfil_pkts=sec_between_exfil_events,
                                                         injected_exfil_path = physical_exfil_path,
                                                         time_of_synethic_exfil=time_of_synethic_exfil,
                                                         cluster_creation_log=pod_creation_log,
-                                                        netsec_policy=None, sensitive_ms=sensitive_ms)
+                                                        netsec_policy=None, sensitive_ms=sensitive_ms,
+                                                        old_mulval_info=old_mulval_info)
 
     return wordpress_thirteen_t2_object
 
@@ -151,15 +150,17 @@ def sockshop_thirteen_NOautoscale_mark1(time_of_synethic_exfil=None, time_interv
     alert_file = '/Volumes/exM2/experimental_data/sockshop_info/sockshop_thirteen_NOautoscale_mark1/alerts/sockshop_thirteen_NOautoscale_mark1_'
 
     pod_creation_log = None
-    container_info_path = "/Volumes/exM2/experimental_data/sockshop_info/sockshop_thirteen_NOautoscale_mark1/sockshop_thirteen_NOautoscale_mark1_docker_0_network_configs.txt"
-    cilium_config_path = None # does NOT use cilium on reps 2-4
-    kubernetes_svc_info = '/Volumes/exM2/experimental_data/sockshop_info/sockshop_thirteen_NOautoscale_mark1/sockshop_thirteen_NOautoscale_mark1_svc_config_0.txt'
-    kubernetes_pod_info = '/Volumes/exM2/experimental_data/sockshop_info/sockshop_thirteen_NOautoscale_mark1/sockshop_thirteen_NOautoscale_mark1_pod_config_0.txt'
-    pcap_paths = [
-        "/Volumes/exM2/experimental_data/sockshop_info/sockshop_thirteen_NOautoscale_mark1/sockshop_thirteen_NOautoscale_mark1_default_bridge_0any.pcap"
-    ]
+
+    old_mulval_info = {}
+    old_mulval_info["container_info_path"] = "/Volumes/exM2/experimental_data/sockshop_info/sockshop_thirteen_NOautoscale_mark1/sockshop_thirteen_NOautoscale_mark1_docker_0_network_configs.txt"
+    old_mulval_info["cilium_config_path"] = None # does NOT use cilium on reps 2-4
+    old_mulval_info["kubernetes_svc_info"] = '/Volumes/exM2/experimental_data/sockshop_info/sockshop_thirteen_NOautoscale_mark1/sockshop_thirteen_NOautoscale_mark1_svc_config_0.txt'
+    old_mulval_info["kubernetes_pod_info"] = '/Volumes/exM2/experimental_data/sockshop_info/sockshop_thirteen_NOautoscale_mark1/sockshop_thirteen_NOautoscale_mark1_pod_config_0.txt'
+    old_mulval_info["ms_s"] = microservices_sockshop
+
+
+    pcap_paths = [ "/Volumes/exM2/experimental_data/sockshop_info/sockshop_thirteen_NOautoscale_mark1/sockshop_thirteen_NOautoscale_mark1_default_bridge_0any.pcap"]
     netsec_policy = '/Volumes/exM2/experimental_data/sockshop_info/sockshop_nine_better_exfil_netsec_seg.txt'
-    ms_s = microservices_sockshop
     sensitive_ms = 'user-db'
     exfil_start_time = 8000
     exfil_end_time = 8000
@@ -169,22 +170,19 @@ def sockshop_thirteen_NOautoscale_mark1(time_of_synethic_exfil=None, time_interv
 
     make_edgefiles = False ## already done!
     sockshop_thirteen_NOautoscale_mark1_object = data_anylsis_pipline(pcap_paths=pcap_paths,
-                                                                      basefile_name=basefile_name, container_info_path=container_info_path,
+                                                                      basefile_name=basefile_name,
                                                                       time_interval_lengths=time_interval_lengths,
-                                                                      ms_s=ms_s, make_edgefiles_p=make_edgefiles,
+                                                                      make_edgefiles_p=make_edgefiles,
                                                                       basegraph_name=basegraph_name,
                                                                       exfil_start_time=exfil_start_time,
                                                                       exfil_end_time=exfil_end_time,
-                                                                      kubernetes_svc_info=kubernetes_svc_info,
-                                                                      cilium_config_path=cilium_config_path,
-                                                                      kubernetes_pod_info=kubernetes_pod_info,
                                                                       alert_file=alert_file,
                                                                       sec_between_exfil_pkts=sec_between_exfil_events,
                                                                       injected_exfil_path = physical_exfil_path,
                                                                       time_of_synethic_exfil=time_of_synethic_exfil,
                                                                       cluster_creation_log=pod_creation_log,
                                                                       netsec_policy=netsec_policy,
-                                                                      sensitive_ms=sensitive_ms)
+                                                                      sensitive_ms=sensitive_ms,old_mulval_info=old_mulval_info)
 
     return sockshop_thirteen_NOautoscale_mark1_object
 
@@ -195,17 +193,17 @@ def wordpress_fourteen_mark7(time_of_synethic_exfil=None, time_interval_lengths=
     basegraph_name = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_fourteen_mark7_final/graphs/wordpress_fourteen_mark7_final_'
     alert_file = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_fourteen_mark7_final/alerts/wordpress_fourteen_mark7_final_'
 
-    #container_info_path = "/Volumes/exM2/experimental_data/wordpress_info/wordpress_fourteen_mark7_final/wordpress_fourteen_mark7_final_docker_0_network_configs.txt"
-    #cilium_config_path = None # does NOT use cilium on reps 2-4
-    #kubernetes_svc_info = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_fourteen_mark7_final/wordpress_fourteen_mark7_final_svc_config_0.txt'
-    #kubernetes_pod_info = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_fourteen_mark7_final/wordpress_fourteen_mark7_final_pod_config_0.txt'
+    old_mulval_info = {}
+    old_mulval_info["container_info_path"] = "/Volumes/exM2/experimental_data/wordpress_info/wordpress_fourteen_mark7_final/wordpress_fourteen_mark7_final_docker_0_network_configs.txt"
+    old_mulval_info["cilium_config_path"] = None
+    old_mulval_info["kubernetes_svc_info"] = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_fourteen_mark7_final/wordpress_fourteen_mark7_final_svc_config_0.txt'
+    old_mulval_info["kubernetes_pod_info"] = '/Volumes/exM2/experimental_data/wordpress_info/wordpress_fourteen_mark7_final/wordpress_fourteen_mark7_final_pod_config_0.txt'
+    old_mulval_info["ms_s"] = ["my-release-pxc", "wwwppp-wordpress"]
 
     # eventaully these should be the only files that actually exist.
     pod_creation_log = "/Volumes/exM2/experimental_data/wordpress_info/wordpress_fourteen_mark7_final/wordpress_fourteen_mark7_final_pod_creation_log.txt"
-    pcap_paths = [
-        "/Volumes/exM2/experimental_data/wordpress_info/wordpress_fourteen_mark7_final/wordpress_fourteen_mark7_final_default_bridge_0any.pcap"]
+    pcap_paths = [ "/Volumes/exM2/experimental_data/wordpress_info/wordpress_fourteen_mark7_final/wordpress_fourteen_mark7_final_default_bridge_0any.pcap"]
 
-    #ms_s = ["my-release-pxc", "wwwppp-wordpress"]
     sensitive_ms = "my-release-pxc"
     exfil_start_time = 8000
     exfil_end_time = 8000
@@ -215,17 +213,12 @@ def wordpress_fourteen_mark7(time_of_synethic_exfil=None, time_interval_lengths=
     make_edgefiles = False ## already done!
     wordpress_fourteen_mark7_object = data_anylsis_pipline(pcap_paths=pcap_paths,
                                                            basefile_name=basefile_name,
-                                                           #container_info_path=container_info_path,
                                                            time_interval_lengths=time_interval_lengths,
-                                                           #ms_s=ms_s,
                                                            make_edgefiles_p=make_edgefiles,
                                                            basegraph_name=basegraph_name,
                                                            exfil_start_time=exfil_start_time,
                                                            exfil_end_time=exfil_end_time,
-                                                           #kubernetes_svc_info=kubernetes_svc_info,
-                                                           #cilium_config_path=cilium_config_path,
-                                                           #kubernetes_pod_info=kubernetes_pod_info,
-                                                           alert_file=alert_file,
+                                                           alert_file=alert_file, old_mulval_info=old_mulval_info,
                                                            sec_between_exfil_pkts=sec_between_exfil_events,
                                                            injected_exfil_path = physical_exfil_path,
                                                            time_of_synethic_exfil=time_of_synethic_exfil,
@@ -245,15 +238,16 @@ def sockshop_thirteen_autoscale_mark4(time_of_synethic_exfil=None, time_interval
     alert_file = experiment_folder + 'alerts/sockshop_thirteen_autoscale_mark4_'
 
     pod_creation_log = experiment_folder + "sockshop_thirteen_autoscale_mark4_pod_creation_log.txt"
-    container_info_path = experiment_folder + "sockshop_thirteen_autoscale_mark4_docker_0_network_configs.txt"
-    kubernetes_svc_info = experiment_folder + 'sockshop_thirteen_autoscale_mark4_svc_config_0.txt'
-    kubernetes_pod_info = experiment_folder + 'sockshop_thirteen_autoscale_mark4_pod_config_0.txt'
     pcap_paths = [ experiment_folder + "sockshop_thirteen_autoscale_mark4_default_bridge_0any.pcap"]
 
-    netsec_policy = '/Volumes/exM2/experimental_data/sockshop_info/sockshop_nine_better_exfil_netsec_seg.txt'
+    old_mulval_info = {}
+    old_mulval_info["container_info_path"] = experiment_folder + "sockshop_thirteen_autoscale_mark4_docker_0_network_configs.txt"
+    old_mulval_info["cilium_config_path"] = None
+    old_mulval_info["kubernetes_svc_info"] = experiment_folder + 'sockshop_thirteen_autoscale_mark4_svc_config_0.txt'
+    old_mulval_info["kubernetes_pod_info"] = experiment_folder + 'sockshop_thirteen_autoscale_mark4_pod_config_0.txt'
+    old_mulval_info["ms_s"] = microservices_sockshop
 
-    cilium_config_path = None # does NOT use cilium on reps 2-4
-    ms_s = microservices_sockshop
+    netsec_policy = '/Volumes/exM2/experimental_data/sockshop_info/sockshop_nine_better_exfil_netsec_seg.txt'
     sensitive_ms = 'user-db'
     exfil_start_time = 8000
     exfil_end_time = 8000
@@ -263,22 +257,19 @@ def sockshop_thirteen_autoscale_mark4(time_of_synethic_exfil=None, time_interval
     make_edgefiles = False ## already done!
 
     sockshop_thirteen_autoscale_mark4_object = data_anylsis_pipline(pcap_paths=pcap_paths,
-                                                                    basefile_name=basefile_name, container_info_path=container_info_path,
+                                                                    basefile_name=basefile_name,
                                                                     time_interval_lengths=time_interval_lengths,
-                                                                    ms_s=ms_s, make_edgefiles_p=make_edgefiles,
+                                                                    make_edgefiles_p=make_edgefiles,
                                                                     basegraph_name=basegraph_name,
                                                                     exfil_start_time=exfil_start_time,
                                                                     exfil_end_time=exfil_end_time,
-                                                                    kubernetes_svc_info=kubernetes_svc_info,
-                                                                    cilium_config_path=cilium_config_path,
-                                                                    kubernetes_pod_info=kubernetes_pod_info,
                                                                     alert_file=alert_file,
                                                                     sec_between_exfil_pkts=sec_between_exfil_events,
                                                                     injected_exfil_path = physical_exfil_path,
                                                                     time_of_synethic_exfil=time_of_synethic_exfil,
                                                                     cluster_creation_log=pod_creation_log,
                                                                     netsec_policy=netsec_policy,
-                                                                    sensitive_ms=sensitive_ms)
+                                                                    sensitive_ms=sensitive_ms, old_mulval_info=old_mulval_info)
 
     return sockshop_thirteen_autoscale_mark4_object
 
@@ -521,7 +512,7 @@ def new_wordpress_recipe():
         base_output_location += 'dropPairWise_'
     #####
 
-    skip_graph_injection = True
+    skip_graph_injection = False
     get_endresult_from_memory = False # in this case, you'd skip literally the whole pipeline and just get the
                                       # trained model + the results (from that model) out of memory
                                       # I anticpate that this'll mostly be useful for working on generating

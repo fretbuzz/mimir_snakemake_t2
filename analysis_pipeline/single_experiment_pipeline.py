@@ -26,7 +26,7 @@ class data_anylsis_pipline(object):
                  make_net_graphs_p=False, alert_file=None,
                  sec_between_exfil_pkts=1, time_of_synethic_exfil=30, injected_exfil_path='None',
                  netsec_policy=None, skip_graph_injection=False, cluster_creation_log=None,
-                 sensitive_ms=None, exfil_StartEnd_times=[], physical_exfil_paths=[]):
+                 sensitive_ms=None, exfil_StartEnd_times=[], physical_exfil_paths=[], old_mulval_info=None):
 
         print "log file can be found at: " + str(basefile_name) + '_logfile.log'
         logging.basicConfig(filename=basefile_name + '_logfile.log', level=logging.INFO)
@@ -36,7 +36,17 @@ class data_anylsis_pipline(object):
 
         print "starting pipeline..."
         self.sub_path = 'sub_'  # NOTE: make this an empty string if using the full pipeline (and not the subset)
-        self.mapping, self.list_of_infra_services, self.ms_s = create_mappings(cluster_creation_log)
+        if old_mulval_info:
+            ms_s = old_mulval_info["ms_s"]
+            if 'kube-dns' not in ms_s:
+                self.ms_s.append('kube-dns')
+            container_info_path, kubernetes_svc_info = old_mulval_info["container_info_path"], old_mulval_info["kubernetes_svc_info"]
+            kubernetes_pod_info, cilium_config_path = old_mulval_info["kubernetes_pod_info"], old_mulval_info["cilium_config_path"]
+            self.mapping, self.list_of_infra_services = old_create_mappings(0, container_info_path, kubernetes_svc_info,
+                                                                            kubernetes_pod_info,cilium_config_path, ms_s)
+        else:
+            self.mapping, self.list_of_infra_services, self.ms_s = create_mappings(cluster_creation_log)
+
         # NOTE: if you follow the whole path, self.list_of_infra_services isn't really used for anything atm...
         self.calc_zscore_p=False
         self.time_interval_lengths = time_interval_lengths

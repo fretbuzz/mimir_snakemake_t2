@@ -300,7 +300,7 @@ if __name__ == "__main__":
     #exp_name = 'wordpress_fourteen_mark7_final'
     #exp_name = 'sockshop_thirteen_NOautoscale_mark1' #mark3 is good too
     # exp_name = 'sockshop_autoscaling_tests'
-    exp_name = 'modifying_pod_creation_looper'
+    exp_name = 'sockshop_exp_one_v2'
     mimir_1 = 'c220g5-111314.wisc.cloudlab.us'  #'c240g5-110119.wisc.cloudlab.us'
     #mimir_2 = 'c240g5-110117.wisc.cloudlab.us'
     cloudlab_server_ip = mimir_1  # note: remove the username@ from the beggining
