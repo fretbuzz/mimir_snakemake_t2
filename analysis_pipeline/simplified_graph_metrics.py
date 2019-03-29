@@ -588,20 +588,23 @@ def calc_ide_angles(aggregate_csv_edgefile_loc, joint_col_list, window_size, raw
 
     # step 3: copy the results into the appropriate location...
     ## okay, let's just store it in a seperate location, cause that'll be easier, I guess...
-    with open(aggregate_csv_edgefile_loc + '_clml_ide_results.txt', 'r') as f:
-        cont = f.read()
-    cont_list = cont.split(" ")
-    angles_list = []
-    for i in cont_list:
-        angles_list.append( i.replace("(", "").replace(")", "").rstrip().lstrip() )
+    try:
+        with open(aggregate_csv_edgefile_loc + '_clml_ide_results.txt', 'r') as f:
+            cont = f.read()
+        cont_list = cont.split(" ")
+        angles_list = []
+        for i in cont_list:
+            angles_list.append( i.replace("(", "").replace(")", "").rstrip().lstrip() )
 
-    angles_list = [float('NaN') for i in range(0, window_size)] + angles_list
+        angles_list = [float('NaN') for i in range(0, window_size)] + angles_list
 
-    angles_list = [float(i) for i in angles_list]
-    if out_q:
-        out_q.put(angles_list)
-    else:
-        return angles_list
+        angles_list = [float(i) for i in angles_list]
+        if out_q:
+            out_q.put(angles_list)
+        else:
+            return angles_list
+    except:
+        return [0 for i in range(0,len(raw_edgefile_names))]
 
 def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm, ms_s, container_to_ip, infra_instances,
                                     synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,

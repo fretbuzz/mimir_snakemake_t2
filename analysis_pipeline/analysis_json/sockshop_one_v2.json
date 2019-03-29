@@ -14,7 +14,7 @@
 
   "calc_vals": true,
   "calculate_z_scores": true,
-  "include_ide": true,
+  "include_ide": false,
   "calc_ide": false,
   "only_ide": false,
   "drop_pairwise_features": false,

@@ -406,7 +406,7 @@ def prepare_app(app_name, config_params, ip, port):
         request_url = "--host=http://" + ip + ":"+ str(port)
         print request_url
         prepare_cmds = ["locust", "-f", "./sockshop_setup/pop_db.py", request_url, "--no-web", "-c",
-             config_params["number_background_locusts"], "-r", config_params["background_locust_spawn_rate"],
+             str(config_params["number_background_locusts"]), "-r", str(config_params["background_locust_spawn_rate"]),
              "-t", "10min"]
         print prepare_cmds
         try:
