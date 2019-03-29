@@ -212,6 +212,7 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, autoscale
     ## should be easy enough... just read it in w/ a json library (in python). modify the one value and then
     ## write it back out... seems like it'd take ~10 min...
 
+    time.sleep(60)
     if not physical_attacks_p:
         start_actual_experiment = 'python /mydata/mimir_v2/experiment_coordinator/run_experiment.py --exp_name ' +\
                                   exp_name  + ' --config_file ' + config_file_name + ' --prepare_app_p --port ' + \
@@ -266,7 +267,7 @@ if __name__ == "__main__":
     #mimir_1 = 'c220g5-111314.wisc.cloudlab.us'  #'c240g5-110119.wisc.cloudlab.us'
     mimir_1 = 'c240g5-110123.wisc.cloudlab.us'
     mimir_2 = 'c220g5-111211.wisc.cloudlab.us' #
-    cloudlab_server_ip = mimir_1  # note: remove the username@ from the beggining
+    cloudlab_server_ip = mimir_2  # note: remove the username@ from the beggining
     exp_length = 10800  # 10800 #7200 # in seconds
     #################################
 

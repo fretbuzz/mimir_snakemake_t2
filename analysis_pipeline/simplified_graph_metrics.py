@@ -299,6 +299,9 @@ class set_of_injected_graphs():
         self.feature_graph_keys = None
         self.processed_graph_loc = processed_graph_loc
 
+        # graphs
+        # alerts
+
     def save(self):
         #with open(self.current_set_of_graphs_loc, 'wb') as output:  # Overwrites any existing file.
         #    pickle.dump(self, output, pickle.HIGHEST_PROTOCOL)

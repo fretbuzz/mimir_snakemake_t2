@@ -28,7 +28,7 @@ def parse_experimental_data_json(config_file, experimental_folder, experiment_na
         basefile_name = experimental_folder + experiment_name + '/edgefiles/' + experiment_name + '_'
         basegraph_name = experimental_folder + experiment_name + '/graphs/' + experiment_name + '_'
         alert_file = experimental_folder + experiment_name + 'alerts/' + experiment_name + '_'
-        base_experiment_file =  experimental_folder + experiment_name + '/'
+        base_experiment_dir =  experimental_folder + experiment_name + '/'
 
         sec_between_exfil_pkts = config_file["exfiltration_info"]['sec_between_exfil_pkts']
         pcap_paths = [ pcap_file_path + config_file['pcap_file_name'] ]
@@ -48,7 +48,7 @@ def parse_experimental_data_json(config_file, experimental_folder, experiment_na
                                                netsec_policy=None, sensitive_ms=sensitive_ms,
                                                exfil_StartEnd_times=exfil_StartEnd_times,
                                                physical_exfil_paths=physical_exfil_paths,
-                                               base_experiment_file=base_experiment_file)
+                                               base_experiment_dir=base_experiment_dir)
     return pipeline_object
 
 def parse_experimental_config(experimental_config_file):

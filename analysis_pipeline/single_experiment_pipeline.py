@@ -26,7 +26,7 @@ class data_anylsis_pipline(object):
                  sec_between_exfil_pkts=1, time_of_synethic_exfil=30, injected_exfil_path='None',
                  netsec_policy=None, skip_graph_injection=False, cluster_creation_log=None,
                  sensitive_ms=None, exfil_StartEnd_times=[], physical_exfil_paths=[], old_mulval_info=None,
-                 base_experiment_file=''):
+                 base_experiment_dir=''):
 
         print "basefile_name", basefile_name
         try:
@@ -34,6 +34,17 @@ class data_anylsis_pipline(object):
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise
+        try:
+            os.makedirs(base_experiment_dir + 'graphs/')
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
+        try:
+            os.makedirs(base_experiment_dir + 'alerts/')
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
+
 
         print "log file can be found at: " + str(basefile_name) + '_logfile.log'
         logging.basicConfig(filename=basefile_name + '_logfile.log', level=logging.INFO)
@@ -70,7 +81,7 @@ class data_anylsis_pipline(object):
         self.time_interval_lengths = time_interval_lengths
         self.basegraph_name = basegraph_name
         self.basefile_name = basefile_name
-        self.experiment_folder_path = base_experiment_file
+        self.experiment_folder_path = base_experiment_dir
         self.cilium_component_dir = self.experiment_folder_path + 'cilium_stuff'
         self.exp_name = basefile_name.split('/')[-1]
         self.base_exp_name = self.exp_name
@@ -533,7 +544,9 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
         out_q = multiprocessing.Queue()
 
         collected_metrics_location = basegraph_name + 'collected_metrics_time_gran_' + str(time_interval_length) + '.csv'
+
         processed_graph_loc = "/".join(edgefile_path.split("/")[:-1]) + '/' + 'exfil_at_' + str(avg_exfil_per_min) + '/'
+
         try:
             os.makedirs(processed_graph_loc)
         except OSError as e:
