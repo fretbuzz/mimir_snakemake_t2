@@ -199,6 +199,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
             os.remove(svc_config_file)
         except:
             print svc_config_file, "   ", "does not exist"
+        print os.getcwd()
         out = subprocess.check_output(['bash', './exp_support_scripts/kubernetes_svc_config.sh', svc_config_file])
         print out
 
@@ -535,10 +536,10 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
             #print "proc hopefully killed", proc.poll
 
         #subprocess.call([locust_info_file + '_requests.csv', '>>', locust_info_file])
-        try:
-            succeeded_requests, failed_requests, fail_percentage = sanity_check_locust_performance(locust_info_file +'_requests.csv')
-        except Exception as e:
-            raise("exception_in_prepare_apps: " + str(e))
+        #try:
+        succeeded_requests, failed_requests, fail_percentage = sanity_check_locust_performance(locust_info_file +'_requests.csv')
+        #except Exception as e:
+        #    raise("exception_in_prepare_apps: " + e.output)
 
         print "succeeded requests", succeeded_requests, 'failed_requests', failed_requests, "fail percentage", fail_percentage
         total_succeeded_requests += int(succeeded_requests)

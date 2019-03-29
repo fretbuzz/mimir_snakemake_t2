@@ -4,8 +4,10 @@ import sys
 import os
 import time
 import pickle
+import pyximport; pyximport.install()
 
 def pod_logger(log_file_loc, sentinal_file_loc):
+    time_behind = 0.0 # records how much time the system is behind where it should be
     timestep_counter = 0
     last_timestep_mapping = {}
     time_step_to_changes = {}
@@ -48,9 +50,12 @@ def pod_logger(log_file_loc, sentinal_file_loc):
         with open(log_file_loc, 'wb') as f:  # Just use 'w' mode in 3.x
             f.write(pickle.dumps(time_step_to_changes))
 
-        time_to_sleep = 1.0 - (time.time() - loop_starttime)
+        time_to_sleep = 1.0 - (time.time() - loop_starttime) - time_behind
         if time_to_sleep < 0.0:
             print "time_to_sleep", time_to_sleep
+            time_behind -= time_to_sleep
+        else:
+            time_behind = 0.0
         time_to_sleep = max(0.0, time_to_sleep)
         time.sleep(time_to_sleep)
         timestep_counter += 1

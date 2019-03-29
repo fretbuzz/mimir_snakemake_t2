@@ -649,8 +649,9 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
             if name_of_dns_pod_node is not None:
                 # then add in the dns pod and vip to the graph
                 # (this is needed for the centrality measures)
-                G.add_node(name_of_dns_pod_node)
-                G.add_node('kube-dns_VIP')
+                #G.add_node(name_of_dns_pod_node)
+                #G.add_node('kube-dns_VIP')
+                pass
 
         logging.info("straight_G_edges")
         #for edge in G.edges(data=True):
@@ -750,12 +751,14 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
         cur_1si_G, node_attack_mapping, pre_specified_data_attribs, concrete_cont_node_path,carryover,attack_injected = \
         inject_synthetic_attacks(cur_1si_G, synthetic_exfil_paths, attacks_to_times, counter, node_attack_mapping,
                                  name_of_dns_pod_node, carryover, attack_injected, time_interval, avg_exfil_per_min,
-                                 exfil_per_min_variance, avg_pkt_size, pkt_size_variance)
+                                 exfil_per_min_variance, avg_pkt_size, pkt_size_variance, container_to_ip)
 
         attack_happened_p = 0
         if attack_injected:
             attack_happened_p = 1
 
+        if counter == 5:
+            pass
         cur_class_G = prepare_graph(cur_1si_G, svcs, 'class', is_swarm, counter, file_path, ms_s, container_to_ip,
                                     infra_instances, drop_infra_p=drop_infra_from_graph)
 
@@ -847,7 +850,7 @@ def find_amt_of_out_traffic(cur_1si_G):
 
 def inject_synthetic_attacks(graph, synthetic_exfil_paths, attacks_to_times, graph_number, attack_number_to_mapping,
                             name_of_dns_pod_node,old_carryover, last_attack, time_gran, avg_exfil_per_min, exfil_per_min_variance,
-                             avg_pkt_size, pkt_size_variance):
+                             avg_pkt_size, pkt_size_variance, container_to_ip):
     # (1) identify whether a synthetic attack is injected here
     # (2) identify whether this is the first occurence of injection... if it was injected
     ## earlier, then we need to re-use the mappings...
@@ -883,7 +886,7 @@ def inject_synthetic_attacks(graph, synthetic_exfil_paths, attacks_to_times, gra
                 current_mapping['kube_dns_pod'] = name_of_dns_pod_node
             else:
                 print "node_to_map", node
-                concrete_node = abstract_to_concrete_mapping(node, graph, [])
+                concrete_node = abstract_to_concrete_mapping(node, graph, [], container_to_ip)
                 if 'dns' in node:
                     print "new_mapping!", node, concrete_node
                 current_mapping[node] = concrete_node
@@ -963,7 +966,7 @@ def determine_concrete_node_path(current_exfil_path, current_abstract_to_physica
 
 
 # abstract_to_concrete_mapping: abstract_node graph -> concrete_node (in graph)
-def abstract_to_concrete_mapping(abstract_node, graph, excluded_list):
+def abstract_to_concrete_mapping(abstract_node, graph, excluded_list, container_to_ip):
     #print "abstract_to_concrete_mapping", abstract_node, graph.nodes(),node_granularity
     ## okay, so there's a couple of things that I should do???
     if abstract_node == 'internet':
@@ -1000,13 +1003,28 @@ def abstract_to_concrete_mapping(abstract_node, graph, excluded_list):
     try:
         concrete_node = random.choice(matching_concrete_nodes)
     except:
-        concrete_node = abstract_node # must be a node that isn't present in the graph
+        if 'VIP' in abstract_node or 'outside' in abstract_node:
+            concrete_node = abstract_node # must be a node that isn't present in the graph
+        else:
+            # the pod is not present in the graph... this is kinda problematic, but in terms of labelling, let's
+            # just take it from the stored names
+            matching_concrete_nodes = [node[0] for node in container_to_ip.values() if match_name_to_pod(abstract_node, node[0]) if
+                                       node[0] not in excluded_list]
+            if matching_concrete_nodes == []:
+                print "abstract_to_concrete_mapping of made-up node"
+                exit(237)
+
+            concrete_node = random.choice(matching_concrete_nodes)
     print "concrete_node", concrete_node, "abstract_node", abstract_node
     return concrete_node
 
 
 def add_edge_weight_graph(graph, concrete_node_src, concrete_node_dst, fraction_of_weight_median,
                           fraction_of_pkt_median):
+    if concrete_node_src == None or concrete_node_dst == None:
+        print "either concrete_node_src or concrete_node_dst is None"
+        exit(455)
+
     ack_packet_size = 40  # bytes
     if concrete_node_src in graph and concrete_node_dst in graph:
         pass  # don't need to do anything b/c the nodes already exist...

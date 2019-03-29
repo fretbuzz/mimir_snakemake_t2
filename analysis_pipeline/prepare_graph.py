@@ -191,6 +191,7 @@ def aggregate_graph(G, ms_s):
 def prepare_graph(G, svcs, level_of_processing, is_swarm, counter, file_path, ms_s, container_to_ip,
                   infra_instances, drop_infra_p):
     G = copy.deepcopy(G)
+    #print "nodes", [node for node in G.nodes()]
     G = aggregate_outside_nodes(G)
     if level_of_processing == 'none':
         unprocessed_G = G.copy()
@@ -208,11 +209,14 @@ def prepare_graph(G, svcs, level_of_processing, is_swarm, counter, file_path, ms
         for node in G.nodes():
             for infra_instance_name, ip_and_type in infra_instances.iteritems():
                 infra_instance_name, infra_instance_PodSvc = infra_instance_name, ip_and_type[1]
+                if 'heapster' in node and 'heapster' in infra_instance_name:
+                    #print infra_instance_PodSvc == node
+                    pass # to be used as a debug point...
                 if infra_instance_PodSvc == 'pod':
-                    if infra_instance_PodSvc == node:
+                    if infra_instance_name == node:
                         infra_nodes.append(node)
                 elif infra_instance_PodSvc == 'svc':
-                    if match_name_to_pod(infra_instance_name, node):
+                    if match_name_to_pod(infra_instance_name + '_VIP', node):
                         infra_nodes.append(node)
 
         nx.set_node_attributes(G, containers_to_ms, 'svc')
@@ -321,4 +325,9 @@ def match_name_to_pod(abstract_node_name, concrete_pod_name):
         if match_status:
             return True
         else:
-            return False
+            valid = re.compile('.*' + abstract_node_name + '-$') # end line is also acceptable.
+            match_status = valid.match(concrete_pod_name)
+            if match_status:
+                return True
+            else:
+                return False

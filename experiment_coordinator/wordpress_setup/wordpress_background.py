@@ -27,7 +27,7 @@ with open('./wordpress_setup/wordpress_users.csv', 'rb') as csvfile:
     i = 0
     for row in spamreader:
         if 'http' in row[0]:
-            row = row.replace('http', "https")
+            #row[0] = row[0].replace('http', "https")
             urls.append(row[0].strip(','))
 
 
