@@ -1,4 +1,4 @@
-from experiment_coordinator.kubernetes_setup_functions import *
+from experiment_coordinator.exp_support_scripts.kubernetes_setup_functions import *
 
 def main():
 	out = subprocess.check_output(["wget", "https://raw.githubusercontent.com/helm/helm/master/scripts/get"])
