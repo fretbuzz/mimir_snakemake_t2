@@ -1,7 +1,7 @@
 {
     "application_name": "sockshop",
     "experiment_name": "sockshop_local_exfil_test",
-    "path_to_docker_machine_tls_certs":"/Users/jseverin/.minikube/certs",
+    "path_to_docker_machine_tls_certs":"/mydata/.minikube/certs",
     "experiment_length_sec": 360,
     "network_plugin": "none",
     "setup" : {
