@@ -291,6 +291,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
                 # NOTE: i think I modified this appropriately...
                 dsts, srcs = find_dst_and_srcs_ips_for_det(exfil_paths[exfil_counter], class_name, selected_containers, localhostip,
                                                            proxy_instance_to_networks_to_ip, class_to_networks)
+                print "cur_dsts_srcs", dsts, srcs
                 if dsts or srcs:
                     for container in container_instances:
                         for dst in dsts:
