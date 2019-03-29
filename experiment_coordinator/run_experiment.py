@@ -292,6 +292,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
                 dsts, srcs = find_dst_and_srcs_ips_for_det(exfil_paths[exfil_counter], class_name, selected_containers, localhostip,
                                                            proxy_instance_to_networks_to_ip, class_to_networks)
                 print "cur_dsts_srcs", dsts, srcs
+                ## TODO: problem: need dsts to actually point out.
                 if dsts or srcs:
                     for container in container_instances:
                         for dst in dsts:
@@ -992,6 +993,7 @@ def start_det_server_local(protocol, srcs, maxsleep, maxbytesread, minbytesread,
     src_string += "\\\"" + srcs[-1] +  "\\\""
     proxiesip_switch = "s/PROXIESIP/" + "[" + src_string  + "]" + "/"
 
+    maxsleep = float(maxsleep)
     maxsleeptime_switch = "s/MAXTIMELSLEEP/" + "{:.2f}".format(maxsleep) + "/"
     maxbytesread_switch = "s/MAXBYTESREAD/" + str(maxbytesread) + "/"
     minbytesread_switch = "s/MINBYTESREAD/" + str(minbytesread) + "/"
