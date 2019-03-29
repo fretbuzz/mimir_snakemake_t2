@@ -533,7 +533,11 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
             #print "proc hopefully killed", proc.poll
 
         #subprocess.call([locust_info_file + '_requests.csv', '>>', locust_info_file])
-        succeeded_requests, failed_requests, fail_percentage = sanity_check_locust_performance(locust_info_file +'_requests.csv')
+        try:
+            succeeded_requests, failed_requests, fail_percentage = sanity_check_locust_performance(locust_info_file +'_requests.csv')
+        except Exception as e:
+            raise("exception_in_prepare_apps: " + str(e))
+
         print "succeeded requests", succeeded_requests, 'failed_requests', failed_requests, "fail percentage", fail_percentage
         total_succeeded_requests += int(succeeded_requests)
         total_failed_requests += int(failed_requests)

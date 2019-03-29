@@ -1,20 +1,24 @@
 {
-    "application_name": "wordpress",
-    "experiment_name": "wordpress_one",
-    "path_to_docker_machine_tls_certs":"/mydata/.minikube/certs",
+    "application_name": "sockshop",
+    "experiment_name": "sockshop_local_exfil_test",
+    "path_to_docker_machine_tls_certs":"/Users/jseverin/.minikube/certs",
     "experiment_length_sec": 360,
     "network_plugin": "none",
-    "setup" : {},
+    "setup" : {
+      "number_customer_records": 1000,
+      "number_background_locusts": 20,
+      "background_locust_spawn_rate": 10
+    },
     "experiment" : {
-      "number_background_locusts": "85",
-      "background_locust_spawn_rate": "10",
+      "number_background_locusts": 40,
+      "background_locust_spawn_rate": 10,
       "traffic_type" : "normal"
     },
     "exfiltration_info" : {
-      "sensitive_ms":[ "wwwppp-wordpress" ],
-      "folder_to_exfil": "/var/lib/mysql/",
-      "regex_of_file_to_exfil": "\"galera.cach*\"",
-      "exfiltration_path_class_which_installer": { "wwwppp-wordpress":"apt","my-release-pxc": "apt"  },
+      "sensitive_ms":[ "user-db" ],
+      "folder_to_exfil": "/data/db-users/",
+      "regex_of_file_to_exfil": "\"index-0*\"",
+      "exfiltration_path_class_which_installer": { "user-db":"apt" },
 
       "exfil_methods": ["DET", "DET", "DET"],
       "exfil_protocols": ["tcp", "tcp", "tcp"],

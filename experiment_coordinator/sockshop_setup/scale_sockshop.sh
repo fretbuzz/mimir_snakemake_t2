@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 
 declare -i current_carts_instances=3
 declare -i goal_carts_instances=3
