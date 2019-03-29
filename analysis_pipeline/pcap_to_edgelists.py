@@ -168,7 +168,7 @@ def create_mappings(cluster_creation_log):
             ms_s.add(name)
 
         if ip_info[2] == 'kube-system':
-            if 'kube-dns' not in name:
+            if 'kube-dns' not in name or ip_info[3] == 'svc': # the svc endpoint labeled kube-dns is shared by LOTS of system functions
                 infra_instances[name] = [ip_info[0], ip_info[3]]
 
     return mapping, infra_instances, list(ms_s)
@@ -202,8 +202,10 @@ def update_mapping(container_to_ip, cluster_creation_log, time_gran, time_counte
                             mod_cur_creation_log[cur_ip] = (cur_pod + '_VIP', None, namespace, entity)
 
                         if namespace == 'kube-system':
-                            if 'kube-dns' not in cur_pod:
+                            if 'kube-dns' not in name or ip_info[3] == 'svc':  # the svc endpoint labeled kube-dns is shared by LOTS of system functions
                                 infra_instances[cur_pod] = [cur_ip, entity]
+                            else:
+                                pass
 
                 elif plus_minus == '-': # not sure if I want/need this but might be useful for bug checking
                     pass

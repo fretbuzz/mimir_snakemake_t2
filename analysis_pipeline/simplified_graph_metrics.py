@@ -24,6 +24,7 @@ import multiprocessing
 import numpy.random
 import pandas as pd
 import subprocess
+from process_pcap import update_mapping
 
 
 # okay, so things to be aware of:
@@ -654,7 +655,7 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
         ## UPDATE: CORRECT. THAT'S WHY I TOOK IT OUT. can remove all these comments (included commented out code, at some point...)
         ## okay, testing this ATM. if it works, then I can delete the line above
         ###### WAIT, I DON'T THINK THIS ACTUALLY DOES ANYTHING!!! ##########
-        #container_to_ip = update_mapping(container_to_ip, pod_creation_log, time_interval, counter)
+        container_to_ip = update_mapping(container_to_ip, pod_creation_log, time_interval, counter)
 
         # nx.read_edgelist(file_path,
         #                 create_using=G, delimiter=',', data=(('weight', float),))

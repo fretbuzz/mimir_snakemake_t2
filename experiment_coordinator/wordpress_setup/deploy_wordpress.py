@@ -1,6 +1,6 @@
 import argparse
 
-from experiment_coordinator.exp_support_scripts.kubernetes_setup_functions import *
+from experiment_coordinator.kubernetes_setup_functions import *
 
 
 def main(autoscale_p=False, cpu_percent_cuttoff=80):

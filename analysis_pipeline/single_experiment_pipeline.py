@@ -136,7 +136,7 @@ class data_anylsis_pipline(object):
 
     def process_pcaps(self):
         self.interval_to_filenames,self.mapping, self.infra_instances = process_pcap.process_pcap(self.experiment_folder_path, self.pcap_file, self.time_interval_lengths,
-                                                                            self.exp_name, self.make_edgefiles_p, self.mapping,
+                                                                            self.exp_name, self.make_edgefiles_p, copy.deepcopy(self.mapping),
                                                                             self.cluster_creation_log, self.pcap_path, self.infra_instances)
 
     def get_exp_info(self):
