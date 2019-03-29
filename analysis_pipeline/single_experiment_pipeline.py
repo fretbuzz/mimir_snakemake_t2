@@ -553,7 +553,7 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
             if e.errno != errno.EEXIST:
                 raise
 
-        current_set_of_graphs_loc = basegraph_name + 'set_of_graphs' + str(time_interval_length) + '.csv'
+        current_set_of_graphs_loc = processed_graph_loc + 'set_of_graphs' + str(time_interval_length) + '.csv'
         args = [time_interval_length, ide_window_size,
                 interval_to_filenames[str(time_interval_length)], svcs, ms_s, mapping,
                 infra_instances, synthetic_exfil_paths,  initiator_info_for_paths,

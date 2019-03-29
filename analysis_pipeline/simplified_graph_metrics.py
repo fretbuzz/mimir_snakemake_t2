@@ -275,7 +275,7 @@ class set_of_injected_graphs():
         self.attacks_to_times = attacks_to_times
         self.time_interval= time_granularity
         self.collected_metrics_location = collected_metrics_location
-        self.current_set_of_graphs_loc = processed_graph_loc #current_set_of_graphs_loc
+        self.current_set_of_graphs_loc = current_set_of_graphs_loc
         self.end_of_training = end_of_training
         #self.out_q = out_q
         self.pod_creation_log = pod_creation_log
@@ -890,6 +890,7 @@ def inject_synthetic_attacks(graph, synthetic_exfil_paths, attacks_to_times, gra
         attack_number_to_mapping[attack_occuring] = current_mapping
 
     concrete_node_path = determine_concrete_node_path(synthetic_exfil_paths[attack_occuring], attack_number_to_mapping[attack_occuring])
+    print "concrete_node_exfil_path", concrete_node_path
 
     fraction_of_weight_min, fraction_of_pkt_min = determine_exfiltration_amt(avg_exfil_per_min, exfil_per_min_variance,
                                                                              avg_pkt_size, pkt_size_variance, time_gran,

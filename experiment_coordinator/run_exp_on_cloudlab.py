@@ -220,7 +220,7 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, autoscale
     else:
         start_actual_experiment = 'python /mydata/mimir_v2/experiment_coordinator/run_experiment.py --exp_name ' +\
                                   exp_name  + ' --config_file ' + config_file_name + ' --prepare_app_p --port ' + \
-                                  front_facing_port + ' --ip ' + minikube_ip
+                                  front_facing_port + ' --ip ' + minikube_ip + ' --install_det_depen'
 
     create_experiment_sential_file = '; echo experimenet_done >> ' + experiment_sentinal_file
     start_actual_experiment += create_experiment_sential_file

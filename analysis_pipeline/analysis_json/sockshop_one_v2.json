@@ -30,5 +30,6 @@
   "experimental_folder": "/Volumes/exM2/experimental_data/sockshop_info/sockshop_exp_one_v2/",
   "pcap_file_path": "/Volumes/exM2/experimental_data/sockshop_info/sockshop_exp_one_v2/",
   "pod_creation_log_path": "/Volumes/exM2/experimental_data/sockshop_info/sockshop_exp_one_v2/",
-  "exp_config_file": "/Volumes/exM2/experimental_data/sockshop_info/sockshop_exp_one_v2/sockshop_exp_one_v2_analysis.json"
+  "exp_config_file": "/Volumes/exM2/experimental_data/sockshop_info/sockshop_exp_one_v2/sockshop_exp_one_v2_analysis.json",
+  "netsec_policy": "/Volumes/exM2/experimental_data/sockshop_info/sockshop_nine_better_exfil_netsec_seg.txt"
 }

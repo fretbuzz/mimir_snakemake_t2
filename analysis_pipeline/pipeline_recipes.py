@@ -22,7 +22,8 @@ minikube_infrastructure = ['etcd', 'kube-addon-manager', 'kube-apiserver', 'kube
 microservices_wordpress = ['mariadb-master', 'mariadb-slave', 'wordpress']
 
 def parse_experimental_data_json(config_file, experimental_folder, experiment_name, make_edgefiles,
-                                 time_interval_lengths, pcap_file_path, pod_creation_log_path):
+                                 time_interval_lengths, pcap_file_path, pod_creation_log_path,
+                                 netsec_policy=None):
     with open(config_file) as f:
         config_file = json.load(f)
         basefile_name = experimental_folder + experiment_name + '/edgefiles/' + experiment_name + '_'
@@ -45,7 +46,7 @@ def parse_experimental_data_json(config_file, experimental_folder, experiment_na
                                                alert_file=alert_file,
                                                sec_between_exfil_pkts=sec_between_exfil_pkts,
                                                cluster_creation_log=pod_creation_log,
-                                               netsec_policy=None, sensitive_ms=sensitive_ms,
+                                               netsec_policy=netsec_policy, sensitive_ms=sensitive_ms,
                                                exfil_StartEnd_times=exfil_StartEnd_times,
                                                physical_exfil_paths=physical_exfil_paths,
                                                base_experiment_dir=base_experiment_dir)
@@ -97,10 +98,11 @@ def parse_experimental_config(experimental_config_file):
         pcap_file_path = config_file['pcap_file_path']
         pod_creation_log_path = config_file["pod_creation_log_path"]
         exp_config_file = config_file['exp_config_file']
+        netsec_policy = config_file['netsec_policy']
 
         experiment_classes = [parse_experimental_data_json(exp_config_file, experimental_folder, cur_experiment_name,
                                                            make_edgefiles, time_interval_lengths, pcap_file_path,
-                                                           pod_creation_log_path)]
+                                                           pod_creation_log_path, netsec_policy)]
 
         return multi_experiment_pipeline(experiment_classes, base_output_location, True, time_of_synethic_exfil,
                                   goal_train_test_split_training, goal_attack_NoAttack_split_training, None,
