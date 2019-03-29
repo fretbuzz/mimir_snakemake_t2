@@ -339,3 +339,4 @@ if __name__ == "__main__":
     port_of_wp = sys.argv[2]
     admin_pwd = sys.argv[3]
 
+    main(ip_of_wp, port_of_wp, admin_pwd)
