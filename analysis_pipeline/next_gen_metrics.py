@@ -366,8 +366,8 @@ def calc_VIP_metric(G, abs_val_p):
 
         except Exception as e:
             logging.info("calc_VIP_metric exception flagged!, " + str(node1) + ' ' + str(node2)+ ' ' + str(e))
-    logging.info("service_VIP_and_pod_comm", str(service_VIP_and_pod_comm))
-    logging.info("pod_to_containers_in_other_svc", str(pod_to_containers_in_other_svc))
+    #logging.info("service_VIP_and_pod_comm", str(service_VIP_and_pod_comm))
+    #logging.info("pod_to_containers_in_other_svc", str(pod_to_containers_in_other_svc))
 
     difference_between_pod_and_VIP = {}
     # okay, so now I'd like to calculate the difference.
@@ -391,7 +391,7 @@ def calc_VIP_metric(G, abs_val_p):
 
 
         difference_between_pod_and_VIP[src,dest] = pod_to_service_VIP - pod_to_container
-    logging.info("difference_between_pod_and_VIP", difference_between_pod_and_VIP)
+    #logging.info("difference_between_pod_and_VIP", str(difference_between_pod_and_VIP))
     total_difference_between_pod_and_VIP = 0
     for pair, data in difference_between_pod_and_VIP.iteritems():
         if abs_val_p:
