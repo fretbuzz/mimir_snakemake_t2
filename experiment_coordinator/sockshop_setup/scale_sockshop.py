@@ -7,7 +7,8 @@ from kubernetes_setup_functions import *
 
 def main():
     wait_until_pods_done("kube-system")
-    time.sleep(120)
+    out = subprocess.check_output(["kubectl", "create", "-f", "../sockshop_setup/sock-shop-ns.yaml", "-f",
+                                   "../sockshop_setup/sockshop_modified.yaml"])
     wait_until_pods_done("sock-shop")
     out = subprocess.check_output(["kubectl", "scale", "deploy", "orders",  "queue-master", "shipping",
                                     "--replicas=3", "--namespace=sock-shop"])
