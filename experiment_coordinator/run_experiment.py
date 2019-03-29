@@ -287,19 +287,21 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
             for class_name, container_instances in selected_proxies.iteritems():
                 # going to determine srcs and dests by looking backword into the exp_support_scripts class, index into the selected proxies,
                 # and then indexing into instances_to_network_to_ips
+                # NOTE: i think I modified this appropriately...
                 dsts, srcs = find_dst_and_srcs_ips_for_det(exfil_paths[exfil_counter], class_name, selected_containers, localhostip,
                                                            proxy_instance_to_networks_to_ip, class_to_networks)
-                for container in container_instances:
-                    for dst in dsts:
-                        print "config stuff", container.name, srcs, dst, proxy_instance_to_networks_to_ip[container]
+                if dsts or srcs:
+                    for container in container_instances:
+                        for dst in dsts:
+                            print "config stuff", container.name, srcs, dst, proxy_instance_to_networks_to_ip[container]
+                            start_det_proxy_mode(orchestrator, container, srcs, dst, cur_exfil_method,
+                                                maxsleep, DET_max_exfil_bytes_in_packet, DET_min_exfil_bytes_in_packet)
 
-
-                        start_det_proxy_mode(orchestrator, container, srcs, dst, cur_exfil_method,
-                                            maxsleep, DET_max_exfil_bytes_in_packet, DET_min_exfil_bytes_in_packet)
-
+            # this does NOT need to be modified (somewhat surprisingly)
             start_det_server_local(cur_exfil_method, [ip], maxsleep, DET_max_exfil_bytes_in_packet,
                                    DET_min_exfil_bytes_in_packet, experiment_name)
 
+            # this is probably fine too...
             # now setup the originator (i.e. the client that originates the exfiltrated data)
             next_instance_ips, _ = find_dst_and_srcs_ips_for_det(exfil_paths[exfil_counter], originator_class,
                                                                  selected_containers, localhostip,
@@ -1121,6 +1123,9 @@ def find_dst_and_srcs_ips_for_det(exfil_path, current_class_name, selected_conta
                                   proxy_instance_to_networks_to_ip, class_to_networks):
     current_loc_in_exfil_path = exfil_path.index(current_class_name)
     current_class_networks = class_to_networks[current_class_name] #proxy_instance_to_networks_to_ip[current_class_name].keys()
+
+    if current_class_name not in exfil_path:
+        return None, None
 
     # at originator -> no srcs (or rather, it is the exp_support_scripts for itself):
     print current_class_name, current_loc_in_exfil_path+1, len(exfil_path)

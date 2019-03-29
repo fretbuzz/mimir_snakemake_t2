@@ -44,6 +44,7 @@ export MINIKUBE_HOME=/mydata
 #minikube start --vm-driver kvm2 --cpus=16 --memory=100000 --disk-size 65g
 
 if [ "$cilium_p" = "True" ]; then
+    echo "starting minikube with cilium"
     minikube start --network-plugin=cni --extra-config=kubelet.network-plugin=cni --cpus=12 --memory=32000 --disk-size 65g
     kubectl create -n kube-system -f https://raw.githubusercontent.com/cilium/cilium/v1.3/examples/kubernetes/addons/etcd/standalone-etcd.yaml
     python /mydata/mimir_snakemake_t2/experiment_coordinator/former_profile/kubernetes_setup_functions.py kube-system

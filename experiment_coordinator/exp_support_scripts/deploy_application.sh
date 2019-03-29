@@ -28,7 +28,7 @@ elif [ "$1" = "gitlab" ]; then
 elif [ "$1" = "sockshop" ]; then
   echo "see, it was sockshop" >> /local/repository/deploy_test.txt
   kubectl create -f ../sockshop_setup/sock-shop-ns.yaml -f ../sockshop_setup/sockshop_modified.yaml
-  bash ../sockshop_setup/scale_sockshop.sh
+  python ../sockshop_setup/scale_sockshop.pu
 
   if [ -n "$autoscale_p" ]; then
     # activate autoscaling

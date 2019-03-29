@@ -143,7 +143,7 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, autoscale
         last_line = ''
         while line_rec != '':
             last_line = line_rec
-            line_rec = sh.recvline(timeout=40)
+            line_rec = sh.recvline(timeout=240)
             print("recieved line", line_rec)
         print("did run_experiment work???")
 
