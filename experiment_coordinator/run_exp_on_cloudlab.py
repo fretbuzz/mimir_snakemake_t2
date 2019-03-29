@@ -129,6 +129,7 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, autoscale
 
         sh.sendline('cd /mydata/mimir_v2/experiment_coordinator/exp_support_scripts/')
         print "autoscale_p",autoscale_p
+        time.sleep(300)
         if autoscale_p:
             sh.sendline('bash /mydata/mimir_v2/experiment_coordinator/exp_support_scripts/run_experiment.sh ' +
                         app_name + ' ' + str(use_cilium) + ' ' + str(autoscale_p) + ' ' + str(cpu_threshold))

@@ -117,7 +117,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
     print "exfil_paths", exfil_paths
     print "-----------------------"
     for exfil_path in exfil_paths:
-        for proxy_class in exfil_path[:-1]:
+        for proxy_class in exfil_path:
             print "current proxy class", proxy_class
             possible_proxies[proxy_class], class_to_networks[proxy_class] = get_class_instances(orchestrator, proxy_class, "None")
             print "new possible proxies", possible_proxies[proxy_class]
