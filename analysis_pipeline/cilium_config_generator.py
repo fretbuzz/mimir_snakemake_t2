@@ -192,7 +192,7 @@ def cilium_component(time_length, pcap_location, cilium_component_dir, make_edge
 
     # step (3) generate edgefile (hostnames rather than ip addresses)
     edgefile_name = cilium_component_dir + '/edgefile_first_' + str(time_length) + '_sec.txt'
-    mapping = update_mapping(inital_mapping, pod_creation_log, time_length, 0)
+    mapping,_ = update_mapping(inital_mapping, pod_creation_log, time_length, 0, {})
 
     edgefile =  convert_tshark_stats_to_edgefile('', edgefile_name, tshark_stats_path, tshark_stats_file,
                                      make_edgefiles_p, mapping)

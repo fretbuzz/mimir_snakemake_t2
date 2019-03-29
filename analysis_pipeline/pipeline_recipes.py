@@ -28,7 +28,7 @@ def parse_experimental_data_json(config_file, experimental_folder, experiment_na
         config_file = json.load(f)
         basefile_name = experimental_folder + experiment_name + '/edgefiles/' + experiment_name + '_'
         basegraph_name = experimental_folder + experiment_name + '/graphs/' + experiment_name + '_'
-        alert_file = experimental_folder + experiment_name + 'alerts/' + experiment_name + '_'
+        alert_file = experimental_folder + experiment_name + '/alerts/' + experiment_name + '_'
         base_experiment_dir =  experimental_folder + experiment_name + '/'
 
         sec_between_exfil_pkts = config_file["exfiltration_info"]['sec_between_exfil_pkts']

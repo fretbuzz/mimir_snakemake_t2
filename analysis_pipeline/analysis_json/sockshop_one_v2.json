@@ -26,7 +26,7 @@
   "skip_graph_injection": false,
   "get_endresult_from_memory": false,
 
-  "make_edgefiles": false,
+  "make_edgefiles": true,
   "experimental_folder": "/Volumes/exM2/experimental_data/sockshop_info/sockshop_exp_one_v2/",
   "pcap_file_path": "/Volumes/exM2/experimental_data/sockshop_info/sockshop_exp_one_v2/",
   "pod_creation_log_path": "/Volumes/exM2/experimental_data/sockshop_info/sockshop_exp_one_v2/",

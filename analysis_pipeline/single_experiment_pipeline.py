@@ -432,7 +432,7 @@ class data_anylsis_pipline(object):
         self.cilium_component_time_length = time_length
 
         print "calling_cilium_component_now..."
-        self.cilium_allowed_svc_comm = cilium_config_generator.cilium_component(time_length, self.experiment_folder_path + self.pcap_file, self.cilium_component_dir,
+        self.cilium_allowed_svc_comm = cilium_config_generator.cilium_component(time_length, self.pcap_path + self.pcap_file, self.cilium_component_dir,
                                                                                 self.make_edgefiles_p, self.ms_s, self.mapping, self.cluster_creation_log)
 
     def calc_cilium_performance(self, avg_exfil_per_min, exfil_var_per_min, avg_pkt_size, avg_pkt_var):
@@ -441,9 +441,11 @@ class data_anylsis_pipline(object):
             prefix_for_inject_params = 'avg_exfil_' + str(avg_exfil_per_min) + ':' + str(
                 exfil_var_per_min) + '_avg_pkt_' + str(avg_pkt_size) + ':' + str(
                 avg_pkt_var) + '_'
-            self.basegraph_name = self.orig_basegraph_name + prefix_for_inject_params
+            #self.basegraph_name = self.orig_basegraph_name + prefix_for_inject_params
+            #current_set_of_graphs_loc = self.basegraph_name + 'set_of_graphs' + str(time_gran) + '.csv'
+            processed_graph_loc = "/".join(self.basefile_name.split("/")[:-1]) + '/' + 'exfil_at_' + str(avg_exfil_per_min) + '/'
+            current_set_of_graphs_loc = processed_graph_loc + 'set_of_graphs' + str(time_gran) + '.csv'
 
-            current_set_of_graphs_loc = self.basegraph_name + 'set_of_graphs' + str(time_gran) + '.csv'
             with open(current_set_of_graphs_loc, mode='rb') as f:
                 current_set_of_graphs_loc_contents = f.read()
                 current_set_of_graphs = pickle.loads(current_set_of_graphs_loc_contents)
@@ -546,6 +548,7 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
         collected_metrics_location = basegraph_name + 'collected_metrics_time_gran_' + str(time_interval_length) + '.csv'
 
         processed_graph_loc = "/".join(edgefile_path.split("/")[:-1]) + '/' + 'exfil_at_' + str(avg_exfil_per_min) + '/'
+        current_set_of_graphs_loc = processed_graph_loc + 'set_of_graphs' + str(time_interval_length) + '.csv'
 
         try:
             os.makedirs(processed_graph_loc)
@@ -553,7 +556,6 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
             if e.errno != errno.EEXIST:
                 raise
 
-        current_set_of_graphs_loc = processed_graph_loc + 'set_of_graphs' + str(time_interval_length) + '.csv'
         args = [time_interval_length, ide_window_size,
                 interval_to_filenames[str(time_interval_length)], svcs, ms_s, mapping,
                 infra_instances, synthetic_exfil_paths,  initiator_info_for_paths,
