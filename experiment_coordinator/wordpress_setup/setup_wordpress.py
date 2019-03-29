@@ -319,12 +319,12 @@ def main(ip_of_wp, port_of_wp, admin_pwd):
     print "folders_in_csv_path", folders_in_csv_path
     path_to_csv_file = './wp_csv_loc/' + folders_in_csv_path[0]
     shutil.copy(path_to_csv_file, "../" + "wordpress_users.csv")
-    shutil.copy(path_to_csv_file, "../load_generators/" + "wordpress_users.csv")
+    shutil.copy(path_to_csv_file, "../wordpress_setup/" + "wordpress_users.csv")
 
-    with open('../load_generators/wordpress_api_pwd.txt', 'w') as f:
+    with open('../wordpress_setup/wordpress_api_pwd.txt', 'w') as f:
         f.write(new_pdw)
 
-    with open('../load_generators/failures_list.txt', 'w') as f:
+    with open('../wordpress_setup/failures_list.txt', 'w') as f:
         f.write('')
 
     return new_pdw  # , path_to_csv_file

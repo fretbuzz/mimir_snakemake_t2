@@ -16,13 +16,13 @@ import os
 urls = []
 #failures_list = [0]
 
-with open('./load_generators/failures_list.txt', 'r') as f:
+with open('./wordpress_setup/failures_list.txt', 'r') as f:
     lines = f.readlines()
     failures_list = [int(i.rstrip()) for i in lines]
     failures_list = list(set(failures_list))
 
 #with open('./load_generators/wordpress_users.csv', 'rb') as csvfile:
-with open('./load_generators/wordpress_users.csv', 'rb') as csvfile:
+with open('./wordpress_setup/wordpress_users.csv', 'rb') as csvfile:
     spamreader = csv.reader(csvfile, delimiter=' ', quotechar='|')
     i = 0
     for row in spamreader:
@@ -43,7 +43,7 @@ app_pass = None #"Somv XGRh FStO U0wq uACo x4s2"
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 print "dir_path", dir_path
-with open('./load_generators/wordpress_api_pwd.txt','r') as f:
+with open('./wordpress_setup/wordpress_api_pwd.txt','r') as f:
     lines = f.readlines()
     app_pass = lines[0]
 	
@@ -185,7 +185,7 @@ class BackgroundTraffic(TaskSet):
             # (done)
 
     def teardown(self):
-        with open('./load_generators/failures_list.txt', 'w') as f:
+        with open('./wordpress_setup/failures_list.txt', 'w') as f:
             for item in failures_list:
                 f.write(str(item) + '\n')
 
