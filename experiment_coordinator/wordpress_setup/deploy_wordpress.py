@@ -40,7 +40,7 @@ def main(autoscale_p=False, cpu_percent_cuttoff=80):
         num_wp_containers += 5
         wait_until_pods_done("default")
 
-    if autoscale_p:
+    if autoscale_p and cpu_percent_cuttoff != '':
         heapstr_str = ["minikube", "addons", "enable", "heapster"]
         out = subprocess.check_output(heapstr_str)
         print "heapstr_str_response ", out

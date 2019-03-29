@@ -216,7 +216,9 @@ def prepare_graph(G, svcs, level_of_processing, is_swarm, counter, file_path, ms
                         infra_nodes.append(node)
 
         nx.set_node_attributes(G, containers_to_ms, 'svc')
-        application_nodes = list(set(containers_to_ms.keys()).difference(set(infra_nodes)))
+        nodes_in_g = [node for node in G.nodes()]
+        application_nodes = list(set(nodes_in_g).difference(set(infra_nodes)))
+        application_nodes = [node for node in application_nodes if not is_ip(node)]
 
         if drop_infra_p:
             induced_graph = G.subgraph(G.subgraph(application_nodes)).copy()

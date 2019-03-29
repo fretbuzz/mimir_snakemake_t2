@@ -85,8 +85,6 @@ def parse_experimental_config(experimental_config_file):
         cur_experiment_name = config_file['cur_experiment_name']
         base_output_location = config_file['base_output_location']
         drop_infra_from_graph = config_file['drop_infra_from_graph']
-        if drop_pairwise_features:
-            cur_experiment_name += 'dropPairWise_'
         if drop_infra_from_graph:
             cur_experiment_name += 'dropInfra'
         base_output_location += cur_experiment_name
