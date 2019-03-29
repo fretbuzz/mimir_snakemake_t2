@@ -298,10 +298,10 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
                         for dst in dsts:
                             print "config stuff", container.name, srcs, dst, proxy_instance_to_networks_to_ip[container]
                             start_det_proxy_mode(orchestrator, container, srcs, dst, cur_exfil_method,
-                                                maxsleep, DET_max_exfil_bytes_in_packet, DET_min_exfil_bytes_in_packet)
+                                                maxsleep[exfil_counter], DET_max_exfil_bytes_in_packet, DET_min_exfil_bytes_in_packet)
 
             # this does NOT need to be modified (somewhat surprisingly)
-            start_det_server_local(cur_exfil_method, [ip], maxsleep, DET_max_exfil_bytes_in_packet,
+            start_det_server_local(cur_exfil_method, [ip], maxsleep[exfil_counter], DET_max_exfil_bytes_in_packet,
                                    DET_min_exfil_bytes_in_packet, experiment_name)
 
             # this is probably fine too...
@@ -324,7 +324,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
                         # therefore multiple config files
                         file_to_exfil = setup_config_file_det_client(next_instance_ip, container, directory_to_exfil,
                                                                      regex_to_exfil,
-                                                                     maxsleep, DET_min_exfil_bytes_in_packet,
+                                                                     maxsleep[exfil_counter], DET_min_exfil_bytes_in_packet,
                                                                      DET_max_exfil_bytes_in_packet)
                         files_to_exfil.append(file_to_exfil)
 
@@ -993,7 +993,7 @@ def start_det_server_local(protocol, srcs, maxsleep, maxbytesread, minbytesread,
     src_string += "\\\"" + srcs[-1] +  "\\\""
     proxiesip_switch = "s/PROXIESIP/" + "[" + src_string  + "]" + "/"
 
-    maxsleep = float(maxsleep)
+    #maxsleep = float(maxsleep)
     maxsleeptime_switch = "s/MAXTIMELSLEEP/" + "{:.2f}".format(maxsleep) + "/"
     maxbytesread_switch = "s/MAXBYTESREAD/" + str(maxbytesread) + "/"
     minbytesread_switch = "s/MINBYTESREAD/" + str(minbytesread) + "/"
