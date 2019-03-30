@@ -23,15 +23,15 @@ def generate_report(list_of_rocs, list_of_feat_coef, list_of_attacks_found_dfs, 
         loader=FileSystemLoader(searchpath="./report_templates")
     )
     base_template = env.get_template("report_template.html")
-    table_section_template = env.get_template("table_section.html")
     debug_section_template = env.get_template("debug_section.html")
+    sections = list()
 
     title = "MIMIR Results Report"
     #roc_placeholder = 'ROCS_GOES_HERE'
     #feature_table_placeholder = 'TABLE_OF_FEATURES_AND_COEFS_GOES_HERE'
     #attacks_found_placeholder = 'WHICH_RESULTS_FOUND_GO_HERE'
-    sections = list()
     print "time_grans", time_grans
+    table_section_template = env.get_template("table_section.html")
     for i in range(0, len(time_grans)):
         sections.append(table_section_template.render(
             time_gran= str(time_grans[i]) + " sec granularity",
@@ -49,29 +49,9 @@ def generate_report(list_of_rocs, list_of_feat_coef, list_of_attacks_found_dfs, 
             feature_activation_heatmap_training = feature_activation_heatmaps_training[i],
             feature_raw_heatmap_training = feature_raw_heatmaps_training[i]
         ))
-    '''
-    sections.append(table_section_template.render(
-        time_gran= str(time_grans[1]) + " sec granularity",
-        roc=list_of_rocs[1],
-        feature_table=list_of_feat_coef[1].to_html(),
-        attacks_found=list_of_attacks_found_dfs[1].to_html(),
-        model_params=list_of_model_parameters[1],
-    optimal_fOne = list_of_optimal_fone_scores[1]
-    ))
-    sections.append(table_section_template.render(
-        time_gran= str(time_grans[2]) + " sec granularity",
-        roc=list_of_rocs[2],
-        feature_table=list_of_feat_coef[2].to_html(),
-        attacks_found=list_of_attacks_found_dfs[2].to_html(),
-        model_params=list_of_model_parameters[2],
-    optimal_fOne = list_of_optimal_fone_scores[2]
-    ))
-    '''
 
     print "about to render the template..."
     #print sections
-    #print base_template
-    #print table_section_template
 
     date = str(datetime.datetime.now()) ### TODO: is this the right timezone?
 
@@ -104,6 +84,44 @@ def generate_report(list_of_rocs, list_of_feat_coef, list_of_attacks_found_dfs, 
     ## note: if you wanna save an (e.g. archival) copy, that must be done manually. It is
     ## NOT done automatically.
 
+
+def join_report_sections(recipes_used, output_location, avg_exfil_per_min, avg_pkt_size, exfil_per_min_variance,
+                         pkt_size_variance, sections):
+    # setup jinga and the associated template
+    env = Environment(
+        loader=FileSystemLoader(searchpath="./report_templates")
+    )
+    base_template = env.get_template("report_template.html")
+    debug_section_template = env.get_template("debug_section.html")
+
+    title = "MIMIR Results Report"
+    print "about to render the template..."
+
+    date = str(datetime.datetime.now()) ### TODO: is this the right timezone?
+
+    time_grans = sorted(sections.keys())
+    section_list = []
+    for time_gran in time_grans:
+        section_list.append(sections[time_gran])
+
+    # render the template locally...
+    with open("mulval_inouts/report.html", "w") as f:
+        f.write(base_template.render(
+            title=title,
+            date = date,
+            recipes_used = recipes_used,
+            sections=section_list,
+            avg_exfil_per_min = avg_exfil_per_min,
+            avg_pkt_size =avg_pkt_size,
+            exfil_per_min_variance = exfil_per_min_variance,
+            pkt_size_variance=pkt_size_variance
+        ))
+
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    config = pdfkit.configuration(wkhtmltopdf="/usr/local/bin/wkhtmltopdf")
+    pdfkit.from_file("mulval_inouts/report.html", output_location + "_report.pdf", configuration=config)
+    out = subprocess.check_output(['open', output_location + "_report.pdf"])
+    print out
 
 if __name__ == "__main__":
     content = "Hello, world!"

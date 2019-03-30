@@ -165,7 +165,8 @@ def create_mappings(cluster_creation_log):
             mapping[ip_info[0]] = (name, None, ip_info[2], ip_info[3])
         else:
             mapping[ip_info[0]] = (name+'_VIP', None, ip_info[2], ip_info[3])
-            ms_s.add(name)
+            if ip_info[0] != 'None' and ip_info[0] != None:
+                ms_s.add(name)
 
         if ip_info[2] == 'kube-system' or name == 'kubernetes': # the kubernetes svc endpoint is infrastructure but shows up in the default namespaces
             if 'kube-dns' not in name or ip_info[3] == 'svc': # the svc endpoint labeled kube-dns is shared by LOTS of system functions

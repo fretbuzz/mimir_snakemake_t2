@@ -104,12 +104,6 @@ class injected_graph():
         svc_pair_to_reciprocity, svc_pair_to_density, svc_pair_to_coef_of_var = \
                                                             pairwise_metrics(self.cur_1si_G, svc_to_pod_with_outside)
 
-        ''' # this level of craftsmenship is too low...
-        self.graph_feature_dict['list_of_svc_pair_to_reciprocity'] = svc_pair_to_reciprocity
-        self.graph_feature_dict['list_of_svc_pair_to_density'] = svc_pair_to_density
-        self.graph_feature_dict['list_of_svc_pair_to_coef_of_var'] = svc_pair_to_coef_of_var
-        '''
-
         for svc_pair,reciprocity in svc_pair_to_reciprocity.iteritems():
             cur_recip_key = str(svc_pair[0]) + '_to_' + str(svc_pair[1]) + '_reciprocity'
             cur_density_key = str(svc_pair[0]) + '_to_' + str(svc_pair[1]) + '_density'
@@ -123,38 +117,6 @@ class injected_graph():
             except:
                 self.graph_feature_dict[cur_svc_pair_of_coef] = 0.0
 
-        #eigenvector_centrality_classes = nx.eigenvector_centrality(self.cur_class_G, weight='weight')
-        #information_centrality_classes = nx.information_centrality(self.cur_class_G, weight='weight') # not implemented for directed
-
-        ### NOTE: I THINK THAT I've Implemeneted the below comments -- after testing, remove plz.
-        ### TODO: these values below are stupid. they should be averages of the contanier granularity graphs, not
-        ### raw values from the class values...
-        #### TODO: USE VALUES BELOWWWWW!!!!!!!
-        '''
-        betweeness_centrality_classes = nx.betweenness_centrality(self.cur_class_G, weight='weight')
-        load_centrality_classes = nx.load_centrality(self.cur_class_G, weight='weight')
-        harmonic_centrality_classes = nx.harmonic_centrality(self.cur_class_G, distance='weight')
-
-        for service in self.svc_to_pod.keys():
-            #self.graph_feature_dict['eigenvector_centrality_of_' + str(service)] = eigenvector_centrality_classes[service]
-            #self.graph_feature_dict['information_centrality_of_' + str(service)] = information_centrality_classes[service]
-            try:
-                self.graph_feature_dict['betweeness_centrality_of_' + str(service)] = betweeness_centrality_classes[service]
-                self.graph_feature_dict['load_centrality_of_' + str(service)] = load_centrality_classes[service]
-                self.graph_feature_dict['harmonic_centrality_classes_of_' + str(service)] = harmonic_centrality_classes[
-                    service]
-                #self.graph_feature_dict['current_flow_betweeness_centrality_of_' + str(service)] = current_flow_betweenness_centrality_classes[service]
-                
-            except:
-                print "eomthing kinda fishy with the centrality stuff...", betweeness_centrality_classes
-                self.graph_feature_dict['betweeness_centrality_of_' + str(service)] = float('nan')
-                self.graph_feature_dict['load_centrality_of_' + str(service)] = float('nan')
-                self.graph_feature_dict['harmonic_centrality_classes_of_' + str(service)] = float('nan')
-        '''
-
-        #eigenvector_centrality_nodes = nx.eigenvector_centrality(self.cur_1si_G, weight='weight')
-        #information_centrality_nodes = nx.information_centrality(self.cur_1si_G, weight='weight')
-        #current_flow_betweenness_centrality_nodes = nx.current_flow_betweenness_centrality(self.cur_1si_G, weight='weight')
         betweeness_centrality_nodes = nx.betweenness_centrality(self.cur_1si_G, weight='weight')
         betweeness_centrality_coef_var_of_classes,betweeness_centrality_mean = find_coef_of_var_for_nodes(betweeness_centrality_nodes, self.svc_to_pod)
         load_centrality_nodes = nx.load_centrality(self.cur_1si_G, weight='weight')
@@ -243,11 +205,6 @@ class injected_graph():
     def load_metrics(self):
         print "metrics_file", self.metrics_file
         with open(self.metrics_file, mode='rb') as f:
-            #reader = csv.DictReader(f, self.graph_feature_dict_keys)
-            #print "row_in_load_metrics_reader", [rows for rows in reader]
-            #self.graph_feature_dict = {rows[0]: rows[1] for rows in reader}
-
-            #self.graph_feature_dict = ast.literal_eval(f.read())
             dict_contents = f.read()
             self.graph_feature_dict = pickle.loads(dict_contents)
 
@@ -303,9 +260,6 @@ class set_of_injected_graphs():
         # alerts
 
     def save(self):
-        #with open(self.current_set_of_graphs_loc, 'wb') as output:  # Overwrites any existing file.
-        #    pickle.dump(self, output, pickle.HIGHEST_PROTOCOL)
-
         with open(self.current_set_of_graphs_loc, 'wb') as f:  # Just use 'w' mode in 3.x
             f.write(pickle.dumps(self))
 

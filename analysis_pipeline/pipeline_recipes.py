@@ -82,6 +82,7 @@ def parse_experimental_config(experimental_config_file):
         calc_ide = config_file['calc_ide']
         only_ide = config_file['only_ide']
         drop_pairwise_features = config_file['drop_pairwise_features']
+        perform_cilium_component = config_file['perform_cilium_component']
 
         cur_experiment_name = config_file['cur_experiment_name']
         base_output_location = config_file['base_output_location']
@@ -115,7 +116,8 @@ def parse_experimental_config(experimental_config_file):
                                   goal_attack_NoAttack_split_testing=goal_attack_NoAttack_split_testing,
                                   calc_ide=calc_ide, include_ide=include_ide, only_ide=only_ide,
                                   drop_pairwise_features=drop_pairwise_features,
-                                  ide_window_size=ide_window_size, drop_infra_from_graph=drop_infra_from_graph)
+                                  ide_window_size=ide_window_size, drop_infra_from_graph=drop_infra_from_graph,
+                                  perform_cilium_component=perform_cilium_component)
 
 
 def wordpress_thirteen_t2(time_of_synethic_exfil=None, time_interval_lengths=None):
@@ -562,8 +564,8 @@ if __name__=="__main__":
         #new_wordpress_recipe()
 
         #print os.getcwd()
-        #parse_experimental_config('./analysis_json/sockshop_one_v2.json')
-        parse_experimental_config('./analysis_json/wordpress_one_v2_nonauto.json')
+        parse_experimental_config('./analysis_json/sockshop_one_v2.json')
+        #parse_experimental_config('./analysis_json/wordpress_one_v2_nonauto.json')
     elif len(sys.argv) == 2:
         experimental_config_file = sys.argv[1]
         parse_experimental_config(experimental_config_file)

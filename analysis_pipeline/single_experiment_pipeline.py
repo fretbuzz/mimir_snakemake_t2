@@ -139,8 +139,9 @@ class data_anylsis_pipline(object):
 
     def generate_synthetic_exfil_paths(self, max_number_of_paths, max_path_length, dns_porportion):
         self.netsec_policy,self.intersvc_vip_pairs = gen_attack_templates.parse_netsec_policy(self.netsec_policy)
+        app_ms_s = [ms for ms in self.ms_s if ms not in self.infra_instances] + ['kube-dns']
         synthetic_exfil_paths, initiator_info_for_paths = \
-            gen_attack_templates.generate_synthetic_attack_templates(self.mapping, self.ms_s, self.sensitive_ms,
+            gen_attack_templates.generate_synthetic_attack_templates(self.mapping, app_ms_s, self.sensitive_ms,
                                                                      max_number_of_paths, self.netsec_policy,
                                                                      self.intersvc_vip_pairs, max_path_length, dns_porportion)
         self.synthetic_exfil_paths = synthetic_exfil_paths

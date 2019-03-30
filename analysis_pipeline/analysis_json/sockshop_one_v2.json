@@ -12,13 +12,14 @@
   "avg_pkt_size": [500.0, 500.0, 500.00, 500.00, 500.0],
   "pkt_size_variance":  [100, 100, 100, 100, 100],
 
-  "calc_vals": true,
-  "calculate_z_scores": true,
+  "calc_vals": false,
+  "calculate_z_scores": false,
   "include_ide": false,
   "calc_ide": false,
   "only_ide": false,
   "drop_pairwise_features": false,
   "drop_infra_from_graph": false,
+  "perform_cilium_component": false,
 
   "cur_experiment_name": "sockshop_one_v2_mk1",
   "base_output_location": "/Volumes/exM2/experimental_data/sockshop_v2_summary/",

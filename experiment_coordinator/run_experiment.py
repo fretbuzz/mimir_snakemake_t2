@@ -44,8 +44,6 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
     # step (1) read in the config file
     with open(config_file.rstrip().lstrip()) as f:
         config_params = json.load(f)
-    orchestrator = "kubernetes"
-    class_to_installer = config_params["exfiltration_info"]["exfiltration_path_class_which_installer"]
     network_plugin = 'none'
     try:
         network_plugin = config_params["network_plugin"]
@@ -70,98 +68,69 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
     except OSError:
         pass
 
+    exfil_paths = config_params["exfiltration_info"]["exfil_paths"]
     DET_min_exfil_bytes_in_packet = list(config_params["exfiltration_info"]["DET_min_exfil_data_per_packet_bytes"])
     DET_max_exfil_bytes_in_packet = list(config_params["exfiltration_info"]["DET_max_exfil_data_per_packet_bytes"])
     DET_avg_exfil_rate_KB_per_sec = list(config_params["exfiltration_info"]["DET_avg_exfiltration_rate_KB_per_sec"])
+    exfil_protocols = config_params["exfiltration_info"]["exfil_protocols"]
+    orchestrator = "kubernetes"
+    class_to_installer = config_params["exfiltration_info"]["exfiltration_path_class_which_installer"]
+
     # okay, now need to calculate the time between packetes (and throw an error if necessary)
     avg_exfil_bytes_in_packet = [(float(DET_min_exfil_bytes_in_packet[i]) + float(DET_max_exfil_bytes_in_packet[i])) \
                                  / 2.0 for i in range(0,len(DET_max_exfil_bytes_in_packet))]
-
     BYTES_PER_KB = 1000
     avg_number_of_packets_per_second = [(DET_avg_exfil_rate_KB_per_sec[i] * BYTES_PER_KB) / avg_exfil_bytes_in_packet[i] for i
                                         in range(0, len(DET_avg_exfil_rate_KB_per_sec))]
     average_seconds_between_packets = [1.0 / avg_number_of_packets_per_second[i] for i in range(0,len(avg_number_of_packets_per_second))]
-    maxsleep = [average_seconds_between_packets[i] * 2 for i in range(0,len(average_seconds_between_packets))]
-    # take random value between 0 and the max, so 2*average gives the right will need to calculate the MAX_SLEEP_TIME
+    # takes random value between 0 and the max, so 2*average gives the right will need to calculate the MAX_SLEEP_TIME
     # after I load the webapp (and hence the corresponding database)
+    maxsleep = [average_seconds_between_packets[i] * 2 for i in range(0,len(average_seconds_between_packets))]
+
 
     # step (2) setup the application, if necessary (e.g. fill up the DB, etc.)
     # note: it is assumed that the application is already deployed
-
-    print prepare_app_p, config_params["application_name"], config_params["setup"], ip, port
-
     if prepare_app_p:
         prepare_app(config_params["application_name"], config_params["setup"], ip, port)
 
     # determine the network namespaces
     # this will require mapping the name of the network to the network id, which
     # is then present (in truncated form) in the network namespace
-    full_network_ids = get_network_ids(orchestrator, ["bridge"])
-    network_ids_to_namespaces = map_network_ids_to_namespaces(orchestrator, full_network_ids)
-    # okay, so I have the full network id's now, but these aren't the id's of the network namespace,
-    # so I need to do two things: (1) get list of network namespaces, (2) parse the list to get the mapping
-    network_namespaces = network_ids_to_namespaces.values()
-    print "full_network_ids", full_network_ids
-    print "network_ids_to_namespaces", network_ids_to_namespaces
-    print "network_namespaces", network_ids_to_namespaces.values()
+    full_network_ids = ["bridge"] # in kubernetes this is simple
+    network_ids_to_namespaces = {}
+    network_ids_to_namespaces['bridge'] = 'default' # in kubernetes this is simple
 
     # step (3) prepare system for data exfiltration (i.g. get DET working on the relevant containers)
     # note: I may want to re-select the specific instances during each trial
     possible_proxies = {}
     selected_proxies = {}
     class_to_networks = {}
-    # the furthest will be the originator, the others will be proxies (endpoint will be local)
-    index = 0
 
-    exfil_paths = config_params["exfiltration_info"]["exfil_paths"]
+    # the furthest will be the originator, the others will be proxies (endpoint will be local)
     print "exfil_paths", exfil_paths
-    print "-----------------------"
     for exfil_path in exfil_paths:
         for proxy_class in exfil_path:
-            print "current proxy class", proxy_class
             possible_proxies[proxy_class], class_to_networks[proxy_class] = get_class_instances(orchestrator, proxy_class, "None")
-            print "new possible proxies", possible_proxies[proxy_class]
-            print "new class_to_network mapping", class_to_networks[proxy_class]
-            num_proxies_of_this_class = 1
-            selected_proxies[proxy_class] = random.sample(possible_proxies[proxy_class], num_proxies_of_this_class)
-            print "new selected proxies", selected_proxies[proxy_class]
-            index += 1
+            selected_proxy = random.sample(possible_proxies[proxy_class], 1)
+            selected_proxies[proxy_class] = selected_proxy
 
     # determine which container instances should be the originator point
     originator_class = config_params["exfiltration_info"]["sensitive_ms"][0]
-    print "originator_class", originator_class
     possible_originators = {}
-    print "originator classes", originator_class
     possible_originators[originator_class], class_to_networks[originator_class] = get_class_instances(orchestrator, originator_class, "None")
-    print "originator instances", possible_originators[originator_class]
-    num_originators = 1
-    print "num originators", num_originators
     selected_originators = {}
-    selected_originators[originator_class] = random.sample(possible_originators[originator_class], num_originators)
-    print "selected originators", selected_originators, selected_originators[originator_class]
+    selected_originators[originator_class] = random.sample(possible_originators[originator_class], 1)
 
     # map all of the names of the proxy container instances to their corresponding IP's
     # a dict of dicts (instance -> networks -> ip)
-    print "about to map the proxy instances to their networks to their IPs..."
     proxy_instance_to_networks_to_ip = map_container_instances_to_ips(orchestrator, possible_proxies, class_to_networks, network_plugin)
     proxy_instance_to_networks_to_ip.update( map_container_instances_to_ips(orchestrator, possible_originators, class_to_networks, network_plugin) )
-    print "proxy_instance_to_networks_to_ip", proxy_instance_to_networks_to_ip
-    for container, network_to_ip in proxy_instance_to_networks_to_ip.iteritems():
-        print container.name, [i.name for i in network_to_ip.keys()]
-
     selected_containers = selected_proxies.copy()
     selected_containers.update(selected_originators)
 
-
-    print "#####"
-
-    for name_of_class, network in class_to_networks.iteritems():
-        print name_of_class, [i.name for i in network]
-
-    exfil_protocols = config_params["exfiltration_info"]["exfil_protocols"]
-    #'''
     # need to install the pre-reqs for each of the containers (proxies + orgiinator)
     # note: assuming endpoint (i.e. local) pre-reqs are already installed
+    # TODO: should this be moved to a different component of the experimental-setup pipeline (i.e. mod container image)
     if install_det_depen_p and 'DET' in exfil_protocols:
         for class_name, container_instances in selected_proxies.iteritems():
             for container in container_instances:
@@ -216,11 +185,9 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
         out = subprocess.check_output(['bash', './exp_support_scripts/kubernetes_pod_config.sh', pod_config_file, node_config_file])
         print out
 
-    # step (5) start load generator (okay, this I can do!)
+    # step (5) start load generator
     i = 0
     max_client_count = int( config_params["experiment"]["number_background_locusts"])
-    print "experiment length: ", experiment_length, "max_client_count", max_client_count, "traffic types", config_params["experiment"]["traffic_type"]
-    print "background_locust_spawn_rate", config_params["experiment"]["background_locust_spawn_rate"], "ip", ip, "port", port
     thread.start_new_thread(generate_background_traffic, ((int(experiment_length)+2.4), max_client_count,
                 config_params["experiment"]["traffic_type"], config_params["experiment"]["background_locust_spawn_rate"],
                                                           config_params["application_name"], ip, port, experiment_name,
@@ -228,28 +195,15 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
 
     # step (4) setup testing infrastructure (i.e. tcpdump)
     for network_id, network_namespace in network_ids_to_namespaces.iteritems():
-        if network_id == 'ingress_sbox':
-            current_network_name = 'ingress_sbox'
-        elif network_id == 'bridge': # for minikube
-            current_network_name = 'default_bridge'
-        else:
-            current_network =  client.networks.get(network_id)
-            current_network_name = current_network.name
-        print "about to tcpdump on:", current_network_name
-        filename = experiment_name + '_' + current_network_name + '_' 
-        if orchestrator == 'docker_swarm':
-            thread.start_new_thread(start_tcpdump, (None, network_namespace, str(int(experiment_length)), filename + '.pcap', orchestrator))
-        elif orchestrator == 'kubernetes':
-            interfaces = ['any'] #['docker0', 'eth0', 'eth1']
-            for interface in interfaces:
-                thread.start_new_thread(start_tcpdump, (interface, network_namespace, str(int(experiment_length)),
-                                                        filename + interface + '.pcap', orchestrator, sentinal_file_loc))
-        else:
-            pass
+        current_network = client.networks.get(network_id)
+        current_network_name = current_network.name
+        interfaces = ['any']  # in kubernetes this is easy
+        filename = experiment_name + '_' + current_network_name + '_'
+        for interface in interfaces:
+            thread.start_new_thread(start_tcpdump, (interface, network_namespace, str(int(experiment_length)),
+                                                filename + interface + '.pcap', orchestrator, sentinal_file_loc))
 
     # step (6) start data exfiltration at the relevant time
-    ## this will probably be a fairly simple modification of part of step 3
-    # for now, assume just a single exfiltration time
     if exfil_p:
         exfil_StartEnd_times = config_params["exfiltration_info"]["exfil_StartEnd_times"]
     else:
@@ -664,6 +618,10 @@ def recover_pcap(orchestrator, filename):
     out = subprocess.check_output(args2)
     print out
 
+def find_container_in_class(proxy_class, class_to_networks, orchestrator='kubernetes'):
+    possible_proxies, class_to_networks[proxy_class] = get_class_instances(orchestrator, proxy_class,"None")
+    selected_proxy = random.sample(possible_proxies[proxy_class], 1)
+    return selected_proxy, class_to_networks
 
 # returns a list of container names that correspond to the
 # selected class
@@ -871,51 +829,13 @@ def map_network_ids_to_namespaces(orchestrator, full_network_ids):
     print "map_network_ids_to_namespaces", orchestrator, full_network_ids
     network_ids_to_namespaces = {}
     if orchestrator == 'kubernetes':
-	print "map_network_ids_to_namespaces in k8s part"
+        print "map_network_ids_to_namespaces in k8s part"
         network_ids_to_namespaces = {}
         for full_id in full_network_ids:
-	    print "full_id", full_id
+            print "full_id", full_id
             if full_id == 'bridge':
                 network_ids_to_namespaces['bridge'] = 'default'
         return network_ids_to_namespaces
-    elif orchestrator == "docker_swarm":
-        # okay, so this is what we need to do
-        # (1) get the network namespaces on the vm
-        # (2) search for part of the network ids in the namespace
-
-        # (1)
-        #
-        args = ['docker-machine', 'ssh', 'default', '-t', "sudo ls /var/run/docker/netns"]
-        print "let's get some network namespaces...", args
-        out = subprocess.check_output(args)
-        print "single string network namespaces", out
-        network_namespaces = re.split('  |\n', out) #out.split(' ')
-        # todo: remove \x1b[0;0m from front
-        # todo; remove \x1b[0m from end
-        # note: this isn't foolproof, sometimes the string stays distorted
-        print type(network_namespaces[0])
-        #processed_network_namespaces = network_namespaces
-        processed_network_namespaces = [i.replace('\x1b[0;0m', '').replace('\x1b[0m', '') for i in network_namespaces]
-        print "semi-processed network namespaces:", processed_network_namespaces
-
-        # (2)
-        for network_namespace in processed_network_namespaces:
-            if '1-' in network_namespace: # only looking at overlay networks
-                for network_id in full_network_ids:
-                    if network_namespace[2:] in network_id:
-                        network_ids_to_namespaces[network_id] = network_namespace
-                        break
-
-        for full_id in full_network_ids:
-            if full_id == "bridge":
-                network_ids_to_namespaces[full_id] =  "bridge"
-            if full_id == 'ingress_sbox':
-                network_ids_to_namespaces[full_id] =  "ingress_sbox"
-
-        #print "network_ids_to_namespaces", network_ids_to_namespaces
-        return network_ids_to_namespaces
-    else:
-        pass
 
 
 # note: det must be a single ip, in string form, ATM

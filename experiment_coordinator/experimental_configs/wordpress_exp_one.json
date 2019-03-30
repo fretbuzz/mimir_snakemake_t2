@@ -11,7 +11,7 @@
       "traffic_type" : "normal"
     },
     "exfiltration_info" : {
-      "sensitive_ms":[ "wwwppp-wordpress" ],
+      "sensitive_ms":[ "my-release-pxc" ],
       "folder_to_exfil": "/var/lib/mysql/",
       "regex_of_file_to_exfil": "\"galera.cach*\"",
       "exfiltration_path_class_which_installer": { "wwwppp-wordpress":"apt","my-release-pxc": "apt"  },
