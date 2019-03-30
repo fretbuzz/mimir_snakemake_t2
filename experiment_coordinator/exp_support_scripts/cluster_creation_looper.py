@@ -56,9 +56,17 @@ def pod_logger(log_file_loc, sentinal_file_loc):
             time_behind -= time_to_sleep
         else:
             time_behind = 0.0
-        time_to_sleep = max(0.0, time_to_sleep)
-        time.sleep(time_to_sleep)
-        timestep_counter += 1
+
+        if int(time_to_sleep) < 0.0:
+            print "skipping: ", abs(int(time_to_sleep))
+            # if we are falling behind, then we need to skip if necessary
+            for i in range(1, abs(int(time_to_sleep))):
+                time_step_to_changes[timestep_counter + i] = {}
+            timestep_counter += abs(int(time_to_sleep))
+        else:
+            time_to_sleep = max(0.0, time_to_sleep)
+            time.sleep(time_to_sleep)
+            timestep_counter += 1
         last_timestep_mapping = current_mapping
 
 if __name__=="__main__":

@@ -18,7 +18,7 @@
   "calc_ide": false,
   "only_ide": false,
   "drop_pairwise_features": false,
-  "drop_infra_from_graph": true,
+  "drop_infra_from_graph": false,
 
   "cur_experiment_name": "sockshop_one_v2_mk1",
   "base_output_location": "/Volumes/exM2/experimental_data/sockshop_v2_summary/",
