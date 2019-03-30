@@ -90,6 +90,8 @@ class data_anylsis_pipline(object):
         self.pcap_path = "/".join(pcap_paths[0].split('/')[:-1]) + '/'
         self.pcap_file = pcap_paths[0].split('/')[-1]  # NOTE: assuming only a single pcap file...
         self.make_edgefiles_p = make_edgefiles_p #and only_exp_info
+        if netsec_policy == 'None':
+            netsec_policy = None
         self.netsec_policy = netsec_policy
         self.make_edgefiles_p=make_edgefiles_p
         self.time_of_synethic_exfil = time_of_synethic_exfil

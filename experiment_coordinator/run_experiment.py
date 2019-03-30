@@ -1254,7 +1254,7 @@ def generate_analysis_json(path_to_exp_folder, analysis_json_name, exp_config_js
     analysis_dict["exfiltration_info"]["sec_between_exfil_pkts"] = exp_config_json["exfiltration_info"]["sec_between_exfil_pkts"]
 
     analysis_dict["pod_creation_log_name"] = exp_name  + '_cluster_creation_log.txt'
-    analysis_dict["pcap_file_name"] = exp_name + '_default_bridge_0any.pcap'
+    analysis_dict["pcap_file_name"] = exp_name + '_default_bridge_any.pcap'
 
     analysis_dict['exfiltration_info']['sec_between_exfil_pkts'] = exp_config_json["exfiltration_info"]["sec_between_exfil_pkts"]
 
