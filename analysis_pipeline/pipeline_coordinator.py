@@ -311,13 +311,13 @@ def pipeline_one_exfil_rate(rate_counter,
 
     clf = LassoCV(cv=3, max_iter=80000)
 
-
+    '''
     statistical_analysis_v2(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, base_output_name, names,
                             starts_of_testing, path_occurence_training_df, path_occurence_testing_df,
                             recipes_used, skip_model_part, clf, ignore_physical_attacks_p,
                             avg_exfil_per_min, avg_pkt_size, exfil_per_min_variance,
                             pkt_size_variance, drop_pairwise_features, avg_exfil_per_min[rate_counter])
-
+    '''
 
     list_of_optimal_fone_scores_at_this_exfil_rates, Xs,Ys,Xts,Yts, trained_models, list_of_attacks_found_dfs, \
     list_of_attacks_found_training_df,experiment_info, time_gran_to_outtraffic = \
