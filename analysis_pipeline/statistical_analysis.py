@@ -128,6 +128,8 @@ class statistical_pipeline():
             line_titles.append(method)
             self.method_to_test_thresholds[method] = thresholds
 
+        print "list_of_x_vals", list_of_x_vals
+        print "list_of_y_vals", list_of_y_vals
         ax, _, plot_path = construct_ROC_curve(list_of_x_vals, list_of_y_vals, self.title, self.ROC_path + self.plot_name,
                                                line_titles, show_p=False)
         self.plot_path = plot_path
@@ -262,11 +264,12 @@ def statistical_analysis_v2(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, b
                              pkt_size_variance, drop_pairwise_features, rate, timegran, time_gran_to_debugging_csv,
                              lasso_feature_selection_p)
         stat_pipeline.run_statistical_pipeline()
+
         report_section = stat_pipeline.generate_report_section()
         report_sections[timegran] = report_section
-
         generate_report.join_report_sections(recipes_used, base_output_name, avg_exfil_per_min, avg_pkt_size, exfil_per_min_variance,
                              pkt_size_variance, report_sections)
+
 
 def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, base_output_name, names,
                                          starts_of_testing, path_occurence_training_df, path_occurence_testing_df,

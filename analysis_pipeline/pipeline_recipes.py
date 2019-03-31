@@ -564,8 +564,8 @@ if __name__=="__main__":
         #new_wordpress_recipe()
 
         #print os.getcwd()
-        parse_experimental_config('./analysis_json/sockshop_one_v2.json')
-        #parse_experimental_config('./analysis_json/wordpress_one_v2_nonauto.json')
+        #parse_experimental_config('./analysis_json/sockshop_one_v2.json')
+        parse_experimental_config('./analysis_json/wordpress_one_v2_nonauto.json')
     elif len(sys.argv) == 2:
         experimental_config_file = sys.argv[1]
         parse_experimental_config(experimental_config_file)

@@ -156,6 +156,7 @@ def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time
                 rate_to_time_gran_to_xs[avg_exfil_per_min[rate_counter]].append((Xs[time_gran], Xts[time_gran]))
                 rate_to_time_gran_to_ys[avg_exfil_per_min[rate_counter]].append((Ys[time_gran], Yts[time_gran]))
                 rate_to_time_gran_to_outtraffic[avg_exfil_per_min[rate_counter]].append(time_gran_to_outtraffic)
+
         with open(test_results_df_loc, 'wb') as f:  # Just use 'w' mode in 3.x
             f.write(pickle.dumps(rate_to_timegran_to_methods_to_attacks_found_dfs))
         with open(training_results_df_loc, 'wb') as f:  # Just use 'w' mode in 3.x
@@ -200,6 +201,7 @@ def pipeline_one_exfil_rate(rate_counter,
         experiment_object.alert_file = experiment_object.orig_alert_file + prefix_for_inject_params
         experiment_object.basegraph_name = experiment_object.orig_basegraph_name + prefix_for_inject_params
         experiment_object.exp_name = experiment_object.orig_exp_name + prefix_for_inject_params
+
         experiment_object.calc_vals = calc_vals
         experiment_object.calc_zscore_p = calculate_z_scores_p or calc_vals
         experiment_object.skip_graph_injection = skip_graph_injection
