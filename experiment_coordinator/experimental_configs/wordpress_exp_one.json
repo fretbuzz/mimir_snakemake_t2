@@ -1,6 +1,6 @@
 {
     "application_name": "wordpress",
-    "experiment_name": "wordpress_one",
+    "experiment_name": "wordpress_one_auto",
     "path_to_docker_machine_tls_certs":"/mydata/.minikube/certs",
     "experiment_length_sec": 10800,
     "network_plugin": "none",
