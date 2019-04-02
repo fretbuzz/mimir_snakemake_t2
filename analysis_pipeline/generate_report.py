@@ -62,7 +62,7 @@ def generate_report(list_of_rocs, list_of_feat_coef, list_of_attacks_found_dfs, 
     ))
 
     # render the template locally...
-    with open("mulval_inouts/report.html", "w") as f:
+    with open("report_templates/report.html", "w") as f:
         f.write(base_template.render(
             title=title,
             date = date,
@@ -77,7 +77,7 @@ def generate_report(list_of_rocs, list_of_feat_coef, list_of_attacks_found_dfs, 
     dir_path = os.path.dirname(os.path.realpath(__file__))
     #print "dir_path", dir_path
     config = pdfkit.configuration(wkhtmltopdf="/usr/local/bin/wkhtmltopdf")## TODO
-    pdfkit.from_file("mulval_inouts/report.html", output_location + "_report.pdf", configuration=config)
+    pdfkit.from_file("report_templates/report.html", output_location + "_report.pdf", configuration=config)
     out = subprocess.check_output(['open', output_location + "_report.pdf"])
     print out
 
@@ -105,7 +105,7 @@ def join_report_sections(recipes_used, output_location, avg_exfil_per_min, avg_p
         section_list.append(sections[time_gran])
 
     # render the template locally...
-    with open("mulval_inouts/report.html", "w") as f:
+    with open("report_templates/report.html", "w") as f:
         f.write(base_template.render(
             title=title,
             date = date,
@@ -119,7 +119,7 @@ def join_report_sections(recipes_used, output_location, avg_exfil_per_min, avg_p
 
     dir_path = os.path.dirname(os.path.realpath(__file__))
     config = pdfkit.configuration(wkhtmltopdf="/usr/local/bin/wkhtmltopdf")
-    pdfkit.from_file("mulval_inouts/report.html", output_location + "_report.pdf", configuration=config)
+    pdfkit.from_file("report_templates/report.html", output_location + "_report.pdf", configuration=config)
     out = subprocess.check_output(['open', output_location + "_report.pdf"])
     print out
 

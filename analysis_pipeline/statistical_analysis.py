@@ -37,10 +37,11 @@ class statistical_pipeline():
         self.time_gran = timegran
         self.time_gran_to_debugging_csv = time_gran_to_debugging_csv
         self.lasso_feature_selection_p = lasso_feature_selection_p
-        self.feature_activation_heatmaps = []
-        self.feature_raw_heatmaps = []
-        self.feature_activation_heatmaps_training = []
-        self.feature_raw_heatmaps_training = []
+
+        self.feature_activation_heatmaps = ['none.png']
+        self.feature_raw_heatmaps = ['none.png']
+        self.feature_activation_heatmaps_training = ['none.png']
+        self.feature_raw_heatmaps_training =  ['none.png']
 
         self.X_train, self.y_train, self.X_test, self.y_test, self.pre_drop_X_train, self.time_gran_to_debugging_csv, \
         self.dropped_feature_list, self.ide_train, self.ide_test, self.exfil_weights_train, self.exfil_weights_test, \
@@ -77,6 +78,7 @@ class statistical_pipeline():
         self.method_to_optimal_f1_scores_train, self.method_to_optimal_predictions_train = {},{}
         self.method_to_cm_df_train, self.method_to_cm_df_test = {},{}
         self.method_to_optimal_thresh_test, self.method_to_optimal_thresh_train = {}, {}
+        self.skip_heatmaps=False
 
         try:
             os.makedirs('./temp_outputs')
@@ -110,11 +112,11 @@ class statistical_pipeline():
         generate_heatmap.generate_heatmap(raw_feature_val_df, local_heatmap_val_path, current_heatmap_val_path)
 
         if training_p:
-            self.feature_activation_heatmaps_training.append('../' + local_heatmap_path)
-            self.feature_raw_heatmaps_training.append('../' + local_heatmap_val_path)
+            self.feature_activation_heatmaps_training = ['../' + local_heatmap_path]
+            self.feature_raw_heatmaps_training = ['../' + local_heatmap_val_path]
         else:
-            self.feature_activation_heatmaps.append('../' + local_heatmap_path)
-            self.feature_raw_heatmaps.append('../' + local_heatmap_val_path)
+            self.feature_activation_heatmaps = ['../' + local_heatmap_path]
+            self.feature_raw_heatmaps = ['../' + local_heatmap_val_path]
         print coef_impact_df
 
     def _generate_rocs(self):
@@ -193,6 +195,7 @@ class statistical_pipeline():
             loader=FileSystemLoader(searchpath="./report_templates")
         )
         table_section_template = env.get_template("table_section.html")
+
         report_section = table_section_template.render(
             time_gran=str(self.time_gran) + " sec granularity",
             roc=self.plot_path,
@@ -212,7 +215,7 @@ class statistical_pipeline():
 
         return report_section
 
-    def run_statistical_pipeline(self):
+    def run_statistical_pipeline(self, skip_heatmaps=True):
         self.clf.fit(self.X_train, self.y_train)
         self.train_predictions = self.clf.predict(X=self.X_train)
         self.test_predictions = self.clf.predict(X=self.X_test)
@@ -228,8 +231,10 @@ class statistical_pipeline():
         except:
             pass
 
-        #self._generate_heatmap(training_p=True)
-        #self._generate_heatmap(training_p=False)
+        self.skip_heatmaps = skip_heatmaps
+        if not skip_heatmaps:
+            self._generate_heatmap(training_p=True)
+            self._generate_heatmap(training_p=False)
 
         self._generate_rocs()
         self.method_to_optimal_f1_scores_test, self.method_to_optimal_predictions_test, self.method_to_optimal_thresh_test = \
@@ -237,9 +242,9 @@ class statistical_pipeline():
         self.method_to_optimal_f1_scores_train, self.method_to_optimal_predictions_train, self.method_to_optimal_thresh_train = \
             self._generate_optimal_predictions(self.method_to_train_predictions, self.y_train)
 
-        self.method_to_cm_df_train = self._generate_confusion_matrixes(self.method_to_optimal_predictions_test, self.y_train,
+        self.method_to_cm_df_train = self._generate_confusion_matrixes(self.method_to_optimal_predictions_train, self.y_train,
                                                             self.exfil_paths_train, self.exfil_weights_train)
-        self.method_to_cm_df_test = self._generate_confusion_matrixes(self.method_to_optimal_predictions_train, self.y_test,
+        self.method_to_cm_df_test = self._generate_confusion_matrixes(self.method_to_optimal_predictions_test, self.y_test,
                                                             self.exfil_paths_test, self.exfil_weights_test)
 
         self._generate_debugging_csv()
@@ -248,9 +253,21 @@ def statistical_analysis_v2(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, b
                                          starts_of_testing, path_occurence_training_df, path_occurence_testing_df,
                                          recipes_used, skip_model_part, clf, ignore_physical_attacks_p,
                                          avg_exfil_per_min, avg_pkt_size, exfil_per_min_variance,
-                                         pkt_size_variance, drop_pairwise_features, rate):
+                                         pkt_size_variance, drop_pairwise_features):
     print "STATISTICAL_ANALYSIS_V2"
     report_sections = {}
+    rate = avg_exfil_per_min
+
+    list_of_optimal_fone_scores_at_this_exfil_rates = {}
+    Xs = {}
+    Ys = {}
+    Xts = {}
+    Yts = {}
+    trained_models = {}
+    timegran_to_methods_to_attacks_found_dfs = {}
+    timegran_to_methods_toattacks_found_training_df = {}
+    time_gran_to_outtraffic = {}
+
     for timegran,feature_df in time_gran_to_aggregate_mod_score_dfs.iteritems():
         if 'lass_feat_sel' in base_output_name:
             lasso_feature_selection_p = True
@@ -270,231 +287,27 @@ def statistical_analysis_v2(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, b
         generate_report.join_report_sections(recipes_used, base_output_name, avg_exfil_per_min, avg_pkt_size, exfil_per_min_variance,
                              pkt_size_variance, report_sections)
 
+        if timegran not in timegran_to_methods_toattacks_found_training_df:
+            list_of_optimal_fone_scores_at_this_exfil_rates[timegran] = []
+            Xs[timegran] = []
+            Ys[timegran] = []
+            Xts[timegran] = []
+            Yts[timegran] = []
+            trained_models[timegran] = []
+            #timegran_to_methods_to_attacks_found_dfs[timegran] = []
+            #timegran_to_methods_toattacks_found_training_df[timegran] = []
+            time_gran_to_outtraffic[timegran] = []
 
-def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, base_output_name, names,
-                                         starts_of_testing, path_occurence_training_df, path_occurence_testing_df,
-                                         recipes_used, skip_model_part, clf, ignore_physical_attacks_p,
-                                         avg_exfil_per_min,
-                                         avg_pkt_size,
-                                         exfil_per_min_variance,
-                                         pkt_size_variance, drop_pairwise_features):
-    #print time_gran_to_aggregate_mod_score_dfs['60']
-    ######### 2a.II. do the actual splitting
-    # note: labels have the column name 'labels' (noice)
-    time_gran_to_model = {}
-    #images = 0
-    time_gran_to_debugging_csv = {} # note: going to be used for (shockingly) debugging purposes....
-    percent_attacks = []
-    list_percent_attacks_training = []
-    list_of_rocs = []
-    list_of_feat_coefs_dfs = []
-    time_grans = []
-    list_of_model_parameters = []
-    list_of_attacks_found_dfs = []
-    time_gran_to_attacks_found_df = {}
-    time_gran_to_attacks_found_df_training = {}
-    list_of_attacks_found_training_df = []
-    list_of_optimal_fone_scores = []
-    feature_activation_heatmaps = []
-    feature_raw_heatmaps = []
-    ideal_thresholds = []
-    feature_activation_heatmaps_training, feature_raw_heatmaps_training = [], []
-    X_trains = {}
-    Y_trains = {}
-    X_tests = {}
-    Y_tests = {}
-    trained_models = {}
-    time_gran_to_outtraffic = {}
+        list_of_optimal_fone_scores_at_this_exfil_rates[timegran].append(stat_pipeline.method_to_optimal_f1_scores_test)
+        Xs[timegran].append(stat_pipeline.X_train)
+        Ys[timegran].append(stat_pipeline.y_train)
+        Xts[timegran].append(stat_pipeline.X_test)
+        Yts[timegran].append(stat_pipeline.y_test)
+        trained_models[timegran].append(stat_pipeline.clf)
+        timegran_to_methods_to_attacks_found_dfs[timegran] = stat_pipeline.method_to_cm_df_test
+        timegran_to_methods_toattacks_found_training_df[timegran] = stat_pipeline.method_to_cm_df_train
 
-    list_of_attacks_to_found_dfs = []
-    list_of_attacks_to_found_training_df = []
-
-    for time_gran,aggregate_mod_score_dfs in time_gran_to_aggregate_mod_score_dfs.iteritems():
-        time_grans.append(time_gran)
-        method_to_testing_df = {}
-        method_to_training_df = {}
-
-        X_train, y_train, X_test, y_test, pre_drop_X_train, time_gran_to_debugging_csv, dropped_feature_list, ide_train,\
-            ide_test, X_train_exfil_weight, X_test_exfil_weight, exfil_paths, exfil_paths_train, out_traffic, cilium_train,\
-            cilium_test = prepare_data(aggregate_mod_score_dfs, skip_model_part, ignore_physical_attacks_p,
-                                       time_gran_to_debugging_csv, time_gran, drop_pairwise_features)
-
-        time_gran_to_outtraffic[time_gran] = out_traffic
-        # method_to_trainTest = {}
-        # method_to_trainTest['ensemble_of_features'] = (X_train, X_test)
-        # method_to_trainTest['ide_angle'] = (ide_train, ide_test)
-        # method_to_trainTest['labels'] = (y_train, y_test)
-
-
-        # TODO: probably want to pass in the feature selection capabilities as a first class function
-        if 'lass_feat_sel' in base_output_name:
-            X_train, X_test = lasso_feature_selection(X_train, y_train, X_test, y_test)
-
-        X_trains[time_gran] = X_train
-        Y_trains[time_gran] = y_train
-        X_tests[time_gran] = X_test
-        Y_tests[time_gran] = y_test
-
-        dropped_columns = list(pre_drop_X_train.columns.difference(X_train.columns))
-
-        ###########################
-        # if I was going to change the model, this part would need to be what changes. For instance,
-        # if I want to do logistic regresesion, this is probably where I'd need to do it (but would it
-        # effect the information that I need to feed into the report generation component??) - in particular
-        # the heatmap and ROC component
-
-        #clf = sklearn.linear_model.LinearRegression()
-        clf.fit(X_train, y_train)
-        trained_models[time_gran] = clf
-        score_val = clf.score(X_test, y_test)
-        #print "score_val", score_val
-        test_predictions = clf.predict(X=X_test)
-        train_predictions = clf.predict(X=X_train)
-
-
-        coef_dict = get_coef_dict(clf, X_train.columns.values, base_output_name, X_train.dtypes)
-        print "coef_dict", coef_dict
-        coef_feature_df = pd.DataFrame.from_dict(coef_dict, orient='index')
-        coef_feature_df.columns = ['Coefficient']
-        model_params = clf.get_params()
-        try:
-            model_params['alpha_val'] = clf.alpha_
-        except:
-            pass
-        list_of_model_parameters.append(model_params)
-
-        ####################################
-        print '--------------------------'
-
-        #print len(time_gran_to_debugging_csv[time_gran]["labels"]), len(np.concatenate([train_predictions, test_predictions]))
-        #print len(time_gran_to_debugging_csv[time_gran].index)
-        if not skip_model_part:
-            time_gran_to_debugging_csv[time_gran].loc[:, "aggreg_anom_score"] = np.concatenate(
-                [train_predictions, test_predictions])
-        else:
-            # time_gran_to_debugging_csv[time_gran].loc[:, "aggreg_anom_score"] = test_predictions
-            time_gran_to_debugging_csv[time_gran].loc[:, "aggreg_anom_score"] = np.concatenate(
-                [train_predictions, test_predictions])
-
-        # make heatmaps so I can see which features are contributing
-        current_heatmap_val_path = base_output_name + 'coef_val_heatmap_' + str(time_gran) + '.png'
-        local_heatmap_val_path = 'temp_outputs/heatmap_coef_val_at_' +  str(time_gran) + '.png'
-        current_heatmap_path = base_output_name + 'coef_act_heatmap_' + str(time_gran) + '.png'
-        local_heatmap_path = 'temp_outputs/heatmap_coef_contribs_at_' +  str(time_gran) + '.png'
-        coef_impact_df, raw_feature_val_df = generate_heatmap.generate_covariate_heatmap(coef_dict, X_test, exfil_paths)
-        generate_heatmap.generate_heatmap(coef_impact_df, local_heatmap_path, current_heatmap_path)
-        generate_heatmap.generate_heatmap(raw_feature_val_df, local_heatmap_val_path, current_heatmap_val_path)
-        feature_activation_heatmaps.append('../' + local_heatmap_path)
-        feature_raw_heatmaps.append('../' + local_heatmap_val_path)
-        print coef_impact_df
-
-        current_heatmap_raw_val_path_training = base_output_name + 'training_raw_val_heatmap_' + str(time_gran) + '.png'
-        local_heatmap_raw_val_path_training = 'temp_outputs/training_heatmap_raw_val_at_' +  str(time_gran) + '.png'
-        current_heatmap_path_training = base_output_name + 'training_coef_act_heatmap_' + str(time_gran) + '.png'
-        local_heatmap_path_training = 'temp_outputs/training_heatmap_coef_contribs_at_' +  str(time_gran) + '.png'
-        coef_impact_df, raw_feature_val_df = generate_heatmap.generate_covariate_heatmap(coef_dict, X_train, exfil_paths_train)
-        generate_heatmap.generate_heatmap(coef_impact_df, local_heatmap_path_training, current_heatmap_path_training)
-        generate_heatmap.generate_heatmap(raw_feature_val_df, local_heatmap_raw_val_path_training, current_heatmap_raw_val_path_training)
-        feature_activation_heatmaps_training.append('../' + local_heatmap_path_training)
-        feature_raw_heatmaps_training.append('../' + local_heatmap_raw_val_path_training)
-
-        ### step (3): Make ROCs and determine performance at optimal F1 operating point
-        optimal_predictions, optimal_thresh, plot_path, ide_threshold = generate_ROC_curves(y_test, test_predictions, base_output_name,
-                                                            time_gran, ide_test, ide_train, list_of_optimal_fone_scores,
-                                                            cilium_train, cilium_test)
-        optimal_ide_prediction = [int(i > ide_threshold) for i in ide_test]
-        ide_optimal_train_predictions = [int(i > ide_threshold) for i in ide_train]
-        ideal_thresholds.append(optimal_thresh)
-        list_of_rocs.append(plot_path)
-        categorical_cm_df = determine_categorical_cm_df(y_test, optimal_predictions, exfil_paths, X_test_exfil_weight)
-        list_of_attacks_found_dfs.append(categorical_cm_df)
-        method_to_testing_df['mimir'] = categorical_cm_df
-
-        optimal_train_predictions = [int(i > optimal_thresh) for i in train_predictions]
-        categorical_cm_df_training = determine_categorical_cm_df(y_train, optimal_train_predictions, exfil_paths_train,
-                                                                 X_train_exfil_weight)
-        list_of_attacks_found_training_df.append(categorical_cm_df_training)
-        method_to_training_df['mimir'] = categorical_cm_df_training
-
-
-        ide_categorical_cm_df = determine_categorical_cm_df(y_test, optimal_ide_prediction, exfil_paths, X_test_exfil_weight)
-        ide_categorical_cm_df_training = determine_categorical_cm_df(y_train, ide_optimal_train_predictions, exfil_paths_train,
-                                                                 X_train_exfil_weight)
-        method_to_training_df['ide'] = ide_categorical_cm_df_training
-        method_to_testing_df['ide'] = ide_categorical_cm_df
-
-        cilium_optimal_train_predictons = [(i > 0.5) for i in cilium_train]
-        cilium_categorical_cm_df_training = determine_categorical_cm_df(y_train, cilium_optimal_train_predictons, exfil_paths_train,
-                                                                 X_train_exfil_weight)
-        cilium_optimal_test_predictons = [(i > 0.5) for i in cilium_test]
-        cilium_categorical_cm_df_test = determine_categorical_cm_df(y_test, cilium_optimal_test_predictons, exfil_paths,
-                                                                    X_test_exfil_weight)
-        method_to_training_df['cilium'] = cilium_categorical_cm_df_training
-        method_to_testing_df['cilium'] = cilium_categorical_cm_df_test
-
-        '''
-        method_to_testing_df['mimir'] = categorical_cm_df
-        method_to_training_df['mimir'] = categorical_cm_df_training
-        '''
-
-        if not skip_model_part:
-            time_gran_to_debugging_csv[time_gran].loc[:, "anom_val_at_opt_pt"] = \
-                np.concatenate([optimal_train_predictions, optimal_predictions])
-        else:
-            #time_gran_to_debugging_csv[time_gran].loc[:, "anom_val_at_opt_pt"] = optimal_predictions
-            time_gran_to_debugging_csv[time_gran].loc[:, "anom_val_at_opt_pt"] = \
-                np.concatenate([optimal_train_predictions, optimal_predictions])
-
-        # I don't want the attributes w/ zero coefficients to show up in the debugging csv b/c it makes it hard to read
-        for feature,coef in coef_dict.iteritems():
-            print "coef_check", coef, not coef, feature
-            if not coef:
-                print "just_dropped", feature
-                try:
-                    time_gran_to_debugging_csv[time_gran] = time_gran_to_debugging_csv[time_gran].drop([feature],axis=1)
-                    coef_feature_df = coef_feature_df.drop(feature, axis=0)
-                except:
-                    pass
-            for dropped_feature in dropped_feature_list + dropped_columns:
-                try:
-                    time_gran_to_debugging_csv[time_gran] = time_gran_to_debugging_csv[time_gran].drop([dropped_feature], axis=1)
-                except:
-                    pass
-
-        time_gran_to_debugging_csv[time_gran].to_csv(base_output_name + 'DEBUGGING_modz_feat_df_at_time_gran_of_'+\
-                                                     str(time_gran) + '_sec.csv', na_rep='?')
-
-        list_of_feat_coefs_dfs.append(coef_feature_df)
-
-        # okay, so this part would go up in the generate report part.
-        number_attacks_in_test = len(y_test[y_test['labels'] == 1])
-        number_non_attacks_in_test = len(y_test[y_test['labels'] == 0])
-        percent_attacks.append(float(number_attacks_in_test) / (number_non_attacks_in_test + number_attacks_in_test))
-        number_attacks_in_train = len(y_train[y_train['labels'] == 1])
-        number_non_attacks_in_train = len(y_train[y_train['labels'] == 0])
-        list_percent_attacks_training.append(
-            float(number_attacks_in_train) / (number_non_attacks_in_train + number_attacks_in_train))
-
-        time_gran_to_attacks_found_df[time_gran] = method_to_testing_df
-        time_gran_to_attacks_found_df_training[time_gran] = method_to_training_df
-
-
-    starts_of_testing_dict = {}
-    for counter,name in enumerate(names):
-        starts_of_testing_dict[name] = starts_of_testing[counter]
-
-    starts_of_testing_df = pd.DataFrame(starts_of_testing_dict, index=['start_of_testing_phase'])
-
-    print "list_of_rocs", list_of_rocs
-    generate_report.generate_report(list_of_rocs, list_of_feat_coefs_dfs, list_of_attacks_found_dfs,
-                                    recipes_used, base_output_name, time_grans, list_of_model_parameters,
-                                    list_of_optimal_fone_scores, starts_of_testing_df, path_occurence_training_df,
-                                    path_occurence_testing_df, percent_attacks, list_of_attacks_found_training_df,
-                                    list_percent_attacks_training, feature_activation_heatmaps, feature_raw_heatmaps,
-                                    ideal_thresholds, feature_activation_heatmaps_training, feature_raw_heatmaps_training,
-                                    avg_exfil_per_min,avg_pkt_size, exfil_per_min_variance, pkt_size_variance)
-
-    print "multi_experiment_pipeline is all done! (NO ERROR DURING RUNNING)"
+        time_gran_to_outtraffic[timegran].append(stat_pipeline.out_traffic)
 
     experiment_info = {}
     experiment_info["recipes_used"] = recipes_used
@@ -503,8 +316,8 @@ def statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, R
     experiment_info["exfil_per_min_variance"] = exfil_per_min_variance
     experiment_info["pkt_size_variance"] = pkt_size_variance
 
-    return list_of_optimal_fone_scores,X_trains,Y_trains,X_tests,Y_tests, trained_models, time_gran_to_attacks_found_df, \
-           time_gran_to_attacks_found_df_training,experiment_info, time_gran_to_outtraffic
+    return list_of_optimal_fone_scores_at_this_exfil_rates, Xs, Ys, Xts,Yts, trained_models, timegran_to_methods_to_attacks_found_dfs, \
+           timegran_to_methods_toattacks_found_training_df,experiment_info, time_gran_to_outtraffic
 
 def drop_useless_columns_aggreg_DF(aggregate_mod_score_dfs):
     # '''

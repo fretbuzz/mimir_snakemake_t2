@@ -23,7 +23,7 @@ microservices_wordpress = ['mariadb-master', 'mariadb-slave', 'wordpress']
 
 def parse_experimental_data_json(config_file, experimental_folder, experiment_name, make_edgefiles,
                                  time_interval_lengths, pcap_file_path, pod_creation_log_path,
-                                 netsec_policy=None):
+                                 netsec_policy=None, time_of_synethic_exfil=None):
     with open(config_file) as f:
         config_file = json.load(f)
         basefile_name = experimental_folder + experiment_name + '/edgefiles/' + experiment_name + '_'
@@ -49,7 +49,8 @@ def parse_experimental_data_json(config_file, experimental_folder, experiment_na
                                                netsec_policy=netsec_policy, sensitive_ms=sensitive_ms,
                                                exfil_StartEnd_times=exfil_StartEnd_times,
                                                physical_exfil_paths=physical_exfil_paths,
-                                               base_experiment_dir=base_experiment_dir)
+                                               base_experiment_dir=base_experiment_dir,
+                                               time_of_synethic_exfil=time_of_synethic_exfil)
     return pipeline_object
 
 def parse_experimental_config(experimental_config_file):
@@ -78,9 +79,6 @@ def parse_experimental_config(experimental_config_file):
 
         calc_vals = config_file['calc_vals']
         calculate_z_scores = config_file['calculate_z_scores']
-        include_ide = config_file['include_ide']
-        calc_ide = config_file['calc_ide']
-        only_ide = config_file['only_ide']
         drop_pairwise_features = config_file['drop_pairwise_features']
         perform_cilium_component = config_file['perform_cilium_component']
 
@@ -103,9 +101,17 @@ def parse_experimental_config(experimental_config_file):
 
         experiment_classes = [parse_experimental_data_json(exp_config_file, experimental_folder, cur_experiment_name,
                                                            make_edgefiles, time_interval_lengths, pcap_file_path,
-                                                           pod_creation_log_path, netsec_policy)]
+                                                           pod_creation_log_path, netsec_policy, time_of_synethic_exfil)]
 
-        return multi_experiment_pipeline(experiment_classes, base_output_location, True, time_of_synethic_exfil,
+        # this is a work-around until I finish refactoring the actual system...
+        # this part exists b/c I never want to interfere with actually working
+        include_ide = config_file['include_ide']
+        calc_ide = config_file['calc_ide']
+        only_ide = config_file['only_ide']
+
+        rate_to_time_gran_to_xs, rate_to_time_gran_to_ys, rate_to_timegran_list_of_methods_to_attacks_found_training_df, \
+        rate_to_timegran_to_methods_to_attacks_found_dfs = \
+            multi_experiment_pipeline(experiment_classes, base_output_location, True, time_of_synethic_exfil,
                                   goal_train_test_split_training, goal_attack_NoAttack_split_training, None,
                                   None, calc_vals, skip_model_part, ignore_physical_attacks_p,
                                   calculate_z_scores_p=calculate_z_scores,
@@ -114,11 +120,33 @@ def parse_experimental_config(experimental_config_file):
                                   skip_graph_injection=skip_graph_injection,
                                   get_endresult_from_memory=get_endresult_from_memory,
                                   goal_attack_NoAttack_split_testing=goal_attack_NoAttack_split_testing,
-                                  calc_ide=calc_ide, include_ide=include_ide, only_ide=only_ide,
+                                  calc_ide=False, include_ide=False, only_ide=only_ide,
                                   drop_pairwise_features=drop_pairwise_features,
                                   ide_window_size=ide_window_size, drop_infra_from_graph=drop_infra_from_graph,
                                   perform_cilium_component=perform_cilium_component)
 
+        if calc_ide:
+            calc_vals = False
+            skip_graph_injection = True
+            rate_to_time_gran_to_xs, rate_to_time_gran_to_ys, rate_to_timegran_list_of_methods_to_attacks_found_training_df, \
+            rate_to_timegran_to_methods_to_attacks_found_dfs = \
+                multi_experiment_pipeline(experiment_classes, base_output_location, True, time_of_synethic_exfil,
+                                          goal_train_test_split_training, goal_attack_NoAttack_split_training, None,
+                                          None, calc_vals, skip_model_part, ignore_physical_attacks_p,
+                                          calculate_z_scores_p=True,
+                                          avg_exfil_per_min=avg_exfil_per_min,
+                                          exfil_per_min_variance=exfil_per_min_variance,
+                                          avg_pkt_size=avg_pkt_size, pkt_size_variance=pkt_size_variance,
+                                          skip_graph_injection=skip_graph_injection,
+                                          get_endresult_from_memory=get_endresult_from_memory,
+                                          goal_attack_NoAttack_split_testing=goal_attack_NoAttack_split_testing,
+                                          calc_ide=calc_ide, include_ide=True, only_ide=True,
+                                          drop_pairwise_features=drop_pairwise_features,
+                                          ide_window_size=ide_window_size, drop_infra_from_graph=drop_infra_from_graph,
+                                          perform_cilium_component=perform_cilium_component)
+
+    return rate_to_time_gran_to_xs, rate_to_time_gran_to_ys, rate_to_timegran_list_of_methods_to_attacks_found_training_df, \
+            rate_to_timegran_to_methods_to_attacks_found_dfs
 
 def wordpress_thirteen_t2(time_of_synethic_exfil=None, time_interval_lengths=None):
 

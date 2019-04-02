@@ -43,7 +43,7 @@ def map_nodes_to_svcs(G, svcs):
     containers_to_ms = {}
     for u in G.nodes():
         for svc in svcs:
-            if match_name_to_pod(svc, u):
+            if match_name_to_pod(svc, u) or match_name_to_pod(svc + '_VIP', u):
                 containers_to_ms[u] = svc
                 break
     return containers_to_ms
@@ -191,19 +191,8 @@ def aggregate_graph(G, ms_s):
 def prepare_graph(G, svcs, level_of_processing, is_swarm, counter, file_path, ms_s, container_to_ip,
                   infra_instances, drop_infra_p):
     G = copy.deepcopy(G)
-    #print "nodes", [node for node in G.nodes()]
     G = aggregate_outside_nodes(G)
-    if level_of_processing == 'none':
-        unprocessed_G = G.copy()
-        containers_to_ms = map_nodes_to_svcs(unprocessed_G, svcs)# + infra_service)
-        nx.set_node_attributes(unprocessed_G, containers_to_ms, 'svc')
-        filename = file_path.replace('.txt', '') + 'unprocessed_network_graph_container.png'
-        make_network_graph(unprocessed_G, edge_label_p=True, filename=filename, figsize=(54,32),
-                           node_color_p=False, ms_s=ms_s)
-
-        return unprocessed_G
-
-    elif level_of_processing == 'app_only':
+    if level_of_processing == 'app_only':
         containers_to_ms = map_nodes_to_svcs(G, svcs)
         infra_nodes = []
         for node in G.nodes():
@@ -320,9 +309,11 @@ def match_name_to_pod(abstract_node_name, concrete_pod_name):
     if '_VIP' in abstract_node_name:
         return abstract_node_name in concrete_pod_name
     else:
-        valid = re.compile('.*' + abstract_node_name + '-[0-9].*')
+        valid = re.compile('.*' + abstract_node_name + '-[a-z0-9][a-z0-9][a-z0-9][a-z0-9][a-z0-9][a-z0-9][a-z0-9][a-z0-9][a-z0-9].*')
         match_status = valid.match(concrete_pod_name)
-        if match_status:
+        valid_two = re.compile('.*' + abstract_node_name + '-[0-9].*')
+        match_status_two = valid_two.match(concrete_pod_name)
+        if match_status or match_status_two:
             return True
         else:
             valid = re.compile('.*' + abstract_node_name + '-$') # end line is also acceptable.

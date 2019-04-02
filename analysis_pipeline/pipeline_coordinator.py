@@ -3,7 +3,7 @@ import pandas as pd
 import pyximport
 from matplotlib import pyplot as plt
 from analysis_pipeline.single_experiment_pipeline import determine_attacks_to_times
-from analysis_pipeline.statistical_analysis import statistically_analyze_graph_features,statistical_analysis_v2
+from analysis_pipeline.statistical_analysis import statistical_analysis_v2
 import analysis_pipeline.generate_aggregate_report as generate_aggregate_report
 pyximport.install() # to leverage cpython
 import math
@@ -266,124 +266,19 @@ def pipeline_one_exfil_rate(rate_counter,
     path_occurence_training_df = generate_exfil_path_occurence_df(list_time_gran_to_mod_zscore_df_training, names)
     path_occurence_testing_df = generate_exfil_path_occurence_df(list_time_gran_to_mod_zscore_df_testing, names)
 
-    #time_gran_to_aggreg_feature_dfs
-    ## okay, so now us the time to get a little tricky with everything... we gotta generate seperate reports for the different
-    ## modls used...
-
-    #'''
-    '''
-    clf = LassoCV(cv=3, max_iter=8000)
-    list_of_optimal_fone_scores_at_this_exfil_rates, Xs,Ys,Xts,Yts, trained_models = \
-        statistically_analyze_graph_features(time_gran_to_aggreg_feature_dfs, ROC_curve_p,
-                                             cur_base_output_name + 'lasso_raw_',
-                                             names, starts_of_testing, path_occurence_training_df,
-                                             path_occurence_testing_df, recipes_used, skip_model_part, clf,
-                                             ignore_physical_attacks_p,
-                                             avg_exfil_per_min[rate_counter],
-                                             avg_pkt_size[rate_counter],
-                                             exfil_per_min_variance[rate_counter],
-                                             pkt_size_variance[rate_counter])
-
-    clf = LogisticRegressionCV(penalty="l1", cv=10, max_iter=10000, solver='saga')
-    _, _, _, _, _, _ = statistically_analyze_graph_features(time_gran_to_aggreg_feature_dfs, ROC_curve_p,
-                                                            cur_base_output_name + 'logistic_l1_raw_lass_feat_sel_',
-                                                            names, starts_of_testing, path_occurence_training_df,
-                                                            path_occurence_testing_df, recipes_used, skip_model_part, clf,
-                                                            ignore_physical_attacks_p, avg_exfil_per_min[rate_counter],
-                                                             avg_pkt_size[rate_counter],
-                                                             exfil_per_min_variance[rate_counter],
-                                                             pkt_size_variance[rate_counter])
-
-    '''
-    '''
-    '''
-    '''
-    clf = sklearn.linear_model.LinearRegression()
-    _, _, _, _, _, _,_,_,_ = \
-        statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p,
-                                             cur_base_output_name + 'least_squares_normalized',
-                                             names, starts_of_testing, path_occurence_training_df,
-                                             path_occurence_testing_df, recipes_used, skip_model_part, clf,
-                                             ignore_physical_attacks_p,
-                                             avg_exfil_per_min[rate_counter],
-                                             avg_pkt_size[rate_counter],
-                                             exfil_per_min_variance[rate_counter],
-                                             pkt_size_variance[rate_counter])
-    '''
-
+    # clf = LogisticRegressionCV(penalty="l1", cv=10, max_iter=10000, solver='saga')
+    # cur_base_output_name + 'logistic_l1_mod_z_lass_feat_sel_'
     clf = LassoCV(cv=3, max_iter=80000)
 
-    '''
-    statistical_analysis_v2(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, base_output_name, names,
-                            starts_of_testing, path_occurence_training_df, path_occurence_testing_df,
-                            recipes_used, skip_model_part, clf, ignore_physical_attacks_p,
-                            avg_exfil_per_min, avg_pkt_size, exfil_per_min_variance,
-                            pkt_size_variance, drop_pairwise_features, avg_exfil_per_min[rate_counter])
-    '''
-
+    #'''
     list_of_optimal_fone_scores_at_this_exfil_rates, Xs,Ys,Xts,Yts, trained_models, list_of_attacks_found_dfs, \
     list_of_attacks_found_training_df,experiment_info, time_gran_to_outtraffic = \
-        statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p,
-                                             cur_base_output_name + 'lasso_mod_z_',
-                                             names, starts_of_testing, path_occurence_training_df,
-                                             path_occurence_testing_df, recipes_used, skip_model_part, clf,
-                                             ignore_physical_attacks_p,
-                                             avg_exfil_per_min[rate_counter],
-                                             avg_pkt_size[rate_counter],
-                                             exfil_per_min_variance[rate_counter],
-                                             pkt_size_variance[rate_counter], drop_pairwise_features)
-
-
-    '''
-    statistically_analyze_graph_features(time_gran_to_aggreg_feature_dfs, ROC_curve_p, base_output_name + 'lasso_raw_',
-                                         names, starts_of_testing, path_occurence_training_df,
-                                         path_occurence_testing_df, recipes_used, skip_model_part, clf,
-                                         ignore_physical_attacks_p)
+    statistical_analysis_v2(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, cur_base_output_name + '_lasso_', names,
+                            starts_of_testing, path_occurence_training_df, path_occurence_testing_df,
+                            recipes_used, skip_model_part, clf, ignore_physical_attacks_p,
+                            avg_exfil_per_min[rate_counter], avg_pkt_size[rate_counter], exfil_per_min_variance[rate_counter],
+                            pkt_size_variance[rate_counter], drop_pairwise_features)
     #'''
-    #''' # appears to be strictly worse than lasso regression...
-    # lass_feat_sel
-    clf = LogisticRegressionCV(penalty="l1", cv=10, max_iter=10000, solver='saga')
-    _, _, _, _, _, _,_,_,_,_ = statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p,
-                                                            cur_base_output_name + 'logistic_l1_mod_z_lass_feat_sel_',
-                                                            names, starts_of_testing, path_occurence_training_df,
-                                                            path_occurence_testing_df, recipes_used, skip_model_part, clf,
-                                                            ignore_physical_attacks_p, avg_exfil_per_min[rate_counter],
-                                                             avg_pkt_size[rate_counter],
-                                                             exfil_per_min_variance[rate_counter],
-                                                             pkt_size_variance[rate_counter], drop_pairwise_features)
-
-    #'''
-    '''
-    clf = LogisticRegressionCV(penalty="l2", cv=3, max_iter=10000)
-    statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p,
-                                         base_output_name + 'logistic_l2_mod_z_',
-                                         names, starts_of_testing, path_occurence_training_df,
-                                         path_occurence_testing_df, recipes_used, skip_model_part, clf,
-                                         ignore_physical_attacks_p)
-
-    statistically_analyze_graph_features(time_gran_to_aggreg_feature_dfs, ROC_curve_p, base_output_name + 'logistic_l2_raw_',
-                                         names, starts_of_testing, path_occurence_training_df,
-                                         path_occurence_testing_df, recipes_used, skip_model_part, clf,
-                                         ignore_physical_attacks_p)
-    #'''
-    ''' # if i want to see logistic regression, i would typically use lasso for feature selection, which
-    ## is what I do above, b/c the l1 regularization isn't strong enough...
-    clf = LogisticRegressionCV(penalty="l1", cv=10, max_iter=10000, solver='saga')
-    statistically_analyze_graph_features(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p,
-                                         cur_base_output_name + 'logistic_l1_mod_z_',
-                                         names, starts_of_testing, path_occurence_training_df,
-                                         path_occurence_testing_df, recipes_used, skip_model_part, clf,
-                                         ignore_physical_attacks_p, fraction_of_edge_weights[rate_counter],
-                                         fraction_of_edge_pkts[rate_counter])
-    '''
-    '''
-    statistically_analyze_graph_features(time_gran_to_aggreg_feature_dfs, ROC_curve_p,
-                                         cur_base_output_name + 'logistic_l1_raw_',
-                                         names, starts_of_testing, path_occurence_training_df,
-                                         path_occurence_testing_df, recipes_used, skip_model_part, clf,
-                                         ignore_physical_attacks_p, fraction_of_edge_weights[rate_counter],
-                                         fraction_of_edge_pkts[rate_counter])
-    '''
 
     out_q.put(Xs)
     out_q.put(Ys)

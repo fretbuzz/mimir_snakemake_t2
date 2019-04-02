@@ -467,12 +467,19 @@ class set_of_injected_graphs():
         for counter in range(0, len(self.raw_edgefile_names), num_graphs_to_process_at_once):
 
             file_paths = self.raw_edgefile_names[counter: counter + num_graphs_to_process_at_once]
+            processed_graph_loc = self.processed_graph_loc + '/' + 'time_gran_' + str(time_interval) + '/'
+            try:
+                os.makedirs(processed_graph_loc)
+            except OSError as e:
+                if e.errno != errno.EEXIST:
+                    raise
+
             args = [counter, file_paths, svcs, is_swarm, ms_s, container_to_ip, infra_instances,
                     synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
                     time_interval, total_edgelist_nodes, svc_to_pod, avg_dns_weight, avg_dns_pkts,
                     node_attack_mapping, out_q, current_total_node_list, name_of_dns_pod_node, last_attack_injected,
                     carryover, avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
-                    self.end_of_training, pod_creation_log, self.processed_graph_loc, self.drop_infra_from_graph]
+                    self.end_of_training, pod_creation_log, processed_graph_loc, self.drop_infra_from_graph]
             p = multiprocessing.Process(
                 target=process_and_inject_single_graph,
                 args=args)
@@ -651,6 +658,7 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
 
         ## if the graph object folder directory doesn't currently exist, then we'd want to create it...
         ## using the technique from https://stackoverflow.com/questions/273192/how-can-i-safely-create-a-nested-directory-in-python
+
         try:
             os.makedirs(graph_obj_folder_path)
         except OSError as e:
@@ -661,6 +669,7 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise
+
         ## if the pruned folder directory doesn't currently exist, then we'd want to create it...
         ## using the technique from https://stackoverflow.com/questions/273192/how-can-i-safely-create-a-nested-directory-in-python
         try:
@@ -965,6 +974,7 @@ def abstract_to_concrete_mapping(abstract_node, graph, excluded_list, container_
             matching_concrete_nodes = [node[0] for node in container_to_ip.values() if match_name_to_pod(abstract_node, node[0]) if
                                        node[0] not in excluded_list]
             if matching_concrete_nodes == []:
+                print "abstract", abstract_node
                 print "abstract_to_concrete_mapping of made-up node"
                 exit(237)
 

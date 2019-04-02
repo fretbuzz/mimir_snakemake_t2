@@ -23,7 +23,7 @@ class data_anylsis_pipline(object):
                  time_interval_lengths=None, make_edgefiles_p=False, basegraph_name=None,
                  exfil_start_time=None, exfil_end_time=None, calc_vals=True,
                  make_net_graphs_p=False, alert_file=None,
-                 sec_between_exfil_pkts=1, time_of_synethic_exfil=30, injected_exfil_path='None',
+                 sec_between_exfil_pkts=1, time_of_synethic_exfil=None, injected_exfil_path='None',
                  netsec_policy=None, skip_graph_injection=False, cluster_creation_log=None,
                  sensitive_ms=None, exfil_StartEnd_times=[], physical_exfil_paths=[], old_mulval_info=None,
                  base_experiment_dir=''):
@@ -480,13 +480,13 @@ def process_one_set_of_graphs(time_interval_length, ide_window_size,
         else:
             current_set_of_graphs.generate_injected_edgefiles()
 
-        current_set_of_graphs.generate_aggregate_csv()
         current_set_of_graphs.calcuated_single_step_metrics()
         current_set_of_graphs.calc_serialize_metrics()
 
         # these relate to ide
         #'''
         if include_ide or calc_ide:
+            current_set_of_graphs.generate_aggregate_csv()
             print "waiting for ide angles to finish...."
             real_ide_angles = current_set_of_graphs.ide_calculations(calc_ide, ide_window_size)
             current_set_of_graphs.calculated_values['real_ide_angles'] = real_ide_angles
@@ -506,6 +506,7 @@ def process_one_set_of_graphs(time_interval_length, ide_window_size,
             print "current_set_of_graphs.list_of_injected_graphs_loc", current_set_of_graphs.list_of_injected_graphs_loc
             print "time_granularity", current_set_of_graphs.time_granularity
             print "current_set_of_graphs.raw_edgefile_names",current_set_of_graphs.raw_edgefile_names
+            current_set_of_graphs.generate_aggregate_csv()
         current_set_of_graphs.load_serialized_metrics()
 
         if only_ide:
@@ -658,6 +659,7 @@ def assign_attacks_to_first_available_spots(time_gran_to_attack_labels, largest_
     total_number_free_spots = time_gran_to_attack_labels[largest_time_gran][counter:end_time_interval_largestTimeGran].count(0)
     number_spots_needed = len(current_exfil_paths) * time_periods_attack +  \
                           time_gran_to_attack_labels[largest_time_gran][counter:end_time_interval_largestTimeGran].count(1)
+    #extra_spots = int(total_number_free_spots - number_spots_needed - 1)
     extra_spots = total_number_free_spots - number_spots_needed - 1
     num_attacks_to_inject = float(len(current_exfil_paths))
 
