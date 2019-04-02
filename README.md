@@ -46,7 +46,7 @@ Option 1: deploy using convenience script:
 python ./experimental_coordiantor/wordpress_setup/ --autoscale_p
 </code></pre>
 	      
-Note: this might NOT work, in which case you'd have to default to the previous list of commands
+Note: this might NOT work, in which case you'd have to default to the following manual deployment
 
 Option 2: Deploy manually:
 <pre><code>
@@ -81,7 +81,7 @@ cd ./microservices-demo
 			      
 (c) deploy using skaffold: skaffold run 
 </code></pre>
-NOTE: this'll take a while to run the first timee (~ 20 min)
+NOTE: this'll take a while to run the first time (~ 20 min)
 
 
 #### Step 4: Install Experimental Coordinator Dependencies
