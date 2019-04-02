@@ -29,7 +29,7 @@ I recommend starting minikube with at least 2 cpus (ideally 4), 8 gigabytes of m
     <pre><code>  minikube addons enable metrics-server </code></pre>
  
 #### Step 3: Deploy Relevant Microservice Application
- The currently supported applications are Sockshop, a Wordpress deployment, and HipsterStore (within the next weeek). Deployment instructions vary per application.
+ The currently supported applications are Sockshop, a Wordpress deployment, and HipsterStore (within the next weeek). Deployment instructions vary per application. Only one of these should be setup at a given time.
 
 Sockshop: 
 
