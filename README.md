@@ -27,48 +27,50 @@ I recommend starting minikube with at least 2 cpus (ideally 4), 8 gigabytes of m
 #### Step 3: Deploy Relevant Microservice Application
  The currently supported applications are Sockshop, a Wordpress deployment, and HipsterStore (within the next weeek). Deployment instructions vary per application.
 
-Sockshop: `(a) deploy delpoyments and services: kubectl apply -f ./experimental_coordiantor/sockshop_setup/sock-shop-ns.yaml -f ./experimental_coordiantor/sockshop_setup/sockshop_modified.yaml
+Sockshop: (a) deploy delpoyments and services: kubectl apply -f ./experimental_coordiantor/sockshop_setup/sock-shop-ns.yaml -f ./experimental_coordiantor/sockshop_setup/sockshop_modified.yaml
 
           (b) enable autoscaling: git clone https://github.com/microservices-demo/microservices-demo.git
-                                  kubectl apply -f ./microservices-demo/deploy/kubernetes/autoscaling/`
+                                  kubectl apply -f ./microservices-demo/deploy/kubernetes/autoscaling/
                                   
-Wordpress: Two options to deploy: Option 1: Deploy manually
+Wordpress: Two options to deploy: Option 1: Deploy manually:
 
-           `(a) Install helm via instructions here: https://helm.sh/docs/using_helm/#installing-helm
+(a) Install helm via instructions here: https://helm.sh/docs/using_helm/#installing-helm
 	   
-			        (b) Start helm: helm init
+(b) Start helm: helm init
 				
-			        (c) Install db cluster: helm install --name my-release --set mysqlRootPassword=secretpassword,mysqlUser=my-user,mysqlPassword=my-password,mysqlDatabase=my-database,replicas=3 table/percona-xtradb-cluster
+(c) Install db cluster: helm install --name my-release --set mysqlRootPassword=secretpassword,mysqlUser=my-user,mysqlPassword=my-password,mysqlDatabase=my-database,replicas=3 table/percona-xtradb-cluster
 				
-			   		            Note: can modify the number of replicas as desired
+Note: can modify the number of replicas as desired
 						    
-			   	    (d) Wait until all the pods of the db cluster are installed
+(d) Wait until all the pods of the db cluster are installed
 				    
-           (e) Start wordpress servers: helm install --name wwwppp --values /mydata/mimir_v2/experiment_coordinator/wordpress_setup/wordpress-values-production.yaml --set externalDatabase.host=DB_CLUSTER_IP stable/wordpress
+(e) Start wordpress servers: helm install --name wwwppp --values /mydata/mimir_v2/experiment_coordinator/wordpress_setup/wordpress-values-production.yaml --set externalDatabase.host=DB_CLUSTER_IP stable/wordpress
 	   
-      NOTE: DB_CLUSTER_IP needs to be replaced by the ip of the db cluster. This can by found using the command 'kubectl get svc' and looking at the IP of the 'my-release-pxc' service.
+NOTE: DB_CLUSTER_IP needs to be replaced by the ip of the db cluster. This can by found using the command 'kubectl get svc' and looking at the IP of the 'my-release-pxc' service.
       
-           (f) Enable autoscaling of wordpress servce: kubectl autoscale deployment wwwppp-wordpress --min=1 --max=10--cpu-percent=80
+(f) Enable autoscaling of wordpress servce: kubectl autoscale deployment wwwppp-wordpress --min=1 --max=10--cpu-percent=80
 	   
-           NOTE: might want to modify min/max pods amounts depending on system capabilities
+NOTE: might want to modify min/max pods amounts depending on system capabilities
 	   
-           (g) wait until all the pods are finished deploying`
+(g) wait until all the pods are finished deploying`
 	   
-          Option 2: deploy using convenience script: 
+Option 2: deploy using convenience script: 
 	  
-              `python ./experimental_coordiantor/wordpress_setup/ --autoscale_p
+python ./experimental_coordiantor/wordpress_setup/ --autoscale_p
 	      
-           Note: this might NOT work, in which case you'd have to default to the previous list of commands`
+Note: this might NOT work, in which case you'd have to default to the previous list of commands`
 
-HipsterStore: (a) install skaffold: https://skaffold.dev/docs/getting-started/#installing-skaffold
+HipsterStore: 
 
-              (b) clone repo: git clone https://github.com/GoogleCloudPlatform/microservices-demo.git
+(a) install skaffold: https://skaffold.dev/docs/getting-started/#installing-skaffold
+
+(b) clone repo: git clone https://github.com/GoogleCloudPlatform/microservices-demo.git
 	      
-                              cd ./microservices-demo
+cd ./microservices-demo
 			      
-              (c) deploy using skaffold: skaffold run 
+(c) deploy using skaffold: skaffold run 
 	      
-                     NOTE: this'll take a while to run the first timee (~ 20 min)
+NOTE: this'll take a while to run the first timee (~ 20 min)
 
 
 #### Step 4: Install Experimental Coordinator Dependencies
