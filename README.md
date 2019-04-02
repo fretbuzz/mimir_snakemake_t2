@@ -113,21 +113,17 @@ The various fields need to be filled out appropriately. I'll now go through what
 
 These values are related to preparing the application before simulating user traffic. Typically this is used to pre-load the DB with data.
 
-"setup":
+"setup": "number_customer_records": number of customer records to create
 
-"number_customer_records": number of customer records to create
+"setup": "number_background_locusts": number of background locusts to generate the customer records
 
-"number_background_locusts": number of background locusts to generate the customer records
-
-"background_locust_spawn_rate": spawn rate of the background locusts (per second)
+"setup": "background_locust_spawn_rate": spawn rate of the background locusts (per second)
 
 These values are related to simualting user traffic during the experiment.
 
-"experiment:
+"experiment: "number_background_locusts": number of background locusts to generate user traffic (each locust is roughly one customer)
 
-"number_background_locusts": number of background locusts to generate user traffic (each locust is roughly one customer)
-
-"background_locust_spawn_rate": spawn raet of the background locusts (per second)
+"experiment: "background_locust_spawn_rate": spawn raet of the background locusts (per second)
 
 #### Step 6: Start Experiment
 
