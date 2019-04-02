@@ -60,7 +60,7 @@ Note: can modify the number of replicas as desired
 						    
 (d) Wait until all the pods of the db cluster are installed
 				    
-(e) Start wordpress servers: helm install --name wwwppp --values /mydata/mimir_v2/experiment_coordinator/wordpress_setup/wordpress-values-production.yaml --set externalDatabase.host=DB_CLUSTER_IP stable/wordpress
+(e) Start wordpress servers: helm install --name wwwppp --values experiment_coordinator/wordpress_setup/wordpress-values-production.yaml --set externalDatabase.host=DB_CLUSTER_IP stable/wordpress
 	   
 NOTE: DB_CLUSTER_IP needs to be replaced by the ip of the db cluster. This can by found using the command 'kubectl get svc' and looking at the IP of the 'my-release-pxc' service.
       
@@ -86,7 +86,13 @@ NOTE: this'll take a while to run the first time (~ 20 min)
 
 #### Step 4: Install Experimental Coordinator Dependencies
 
-[TODO]
+Install Python Dependencies: pip install -r experiment_coordinator/requirements.txt
+
+Wordpress Only: Setup of the application is handled using a selenium script. Therefore selenium must be installed. Specifically, the Firefox WebDriver MUST be used. Here's a good set of instructions: 
+
+https://developer.mozilla.org/en-US/docs/Learn/Tools_and_testing/Cross_browser_testing/Your_own_automation_environment
+
+Follow the "Setting up Selenium in Node" section, but skip everything to do with javascript/node. (or can google to find alternative setup instructions). 
 
 #### Step 5: Configure Experimental Parameters
 
