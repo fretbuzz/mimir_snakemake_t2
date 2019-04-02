@@ -27,11 +27,16 @@ I recommend starting minikube with at least 2 cpus (ideally 4), 8 gigabytes of m
 #### Step 3: Deploy Relevant Microservice Application
  The currently supported applications are Sockshop, a Wordpress deployment, and HipsterStore (within the next weeek). Deployment instructions vary per application.
 
-Sockshop: (a) deploy delpoyments and services: kubectl apply -f ./experimental_coordiantor/sockshop_setup/sock-shop-ns.yaml -f ./experimental_coordiantor/sockshop_setup/sockshop_modified.yaml
+Sockshop: 
 
-          (b) enable autoscaling: git clone https://github.com/microservices-demo/microservices-demo.git
-                                  kubectl apply -f ./microservices-demo/deploy/kubernetes/autoscaling/
-                                  
+<pre><code>
+
+(a) deploy delpoyments and services: kubectl apply -f ./experimental_coordiantor/sockshop_setup/sock-shop-ns.yaml -f ./experimental_coordiantor/sockshop_setup/sockshop_modified.yaml
+
+(b) enable autoscaling: git clone https://github.com/microservices-demo/microservices-demo.git
+                        kubectl apply -f ./microservices-demo/deploy/kubernetes/autoscaling/
+</code></pre>
+
 Wordpress: Two options to deploy: Option 1: Deploy manually:
 
 (a) Install helm via instructions here: https://helm.sh/docs/using_helm/#installing-helm
