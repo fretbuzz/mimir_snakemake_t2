@@ -128,7 +128,7 @@ These values are related to simualting user traffic during the experiment.
 
 At the moment, the wordpress experiment must be prepared before running the main experimental coordinator. Move to the /experimental_coordinator/wordpress_setup directory. Then run
 
-python /mydata/mimir_v2/experiment_coordinator/wordpress_setup/setup_wordpress.py [ip of minikube] [port of exposed service] "hi"
+<pre><code> python /mydata/mimir_v2/experiment_coordinator/wordpress_setup/setup_wordpress.py [ip of minikube] [port of exposed service] "hi" </code></pre>
 
 Note: the port of the exposed service can be found by: <code><pre> kubectl get svc --all-namespaces </code></pre> and then looking for front-end for sockshop or wwpp-wordpress for wordpress
 
@@ -140,7 +140,7 @@ We'll now start the experimental coordinator. It handles collecting the necessar
 
 Move to the experimental apparatus directory. 
 
-python run_experiment.py --exp_name [name of experiment] --config_file [path to config file prepared in previous step] --prepare_app_p --port [port of exposed service] --ip [ip of minikube] --no_exfil
+<pre><code> python run_experiment.py --exp_name [name of experiment] --config_file [path to config file prepared in previous step] --prepare_app_p --port [port of exposed service] --ip [ip of minikube] --no_exfil </code></pre>
 
 Note: [ip of minikube] and [port of exposed service] are the same that there are in step 6a and are defined there.
 
