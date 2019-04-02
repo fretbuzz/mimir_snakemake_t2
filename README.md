@@ -19,10 +19,14 @@ Minikube is a local kubernetes cluster. The microservice applications will be de
 
 #### Step 2: Start Minikube
 I recommend starting minikube with at least 2 cpus (ideally 4), 8 gigabytes of memory, and 25 gigabytes of disk space
-	e.g., minikube start --memory 8192 --cpus=4 --disk-size 25g
+
+	e.g., <pre><code> minikube start --memory 8192 --cpus=4 --disk-size 25g </code></pre>
+	
  Then need to enable necessary addons:
-    minikube addons enable heapster
-    minikube addons enable metrics-server
+ 
+    <pre><code>  minikube addons enable heapster </code></pre>
+    
+    <pre><code>  minikube addons enable metrics-server </code></pre>
  
 #### Step 3: Deploy Relevant Microservice Application
  The currently supported applications are Sockshop, a Wordpress deployment, and HipsterStore (within the next weeek). Deployment instructions vary per application.
@@ -30,15 +34,22 @@ I recommend starting minikube with at least 2 cpus (ideally 4), 8 gigabytes of m
 Sockshop: 
 
 <pre><code>
-
 (a) deploy delpoyments and services: kubectl apply -f ./experimental_coordiantor/sockshop_setup/sock-shop-ns.yaml -f ./experimental_coordiantor/sockshop_setup/sockshop_modified.yaml
 
 (b) enable autoscaling: git clone https://github.com/microservices-demo/microservices-demo.git
                         kubectl apply -f ./microservices-demo/deploy/kubernetes/autoscaling/
 </code></pre>
 
-Wordpress: Two options to deploy: Option 1: Deploy manually:
+Wordpress: Two options to deploy: 
+Option 1: deploy using convenience script: 
+<pre><code>	  
+python ./experimental_coordiantor/wordpress_setup/ --autoscale_p
+</code></pre>
+	      
+Note: this might NOT work, in which case you'd have to default to the previous list of commands
 
+Option 2: Deploy manually:
+<pre><code>
 (a) Install helm via instructions here: https://helm.sh/docs/using_helm/#installing-helm
 	   
 (b) Start helm: helm init
@@ -57,16 +68,11 @@ NOTE: DB_CLUSTER_IP needs to be replaced by the ip of the db cluster. This can b
 	   
 NOTE: might want to modify min/max pods amounts depending on system capabilities
 	   
-(g) wait until all the pods are finished deploying`
-	   
-Option 2: deploy using convenience script: 
-	  
-python ./experimental_coordiantor/wordpress_setup/ --autoscale_p
-	      
-Note: this might NOT work, in which case you'd have to default to the previous list of commands`
+(g) wait until all the pods are finished deploying
+</code></pre>
 
 HipsterStore: 
-
+<pre><code>
 (a) install skaffold: https://skaffold.dev/docs/getting-started/#installing-skaffold
 
 (b) clone repo: git clone https://github.com/GoogleCloudPlatform/microservices-demo.git
@@ -74,7 +80,7 @@ HipsterStore:
 cd ./microservices-demo
 			      
 (c) deploy using skaffold: skaffold run 
-	      
+</code></pre>
 NOTE: this'll take a while to run the first timee (~ 20 min)
 
 
