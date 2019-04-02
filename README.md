@@ -41,7 +41,7 @@ Sockshop:
 </code></pre>
 
 Wordpress: Two options to deploy: 
-Option 1: deploy using convenience script: 
+Option 1: deploy using convenience script (you should probably read it before using though): 
 <pre><code>	  
 python ./experimental_coordiantor/wordpress_setup/ --autoscale_p
 </code></pre>
