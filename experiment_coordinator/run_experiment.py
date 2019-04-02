@@ -339,7 +339,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
         with open(container_config_file, 'w') as f:
             f.write(out)
     #'''
-    filename = experiment_name + '_' + 'default_bridge' + '_' # note: will need to redo this if I want to go
+    filename = experiment_name + '_' + 'bridge' + '_' # note: will need to redo this if I want to go
                                                                        # back to using Docker Swarm at some point
     recover_pcap(orchestrator, filename + 'any' + '.pcap')
 

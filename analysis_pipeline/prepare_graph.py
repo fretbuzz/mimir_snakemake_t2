@@ -43,6 +43,8 @@ def map_nodes_to_svcs(G, svcs):
     containers_to_ms = {}
     for u in G.nodes():
         for svc in svcs:
+            if 'cart-' in u:
+                pass
             if match_name_to_pod(svc, u) or match_name_to_pod(svc + '_VIP', u):
                 containers_to_ms[u] = svc
                 break
