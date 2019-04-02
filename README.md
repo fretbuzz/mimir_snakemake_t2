@@ -92,6 +92,7 @@ https://developer.mozilla.org/en-US/docs/Learn/Tools_and_testing/Cross_browser_t
 
 Follow the "Setting up Selenium in Node" section, but skip everything to do with javascript/node. (or can google to find alternative setup instructions). 
 
+
 #### Step 5: Configure Experimental Parameters
 
 Some experimental parameters need to be configured before starting the experiment. See the example in experiment_coordinator/experimental_configs/sockshop_example.json
@@ -122,7 +123,18 @@ These values are related to simualting user traffic during the experiment.
 
 "experiment: "background_locust_spawn_rate": spawn raet of the background locusts (per second)
 
-#### Step 6: Start Experiment
+
+#### Step 6a: Prepare Wordpress Deployment (Wordpress Only)
+
+At the moment, the wordpress experiment must be prepared before running the main experimental coordinator. Move to the /experimental_coordinator/wordpress_setup directory. Then run
+
+python /mydata/mimir_v2/experiment_coordinator/wordpress_setup/setup_wordpress.py [ip of minikube] [port of exposed service] "hi"
+
+Note: the port of the exposed service can be found by: <code><pre> kubectl get svc --all-namespaces </code></pre> and then looking for front-end for sockshop or wwpp-wordpress for wordpress
+
+Note: the ip of minikube can be found with: <code><pre> minikube ip </code></pre>
+
+#### Step 6b: Start Experiment
 
 We'll now start the experimental coordinator. It handles collecting the necessary data, simulating background traffic, and simulating exfiltration (though simulating exfiltration is currently not supported).
 
@@ -130,9 +142,7 @@ Move to the experimental apparatus directory.
 
 python run_experiment.py --exp_name [name of experiment] --config_file [path to config file prepared in previous step] --prepare_app_p --port [port of exposed service] --ip [ip of minikube] --no_exfil
 
-Note: the port of the exposed service can be found by: <code><pre> kubectl get svc --all-namespaces </code></pre> and then looking for front-end for sockshop or wwpp-wordpress for wordpress
-
-Note: the ip of minikube can be found with: <code><pre> minikube ip </code></pre>
+Note: [ip of minikube] and [port of exposed service] are the same that there are in step 6a and are defined there.
 
 Note: name of experiment does not have to agree with what's in the config file.
  
