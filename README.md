@@ -96,7 +96,37 @@ Follow the "Setting up Selenium in Node" section, but skip everything to do with
 
 #### Step 5: Configure Experimental Parameters
 
-[TODO]
+Some experimental parameters need to be configured before starting the experiment. See the example in experiment_coordinator/experimental_configs/sockshop_example.json
+
+Note: There's an analogous example for wordpress at xperiment_coordinator/experimental_configs/wordpress_example.json
+
+The various fields need to be filled out appropriately. I'll now go through what all the fields mean.
+
+"application_name": name of the application that was previously setup (either sockshop or wordpress)
+
+"experiment_name": used for saving the results
+
+"path_to_docker_machine_tls_certs": location of minikube TLS certs (needed to communicate with VM); should be located at the location of the minikube installation /.certs
+
+"experiment_length_sec": how long the experiment should last (in seconds)
+
+These values are related to preparing the application before simulating user traffic. Typically this is used to pre-load the DB with data.
+
+"setup":
+
+"number_customer_records": number of customer records to create
+
+"number_background_locusts": number of background locusts to generate the customer records
+
+"background_locust_spawn_rate": spawn rate of the background locusts (per second)
+
+These values are related to simualting user traffic during the experiment.
+
+"experiment:
+
+"number_background_locusts": number of background locusts to generate user traffic (each locust is roughly one customer)
+
+"background_locust_spawn_rate": spawn raet of the background locusts (per second)
 
 #### Step 6: Start Experiment
 
