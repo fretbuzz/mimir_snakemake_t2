@@ -479,6 +479,7 @@ def process_one_set_of_graphs(time_interval_length, ide_window_size,
                 current_set_of_graphs = pickle.loads(current_set_of_graphs_loc_contents)
         else:
             current_set_of_graphs.generate_injected_edgefiles()
+            current_set_of_graphs.save() # I think this is valid...
 
         current_set_of_graphs.calcuated_single_step_metrics()
         current_set_of_graphs.calc_serialize_metrics()
