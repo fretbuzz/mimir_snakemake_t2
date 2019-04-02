@@ -20,13 +20,10 @@ Minikube is a local kubernetes cluster. The microservice applications will be de
 
 #### Step 2: Start Minikube
 I recommend starting minikube with at least 2 cpus (ideally 4), 8 gigabytes of memory, and 25 gigabytes of disk space
-
 	e.g., <pre><code> minikube start --memory 8192 --cpus=4 --disk-size 25g </code></pre>
 	
  Then need to enable necessary addons:
- 
     <pre><code>  minikube addons enable heapster </code></pre>
-    
     <pre><code>  minikube addons enable metrics-server </code></pre>
  
 #### Step 3: Deploy Relevant Microservice Application
@@ -127,5 +124,15 @@ These values are related to simualting user traffic during the experiment.
 
 #### Step 6: Start Experiment
 
-[TODO]
+We'll now start the experimental coordinator. It handles collecting the necessary data, simulating background traffic, and simulating exfiltration (though simulating exfiltration is currently not supported).
+
+Move to the experimental apparatus directory. 
+
+python run_experiment.py --exp_name [name of experiment] --config_file [path to config file prepared in previous step] --prepare_app_p --port [port of exposed service] --ip [ip of minikube] --no_exfil
+
+Note: the port of the exposed service can be found by: <code><pre> kubectl get svc --all-namespaces </code></pre> and then looking for front-end for sockshop or wwpp-wordpress for wordpress
+
+Note: the ip of minikube can be found with: <code><pre> minikube ip </code></pre>
+
+Note: name of experiment does not have to agree with what's in the config file.
  
