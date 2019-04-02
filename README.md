@@ -12,6 +12,7 @@ Detailed setup/running instructions are being worked on at the moment and should
 The experimental coordinator handles simulating traffic/exfiltration on a microservic deployment. There are several support scripts to setup the applications and a coordinator that handles simulating user traffic, simulates exfiltration, and collects all the relevant data, including a pcap of all network activity on the cluster.
 
 NOTE: at the moment, simulating exfiltration is NOT supported (support will be added within the next week)
+
 NOTE: tested on Ubuntu 16.04.1 LTS
 
 #### Step 1: Install Minikube
@@ -98,7 +99,7 @@ Follow the "Setting up Selenium in Node" section, but skip everything to do with
 
 Some experimental parameters need to be configured before starting the experiment. See the example in experiment_coordinator/experimental_configs/sockshop_example.json
 
-Note: There's an analogous example for wordpress at xperiment_coordinator/experimental_configs/wordpress_example.json
+Note: There's an analogous example for wordpress at experiment_coordinator/experimental_configs/wordpress_example.json
 
 The various fields need to be filled out appropriately. I'll now go through what all the fields mean.
 
