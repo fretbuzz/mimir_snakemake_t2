@@ -629,6 +629,12 @@ def drop_useless_columns_aggreg_DF(aggregate_mod_score_dfs):
             columns='sum_of_max_pod_to_dns_from_each_svc_mod_z_score')
     except:
         pass
+    try:
+        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(
+            columns='Communication Between Pods not through VIPs (w abs)_')
+    except:
+        pass
+
     # Communication Not Through VIPs
     try:
         aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='Communication Not Through VIPs')
@@ -638,33 +644,6 @@ def drop_useless_columns_aggreg_DF(aggregate_mod_score_dfs):
         # 'Communication Between Pods not through VIPs (no abs)_mod_z_score'
         # 'Fraction of Communication Between Pods not through VIPs (no abs)_mod_z_score'
     return aggregate_mod_score_dfs
-
-# if we drop it in this function, it'll still show up in some of the debugging information that it wouldn't if
-# we had dropped it in drop_useless_columns_aggreg_DF
-'''
-def drop_useless_columns_aggreg_testtrain_DF( aggregate_mod_score_dfs_training, aggregate_mod_score_dfs_testing):
-    try:
-        aggregate_mod_score_dfs_training = aggregate_mod_score_dfs_training.drop(columns='new_neighbors_outside')
-        aggregate_mod_score_dfs_testing = aggregate_mod_score_dfs_testing.drop(columns='new_neighbors_outside')
-    except:
-        pass
-    try:
-        aggregate_mod_score_dfs_training = aggregate_mod_score_dfs_training.drop(columns='new_neighbors_dns')
-        aggregate_mod_score_dfs_testing = aggregate_mod_score_dfs_testing.drop(columns='new_neighbors_dns')
-    except:
-        pass
-    try:
-        aggregate_mod_score_dfs_training = aggregate_mod_score_dfs_training.drop(columns=u'new_neighbors_all')
-        aggregate_mod_score_dfs_testing = aggregate_mod_score_dfs_testing.drop(columns=u'new_neighbors_all')
-    except:
-        pass
-    try:
-        aggregate_mod_score_dfs_training = aggregate_mod_score_dfs_training.drop(columns=u'new_neighbors_all ')
-        aggregate_mod_score_dfs_testing = aggregate_mod_score_dfs_testing.drop(columns=u'new_neighbors_all ')
-    except:
-        pass
-    return aggregate_mod_score_dfs_training, aggregate_mod_score_dfs_testing
-'''
 
 def extract_comparison_methods(X_train, X_test):
     try:

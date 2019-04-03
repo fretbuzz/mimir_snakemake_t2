@@ -1,7 +1,5 @@
 ## the purpose of this file is to move the results of the testbed
 ## to the local machine, where it will optionally start processing them
-# TODO: will need to fill in these TODOs and then test (maybe integrate
-# with auto-running of the analysis capabilities, but will require me to re-work some of the testbed)
 
 import argparse
 import pwnlib.tubes.ssh
@@ -159,30 +157,6 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, autoscale
 
 
         minikube_ip, front_facing_port = get_ip_and_port(app_name, sh)
-
-        if app_name == 'wordpress':
-            # step 2: setup wordpress (must be done now rather than later in run_experiment like sockshop)
-            sh.sendline("exit") # need to be a normal user when using selenium
-            sh.sendline("cd /mydata/mimir_v2/experiment_coordinator/experimental_configs")
-
-            prepare_wp_str = "python /mydata/mimir_v2/experiment_coordinator/wordpress_setup/setup_wordpress.py " + \
-                    minikube_ip + " " + front_facing_port + " " + "hi"
-            print "prepare_wp_str",prepare_wp_str
-            sh.sendline(prepare_wp_str)
-
-            #pwd_line = ''
-            line_rec = 'something something'
-            while line_rec != '':
-                last_line = line_rec
-                line_rec = sh.recvline(timeout=360)
-                print("recieved line", line_rec)
-
-            # need to get back to the other group now
-            sh.sendline('sudo newgrp docker')
-            sh.sendline('export MINIKUBE_HOME=/mydata/')
-            sh.sendline('cd /mydata/mimir_v2/experiment_coordinator/')
-
-
         time.sleep(170)
         sh.sendline('rm ' + experiment_sentinal_file)
         print "removing experimente sential file", sh.recvline(timeout=5)

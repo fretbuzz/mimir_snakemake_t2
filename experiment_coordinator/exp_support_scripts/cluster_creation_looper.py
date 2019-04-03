@@ -15,35 +15,40 @@ def pod_logger(log_file_loc, sentinal_file_loc):
         #print "current_loop: ", timestep_counter
         loop_starttime = time.time()
         current_mapping = {}
-        out = subprocess.check_output(['kubectl', 'get', 'po', '-o','wide', '--all-namespaces'])
+        out = subprocess.check_output(['kubectl', 'get', 'po', '-o','wide', '--all-namespaces', '--show-labels'])
 
         for line in out.split('\n')[1:]:
             if line != '':
                 line = [i for i in line.split('   ') if i != '']
-                name = line[1].rstrip().lstrip()
-                ip = line[-2].rstrip().lstrip()
-                namespace=line[0].rstrip().lstrip()
-                if '<none>' not in ip:
-                    current_mapping[name] = (ip, namespace, 'pod')
-
-        out = subprocess.check_output(['kubectl', 'get', 'svc', '-o', 'wide', '--all-namespaces'])
-        for line in out.split('\n')[1:]:
-            if line != '':
-                line = [i for i in line.split('   ') if i != '']
-                namespace = line[0].rstrip().lstrip()
                 name = line[1].rstrip().lstrip()
                 ip = line[3].rstrip().lstrip()
-                current_mapping[name] = (ip, namespace, 'svc')
+                namespace=line[0].rstrip().lstrip()
+                labels = line[8].rstrip().lstrip()
+                if '<none>' not in ip:
+                    current_mapping[name] = (ip, namespace, 'pod', labels)
+
+        out = subprocess.check_output(['kubectl', 'get', 'svc', '-o', 'wide', '--all-namespaces', '--show-labels'])
+        for line in out.split('\n')[1:]:
+            if line != '':
+                line = [i for i in line.split('   ') if i != '']
+                name = line[1].rstrip().lstrip()
+                ip = line[3].rstrip().lstrip()
+                namespace = line[0].rstrip().lstrip()
+                labels = line[7].rstrip().lstrip()
+                current_mapping[name] = (ip, namespace, 'svc', labels)
 
         # now compare to old mapping
         changes_this_time_step = {}
         for cur_name, cur_ip in current_mapping.iteritems():
             if cur_name not in last_timestep_mapping:
-                changes_this_time_step[cur_name] = (cur_ip[0], '+', cur_ip[1], cur_ip[2])
+                changes_this_time_step[cur_name] = (cur_ip[0], '+', cur_ip[1], cur_ip[2], cur_ip[3])
         for last_name,last_ip_tup in last_timestep_mapping.iteritems():
             if last_name not in current_mapping:
-                changes_this_time_step[last_name] = (last_ip_tup[0], '-', last_ip_tup[1], last_ip_tup[2])
+                changes_this_time_step[last_name] = (last_ip_tup[0], '-', last_ip_tup[1], last_ip_tup[2], last_ip_tup[3])
 
+        ## https://kubernetes.io/docs/concepts/services-networking/service/
+        ## 'The set of Pods targeted by a Service is (usually) determined by a Label Selector
+        ## (see below for why you might want a Service without a selector)."
 
         time_step_to_changes[timestep_counter] = changes_this_time_step
 

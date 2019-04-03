@@ -8,7 +8,8 @@ import gc
 import numpy as np
 from analysis_pipeline.next_gen_metrics import create_dict_for_dns_metric, \
     find_dns_node_name, reverse_svc_to_pod_dict, single_step_outside_inside_ratio_dns_metric, calc_VIP_metric
-from analysis_pipeline.prepare_graph import prepare_graph, is_ip, match_name_to_pod
+from analysis_pipeline.prepare_graph import prepare_graph, is_ip, match_name_to_pod, map_nodes_to_svcs, \
+    find_infra_components_in_graph,remove_infra_from_graph
 import random
 import logging
 import time
@@ -715,6 +716,13 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
         inject_synthetic_attacks(cur_1si_G, synthetic_exfil_paths, attacks_to_times, counter, node_attack_mapping,
                                  name_of_dns_pod_node, carryover, attack_injected, time_interval, avg_exfil_per_min,
                                  exfil_per_min_variance, avg_pkt_size, pkt_size_variance, container_to_ip)
+
+        # new nodes exist now... so need to do a limited amt of re-processing...
+        containers_to_ms = map_nodes_to_svcs(cur_1si_G, svcs)
+        nx.set_node_attributes(cur_1si_G, containers_to_ms, 'svc')
+        if drop_infra_from_graph:
+            infra_nodes = find_infra_components_in_graph(cur_1si_G, infra_instances)
+            cur_1si_G = remove_infra_from_graph(cur_1si_G, infra_nodes)
 
         attack_happened_p = 0
         if attack_injected:

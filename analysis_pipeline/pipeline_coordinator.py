@@ -271,6 +271,7 @@ def pipeline_one_exfil_rate(rate_counter,
     clf = LassoCV(cv=3, max_iter=80000)
 
     #'''
+    test = time_gran_to_aggregate_mod_score_dfs[10]['is_test']
     list_of_optimal_fone_scores_at_this_exfil_rates, Xs,Ys,Xts,Yts, trained_models, list_of_attacks_found_dfs, \
     list_of_attacks_found_training_df,experiment_info, time_gran_to_outtraffic = \
     statistical_analysis_v2(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, cur_base_output_name + '_lasso_', names,

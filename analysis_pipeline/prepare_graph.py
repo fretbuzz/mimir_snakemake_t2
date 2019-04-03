@@ -17,23 +17,19 @@ def is_private_ip(addr_bytes):
     # private_subnet_two = ('172.16.0.0', '172.31.255.255') # so if
     # private_subnet_three = ('192.168.0.0', '192.168.255.255') # so if 192.168.XX.XX
 
+    ### TODO : better waY: just make all private IP addresses not in the outside, private
+
     if addr_bytes[0] == '10':
         return True
-    #elif addr_bytes[0] == '172' and int(addr_bytes[1]) >= 16 and int(addr_bytes[1]) <= 31:
-    #    return True
-    # NOTE: it looks like this range normally used by the VM, so it is NOT fair game
-    # to be used in cluster, since it'd have a different meaning
-    #elif  addr_bytes[0] == '192' and addr_bytes[1] == '168':
-    #    return True
     elif addr_bytes[0] == '127' and addr_bytes[1] == '0' and addr_bytes[2] == '0' and addr_bytes[3] == '1':
+        return True # loopback is definitely private
+    elif addr_bytes[0] == '172' and addr_bytes[1] == '17' and addr_bytes[2] == '0' and addr_bytes[3] != '1':
+    #    # this corresponds to pods in the minikube cluster... tho if I change the experimental apparatus, that might change too
         return True
     # todo: this is a heuristic way to identify the host machine's IP
     elif addr_bytes[0] == '192' and addr_bytes[1] == '168'  and addr_bytes[3] != '1':
        return True # assuming that the only 192.168.XX.1 addresses will be the hosting computer
     # actually 172.17.0.1 can effectively be treated as an outside entity, due to NAT-like behavior
-    elif addr_bytes[0] == '172' and addr_bytes[1] == '17' and addr_bytes[2] == '0' and addr_bytes[3] != '1':
-    #    # this corresponds to pods in the minikube cluster... tho if I change the experimental apparatus, that might change too
-        return True
     else:
         return False
 
@@ -43,7 +39,7 @@ def map_nodes_to_svcs(G, svcs):
     containers_to_ms = {}
     for u in G.nodes():
         for svc in svcs:
-            if 'cart-' in u:
+            if u == "wwwppp-wordpress_VIP" :
                 pass
             if match_name_to_pod(svc, u) or match_name_to_pod(svc + '_VIP', u):
                 containers_to_ms[u] = svc
@@ -184,6 +180,29 @@ def aggregate_graph(G, ms_s):
 
     return H, M
 
+def find_infra_components_in_graph(G, infra_instances):
+    infra_nodes = []
+    for node in G.nodes():
+        for infra_instance_name, ip_and_type in infra_instances.iteritems():
+            infra_instance_name, infra_instance_PodSvc = infra_instance_name, ip_and_type[1]
+            if 'heapster' in node and 'heapster' in infra_instance_name:
+                # print infra_instance_PodSvc == node
+                pass  # to be used as a debug point...
+            if infra_instance_PodSvc == 'pod':
+                if infra_instance_name == node:
+                    infra_nodes.append(node)
+            elif infra_instance_PodSvc == 'svc':
+                if match_name_to_pod(infra_instance_name + '_VIP', node):
+                    infra_nodes.append(node)
+    return infra_nodes
+
+def remove_infra_from_graph(G, infra_nodes):
+    nodes_in_g = [node for node in G.nodes()]
+    application_nodes = list(set(nodes_in_g).difference(set(infra_nodes)))
+    application_nodes = [node for node in application_nodes if not is_ip(node)]
+    induced_graph = G.subgraph(G.subgraph(application_nodes)).copy()
+    return induced_graph
+
 # okay, so G is already a network, read in from an edgefile
 # level_of_processing is one of ('app_only', 'none', 'class')
 # where none = no other processing except aggregating outside entries (container granularity)
@@ -196,27 +215,11 @@ def prepare_graph(G, svcs, level_of_processing, is_swarm, counter, file_path, ms
     G = aggregate_outside_nodes(G)
     if level_of_processing == 'app_only':
         containers_to_ms = map_nodes_to_svcs(G, svcs)
-        infra_nodes = []
-        for node in G.nodes():
-            for infra_instance_name, ip_and_type in infra_instances.iteritems():
-                infra_instance_name, infra_instance_PodSvc = infra_instance_name, ip_and_type[1]
-                if 'heapster' in node and 'heapster' in infra_instance_name:
-                    #print infra_instance_PodSvc == node
-                    pass # to be used as a debug point...
-                if infra_instance_PodSvc == 'pod':
-                    if infra_instance_name == node:
-                        infra_nodes.append(node)
-                elif infra_instance_PodSvc == 'svc':
-                    if match_name_to_pod(infra_instance_name + '_VIP', node):
-                        infra_nodes.append(node)
-
         nx.set_node_attributes(G, containers_to_ms, 'svc')
-        nodes_in_g = [node for node in G.nodes()]
-        application_nodes = list(set(nodes_in_g).difference(set(infra_nodes)))
-        application_nodes = [node for node in application_nodes if not is_ip(node)]
+        infra_nodes = find_infra_components_in_graph(G, infra_instances)
 
         if drop_infra_p:
-            induced_graph = G.subgraph(G.subgraph(application_nodes)).copy()
+            induced_graph = remove_infra_from_graph(G, infra_nodes)
         else:
             induced_graph = G
 

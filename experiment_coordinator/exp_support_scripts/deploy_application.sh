@@ -12,6 +12,7 @@ if [ "$1" = "wordpress" ]; then
   echo "it was testtest"
   echo "see, it was wordpress" >> /local/repository/deploy_test.txt
   # deploy_wordpress.py
+  cd /mydata/mimir_snakemake_t2/
   bash /mydata/mimir_snakemake_t2/experiment_coordinator/install_scripts/install_selenium_dependencies.sh
   if [ -z "autoscale_p" ]
   then

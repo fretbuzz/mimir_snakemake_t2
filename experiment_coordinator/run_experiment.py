@@ -20,6 +20,7 @@ import re
 import pexpect
 import shutil
 import math
+import wordpress_setup.setup_wordpress
 
 
 #Locust contemporary client count.  Calculated from the function f(x) = 1/25*(-1/2*sin(pi*x/12) + 1.1), 
@@ -388,8 +389,11 @@ def prepare_app(app_name, config_params, ip, port):
         #    print >> f, out
         print out
     elif app_name == "wordpress":
-        print "wordpress must be prepared manually (via the the /admin panel and Fakerpress)"
-        #exit(12) # yah yah I know. No need to exit b/c of it...
+        ## ZZKKPP
+        try:
+            wordpress_setup.setup_wordpress.main(ip, port, "hi")
+        except Exception,e:
+            print "wordpress_setup.setup_wordpress.main triggered this exception: ", str(e)
     else:
         # other applications will require other setup procedures (if they can be automated) #
         # note: some cannot be automated (i.e. wordpress)
@@ -420,7 +424,8 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
     elif (traffic_type == "cybermonday"):
         client_ratio = CLIENT_RATIO_CYBER
     else:
-        raise RuntimeError("Invalid traffic parameter provided!")
+        #raise RuntimeError("Invalid traffic parameter provided!")
+        client_ratio = CLIENT_RATIO_NORMAL
     if (run_time <= 0):
         raise RuntimeError("Invalid testing time provided!")
 
@@ -1144,7 +1149,11 @@ def generate_analysis_json(path_to_exp_folder, analysis_json_name, exp_config_js
     analysis_dict["application_name"] = exp_config_json["application_name"]
     analysis_dict["experiment_name"] = exp_config_json["experiment_name"]
     analysis_dict["experiment_length_sec"] = exp_config_json["experiment_length_sec"]
-    analysis_dict["network_plugin"] = exp_config_json["network_plugin"]
+
+    if "network_plugin" in exp_config_json:
+        analysis_dict["network_plugin"] = exp_config_json["network_plugin"]
+    else:
+        analysis_dict["network_plugin"] = "none"
 
     try:
         analysis_dict["setup"] = {}
@@ -1157,26 +1166,31 @@ def generate_analysis_json(path_to_exp_folder, analysis_json_name, exp_config_js
     analysis_dict["experiment"] = {}
     analysis_dict["experiment"]["number_background_locusts"] = exp_config_json["experiment"]["number_background_locusts"]
     analysis_dict["experiment"]["background_locust_spawn_rate"] = exp_config_json["experiment"]["background_locust_spawn_rate"]
-    analysis_dict["experiment"]["traffic_type"] = exp_config_json["experiment"]["traffic_type"]
+    try:
+        analysis_dict["experiment"]["traffic_type"] = exp_config_json["experiment"]["traffic_type"]
+    except:
+        analysis_dict["experiment"]["traffic_type"] = "normal"
 
-    analysis_dict["exfiltration_info"] = {}
-    analysis_dict["exfiltration_info"]["sensitive_ms"] = exp_config_json["exfiltration_info"]["sensitive_ms"]
-    analysis_dict["exfiltration_info"]["exfiltration_path_class_which_installer"] = exp_config_json["exfiltration_info"]["exfiltration_path_class_which_installer"]
-    analysis_dict["exfiltration_info"]["exfil_paths"] = exp_config_json["exfiltration_info"]["exfil_paths"]
-    analysis_dict["exfiltration_info"]["folder_to_exfil"] = exp_config_json["exfiltration_info"]["folder_to_exfil"]
-    analysis_dict["exfiltration_info"]["regex_of_file_to_exfil"] = exp_config_json["exfiltration_info"]["regex_of_file_to_exfil"]
-    analysis_dict["exfiltration_info"]["exfil_methods"] = exp_config_json["exfiltration_info"]["exfil_methods"]
-    analysis_dict["exfiltration_info"]["exfil_protocols"] = exp_config_json["exfiltration_info"]["exfil_protocols"]
-    analysis_dict["exfiltration_info"]["exfil_StartEnd_times"] = exp_config_json["exfiltration_info"]["exfil_StartEnd_times"]
-    analysis_dict["exfiltration_info"]["DET_min_exfil_data_per_packet_bytes"] = exp_config_json["exfiltration_info"]["DET_min_exfil_data_per_packet_bytes"]
-    analysis_dict["exfiltration_info"]["DET_max_exfil_data_per_packet_bytes"] = exp_config_json["exfiltration_info"]["DET_max_exfil_data_per_packet_bytes"]
-    analysis_dict["exfiltration_info"]["DET_avg_exfiltration_rate_KB_per_sec"] = exp_config_json["exfiltration_info"]["DET_avg_exfiltration_rate_KB_per_sec"]
-    analysis_dict["exfiltration_info"]["sec_between_exfil_pkts"] = exp_config_json["exfiltration_info"]["sec_between_exfil_pkts"]
+    try:
+        analysis_dict["exfiltration_info"] = {}
+        analysis_dict["exfiltration_info"]["sensitive_ms"] = exp_config_json["exfiltration_info"]["sensitive_ms"]
+        analysis_dict["exfiltration_info"]["exfiltration_path_class_which_installer"] = exp_config_json["exfiltration_info"]["exfiltration_path_class_which_installer"]
+        analysis_dict["exfiltration_info"]["exfil_paths"] = exp_config_json["exfiltration_info"]["exfil_paths"]
+        analysis_dict["exfiltration_info"]["folder_to_exfil"] = exp_config_json["exfiltration_info"]["folder_to_exfil"]
+        analysis_dict["exfiltration_info"]["regex_of_file_to_exfil"] = exp_config_json["exfiltration_info"]["regex_of_file_to_exfil"]
+        analysis_dict["exfiltration_info"]["exfil_methods"] = exp_config_json["exfiltration_info"]["exfil_methods"]
+        analysis_dict["exfiltration_info"]["exfil_protocols"] = exp_config_json["exfiltration_info"]["exfil_protocols"]
+        analysis_dict["exfiltration_info"]["exfil_StartEnd_times"] = exp_config_json["exfiltration_info"]["exfil_StartEnd_times"]
+        analysis_dict["exfiltration_info"]["DET_min_exfil_data_per_packet_bytes"] = exp_config_json["exfiltration_info"]["DET_min_exfil_data_per_packet_bytes"]
+        analysis_dict["exfiltration_info"]["DET_max_exfil_data_per_packet_bytes"] = exp_config_json["exfiltration_info"]["DET_max_exfil_data_per_packet_bytes"]
+        analysis_dict["exfiltration_info"]["DET_avg_exfiltration_rate_KB_per_sec"] = exp_config_json["exfiltration_info"]["DET_avg_exfiltration_rate_KB_per_sec"]
+        analysis_dict["exfiltration_info"]["sec_between_exfil_pkts"] = exp_config_json["exfiltration_info"]["sec_between_exfil_pkts"]
+        analysis_dict['exfiltration_info']['sec_between_exfil_pkts'] = exp_config_json["exfiltration_info"]["sec_between_exfil_pkts"]
+    except:
+        pass # exfil must not be being simulated during this experiment
 
     analysis_dict["pod_creation_log_name"] = exp_name  + '_cluster_creation_log.txt'
-    analysis_dict["pcap_file_name"] = exp_name + '_default_bridge_any.pcap'
-
-    analysis_dict['exfiltration_info']['sec_between_exfil_pkts'] = exp_config_json["exfiltration_info"]["sec_between_exfil_pkts"]
+    analysis_dict["pcap_file_name"] = exp_name + '_bridge_any.pcap'
 
 
     json_path = path_to_exp_folder + analysis_json_name

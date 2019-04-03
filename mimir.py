@@ -1,10 +1,12 @@
 ### this file will eventually contain the CL interface for the system.
 import argparse
+import analysis_pipeline.config_parser
 
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='This is the central CL interface for the MIMIR system')
 
+    '''
     parser.add_argument('--training_pcap', dest='training_pcap', default=None,
                         help='this pcap is used as training data')
     parser.add_argument('--testing_pcap', dest='testing_pcap', default=None,
@@ -25,5 +27,14 @@ if __name__ == "__main__":
     parser.add_argument('--no_testing_simattack', dest='no_testing_simattack_', action='store_true',
                        default=False,
                        help='do NOT simulate attacks in the testing data')
+    '''
+
+    parser.add_argument('--config_json', dest='config_json', default=None,
+                        help='this is the configuration file used to process the file')
+    args = parser.parse_args()
+    if not args.config_json:
+        analysis_pipeline.config_parser.parse_experimental_config('./analysis_pipeline/analysis_json/sockshop_one_v2.json')
+    else:
+        analysis_pipeline.config_parser.parse_experimental_config(args.config_json)
 
 

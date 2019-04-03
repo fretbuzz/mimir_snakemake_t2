@@ -1,16 +1,18 @@
 {
   "skip_model_part": false,
   "ignore_physical_attacks_p": true,
-  "time_of_synethic_exfil": 60,
-  "goal_train_test_split_training": 0.50,
-  "goal_attack_NoAttack_split_training": 0.50,
-  "goal_attack_NoAttack_split_testing": 0.2,
-  "time_interval_lengths": [10, 60],
   "ide_window_size": 12,
-  "avg_exfil_per_min": [10.0, 1.0, 0.1, 0.01],
-  "exfil_per_min_variance": [0.3, 0.15, 0.025, 0.0025],
   "avg_pkt_size": [500.0, 500.0, 500.00, 500.00, 500.0],
   "pkt_size_variance":  [100, 100, 100, 100, 100],
+
+  "time_of_synethic_exfil": 60,
+  "time_interval_lengths": [10, 60],
+  "avg_exfil_per_min": [10.0, 1.0, 0.1, 0.01],
+  "exfil_per_min_variance": [0.3, 0.15, 0.025, 0.0025],
+
+    "goal_attack_NoAttack_split_training": 0.50,
+  "goal_train_test_split_training": 0.50,
+  "goal_attack_NoAttack_split_testing": 0.2,
 
   "calc_vals": true,
   "calculate_z_scores": true,
@@ -20,15 +22,14 @@
   "drop_pairwise_features": false,
   "drop_infra_from_graph": true,
   "perform_cilium_component": false,
+  "skip_graph_injection": false,
+  "get_endresult_from_memory": false,
+  "make_edgefiles": false,
 
   "cur_experiment_name": "sockshop_one_v2_mk1",
   "cur_experiment_name_comment": "sockshop_one_v2_mk1_modEdgeDir_",
+
   "base_output_location": "/Volumes/exM2/experimental_data/sockshop_v2_summary/",
-
-  "skip_graph_injection": false,
-  "get_endresult_from_memory": false,
-
-  "make_edgefiles": false,
   "experimental_folder": "/Volumes/exM2/experimental_data/sockshop_info/sockshop_exp_one_v2/",
   "pcap_file_path": "/Volumes/exM2/experimental_data/sockshop_info/sockshop_exp_one_v2/",
   "pod_creation_log_path": "/Volumes/exM2/experimental_data/sockshop_info/sockshop_exp_one_v2/",

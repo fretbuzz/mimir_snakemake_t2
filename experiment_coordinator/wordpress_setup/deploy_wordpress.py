@@ -27,7 +27,7 @@ def main(autoscale_p=False, cpu_percent_cuttoff=80):
     print "db_cluster_ip", db_cluster_ip
     #helm install --name wwwppp --values /mydata/mimir/install_scripts/wordpress-values-production.yaml --set externalDatabase.host=10.103.42.190  stable/wordpress
     try:
-        out = subprocess.check_output(["helm", "install", "--name", "wwwppp", "--values", "/mydata/mimir_v2/experiment_coordinator/wordpress_setup/wordpress-values-production.yaml", "--set", "externalDatabase.host=" + db_cluster_ip, "stable/wordpress"])
+        out = subprocess.check_output(["helm", "install", "--name", "wwwppp", "--values", "experiment_coordinator/wordpress_setup/wordpress-values-production.yaml", "--set", "externalDatabase.host=" + db_cluster_ip, "stable/wordpress"])
         print out
     except:
         print "wordpress deployment must already exist"
