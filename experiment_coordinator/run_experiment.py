@@ -680,10 +680,6 @@ def install_exfil_dependencies(exfil_paths, orchestrator, class_to_installer):
         print("Deployment updated. status='%s'" % str(api_response.status))
 
 
-
-    ### TODO
-    pass
-
 # returns a list of container names that correspond to the
 # selected class
 def get_class_instances(orchestrator, class_name, class_to_net):
