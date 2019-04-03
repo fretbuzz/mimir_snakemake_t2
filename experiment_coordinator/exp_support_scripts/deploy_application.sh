@@ -8,12 +8,14 @@ echo "$1" >> /local/repository/deploy_test_prior_val.txt
 echo "$0" >> /local/repository/deploy_test_prior_val_two.txt
 echo "$2" >> /local/repository/deploy_test_prior_val_three.txt
 
+# need to always install in now b/c it is being imported by run_experiment now
+bash /mydata/mimir_snakemake_t2/experiment_coordinator/install_scripts/install_selenium_dependencies.sh
+
 if [ "$1" = "wordpress" ]; then
   echo "it was testtest"
   echo "see, it was wordpress" >> /local/repository/deploy_test.txt
   # deploy_wordpress.py
   cd /mydata/mimir_snakemake_t2/
-  bash /mydata/mimir_snakemake_t2/experiment_coordinator/install_scripts/install_selenium_dependencies.sh
   if [ -z "autoscale_p" ]
   then
       python /mydata/mimir_snakemake_t2/experiment_coordinator/wordpress_setup/deploy_wordpress.py
