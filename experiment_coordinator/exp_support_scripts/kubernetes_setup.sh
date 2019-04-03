@@ -42,6 +42,7 @@ curl -Lo docker-machine-driver-kvm2 https://storage.googleapis.com/minikube/rele
 export MINIKUBE_HOME=/mydata
 pip install cython
 sudo pip install pycrypto
+pip install kubernetes
 
 #minikube start --vm-driver kvm2 --cpus=16 --memory=100000 --disk-size 65g
 

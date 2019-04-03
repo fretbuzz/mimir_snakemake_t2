@@ -339,7 +339,7 @@ class data_anylsis_pipline(object):
                     current_exfil_dict = {'weight': weight, 'frames': pkts}
                     list_of_exfil_amts.append(current_exfil_dict)
                 time_gran_to_list_of_exfil_amts[interval] = list_of_exfil_amts
-                if min_interval:
+                if min_interval == interval:
                     print time_gran_to_feature_dataframe[interval]['is_test'], type(
                         time_gran_to_feature_dataframe[interval]['is_test'])
                     self.end_of_training = time_gran_to_feature_dataframe[interval]['is_test'].tolist().index(

@@ -21,6 +21,7 @@ import pexpect
 import shutil
 import math
 import wordpress_setup.setup_wordpress
+from kubernetes import client, config
 
 
 #Locust contemporary client count.  Calculated from the function f(x) = 1/25*(-1/2*sin(pi*x/12) + 1.1), 
@@ -627,6 +628,61 @@ def find_container_in_class(proxy_class, class_to_networks, orchestrator='kubern
     possible_proxies, class_to_networks[proxy_class] = get_class_instances(orchestrator, proxy_class,"None")
     selected_proxy = random.sample(possible_proxies[proxy_class], 1)
     return selected_proxy, class_to_networks
+
+
+def install_exfil_dependencies(exfil_paths, orchestrator, class_to_installer):
+    # let's find all elements (classes) on which I want to install the exfil dependencies
+    exfil_elements = set()
+    for exfil_path in exfil_paths:
+        for element in exfil_path:
+            exfil_elements.add(element)
+
+    # let's find a containers that match the element class
+    for element in list(exfil_elements):
+        containers,networks = get_class_instances(orchestrator, element, "None")
+        # now actually install the dependencies
+        chosen_container = containers[0]
+        install_det_dependencies(orchestrator, chosen_container, class_to_installer[element])
+        # now commit the image
+        old_image_name = None
+        for tag in chosen_container.image.tags:
+            if element in tag:
+                old_image_name = tag
+                break
+
+        base_image_name,old_tag_version = old_image_name.split(':')[:-1],old_image_name.split(':')[-1]
+        base_image_name = ":".join(base_image_name)
+        new_tag_vesion = base_image_name + ':' + old_tag_version[:-1] + str(int(old_tag_version[-1]) + 1)
+        new_tag_version_shorter = old_tag_version[:-1] + str(int(old_tag_version[-1]) + 1)
+        chosen_container.commit(tag=new_tag_version_shorter, repository = base_image_name)
+
+        # okay, now update kubernetese deployment
+        # I'm going to use the kubernetes python client and follow the code at:
+        # https://github.com/FingerLiu/client-python/blob/9ae080693cd16ce825a977cc167803ab1f7f1202/examples/deployment_examples.py#L56
+        config.load_kube_config()
+        k8s_beta = client.ExtensionsV1beta1Api()
+        # step (1): find corresponding kubernetes deployment
+        api_response = k8s_beta.list_deployment_for_all_namespaces()
+
+        cur_relevant_deployment = None
+        for item in api_response.items:
+            if 'name' in item.metadata.labels:
+                if element == item.metadata.labels['name']:
+                    cur_relevant_deployment = item
+                    break
+
+        # step (2): update the deployment
+        cur_relevant_deployment.spec.template.spec.containers[0].image = new_tag_vesion
+        api_response = k8s_beta.patch_namespaced_deployment(
+            name=element,
+            namespace=cur_relevant_deployment.metadata.namespace,
+            body=cur_relevant_deployment)
+        print("Deployment updated. status='%s'" % str(api_response.status))
+
+
+
+    ### TODO
+    pass
 
 # returns a list of container names that correspond to the
 # selected class
