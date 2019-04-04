@@ -64,115 +64,111 @@ def determine_injection_times(exps_info, goal_train_test_split,goal_attack_NoAtt
 # this function loops through multiple experiments (or even just a single experiment), accumulates the relevant
 # feature dataframes, and then performs LASSO regression to determine a concise graphical model that can detect
 # the injected synthetic attacks
-def multi_experiment_pipeline(function_list, base_output_name, ROC_curve_p, time_each_synthetic_exfil,
-                              goal_train_test_split, goal_attack_NoAttack_split_training, training_window_size,
-                              size_of_neighbor_training_window, calc_vals, skip_model_part, ignore_physical_attacks_p,
-                              calculate_z_scores_p=True, avg_exfil_per_min=None, exfil_per_min_variance=None,
-                              avg_pkt_size=None, pkt_size_variance=None,
-                              skip_graph_injection=False, get_endresult_from_memory=False,
-                              goal_attack_NoAttack_split_testing=0.0, calc_ide=False, include_ide=False,
-                              only_ide=False, perform_cilium_component=True, only_perform_cilium_component=True,
-                              cilium_component_time=100, drop_pairwise_features=False,
-                              max_path_length=15, max_dns_porportion=1.0,drop_infra_from_graph=False,
-                              ide_window_size=10 ,debug_basename=None):
+class multi_experiment_pipeline(object):
+    def __init__(self, function_list, base_output_name, ROC_curve_p, time_each_synthetic_exfil,
+                 goal_train_test_split, goal_attack_NoAttack_split_training, training_window_size,
+                 size_of_neighbor_training_window, calc_vals, skip_model_part, ignore_physical_attacks_p,
+                 calculate_z_scores_p=True, avg_exfil_per_min=None, exfil_per_min_variance=None,
+                 avg_pkt_size=None, pkt_size_variance=None,
+                 skip_graph_injection=False, get_endresult_from_memory=False,
+                 goal_attack_NoAttack_split_testing=0.0, calc_ide=False, include_ide=False,
+                 only_ide=False, perform_cilium_component=True, only_perform_cilium_component=True,
+                 cilium_component_time=100, drop_pairwise_features=False,
+                 max_path_length=15, max_dns_porportion=1.0,drop_infra_from_graph=False,
+                 ide_window_size=10 ,debug_basename=None):
 
-    #if only_perform_cilium_component:
-    #    calc_vals = False
-    #    # is this it ???
-
-    # TODO: do stuff with the debug stuff
-    if not debug_basename:
-        debug_basename = base_output_name
-
-    list_of_optimal_fone_scores_at_exfil_rates = []
-    rate_to_timegran_to_methods_to_attacks_found_dfs = {}
-    rate_to_timegran_list_of_methods_to_attacks_found_training_df = {}
-    rates_to_experiment_info = {}
-    test_results_df_loc = base_output_name + 'test_results_df_loc.txt'
-    training_results_df_loc = base_output_name + 'train_results_df_loc.txt'
-    rates_to_experiment_info_loc = base_output_name + 'rates_to_experiment_info_loc.txt'
-    rates_to_outtraffic_info = base_output_name + 'outtraffic_bytese.txt'
-    rate_to_time_gran_to_xs = {}
-    rate_to_time_gran_to_ys = {}
-    rate_to_time_gran_to_outtraffic = {}
-
-    if get_endresult_from_memory:
-        with open(test_results_df_loc, 'r') as input_file:
-            rate_to_timegran_to_methods_to_attacks_found_dfs = pickle.load(input_file)
-        with open(training_results_df_loc, 'r') as input_file:
-            rate_to_timegran_list_of_methods_to_attacks_found_training_df = pickle.load(input_file)
-        with open(rates_to_experiment_info_loc, 'r') as input_file:
-            rates_to_experiment_info = pickle.load(input_file)
-        #with open(rates_to_outtraffic_info, 'r') as input_file:
-        #    rate_to_time_gran_to_outtraffic = pickle.load(input_file)
-    else:
-        # step(0): need to find out the  meta-data for each experiment so we can coordinate the
-        # synthetic attack injections between experiments
-        exps_exfil_paths, end_of_train_portions, training_exfil_paths, testing_exfil_paths, exps_initiator_info = \
-                determine_and_assign_exfil_paths(calc_vals, skip_model_part, function_list, goal_train_test_split,
-                                                 goal_attack_NoAttack_split_training, ignore_physical_attacks_p, 
-                                                 time_each_synthetic_exfil,goal_attack_NoAttack_split_testing,
-                                                 max_path_length, max_dns_porportion)
-        # TODO: REMOVE
-        #exit(233)
-
-        for rate_counter in range(0,len(avg_exfil_per_min)):
-            out_q = multiprocessing.Queue()
-            cur_function_list = [copy.deepcopy(i) for i in function_list]
-            args = [rate_counter,
-                    base_output_name, cur_function_list, exps_exfil_paths, exps_initiator_info,
-                    calculate_z_scores_p, calc_vals, end_of_train_portions,training_exfil_paths,
-                    testing_exfil_paths, ignore_physical_attacks_p, skip_model_part, out_q,
-                    ROC_curve_p, avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
-                    skip_graph_injection, calc_ide, include_ide, only_ide, drop_pairwise_features,
-                    perform_cilium_component, cilium_component_time, ide_window_size, drop_infra_from_graph]
-            p = multiprocessing.Process(
-                target=pipeline_one_exfil_rate,
-                args=args)
-            p.start()
-            Xs = out_q.get()
-            Ys = out_q.get()
-            Xts = out_q.get()
-            Yts = out_q.get()
-            optimal_fones = out_q.get()
-            trained_models = out_q.get()
-            timegran_to_methods_to_attacks_found_dfs  = out_q.get()
-            timegran_to_methods_toattacks_found_training_df  = out_q.get()
-            experiment_info = out_q.get()
-            time_gran_to_outtraffic = out_q.get()
-            p.join()
-
-            rates_to_experiment_info[avg_exfil_per_min[rate_counter]] = experiment_info
-            rate_to_timegran_to_methods_to_attacks_found_dfs[avg_exfil_per_min[rate_counter]] = timegran_to_methods_to_attacks_found_dfs
-            rate_to_timegran_list_of_methods_to_attacks_found_training_df[avg_exfil_per_min[rate_counter]] = timegran_to_methods_toattacks_found_training_df
-            list_of_optimal_fone_scores_at_exfil_rates.append(optimal_fones)
-
-            if avg_exfil_per_min[rate_counter] not in rate_to_time_gran_to_xs:
-                rate_to_time_gran_to_xs[avg_exfil_per_min[rate_counter]] = []
-                rate_to_time_gran_to_ys[avg_exfil_per_min[rate_counter]] = []
-                rate_to_time_gran_to_outtraffic[avg_exfil_per_min[rate_counter]] = []
-
-            for time_counter,time_gran in enumerate(rate_to_timegran_to_methods_to_attacks_found_dfs[avg_exfil_per_min[rate_counter]].keys()):
-                rate_to_time_gran_to_xs[avg_exfil_per_min[rate_counter]].append((Xs[time_gran], Xts[time_gran]))
-                rate_to_time_gran_to_ys[avg_exfil_per_min[rate_counter]].append((Ys[time_gran], Yts[time_gran]))
-                rate_to_time_gran_to_outtraffic[avg_exfil_per_min[rate_counter]].append(time_gran_to_outtraffic)
-
-        with open(test_results_df_loc, 'wb') as f:  # Just use 'w' mode in 3.x
-            f.write(pickle.dumps(rate_to_timegran_to_methods_to_attacks_found_dfs))
-        with open(training_results_df_loc, 'wb') as f:  # Just use 'w' mode in 3.x
-            f.write(pickle.dumps(rate_to_timegran_list_of_methods_to_attacks_found_training_df))
-        with open(rates_to_experiment_info_loc, 'wb') as f:  # Just use 'w' mode in 3.x
-            f.write(pickle.dumps(rates_to_experiment_info))
-        with open(rates_to_outtraffic_info, 'wb') as f:  # Just use 'w' mode in 3.x
-            f.write(pickle.dumps(rate_to_time_gran_to_outtraffic))
-
-    generate_aggregate_report.generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
-                              rate_to_timegran_list_of_methods_to_attacks_found_training_df,
-                              base_output_name, rates_to_experiment_info, rate_to_time_gran_to_outtraffic)
+        self.list_of_optimal_fone_scores_at_exfil_rates = []
+        self.rate_to_timegran_to_methods_to_attacks_found_dfs = {}
+        self.rate_to_timegran_list_of_methods_to_attacks_found_training_df = {}
+        self.rates_to_experiment_info = {}
+        self.test_results_df_loc = base_output_name + 'test_results_df_loc.txt'
+        self.training_results_df_loc = base_output_name + 'train_results_df_loc.txt'
+        self.rates_to_experiment_info_loc = base_output_name + 'rates_to_experiment_info_loc.txt'
+        self.rates_to_outtraffic_info = base_output_name + 'outtraffic_bytese.txt'
+        self.rate_to_time_gran_to_xs = {}
+        self.rate_to_time_gran_to_ys = {}
+        self.rate_to_time_gran_to_outtraffic = {}
 
 
-    return rate_to_time_gran_to_xs, rate_to_time_gran_to_ys, rate_to_timegran_list_of_methods_to_attacks_found_training_df, \
-           rate_to_timegran_to_methods_to_attacks_found_dfs
+
+
+        if get_endresult_from_memory:
+            with open(self.test_results_df_loc, 'r') as input_file:
+                rate_to_timegran_to_methods_to_attacks_found_dfs = pickle.load(input_file)
+            with open(self.training_results_df_loc, 'r') as input_file:
+                rate_to_timegran_list_of_methods_to_attacks_found_training_df = pickle.load(input_file)
+            with open(self.rates_to_experiment_info_loc, 'r') as input_file:
+                rates_to_experiment_info = pickle.load(input_file)
+            #with open(rates_to_outtraffic_info, 'r') as input_file:
+            #    rate_to_time_gran_to_outtraffic = pickle.load(input_file)
+        else:
+            # step(0): need to find out the  meta-data for each experiment so we can coordinate the
+            # synthetic attack injections between experiments
+            exps_exfil_paths, end_of_train_portions, training_exfil_paths, testing_exfil_paths, exps_initiator_info = \
+                    determine_and_assign_exfil_paths(calc_vals, skip_model_part, function_list, goal_train_test_split,
+                                                     goal_attack_NoAttack_split_training, ignore_physical_attacks_p,
+                                                     time_each_synthetic_exfil,goal_attack_NoAttack_split_testing,
+                                                     max_path_length, max_dns_porportion)
+            # TODO: REMOVE
+            #exit(233)
+
+            for rate_counter in range(0,len(avg_exfil_per_min)):
+                out_q = multiprocessing.Queue()
+                cur_function_list = [copy.deepcopy(i) for i in function_list]
+                args = [rate_counter,
+                        base_output_name, cur_function_list, exps_exfil_paths, exps_initiator_info,
+                        calculate_z_scores_p, calc_vals, end_of_train_portions,training_exfil_paths,
+                        testing_exfil_paths, ignore_physical_attacks_p, skip_model_part, out_q,
+                        ROC_curve_p, avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
+                        skip_graph_injection, calc_ide, include_ide, only_ide, drop_pairwise_features,
+                        perform_cilium_component, cilium_component_time, ide_window_size, drop_infra_from_graph]
+                p = multiprocessing.Process(
+                    target=pipeline_one_exfil_rate,
+                    args=args)
+                p.start()
+                Xs = out_q.get()
+                Ys = out_q.get()
+                Xts = out_q.get()
+                Yts = out_q.get()
+                optimal_fones = out_q.get()
+                trained_models = out_q.get()
+                timegran_to_methods_to_attacks_found_dfs  = out_q.get()
+                timegran_to_methods_toattacks_found_training_df  = out_q.get()
+                experiment_info = out_q.get()
+                time_gran_to_outtraffic = out_q.get()
+                p.join()
+
+                self.rates_to_experiment_info[avg_exfil_per_min[rate_counter]] = experiment_info
+                self.rate_to_timegran_to_methods_to_attacks_found_dfs[avg_exfil_per_min[rate_counter]] = timegran_to_methods_to_attacks_found_dfs
+                self.rate_to_timegran_list_of_methods_to_attacks_found_training_df[avg_exfil_per_min[rate_counter]] = timegran_to_methods_toattacks_found_training_df
+                self.list_of_optimal_fone_scores_at_exfil_rates.append(optimal_fones)
+
+                if avg_exfil_per_min[rate_counter] not in self.rate_to_time_gran_to_xs:
+                    self.rate_to_time_gran_to_xs[avg_exfil_per_min[rate_counter]] = []
+                    self.rate_to_time_gran_to_ys[avg_exfil_per_min[rate_counter]] = []
+                    self.rate_to_time_gran_to_outtraffic[avg_exfil_per_min[rate_counter]] = []
+
+                for time_counter,time_gran in enumerate(self.rate_to_timegran_to_methods_to_attacks_found_dfs[avg_exfil_per_min[rate_counter]].keys()):
+                    self.rate_to_time_gran_to_xs[avg_exfil_per_min[rate_counter]].append((Xs[time_gran], Xts[time_gran]))
+                    self.rate_to_time_gran_to_ys[avg_exfil_per_min[rate_counter]].append((Ys[time_gran], Yts[time_gran]))
+                    self.rate_to_time_gran_to_outtraffic[avg_exfil_per_min[rate_counter]].append(time_gran_to_outtraffic)
+
+            with open(self.test_results_df_loc, 'wb') as f:  # Just use 'w' mode in 3.x
+                f.write(pickle.dumps(self.rate_to_timegran_to_methods_to_attacks_found_dfs))
+            with open(training_results_df_loc, 'wb') as f:  # Just use 'w' mode in 3.x
+                f.write(pickle.dumps(self.rate_to_timegran_list_of_methods_to_attacks_found_training_df))
+            with open(rates_to_experiment_info_loc, 'wb') as f:  # Just use 'w' mode in 3.x
+                f.write(pickle.dumps(self.rates_to_experiment_info))
+            with open(rates_to_outtraffic_info, 'wb') as f:  # Just use 'w' mode in 3.x
+                f.write(pickle.dumps(self.rate_to_time_gran_to_outtraffic))
+
+        generate_aggregate_report.generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
+                                  rate_to_timegran_list_of_methods_to_attacks_found_training_df,
+                                  base_output_name, rates_to_experiment_info, rate_to_time_gran_to_outtraffic)
+
+
+        return rate_to_time_gran_to_xs, rate_to_time_gran_to_ys, rate_to_timegran_list_of_methods_to_attacks_found_training_df, \
+               rate_to_timegran_to_methods_to_attacks_found_dfs
 
 
 def pipeline_one_exfil_rate(rate_counter,
