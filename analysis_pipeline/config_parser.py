@@ -102,8 +102,7 @@ def parse_experimental_config(experimental_config_file):
         calc_ide = config_file['calc_ide']
         only_ide = config_file['only_ide']
 
-        rate_to_time_gran_to_xs, rate_to_time_gran_to_ys, rate_to_timegran_list_of_methods_to_attacks_found_training_df, \
-        rate_to_timegran_to_methods_to_attacks_found_dfs = \
+        multi_experiment_object = \
             multi_experiment_pipeline(experiment_classes, base_output_location, True, time_of_synethic_exfil,
                                   goal_train_test_split_training, goal_attack_NoAttack_split_training, None,
                                   None, calc_vals, skip_model_part, ignore_physical_attacks_p,
@@ -118,11 +117,13 @@ def parse_experimental_config(experimental_config_file):
                                   ide_window_size=ide_window_size, drop_infra_from_graph=drop_infra_from_graph,
                                   perform_cilium_component=perform_cilium_component)
 
+        rate_to_time_gran_to_xs, rate_to_time_gran_to_ys, rate_to_timegran_list_of_methods_to_attacks_found_training_df, \
+        rate_to_timegran_to_methods_to_attacks_found_dfs = multi_experiment_object.run_pipelines()
+
         if calc_ide:
             calc_vals = False
             skip_graph_injection = True
-            rate_to_time_gran_to_xs, rate_to_time_gran_to_ys, rate_to_timegran_list_of_methods_to_attacks_found_training_df, \
-            rate_to_timegran_to_methods_to_attacks_found_dfs = \
+            multi_experiment_object = \
                 multi_experiment_pipeline(experiment_classes, base_output_location, True, time_of_synethic_exfil,
                                           goal_train_test_split_training, goal_attack_NoAttack_split_training, None,
                                           None, calc_vals, skip_model_part, ignore_physical_attacks_p,
@@ -137,6 +138,9 @@ def parse_experimental_config(experimental_config_file):
                                           drop_pairwise_features=drop_pairwise_features,
                                           ide_window_size=ide_window_size, drop_infra_from_graph=drop_infra_from_graph,
                                           perform_cilium_component=perform_cilium_component)
+
+            rate_to_time_gran_to_xs, rate_to_time_gran_to_ys, rate_to_timegran_list_of_methods_to_attacks_found_training_df, \
+            rate_to_timegran_to_methods_to_attacks_found_dfs = multi_experiment_object.run_pipelines()
 
     return rate_to_time_gran_to_xs, rate_to_time_gran_to_ys, rate_to_timegran_list_of_methods_to_attacks_found_training_df, \
             rate_to_timegran_to_methods_to_attacks_found_dfs

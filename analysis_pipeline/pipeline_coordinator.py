@@ -164,6 +164,9 @@ class multi_experiment_pipeline(object):
 
         self.generate_aggregate_report()
 
+        return self.rate_to_time_gran_to_xs, self.rate_to_time_gran_to_ys, self.rate_to_timegran_list_of_methods_to_attacks_found_training_df, \
+               self.rate_to_timegran_to_methods_to_attacks_found_dfs
+
     def generate_aggregate_report(self):
         generate_aggregate_report.generate_aggregate_report(self.rate_to_timegran_to_methods_to_attacks_found_dfs,
                                                             self.rate_to_timegran_list_of_methods_to_attacks_found_training_df,
@@ -312,18 +315,8 @@ class multi_experiment_pipeline(object):
             generate_report.join_report_sections(self.names, cur_base_output_name, 'varies', 'varies',
                                                  'varies', 'varies', report_sections)
 
-## TODO: (in line with refactoring)
-## (1) get the whole thing to work again
-## (2) write function for multi time granularity  <--- next step!!!!! didn't even end up happening here... lol...
-## (3) write function to miss-and-match the exfil rates...  [[[ okay... I'm sure there's a TON of work left... but I tried to do this...]]
-#### okay, we are going to want to do (2) and (3) with the least amount of changes necessary...
-#### this is going to require.... okay well I kinda think that I should just leave the existing capabilities
-#### untouched and try to write a whole new function to hnadle this... okay so let's PRETEND that I have the
-#### statistical_pipeline() objects and see if I can make it work...
-### well can look @ self.method_to_cm_df_test
-### if they are all found, I replace all the entries in the feature_dataframe with new values (DON'T need to
-### renormalize b/c I'm only normalizing off the normal values)
-# Goal: I want something to show for my work in like 45 minutes... so let's be smart!!!
+## TODO: (1) make old part work again
+##       (2) make new parts work
 
 def pipeline_one_exfil_rate(rate_counter,
                             base_output_name, function_list, exps_exfil_paths, exps_initiator_info,

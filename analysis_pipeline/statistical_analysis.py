@@ -318,6 +318,8 @@ def statistical_analysis_v2(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, b
 
 def multi_time_gran(timegran_to_statspipeline,base_output_name, skip_model_part, ignore_physical_attacks_p,
                     drop_pairwise_features,  generate_report_p=True):
+    return None, None, None ## TODO: remove this to actually test.
+
     # the purpose of this function is test the union of alerts...
     ### okay... can I reuse the existing statistical analysis machinery...
     # step 1: get all 0/1 predictions
