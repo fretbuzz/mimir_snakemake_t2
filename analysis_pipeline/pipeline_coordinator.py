@@ -217,7 +217,7 @@ def pipeline_one_exfil_rate(rate_counter,
                                            calc_ide=calc_ide, include_ide=include_ide,
                                            only_ide=only_ide, ide_window_size=ide_window_size,
                                            drop_infra_from_graph=drop_infra_from_graph)
-        if perform_cilium_component:
+        if perform_cilium_component: #
             experiment_object.run_cilium_component(cilium_component_time)
             time_gran_to_cilium_alerts = experiment_object.calc_cilium_performance(avg_exfil_per_min[rate_counter],
                     exfil_per_min_variance[rate_counter], avg_pkt_size[rate_counter], pkt_size_variance[rate_counter])
