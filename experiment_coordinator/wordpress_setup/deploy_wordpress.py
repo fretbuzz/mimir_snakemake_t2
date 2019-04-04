@@ -1,8 +1,10 @@
 import argparse
+import os
 
 import scale_wordpress
 
 def main(autoscale_p=False, cpu_percent_cuttoff=80):
+    os.chdir("..")
     deployment_scaling = {"pxc": {"min": 7, "max": 7}, "wordpreses": {"min": 10, "max": 23}}
     scale_wordpress.scale_wordpress(autoscale_p, cpu_percent_cuttoff, deployment_scaling)
     scale_wordpress.deploy_wp(deployment_scaling)

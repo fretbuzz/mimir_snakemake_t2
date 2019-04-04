@@ -1,7 +1,7 @@
 app_name=$1
 cilium_p=$2
-autoscale_p=$3
-cpu_cutoff=$4
+#autoscale_p=$3
+#cpu_cutoff=$4
 
 #minikube_ip=$2
 #front_facing_port=$3

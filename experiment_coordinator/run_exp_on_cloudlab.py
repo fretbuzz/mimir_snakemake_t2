@@ -40,7 +40,7 @@ def get_ip_and_port(app_name, sh):
         sh.sendline('minikube service frontend-external --url')
         pass
     else:
-        pass  # TODO
+        pass
 
     line_rec = 'start'
     last_line = ''
@@ -57,7 +57,6 @@ def get_ip_and_port(app_name, sh):
     return minikube_ip, front_facing_port
 
 def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, autoscale_p, use_cilium, physical_attacks_p):
-    #start_minikube_p = False
     s = None
     while s == None:
         try:
@@ -107,8 +106,6 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, autoscale
                 sh.sendline('n')
             print("recieved line", line_rec)
 
-
-
         print("--end minikube delete ---")
 
         while line_rec != '':
@@ -120,23 +117,11 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, autoscale
         clone_mimir_str = "cd /mydata/; git clone https://github.com/fretbuzz/mimir_v2"
         sh.sendline(clone_mimir_str)
 
-        if app_name == 'wordpress':
-            cpu_threshold = 80
-        else:
-            cpu_threshold = None # b/c doesn't matter
-
         sh.sendline('cd /mydata/mimir_v2/experiment_coordinator/exp_support_scripts/')
         print "autoscale_p",autoscale_p
         time.sleep(300)
-        if autoscale_p:
-            sh.sendline('bash /mydata/mimir_v2/experiment_coordinator/exp_support_scripts/run_experiment.sh ' +
-                        app_name + ' ' + str(use_cilium) + ' ' + str(autoscale_p) + ' ' + str(cpu_threshold))
-
-        else:
-            cmd_str = 'bash /mydata/mimir_v2/experiment_coordinator/exp_support_scripts/run_experiment.sh ' + \
-                        app_name + ' ' + str(use_cilium)
-            print "sending_this_line...", cmd_str
-            sh.sendline(cmd_str)
+        sh.sendline('bash /mydata/mimir_v2/experiment_coordinator/exp_support_scripts/run_experiment.sh ' +
+                    app_name + ' ' + str(use_cilium) )
 
         line_rec = 'start'
         last_line = ''
@@ -154,7 +139,6 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, autoscale
             if 'done_with_that' in s.download_data(sentinal_file_setup):
                 break
             time.sleep(20)
-
 
         minikube_ip, front_facing_port = get_ip_and_port(app_name, sh)
         time.sleep(170)

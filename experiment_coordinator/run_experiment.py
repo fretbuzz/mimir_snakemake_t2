@@ -365,10 +365,11 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
     except OSError:
         pass
 
-def prepare_app(app_name, config_params, ip, port, deployment_config):
+def prepare_app(app_name, config_params, ip, port):
+    deployment_config = config_params["Deploymenet"]
     if app_name == "sockshop":
         sockshop_setup.scale_sockshop.main(deployment_config['deployment_scaling'], deployment_config['autoscale_p'])
-        time.sleep(360) # note: may need to increase this...
+        time.sleep(420) # note: may need to increase this...
 
         print config_params["number_background_locusts"], config_params["background_locust_spawn_rate"], config_params["number_customer_records"]
         print type(config_params["number_background_locusts"]), type(config_params["background_locust_spawn_rate"]), type(config_params["number_customer_records"])
@@ -404,7 +405,7 @@ def prepare_app(app_name, config_params, ip, port, deployment_config):
         wordpress_setup.scale_wordpress.scale_wordpress(autoscale_p, cpu_percent_cuttoff, deployment_scaling)
         wordpress_setup.scale_wordpress.deploy_wp(deployment_scaling)
 
-        time.sleep(360) # note: may need to increase this...
+        time.sleep(420) # note: may need to increase this...
 
         try:
             wordpress_setup.setup_wordpress.main(ip, port, "hi")
@@ -1293,9 +1294,13 @@ def generate_analysis_json(path_to_exp_folder, analysis_json_name, exp_config_js
     except:
         pass # exfil must not be being simulated during this experiment
 
+    try:
+        analysis_dict['Deploymenet'] = exp_config_json["Deploymenet"]
+    except:
+        pass
+
     analysis_dict["pod_creation_log_name"] = exp_name  + '_cluster_creation_log.txt'
     analysis_dict["pcap_file_name"] = exp_name + '_bridge_any.pcap'
-
 
     json_path = path_to_exp_folder + analysis_json_name
     r = json.dumps(analysis_dict, indent=4)

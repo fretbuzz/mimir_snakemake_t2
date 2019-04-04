@@ -52,7 +52,7 @@ def deploy_wp(deployment_scaling):
     print "db_cluster_ip", db_cluster_ip
 
     try:
-        out = subprocess.check_output(["helm", "install", "--name", "wwwppp", "--values", "experiment_coordinator/wordpress_setup/wordpress-values-production.yaml", "--set", "externalDatabase.host=" + db_cluster_ip, "stable/wordpress"])
+        out = subprocess.check_output(["helm", "install", "--name", "wwwppp", "--values", "./wordpress_setup/wordpress-values-production.yaml", "--set", "externalDatabase.host=" + db_cluster_ip, "stable/wordpress"])
         print out
     except:
         print "wordpress deployment must already exist"

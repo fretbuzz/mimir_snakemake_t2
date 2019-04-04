@@ -2,14 +2,14 @@ import argparse
 import subprocess
 import time
 from kubernetes_setup_functions import *
-
+import os
 
 def main(deployment_scaling, autoscale_p):
 
     wait_until_pods_done("kube-system")
     time.sleep(60)
-    out = subprocess.check_output(["kubectl", "create", "-f", "../sockshop_setup/sock-shop-ns.yaml", "-f",
-                                   "../sockshop_setup/sockshop_modified.yaml"])
+    out = subprocess.check_output(["kubectl", "create", "-f", "./sockshop_setup/sock-shop-ns.yaml", "-f",
+                                   "./sockshop_setup/sockshop_modified.yaml"])
     time.sleep(60)
     wait_until_pods_done("sock-shop")
 
@@ -48,6 +48,7 @@ def main(deployment_scaling, autoscale_p):
         print out
 
 if __name__== "__main__":
+    os.chdir("..")
     deployment_scaling = {}
     deployment_scaling['orders'] = {"min": 3, "max": 3}
     deployment_scaling['queue-master'] = {"min": 3, "max": 3}
