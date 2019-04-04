@@ -13,7 +13,7 @@ from jinja2 import FileSystemLoader, Environment
 class statistical_pipeline():
     def __init__(self, aggregate_mod_score_df, base_output_name,
                  skip_model_part, clf, ignore_physical_attacks_p, drop_pairwise_features,
-                 timegran, lasso_feature_selection_p):
+                 timegran, lasso_feature_selection_p, dont_prepare_data_p=False):
 
         self.method_name = 'ensemble'
         self.aggregate_mod_score_df = aggregate_mod_score_df
@@ -35,7 +35,7 @@ class statistical_pipeline():
         self.dropped_feature_list, self.ide_train, self.ide_test, self.exfil_weights_train, self.exfil_weights_test, \
         self.exfil_paths_test, self.exfil_paths_train, self.out_traffic, self.cilium_train, self.cilium_test =\
             prepare_data(self.aggregate_mod_score_df, self.skip_model_part, self.ignore_physical_attacks_p,
-            self.time_gran_to_debugging_csv, self.time_gran, self.drop_pairwise_features)
+            self.time_gran_to_debugging_csv, self.time_gran, self.drop_pairwise_features,dont_prepare_data_p)
 
         self.method_to_test_predictions = {}
         self.method_to_train_predictions = {}
@@ -870,9 +870,10 @@ def get_coef_dict(clf, X_train_columns, base_output_name, X_train_dtypes):
     return coef_dict
 
 def prepare_data(aggregate_mod_score_dfs, skip_model_part, ignore_physical_attacks_p,
-                 time_gran_to_debugging_csv, time_gran, drop_pairwise_features):
-    if not aggregate_mod_score_dfs:
-        return None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None
+                 time_gran_to_debugging_csv, time_gran, drop_pairwise_features, dont_prepare_data_p):
+
+    if dont_prepare_data_p:
+        return None,None,None,None,None,None,None,None,None,None,None,None,None,None,None,None
 
     out_traffic=None
     '''
