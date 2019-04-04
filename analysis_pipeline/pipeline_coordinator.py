@@ -315,8 +315,10 @@ class multi_experiment_pipeline(object):
             generate_report.join_report_sections(self.names, cur_base_output_name, 'varies', 'varies',
                                                  'varies', 'varies', report_sections)
 
-## TODO: (1) make old part work again
+## TODO: (1) make old part work again [ DONE!! ]
 ##       (2) make new parts work
+##             (2a) multi-time <-- CURRENT
+##             (2b) rate 'decreaser'
 
 def pipeline_one_exfil_rate(rate_counter,
                             base_output_name, function_list, exps_exfil_paths, exps_initiator_info,

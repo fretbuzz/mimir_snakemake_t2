@@ -15,6 +15,7 @@ class statistical_pipeline():
                  skip_model_part, clf, ignore_physical_attacks_p, drop_pairwise_features,
                  timegran, lasso_feature_selection_p, dont_prepare_data_p=False):
 
+        self.dont_prepare_data_p=dont_prepare_data_p
         self.method_name = 'ensemble'
         self.aggregate_mod_score_df = aggregate_mod_score_df
         self.base_output_name = base_output_name
@@ -30,21 +31,25 @@ class statistical_pipeline():
         self.feature_raw_heatmaps = ['none.png']
         self.feature_activation_heatmaps_training = ['none.png']
         self.feature_raw_heatmaps_training =  ['none.png']
+        self.method_to_test_predictions = {}
+        self.method_to_train_predictions = {}
 
+        #if not dont_prepare_data_p:
         self.X_train, self.y_train, self.X_test, self.y_test, self.pre_drop_X_train, self.time_gran_to_debugging_csv, \
         self.dropped_feature_list, self.ide_train, self.ide_test, self.exfil_weights_train, self.exfil_weights_test, \
         self.exfil_paths_test, self.exfil_paths_train, self.out_traffic, self.cilium_train, self.cilium_test =\
             prepare_data(self.aggregate_mod_score_df, self.skip_model_part, self.ignore_physical_attacks_p,
-            self.time_gran_to_debugging_csv, self.time_gran, self.drop_pairwise_features,dont_prepare_data_p)
+            self.time_gran_to_debugging_csv, self.time_gran, self.drop_pairwise_features)
 
-        self.method_to_test_predictions = {}
-        self.method_to_train_predictions = {}
         self.method_to_test_predictions['ide'] = self.ide_test
         self.method_to_train_predictions['ide'] = self.ide_train
         self.method_to_test_predictions['cilium'] = self.cilium_test
         self.method_to_train_predictions['cilium'] = self.cilium_train
-
         self.dropped_columns = list(self.pre_drop_X_train.columns.difference(self.X_train.columns))
+        #else:
+        #    self.exfil_weights_train, self.exfil_weights_test = None,None ## TODO
+        #    self.exfil_paths_test, self.exfil_paths_train = None,None ## TODO
+        #    self.out_traffic = None # TODO
 
         self.train_predictions = None
         self.test_predictions = None
@@ -58,10 +63,7 @@ class statistical_pipeline():
         self.debugging_csv_path = base_output_name + 'DEBUGGING_modz_feat_df_at_time_gran_of_'+ str(timegran) + '_sec.csv'
         self.plot_path = None
 
-        self.method_to_optimal_test_predictions = {}
-        self.method_to_optimal_train_predictinos = {}
         self.method_to_test_thresholds = {}
-
         self.method_to_optimal_f1_scores_test, self.method_to_optimal_predictions_test = {},{}
         self.method_to_optimal_f1_scores_train, self.method_to_optimal_predictions_train = {},{}
         self.method_to_cm_df_train, self.method_to_cm_df_test = {},{}
@@ -184,10 +186,16 @@ class statistical_pipeline():
         )
         table_section_template = env.get_template("table_section.html")
 
+        if not self.dont_prepare_data_p:
+            coef_feature_df = self.coef_feature_df.to_html()
+        else:
+            coef_feature_df = ''
+
+
         report_section = table_section_template.render(
             time_gran=str(self.time_gran) + " sec granularity",
             roc=self.plot_path,
-            feature_table=self.coef_feature_df.to_html(),
+            feature_table=coef_feature_df,
             model_params=self.model_params,
             optimal_fOne=self.method_to_optimal_f1_scores_test[self.method_name],
             percent_attacks=percent_attacks,
@@ -207,8 +215,6 @@ class statistical_pipeline():
         self.clf.fit(self.X_train, self.y_train)
         self.train_predictions = self.clf.predict(X=self.X_train)
         self.test_predictions = self.clf.predict(X=self.X_test)
-        self.method_to_test_predictions[self.method_name] = self.test_predictions
-        self.method_to_train_predictions[self.method_name] = self.train_predictions
 
         self.coef_dict  = get_coef_dict(self.clf, self.X_train.columns.values, self.base_output_name, self.X_train.dtypes)
         self.coef_feature_df = pd.DataFrame.from_dict(self.coef_dict, orient='index')
@@ -218,8 +224,12 @@ class statistical_pipeline():
             self.model_params['alpha_val'] = self.clf.alpha_
         except:
             pass
+        self._generate_debugging_csv()
 
     def process_model(self, skip_heatmaps=True):
+
+        self.method_to_test_predictions[self.method_name] = self.test_predictions
+        self.method_to_train_predictions[self.method_name] = self.train_predictions
 
         self._generate_rocs()
         self.method_to_optimal_f1_scores_test, self.method_to_optimal_predictions_test, self.method_to_optimal_thresh_test = \
@@ -237,7 +247,6 @@ class statistical_pipeline():
         self.method_to_cm_df_test = self._generate_confusion_matrixes(self.method_to_optimal_predictions_test, self.y_test,
                                                             self.exfil_paths_test, self.exfil_weights_test)
 
-        self._generate_debugging_csv()
 
 def statistical_analysis_v2(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, base_output_name, names,
                                          starts_of_testing, path_occurence_training_df, path_occurence_testing_df,
@@ -318,7 +327,7 @@ def statistical_analysis_v2(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, b
 
 def multi_time_gran(timegran_to_statspipeline,base_output_name, skip_model_part, ignore_physical_attacks_p,
                     drop_pairwise_features,  generate_report_p=True):
-    return None, None, None ## TODO: remove this to actually test.
+    #return None, None, None ## TODO: remove this to actually test.
 
     # the purpose of this function is test the union of alerts...
     ### okay... can I reuse the existing statistical analysis machinery...
@@ -326,8 +335,9 @@ def multi_time_gran(timegran_to_statspipeline,base_output_name, skip_model_part,
     timegran_to_testpredictions = {}
     timegran_to_trainpredictions = {}
     for time_gran,statspipeline in timegran_to_statspipeline.iteritems():
-        test_predictions = statspipeline.method_to_optimal_test_predictions[statspipeline.method_name]
-        train_predictions = statspipeline.method_to_optimal_train_predictinos[statspipeline.method_name]
+
+        test_predictions = statspipeline.method_to_optimal_predictions_test[statspipeline.method_name]
+        train_predictions = statspipeline.method_to_optimal_predictions_train[statspipeline.method_name]
         timegran_to_testpredictions[time_gran] = test_predictions
         timegran_to_trainpredictions[time_gran] = train_predictions
     # step 2: take the OR of the predictions
@@ -335,26 +345,30 @@ def multi_time_gran(timegran_to_statspipeline,base_output_name, skip_model_part,
     ## step 2b: take the OR of the elements
     max_timegran = max( timegran_to_testpredictions.keys() )
     final_trainpredictions = [0 for i in range(0,len(timegran_to_trainpredictions[max_timegran]))]
+
     final_testpredictions = [0 for i in range(0,len(timegran_to_testpredictions[max_timegran]))]
-    for time_gran,testpredictions in timegran_to_testpredictions.keys():
+    for time_gran,testpredictions in timegran_to_testpredictions.iteritems():
         conversion_to_max = int(max_timegran / time_gran) # note: going to assume they all fit in easily
-        for i in range(conversion_to_max,len(testpredictions), conversion_to_max):
-            cur_test_prediction = 1 in testpredictions[i-conversion_to_max: i]
-            final_testpredictions[int(i/conversion_to_max)] = final_testpredictions[int(i/conversion_to_max)] or cur_test_prediction
-        for i in range(conversion_to_max, len(timegran_to_trainpredictions[time_gran]), conversion_to_max):
-            cur_train_prediction = 1 in timegran_to_trainpredictions[time_gran][i - conversion_to_max : i]
-            final_trainpredictions[int(i / conversion_to_max)] = final_trainpredictions[int(i / conversion_to_max)] or cur_train_prediction
+        #for i in range(conversion_to_max,len(testpredictions), conversion_to_max):
+        for i in range(0, len(timegran_to_testpredictions[max_timegran]), 1):
+            cur_test_prediction = int(1 in testpredictions[i * conversion_to_max: (i+1) * conversion_to_max])
+            final_testpredictions[i] = final_testpredictions[i] or cur_test_prediction
+        for i in range(0, len(timegran_to_trainpredictions[max_timegran]), 1):
+            cur_train_prediction = int(1 in timegran_to_trainpredictions[time_gran][i * conversion_to_max : (i+1) * conversion_to_max])
+            final_trainpredictions[i] = final_trainpredictions[i] or cur_train_prediction
 
     # step 3: generate a report (if desired)
     report_section = None
     if generate_report_p:
         # use the existing machinery in the statistical_pipeline object
-        stats_pipeline = statistical_pipeline(None, base_output_name + '_multi_time',
+        stats_pipeline = statistical_pipeline(timegran_to_statspipeline[max_timegran].aggregate_mod_score_df, base_output_name + '_multi_time',
                              skip_model_part, None, ignore_physical_attacks_p, drop_pairwise_features,
-                             timegran_to_statspipeline.keys(), lasso_feature_selection_p=False)
+                             tuple(timegran_to_statspipeline.keys()), lasso_feature_selection_p=False,
+                                              dont_prepare_data_p=True)
 
         stats_pipeline.train_predictions = final_trainpredictions
         stats_pipeline.test_predictions = final_testpredictions
+        stats_pipeline.process_model()
         report_section =  stats_pipeline.generate_report_section()
     return final_trainpredictions, final_trainpredictions, report_section
 
@@ -870,10 +884,7 @@ def get_coef_dict(clf, X_train_columns, base_output_name, X_train_dtypes):
     return coef_dict
 
 def prepare_data(aggregate_mod_score_dfs, skip_model_part, ignore_physical_attacks_p,
-                 time_gran_to_debugging_csv, time_gran, drop_pairwise_features, dont_prepare_data_p):
-
-    if dont_prepare_data_p:
-        return None,None,None,None,None,None,None,None,None,None,None,None,None,None,None,None
+                 time_gran_to_debugging_csv, time_gran, drop_pairwise_features):
 
     out_traffic=None
     '''
