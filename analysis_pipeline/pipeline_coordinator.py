@@ -153,282 +153,70 @@ class multi_experiment_pipeline(object):
                                                                     self.goal_attack_NoAttack_split_testing,
                                                                     self.max_path_length, self.max_dns_porportion)
 
-
     def run_pipelines(self):
         self.generate_and_assign_exfil_paths()
 
         for rate_counter in range(0, len(self.avg_exfil_per_min)):
             self.run_single_pipeline(rate_counter)
 
+        self.generate_aggregate_report()
 
-
-
-
-
-
-            self.rates_to_experiment_info[avg_exfil_per_min[rate_counter]] = experiment_info
-            self.rate_to_timegran_to_methods_to_attacks_found_dfs[
-                avg_exfil_per_min[rate_counter]] = timegran_to_methods_to_attacks_found_dfs
-            self.rate_to_timegran_list_of_methods_to_attacks_found_training_df[
-                avg_exfil_per_min[rate_counter]] = timegran_to_methods_toattacks_found_training_df
-            self.list_of_optimal_fone_scores_at_exfil_rates.append(optimal_fones)
-
-            if avg_exfil_per_min[rate_counter] not in self.rate_to_time_gran_to_xs:
-                self.rate_to_time_gran_to_xs[avg_exfil_per_min[rate_counter]] = []
-                self.rate_to_time_gran_to_ys[avg_exfil_per_min[rate_counter]] = []
-                self.rate_to_time_gran_to_outtraffic[avg_exfil_per_min[rate_counter]] = []
-
-            for time_counter, time_gran in enumerate(
-                    self.rate_to_timegran_to_methods_to_attacks_found_dfs[avg_exfil_per_min[rate_counter]].keys()):
-                self.rate_to_time_gran_to_xs[avg_exfil_per_min[rate_counter]].append((Xs[time_gran], Xts[time_gran]))
-                self.rate_to_time_gran_to_ys[avg_exfil_per_min[rate_counter]].append((Ys[time_gran], Yts[time_gran]))
-                self.rate_to_time_gran_to_outtraffic[avg_exfil_per_min[rate_counter]].append(time_gran_to_outtraffic)
+    def generate_aggregate_report(self):
+        generate_aggregate_report.generate_aggregate_report(self.rate_to_timegran_to_methods_to_attacks_found_dfs,
+                                                            self.rate_to_timegran_list_of_methods_to_attacks_found_training_df,
+                                                            self.base_output_name, self.rates_to_experiment_info,
+                                                            self.rate_to_time_gran_to_outtraffic)
 
     ## NOTE: I'm going to try to do this WITHOUT the call to multi-process here!!
     def run_single_pipeline(self, rate_counter):
-        prefix_for_inject_params = 'avg_exfil_' + str(self.avg_exfil_per_min[rate_counter]) + ':' + str(
-            self.exfil_per_min_variance[rate_counter]) +  '_avg_pkt_' + str(avg_pkt_size[rate_counter]) + ':' + str(
-            self.pkt_size_variance[rate_counter]) + '_'
-        cur_base_output_name = self.base_output_name + prefix_for_inject_params
-        for counter, experiment_object in enumerate(self.function_list):
-            print "exps_exfil_paths[counter]_to_func", self.exps_exfil_paths[counter], self.exps_initiator_info
-            experiment_object.alert_file = experiment_object.orig_alert_file + prefix_for_inject_params
-            experiment_object.basegraph_name = experiment_object.orig_basegraph_name + prefix_for_inject_params
-            experiment_object.exp_name = experiment_object.orig_exp_name + prefix_for_inject_params
-            experiment_object.calc_vals = self.calc_vals
-            experiment_object.calc_zscore_p = self.calculate_z_scores_p or self.calc_vals
-            experiment_object.skip_graph_injection = self.skip_graph_injection
+        out_q = multiprocessing.Queue()
+        cur_function_list = [copy.deepcopy(i) for i in self.function_list]
+        args = [rate_counter, self.base_output_name, cur_function_list, self.exps_exfil_paths, self.exps_initiator_info,
+                self.calculate_z_scores_p, self.calc_vals, self.end_of_train_portions, self.training_exfil_paths,
+                self.testing_exfil_paths, self.ignore_physical_attacks_p, self.skip_model_part, out_q,
+                self.ROC_curve_p, self.avg_exfil_per_min, self.exfil_per_min_variance, self.avg_pkt_size,
+                self.pkt_size_variance, self.skip_graph_injection, self.calc_ide, self.include_ide, self.only_ide,
+                self.drop_pairwise_features, self.perform_cilium_component, self.cilium_component_time,
+                self.ide_window_size, self.drop_infra_from_graph]
+        p = multiprocessing.Process(
+            target=pipeline_one_exfil_rate,
+            args=args)
+        p.start()
+        Xs = out_q.get()
+        Ys = out_q.get()
+        Xts = out_q.get()
+        Yts = out_q.get()
+        optimal_fones = out_q.get()
+        trained_models = out_q.get()
+        timegran_to_methods_to_attacks_found_dfs = out_q.get()
+        timegran_to_methods_toattacks_found_training_df = out_q.get()
+        experiment_info = out_q.get()
+        time_gran_to_outtraffic = out_q.get()
+        p.join()
 
-            time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, _, start_of_testing = \
-                experiment_object.calculate_values(end_of_training=self.end_of_train_portions[counter],
-                                                   synthetic_exfil_paths_train=self.training_exfil_paths[counter],
-                                                   synthetic_exfil_paths_test=self.testing_exfil_paths[counter],
-                                                   avg_exfil_per_min=self.avg_exfil_per_min[rate_counter],
-                                                   exfil_per_min_variance=self.exfil_per_min_variance[rate_counter],
-                                                   avg_pkt_size=self.avg_pkt_size[rate_counter],
-                                                   pkt_size_variance=self.pkt_size_variance[rate_counter],
-                                                   calc_ide=self.calc_ide, include_ide=self.include_ide,
-                                                   only_ide=self.only_ide, ide_window_size=self.ide_window_size,
-                                                   drop_infra_from_graph=self.drop_infra_from_graph)
+        self.rates_to_experiment_info[self.avg_exfil_per_min[rate_counter]] = experiment_info
+        self.rate_to_timegran_to_methods_to_attacks_found_dfs[
+            self.avg_exfil_per_min[rate_counter]] = timegran_to_methods_to_attacks_found_dfs
+        self.rate_to_timegran_list_of_methods_to_attacks_found_training_df[
+            self.avg_exfil_per_min[rate_counter]] = timegran_to_methods_toattacks_found_training_df
+        self.list_of_optimal_fone_scores_at_exfil_rates.append(optimal_fones)
 
-            if self.perform_cilium_component:  #
-                experiment_object.run_cilium_component(self.cilium_component_time)
-                time_gran_to_cilium_alerts = experiment_object.calc_cilium_performance(self.avg_exfil_per_min[rate_counter],
-                                                                                       self.exfil_per_min_variance[
-                                                                                           rate_counter],
-                                                                                       self.avg_pkt_size[rate_counter],
-                                                                                       self.pkt_size_variance[rate_counter])
-                # okay, so now I probably need to do something with these alerts...
-                # and then actually do something with all of this stuff...
-                print 'at rate', self.avg_exfil_per_min[rate_counter], "cilium_performance", time_gran_to_cilium_alerts
-                for time_gran, cilium_alerts in time_gran_to_cilium_alerts.iteritems():
-                    length_alerts = len(time_gran_to_mod_zscore_df[time_gran].index.values)
-                    cilium_alerts = cilium_alerts[:length_alerts]
-                    print len(time_gran_to_mod_zscore_df[time_gran].index.values), len(cilium_alerts), length_alerts
-                    time_gran_to_mod_zscore_df[time_gran][
-                        'cilium_for_first_sec_' + str(self.cilium_component_time)] = cilium_alerts
-
-            self.list_time_gran_to_mod_zscore_df.append(time_gran_to_mod_zscore_df)
-            self.list_time_gran_to_zscore_dataframe.append(time_gran_to_zscore_dataframe)
-            self.list_time_gran_to_feature_dataframe.append(time_gran_to_feature_dataframe)
-            self.list_time_gran_to_mod_zscore_df_training.append(generate_time_gran_sub_dataframes(time_gran_to_mod_zscore_df, 'is_test', 0))
-            self.list_time_gran_to_mod_zscore_df_testing.append( generate_time_gran_sub_dataframes(time_gran_to_mod_zscore_df, 'is_test', 1))
-            self.starts_of_testing.append(start_of_testing)
-
-            gc.collect()
-
-    def single_rate_statistical_analysis(self, cur_base_output_name):
-        time_gran_to_aggregate_mod_score_dfs = aggregate_dfs(self.list_time_gran_to_mod_zscore_df)
-        time_gran_to_aggreg_feature_dfs = aggregate_dfs(self.list_time_gran_to_feature_dataframe)
-
-        for time_gran, aggregate_feature_df in time_gran_to_aggreg_feature_dfs.iteritems():
-            aggregate_feature_df.to_csv(
-                cur_base_output_name + 'aggregate_feature_df_at_time_gran_of_' + str(time_gran) + '_sec.csv',
-                na_rep='?')
-        for time_gran, aggregate_feature_df in time_gran_to_aggregate_mod_score_dfs.iteritems():
-            aggregate_feature_df.to_csv(
-                cur_base_output_name + 'modz_feat_df_at_time_gran_of_' + str(time_gran) + '_sec.csv',
-                na_rep='?')
-
-        recipes_used = [recipe.base_exp_name for recipe in self.function_list]
-        names = []
-        for counter, recipe in enumerate(recipes_used):
-            name = '_'.join(recipe.split('_')[1:])
-            names.append(name)
-
-        path_occurence_training_df = generate_exfil_path_occurence_df(self.list_time_gran_to_mod_zscore_df_training, names)
-        path_occurence_testing_df = generate_exfil_path_occurence_df(self.list_time_gran_to_mod_zscore_df_testing, names)
-
-        # clf = LogisticRegressionCV(penalty="l1", cv=10, max_iter=10000, solver='saga')
-        # cur_base_output_name + 'logistic_l1_mod_z_lass_feat_sel_'
-        clf = LassoCV(cv=3, max_iter=80000)
-
-        # '''
-        list_of_optimal_fone_scores_at_this_exfil_rates, Xs, Ys, Xts, Yts, trained_models, list_of_attacks_found_dfs, \
-        list_of_attacks_found_training_df, experiment_info, time_gran_to_outtraffic = \
-            statistical_analysis_v2(time_gran_to_aggregate_mod_score_dfs, self.ROC_curve_p, cur_base_output_name + '_lasso_',
-                                    names,  self.starts_of_testing, path_occurence_training_df, path_occurence_testing_df,
-                                    recipes_used, skip_model_part, clf, ignore_physical_attacks_p,
-                                    avg_exfil_per_min[rate_counter], avg_pkt_size[rate_counter],
-                                    exfil_per_min_variance[rate_counter],
-                                    pkt_size_variance[rate_counter], drop_pairwise_features)
-
-
-
-    def seperate_function(self):
-        rate_to_timegran_to_methods_to_attacks_found_dfs[
-            avg_exfil_per_min[rate_counter]] = timegran_to_methods_to_attacks_found_dfs
-        rate_to_timegran_list_of_methods_to_attacks_found_training_df[
-            avg_exfil_per_min[rate_counter]] = timegran_to_methods_toattacks_found_training_df
-        list_of_optimal_fone_scores_at_exfil_rates.append(optimal_fones)
-
-        if avg_exfil_per_min[rate_counter] not in rate_to_time_gran_to_xs:
-            rate_to_time_gran_to_xs[avg_exfil_per_min[rate_counter]] = []
-            rate_to_time_gran_to_ys[avg_exfil_per_min[rate_counter]] = []
-            rate_to_time_gran_to_outtraffic[avg_exfil_per_min[rate_counter]] = []
+        if self.avg_exfil_per_min[rate_counter] not in self.rate_to_time_gran_to_xs:
+            self.rate_to_time_gran_to_xs[self.avg_exfil_per_min[rate_counter]] = []
+            self.rate_to_time_gran_to_ys[self.avg_exfil_per_min[rate_counter]] = []
+            self.rate_to_time_gran_to_outtraffic[self.avg_exfil_per_min[rate_counter]] = []
 
         for time_counter, time_gran in enumerate(
-                rate_to_timegran_to_methods_to_attacks_found_dfs[avg_exfil_per_min[rate_counter]].keys()):
-            rate_to_time_gran_to_xs[avg_exfil_per_min[rate_counter]].append((Xs[time_gran], Xts[time_gran]))
-            rate_to_time_gran_to_ys[avg_exfil_per_min[rate_counter]].append((Ys[time_gran], Yts[time_gran]))
-            rate_to_time_gran_to_outtraffic[avg_exfil_per_min[rate_counter]].append(time_gran_to_outtraffic)
+                self.rate_to_timegran_to_methods_to_attacks_found_dfs[self.avg_exfil_per_min[rate_counter]].keys()):
+            self.rate_to_time_gran_to_xs[self.avg_exfil_per_min[rate_counter]].append((Xs[time_gran], Xts[time_gran]))
+            self.rate_to_time_gran_to_ys[self.avg_exfil_per_min[rate_counter]].append((Ys[time_gran], Yts[time_gran]))
+            self.rate_to_time_gran_to_outtraffic[self.avg_exfil_per_min[rate_counter]].append(time_gran_to_outtraffic)
 
-        # step (2) :  store aggregated DFs for reference purposes
-        time_gran_to_aggregate_mod_score_dfs = aggregate_dfs(list_time_gran_to_mod_zscore_df)
-        time_gran_to_aggreg_feature_dfs = aggregate_dfs(list_time_gran_to_feature_dataframe)
-
-        for time_gran, aggregate_feature_df in time_gran_to_aggreg_feature_dfs.iteritems():
-            aggregate_feature_df.to_csv(
-                cur_base_output_name + 'aggregate_feature_df_at_time_gran_of_' + str(time_gran) + '_sec.csv',
-                na_rep='?')
-        for time_gran, aggregate_feature_df in time_gran_to_aggregate_mod_score_dfs.iteritems():
-            aggregate_feature_df.to_csv(
-                cur_base_output_name + 'modz_feat_df_at_time_gran_of_' + str(time_gran) + '_sec.csv',
-                na_rep='?')
-
-        recipes_used = [recipe.base_exp_name for recipe in function_list]
-        names = []
-        for counter, recipe in enumerate(recipes_used):
-            name = '_'.join(recipe.split('_')[1:])
-            names.append(name)
-
-        path_occurence_training_df = generate_exfil_path_occurence_df(list_time_gran_to_mod_zscore_df_training, names)
-        path_occurence_testing_df = generate_exfil_path_occurence_df(list_time_gran_to_mod_zscore_df_testing, names)
-
-        # clf = LogisticRegressionCV(penalty="l1", cv=10, max_iter=10000, solver='saga')
-        # cur_base_output_name + 'logistic_l1_mod_z_lass_feat_sel_'
-        clf = LassoCV(cv=3, max_iter=80000)
-
-        # '''
-        test = time_gran_to_aggregate_mod_score_dfs[10]['is_test']
-        list_of_optimal_fone_scores_at_this_exfil_rates, Xs, Ys, Xts, Yts, trained_models, list_of_attacks_found_dfs, \
-        list_of_attacks_found_training_df, experiment_info, time_gran_to_outtraffic = \
-            statistical_analysis_v2(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, cur_base_output_name + '_lasso_',
-                                    names,
-                                    starts_of_testing, path_occurence_training_df, path_occurence_testing_df,
-                                    recipes_used, skip_model_part, clf, ignore_physical_attacks_p,
-                                    avg_exfil_per_min[rate_counter], avg_pkt_size[rate_counter],
-                                    exfil_per_min_variance[rate_counter],
-                                    pkt_size_variance[rate_counter], drop_pairwise_features)
-        # '''
-
-        out_q.put(Xs)
-        out_q.put(Ys)
-        out_q.put(Xts)
-        out_q.put(Yts)
-        out_q.put(list_of_optimal_fone_scores_at_this_exfil_rates)
-        out_q.put(trained_models)
-        out_q.put(list_of_attacks_found_dfs)
-        out_q.put(list_of_attacks_found_training_df)
-        out_q.put(experiment_info)
-        out_q.put(time_gran_to_outtraffic)
-
-
-
-
-
-
-
-        pass
-
-        if get_endresult_from_memory:
-            with open(self.test_results_df_loc, 'r') as input_file:
-                rate_to_timegran_to_methods_to_attacks_found_dfs = pickle.load(input_file)
-            with open(self.training_results_df_loc, 'r') as input_file:
-                rate_to_timegran_list_of_methods_to_attacks_found_training_df = pickle.load(input_file)
-            with open(self.rates_to_experiment_info_loc, 'r') as input_file:
-                rates_to_experiment_info = pickle.load(input_file)
-            #with open(rates_to_outtraffic_info, 'r') as input_file:
-            #    rate_to_time_gran_to_outtraffic = pickle.load(input_file)
-        else:
-            # step(0): need to find out the  meta-data for each experiment so we can coordinate the
-            # synthetic attack injections between experiments
-            exps_exfil_paths, end_of_train_portions, training_exfil_paths, testing_exfil_paths, exps_initiator_info = \
-                    determine_and_assign_exfil_paths(calc_vals, skip_model_part, function_list, goal_train_test_split,
-                                                     goal_attack_NoAttack_split_training, ignore_physical_attacks_p,
-                                                     time_each_synthetic_exfil,goal_attack_NoAttack_split_testing,
-                                                     max_path_length, max_dns_porportion)
-            # TODO: REMOVE
-            #exit(233)
-
-            for rate_counter in range(0,len(avg_exfil_per_min)):
-                out_q = multiprocessing.Queue()
-                cur_function_list = [copy.deepcopy(i) for i in function_list]
-                args = [rate_counter,
-                        base_output_name, cur_function_list, exps_exfil_paths, exps_initiator_info,
-                        calculate_z_scores_p, calc_vals, end_of_train_portions,training_exfil_paths,
-                        testing_exfil_paths, ignore_physical_attacks_p, skip_model_part, out_q,
-                        ROC_curve_p, avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
-                        skip_graph_injection, calc_ide, include_ide, only_ide, drop_pairwise_features,
-                        perform_cilium_component, cilium_component_time, ide_window_size, drop_infra_from_graph]
-                p = multiprocessing.Process(
-                    target=pipeline_one_exfil_rate,
-                    args=args)
-                p.start()
-                Xs = out_q.get()
-                Ys = out_q.get()
-                Xts = out_q.get()
-                Yts = out_q.get()
-                optimal_fones = out_q.get()
-                trained_models = out_q.get()
-                timegran_to_methods_to_attacks_found_dfs  = out_q.get()
-                timegran_to_methods_toattacks_found_training_df  = out_q.get()
-                experiment_info = out_q.get()
-                time_gran_to_outtraffic = out_q.get()
-                p.join()
-
-                self.rates_to_experiment_info[avg_exfil_per_min[rate_counter]] = experiment_info
-                self.rate_to_timegran_to_methods_to_attacks_found_dfs[avg_exfil_per_min[rate_counter]] = timegran_to_methods_to_attacks_found_dfs
-                self.rate_to_timegran_list_of_methods_to_attacks_found_training_df[avg_exfil_per_min[rate_counter]] = timegran_to_methods_toattacks_found_training_df
-                self.list_of_optimal_fone_scores_at_exfil_rates.append(optimal_fones)
-
-                if avg_exfil_per_min[rate_counter] not in self.rate_to_time_gran_to_xs:
-                    self.rate_to_time_gran_to_xs[avg_exfil_per_min[rate_counter]] = []
-                    self.rate_to_time_gran_to_ys[avg_exfil_per_min[rate_counter]] = []
-                    self.rate_to_time_gran_to_outtraffic[avg_exfil_per_min[rate_counter]] = []
-
-                for time_counter,time_gran in enumerate(self.rate_to_timegran_to_methods_to_attacks_found_dfs[avg_exfil_per_min[rate_counter]].keys()):
-                    self.rate_to_time_gran_to_xs[avg_exfil_per_min[rate_counter]].append((Xs[time_gran], Xts[time_gran]))
-                    self.rate_to_time_gran_to_ys[avg_exfil_per_min[rate_counter]].append((Ys[time_gran], Yts[time_gran]))
-                    self.rate_to_time_gran_to_outtraffic[avg_exfil_per_min[rate_counter]].append(time_gran_to_outtraffic)
-
-            with open(self.test_results_df_loc, 'wb') as f:  # Just use 'w' mode in 3.x
-                f.write(pickle.dumps(self.rate_to_timegran_to_methods_to_attacks_found_dfs))
-            with open(training_results_df_loc, 'wb') as f:  # Just use 'w' mode in 3.x
-                f.write(pickle.dumps(self.rate_to_timegran_list_of_methods_to_attacks_found_training_df))
-            with open(rates_to_experiment_info_loc, 'wb') as f:  # Just use 'w' mode in 3.x
-                f.write(pickle.dumps(self.rates_to_experiment_info))
-            with open(rates_to_outtraffic_info, 'wb') as f:  # Just use 'w' mode in 3.x
-                f.write(pickle.dumps(self.rate_to_time_gran_to_outtraffic))
-
-        generate_aggregate_report.generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
-                                  rate_to_timegran_list_of_methods_to_attacks_found_training_df,
-                                  base_output_name, rates_to_experiment_info, rate_to_time_gran_to_outtraffic)
-
-
-        return rate_to_time_gran_to_xs, rate_to_time_gran_to_ys, rate_to_timegran_list_of_methods_to_attacks_found_training_df, \
-               rate_to_timegran_to_methods_to_attacks_found_dfs
-
+## TODO: (in line with refactoring)
+## (1) get the whole thing to work again
+## (2) write function for multi time granularity
+## (3) write function to miss-and-match the exfil rates...
+# Goal: I want something to show for my work in like 45 minutes... so let's be smart!!!
 
 def pipeline_one_exfil_rate(rate_counter,
                             base_output_name, function_list, exps_exfil_paths, exps_initiator_info,
@@ -498,7 +286,6 @@ def pipeline_one_exfil_rate(rate_counter,
         gc.collect()
 
 
-
     # step (2) :  store aggregated DFs for reference purposes
     print "about_to_do_list_time_gran_to_mod_zscore_df"
     time_gran_to_aggregate_mod_score_dfs = aggregate_dfs(list_time_gran_to_mod_zscore_df)
@@ -526,7 +313,6 @@ def pipeline_one_exfil_rate(rate_counter,
     clf = LassoCV(cv=3, max_iter=80000)
 
     #'''
-    test = time_gran_to_aggregate_mod_score_dfs[10]['is_test']
     list_of_optimal_fone_scores_at_this_exfil_rates, Xs,Ys,Xts,Yts, trained_models, list_of_attacks_found_dfs, \
     list_of_attacks_found_training_df,experiment_info, time_gran_to_outtraffic = \
     statistical_analysis_v2(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, cur_base_output_name + '_lasso_', names,
@@ -627,32 +413,19 @@ def determine_and_assign_exfil_paths(calc_vals, skip_model_part, function_list, 
 
 def aggregate_dfs(list_time_gran_to_mod_zscore_df):
     time_gran_to_aggregate_mod_score_dfs = {}
-    time_gran_to_aggregate_mod_score_dfs_training = {}
-    time_gran_to_aggregate_mod_score_dfs_testing = {}
     print "list_time_gran_to_mod_zscore_df",list_time_gran_to_mod_zscore_df
     for time_gran_to_mod_zscore_df in list_time_gran_to_mod_zscore_df:
         print "time_gran_to_mod_zscore_df",time_gran_to_mod_zscore_df
         for time_gran, mod_zscore_df in time_gran_to_mod_zscore_df.iteritems():
             if time_gran not in time_gran_to_aggregate_mod_score_dfs.keys():
                 time_gran_to_aggregate_mod_score_dfs[time_gran] = mod_zscore_df
-                '''
-                time_gran_to_aggregate_mod_score_dfs_training[time_gran] = mod_zscore_df[mod_zscore_df['is_exfil'] == 0]
-                time_gran_to_aggregate_mod_score_dfs_testing[time_gran] =  mod_zscore_df[mod_zscore_df['is_exfil'] == 1]
-                '''
                 print "post_initializing_aggregate_dataframe", len(time_gran_to_aggregate_mod_score_dfs[time_gran]), \
                     type(time_gran_to_aggregate_mod_score_dfs[time_gran]), time_gran
 
             else:
                 time_gran_to_aggregate_mod_score_dfs[time_gran] = \
                     time_gran_to_aggregate_mod_score_dfs[time_gran].append(mod_zscore_df, sort=True)
-                '''
-                time_gran_to_aggregate_mod_score_dfs_training[time_gran] = \
-                    time_gran_to_aggregate_mod_score_dfs_training[time_gran].append(mod_zscore_df[mod_zscore_df['is_exfil'] == 0], sort=True)
-                time_gran_to_aggregate_mod_score_dfs_testing[time_gran] = \
-                    time_gran_to_aggregate_mod_score_dfs_training[time_gran].append(mod_zscore_df[mod_zscore_df['is_exfil'] == 1], sort=True)
-                '''
-                print "should_be_appending_mod_z_scores", len(time_gran_to_aggregate_mod_score_dfs[time_gran]), \
-                    type(time_gran_to_aggregate_mod_score_dfs[time_gran]), time_gran
+
     return time_gran_to_aggregate_mod_score_dfs#, time_gran_to_aggregate_mod_score_dfs_training, time_gran_to_aggregate_mod_score_dfs_testing
 
 # this function determines which experiments should have which synthetic exfil paths injected into them
@@ -694,8 +467,6 @@ def assign_exfil_paths_to_experiments(exp_infos, goal_train_test_split, goal_att
         exfil_paths_to_train_injection_counts[tuple(exfil_path)] = training_number_times_inject_all_paths
     for possible_exfil_path_injection in possible_exfil_path_injections:
         ## note: this ^^ variable contains the number of times can inject training/testing exfil paths here...
-        ## let's NOT do this stochastically... let's just iterate through the dict and assign stuff whenever we can
-        ## (NOTE: this WILL NEED TO BE MODIFIED LATER...)
         current_training_exfil_paths = []
         training_times_to_inject_this_exp = possible_exfil_path_injection['training']
         print "(initial)training_times_to_inject_this_exp",training_times_to_inject_this_exp
@@ -728,10 +499,6 @@ def assign_exfil_paths_to_experiments(exp_infos, goal_train_test_split, goal_att
             else:
                 # note: this isn't actually a problem b/c we rounded down when assigning the # of injection counts for each path
                 break
-                #print "problem w/ exfil assignment (testing)!"
-                #print path, exfil_paths_to_test_injection_counts[path]
-                #print exfil_paths_to_test_injection_counts
-                #exit(434)
         testing_exfil_paths.append(current_testing_exfil_paths)
 
     print "training_exfil_paths", training_exfil_paths
