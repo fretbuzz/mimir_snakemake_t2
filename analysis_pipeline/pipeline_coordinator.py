@@ -3,7 +3,7 @@ import pandas as pd
 import pyximport
 from matplotlib import pyplot as plt
 from analysis_pipeline.single_experiment_pipeline import determine_attacks_to_times
-from analysis_pipeline.statistical_analysis import statistical_analysis_v2
+from analysis_pipeline.statistical_analysis import statistical_analysis_v2,statistical_pipeline
 import analysis_pipeline.generate_aggregate_report as generate_aggregate_report
 pyximport.install() # to leverage cpython
 import math
@@ -14,6 +14,7 @@ import multiprocessing
 import pyximport
 pyximport.install()
 import pickle
+import generate_report
 
 
 # this function determines how much time to is available for injection attacks in each experiment.
@@ -130,6 +131,8 @@ class multi_experiment_pipeline(object):
         self.list_time_gran_to_zscore_dataframe = []
         self.list_time_gran_to_feature_dataframe = []
         self.starts_of_testing = []
+        self.rate_to_timegran_to_statistical_pipeline = {}
+        self.names = []
 
 
     # note: this going to be used to load the pipeline object prior to doing all of this work...
@@ -173,6 +176,7 @@ class multi_experiment_pipeline(object):
             self.exfil_per_min_variance[rate_counter]) +  '_avg_pkt_' + str(self.avg_pkt_size[rate_counter]) + ':' + str(
             self.pkt_size_variance[rate_counter]) + '_'
         cur_base_output_name = self.base_output_name + prefix_for_inject_params
+        cur_exfil_rate = self.avg_exfil_per_min[rate_counter]
 
         out_q = multiprocessing.Queue()
         cur_function_list = [copy.deepcopy(i) for i in self.function_list]
@@ -212,22 +216,21 @@ class multi_experiment_pipeline(object):
                 na_rep='?')
 
         recipes_used = [recipe.base_exp_name for recipe in self.function_list]
-        names = []
         for counter, recipe in enumerate(recipes_used):
             name = '_'.join(recipe.split('_')[1:])
-            names.append(name)
+            self.names.append(name)
 
-        path_occurence_training_df = generate_exfil_path_occurence_df(list_time_gran_to_mod_zscore_df_training, names)
-        path_occurence_testing_df = generate_exfil_path_occurence_df(list_time_gran_to_mod_zscore_df_testing, names)
+        path_occurence_training_df = generate_exfil_path_occurence_df(list_time_gran_to_mod_zscore_df_training, self.names)
+        path_occurence_testing_df = generate_exfil_path_occurence_df(list_time_gran_to_mod_zscore_df_testing, self.names)
 
         # clf = LogisticRegressionCV(penalty="l1", cv=10, max_iter=10000, solver='saga')
         # cur_base_output_name + 'logistic_l1_mod_z_lass_feat_sel_'
         clf = LassoCV(cv=3, max_iter=80000)
 
         list_of_optimal_fone_scores_at_this_exfil_rates, Xs, Ys, Xts, Yts, trained_models, list_of_attacks_found_dfs, \
-        list_of_attacks_found_training_df, experiment_info, time_gran_to_outtraffic = \
+        list_of_attacks_found_training_df, experiment_info, time_gran_to_outtraffic, timegran_to_statistical_pipeline = \
             statistical_analysis_v2(time_gran_to_aggregate_mod_score_dfs, self.ROC_curve_p, cur_base_output_name + '_lasso_',
-                                    names, starts_of_testing, path_occurence_training_df, path_occurence_testing_df,
+                                    self.names, starts_of_testing, path_occurence_training_df, path_occurence_testing_df,
                                     recipes_used, self.skip_model_part, clf, self.ignore_physical_attacks_p,
                                     self.avg_exfil_per_min[rate_counter], self.avg_pkt_size[rate_counter],
                                     self.exfil_per_min_variance[rate_counter],
@@ -255,10 +258,111 @@ class multi_experiment_pipeline(object):
             self.rate_to_time_gran_to_ys[self.avg_exfil_per_min[rate_counter]].append((Ys[time_gran], Yts[time_gran]))
             self.rate_to_time_gran_to_outtraffic[self.avg_exfil_per_min[rate_counter]].append(time_gran_to_outtraffic)
 
+        self.rate_to_timegran_to_statistical_pipeline[cur_exfil_rate] = timegran_to_statistical_pipeline
+
+    def lower_per_path_exfil_rates(self, timegran):
+        exfil_rates = sorted(self.avg_exfil_per_min )
+        # step 1: find the feature dataframe corresponding to the largest exfil rate
+        feature_df_max_exfil = copy.deepcopy(self.rate_to_timegran_to_statistical_pipeline[max(exfil_rates)][timegran].aggregate_mod_score_df)
+        path_to_cur_rate = {}
+
+        # step 2: iterate through exfil paths and rates (in decreasing order)
+        exfil_paths = set()
+        for exfil_path in self.exps_exfil_paths:
+            exfil_paths.add(tuple(exfil_path))
+            path_to_cur_rate[tuple(exfil_path)] = max(exfil_rates)
+        for exfil_path in list(exfil_paths):
+            for rate_counter in range(1, len(self.avg_exfil_per_min)):
+                # step 3: all exfil paths in the feature_df_max_exfil have 'max' detection capabilities ATM...
+                # if I can decrease the rate w/o decreasing the TPR, then I should do so.
+                ## Step 3a: find performance of old rate
+                cur_exfil_path_performance = self.rate_to_timegran_to_statistical_pipeline[path_to_cur_rate[exfil_path]][timegran].method_to_cm_df_test['ensemble'][list(exfil_path)]
+                cur_exfil_path_tpr = float(cur_exfil_path_performance['tp']) / (cur_exfil_path_performance['tp'] + cur_exfil_path_performance['fn'])
+                ## Step 3b: find performance of new rate
+                new_exfil_rate_statspipeline = self.rate_to_timegran_to_statistical_pipeline[self.avg_exfil_per_min[rate_counter]][timegran]
+                new_exfil_path_performance = new_exfil_rate_statspipeline.method_to_cm_df_test['ensemble'][list(exfil_path)]
+                new_exfil_path_tpr = float(new_exfil_path_performance['tp']) / (new_exfil_path_performance['tp'] + new_exfil_path_performance['fn'])
+                ## Step 3c: if new performance just as good, switch
+                ##### note: may due to make modifications b/c increasing TPR could be a result of increasing FPR too
+                if new_exfil_path_tpr >= cur_exfil_path_tpr:
+                    feature_df_max_exfil.loc[ feature_df_max_exfil.index == exfil_path ] = \
+                        new_exfil_rate_statspipeline.aggregate_mod_score_df[ new_exfil_rate_statspipeline.aggregate_mod_score_df == exfil_path ]
+                else:
+                    break # no point checking the lower rates
+
+        clf = LassoCV(cv=3, max_iter=80000)
+        cur_base_output_name = self.base_output_name + '_lower_per_path_exfil_'
+        stat_pipeline = statistical_pipeline(feature_df_max_exfil, cur_base_output_name,
+                             self.skip_model_part, clf, self.ignore_physical_attacks_p, self.drop_pairwise_features,
+                             timegran, lasso_feature_selection_p=False)
+        stat_pipeline.generate_model()
+        stat_pipeline.process_model()
+        #report_section = stat_pipeline.generate_report_section()
+        return stat_pipeline
+
+    def decrease_exfil_of_model(self):
+        modified_stats_pipeline = {}
+        for timegran in self.rate_to_time_gran_to_outtraffic[ self.rate_to_time_gran_to_outtraffic.keys()[0] ].keys():
+            modified_stats_pipeline[timegran] = self.lower_per_path_exfil_rates(timegran)
+        report_sections = {}
+        for timegran,statspipeline in modified_stats_pipeline.iteritems():
+            report_section = statspipeline.generate_report_section()
+            report_sections[timegran] = report_section
+            cur_base_output_name = self.base_output_name + '_lower_per_path_exfil_report_'
+            generate_report.join_report_sections(self.names, cur_base_output_name, 'varies', 'varies',
+                                                 'varies', 'varies', report_sections)
+
+    ## TODO: is this really the best way to do this??? It seems really really stupid...
+    def multi_time_gran(self, timegran_to_statspipeline, generate_report_p=True):
+        # the purpose of this function is test the union of alerts...
+        ### okay... can I reuse the existing statistical analysis machinery...
+        # step 1: get all 0/1 predictions
+        timegran_to_testpredictions = {}
+        timegran_to_trainpredictions = {}
+        for time_gran,statspipeline in timegran_to_statspipeline.iteritems():
+            test_predictions = statspipeline.method_to_optimal_test_predictions[statspipeline.method_name]
+            train_predictions = statspipeline.method_to_optimal_train_predictinos[statspipeline.method_name]
+            timegran_to_testpredictions[time_gran] = test_predictions
+            timegran_to_trainpredictions[time_gran] = train_predictions
+        # step 2: take the OR of the predictions
+        ## step 2a: convert all other time granularities to largest time granularity
+        ## step 2b: take the OR of the elements
+        max_timegran = max( timegran_to_testpredictions.keys() )
+        final_trainpredictions = [0 for i in range(0,len(timegran_to_trainpredictions[max_timegran]))]
+        final_testpredictions = [0 for i in range(0,len(timegran_to_testpredictions[max_timegran]))]
+        for time_gran,testpredictions in timegran_to_testpredictions.keys():
+            conversion_to_max = int(max_timegran / time_gran) # note: going to assume they all fit in easily
+            for i in range(conversion_to_max,len(testpredictions), conversion_to_max):
+                cur_test_prediction = 1 in testpredictions[i-conversion_to_max: i]
+                final_testpredictions[int(i/conversion_to_max)] = final_testpredictions[int(i/conversion_to_max)] or cur_test_prediction
+            for i in range(conversion_to_max, len(timegran_to_trainpredictions[time_gran]), conversion_to_max):
+                cur_train_prediction = 1 in timegran_to_trainpredictions[time_gran][i - conversion_to_max : i]
+                final_trainpredictions[int(i / conversion_to_max)] = final_trainpredictions[int(i / conversion_to_max)] or cur_train_prediction
+
+        # step 3: generate a report (if desired)
+        if generate_report_p:
+            # use the existing machinery in the statistical_pipeline object
+            statistical_pipeline(None, self.base_output_name + '_multi_time',
+                                 self.skip_model_part, None, self.ignore_physical_attacks_p, self.drop_pairwise_features,
+                                 timegran_to_statspipeline.keys(), lasso_feature_selection_p=False)
+            statistical_pipeline.train_predictions = final_trainpredictions
+            statistical_pipeline.test_predictions = final_testpredictions
+            report_section = statistical_pipeline.generate_report_section()
+        return final_trainpredictions, final_trainpredictions, report_section
+
+
+
 ## TODO: (in line with refactoring)
 ## (1) get the whole thing to work again
-## (2) write function for multi time granularity
-## (3) write function to miss-and-match the exfil rates...
+## (2) write function for multi time granularity  <--- next step!!!!!
+## (3) write function to miss-and-match the exfil rates...  [[[ okay... I'm sure there's a TON of work left... but I tried to do this...]]
+#### okay, we are going to want to do (2) and (3) with the least amount of changes necessary...
+#### this is going to require.... okay well I kinda think that I should just leave the existing capabilities
+#### untouched and try to write a whole new function to hnadle this... okay so let's PRETEND that I have the
+#### statistical_pipeline() objects and see if I can make it work...
+### well can look @ self.method_to_cm_df_test
+### if they are all found, I replace all the entries in the feature_dataframe with new values (DON'T need to
+### renormalize b/c I'm only normalizing off the normal values)
 # Goal: I want something to show for my work in like 45 minutes... so let's be smart!!!
 
 def pipeline_one_exfil_rate(rate_counter,

@@ -11,31 +11,19 @@ from analysis_pipeline import generate_heatmap, process_roc, generate_report
 from jinja2 import FileSystemLoader, Environment
 
 class statistical_pipeline():
-    def __init__(self, aggregate_mod_score_df,base_output_name, names, starts_of_testing,
-                 path_occurence_training_df, path_occurence_testing_df, recipes_used, skip_model_part, clf,
-                 ignore_physical_attacks_p, avg_exfil_per_min, avg_pkt_size, exfil_per_min_variance,
-                 pkt_size_variance, drop_pairwise_features, rate, timegran, time_gran_to_debugging_csv,
-                 lasso_feature_selection_p):
+    def __init__(self, aggregate_mod_score_df, base_output_name,
+                 skip_model_part, clf, ignore_physical_attacks_p, drop_pairwise_features,
+                 timegran, lasso_feature_selection_p):
 
         self.method_name = 'ensemble'
         self.aggregate_mod_score_df = aggregate_mod_score_df
         self.base_output_name = base_output_name
-        self.names = names
-        self.starts_of_testing = starts_of_testing
-        self.path_occurence_training_df = path_occurence_training_df
-        self.path_occurence_testing_df = path_occurence_testing_df
-        self.recipes_used = recipes_used
         self.skip_model_part = skip_model_part
         self.clf = clf
         self.ignore_physical_attacks_p = ignore_physical_attacks_p
-        self.avg_exfil_per_min = avg_exfil_per_min
-        self.avg_pkt_size = avg_pkt_size
-        self.exfil_per_min_variance = exfil_per_min_variance
-        self.pkt_size_variance = pkt_size_variance
         self.drop_pairwise_features = drop_pairwise_features
-        self.rate = rate
         self.time_gran = timegran
-        self.time_gran_to_debugging_csv = time_gran_to_debugging_csv
+        self.time_gran_to_debugging_csv = {}
         self.lasso_feature_selection_p = lasso_feature_selection_p
 
         self.feature_activation_heatmaps = ['none.png']
@@ -215,7 +203,7 @@ class statistical_pipeline():
 
         return report_section
 
-    def run_statistical_pipeline(self, skip_heatmaps=True):
+    def generate_model(self):
         self.clf.fit(self.X_train, self.y_train)
         self.train_predictions = self.clf.predict(X=self.X_train)
         self.test_predictions = self.clf.predict(X=self.X_test)
@@ -231,16 +219,18 @@ class statistical_pipeline():
         except:
             pass
 
-        self.skip_heatmaps = skip_heatmaps
-        if not skip_heatmaps:
-            self._generate_heatmap(training_p=True)
-            self._generate_heatmap(training_p=False)
+    def process_model(self, skip_heatmaps=True):
 
         self._generate_rocs()
         self.method_to_optimal_f1_scores_test, self.method_to_optimal_predictions_test, self.method_to_optimal_thresh_test = \
             self._generate_optimal_predictions(self.method_to_test_predictions, self.y_test)
         self.method_to_optimal_f1_scores_train, self.method_to_optimal_predictions_train, self.method_to_optimal_thresh_train = \
             self._generate_optimal_predictions(self.method_to_train_predictions, self.y_train)
+
+        self.skip_heatmaps = skip_heatmaps
+        if not skip_heatmaps:
+            self._generate_heatmap(training_p=True)
+            self._generate_heatmap(training_p=False)
 
         self.method_to_cm_df_train = self._generate_confusion_matrixes(self.method_to_optimal_predictions_train, self.y_train,
                                                             self.exfil_paths_train, self.exfil_weights_train)
@@ -267,6 +257,7 @@ def statistical_analysis_v2(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, b
     timegran_to_methods_to_attacks_found_dfs = {}
     timegran_to_methods_toattacks_found_training_df = {}
     time_gran_to_outtraffic = {}
+    timegran_to_statistical_pipeline = {}
 
     for timegran,feature_df in time_gran_to_aggregate_mod_score_dfs.iteritems():
         if 'lass_feat_sel' in base_output_name:
@@ -274,18 +265,14 @@ def statistical_analysis_v2(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, b
         else:
             lasso_feature_selection_p = False
 
-        time_gran_to_debugging_csv = {}
-        stat_pipeline = statistical_pipeline(feature_df,base_output_name, names, starts_of_testing, path_occurence_training_df,
-                             path_occurence_testing_df, recipes_used, skip_model_part, clf,
-                             ignore_physical_attacks_p, avg_exfil_per_min, avg_pkt_size, exfil_per_min_variance,
-                             pkt_size_variance, drop_pairwise_features, rate, timegran, time_gran_to_debugging_csv,
-                             lasso_feature_selection_p)
-        stat_pipeline.run_statistical_pipeline()
 
+        stat_pipeline = statistical_pipeline(feature_df,base_output_name, skip_model_part, clf,
+                                             ignore_physical_attacks_p, drop_pairwise_features, timegran,
+                                            lasso_feature_selection_p)
+        stat_pipeline.generate_model()
+        stat_pipeline.process_model()
         report_section = stat_pipeline.generate_report_section()
         report_sections[timegran] = report_section
-        generate_report.join_report_sections(recipes_used, base_output_name, avg_exfil_per_min, avg_pkt_size, exfil_per_min_variance,
-                             pkt_size_variance, report_sections)
 
         if timegran not in timegran_to_methods_toattacks_found_training_df:
             list_of_optimal_fone_scores_at_this_exfil_rates[timegran] = []
@@ -304,11 +291,14 @@ def statistical_analysis_v2(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, b
         Xts[timegran].append(stat_pipeline.X_test)
         Yts[timegran].append(stat_pipeline.y_test)
         trained_models[timegran].append(stat_pipeline.clf)
+        timegran_to_statistical_pipeline[timegran] = stat_pipeline
         timegran_to_methods_to_attacks_found_dfs[timegran] = stat_pipeline.method_to_cm_df_test
         timegran_to_methods_toattacks_found_training_df[timegran] = stat_pipeline.method_to_cm_df_train
 
         time_gran_to_outtraffic[timegran].append(stat_pipeline.out_traffic)
 
+    generate_report.join_report_sections(recipes_used, base_output_name, avg_exfil_per_min, avg_pkt_size, exfil_per_min_variance,
+                         pkt_size_variance, report_sections)
     experiment_info = {}
     experiment_info["recipes_used"] = recipes_used
     experiment_info["avg_exfil_per_min"] = avg_exfil_per_min
@@ -317,7 +307,7 @@ def statistical_analysis_v2(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, b
     experiment_info["pkt_size_variance"] = pkt_size_variance
 
     return list_of_optimal_fone_scores_at_this_exfil_rates, Xs, Ys, Xts,Yts, trained_models, timegran_to_methods_to_attacks_found_dfs, \
-           timegran_to_methods_toattacks_found_training_df,experiment_info, time_gran_to_outtraffic
+           timegran_to_methods_toattacks_found_training_df,experiment_info, time_gran_to_outtraffic, timegran_to_statistical_pipeline
 
 def drop_useless_columns_aggreg_DF(aggregate_mod_score_dfs):
     # '''
@@ -830,6 +820,9 @@ def get_coef_dict(clf, X_train_columns, base_output_name, X_train_dtypes):
 
 def prepare_data(aggregate_mod_score_dfs, skip_model_part, ignore_physical_attacks_p,
                  time_gran_to_debugging_csv, time_gran, drop_pairwise_features):
+    if not aggregate_mod_score_dfs:
+        return None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None
+
     out_traffic=None
     '''
     try:
