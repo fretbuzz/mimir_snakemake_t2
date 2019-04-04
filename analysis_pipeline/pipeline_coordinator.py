@@ -60,7 +60,6 @@ def determine_injection_times(exps_info, goal_train_test_split,goal_attack_NoAtt
     #exit(34)
     return exp_injection_info,end_of_train_portions
 
-
 # this function loops through multiple experiments (or even just a single experiment), accumulates the relevant
 # feature dataframes, and then performs LASSO regression to determine a concise graphical model that can detect
 # the injected synthetic attacks
@@ -75,8 +74,28 @@ class multi_experiment_pipeline(object):
                  only_ide=False, perform_cilium_component=True, only_perform_cilium_component=True,
                  cilium_component_time=100, drop_pairwise_features=False,
                  max_path_length=15, max_dns_porportion=1.0,drop_infra_from_graph=False,
-                 ide_window_size=10 ,debug_basename=None):
+                 ide_window_size=10, debug_basename=None):
 
+
+        self.ROC_curve_p = ROC_curve_p
+        self.training_window_size = training_window_size
+        self.size_of_neighbor_training_window = size_of_neighbor_training_window
+        self.calculate_z_scores_p = calculate_z_scores_p
+        self.avg_exfil_per_min = avg_exfil_per_min
+        self.exfil_per_min_variance = exfil_per_min_variance
+        self.avg_pkt_size = avg_pkt_size
+        self.pkt_size_variance = pkt_size_variance
+        self.skip_graph_injection = skip_graph_injection
+        self.calc_ide = calc_ide
+        self.include_ide = include_ide
+        self.only_ide = only_ide
+        self.perform_cilium_component = perform_cilium_component
+        self.only_perform_cilium_component = only_perform_cilium_component
+        self.cilium_component_time = cilium_component_time
+        self.drop_pairwise_features = drop_pairwise_features
+        self.drop_infra_from_graph = drop_infra_from_graph
+        self.ide_window_size = ide_window_size
+        self.debug_basename = debug_basename
         self.list_of_optimal_fone_scores_at_exfil_rates = []
         self.rate_to_timegran_to_methods_to_attacks_found_dfs = {}
         self.rate_to_timegran_list_of_methods_to_attacks_found_training_df = {}
@@ -85,12 +104,203 @@ class multi_experiment_pipeline(object):
         self.training_results_df_loc = base_output_name + 'train_results_df_loc.txt'
         self.rates_to_experiment_info_loc = base_output_name + 'rates_to_experiment_info_loc.txt'
         self.rates_to_outtraffic_info = base_output_name + 'outtraffic_bytese.txt'
+        self.where_to_save_this_obj = base_output_name + '_multi_experiment_pipeline'
         self.rate_to_time_gran_to_xs = {}
         self.rate_to_time_gran_to_ys = {}
         self.rate_to_time_gran_to_outtraffic = {}
+        self.get_endresult_from_memory = get_endresult_from_memory
+        self.calc_vals = calc_vals
+        self.skip_model_part = skip_model_part
+        self.function_list = function_list
+        self.goal_train_test_split = goal_train_test_split
+        self.goal_attack_NoAttack_split_training = goal_attack_NoAttack_split_training
+        self.ignore_physical_attacks_p = ignore_physical_attacks_p
+        self.time_each_synthetic_exfil = time_each_synthetic_exfil
+        self.goal_attack_NoAttack_split_testing = goal_attack_NoAttack_split_testing
+        self.max_path_length = max_path_length
+        self.max_dns_porportion = max_dns_porportion
+        self.exps_exfil_paths = None
+        self.end_of_train_portions = None
+        self.training_exfil_paths = None
+        self.testing_exfil_paths = None
+
+    # note: this going to be used to load the pipeline object prior to doing all of this work...
+    def loader(self, filename):
+        with open(self.where_to_save_this_obj, 'rb') as pickle_input_file:
+            multi_pipeline_object = pickle.load(pickle_input_file)
+        return multi_pipeline_object
+
+    def save(self):
+        with open(self.where_to_save_this_obj, 'wb') as output:  # Overwrites any existing file.
+            pickle.dump(self, output, pickle.HIGHEST_PROTOCOL)
+        # can load like this:
+
+    def generate_and_assign_exfil_paths(self):
+        self.exps_exfil_paths, self.end_of_train_portions, self.training_exfil_paths, self.testing_exfil_paths, \
+        self.exps_initiator_info = determine_and_assign_exfil_paths(self.calc_vals, self.skip_model_part, self.function_list,
+                                                                    self.goal_train_test_split,
+                                                                    self.goal_attack_NoAttack_split_training,
+                                                                    self.ignore_physical_attacks_p,
+                                                                    self.time_each_synthetic_exfil,
+                                                                    self.goal_attack_NoAttack_split_testing,
+                                                                    self.max_path_length, self.max_dns_porportion)
+
+
+    def run_pipelines(self):
+        self.generate_and_assign_exfil_paths()
+
+        for rate_counter in range(0, len(avg_exfil_per_min)):
+            ## NOTE: I'm going to try to do this WITHOUT the call to multi-process here!!
 
 
 
+
+
+
+
+
+            self.rates_to_experiment_info[avg_exfil_per_min[rate_counter]] = experiment_info
+            self.rate_to_timegran_to_methods_to_attacks_found_dfs[
+                avg_exfil_per_min[rate_counter]] = timegran_to_methods_to_attacks_found_dfs
+            self.rate_to_timegran_list_of_methods_to_attacks_found_training_df[
+                avg_exfil_per_min[rate_counter]] = timegran_to_methods_toattacks_found_training_df
+            self.list_of_optimal_fone_scores_at_exfil_rates.append(optimal_fones)
+
+            if avg_exfil_per_min[rate_counter] not in self.rate_to_time_gran_to_xs:
+                self.rate_to_time_gran_to_xs[avg_exfil_per_min[rate_counter]] = []
+                self.rate_to_time_gran_to_ys[avg_exfil_per_min[rate_counter]] = []
+                self.rate_to_time_gran_to_outtraffic[avg_exfil_per_min[rate_counter]] = []
+
+            for time_counter, time_gran in enumerate(
+                    self.rate_to_timegran_to_methods_to_attacks_found_dfs[avg_exfil_per_min[rate_counter]].keys()):
+                self.rate_to_time_gran_to_xs[avg_exfil_per_min[rate_counter]].append((Xs[time_gran], Xts[time_gran]))
+                self.rate_to_time_gran_to_ys[avg_exfil_per_min[rate_counter]].append((Ys[time_gran], Yts[time_gran]))
+                self.rate_to_time_gran_to_outtraffic[avg_exfil_per_min[rate_counter]].append(time_gran_to_outtraffic)
+
+    def run_single_pipeline(self):
+        prefix_for_inject_params = 'avg_exfil_' + str(avg_exfil_per_min[rate_counter]) + ':' + str(
+            exfil_per_min_variance[rate_counter]) + \
+                                   '_avg_pkt_' + str(avg_pkt_size[rate_counter]) + ':' + str(
+            pkt_size_variance[rate_counter]) + '_'
+        cur_base_output_name = base_output_name + prefix_for_inject_params
+        list_time_gran_to_mod_zscore_df = []
+        list_time_gran_to_mod_zscore_df_training = []
+        list_time_gran_to_mod_zscore_df_testing = []
+        list_time_gran_to_zscore_dataframe = []
+        list_time_gran_to_feature_dataframe = []
+        starts_of_testing = []
+
+        for counter, experiment_object in enumerate(function_list):
+            print "exps_exfil_paths[counter]_to_func", exps_exfil_paths[counter], exps_initiator_info
+
+            experiment_object.alert_file = experiment_object.orig_alert_file + prefix_for_inject_params
+            experiment_object.basegraph_name = experiment_object.orig_basegraph_name + prefix_for_inject_params
+            experiment_object.exp_name = experiment_object.orig_exp_name + prefix_for_inject_params
+
+            experiment_object.calc_vals = calc_vals
+            experiment_object.calc_zscore_p = calculate_z_scores_p or calc_vals
+            experiment_object.skip_graph_injection = skip_graph_injection
+
+            time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, _, start_of_testing = \
+                experiment_object.calculate_values(end_of_training=end_of_train_portions[counter],
+                                                   synthetic_exfil_paths_train=training_exfil_paths[counter],
+                                                   synthetic_exfil_paths_test=testing_exfil_paths[counter],
+                                                   avg_exfil_per_min=avg_exfil_per_min[rate_counter],
+                                                   exfil_per_min_variance=exfil_per_min_variance[rate_counter],
+                                                   avg_pkt_size=avg_pkt_size[rate_counter],
+                                                   pkt_size_variance=pkt_size_variance[rate_counter],
+                                                   calc_ide=calc_ide, include_ide=include_ide,
+                                                   only_ide=only_ide, ide_window_size=ide_window_size,
+                                                   drop_infra_from_graph=drop_infra_from_graph)
+            if perform_cilium_component:  #
+                experiment_object.run_cilium_component(cilium_component_time)
+                time_gran_to_cilium_alerts = experiment_object.calc_cilium_performance(avg_exfil_per_min[rate_counter],
+                                                                                       exfil_per_min_variance[
+                                                                                           rate_counter],
+                                                                                       avg_pkt_size[rate_counter],
+                                                                                       pkt_size_variance[rate_counter])
+                # okay, so now I probably need to do something with these alerts...
+                # and then actually do something with all of this stuff...
+                print 'at rate', avg_exfil_per_min[rate_counter], "cilium_performance", time_gran_to_cilium_alerts
+
+                for time_gran, cilium_alerts in time_gran_to_cilium_alerts.iteritems():
+                    length_alerts = len(time_gran_to_mod_zscore_df[time_gran].index.values)
+                    cilium_alerts = cilium_alerts[:length_alerts]
+                    print len(time_gran_to_mod_zscore_df[time_gran].index.values), len(cilium_alerts), length_alerts
+                    time_gran_to_mod_zscore_df[time_gran][
+                        'cilium_for_first_sec_' + str(cilium_component_time)] = cilium_alerts
+
+            print "exps_exfil_pathas[time_gran_to_mod_zscore_df]", time_gran_to_mod_zscore_df
+            print time_gran_to_mod_zscore_df[time_gran_to_mod_zscore_df.keys()[0]].columns.values
+            list_time_gran_to_mod_zscore_df.append(time_gran_to_mod_zscore_df)
+            list_time_gran_to_zscore_dataframe.append(time_gran_to_zscore_dataframe)
+            list_time_gran_to_feature_dataframe.append(time_gran_to_feature_dataframe)
+            list_time_gran_to_mod_zscore_df_training.append(
+                generate_time_gran_sub_dataframes(time_gran_to_mod_zscore_df, 'is_test', 0))
+            list_time_gran_to_mod_zscore_df_testing.append(
+                generate_time_gran_sub_dataframes(time_gran_to_mod_zscore_df, 'is_test', 1))
+            starts_of_testing.append(start_of_testing)
+            gc.collect()
+
+        # step (2) :  store aggregated DFs for reference purposes
+        print "about_to_do_list_time_gran_to_mod_zscore_df"
+        time_gran_to_aggregate_mod_score_dfs = aggregate_dfs(list_time_gran_to_mod_zscore_df)
+        print "about_to_do_list_time_gran_to_feature_dataframe"
+        time_gran_to_aggreg_feature_dfs = aggregate_dfs(list_time_gran_to_feature_dataframe)
+
+        for time_gran, aggregate_feature_df in time_gran_to_aggreg_feature_dfs.iteritems():
+            aggregate_feature_df.to_csv(
+                cur_base_output_name + 'aggregate_feature_df_at_time_gran_of_' + str(time_gran) + '_sec.csv',
+                na_rep='?')
+        for time_gran, aggregate_feature_df in time_gran_to_aggregate_mod_score_dfs.iteritems():
+            aggregate_feature_df.to_csv(
+                cur_base_output_name + 'modz_feat_df_at_time_gran_of_' + str(time_gran) + '_sec.csv',
+                na_rep='?')
+
+        recipes_used = [recipe.base_exp_name for recipe in function_list]
+        names = []
+        for counter, recipe in enumerate(recipes_used):
+            name = '_'.join(recipe.split('_')[1:])
+            names.append(name)
+
+        path_occurence_training_df = generate_exfil_path_occurence_df(list_time_gran_to_mod_zscore_df_training, names)
+        path_occurence_testing_df = generate_exfil_path_occurence_df(list_time_gran_to_mod_zscore_df_testing, names)
+
+        # clf = LogisticRegressionCV(penalty="l1", cv=10, max_iter=10000, solver='saga')
+        # cur_base_output_name + 'logistic_l1_mod_z_lass_feat_sel_'
+        clf = LassoCV(cv=3, max_iter=80000)
+
+        # '''
+        test = time_gran_to_aggregate_mod_score_dfs[10]['is_test']
+        list_of_optimal_fone_scores_at_this_exfil_rates, Xs, Ys, Xts, Yts, trained_models, list_of_attacks_found_dfs, \
+        list_of_attacks_found_training_df, experiment_info, time_gran_to_outtraffic = \
+            statistical_analysis_v2(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, cur_base_output_name + '_lasso_',
+                                    names,
+                                    starts_of_testing, path_occurence_training_df, path_occurence_testing_df,
+                                    recipes_used, skip_model_part, clf, ignore_physical_attacks_p,
+                                    avg_exfil_per_min[rate_counter], avg_pkt_size[rate_counter],
+                                    exfil_per_min_variance[rate_counter],
+                                    pkt_size_variance[rate_counter], drop_pairwise_features)
+        # '''
+
+        out_q.put(Xs)
+        out_q.put(Ys)
+        out_q.put(Xts)
+        out_q.put(Yts)
+        out_q.put(list_of_optimal_fone_scores_at_this_exfil_rates)
+        out_q.put(trained_models)
+        out_q.put(list_of_attacks_found_dfs)
+        out_q.put(list_of_attacks_found_training_df)
+        out_q.put(experiment_info)
+        out_q.put(time_gran_to_outtraffic)
+
+
+
+
+
+
+
+        pass
 
         if get_endresult_from_memory:
             with open(self.test_results_df_loc, 'r') as input_file:

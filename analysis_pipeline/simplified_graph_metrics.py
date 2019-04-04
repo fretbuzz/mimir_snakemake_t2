@@ -575,6 +575,9 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
                     avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance, end_of_training,
                      pod_creation_log, injection_rate_exp_path, drop_infra_from_graph):
 
+    ## TODO: finish refining this function!!! I just need to move some logic around / modify for the upgraded
+    ## experimental apparatus but the core logic is here.
+
     concrete_cont_node_path_list = []
     pre_specified_data_attribs_list = []
     injected_graph_obj_loc_list = []
@@ -605,29 +608,14 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
         logging.info("name_of_dns_pod_node, " + str(name_of_dns_pod_node))
         print "name_of_dns_pod_node", name_of_dns_pod_node
 
-        # if no dns pod in current graph....
-        if potential_name_of_dns_pod_node is None:
-            # if we know the name of the dns pod...
-            if name_of_dns_pod_node is not None:
-                # then add in the dns pod and vip to the graph
-                # (this is needed for the centrality measures)
-                #G.add_node(name_of_dns_pod_node)
-                #G.add_node('kube-dns_VIP')
-                pass
-
-        logging.info("straight_G_edges")
-        #for edge in G.edges(data=True):
-        #    logging.info(edge)
-        logging.info("end straight_G_edges")
 
         ### TODO: want to update::: container_to_ip using the pod/creation log (this is called: pod_creation_log)
         ## UPDATE: CORRECT. THAT'S WHY I TOOK IT OUT. can remove all these comments (included commented out code, at some point...)
         ## okay, testing this ATM. if it works, then I can delete the line above
         ###### WAIT, I DON'T THINK THIS ACTUALLY DOES ANYTHING!!! ##########
+        ##### I need this now b/c it is useful to have infra_instances #####
         container_to_ip, infra_instances = update_mapping(container_to_ip, pod_creation_log, time_interval, counter, infra_instances)
 
-        # nx.read_edgelist(file_path,
-        #                 create_using=G, delimiter=',', data=(('weight', float),))
         cur_1si_G = prepare_graph(G, svcs, 'app_only', is_swarm, counter, file_path, ms_s,
                                   container_to_ip, infra_instances, drop_infra_p=drop_infra_from_graph)
 
@@ -635,15 +623,8 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
         amt_of_out_traffic_bytes.append(into_outside_bytes)
         amt_of_out_traffic_pkts.append(into_outside_pkts)
 
-        # let's save the processed version of the graph in a nested folder for easier comparison during the
-        # debugging process... and some point I could even decouple creating/processing the edgefiles and
-        # calculating the corresponding graph metrics
-        #edgefile_folder_path = "/".join(file_path.split('/')[:-1])
-        #experiment_info_path = "/".join(edgefile_folder_path.split('/')[:-1])
 
         name_of_file = file_path.split('/')[-1]
-        #name_of_injected_file = str(fraction_of_edge_weights) + '_' + str(fraction_of_edge_pkts) + '_' + \
-        #                        file_path.split('/')[-1]
 
         prefix_for_inject_params = 'avg_exfil_' + str(avg_exfil_per_min) + ':' + str(exfil_per_min_variance) + \
                                    '_avg_pkt_' + str(avg_pkt_size) + ':' + str(pkt_size_variance) + '_'
@@ -678,13 +659,10 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise
+
         nx.write_edgelist(cur_1si_G, edgefile_pruned_folder_path + name_of_file, data=['frames', 'weight'])
         nx.write_gpickle(cur_1si_G, edgefile_pruned_folder_path + 'with_nodeAttribs' + name_of_file)
 
-        logging.info("cur_1si_G edges")
-        #for edge in cur_1si_G.edges(data=True):
-        #    logging.info(edge)
-        logging.info("end cur_1si_G edges")
 
         ### NOTE: I think this is where we'd want to inject the synthetic attacks...
         for node in cur_1si_G.nodes():
@@ -706,9 +684,6 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
             except:
                 # print "there was a svc error"
                 pass
-
-        #print("svc_to_pod",svc_to_pod)
-        #exit(988)
 
         pod_to_svc = reverse_svc_to_pod_dict(svc_to_pod)
 
