@@ -297,6 +297,12 @@ def statistical_analysis_v2(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, b
 
         time_gran_to_outtraffic[timegran].append(stat_pipeline.out_traffic)
 
+    multtime_trainpredictions, multtime_trainpredictions, report_section =\
+        multi_time_gran(timegran_to_statistical_pipeline, base_output_name, skip_model_part,
+                        ignore_physical_attacks_p, drop_pairwise_features)
+    if report_section:
+        report_sections[tuple(timegran_to_statistical_pipeline.keys())] = report_section
+
     generate_report.join_report_sections(recipes_used, base_output_name, avg_exfil_per_min, avg_pkt_size, exfil_per_min_variance,
                          pkt_size_variance, report_sections)
     experiment_info = {}
@@ -308,6 +314,49 @@ def statistical_analysis_v2(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, b
 
     return list_of_optimal_fone_scores_at_this_exfil_rates, Xs, Ys, Xts,Yts, trained_models, timegran_to_methods_to_attacks_found_dfs, \
            timegran_to_methods_toattacks_found_training_df,experiment_info, time_gran_to_outtraffic, timegran_to_statistical_pipeline
+
+
+def multi_time_gran(timegran_to_statspipeline,base_output_name, skip_model_part, ignore_physical_attacks_p,
+                    drop_pairwise_features,  generate_report_p=True):
+    # the purpose of this function is test the union of alerts...
+    ### okay... can I reuse the existing statistical analysis machinery...
+    # step 1: get all 0/1 predictions
+    timegran_to_testpredictions = {}
+    timegran_to_trainpredictions = {}
+    for time_gran,statspipeline in timegran_to_statspipeline.iteritems():
+        test_predictions = statspipeline.method_to_optimal_test_predictions[statspipeline.method_name]
+        train_predictions = statspipeline.method_to_optimal_train_predictinos[statspipeline.method_name]
+        timegran_to_testpredictions[time_gran] = test_predictions
+        timegran_to_trainpredictions[time_gran] = train_predictions
+    # step 2: take the OR of the predictions
+    ## step 2a: convert all other time granularities to largest time granularity
+    ## step 2b: take the OR of the elements
+    max_timegran = max( timegran_to_testpredictions.keys() )
+    final_trainpredictions = [0 for i in range(0,len(timegran_to_trainpredictions[max_timegran]))]
+    final_testpredictions = [0 for i in range(0,len(timegran_to_testpredictions[max_timegran]))]
+    for time_gran,testpredictions in timegran_to_testpredictions.keys():
+        conversion_to_max = int(max_timegran / time_gran) # note: going to assume they all fit in easily
+        for i in range(conversion_to_max,len(testpredictions), conversion_to_max):
+            cur_test_prediction = 1 in testpredictions[i-conversion_to_max: i]
+            final_testpredictions[int(i/conversion_to_max)] = final_testpredictions[int(i/conversion_to_max)] or cur_test_prediction
+        for i in range(conversion_to_max, len(timegran_to_trainpredictions[time_gran]), conversion_to_max):
+            cur_train_prediction = 1 in timegran_to_trainpredictions[time_gran][i - conversion_to_max : i]
+            final_trainpredictions[int(i / conversion_to_max)] = final_trainpredictions[int(i / conversion_to_max)] or cur_train_prediction
+
+    # step 3: generate a report (if desired)
+    report_section = None
+    if generate_report_p:
+        # use the existing machinery in the statistical_pipeline object
+        stats_pipeline = statistical_pipeline(None, base_output_name + '_multi_time',
+                             skip_model_part, None, ignore_physical_attacks_p, drop_pairwise_features,
+                             timegran_to_statspipeline.keys(), lasso_feature_selection_p=False)
+
+        stats_pipeline.train_predictions = final_trainpredictions
+        stats_pipeline.test_predictions = final_testpredictions
+        report_section =  stats_pipeline.generate_report_section()
+    return final_trainpredictions, final_trainpredictions, report_section
+
+
 
 def drop_useless_columns_aggreg_DF(aggregate_mod_score_dfs):
     # '''

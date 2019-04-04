@@ -312,49 +312,9 @@ class multi_experiment_pipeline(object):
             generate_report.join_report_sections(self.names, cur_base_output_name, 'varies', 'varies',
                                                  'varies', 'varies', report_sections)
 
-    ## TODO: is this really the best way to do this??? It seems really really stupid...
-    def multi_time_gran(self, timegran_to_statspipeline, generate_report_p=True):
-        # the purpose of this function is test the union of alerts...
-        ### okay... can I reuse the existing statistical analysis machinery...
-        # step 1: get all 0/1 predictions
-        timegran_to_testpredictions = {}
-        timegran_to_trainpredictions = {}
-        for time_gran,statspipeline in timegran_to_statspipeline.iteritems():
-            test_predictions = statspipeline.method_to_optimal_test_predictions[statspipeline.method_name]
-            train_predictions = statspipeline.method_to_optimal_train_predictinos[statspipeline.method_name]
-            timegran_to_testpredictions[time_gran] = test_predictions
-            timegran_to_trainpredictions[time_gran] = train_predictions
-        # step 2: take the OR of the predictions
-        ## step 2a: convert all other time granularities to largest time granularity
-        ## step 2b: take the OR of the elements
-        max_timegran = max( timegran_to_testpredictions.keys() )
-        final_trainpredictions = [0 for i in range(0,len(timegran_to_trainpredictions[max_timegran]))]
-        final_testpredictions = [0 for i in range(0,len(timegran_to_testpredictions[max_timegran]))]
-        for time_gran,testpredictions in timegran_to_testpredictions.keys():
-            conversion_to_max = int(max_timegran / time_gran) # note: going to assume they all fit in easily
-            for i in range(conversion_to_max,len(testpredictions), conversion_to_max):
-                cur_test_prediction = 1 in testpredictions[i-conversion_to_max: i]
-                final_testpredictions[int(i/conversion_to_max)] = final_testpredictions[int(i/conversion_to_max)] or cur_test_prediction
-            for i in range(conversion_to_max, len(timegran_to_trainpredictions[time_gran]), conversion_to_max):
-                cur_train_prediction = 1 in timegran_to_trainpredictions[time_gran][i - conversion_to_max : i]
-                final_trainpredictions[int(i / conversion_to_max)] = final_trainpredictions[int(i / conversion_to_max)] or cur_train_prediction
-
-        # step 3: generate a report (if desired)
-        if generate_report_p:
-            # use the existing machinery in the statistical_pipeline object
-            statistical_pipeline(None, self.base_output_name + '_multi_time',
-                                 self.skip_model_part, None, self.ignore_physical_attacks_p, self.drop_pairwise_features,
-                                 timegran_to_statspipeline.keys(), lasso_feature_selection_p=False)
-            statistical_pipeline.train_predictions = final_trainpredictions
-            statistical_pipeline.test_predictions = final_testpredictions
-            report_section = statistical_pipeline.generate_report_section()
-        return final_trainpredictions, final_trainpredictions, report_section
-
-
-
 ## TODO: (in line with refactoring)
 ## (1) get the whole thing to work again
-## (2) write function for multi time granularity  <--- next step!!!!!
+## (2) write function for multi time granularity  <--- next step!!!!! didn't even end up happening here... lol...
 ## (3) write function to miss-and-match the exfil rates...  [[[ okay... I'm sure there's a TON of work left... but I tried to do this...]]
 #### okay, we are going to want to do (2) and (3) with the least amount of changes necessary...
 #### this is going to require.... okay well I kinda think that I should just leave the existing capabilities
