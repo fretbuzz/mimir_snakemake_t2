@@ -625,7 +625,7 @@ def determine_attacks_to_times(time_gran_to_attack_labels, synthetic_exfil_paths
                                              int(end_of_train/largest_time_gran))
     # second, let's assign for the testing period...
     print end_of_train, largest_time_gran
-    counter = int(math.ceil(end_of_train/largest_time_gran)) #int(math.ceil(len(time_gran_to_attack_labels[largest_time_gran]) * end_of_train - time_periods_startup))
+    counter = int(end_of_train/largest_time_gran) #int(math.ceil(end_of_train/largest_time_gran)) #int(math.ceil(len(time_gran_to_attack_labels[largest_time_gran]) * end_of_train - time_periods_startup))
     print "second_counter!!", counter, "attacks_to_assign",len(synthetic_exfil_paths_test), time_gran_to_attack_labels[time_gran][counter:],time_gran_to_attack_labels[time_gran][counter:].count(0)
 
     time_gran_to_attack_labels, time_gran_to_attack_ranges = assign_attacks_to_first_available_spots(time_gran_to_attack_labels, largest_time_gran,

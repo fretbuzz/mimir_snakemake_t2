@@ -157,6 +157,8 @@ class multi_experiment_pipeline(object):
                                                                     self.max_path_length, self.max_dns_porportion)
 
     def run_pipelines(self):
+        ## TODO: add in the saving/loading functionality.
+
         self.generate_and_assign_exfil_paths()
 
         for rate_counter in range(0, len(self.avg_exfil_per_min)):
@@ -539,11 +541,6 @@ def assign_exfil_paths_to_experiments(exp_infos, goal_train_test_split, goal_att
             else:
                 # note: this isn't actually a problem b/c we rounded down when assigning the # of injection counts for each path
                 break
-                #print "problem w/ exfil assignment! (training)"
-                #print path, exfil_paths_to_train_injection_counts[path]
-                #print exfil_paths_to_train_injection_counts
-                #print training_times_to_inject_this_exp
-                #exit(433)
         training_exfil_paths.append(current_training_exfil_paths)
 
         current_testing_exfil_paths = []
