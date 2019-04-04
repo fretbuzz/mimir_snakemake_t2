@@ -159,6 +159,7 @@ def save_feature_datafames(time_gran_to_feature_dataframe, csv_path, time_gran_t
     print "time_gran_to_feature_dataframe",time_gran_to_feature_dataframe.keys()
     for time_gran, attack_labels in time_gran_to_attack_labels.iteritems():
         print "time_gran", time_gran, "len of attack labels", len(attack_labels)
+    max_time_gran = max(time_gran_to_feature_dataframe.keys())
     for time_gran, feature_dataframe in time_gran_to_feature_dataframe.iteritems():
         attack_labels = time_gran_to_attack_labels[time_gran]
         #print "feature_dataframe",feature_dataframe,feature_dataframe.index
@@ -193,8 +194,16 @@ def save_feature_datafames(time_gran_to_feature_dataframe, csv_path, time_gran_t
         ### now let's store an indicator of when the training set ends... end_of_training indicates the first member
         ### of the training dataset...
         print end_of_training, time_gran
-        test_period_list = [0 for i in range(0,int(end_of_training/time_gran))] + \
-                           [1 for i in range(int(end_of_training/time_gran), len(feature_dataframe.index))]
+
+        ## TODO: this function needs to be fixed so that everything can work.... okay. It's pretty clear to me that
+        ## we need to determine the split based off of the max time granularity and then set the other thing srelative to that
+
+        #max_time_gran
+
+        current_end_of_train = int(end_of_training / max_time_gran) * time_gran
+
+        test_period_list = [0 for i in range(0,int(current_end_of_train))] + \
+                           [1 for i in range(int(current_end_of_train), len(feature_dataframe.index))]
         test_period_series = pandas.Series(test_period_list, index=feature_dataframe.index)
         feature_dataframe['is_test'] = test_period_series
 

@@ -14,11 +14,11 @@ echo 'start run_experiment' >> /local/repository/run_experiment_note1.txt
 
 bash ./kubernetes_setup.sh $cilium_p
 
-echo 'start run_experiment n2' >> /local/repository/run_experiment_note2.txt
+#echo 'start run_experiment n2' >> /local/repository/run_experiment_note2.txt
 
-bash ./deploy_application.sh $app_name $autoscale_p $cpu_cutoff
+#bash ./deploy_application.sh $app_name $autoscale_p $cpu_cutoff
 
-echo 'start run_experiment n3' >> /local/repository/run_experiment_note3.txt
+#echo 'start run_experiment n3' >> /local/repository/run_experiment_note3.txt
 
 #python /mydata/mimir_v2/experiment_coordinator/run_experiment.py --exp_name $exp_name --config_file $config_file_name --prepare_app_p --port $front_facing_port -ip $minikube_ip --no_exfil
 

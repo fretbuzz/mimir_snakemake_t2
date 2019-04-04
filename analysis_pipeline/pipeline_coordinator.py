@@ -1,9 +1,10 @@
 import gc
 import pandas as pd
 import pyximport
+import ast
 from matplotlib import pyplot as plt
 from analysis_pipeline.single_experiment_pipeline import determine_attacks_to_times
-from analysis_pipeline.statistical_analysis import statistical_analysis_v2,statistical_pipeline
+from analysis_pipeline.statistical_analysis import statistical_analysis_v2,statistical_pipeline,multi_time_gran
 import analysis_pipeline.generate_aggregate_report as generate_aggregate_report
 pyximport.install() # to leverage cpython
 import math
@@ -164,7 +165,10 @@ class multi_experiment_pipeline(object):
         for rate_counter in range(0, len(self.avg_exfil_per_min)):
             self.run_single_pipeline(rate_counter)
 
+        self.decrease_exfil_of_model()
+
         self.generate_aggregate_report()
+
 
         return self.rate_to_time_gran_to_xs, self.rate_to_time_gran_to_ys, self.rate_to_timegran_list_of_methods_to_attacks_found_training_df, \
                self.rate_to_timegran_to_methods_to_attacks_found_dfs
@@ -270,28 +274,38 @@ class multi_experiment_pipeline(object):
         # step 1: find the feature dataframe corresponding to the largest exfil rate
         feature_df_max_exfil = copy.deepcopy(self.rate_to_timegran_to_statistical_pipeline[max(exfil_rates)][timegran].aggregate_mod_score_df)
         path_to_cur_rate = {}
+        exfil_paths_series = feature_df_max_exfil['exfil_path']
 
         # step 2: iterate through exfil paths and rates (in decreasing order)
         exfil_paths = set()
-        for exfil_path in self.exps_exfil_paths:
-            exfil_paths.add(tuple(exfil_path))
-            path_to_cur_rate[tuple(exfil_path)] = max(exfil_rates)
+        for exfil_path in exfil_paths_series:
+            exfil_paths.add(tuple((exfil_path,)))
+            path_to_cur_rate[tuple((exfil_path,))] = max(exfil_rates)
         for exfil_path in list(exfil_paths):
-            for rate_counter in range(1, len(self.avg_exfil_per_min)):
+            for rate_counter in range(0, len(self.avg_exfil_per_min)):
                 # step 3: all exfil paths in the feature_df_max_exfil have 'max' detection capabilities ATM...
                 # if I can decrease the rate w/o decreasing the TPR, then I should do so.
-                ## Step 3a: find performance of old rate
-                cur_exfil_path_performance = self.rate_to_timegran_to_statistical_pipeline[path_to_cur_rate[exfil_path]][timegran].method_to_cm_df_test['ensemble'][list(exfil_path)]
+                ## Step 3a: find performance of old rat
+                exfil_path = exfil_path[0]
+                if exfil_path == ('0',) or exfil_path == 0 or exfil_path == '0':
+                    continue
+                print self.rate_to_timegran_to_statistical_pipeline[path_to_cur_rate[tuple((exfil_path,))]][timegran].method_to_cm_df_train['ensemble']
+                print "exfil_path", exfil_path
+                exfil_path_key = tuple(ast.literal_eval(exfil_path.replace('\\','')))
+                old_train_dfs = self.rate_to_timegran_to_statistical_pipeline[path_to_cur_rate[tuple((exfil_path,))]][timegran].method_to_cm_df_train['ensemble']
+                cur_exfil_path_performance = old_train_dfs.loc[[exfil_path_key]]
                 cur_exfil_path_tpr = float(cur_exfil_path_performance['tp']) / (cur_exfil_path_performance['tp'] + cur_exfil_path_performance['fn'])
+                cur_exfil_path_tpr = cur_exfil_path_tpr._values[0]
                 ## Step 3b: find performance of new rate
                 new_exfil_rate_statspipeline = self.rate_to_timegran_to_statistical_pipeline[self.avg_exfil_per_min[rate_counter]][timegran]
-                new_exfil_path_performance = new_exfil_rate_statspipeline.method_to_cm_df_test['ensemble'][list(exfil_path)]
+                new_exfil_path_performance = new_exfil_rate_statspipeline.method_to_cm_df_train['ensemble'].loc[[exfil_path_key]]
                 new_exfil_path_tpr = float(new_exfil_path_performance['tp']) / (new_exfil_path_performance['tp'] + new_exfil_path_performance['fn'])
+                new_exfil_path_tpr = new_exfil_path_tpr._values[0]
                 ## Step 3c: if new performance just as good, switch
                 ##### note: may due to make modifications b/c increasing TPR could be a result of increasing FPR too
                 if new_exfil_path_tpr >= cur_exfil_path_tpr:
-                    feature_df_max_exfil.loc[ feature_df_max_exfil.index == exfil_path ] = \
-                        new_exfil_rate_statspipeline.aggregate_mod_score_df[ new_exfil_rate_statspipeline.aggregate_mod_score_df == exfil_path ]
+                    feature_df_max_exfil[feature_df_max_exfil['exfil_path'] == exfil_path] = \
+                        new_exfil_rate_statspipeline.aggregate_mod_score_df[ new_exfil_rate_statspipeline.aggregate_mod_score_df['exfil_path'] == exfil_path]
                 else:
                     break # no point checking the lower rates
 
@@ -307,20 +321,29 @@ class multi_experiment_pipeline(object):
 
     def decrease_exfil_of_model(self):
         modified_stats_pipeline = {}
-        for timegran in self.rate_to_time_gran_to_outtraffic[ self.rate_to_time_gran_to_outtraffic.keys()[0] ].keys():
+        for timegran in self.rate_to_time_gran_to_outtraffic[ self.rate_to_time_gran_to_outtraffic.keys()[0] ][0].keys():
             modified_stats_pipeline[timegran] = self.lower_per_path_exfil_rates(timegran)
         report_sections = {}
         for timegran,statspipeline in modified_stats_pipeline.iteritems():
             report_section = statspipeline.generate_report_section()
             report_sections[timegran] = report_section
             cur_base_output_name = self.base_output_name + '_lower_per_path_exfil_report_'
-            generate_report.join_report_sections(self.names, cur_base_output_name, 'varies', 'varies',
-                                                 'varies', 'varies', report_sections)
+
+
+        multtime_trainpredictions, multtime_trainpredictions, report_section = \
+            multi_time_gran(modified_stats_pipeline, self.base_output_name, self.skip_model_part,
+                            self.ignore_physical_attacks_p, self.drop_pairwise_features)
+        report_sections[tuple(modified_stats_pipeline.keys())] = report_section
+
+        generate_report.join_report_sections(self.names, cur_base_output_name, 'varies', 'varies',
+                                             'varies', 'varies', report_sections)
+
+
 
 ## TODO: (1) make old part work again [ DONE!! ]
 ##       (2) make new parts work
-##             (2a) multi-time <-- CURRENT
-##             (2b) rate 'decreaser'
+##             (2a) multi-time <-- CURRENT  [[ debugging ATM ]]
+##             (2b) rate 'decreaser'        [[ debugging ATM ]]
 
 def pipeline_one_exfil_rate(rate_counter,
                             base_output_name, function_list, exps_exfil_paths, exps_initiator_info,

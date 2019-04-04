@@ -24,5 +24,17 @@
       "DET_max_exfil_data_per_packet_bytes": [400, 400, 400],
       "DET_avg_exfiltration_rate_KB_per_sec": [1.0, 1.0, 1.0],
       "sec_between_exfil_pkts":["None", "None", "None"]
+    },
+    "Deploymenet" : {
+      "deployment_scaling" :
+        {
+          "wordpress": {"min": 10, "max": 23},
+          "pxc" : {"min": 7, "max": 7}
+        },
+      "autoscale_p": true,
+      "cpu_percent_cuttoff": {
+          "wordpress": 80
+      }
     }
+
 }

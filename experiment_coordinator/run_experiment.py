@@ -22,7 +22,8 @@ import shutil
 import math
 import wordpress_setup.setup_wordpress
 from kubernetes import client, config
-
+import wordpress_setup.scale_wordpress
+import sockshop_setup.scale_sockshop
 
 #Locust contemporary client count.  Calculated from the function f(x) = 1/25*(-1/2*sin(pi*x/12) + 1.1), 
 #   where x goes from 0 to 23 and x represents the hour of the day
@@ -89,6 +90,8 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
     # after I load the webapp (and hence the corresponding database)
     maxsleep = [average_seconds_between_packets[i] * 2 for i in range(0,len(average_seconds_between_packets))]
 
+    # modify images appropriately
+    install_exfil_dependencies(exfil_paths, orchestrator, class_to_installer)
 
     # step (2) setup the application, if necessary (e.g. fill up the DB, etc.)
     # note: it is assumed that the application is already deployed
@@ -136,12 +139,14 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
     if install_det_depen_p and 'DET' in exfil_protocols:
         for class_name, container_instances in selected_proxies.iteritems():
             for container in container_instances:
-                install_det_dependencies(orchestrator, container, class_to_installer[class_name])
+                #install_det_dependencies(orchestrator, container, class_to_installer[class_name])
+                pass
 
         print "possible_originators", possible_originators
         for class_name, container_instances in selected_originators.iteritems():
             for container in container_instances:
-                install_det_dependencies(orchestrator, container, class_to_installer[class_name])
+                #install_det_dependencies(orchestrator, container, class_to_installer[class_name])
+                pass
 
     experiment_length = config_params["experiment_length_sec"]
 
@@ -360,8 +365,11 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
     except OSError:
         pass
 
-def prepare_app(app_name, config_params, ip, port):
+def prepare_app(app_name, config_params, ip, port, deployment_config):
     if app_name == "sockshop":
+        sockshop_setup.scale_sockshop.main(deployment_config['deployment_scaling'], deployment_config['autoscale_p'])
+        time.sleep(360) # note: may need to increase this...
+
         print config_params["number_background_locusts"], config_params["background_locust_spawn_rate"], config_params["number_customer_records"]
         print type(config_params["number_background_locusts"]), type(config_params["background_locust_spawn_rate"]), type(config_params["number_customer_records"])
         request_url = "--host=http://" + ip + ":"+ str(port)
@@ -390,7 +398,14 @@ def prepare_app(app_name, config_params, ip, port):
         #    print >> f, out
         print out
     elif app_name == "wordpress":
-        ## ZZKKPP
+        deployment_scaling = deployment_config['deployment_scaling']
+        autoscale_p = deployment_config['autoscale_p']
+        cpu_percent_cuttoff = deployment_config['cpu_percent_cuttoff']["wordpress"]
+        wordpress_setup.scale_wordpress.scale_wordpress(autoscale_p, cpu_percent_cuttoff, deployment_scaling)
+        wordpress_setup.scale_wordpress.deploy_wp(deployment_scaling)
+
+        time.sleep(360) # note: may need to increase this...
+
         try:
             wordpress_setup.setup_wordpress.main(ip, port, "hi")
         except Exception,e:
@@ -1150,6 +1165,43 @@ def find_dst_and_srcs_ips_for_det(exfil_path, current_class_name, selected_conta
             dests.append(next_instance_ip)
 
     return dests, srcs
+
+def scale_application(app_name, config_params, ip, port):
+    if app_name == "sockshop":
+        pass
+
+        '''
+        print config_params["number_background_locusts"], config_params["background_locust_spawn_rate"], config_params[
+            "number_customer_records"]
+        print type(config_params["number_background_locusts"]), type(
+            config_params["background_locust_spawn_rate"]), type(config_params["number_customer_records"])
+        request_url = "--host=http://" + ip + ":" + str(port)
+        print request_url
+        prepare_cmds = ["locust", "-f", "./sockshop_setup/pop_db.py", request_url, "--no-web", "-c",
+                        str(config_params["number_background_locusts"]), "-r",
+                        str(config_params["background_locust_spawn_rate"]),
+                        "-t", "10min"]
+        print prepare_cmds
+        try:
+            out = subprocess.check_output(prepare_cmds)
+            print out
+        except Exception as e:
+            print "exception_in_prepare_apps: ", e
+        '''
+    elif app_name == "wordpress":
+        pass
+        '''
+        ## ZZKKPP
+        try:
+            wordpress_setup.setup_wordpress.main(ip, port, "hi")
+        except Exception, e:
+            print "wordpress_setup.setup_wordpress.main triggered this exception: ", str(e)
+        '''
+    else:
+        # other applications will require other setup procedures (if they can be automated) #
+        # note: some cannot be automated (i.e. wordpress)
+        pass
+
 
 # note, requests means requests that succeeded
 def sanity_check_locust_performance(locust_csv_file):
