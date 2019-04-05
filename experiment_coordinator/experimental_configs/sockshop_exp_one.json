@@ -29,7 +29,7 @@
       "DET_avg_exfiltration_rate_KB_per_sec": [1],
       "sec_between_exfil_pkts":["None"]
     },
-    "Deploymenet" : {
+    "Deployment" : {
       "deployment_scaling" :
         {
           "orders": {"min": 3, "max": 3},

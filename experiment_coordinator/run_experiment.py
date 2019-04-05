@@ -324,7 +324,7 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
         pass
 
 def prepare_app(app_name, config_params, spec_port, spec_ip):
-    deployment_config = config_params["Deploymenet"]
+    deployment_config = config_params["Deployment"]
     ip,port=None,None
     if app_name == "sockshop":
         sockshop_setup.scale_sockshop.main(deployment_config['deployment_scaling'], deployment_config['autoscale_p'])
