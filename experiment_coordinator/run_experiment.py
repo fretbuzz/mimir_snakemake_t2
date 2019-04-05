@@ -1382,4 +1382,4 @@ if __name__=="__main__":
     os.environ['DOCKER_CERT_PATH'] = path_to_docker_machine_tls_certs
     client =docker.from_env()
 
-    main(exp_name, args.config_file, args.prepare_app_p, port_number, ip, args.localhostip, args.exfil_p)
+    main(exp_name, args.config_file, args.prepare_app_p, None, None, args.localhostip, args.exfil_p)
