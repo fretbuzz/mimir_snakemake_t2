@@ -69,21 +69,21 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, use_ciliu
     # Create an initial process
     sh = s.run('sh')
     # Send the process arguments
-    sh.sendline('ls -la')
+    #sh.sendline('ls -la')
     # Receive output from the executed command
-    line_rec = 'start'
-    while line_rec != '':
-        line_rec = sh.recvline(timeout=5)
-        print("recieved line", line_rec)
-    print("--end ls -la ---")
+    #line_rec = 'start'
+    #while line_rec != '':
+    #    line_rec = sh.recvline(timeout=5)
+    #    print("recieved line", line_rec)
+    #print("--end ls -la ---")
 
-    sh.sendline('pwd')
+    #sh.sendline('pwd')
     # Receive output from the executed command
-    line_rec = 'start'
-    while line_rec != '':
-        line_rec = sh.recvline(timeout=5)
-        print("recieved line", line_rec)
-    print("--end pwd ---")
+    #line_rec = 'start'
+    #while line_rec != '':
+    #    line_rec = sh.recvline(timeout=5)
+    #    print("recieved line", line_rec)
+    #print("--end pwd ---")
 
     sh.sendline('sudo newgrp docker')
     sh.sendline('export MINIKUBE_HOME=/mydata/')
@@ -166,6 +166,7 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, use_ciliu
     else:
         pass
 
+    print "----after minikube setup---"
     # pwd_line = ''
     line_rec = 'something something'
     while line_rec != '':
@@ -183,6 +184,7 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, use_ciliu
                               exp_name + ' --config_file ' + config_file_name
     if not physical_attacks_p:
         start_actual_experiment += ' --no_exfil'
+    print "skip_app_setup",skip_app_setup
     if not skip_app_setup:
         start_actual_experiment += ' --prepare_app_p'
 
