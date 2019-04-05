@@ -20,14 +20,14 @@
       "regex_of_file_to_exfil": "\"index-0*\"",
       "exfiltration_path_class_which_installer": { "user-db":"apt" },
 
-      "exfil_methods": "none",
-      "exfil_protocols": ["tcp"],
-      "exfil_StartEnd_times": [[2100,3000]],
-      "exfil_paths": [],
-      "DET_min_exfil_data_per_packet_bytes": [300],
-      "DET_max_exfil_data_per_packet_bytes": [400],
-      "DET_avg_exfiltration_rate_KB_per_sec": [1],
-      "sec_between_exfil_pkts":["None"]
+      "exfil_methods": ["DET", "DET", "DET"],
+      "exfil_protocols": ["tcp", "tcp", "tcp"],
+      "exfil_StartEnd_times": [[120,140], [160, 180], [200,220]],
+      "exfil_paths": [["front-end", "user", "user-db"], ["front-end", "user-db"], ["user-db"]],
+      "DET_min_exfil_data_per_packet_bytes": [300, 300, 300],
+      "DET_max_exfil_data_per_packet_bytes": [400, 400, 400],
+      "DET_avg_exfiltration_rate_KB_per_sec": [1.0, 1.0, 1.0],
+      "sec_between_exfil_pkts":["None", "None", "None"]
     },
     "Deployment" : {
       "deployment_scaling" :
