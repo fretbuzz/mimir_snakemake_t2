@@ -4,7 +4,12 @@ import time
 from kubernetes_setup_functions import *
 import os
 
+
 def main(deployment_scaling, autoscale_p):
+    deploy_sockshop(deployment_scaling, autoscale_p)
+    scale_sockshop(deployment_scaling, autoscale_p)
+
+def deploy_sockshop(deployment_scaling, autoscale_p):
 
     wait_until_pods_done("kube-system")
     time.sleep(60)
@@ -16,6 +21,7 @@ def main(deployment_scaling, autoscale_p):
     time.sleep(60)
     wait_until_pods_done("sock-shop")
 
+def scale_sockshop(deployment_scaling, autoscale_p):
     orders_containers = deployment_scaling['orders']['max']
     queue_master_containers = deployment_scaling['queue-master']['max']
     shipping_containers = deployment_scaling['shipping']['max']

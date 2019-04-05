@@ -91,14 +91,11 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
     # after I load the webapp (and hence the corresponding database)
     maxsleep = [average_seconds_between_packets[i] * 2 for i in range(0,len(average_seconds_between_packets))]
 
-    # modify images appropriately
-    install_exfil_dependencies(exfil_paths, orchestrator, class_to_installer)
-
     # step (2) setup the application, if necessary (e.g. fill up the DB, etc.)
     # note: it is assumed that the application is already deployed
     app_name = config_params["application_name"]
     if prepare_app_p:
-        prepare_app(app_name, config_params["setup"],  spec_port, spec_ip, config_params["Deployment"])
+        prepare_app(app_name, config_params["setup"],  spec_port, spec_ip, config_params["Deployment"], exfil_paths, class_to_installer)
     ip,port = get_ip_and_port(app_name)
     print "ip,port",ip,port
 
@@ -325,9 +322,16 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
     except OSError:
         pass
 
-def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_config):
+def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_config, exfil_paths, class_to_installer):
+
     if app_name == "sockshop":
-        sockshop_setup.scale_sockshop.main(deployment_config['deployment_scaling'], deployment_config['autoscale_p'])
+        #sockshop_setup.scale_sockshop.main(deployment_config['deployment_scaling'], deployment_config['autoscale_p'])
+        sockshop_setup.scale_sockshop.deploy_sockshop(deployment_config['deployment_scaling'], deployment_config['autoscale_p'])
+
+        # modify images appropriately
+        install_exfil_dependencies(exfil_paths, orchestrator, class_to_installer)
+
+        sockshop_setup.scale_sockshop.scale_sockshop(deployment_config['deployment_scaling'], deployment_config['autoscale_p'])
 
         time.sleep(420) # note: may need to increase this...
         if spec_port or spec_ip:
@@ -368,8 +372,10 @@ def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_co
         deployment_scaling = deployment_config['deployment_scaling']
         autoscale_p = deployment_config['autoscale_p']
         cpu_percent_cuttoff = deployment_config['cpu_percent_cuttoff']["wordpress"]
-        wordpress_setup.scale_wordpress.scale_wordpress(autoscale_p, cpu_percent_cuttoff, deployment_scaling)
+
         wordpress_setup.scale_wordpress.deploy_wp(deployment_scaling)
+        install_exfil_dependencies(exfil_paths, orchestrator, class_to_installer)
+        wordpress_setup.scale_wordpress.scale_wordpress(autoscale_p, cpu_percent_cuttoff, deployment_scaling)
 
         time.sleep(420) # note: may need to increase this...
         if spec_port or spec_ip:
