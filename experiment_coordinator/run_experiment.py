@@ -93,12 +93,13 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
     # modify images appropriately
     install_exfil_dependencies(exfil_paths, orchestrator, class_to_installer)
 
-    ip, port = None,None
     # step (2) setup the application, if necessary (e.g. fill up the DB, etc.)
     # note: it is assumed that the application is already deployed
+    app_name = config_params["application_name"]
     if prepare_app_p:
-        ip, port = prepare_app(config_params["application_name"], config_params["setup"],  spec_port, spec_ip, config_params["Deployment"])
-
+        prepare_app(app_name, config_params["setup"],  spec_port, spec_ip, config_params["Deployment"])
+    ip,port = get_ip_and_port(app_name)
+    print "ip,port",ip,port
 
     # determine the network namespaces
     # this will require mapping the name of the network to the network id, which
@@ -324,7 +325,6 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
         pass
 
 def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_config):
-    ip,port=None,None
     if app_name == "sockshop":
         sockshop_setup.scale_sockshop.main(deployment_config['deployment_scaling'], deployment_config['autoscale_p'])
 
@@ -382,8 +382,6 @@ def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_co
         # other applications will require other setup procedures (if they can be automated) #
         # note: some cannot be automated (i.e. wordpress)
         pass
-    return ip,port
-
 
 # Func: generate_background_traffic
 #   Uses locustio to run a dynamic number of background clients based on 24 time steps
