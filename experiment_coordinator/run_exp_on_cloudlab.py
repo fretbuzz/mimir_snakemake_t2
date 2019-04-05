@@ -116,7 +116,7 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, use_ciliu
 
         clone_mimir_str = "cd /mydata/; git clone https://github.com/fretbuzz/mimir_v2"
         sh.sendline(clone_mimir_str)
-        update_mimir_str = "cd /mimir_v2; git pull"
+        update_mimir_str = "cd ./mimir_v2/; git pull"
         sh.sendline(update_mimir_str)
 
 

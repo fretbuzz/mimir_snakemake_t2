@@ -106,7 +106,9 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
     full_network_ids = ["bridge"] # in kubernetes this is simple
     network_ids_to_namespaces = {}
     network_ids_to_namespaces['bridge'] = 'default' # in kubernetes this is simple
+    originator_class = config_params["exfiltration_info"]["sensitive_ms"][0]
 
+    '''
     # step (3) prepare system for data exfiltration (i.g. get DET working on the relevant containers)
     # note: I may want to re-select the specific instances during each trial
     possible_proxies = {}
@@ -122,7 +124,6 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
             selected_proxies[proxy_class] = selected_proxy
 
     # determine which container instances should be the originator point
-    originator_class = config_params["exfiltration_info"]["sensitive_ms"][0]
     possible_originators = {}
     possible_originators[originator_class], class_to_networks[originator_class] = get_class_instances(orchestrator, originator_class, "None")
     selected_originators = {}
@@ -134,6 +135,7 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
     proxy_instance_to_networks_to_ip.update( map_container_instances_to_ips(orchestrator, possible_originators, class_to_networks, network_plugin) )
     selected_containers = selected_proxies.copy()
     selected_containers.update(selected_originators)
+    '''
 
     # need to install the pre-reqs for each of the containers (proxies + orgiinator)
     # note: assuming endpoint (i.e. local) pre-reqs are already installed
@@ -246,15 +248,23 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
         next_exfil_end_time = next_StartEnd_time[1]
         cur_exfil_method = exfil_methods[exfil_counter]
 
-        if exfil_p: ## TODO: keep working on this!!!!
+        if exfil_p:
             # setup config files for proxy DET instances and start them
             # note: this is only going to work for a single exp_support_scripts and a single dst, ATM
-
+            selected_containers = {}
+            class_to_networks = {}
             for exfil_element in exfil_paths[exfil_counter]:
-                for container_instances in selected_proxies[exfil_element]:
+                possible_containers,class_to_networks[exfil_element] = get_class_instances(orchestrator,exfil_element, "None")
+                selected_container = random.sample(possible_containers, 1)
+                selected_containers[exfil_element] = selected_container
+
+            proxy_instance_to_networks_to_ip = map_container_instances_to_ips(orchestrator, selected_containers,
+                                                                              class_to_networks, network_plugin)
+            for exfil_element in exfil_paths[exfil_counter]:
+                for container_instances in selected_containers[exfil_element]:
                     # going to determine srcs and dests by looking backword into the exp_support_scripts class, index into the selected proxies,
-                    # and then indexing into instances_to_network_to_ips (NOTE: i think I modified this appropriately...)
-                    dsts, srcs = find_dst_and_srcs_ips_for_det(exfil_paths[exfil_counter], exfil_element, selected_containers, localhostip,
+                    dsts, srcs = find_dst_and_srcs_ips_for_det(exfil_paths[exfil_counter], exfil_element,
+                                                               selected_containers, localhostip,
                                                                proxy_instance_to_networks_to_ip, class_to_networks)
                     print "cur_dsts_srcs", dsts, srcs
                     for container in container_instances:
@@ -278,8 +288,7 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
             directory_to_exfil = config_params["exfiltration_info"]["folder_to_exfil"]
             regex_to_exfil = config_params["exfiltration_info"]["regex_of_file_to_exfil"]
             files_to_exfil = []
-            for class_name, container_instances in selected_originators.iteritems():
-                for container in container_instances:
+            for container in selected_containers[originator_class]:
                     for next_instance_ip in next_instance_ips:
                         # this just sets up the config file for DET... I'm not sure why there is a loop over the next_instance_ips
                         # but I suspect it's because the base implementation requires a new instance for each exfil path,
@@ -291,30 +300,28 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
                                                                      DET_max_exfil_bytes_in_packet)
                         files_to_exfil.append(file_to_exfil)
 
-
-
             time.sleep(start_time + next_exfil_start_time - time.time())
             print start_time, next_exfil_start_time, time.time(), start_time + next_exfil_start_time - time.time()
 
             file_to_exfil = files_to_exfil[0]
-            for class_name, container_instances in selected_originators.iteritems():
-                for container in container_instances:
-                    if cur_exfil_method == 'DET':
-                        thread.start_new_thread(start_det_client, (file_to_exfil, exfil_protocols[exfil_counter], container))
-                    elif cur_exfil_method == 'dnscat':
-                        thread.start_new_thread(start_dnscat_client, (container,))
-                    else:
-                        print "that exfiltration method was not recognized!"
+            for container in selected_containers[originator_class]:
+                #for container in container_instances:
+                if cur_exfil_method == 'DET':
+                    thread.start_new_thread(start_det_client, (file_to_exfil, exfil_protocols[exfil_counter], container))
+                elif cur_exfil_method == 'dnscat':
+                    thread.start_new_thread(start_dnscat_client, (container,))
+                else:
+                    print "that exfiltration method was not recognized!"
 
             time.sleep(start_time + next_exfil_end_time - time.time())
-            for class_name, container_instances in selected_originators.iteritems():
-                for container in container_instances:
-                    if cur_exfil_method == 'DET':
-                        stop_det_client(container)
-                    elif cur_exfil_method == 'dnscat':
-                        stop_dnscat_client(container)
-                    else:
-                        print "that exfiltration method was not recognized!"
+            # note: looping over everything b/c I wanna stop the proxies too...
+            for class_name,container in selected_containers.iteritems():
+                if cur_exfil_method == 'DET':
+                    stop_det_client(container)
+                elif cur_exfil_method == 'dnscat':
+                    stop_dnscat_client(container)
+                else:
+                    print "that exfiltration method was not recognized!"
 
             exfil_info_file_name = './' + experiment_name + '_det_server_local_output.txt'
             bytes_exfil, start_ex, end_ex = parse_local_det_output(exfil_info_file_name, exfil_protocols[exfil_counter])
@@ -1094,7 +1101,9 @@ def setup_config_file_det_client(dst, container, directory_to_exfil, regex_to_ex
 def setup_dnscat_server():
     ## TODO: definitely NOT going to be doing this manually...
     # Step (1): install dnscat_server dependencies + start it (already have a script ready to go)
+    #### note: ensure dnscat's upstream is what would normally by the upstream
     # Step (2): switch upstream DNS server of kubernetes deployment (to the dnscat server...)
+    # Step (3): [LATER] switch it back @ and of experiment
     pass
 
 def start_dnscat_client(container):
@@ -1346,6 +1355,11 @@ def setup_directories(exp_name):
     os.makedirs('./experimental_data/'+exp_name+'/debug')
     print "Just setup directories!"
 
+def get_ip():
+    out = subprocess.check_output(['minikube', 'ip'])
+    return out.rstrip().lstrip()
+
+
 def get_ip_and_port(app_name):
     if app_name == 'sockshop':
         out = subprocess.check_output(['minikube', 'service', 'front-end',  '--url', '--namespace=sock-shop'])
@@ -1391,7 +1405,7 @@ if __name__=="__main__":
         config_params = json.load(f)
     orchestrator = "kubernetes"
 
-    if args.vm_ip == 'None':
+    if not args.vm_ip:
         ip = get_IP(orchestrator)
     else:
         ip = args.vm_ip
