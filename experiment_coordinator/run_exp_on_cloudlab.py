@@ -142,6 +142,16 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, use_ciliu
                 break
             time.sleep(20)
 
+        if app_name == "wordpress":
+            sh.sendline("bash /mydata/mimir_snakemake_t2/experiment_coordinator/install_scripts/install_selenium_dependencies.sh")
+            line_rec = 'start'
+            last_line = ''
+            while line_rec != '':
+                last_line = line_rec
+                line_rec = sh.recvline(timeout=240)
+                print("recieved line", line_rec)
+            print("did selenium setup work??")
+
         time.sleep(170)
         sh.sendline('rm ' + experiment_sentinal_file)
         print "removing experimente sential file", sh.recvline(timeout=5)

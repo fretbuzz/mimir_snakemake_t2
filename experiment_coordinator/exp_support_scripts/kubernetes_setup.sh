@@ -43,6 +43,7 @@ export MINIKUBE_HOME=/mydata
 pip install cython
 sudo pip install pycrypto
 pip install kubernetes
+pip install selenium
 
 #minikube start --vm-driver kvm2 --cpus=16 --memory=100000 --disk-size 65g
 

