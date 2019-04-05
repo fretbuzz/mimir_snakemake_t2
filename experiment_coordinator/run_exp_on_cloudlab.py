@@ -119,6 +119,8 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, use_ciliu
         update_mimir_str = "cd ./mimir_v2/; git pull"
         sh.sendline(update_mimir_str)
 
+        sh.sendline("cd ./experiment_coordinator/")
+        sh.sendline("bash /mydata/mimir_v2/experiment_coordinator/dnscat_component/install_dnscat_server.sh")
 
         sh.sendline('cd /mydata/mimir_v2/experiment_coordinator/exp_support_scripts/')
         time.sleep(300)

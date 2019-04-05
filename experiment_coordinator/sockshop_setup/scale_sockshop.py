@@ -8,8 +8,11 @@ def main(deployment_scaling, autoscale_p):
 
     wait_until_pods_done("kube-system")
     time.sleep(60)
-    out = subprocess.check_output(["kubectl", "create", "-f", "./sockshop_setup/sock-shop-ns.yaml", "-f",
+    try:
+        out = subprocess.check_output(["kubectl", "create", "-f", "./sockshop_setup/sock-shop-ns.yaml", "-f",
                                    "./sockshop_setup/sockshop_modified.yaml"])
+    except:
+        pass
     time.sleep(60)
     wait_until_pods_done("sock-shop")
 
@@ -42,8 +45,11 @@ def main(deployment_scaling, autoscale_p):
         print out
         out = subprocess.check_output(["minikube", "addons", "enable", "metrics-server"])
         print out
-        out = subprocess.check_output(["git", "clone", "https://github.com/microservices-demo/microservices-demo.git"])
-        print out
+        try:
+            out = subprocess.check_output(["git", "clone", "https://github.com/microservices-demo/microservices-demo.git"])
+            print out
+        except:
+            pass
         out = subprocess.check_output(["kubectl", "apply", "-f", "./microservices-demo/deploy/kubernetes/autoscaling/"])
         print out
 
