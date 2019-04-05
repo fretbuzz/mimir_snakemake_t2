@@ -18,7 +18,7 @@
       "sensitive_ms":[ "user-db" ],
       "folder_to_exfil": "/data/db-users/",
       "regex_of_file_to_exfil": "\"index-0*\"",
-      "exfiltration_path_class_which_installer": { "user-db":"apt" },
+      "exfiltration_path_class_which_installer": { "user-db":"apt", "front-end": "apk", "user":"apk"},
 
       "exfil_methods": ["DET", "DET", "DET"],
       "exfil_protocols": ["tcp", "tcp", "tcp"],
