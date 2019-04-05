@@ -42,5 +42,6 @@
           "cart": {"min": 4, "max": 4}
         },
       "autoscale_p": true
-    }
+    },
+    "VM_interfaces" : ["vboxnet0"]
 }

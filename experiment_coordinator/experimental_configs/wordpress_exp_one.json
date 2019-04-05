@@ -35,6 +35,6 @@
       "cpu_percent_cuttoff": {
           "wordpress": 80
       }
-    }
-
+    },
+    "VM_interfaces" : ["vboxnet0"]
 }

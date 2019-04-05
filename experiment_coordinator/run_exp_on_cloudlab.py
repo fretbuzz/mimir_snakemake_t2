@@ -142,6 +142,8 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, use_ciliu
                 break
             time.sleep(20)
 
+        sh.sendline("bash /mydata/mimir_snakemake_t2/experiment_coordinator/")
+
         if app_name == "wordpress":
             sh.sendline("bash /mydata/mimir_snakemake_t2/experiment_coordinator/install_scripts/install_selenium_dependencies.sh")
             line_rec = 'start'
@@ -167,6 +169,9 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, use_ciliu
         pass
 
     print "----after minikube setup---"
+    update_mimir_str = "cd /mydata/mimir_v2/; git pull"
+    sh.sendline(update_mimir_str)
+
     # pwd_line = ''
     line_rec = 'something something'
     while line_rec != '':
@@ -267,5 +272,5 @@ if __name__ == "__main__":
 
     remote_dir = '/mydata/mimir_v2/experiment_coordinator/experimental_data/' + exp_name  # TODO
     s = run_experiment(app_name, config_file_name, exp_name, args.skip_setup_p,
-                       use_cilium, physical_attacks_p, args.skip_setup_p)
+                       use_cilium, physical_attacks_p, args.skip_app_setup_p)
     retrieve_results(s)

@@ -20,6 +20,7 @@ import re
 import pexpect
 import shutil
 import math
+import netifaces
 import wordpress_setup.setup_wordpress
 from kubernetes import client, config
 import wordpress_setup.scale_wordpress
@@ -1048,6 +1049,8 @@ def setup_dnscat_server():
     ## TODO: definitely NOT going to be doing this manually...
     # Step (1): install dnscat_server dependencies + start it (already have a script ready to go)
     #### note: ensure dnscat's upstream is what would normally by the upstream
+    ### NO ^^^ do not install stuff in this file!!!!!
+
     # Step (2): switch upstream DNS server of kubernetes deployment (to the dnscat server...)
     # Step (3): [LATER] switch it back @ and of experiment
     pass
@@ -1239,6 +1242,19 @@ def generate_analysis_json(path_to_exp_folder, analysis_json_name, exp_config_js
     analysis_dict["pod_creation_log_name"] = exp_name  + '_cluster_creation_log.txt'
     analysis_dict["pcap_file_name"] = exp_name + '_bridge_any.pcap'
 
+    # this logs the relevant interfaces so we can know what is and isn't on the cluster
+    # (this'll be useful in the analysis pipeline)
+    try:
+        VM_interfaces_info = {}
+        VM_interfaces = exp_config_json["VM_interfaces"]
+        for interface in netifaces.interfaces():
+            if netifaces.AF_INET in netifaces.ifaddresses(interface):
+                if interface in VM_interfaces:
+                    VM_interfaces_info[interface] = netifaces.ifaddresses(interface)[netifaces.AF_INET][0]
+        analysis_dict["VM_interfaces_info"] = VM_interfaces_info
+    except:
+        pass
+
     json_path = path_to_exp_folder + analysis_json_name
     r = json.dumps(analysis_dict, indent=4)
     with open(json_path, 'w') as f:
@@ -1270,13 +1286,14 @@ def get_ip():
 
 
 def get_ip_and_port(app_name):
+    print "get_ip_and_port"
     if app_name == 'sockshop':
-        out = subprocess.check_output(['minikube', 'service', 'front-end',  '--url', '--namespace=sock-shop'])
+        out = subprocess.check_output(['minikube', 'service', 'front-end',  '--url', '--namespace=sock-shop', "--wait", "120"])
     elif app_name == 'wordpress':
         # step 1: get the appropriate ip / port (like above -- need for next step)
-        out = subprocess.check_output(['minikube', 'service', 'wwwppp-wordpress',  '--url'])
+        out = subprocess.check_output(['minikube', 'service', 'wwwppp-wordpress',  '--url', "--wait", "120"])
     elif app_name == 'hipster':
-        out = subprocess.check_output(['minikube', 'service', 'frontend-external', '--url'])
+        out = subprocess.check_output(['minikube', 'service', 'frontend-external', '--url', "--wait", "120"])
     else:
         pass
     print "out",out
