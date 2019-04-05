@@ -108,51 +108,6 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
     network_ids_to_namespaces['bridge'] = 'default' # in kubernetes this is simple
     originator_class = config_params["exfiltration_info"]["sensitive_ms"][0]
 
-    '''
-    # step (3) prepare system for data exfiltration (i.g. get DET working on the relevant containers)
-    # note: I may want to re-select the specific instances during each trial
-    possible_proxies = {}
-    selected_proxies = {}
-    class_to_networks = {}
-
-    # the furthest will be the originator, the others will be proxies (endpoint will be local)
-    print "exfil_paths", exfil_paths
-    for exfil_path in exfil_paths:
-        for proxy_class in exfil_path:
-            possible_proxies[proxy_class], class_to_networks[proxy_class] = get_class_instances(orchestrator, proxy_class, "None")
-            selected_proxy = random.sample(possible_proxies[proxy_class], 1)
-            selected_proxies[proxy_class] = selected_proxy
-
-    # determine which container instances should be the originator point
-    possible_originators = {}
-    possible_originators[originator_class], class_to_networks[originator_class] = get_class_instances(orchestrator, originator_class, "None")
-    selected_originators = {}
-    selected_originators[originator_class] = random.sample(possible_originators[originator_class], 1)
-
-    # map all of the names of the proxy container instances to their corresponding IP's
-    # a dict of dicts (instance -> networks -> ip)
-    proxy_instance_to_networks_to_ip = map_container_instances_to_ips(orchestrator, possible_proxies, class_to_networks, network_plugin)
-    proxy_instance_to_networks_to_ip.update( map_container_instances_to_ips(orchestrator, possible_originators, class_to_networks, network_plugin) )
-    selected_containers = selected_proxies.copy()
-    selected_containers.update(selected_originators)
-    '''
-
-    # need to install the pre-reqs for each of the containers (proxies + orgiinator)
-    # note: assuming endpoint (i.e. local) pre-reqs are already installed
-    # TODO: should this be moved to a different component of the experimental-setup pipeline (i.e. mod container image)
-    '''
-    if install_det_depen_p and 'DET' in exfil_protocols:
-        for class_name, container_instances in selected_proxies.iteritems():
-            for container in container_instances:
-                #install_det_dependencies(orchestrator, container, class_to_installer[class_name])
-                pass
-
-        print "possible_originators", possible_originators
-        for class_name, container_instances in selected_originators.iteritems():
-            for container in container_instances:
-                #install_det_dependencies(orchestrator, container, class_to_installer[class_name])
-                pass
-    '''
 
     experiment_length = config_params["experiment_length_sec"]
 
@@ -361,12 +316,6 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
 
     time.sleep(2)
 
-    # stopping the proxies can be done the same way (useful if e.g., switching
-    # protocols between experiments, etc.)
-    if exfil_p:
-        for class_name, container_instances in selected_proxies.iteritems():
-            for container in container_instances:
-                stop_det_client(container)
     copy_experimental_info_to_experimental_folder(exp_name)
 
     try:
@@ -1195,43 +1144,6 @@ def find_dst_and_srcs_ips_for_det(exfil_path, current_class_name, selected_conta
 
     return dests, srcs
 
-def scale_application(app_name, config_params, ip, port):
-    if app_name == "sockshop":
-        pass
-
-        '''
-        print config_params["number_background_locusts"], config_params["background_locust_spawn_rate"], config_params[
-            "number_customer_records"]
-        print type(config_params["number_background_locusts"]), type(
-            config_params["background_locust_spawn_rate"]), type(config_params["number_customer_records"])
-        request_url = "--host=http://" + ip + ":" + str(port)
-        print request_url
-        prepare_cmds = ["locust", "-f", "./sockshop_setup/pop_db.py", request_url, "--no-web", "-c",
-                        str(config_params["number_background_locusts"]), "-r",
-                        str(config_params["background_locust_spawn_rate"]),
-                        "-t", "10min"]
-        print prepare_cmds
-        try:
-            out = subprocess.check_output(prepare_cmds)
-            print out
-        except Exception as e:
-            print "exception_in_prepare_apps: ", e
-        '''
-    elif app_name == "wordpress":
-        pass
-        '''
-        ## ZZKKPP
-        try:
-            wordpress_setup.setup_wordpress.main(ip, port, "hi")
-        except Exception, e:
-            print "wordpress_setup.setup_wordpress.main triggered this exception: ", str(e)
-        '''
-    else:
-        # other applications will require other setup procedures (if they can be automated) #
-        # note: some cannot be automated (i.e. wordpress)
-        pass
-
-
 # note, requests means requests that succeeded
 def sanity_check_locust_performance(locust_csv_file):
     method_to_requests = {}
@@ -1426,6 +1338,11 @@ if __name__=="__main__":
             setup_directories(config_params['experiment_name'])
             exp_name = config_params['experiment_name']
 
+    if args.port_number:
+        port_number = int(args.port_number)
+    else:
+        port_number = args.port_number
+
     path_to_docker_machine_tls_certs = ''
     with open(args.config_file) as f:
         config_params = json.load(f)
@@ -1436,4 +1353,4 @@ if __name__=="__main__":
     os.environ['DOCKER_CERT_PATH'] = path_to_docker_machine_tls_certs
     client =docker.from_env()
 
-    main(exp_name, args.config_file, args.prepare_app_p, int(args.port_number), ip, args.localhostip, args.exfil_p)
+    main(exp_name, args.config_file, args.prepare_app_p, port_number, ip, args.localhostip, args.exfil_p)
