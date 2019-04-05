@@ -56,7 +56,7 @@ def get_ip_and_port(app_name, sh):
     print "minikube_ip", minikube_ip, "front_facing_port", front_facing_port
     return minikube_ip, front_facing_port
 
-def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, autoscale_p, use_cilium, physical_attacks_p):
+def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, use_cilium, physical_attacks_p):
     s = None
     while s == None:
         try:
@@ -116,9 +116,11 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, autoscale
 
         clone_mimir_str = "cd /mydata/; git clone https://github.com/fretbuzz/mimir_v2"
         sh.sendline(clone_mimir_str)
+        update_mimir_str = "cd /mimir_v2; git pull"
+        sh.sendline(update_mimir_str)
+
 
         sh.sendline('cd /mydata/mimir_v2/experiment_coordinator/exp_support_scripts/')
-        print "autoscale_p",autoscale_p
         time.sleep(300)
         sh.sendline('bash /mydata/mimir_v2/experiment_coordinator/exp_support_scripts/run_experiment.sh ' +
                     app_name + ' ' + str(use_cilium) )
@@ -140,7 +142,6 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, autoscale
                 break
             time.sleep(20)
 
-        minikube_ip, front_facing_port = get_ip_and_port(app_name, sh)
         time.sleep(170)
         sh.sendline('rm ' + experiment_sentinal_file)
         print "removing experimente sential file", sh.recvline(timeout=5)
@@ -153,7 +154,7 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, autoscale
         time.sleep(170)
 
     else:
-        minikube_ip, front_facing_port = get_ip_and_port(app_name, sh)
+        pass
 
     # pwd_line = ''
     line_rec = 'something something'
@@ -167,19 +168,14 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, autoscale
         print "hipsterStore (microservice from google) doesn't have an actual run_experiment component defined"
         exit(233)
 
-    ## TODO: probably wanna modify the config_file_name here to incorporate the cilium information...
-    ## should be easy enough... just read it in w/ a json library (in python). modify the one value and then
-    ## write it back out... seems like it'd take ~10 min...
-
     time.sleep(60)
+    start_actual_experiment = 'python /mydata/mimir_v2/experiment_coordinator/run_experiment.py --exp_name ' + \
+                              exp_name + ' --config_file ' + config_file_name
     if not physical_attacks_p:
-        start_actual_experiment = 'python /mydata/mimir_v2/experiment_coordinator/run_experiment.py --exp_name ' +\
-                                  exp_name  + ' --config_file ' + config_file_name + ' --prepare_app_p --port ' + \
-                                  front_facing_port + ' --ip ' + minikube_ip + ' --no_exfil'
-    else:
-        start_actual_experiment = 'python /mydata/mimir_v2/experiment_coordinator/run_experiment.py --exp_name ' +\
-                                  exp_name  + ' --config_file ' + config_file_name + ' --prepare_app_p --port ' + \
-                                  front_facing_port + ' --ip ' + minikube_ip + ' --install_det_depen'
+        start_actual_experiment += ' --no_exfil'
+    if not skip_setup_p:
+        start_actual_experiment += ' --prepare_app_p'
+
 
     create_experiment_sential_file = '; echo experimenet_done >> ' + experiment_sentinal_file
     start_actual_experiment += create_experiment_sential_file
@@ -236,10 +232,6 @@ if __name__ == "__main__":
                         default=False,
                         help='only do the running the experiment-- no minikube setup, application deployment, or \
                         application loading')
-    parser.add_argument('--autoscale_p', dest='autoscale_p', action='store_true',
-                       default=False,
-                       help='enable autoscaling')
-
 
     parser.add_argument('--config_json',dest="config_json", default='None')
 
@@ -258,6 +250,6 @@ if __name__ == "__main__":
             physical_attacks_p = config_params["physical_attacks_p"]
 
     remote_dir = '/mydata/mimir_v2/experiment_coordinator/experimental_data/' + exp_name  # TODO
-    s = run_experiment(app_name, config_file_name, exp_name, args.skip_setup_p, args.autoscale_p,
+    s = run_experiment(app_name, config_file_name, exp_name, args.skip_setup_p,
                        use_cilium, physical_attacks_p)
     retrieve_results(s)

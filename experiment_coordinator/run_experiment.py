@@ -43,7 +43,7 @@ CLIENT_RATIO_CYBER = [0.0328, 0.0255, 0.0178, 0.0142, 0.0119, 0.0112, 0.0144, 0.
 0.0574, 0.0571, 0.0568, 0.0543, 0.0532, 0.0514, 0.0514, 0.0518, 0.0522, 0.0571, 0.0609, 0.0589, 0.0564]
 
 
-def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, install_det_depen_p, exfil_p):
+def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localhostip, exfil_p):
     # step (1) read in the config file
     with open(config_file.rstrip().lstrip()) as f:
         config_params = json.load(f)
@@ -93,10 +93,12 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
     # modify images appropriately
     install_exfil_dependencies(exfil_paths, orchestrator, class_to_installer)
 
+    ip, port = None,None
     # step (2) setup the application, if necessary (e.g. fill up the DB, etc.)
     # note: it is assumed that the application is already deployed
     if prepare_app_p:
-        prepare_app(config_params["application_name"], config_params["setup"], ip, port)
+        ip, port = prepare_app(config_params["application_name"], config_params["setup"],  spec_port, spec_ip)
+
 
     # determine the network namespaces
     # this will require mapping the name of the network to the network id, which
@@ -136,6 +138,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
     # need to install the pre-reqs for each of the containers (proxies + orgiinator)
     # note: assuming endpoint (i.e. local) pre-reqs are already installed
     # TODO: should this be moved to a different component of the experimental-setup pipeline (i.e. mod container image)
+    '''
     if install_det_depen_p and 'DET' in exfil_protocols:
         for class_name, container_instances in selected_proxies.iteritems():
             for container in container_instances:
@@ -147,6 +150,7 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
             for container in container_instances:
                 #install_det_dependencies(orchestrator, container, class_to_installer[class_name])
                 pass
+    '''
 
     experiment_length = config_params["experiment_length_sec"]
 
@@ -242,19 +246,17 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
         next_exfil_end_time = next_StartEnd_time[1]
         cur_exfil_method = exfil_methods[exfil_counter]
 
-        if exfil_p:
+        if exfil_p: ## TODO: keep working on this!!!!
             # setup config files for proxy DET instances and start them
             # note: this is only going to work for a single exp_support_scripts and a single dst, ATM
 
-            for class_name, container_instances in selected_proxies.iteritems():
-                # going to determine srcs and dests by looking backword into the exp_support_scripts class, index into the selected proxies,
-                # and then indexing into instances_to_network_to_ips
-                # NOTE: i think I modified this appropriately...
-                dsts, srcs = find_dst_and_srcs_ips_for_det(exfil_paths[exfil_counter], class_name, selected_containers, localhostip,
-                                                           proxy_instance_to_networks_to_ip, class_to_networks)
-                print "cur_dsts_srcs", dsts, srcs
-                ## TODO: problem: need dsts to actually point out.
-                if dsts or srcs:
+            for exfil_element in exfil_paths[exfil_counter]:
+                for container_instances in selected_proxies[exfil_element]:
+                    # going to determine srcs and dests by looking backword into the exp_support_scripts class, index into the selected proxies,
+                    # and then indexing into instances_to_network_to_ips (NOTE: i think I modified this appropriately...)
+                    dsts, srcs = find_dst_and_srcs_ips_for_det(exfil_paths[exfil_counter], exfil_element, selected_containers, localhostip,
+                                                               proxy_instance_to_networks_to_ip, class_to_networks)
+                    print "cur_dsts_srcs", dsts, srcs
                     for container in container_instances:
                         for dst in dsts:
                             print "config stuff", container.name, srcs, dst, proxy_instance_to_networks_to_ip[container]
@@ -365,11 +367,17 @@ def main(experiment_name, config_file, prepare_app_p, port, ip, localhostip, ins
     except OSError:
         pass
 
-def prepare_app(app_name, config_params, ip, port):
+def prepare_app(app_name, config_params, spec_port, spec_ip):
     deployment_config = config_params["Deploymenet"]
+    ip,port=None,None
     if app_name == "sockshop":
         sockshop_setup.scale_sockshop.main(deployment_config['deployment_scaling'], deployment_config['autoscale_p'])
+
         time.sleep(420) # note: may need to increase this...
+        if spec_port or spec_ip:
+            ip,port=spec_port, spec_ip
+        else:
+            ip, port = get_ip_and_port(app_name)
 
         print config_params["number_background_locusts"], config_params["background_locust_spawn_rate"], config_params["number_customer_records"]
         print type(config_params["number_background_locusts"]), type(config_params["background_locust_spawn_rate"]), type(config_params["number_customer_records"])
@@ -406,6 +414,10 @@ def prepare_app(app_name, config_params, ip, port):
         wordpress_setup.scale_wordpress.deploy_wp(deployment_scaling)
 
         time.sleep(420) # note: may need to increase this...
+        if spec_port or spec_ip:
+            ip,port=spec_port, spec_ip
+        else:
+            ip, port = get_ip_and_port(app_name)
 
         try:
             wordpress_setup.setup_wordpress.main(ip, port, "hi")
@@ -415,6 +427,7 @@ def prepare_app(app_name, config_params, ip, port):
         # other applications will require other setup procedures (if they can be automated) #
         # note: some cannot be automated (i.e. wordpress)
         pass
+    return ip,port
 
 
 # Func: generate_background_traffic
@@ -1327,6 +1340,22 @@ def setup_directories(exp_name):
     os.makedirs('./experimental_data/'+exp_name+'/debug')
     print "Just setup directories!"
 
+
+def get_ip_and_port(app_name):
+    if app_name == 'sockshop':
+        out = subprocess.check_output(['minikube', 'service', 'front-end',  '--url', '--namespace=sock-shop'])
+    elif app_name == 'wordpress':
+        # step 1: get the appropriate ip / port (like above -- need for next step)
+        out = subprocess.check_output(['minikube', 'service', 'wwwppp-wordpress',  '--url'])
+    elif app_name == 'hipster':
+        out = subprocess.check_output(['minikube', 'service', 'frontend-external', '--url'])
+    else:
+        pass
+    print "out",out
+    minikube_ip, front_facing_port = out.split(' ')[-1].split('/')[-1].rstrip().split(':')
+    print "minikube_ip", minikube_ip, "front_facing_port", front_facing_port
+    return minikube_ip, front_facing_port
+
 if __name__=="__main__":
     print "RUNNING"
 
@@ -1340,8 +1369,8 @@ if __name__=="__main__":
     parser.add_argument('--install_det_depen', dest='install_det_depen_p', action='store_true',
                         default=False,
                         help='install DET dependencies on the relevant containers?')
-    parser.add_argument('--port',dest="port_number", default='80')
-    parser.add_argument('--ip',dest="vm_ip", default='None')
+    parser.add_argument('--port',dest="port_number", default=None)
+    parser.add_argument('--ip',dest="vm_ip", default=None)
     parser.add_argument('--docker_daemon_port',dest="docker_daemon_port", default='2376')
     parser.add_argument('--no_exfil', dest='exfil_p', action='store_false',
                         default=True,
@@ -1391,4 +1420,4 @@ if __name__=="__main__":
     os.environ['DOCKER_CERT_PATH'] = path_to_docker_machine_tls_certs
     client =docker.from_env()
 
-    main(exp_name, args.config_file, args.prepare_app_p, int(args.port_number), ip, args.localhostip, args.install_det_depen_p, args.exfil_p)
+    main(exp_name, args.config_file, args.prepare_app_p, int(args.port_number), ip, args.localhostip, args.exfil_p)
