@@ -97,7 +97,7 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
     # step (2) setup the application, if necessary (e.g. fill up the DB, etc.)
     # note: it is assumed that the application is already deployed
     if prepare_app_p:
-        ip, port = prepare_app(config_params["application_name"], config_params["setup"],  spec_port, spec_ip)
+        ip, port = prepare_app(config_params["application_name"], config_params["setup"],  spec_port, spec_ip, config_params["Deployment"])
 
 
     # determine the network namespaces
@@ -323,8 +323,7 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
     except OSError:
         pass
 
-def prepare_app(app_name, config_params, spec_port, spec_ip):
-    deployment_config = config_params["Deployment"]
+def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_config):
     ip,port=None,None
     if app_name == "sockshop":
         sockshop_setup.scale_sockshop.main(deployment_config['deployment_scaling'], deployment_config['autoscale_p'])
@@ -335,12 +334,12 @@ def prepare_app(app_name, config_params, spec_port, spec_ip):
         else:
             ip, port = get_ip_and_port(app_name)
 
-        print config_params["number_background_locusts"], config_params["background_locust_spawn_rate"], config_params["number_customer_records"]
-        print type(config_params["number_background_locusts"]), type(config_params["background_locust_spawn_rate"]), type(config_params["number_customer_records"])
+        print setup_config_params["number_background_locusts"], setup_config_params["background_locust_spawn_rate"], setup_config_params["number_customer_records"]
+        print type(setup_config_params["number_background_locusts"]), type(setup_config_params["background_locust_spawn_rate"]), type(setup_config_params["number_customer_records"])
         request_url = "--host=http://" + ip + ":"+ str(port)
         print request_url
         prepare_cmds = ["locust", "-f", "./sockshop_setup/pop_db.py", request_url, "--no-web", "-c",
-             str(config_params["number_background_locusts"]), "-r", str(config_params["background_locust_spawn_rate"]),
+                        str(setup_config_params["number_background_locusts"]), "-r", str(setup_config_params["background_locust_spawn_rate"]),
              "-t", "10min"]
         print prepare_cmds
         try:
@@ -350,13 +349,13 @@ def prepare_app(app_name, config_params, spec_port, spec_ip):
             print "exception_in_prepare_apps: ", e
 
     elif app_name == "atsea_store":
-        print config_params["number_background_locusts"], config_params["background_locust_spawn_rate"], config_params["number_customer_records"]
-        print type(config_params["number_background_locusts"]), type(config_params["background_locust_spawn_rate"]), type(config_params["number_customer_records"])
+        print setup_config_params["number_background_locusts"], setup_config_params["background_locust_spawn_rate"], setup_config_params["number_customer_records"]
+        print type(setup_config_params["number_background_locusts"]), type(setup_config_params["background_locust_spawn_rate"]), type(setup_config_params["number_customer_records"])
         request_url = "--host=https://" + ip + ":"+ str(port)
         print request_url
         prepare_cmds = ["locust", "-f", "./load_generators/seastore_pop_db.py", request_url, "--no-web", "-c",
-             config_params["number_background_locusts"], "-r", config_params["background_locust_spawn_rate"],
-             "-n", config_params["number_customer_records"]]
+                        setup_config_params["number_background_locusts"], "-r", setup_config_params["background_locust_spawn_rate"],
+             "-n", setup_config_params["number_customer_records"]]
         print prepare_cmds
         out = subprocess.check_output(prepare_cmds)
         #with open('./' + app_name + '_debugging_background_gen.txt', 'a') as f:

@@ -56,7 +56,7 @@ def get_ip_and_port(app_name, sh):
     print "minikube_ip", minikube_ip, "front_facing_port", front_facing_port
     return minikube_ip, front_facing_port
 
-def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, use_cilium, physical_attacks_p):
+def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, use_cilium, physical_attacks_p, skip_app_setup):
     s = None
     while s == None:
         try:
@@ -183,7 +183,7 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, use_ciliu
                               exp_name + ' --config_file ' + config_file_name
     if not physical_attacks_p:
         start_actual_experiment += ' --no_exfil'
-    if not skip_setup_p:
+    if not skip_app_setup:
         start_actual_experiment += ' --prepare_app_p'
 
 
@@ -240,6 +240,10 @@ if __name__ == "__main__":
 
     parser.add_argument('--straight_to_experiment', dest='skip_setup_p', action='store_true',
                         default=False,
+                        help='only do the running the experiment-- no minikube setup')
+
+    parser.add_argument('--skip_app_setup', dest='skip_app_setup_p', action='store_true',
+                        default=False,
                         help='only do the running the experiment-- no minikube setup, application deployment, or \
                         application loading')
 
@@ -261,5 +265,5 @@ if __name__ == "__main__":
 
     remote_dir = '/mydata/mimir_v2/experiment_coordinator/experimental_data/' + exp_name  # TODO
     s = run_experiment(app_name, config_file_name, exp_name, args.skip_setup_p,
-                       use_cilium, physical_attacks_p)
+                       use_cilium, physical_attacks_p, args.skip_setup_p)
     retrieve_results(s)
