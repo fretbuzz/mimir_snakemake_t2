@@ -331,12 +331,14 @@ def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_co
 
         time.sleep(420) # note: may need to increase this...
         if spec_port or spec_ip:
+            print "spec_port", spec_port, "spec_ip", spec_ip
             ip,port=spec_port, spec_ip
         else:
             ip, port = get_ip_and_port(app_name)
 
         print setup_config_params["number_background_locusts"], setup_config_params["background_locust_spawn_rate"], setup_config_params["number_customer_records"]
         print type(setup_config_params["number_background_locusts"]), type(setup_config_params["background_locust_spawn_rate"]), type(setup_config_params["number_customer_records"])
+        print "ip", ip, "port", port
         request_url = "--host=http://" + ip + ":"+ str(port)
         print request_url
         prepare_cmds = ["locust", "-f", "./sockshop_setup/pop_db.py", request_url, "--no-web", "-c",
