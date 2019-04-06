@@ -3,7 +3,7 @@ from kubernetes_setup_functions import *
 
 def scale_wordpress(autoscale_p, cpu_percent_cuttoff, deployment_scaling):
     goal_wp_containers = deployment_scaling['wordpress']['max']
-    wp_min = deployment_scaling['wordpreses']['min']
+    wp_min = deployment_scaling['wordpress']['min']
     wp_cpu_percent_cutoff = cpu_percent_cuttoff
 
     if autoscale_p and cpu_percent_cuttoff != '':
