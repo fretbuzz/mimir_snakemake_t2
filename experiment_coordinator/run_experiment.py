@@ -339,7 +339,7 @@ def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_co
 
         sockshop_setup.scale_sockshop.scale_sockshop(deployment_config['deployment_scaling'], deployment_config['autoscale_p'])
 
-        time.sleep(420) # note: may need to increase this...
+        time.sleep(480) # note: may need to increase this...
         if spec_port or spec_ip:
             print "spec_port", spec_port, "spec_ip", spec_ip
             ip,port=spec_port, spec_ip
