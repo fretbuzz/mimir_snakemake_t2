@@ -78,7 +78,6 @@ class multi_experiment_pipeline(object):
                  max_path_length=15, max_dns_porportion=1.0,drop_infra_from_graph=False,
                  ide_window_size=10, debug_basename=None):
 
-
         self.ROC_curve_p = ROC_curve_p
         self.training_window_size = training_window_size
         self.size_of_neighbor_training_window = size_of_neighbor_training_window
