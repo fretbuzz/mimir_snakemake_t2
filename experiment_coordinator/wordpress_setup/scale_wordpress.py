@@ -17,7 +17,10 @@ def scale_wordpress(autoscale_p, cpu_percent_cuttoff, deployment_scaling):
 
         autoscale_cmd_str = ["kubectl", "autoscale", "deployment", "wwwppp-wordpress", "--min=" + str(wp_min), "--max=" + str(
             goal_wp_containers),"--cpu-percent=" + str(wp_cpu_percent_cutoff)]
-        out = subprocess.check_output(autoscale_cmd_str)
+        try:
+            out = subprocess.check_output(autoscale_cmd_str)
+        except:
+            pass
         print "autoscale_out: ", out
         wait_until_pods_done("default")
     else:
