@@ -45,6 +45,7 @@ sudo pip install pycrypto
 pip install kubernetes
 pip install selenium
 pip install netifaces
+# apt-get install -y wireshark-common
 
 #minikube start --vm-driver kvm2 --cpus=16 --memory=100000 --disk-size 65g
 
