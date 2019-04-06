@@ -11,7 +11,7 @@
     "network_plugin": "none",
     "setup" : {
       "number_customer_records": 10000,
-      "number_background_locusts": 80,
+      "number_background_locusts": 70,
       "background_locust_spawn_rate": 10
     },
     "experiment" : {

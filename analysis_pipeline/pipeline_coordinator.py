@@ -240,15 +240,13 @@ class multi_experiment_pipeline(object):
         def _train_model(self, time_gran_to_aggregate_mod_score_dfs, cur_base_output_name, starts_of_testing, path_occurence_training_df,
                      path_occurence_testing_df, recipes_used, rate_counter, cur_exfil_rate):
         '''
-        # clf = LogisticRegressionCV(penalty="l1", cv=10, max_iter=10000, solver='saga')
-        # cur_base_output_name + 'logistic_l1_mod_z_lass_feat_sel_'
-        clf = LassoCV(cv=3, max_iter=80000)
+
 
         list_of_optimal_fone_scores_at_this_exfil_rates, Xs, Ys, Xts, Yts, trained_models, list_of_attacks_found_dfs, \
         list_of_attacks_found_training_df, experiment_info, time_gran_to_outtraffic, timegran_to_statistical_pipeline = \
-            statistical_analysis_v2(time_gran_to_aggregate_mod_score_dfs, self.ROC_curve_p, cur_base_output_name + '_lasso_',
+            statistical_analysis_v2(time_gran_to_aggregate_mod_score_dfs, self.ROC_curve_p, cur_base_output_name,
                                     self.names, starts_of_testing, path_occurence_training_df, path_occurence_testing_df,
-                                    recipes_used, self.skip_model_part, clf, self.ignore_physical_attacks_p,
+                                    recipes_used, self.skip_model_part, self.ignore_physical_attacks_p,
                                     self.avg_exfil_per_min[rate_counter], self.avg_pkt_size[rate_counter],
                                     self.exfil_per_min_variance[rate_counter],
                                     self.pkt_size_variance[rate_counter], self.drop_pairwise_features,

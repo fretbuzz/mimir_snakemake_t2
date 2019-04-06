@@ -17,7 +17,7 @@ class statistical_pipeline():
 
         self.dont_prepare_data_p=dont_prepare_data_p
         self.method_name = 'ensemble'
-        self.aggregate_mod_score_df = aggregate_mod_score_df
+        self.aggregate_mod_score_df = copy.deepcopy(aggregate_mod_score_df)
         self.base_output_name = base_output_name
         self.skip_model_part = skip_model_part
         self.clf = clf
@@ -250,7 +250,7 @@ class statistical_pipeline():
 
 def statistical_analysis_v2(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, base_output_name, names,
                                          starts_of_testing, path_occurence_training_df, path_occurence_testing_df,
-                                         recipes_used, skip_model_part, clf, ignore_physical_attacks_p,
+                                         recipes_used, skip_model_part, ignore_physical_attacks_p,
                                          avg_exfil_per_min, avg_pkt_size, exfil_per_min_variance,
                                          pkt_size_variance, drop_pairwise_features, timegran_to_pretrained_statspipeline):
     print "STATISTICAL_ANALYSIS_V2"
@@ -267,8 +267,13 @@ def statistical_analysis_v2(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, b
     timegran_to_methods_toattacks_found_training_df = {}
     time_gran_to_outtraffic = {}
     timegran_to_statistical_pipeline = {}
+    base_output_name += '_lasso'
 
     for timegran,feature_df in time_gran_to_aggregate_mod_score_dfs.iteritems():
+        # clf = LogisticRegressionCV(penalty="l1", cv=10, max_iter=10000, solver='saga')
+        # cur_base_output_name + 'logistic_l1_mod_z_lass_feat_sel_'
+        clf = LassoCV(cv=3, max_iter=80000)
+
         if 'lass_feat_sel' in base_output_name:
             lasso_feature_selection_p = True
         else:
@@ -332,45 +337,84 @@ def multi_time_gran(timegran_to_statspipeline,base_output_name, skip_model_part,
     # the purpose of this function is test the union of alerts...
     ### okay... can I reuse the existing statistical analysis machinery...
     # step 1: get all 0/1 predictions
-    timegran_to_testpredictions = {}
-    timegran_to_trainpredictions = {}
+    #timegran_to_testpredictions = {}
+    #timegran_to_trainpredictions = {}
+    timegran_to_predictions = {}
     for time_gran,statspipeline in timegran_to_statspipeline.iteritems():
 
         test_predictions = statspipeline.method_to_optimal_predictions_test[statspipeline.method_name]
         train_predictions = statspipeline.method_to_optimal_predictions_train[statspipeline.method_name]
-        timegran_to_testpredictions[time_gran] = test_predictions
-        timegran_to_trainpredictions[time_gran] = train_predictions
+        #timegran_to_testpredictions[time_gran] = test_predictions
+        #timegran_to_trainpredictions[time_gran] = train_predictions
+        timegran_to_predictions[time_gran] = train_predictions + test_predictions
+
     # step 2: take the OR of the predictions
     ## step 2a: convert all other time granularities to largest time granularity
     ## step 2b: take the OR of the elements
-    max_timegran = max( timegran_to_testpredictions.keys() )
-    final_trainpredictions = [0 for i in range(0,len(timegran_to_trainpredictions[max_timegran]))]
+    #max_timegran = max( timegran_to_testpredictions.keys() )
+    max_timegran = max( timegran_to_predictions.keys() )
+    #final_trainpredictions = {}
+    #final_testpredictions = {}
+    final_predictions = {}
 
-    final_testpredictions = [0 for i in range(0,len(timegran_to_testpredictions[max_timegran]))]
-    for time_gran,testpredictions in timegran_to_testpredictions.iteritems():
+    print "timegran_to_predictions",timegran_to_predictions
+    for time_gran,predictions in timegran_to_predictions.iteritems():
+        #final_trainpredictions[time_gran] = [0 for i in range(0, len(timegran_to_trainpredictions[max_timegran]))]
+        #final_testpredictions[time_gran] = [0 for i in range(0, len(timegran_to_testpredictions[max_timegran]))]
+        final_predictions[time_gran] = [0 for i in range(0, len(timegran_to_predictions[max_timegran]))]
         conversion_to_max = int(max_timegran / time_gran) # note: going to assume they all fit in easily
         #for i in range(conversion_to_max,len(testpredictions), conversion_to_max):
-        for i in range(0, len(timegran_to_testpredictions[max_timegran]), 1):
-            cur_test_prediction = int(1 in testpredictions[i * conversion_to_max: (i+1) * conversion_to_max])
-            final_testpredictions[i] = final_testpredictions[i] or cur_test_prediction
-        for i in range(0, len(timegran_to_trainpredictions[max_timegran]), 1):
-            cur_train_prediction = int(1 in timegran_to_trainpredictions[time_gran][i * conversion_to_max : (i+1) * conversion_to_max])
-            final_trainpredictions[i] = final_trainpredictions[i] or cur_train_prediction
+        for i in range(0, len(timegran_to_predictions[max_timegran]), 1):
+            cur_prediction = sum( predictions[i * conversion_to_max: (i + 1) * conversion_to_max] )
+            final_predictions[time_gran][i] = final_predictions[time_gran][i] + cur_prediction
+
+        #for i in range(0, len(timegran_to_testpredictions[max_timegran]), 1):
+        #    cur_test_prediction = sum(1 in testpredictions[i * conversion_to_max: (i+1) * conversion_to_max])
+        #    final_testpredictions[time_gran][i] = final_testpredictions[time_gran][i] + cur_test_prediction
+        #for i in range(0, len(timegran_to_trainpredictions[max_timegran]), 1):
+        #    cur_train_prediction = sum(1 in timegran_to_trainpredictions[time_gran][i * conversion_to_max : (i+1) * conversion_to_max])
+        #    final_trainpredictions[time_gran][i] = final_trainpredictions[time_gran][i] + cur_train_prediction
+
+    #final_trainpredictions_df = pd.DataFrame(final_trainpredictions, columns=final_testpredictions.keys())
+    #final_testpredictions_df = pd.DataFrame(final_testpredictions, columns=final_testpredictions.keys())
+    final_predictions =  pd.DataFrame(final_predictions, columns=final_predictions.keys())
+
+    ## take the relevant parts from the aggregate mod score and put them up in there too.
+    relevant_features_at_timegran = timegran_to_statspipeline[max_timegran].aggregate_mod_score_df
+    print relevant_features_at_timegran.columns.values
+    final_predictions['exfil_path'] = relevant_features_at_timegran['exfil_path']
+    final_predictions['concrete_exfil_path'] = relevant_features_at_timegran['concrete_exfil_path']
+    final_predictions['exfil_weight'] = relevant_features_at_timegran['exfil_weight']
+    final_predictions['exfil_pkts'] = relevant_features_at_timegran['exfil_pkts']
+    final_predictions['is_test'] = relevant_features_at_timegran['is_test']
+    for column in relevant_features_at_timegran:
+        if 'cilium_for_first_sec_' in column:
+            final_predictions[column] = relevant_features_at_timegran[column]
+            break
+    final_predictions['labels'] = relevant_features_at_timegran['labels']
+    try:
+        final_predictions['real_ide_angles_'] = relevant_features_at_timegran['real_ide_angles_']
+    except:
+        pass
+
 
     # step 3: generate a report (if desired)
     report_section = None
+    clf = LassoCV(cv=3, max_iter=80000)
+    # use the existing machinery in the statistical_pipeline object
+    stats_pipeline = statistical_pipeline(final_predictions, base_output_name + '_multi_time',
+                         skip_model_part, clf, ignore_physical_attacks_p, drop_pairwise_features,
+                         tuple(timegran_to_statspipeline.keys()), lasso_feature_selection_p=False,
+                                          dont_prepare_data_p=True)
+    stats_pipeline.generate_model()
+    stats_pipeline.process_model()
+    #stats_pipeline.train_predictions = final_trainpredictions
+    #stats_pipeline.test_predictions = final_testpredictions
     if generate_report_p:
-        # use the existing machinery in the statistical_pipeline object
-        stats_pipeline = statistical_pipeline(timegran_to_statspipeline[max_timegran].aggregate_mod_score_df, base_output_name + '_multi_time',
-                             skip_model_part, None, ignore_physical_attacks_p, drop_pairwise_features,
-                             tuple(timegran_to_statspipeline.keys()), lasso_feature_selection_p=False,
-                                              dont_prepare_data_p=True)
-
-        stats_pipeline.train_predictions = final_trainpredictions
-        stats_pipeline.test_predictions = final_testpredictions
-        stats_pipeline.process_model()
         report_section =  stats_pipeline.generate_report_section()
-    return final_trainpredictions, final_trainpredictions, report_section
+    final_trainpredictions = stats_pipeline.train_predictions
+    final_testpredictions = stats_pipeline.test_predictions
+    return final_trainpredictions, final_testpredictions, report_section
 
 
 

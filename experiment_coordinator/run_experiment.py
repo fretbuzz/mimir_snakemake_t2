@@ -392,10 +392,12 @@ def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_co
         else:
             ip, port = get_ip_and_port(app_name)
 
+        print "about to try to do setup_wordpress..."
         try:
             wordpress_setup.setup_wordpress.main(ip, port, "hi")
         except Exception,e:
             print "wordpress_setup.setup_wordpress.main triggered this exception: ", str(e)
+        print "setup_wordpress completed..."
     else:
         # other applications will require other setup procedures (if they can be automated) #
         # note: some cannot be automated (i.e. wordpress)
@@ -597,6 +599,7 @@ def start_tcpdump(interface, network_namespace, tcpdump_time, filename, orchestr
     #print out
 
     time.sleep(int(tcpdump_time) + 2)
+
 
     # don't want to leave too many docker containers running
     child.sendline('exit')
