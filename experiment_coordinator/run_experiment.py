@@ -48,6 +48,7 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
     # step (1) read in the config file
     with open(config_file.rstrip().lstrip()) as f:
         config_params = json.load(f)
+    split_pcap_interval = config_params['split_pcap']
     network_plugin = 'none'
     try:
         network_plugin = config_params["network_plugin"]
@@ -312,6 +313,11 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
     filename = experiment_name + '_' + 'bridge' + '_' # note: will need to redo this if I want to go
                                                                        # back to using Docker Swarm at some point
     recover_pcap(orchestrator, filename + 'any' + '.pcap')
+    ## TODO: split tthe pcap
+    cmd_list = ["editcap", "-i " + str(split_pcap_interval), filename + 'any' + '.pcap', filename + 'any']
+    out = subprocess.check_output(cmd_list)
+    print out
+    ## TODO: need to make sure the names aree cohere...
 
     time.sleep(2)
 
@@ -1263,6 +1269,11 @@ def generate_analysis_json(path_to_exp_folder, analysis_json_name, exp_config_js
 
     try:
         analysis_dict['Deploymenet'] = exp_config_json["Deploymenet"]
+    except:
+        pass
+
+    try:
+        analysis_dict['split_pcap'] = exp_config_json["split_pcap"]
     except:
         pass
 
