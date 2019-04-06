@@ -281,7 +281,8 @@ class multi_experiment_pipeline(object):
         for exfil_path in exfil_paths_series:
             exfil_paths.add(tuple((exfil_path,)))
             path_to_cur_rate[tuple((exfil_path,))] = max(exfil_rates)
-        for exfil_path in list(exfil_paths):
+        exfil_paths = list(exfil_paths)
+        for counter,exfil_path in enumerate(exfil_paths):
             for rate_counter in range(0, len(self.avg_exfil_per_min)):
                 # step 3: all exfil paths in the feature_df_max_exfil have 'max' detection capabilities ATM...
                 # if I can decrease the rate w/o decreasing the TPR, then I should do so.
