@@ -76,8 +76,9 @@ class multi_experiment_pipeline(object):
                  only_ide=False, perform_cilium_component=True, only_perform_cilium_component=True,
                  cilium_component_time=100, drop_pairwise_features=False,
                  max_path_length=15, max_dns_porportion=1.0,drop_infra_from_graph=False,
-                 ide_window_size=10, debug_basename=None):
+                 ide_window_size=10, debug_basename=None, timegran_to_pretrained_statspipeline=None):
 
+        self.timegran_to_pretrained_statspipeline=timegran_to_pretrained_statspipeline
         self.ROC_curve_p = ROC_curve_p
         self.training_window_size = training_window_size
         self.size_of_neighbor_training_window = size_of_neighbor_training_window
@@ -231,6 +232,14 @@ class multi_experiment_pipeline(object):
         path_occurence_training_df = generate_exfil_path_occurence_df(list_time_gran_to_mod_zscore_df_training, self.names)
         path_occurence_testing_df = generate_exfil_path_occurence_df(list_time_gran_to_mod_zscore_df_testing, self.names)
 
+        '''
+        self._train_model(time_gran_to_aggregate_mod_score_dfs, cur_base_output_name, starts_of_testing,
+                          path_occurence_training_df, path_occurence_testing_df, recipes_used, rate_counter, cur_exfil_rate)
+
+
+        def _train_model(self, time_gran_to_aggregate_mod_score_dfs, cur_base_output_name, starts_of_testing, path_occurence_training_df,
+                     path_occurence_testing_df, recipes_used, rate_counter, cur_exfil_rate):
+        '''
         # clf = LogisticRegressionCV(penalty="l1", cv=10, max_iter=10000, solver='saga')
         # cur_base_output_name + 'logistic_l1_mod_z_lass_feat_sel_'
         clf = LassoCV(cv=3, max_iter=80000)
@@ -242,7 +251,8 @@ class multi_experiment_pipeline(object):
                                     recipes_used, self.skip_model_part, clf, self.ignore_physical_attacks_p,
                                     self.avg_exfil_per_min[rate_counter], self.avg_pkt_size[rate_counter],
                                     self.exfil_per_min_variance[rate_counter],
-                                    self.pkt_size_variance[rate_counter], self.drop_pairwise_features)
+                                    self.pkt_size_variance[rate_counter], self.drop_pairwise_features,
+                                    self.timegran_to_pretrained_statspipeline)
 
         optimal_fones = list_of_optimal_fone_scores_at_this_exfil_rates
         timegran_to_methods_to_attacks_found_dfs = list_of_attacks_found_dfs
@@ -290,10 +300,10 @@ class multi_experiment_pipeline(object):
                 ## Step 3a: find performance of old rat
                 if exfil_path == ('0',) or exfil_path == 0 or exfil_path == '0':
                     continue
-                try: ### <---- TODO: REMOVE!!!!!
-                    exfil_path_key = tuple(ast.literal_eval(exfil_path.replace('\\','')))
-                except:
-                    pass
+                #try: ### <---- TODO: REMOVE!!!!!
+                exfil_path_key = tuple(ast.literal_eval(exfil_path.replace('\\','')))
+                #except:
+                #    pass
                 #print self.rate_to_timegran_to_statistical_pipeline[path_to_cur_rate[tuple((exfil_path,))]][timegran].method_to_cm_df_train['ensemble']
                 #print self.rate_to_timegran_to_statistical_pipeline[path_to_cur_rate[tuple((exfil_path,))]][timegran].method_to_cm_df_train['ensemble']
                 old_train_dfs = self.rate_to_timegran_to_statistical_pipeline[path_to_cur_rate[tuple((exfil_path,))]][timegran].method_to_cm_df_train['ensemble']
@@ -342,12 +352,6 @@ class multi_experiment_pipeline(object):
         generate_report.join_report_sections(self.names, cur_base_output_name, 'varies', 'varies',
                                              'varies', 'varies', report_sections)
 
-
-
-## TODO: (1) make old part work again [ DONE!! ]
-##       (2) make new parts work
-##             (2a) multi-time <-- CURRENT  [[ debugging ATM ]]
-##             (2b) rate 'decreaser'        [[ debugging ATM ]]
 
 def pipeline_one_exfil_rate(rate_counter,
                             base_output_name, function_list, exps_exfil_paths, exps_initiator_info,

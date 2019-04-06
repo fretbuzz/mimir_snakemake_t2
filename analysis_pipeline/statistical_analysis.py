@@ -252,7 +252,7 @@ def statistical_analysis_v2(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, b
                                          starts_of_testing, path_occurence_training_df, path_occurence_testing_df,
                                          recipes_used, skip_model_part, clf, ignore_physical_attacks_p,
                                          avg_exfil_per_min, avg_pkt_size, exfil_per_min_variance,
-                                         pkt_size_variance, drop_pairwise_features):
+                                         pkt_size_variance, drop_pairwise_features, timegran_to_pretrained_statspipeline):
     print "STATISTICAL_ANALYSIS_V2"
     report_sections = {}
     rate = avg_exfil_per_min
