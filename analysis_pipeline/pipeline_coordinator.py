@@ -350,6 +350,9 @@ class multi_experiment_pipeline(object):
         generate_report.join_report_sections(self.names, cur_base_output_name, 'varies', 'varies',
                                              'varies', 'varies', report_sections)
 
+    ## TODO: putting it here to make it easier to work into the pipeline --- need to finish and test!!!
+    def run_ide_component(self):
+        pass
 
 def pipeline_one_exfil_rate(rate_counter,
                             base_output_name, function_list, exps_exfil_paths, exps_initiator_info,

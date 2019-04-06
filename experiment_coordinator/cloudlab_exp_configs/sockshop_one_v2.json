@@ -4,7 +4,7 @@
     "config_file_name" : "/mydata/mimir_v2/experiment_coordinator/experimental_configs/sockshop_exp_one.json",
     "local_dir" : "/Volumes/exM2/experimental_data/sockshop_info",
     "cloudlab_server_ip" : "c220g1-030607.wisc.cloudlab.us",
-    "exp_length" : 16200,
+    "exp_length" : 10800,
     "physical_attacks_p" : false
 
 }

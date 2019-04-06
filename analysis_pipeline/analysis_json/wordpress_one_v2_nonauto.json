@@ -7,8 +7,8 @@
   "goal_attack_NoAttack_split_testing": 0.2,
   "time_interval_lengths": [10, 60],
   "ide_window_size": 12,
-  "avg_exfil_per_min": [10.0, 1.0, 0.1, 0.01],
-  "exfil_per_min_variance": [0.3, 0.15, 0.025, 0.0025],
+  "avg_exfil_per_min": [10.0, 1.0, 0.1, 0.05, 0.01],
+  "exfil_per_min_variance": [0.3, 0.15, 0.025, 0.0125, 0.0025],
   "avg_pkt_size": [500.0, 500.0, 500.00, 500.00, 500.0, 500.0],
   "pkt_size_variance":  [100, 100, 100, 100, 100, 100],
 
@@ -27,7 +27,7 @@
   "skip_graph_injection": false,
   "get_endresult_from_memory": false,
 
-  "make_edgefiles": false,
+  "make_edgefiles": true,
   "experimental_folder": "/Volumes/exM2/experimental_data/wordpress_info/wordpress_one_v2_nonauto_mk2/",
   "pcap_file_path": "/Volumes/exM2/experimental_data/wordpress_info/wordpress_one_v2_nonauto_mk2/",
   "pod_creation_log_path": "/Volumes/exM2/experimental_data/wordpress_info/wordpress_one_v2_nonauto_mk2/",
