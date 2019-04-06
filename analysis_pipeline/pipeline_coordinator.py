@@ -289,9 +289,13 @@ class multi_experiment_pipeline(object):
                 exfil_path = exfil_path[0]
                 if exfil_path == ('0',) or exfil_path == 0 or exfil_path == '0':
                     continue
+                try: ### <---- TODO: REMOVE!!!!!
+                    exfil_path_key = tuple(ast.literal_eval(exfil_path.replace('\\','')))
+                except:
+                    pass
+                #print self.rate_to_timegran_to_statistical_pipeline[path_to_cur_rate[tuple((exfil_path,))]][timegran].method_to_cm_df_train['ensemble']
                 print self.rate_to_timegran_to_statistical_pipeline[path_to_cur_rate[tuple((exfil_path,))]][timegran].method_to_cm_df_train['ensemble']
                 print "exfil_path", exfil_path
-                exfil_path_key = tuple(ast.literal_eval(exfil_path.replace('\\','')))
                 old_train_dfs = self.rate_to_timegran_to_statistical_pipeline[path_to_cur_rate[tuple((exfil_path,))]][timegran].method_to_cm_df_train['ensemble']
                 cur_exfil_path_performance = old_train_dfs.loc[[exfil_path_key]]
                 cur_exfil_path_tpr = float(cur_exfil_path_performance['tp']) / (cur_exfil_path_performance['tp'] + cur_exfil_path_performance['fn'])

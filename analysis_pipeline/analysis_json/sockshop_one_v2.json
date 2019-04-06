@@ -15,8 +15,8 @@
   "goal_train_test_split_training": 0.50,
   "goal_attack_NoAttack_split_testing": 0.2,
 
-  "calc_vals": true,
-  "calculate_z_scores": true,
+  "calc_vals": false,
+  "calculate_z_scores": false,
   "include_ide": false,
   "calc_ide": false,
   "only_ide": false,

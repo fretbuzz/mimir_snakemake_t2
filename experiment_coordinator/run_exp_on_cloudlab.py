@@ -77,18 +77,31 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, use_ciliu
     #    print("recieved line", line_rec)
     #print("--end ls -la ---")
 
-    #sh.sendline('pwd')
+    sh.sendline('pwd')
     # Receive output from the executed command
-    #line_rec = 'start'
-    #while line_rec != '':
-    #    line_rec = sh.recvline(timeout=5)
-    #    print("recieved line", line_rec)
-    #print("--end pwd ---")
+    line_rec = 'start'
+    while line_rec != '':
+        line_rec = sh.recvline(timeout=5)
+        print("recieved line", line_rec)
+    print("--end pwd ---")
 
     sh.sendline('sudo newgrp docker')
     sh.sendline('export MINIKUBE_HOME=/mydata/')
 
+    line_rec = 'start'
+    while line_rec != '':
+        line_rec = sh.recvline(timeout=5)
+        print("recieved line", line_rec)
+    print("-- newgrp and export ---")
+
     if not skip_setup_p:
+        line_rec = 'start'
+        while line_rec != '':
+            line_rec = sh.recvline(timeout=5)
+            if 'Please enter your response' in line_rec:
+                sh.sendline('n')
+            print("recieved line", line_rec)
+
         sh.sendline('minikube stop')
         line_rec = 'start'
         while line_rec != '':
@@ -201,8 +214,8 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, use_ciliu
 
     print "start_actual_experiment: ", start_actual_experiment
     sh.sendline('cd /mydata/mimir_v2/experiment_coordinator/')
-    sh.sendline(start_actual_experiment)
     timeout = exp_length / 12.0
+    sh.sendline(start_actual_experiment)
     #sh.stream()
     #sh.process([start_actual_experiment], cwd='/mydata/mimir_v2/experiment_coordinator/',executable='python').stream()
     line_rec = 'start'
