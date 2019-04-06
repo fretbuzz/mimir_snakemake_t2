@@ -3,7 +3,7 @@
     "experiment_name": "wordpress_one_auto_mk2",
     "path_to_docker_machine_tls_certs":"/mydata/.minikube/certs",
     "experiment_length_sec": 10800,
-    "split_pcap_comment": 10800,
+    "split_pcap": 10800,
     "network_plugin": "none",
     "setup" : {},
     "experiment" : {
