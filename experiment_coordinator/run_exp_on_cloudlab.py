@@ -132,8 +132,21 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, use_ciliu
         update_mimir_str = "cd ./mimir_v2/; git pull"
         sh.sendline(update_mimir_str)
 
+        while line_rec != '':
+            line_rec = sh.recvline(timeout=5)
+            if 'Please enter your response' in line_rec:
+                sh.sendline('n')
+            print("recieved line", line_rec)
+
         sh.sendline("cd ./experiment_coordinator/")
-        sh.sendline("bash /mydata/mimir_v2/experiment_coordinator/dnscat_component/install_dnscat_server.sh")
+        ## is this causing the problem??
+        #sh.sendline("bash /mydata/mimir_v2/experiment_coordinator/dnscat_component/install_dnscat_server.sh")
+
+        while line_rec != '':
+            line_rec = sh.recvline(timeout=5)
+            if 'Please enter your response' in line_rec:
+                sh.sendline('n')
+            print("recieved line", line_rec)
 
         sh.sendline('cd /mydata/mimir_v2/experiment_coordinator/exp_support_scripts/')
         time.sleep(300)

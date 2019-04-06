@@ -283,11 +283,12 @@ class multi_experiment_pipeline(object):
             path_to_cur_rate[tuple((exfil_path,))] = max(exfil_rates)
         exfil_paths = list(exfil_paths)
         for counter,exfil_path in enumerate(exfil_paths):
+            exfil_path = exfil_path[0]
             for rate_counter in range(0, len(self.avg_exfil_per_min)):
+                print "counter", counter, type(exfil_path), exfil_path
                 # step 3: all exfil paths in the feature_df_max_exfil have 'max' detection capabilities ATM...
                 # if I can decrease the rate w/o decreasing the TPR, then I should do so.
                 ## Step 3a: find performance of old rat
-                exfil_path = exfil_path[0]
                 if exfil_path == ('0',) or exfil_path == 0 or exfil_path == '0':
                     continue
                 try: ### <---- TODO: REMOVE!!!!!
@@ -295,8 +296,7 @@ class multi_experiment_pipeline(object):
                 except:
                     pass
                 #print self.rate_to_timegran_to_statistical_pipeline[path_to_cur_rate[tuple((exfil_path,))]][timegran].method_to_cm_df_train['ensemble']
-                print self.rate_to_timegran_to_statistical_pipeline[path_to_cur_rate[tuple((exfil_path,))]][timegran].method_to_cm_df_train['ensemble']
-                print "exfil_path", exfil_path
+                #print self.rate_to_timegran_to_statistical_pipeline[path_to_cur_rate[tuple((exfil_path,))]][timegran].method_to_cm_df_train['ensemble']
                 old_train_dfs = self.rate_to_timegran_to_statistical_pipeline[path_to_cur_rate[tuple((exfil_path,))]][timegran].method_to_cm_df_train['ensemble']
                 cur_exfil_path_performance = old_train_dfs.loc[[exfil_path_key]]
                 cur_exfil_path_tpr = float(cur_exfil_path_performance['tp']) / (cur_exfil_path_performance['tp'] + cur_exfil_path_performance['fn'])
