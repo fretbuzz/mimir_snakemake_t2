@@ -22,7 +22,7 @@ import shutil
 import math
 import netifaces
 import wordpress_setup.setup_wordpress
-from kubernetes import client, config
+import kubernetes
 import wordpress_setup.scale_wordpress
 import sockshop_setup.scale_sockshop
 
@@ -356,6 +356,8 @@ def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_co
             print "exception_in_prepare_apps: ", e
 
     elif app_name == "atsea_store":
+        pass
+        '''
         print setup_config_params["number_background_locusts"], setup_config_params["background_locust_spawn_rate"], setup_config_params["number_customer_records"]
         print type(setup_config_params["number_background_locusts"]), type(setup_config_params["background_locust_spawn_rate"]), type(setup_config_params["number_customer_records"])
         request_url = "--host=https://" + ip + ":"+ str(port)
@@ -368,6 +370,7 @@ def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_co
         #with open('./' + app_name + '_debugging_background_gen.txt', 'a') as f:
         #    print >> f, out
         print out
+        '''
     elif app_name == "wordpress":
         deployment_scaling = deployment_config['deployment_scaling']
         autoscale_p = deployment_config['autoscale_p']
@@ -650,8 +653,8 @@ def install_exfil_dependencies(exfil_paths, orchestrator, class_to_installer):
         # okay, now update kubernetese deployment
         # I'm going to use the kubernetes python client and follow the code at:
         # https://github.com/FingerLiu/client-python/blob/9ae080693cd16ce825a977cc167803ab1f7f1202/examples/deployment_examples.py#L56
-        config.load_kube_config()
-        k8s_beta = client.ExtensionsV1beta1Api()
+        kubernetes.config.load_kube_config()
+        k8s_beta = kubernetes.client.ExtensionsV1beta1Api()
         # step (1): find corresponding kubernetes deployment
         api_response = k8s_beta.list_deployment_for_all_namespaces()
 
