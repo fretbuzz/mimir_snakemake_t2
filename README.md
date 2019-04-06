@@ -5,11 +5,11 @@ Mimir is an experimental apparatus designed to test the potential for anomaly-ba
 ## Running Analysis Pipeline
 Currently, it only works off-line (with network pcap files). Add the desired configuration to analysis_pipeline/config_parser.py and that'll run it (see current contents of file for usage example). Note: If your thinking of running this yourself, you should probably talk to fretbuzz first.
 
-Detailed setup/running instructions are being worked on at the moment and should be available soon. If you need to run it before then, send fretbuzz a message. 
+UPDATE (4/6): I decided to re-work the front-end and changed many of the dependencies, so I removed the old instructions because they are no longer valid. Will update within a week.
 
 ## Running Experimental Coordinator
 
-Note: breaking changes were added so the below instructions need to be updated.
+UPDATE (4/6): I decided to re-architect pretty much the entire thing, so the instructions below aren't valid anymore. I'll update them soon.
 
 The experimental coordinator handles simulating traffic/exfiltration on a microservic deployment. There are several support scripts to setup the applications and a coordinator that handles simulating user traffic, simulates exfiltration, and collects all the relevant data, including a pcap of all network activity on the cluster.
 
