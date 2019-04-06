@@ -68,7 +68,7 @@ def pod_logger(log_file_loc, sentinal_file_loc):
             for i in range(1, abs(int(time_to_sleep))):
                 time_step_to_changes[timestep_counter + i] = {}
             timestep_counter += abs(int(time_to_sleep))
-            time_behind -= abs(int(time_to_sleep))
+            time_behind -= 2 * abs(int(time_to_sleep))
         else:
             time_to_sleep = max(0.0, time_to_sleep)
             time.sleep(time_to_sleep)

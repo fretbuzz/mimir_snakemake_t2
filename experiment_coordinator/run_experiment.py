@@ -551,9 +551,9 @@ def start_tcpdump(interface, network_namespace, tcpdump_time, filename, orchestr
 
     #### NOTE: I TOOK OFF THE -N TO WHETHER IT SOLVES MY PROBLEMS <-- NOTE: put it back in b/c it makes tcpdump drop lots of pkts
     # NOTE: if you want the whole packet body, then get-rid-of/adjust the "-s 94" part!
-    start_tcpdum = "tcpdump -s 94 -G " + tcpdump_time + ' -W 1 -i ' + interface + ' -w /outside/' + filename + ' -n'
+    #start_tcpdum = "tcpdump -s 94 -G " + tcpdump_time + ' -W 1 -i ' + interface + ' -w /outside/' + filename + ' -n'
     # NOTE: HTTP headers are important now! trying to scale it up@
-    #start_tcpdum = "tcpdump -s 1492 -G " + tcpdump_time + ' -W 1 -i ' + interface + ' -w /outside/' + filename + ' -n'
+    start_tcpdum = "tcpdump -s 1492 -G " + tcpdump_time + ' -W 1 -i ' + interface + ' -w /outside/' + filename + ' -n'
 
 
     cmd_to_send = start_netshoot + ';' + switch_namespace + ';' + start_tcpdum

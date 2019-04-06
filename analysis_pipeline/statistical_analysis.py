@@ -186,10 +186,10 @@ class statistical_pipeline():
         )
         table_section_template = env.get_template("table_section.html")
 
-        if not self.dont_prepare_data_p:
-            coef_feature_df = self.coef_feature_df.to_html()
-        else:
-            coef_feature_df = ''
+        #if not self.dont_prepare_data_p:
+        coef_feature_df = self.coef_feature_df.to_html()
+        #else:
+        #    coef_feature_df = ''
 
 
         report_section = table_section_template.render(
@@ -365,7 +365,7 @@ def multi_time_gran(timegran_to_statspipeline,base_output_name, skip_model_part,
         conversion_to_max = int(max_timegran / time_gran) # note: going to assume they all fit in easily
         #for i in range(conversion_to_max,len(testpredictions), conversion_to_max):
         for i in range(0, len(timegran_to_predictions[max_timegran]), 1):
-            cur_prediction = sum( predictions[i * conversion_to_max: (i + 1) * conversion_to_max] )
+            cur_prediction = sum( predictions[i * conversion_to_max: (i + 1) * conversion_to_max] ) / float(conversion_to_max)
             final_predictions[time_gran][i] = final_predictions[time_gran][i] + cur_prediction
 
         #for i in range(0, len(timegran_to_testpredictions[max_timegran]), 1):

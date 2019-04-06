@@ -94,7 +94,7 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, use_ciliu
         print("recieved line", line_rec)
     print("-- newgrp and export ---")
 
-    if not skip_setup_p:
+    if not skip_setup_p and not skip_app_setup:
         line_rec = 'start'
         while line_rec != '':
             line_rec = sh.recvline(timeout=5)
