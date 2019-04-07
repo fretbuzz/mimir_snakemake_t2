@@ -313,11 +313,11 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
     filename = experiment_name + '_' + 'bridge' + '_' # note: will need to redo this if I want to go
                                                                        # back to using Docker Swarm at some point
     recover_pcap(orchestrator, filename + 'any' + '.pcap')
-    ## TODO: split tthe pcap
-    cmd_list = ["editcap", "-i " + str(split_pcap_interval), filename + 'any' + '.pcap', filename + 'any']
-    out = subprocess.check_output(cmd_list)
-    print out
-    ## TODO: need to make sure the names aree cohere...
+    ##  split tthe pcap
+    ### DO NOT WANT TO SPLIT THE PCAP ACTUALLY
+    #cmd_list = ["editcap", "-i " + str(split_pcap_interval), filename + 'any' + '.pcap', filename + 'any']
+    #out = subprocess.check_output(cmd_list)
+    #print out
 
     time.sleep(2)
 

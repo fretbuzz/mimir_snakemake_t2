@@ -452,6 +452,11 @@ def drop_useless_columns_aggreg_DF(aggregate_mod_score_dfs):
         pass
     '''
 
+    try:
+        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(
+            columns='fraction_pod_comm_but_not_VIP_comms_')  # might wanna just stop these from being generated...
+    except:
+        pass
 
     try:
         aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(
