@@ -239,15 +239,20 @@ class multi_experiment_pipeline(object):
         path_occurence_testing_df = generate_exfil_path_occurence_df(list_time_gran_to_mod_zscore_df_testing, self.names)
 
 
-        list_of_optimal_fone_scores_at_this_exfil_rates, Xs, Ys, Xts, Yts, trained_models, list_of_attacks_found_dfs, \
-        list_of_attacks_found_training_df, experiment_info, time_gran_to_outtraffic, timegran_to_statistical_pipeline = \
-            statistical_analysis_v2(time_gran_to_aggregate_mod_score_dfs, self.ROC_curve_p, cur_base_output_name,
+        stats_pipelines = statistical_analysis_v2(time_gran_to_aggregate_mod_score_dfs, self.ROC_curve_p, cur_base_output_name,
                                     self.names, starts_of_testing, path_occurence_training_df, path_occurence_testing_df,
                                     recipes_used, self.skip_model_part, self.ignore_physical_attacks_p,
                                     self.avg_exfil_per_min[rate_counter], self.avg_pkt_size[rate_counter],
                                     self.exfil_per_min_variance[rate_counter],
                                     self.pkt_size_variance[rate_counter], self.drop_pairwise_features,
                                     self.timegran_to_pretrained_statspipeline)
+
+        stats_pipelines.run_statistical_pipeline(self.drop_pairwise_features)
+        stats_pipelines.generate_return_values()
+
+        list_of_optimal_fone_scores_at_this_exfil_rates, Xs, Ys, Xts, Yts, trained_models, list_of_attacks_found_dfs, \
+        list_of_attacks_found_training_df, experiment_info, time_gran_to_outtraffic, timegran_to_statistical_pipeline = \
+            stats_pipelines.generate_return_values()
 
         optimal_fones = list_of_optimal_fone_scores_at_this_exfil_rates
         timegran_to_methods_to_attacks_found_dfs = list_of_attacks_found_dfs

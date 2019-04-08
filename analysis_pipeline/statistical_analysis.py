@@ -211,8 +211,10 @@ class statistical_pipeline():
 
         return report_section
 
-    def generate_model(self):
+    def _train_model(self):
         self.clf.fit(self.X_train, self.y_train)
+
+    def generate_model(self):
         self.train_predictions = self.clf.predict(X=self.X_train)
         self.test_predictions = self.clf.predict(X=self.X_test)
 
@@ -226,8 +228,6 @@ class statistical_pipeline():
             pass
         self._generate_debugging_csv()
 
-    def process_model(self, skip_heatmaps=True):
-
         self.method_to_test_predictions[self.method_name] = self.test_predictions
         self.method_to_train_predictions[self.method_name] = self.train_predictions
 
@@ -237,8 +237,7 @@ class statistical_pipeline():
         self.method_to_optimal_f1_scores_train, self.method_to_optimal_predictions_train, self.method_to_optimal_thresh_train = \
             self._generate_optimal_predictions(self.method_to_train_predictions, self.y_train)
 
-        self.skip_heatmaps = skip_heatmaps
-        if not skip_heatmaps:
+        if not self.skip_heatmaps:
             self._generate_heatmap(training_p=True)
             self._generate_heatmap(training_p=False)
 
@@ -246,8 +245,6 @@ class statistical_pipeline():
                                                             self.exfil_paths_train, self.exfil_weights_train)
         self.method_to_cm_df_test = self._generate_confusion_matrixes(self.method_to_optimal_predictions_test, self.y_test,
                                                             self.exfil_paths_test, self.exfil_weights_test)
-
-
 
 
 class statistical_analysis_v2():
@@ -304,8 +301,9 @@ class statistical_analysis_v2():
             stat_pipeline = statistical_pipeline(feature_df,self.base_output_name, self.skip_model_part, clf,
                                                  self.ignore_physical_attacks_p, drop_pairwise_features, timegran,
                                                 lasso_feature_selection_p)
+            stat_pipeline._train_model()
             stat_pipeline.generate_model()
-            stat_pipeline.process_model()
+            #stat_pipeline.process_model()
             if generate_report:
                 report_section = stat_pipeline.generate_report_section()
                 self.report_sections[timegran] = report_section
@@ -322,13 +320,10 @@ class statistical_analysis_v2():
 
             self.time_gran_to_outtraffic[timegran].append(stat_pipeline.out_traffic)
 
-        multtime_trainpredictions, multtime_trainpredictions, report_section, pipeline_object =\
-            multi_time_gran(self.timegran_to_statistical_pipeline, self.base_output_name, self.skip_model_part,
-                            self.ignore_physical_attacks_p, drop_pairwise_features, generate_report_p=generate_report)
-        if generate_report:
-            self.report_sections[tuple(self.timegran_to_statistical_pipeline.keys())] = report_section
+        self._train_multi_time_model( drop_pairwise_features, generate_report)
 
-    def generate_return_values(self, generate_report):
+
+    def generate_return_values(self, generate_report=True):
         if generate_report:
 
             generate_report.join_report_sections(self.recipes_used, self.base_output_name, self.avg_exfil_per_min,
@@ -345,6 +340,80 @@ class statistical_analysis_v2():
         return self.list_of_optimal_fone_scores_at_this_exfil_rates, self.Xs, self.Ys, self.Xts, self.Yts, self.trained_models, \
                self.timegran_to_methods_to_attacks_found_dfs, self.timegran_to_methods_toattacks_found_training_df, experiment_info, \
                self.time_gran_to_outtraffic, self.timegran_to_statistical_pipeline
+
+
+    def _train_multi_time_model(self, drop_pairwise_features, generate_report_p):
+        # the purpose of this function is test the union of alerts...
+        ### okay... can I reuse the existing statistical analysis machinery...
+        # step 1: get all 0/1 predictions
+        timegran_to_predictions = {}
+        for time_gran, statspipeline in self.timegran_to_statistical_pipeline.iteritems():
+            test_predictions = statspipeline.method_to_optimal_predictions_test[statspipeline.method_name]
+            train_predictions = statspipeline.method_to_optimal_predictions_train[statspipeline.method_name]
+            # timegran_to_testpredictions[time_gran] = test_predictions
+            # timegran_to_trainpredictions[time_gran] = train_predictions
+            timegran_to_predictions[time_gran] = train_predictions + test_predictions
+
+        # step 2: take the OR of the predictions
+        ## step 2a: convert all other time granularities to largest time granularity
+        ## step 2b: take the OR of the elements
+        # max_timegran = max( timegran_to_testpredictions.keys() )
+        max_timegran = max(timegran_to_predictions.keys())
+        # final_trainpredictions = {}
+        # final_testpredictions = {}
+        final_predictions = {}
+
+        print "timegran_to_predictions", timegran_to_predictions
+        for time_gran, predictions in timegran_to_predictions.iteritems():
+            # final_trainpredictions[time_gran] = [0 for i in range(0, len(timegran_to_trainpredictions[max_timegran]))]
+            # final_testpredictions[time_gran] = [0 for i in range(0, len(timegran_to_testpredictions[max_timegran]))]
+            final_predictions[time_gran] = [0 for i in range(0, len(timegran_to_predictions[max_timegran]))]
+            conversion_to_max = int(max_timegran / time_gran)  # note: going to assume they all fit in easily
+            # for i in range(conversion_to_max,len(testpredictions), conversion_to_max):
+            for i in range(0, len(timegran_to_predictions[max_timegran]), 1):
+                cur_prediction = sum(predictions[i * conversion_to_max: (i + 1) * conversion_to_max]) / float(
+                    conversion_to_max)
+                final_predictions[time_gran][i] = final_predictions[time_gran][i] + cur_prediction
+
+        final_predictions = pd.DataFrame(final_predictions, columns=final_predictions.keys())
+
+        ## take the relevant parts from the aggregate mod score and put them up in there too.
+        relevant_features_at_timegran = self.timegran_to_statistical_pipeline[max_timegran].aggregate_mod_score_df
+        print relevant_features_at_timegran.columns.values
+        final_predictions['exfil_path'] = relevant_features_at_timegran['exfil_path']
+        final_predictions['concrete_exfil_path'] = relevant_features_at_timegran['concrete_exfil_path']
+        final_predictions['exfil_weight'] = relevant_features_at_timegran['exfil_weight']
+        final_predictions['exfil_pkts'] = relevant_features_at_timegran['exfil_pkts']
+        final_predictions['is_test'] = relevant_features_at_timegran['is_test']
+        for column in relevant_features_at_timegran:
+            if 'cilium_for_first_sec_' in column:
+                final_predictions[column] = relevant_features_at_timegran[column]
+                break
+        final_predictions['labels'] = relevant_features_at_timegran['labels']
+        try:
+            final_predictions['real_ide_angles_'] = relevant_features_at_timegran['real_ide_angles_']
+        except:
+            pass
+
+        # step 3: generate a report (if desired)
+        report_section = None
+        clf = LassoCV(cv=3, max_iter=80000)
+        # use the existing machinery in the statistical_pipeline object
+        stats_pipeline = statistical_pipeline(final_predictions, self.base_output_name + '_multi_time',
+                                              self.skip_model_part, clf, self.ignore_physical_attacks_p, drop_pairwise_features,
+                                              tuple(self.timegran_to_statistical_pipeline.keys()), lasso_feature_selection_p=False,
+                                              dont_prepare_data_p=True)
+        stats_pipeline._train_model()
+        stats_pipeline.generate_model()
+        # stats_pipeline.process_model()
+        # stats_pipeline.train_predictions = final_trainpredictions
+        # stats_pipeline.test_predictions = final_testpredictions
+        if generate_report_p:
+            self.report_sections[
+                tuple(self.timegran_to_statistical_pipeline.keys())] = stats_pipeline.generate_report_section()
+
+        self.timegran_to_statistical_pipeline[tuple(self.timegran_to_statistical_pipeline.keys())] = stats_pipeline
+
 
 
 def multi_time_gran(timegran_to_statspipeline,base_output_name, skip_model_part, ignore_physical_attacks_p,
@@ -412,12 +481,14 @@ def multi_time_gran(timegran_to_statspipeline,base_output_name, skip_model_part,
                          skip_model_part, clf, ignore_physical_attacks_p, drop_pairwise_features,
                          tuple(timegran_to_statspipeline.keys()), lasso_feature_selection_p=False,
                                           dont_prepare_data_p=True)
+    stats_pipeline._train_model()
     stats_pipeline.generate_model()
-    stats_pipeline.process_model()
+    #stats_pipeline.process_model()
     #stats_pipeline.train_predictions = final_trainpredictions
     #stats_pipeline.test_predictions = final_testpredictions
     if generate_report_p:
         report_section =  stats_pipeline.generate_report_section()
+
     final_trainpredictions = stats_pipeline.train_predictions
     final_testpredictions = stats_pipeline.test_predictions
     return final_trainpredictions, final_testpredictions, report_section, stats_pipeline
