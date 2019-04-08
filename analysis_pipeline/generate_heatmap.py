@@ -4,7 +4,6 @@ import seaborn as sns; sns.set()
 import matplotlib.pyplot as plt
 from textwrap import wrap
 
-# todo: if X_train is a dataframe, then we can do this pretty easily... and I think it is! so just take the
 # dataframe, loop through the columns, determine the contribution of the various features, and store them into a
 # dataframe, which is return and put into a seaborn heatmap.
 # NOTE: could do all of this in a seperate thread while the other part is happening...
@@ -43,10 +42,7 @@ def generate_covariate_heatmap(coef_dict, X_test, exfil_type_series):
     for cur_exfil_type, occurences in exfil_type_occurnces.iteritems():
         print("cur_exfil_type",cur_exfil_type,type(cur_exfil_type), "occurences", occurences)
         print coef_impact_df.columns
-        #try: # todo: REMOVE THIS TRY/CATCH@
         coef_impact_df.loc[[cur_exfil_type], :] = coef_impact_df.loc[[cur_exfil_type],:] / occurences
-        #except:
-        #    pass
         raw_feature_val_df.loc[[cur_exfil_type], :] = raw_feature_val_df.loc[[cur_exfil_type],:] / occurences
     return coef_impact_df, raw_feature_val_df
 

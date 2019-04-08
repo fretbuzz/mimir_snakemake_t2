@@ -46,10 +46,6 @@ class statistical_pipeline():
         self.method_to_test_predictions['cilium'] = self.cilium_test
         self.method_to_train_predictions['cilium'] = self.cilium_train
         self.dropped_columns = list(self.pre_drop_X_train.columns.difference(self.X_train.columns))
-        #else:
-        #    self.exfil_weights_train, self.exfil_weights_test = None,None ## TODO
-        #    self.exfil_paths_test, self.exfil_paths_train = None,None ## TODO
-        #    self.out_traffic = None # TODO
 
         self.train_predictions = None
         self.test_predictions = None
@@ -68,7 +64,7 @@ class statistical_pipeline():
         self.method_to_optimal_f1_scores_train, self.method_to_optimal_predictions_train = {},{}
         self.method_to_cm_df_train, self.method_to_cm_df_test = {},{}
         self.method_to_optimal_thresh_test, self.method_to_optimal_thresh_train = {}, {}
-        self.skip_heatmaps=False
+        self.skip_heatmaps=True
 
         try:
             os.makedirs('./temp_outputs')
@@ -186,11 +182,7 @@ class statistical_pipeline():
         )
         table_section_template = env.get_template("table_section.html")
 
-        #if not self.dont_prepare_data_p:
         coef_feature_df = self.coef_feature_df.to_html()
-        #else:
-        #    coef_feature_df = ''
-
 
         report_section = table_section_template.render(
             time_gran=str(self.time_gran) + " sec granularity",
@@ -211,16 +203,18 @@ class statistical_pipeline():
 
         return report_section
 
-    def _train_model(self):
-        self.clf.fit(self.X_train, self.y_train)
+    def generate_model(self, using_pretrained_model=False):
+        if not using_pretrained_model:
+            self.clf.fit(self.X_train, self.y_train)
 
-    def generate_model(self):
         self.train_predictions = self.clf.predict(X=self.X_train)
         self.test_predictions = self.clf.predict(X=self.X_test)
 
-        self.coef_dict  = get_coef_dict(self.clf, self.X_train.columns.values, self.base_output_name, self.X_train.dtypes)
+        ## would this cause a problem on the eval set????
+        self.coef_dict  = get_coef_dict(self.clf, self.X_train.columns.values, self.base_output_name, self.X_train.dtypes, sanity_check_number_coefs=(not using_pretrained_model))
         self.coef_feature_df = pd.DataFrame.from_dict(self.coef_dict, orient='index')
         self.coef_feature_df.columns = ['Coefficient']
+
         self.model_params = self.clf.get_params()
         try:
             self.model_params['alpha_val'] = self.clf.alpha_
@@ -248,11 +242,9 @@ class statistical_pipeline():
 
 
 class statistical_analysis_v2():
-    def __init__(self, time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, base_output_name, names,
-                 starts_of_testing, path_occurence_training_df, path_occurence_testing_df,
-                 recipes_used, skip_model_part, ignore_physical_attacks_p,
-                 avg_exfil_per_min, avg_pkt_size, exfil_per_min_variance,
-                 pkt_size_variance, drop_pairwise_features, timegran_to_pretrained_statspipeline):
+    def __init__(self, time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, base_output_name, recipes_used,
+                 skip_model_part, ignore_physical_attacks_p, avg_exfil_per_min, avg_pkt_size, exfil_per_min_variance,
+                 pkt_size_variance):
 
         print "STATISTICAL_ANALYSIS_V2"
         self.report_sections = {}
@@ -287,7 +279,7 @@ class statistical_analysis_v2():
         self.exfil_per_min_variance = exfil_per_min_variance
         self.pkt_size_variance = pkt_size_variance
 
-    def run_statistical_pipeline(self, drop_pairwise_features, generate_report=True):
+    def run_statistical_pipeline(self, drop_pairwise_features, pretrained_statistical_analysis_v2):
         for timegran,feature_df in self.time_gran_to_aggregate_mod_score_dfs.iteritems():
             # clf = LogisticRegressionCV(penalty="l1", cv=10, max_iter=10000, solver='saga')
             # cur_base_output_name + 'logistic_l1_mod_z_lass_feat_sel_'
@@ -301,12 +293,12 @@ class statistical_analysis_v2():
             stat_pipeline = statistical_pipeline(feature_df,self.base_output_name, self.skip_model_part, clf,
                                                  self.ignore_physical_attacks_p, drop_pairwise_features, timegran,
                                                 lasso_feature_selection_p)
-            stat_pipeline._train_model()
-            stat_pipeline.generate_model()
-            #stat_pipeline.process_model()
-            if generate_report:
-                report_section = stat_pipeline.generate_report_section()
-                self.report_sections[timegran] = report_section
+
+            if pretrained_statistical_analysis_v2 == None or (timegran not in pretrained_statistical_analysis_v2):
+                stat_pipeline.generate_model(using_pretrained_model=False)
+            else:
+                stat_pipeline.clf = pretrained_statistical_analysis_v2[timegran].clf
+                stat_pipeline.generate_model(using_pretrained_model=True)
 
             self.list_of_optimal_fone_scores_at_this_exfil_rates[timegran].append(stat_pipeline.method_to_optimal_f1_scores_test)
             self.Xs[timegran].append(stat_pipeline.X_train)
@@ -320,15 +312,18 @@ class statistical_analysis_v2():
 
             self.time_gran_to_outtraffic[timegran].append(stat_pipeline.out_traffic)
 
-        self._train_multi_time_model( drop_pairwise_features, generate_report)
+        self._train_multi_time_model( drop_pairwise_features, pretrained_statistical_analysis_v2 )
 
-
-    def generate_return_values(self, generate_report=True):
-        if generate_report:
+    def create_the_report(self):
+            ## handle it like this... self.timegran_to_statistical_pipeline[tuple(self.timegran_to_statistical_pipeline.keys())]
+            for timegran,stats_pipeline in self.timegran_to_statistical_pipeline.iteritems():
+                self.report_sections[timegran] = stats_pipeline.generate_report_section()
 
             generate_report.join_report_sections(self.recipes_used, self.base_output_name, self.avg_exfil_per_min,
                                                  self.avg_pkt_size, self.exfil_per_min_variance, self.pkt_size_variance,
                                                  self.report_sections)
+
+    def generate_return_values(self):
 
         experiment_info = {}
         experiment_info["recipes_used"] = self.recipes_used
@@ -342,7 +337,7 @@ class statistical_analysis_v2():
                self.time_gran_to_outtraffic, self.timegran_to_statistical_pipeline
 
 
-    def _train_multi_time_model(self, drop_pairwise_features, generate_report_p):
+    def _train_multi_time_model(self, drop_pairwise_features, pretrained_statistical_analysis_v2):
         # the purpose of this function is test the union of alerts...
         ### okay... can I reuse the existing statistical analysis machinery...
         # step 1: get all 0/1 predictions
@@ -350,8 +345,6 @@ class statistical_analysis_v2():
         for time_gran, statspipeline in self.timegran_to_statistical_pipeline.iteritems():
             test_predictions = statspipeline.method_to_optimal_predictions_test[statspipeline.method_name]
             train_predictions = statspipeline.method_to_optimal_predictions_train[statspipeline.method_name]
-            # timegran_to_testpredictions[time_gran] = test_predictions
-            # timegran_to_trainpredictions[time_gran] = train_predictions
             timegran_to_predictions[time_gran] = train_predictions + test_predictions
 
         # step 2: take the OR of the predictions
@@ -359,8 +352,6 @@ class statistical_analysis_v2():
         ## step 2b: take the OR of the elements
         # max_timegran = max( timegran_to_testpredictions.keys() )
         max_timegran = max(timegran_to_predictions.keys())
-        # final_trainpredictions = {}
-        # final_testpredictions = {}
         final_predictions = {}
 
         print "timegran_to_predictions", timegran_to_predictions
@@ -395,25 +386,23 @@ class statistical_analysis_v2():
         except:
             pass
 
+        timegran = tuple(self.timegran_to_statistical_pipeline.keys())
         # step 3: generate a report (if desired)
-        report_section = None
         clf = LassoCV(cv=3, max_iter=80000)
         # use the existing machinery in the statistical_pipeline object
         stats_pipeline = statistical_pipeline(final_predictions, self.base_output_name + '_multi_time',
                                               self.skip_model_part, clf, self.ignore_physical_attacks_p, drop_pairwise_features,
                                               tuple(self.timegran_to_statistical_pipeline.keys()), lasso_feature_selection_p=False,
                                               dont_prepare_data_p=True)
-        stats_pipeline._train_model()
-        stats_pipeline.generate_model()
-        # stats_pipeline.process_model()
-        # stats_pipeline.train_predictions = final_trainpredictions
-        # stats_pipeline.test_predictions = final_testpredictions
-        if generate_report_p:
-            self.report_sections[
-                tuple(self.timegran_to_statistical_pipeline.keys())] = stats_pipeline.generate_report_section()
 
-        self.timegran_to_statistical_pipeline[tuple(self.timegran_to_statistical_pipeline.keys())] = stats_pipeline
+        if pretrained_statistical_analysis_v2 == None or (timegran not in pretrained_statistical_analysis_v2):
+            stats_pipeline.generate_model(using_pretrained_model=False)
+        else:
+            stats_pipeline.clf = pretrained_statistical_analysis_v2[timegran].clf
+            stats_pipeline.generate_model(using_pretrained_model=True)
 
+
+        self.timegran_to_statistical_pipeline[timegran] = stats_pipeline
 
 
 def multi_time_gran(timegran_to_statspipeline,base_output_name, skip_model_part, ignore_physical_attacks_p,
@@ -472,7 +461,6 @@ def multi_time_gran(timegran_to_statspipeline,base_output_name, skip_model_part,
     except:
         pass
 
-
     # step 3: generate a report (if desired)
     report_section = None
     clf = LassoCV(cv=3, max_iter=80000)
@@ -481,7 +469,7 @@ def multi_time_gran(timegran_to_statspipeline,base_output_name, skip_model_part,
                          skip_model_part, clf, ignore_physical_attacks_p, drop_pairwise_features,
                          tuple(timegran_to_statspipeline.keys()), lasso_feature_selection_p=False,
                                           dont_prepare_data_p=True)
-    stats_pipeline._train_model()
+   # stats_pipeline._train_model()
     stats_pipeline.generate_model()
     #stats_pipeline.process_model()
     #stats_pipeline.train_predictions = final_trainpredictions
@@ -980,7 +968,7 @@ def drop_useless_columns_testTrain_Xs( X_train, X_test ):
 
     return X_train, X_test, dropped_feature_list, X_train_exfil_weight, X_test_exfil_weight
 
-def get_coef_dict(clf, X_train_columns, base_output_name, X_train_dtypes):
+def get_coef_dict(clf, X_train_columns, base_output_name, X_train_dtypes, sanity_check_number_coefs):
     coef_dict = {}
     print "Coefficients: "
     print "LASSO model", clf.get_params()
@@ -992,18 +980,20 @@ def get_coef_dict(clf, X_train_columns, base_output_name, X_train_dtypes):
     else:
         model_coefs = clf.coef_
 
-    if len(model_coefs) != (len(X_train_columns)):  # there is no plus one b/c the intercept is stored in clf.intercept_
-        print "coef_ is different length than X_train_columns!", X_train_columns
-        for counter, i in enumerate(X_train_dtypes):
-            print counter, i, X_train_columns[counter]
-            print model_coefs  # [counter]
-            print len(model_coefs)
-        exit(888)
+    if sanity_check_number_coefs:
+        if len(model_coefs) != (len(X_train_columns)):  # there is no plus one b/c the intercept is stored in clf.intercept_
+            print "coef_ is different length than X_train_columns!", X_train_columns
+            for counter, i in enumerate(X_train_dtypes):
+                print counter, i, X_train_columns[counter]
+                print model_coefs  # [counter]
+                print len(model_coefs)
+            exit(888)
+
     for coef, feat in zip(model_coefs, X_train_columns):
         coef_dict[feat] = coef
-    print "COEFS_HERE"
-    print "intercept...", float(clf.intercept_)
     coef_dict['intercept'] = float(clf.intercept_)
+
+    print "COEFS_HERE"
     for coef, feature in coef_dict.iteritems():
         print coef, feature
 

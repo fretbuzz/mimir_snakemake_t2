@@ -192,10 +192,10 @@ def process_pcap(experiment_folder_path, pcap_file, intervals, exp_name, make_ed
             #f.write(json.dumps(interval_to_files))
             interval_to_files = json.load(f)
             print interval_to_files, type(interval_to_files)
-        with open(interval_to_mapping_path, 'r') as f:
-            mapping = json.load(f)
-        with open(interval_to_infra_path, 'r') as f:
-            infra_instances = json.load(f)
+        #with open(interval_to_mapping_path, 'r') as f:
+        #    mapping = json.load(f)
+        #with open(interval_to_infra_path, 'r') as f:
+        #    infra_instances = json.load(f)
 
     return interval_to_files, mapping, infra_instances
 

@@ -121,11 +121,9 @@ def parse_experimental_config(experimental_config_file):
                                   ide_window_size=ide_window_size, drop_infra_from_graph=drop_infra_from_graph,
                                   perform_cilium_component=perform_cilium_component)
 
-        rate_to_time_gran_to_xs, rate_to_time_gran_to_ys, rate_to_timegran_list_of_methods_to_attacks_found_training_df, \
-        rate_to_timegran_to_methods_to_attacks_found_dfs = multi_experiment_object.run_pipelines()
+        min_rate_statspipelines = multi_experiment_object.run_pipelines()
 
-    return rate_to_time_gran_to_xs, rate_to_time_gran_to_ys, rate_to_timegran_list_of_methods_to_attacks_found_training_df, \
-            rate_to_timegran_to_methods_to_attacks_found_dfs
+    return min_rate_statspipelines
 
 if __name__=="__main__":
     print "RUNNING"
@@ -151,8 +149,8 @@ if __name__=="__main__":
         #new_wordpress_recipe()
 
         #print os.getcwd()
-        #parse_experimental_config('./analysis_json/sockshop_one_v2.json')
-        parse_experimental_config('./analysis_json/wordpress_one_v2_nonauto.json')
+        parse_experimental_config('./analysis_json/sockshop_one_v2.json')
+        #parse_experimental_config('./analysis_json/wordpress_one_v2_nonauto.json')
         #parse_experimental_config('./analysis_json/sockshop_one_v2_nonauto.json')
     elif len(sys.argv) == 2:
         experimental_config_file = sys.argv[1]

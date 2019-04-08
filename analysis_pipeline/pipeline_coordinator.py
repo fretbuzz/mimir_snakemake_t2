@@ -76,9 +76,9 @@ class multi_experiment_pipeline(object):
                  only_ide=False, perform_cilium_component=True, only_perform_cilium_component=True,
                  cilium_component_time=100, drop_pairwise_features=False,
                  max_path_length=15, max_dns_porportion=1.0,drop_infra_from_graph=False,
-                 ide_window_size=10, debug_basename=None, timegran_to_pretrained_statspipeline=None):
+                 ide_window_size=10, debug_basename=None, pretrained_sav2=None):
 
-        self.timegran_to_pretrained_statspipeline=timegran_to_pretrained_statspipeline
+        self.pretrained_sav2 = pretrained_sav2
         self.ROC_curve_p = ROC_curve_p
         self.training_window_size = training_window_size
         self.size_of_neighbor_training_window = size_of_neighbor_training_window
@@ -108,6 +108,7 @@ class multi_experiment_pipeline(object):
         self.rates_to_experiment_info_loc = base_output_name + 'rates_to_experiment_info_loc.txt'
         self.rates_to_outtraffic_info = base_output_name + 'outtraffic_bytese.txt'
         self.where_to_save_this_obj = base_output_name + '_multi_experiment_pipeline'
+        self.where_to_save_minrate_statspipelines = base_output_name + '_min_rate_statspipeline'
         self.rate_to_time_gran_to_xs = {}
         self.rate_to_time_gran_to_ys = {}
         self.rate_to_time_gran_to_outtraffic = {}
@@ -158,26 +159,47 @@ class multi_experiment_pipeline(object):
                                                                     self.max_path_length, self.max_dns_porportion)
 
     def run_pipelines(self):
-        ## TODO: add in the saving/loading functionality.
+        if not self.get_endresult_from_memory:
+            min_rate_statspipelines = None
 
-        self.generate_and_assign_exfil_paths()
+            self.generate_and_assign_exfil_paths()
+            if not self.only_ide:
+                for rate_counter in range(0, len(self.avg_exfil_per_min)):
+                    self.run_single_pipeline(rate_counter, self.calc_vals, self.skip_graph_injection, include_ide=self.include_ide)
 
-        if not self.only_ide:
-            for rate_counter in range(0, len(self.avg_exfil_per_min)):
-                self.run_single_pipeline(rate_counter, self.calc_vals, self.skip_graph_injection, include_ide=self.include_ide)
+                min_rate_statspipelines = self.decrease_exfil_of_model()
+                self.generate_aggregate_report()
 
-            min_rate_statspipelines = self.decrease_exfil_of_model()
-            self.generate_aggregate_report()
+            if self.calc_ide or self.only_ide:
+                for rate_counter in range(0, len(self.avg_exfil_per_min)):
+                    self.run_single_pipeline(rate_counter, calc_vals=False, skip_graph_injection=True, calc_ide=True, include_ide=True, only_ide=True)
 
-        if self.calc_ide or self.only_ide:
-            for rate_counter in range(0, len(self.avg_exfil_per_min)):
-                self.run_single_pipeline(rate_counter, calc_vals=False, skip_graph_injection=True, calc_ide=True, include_ide=True, only_ide=True)
+                self.decrease_exfil_of_model()
+                min_rate_statspipelines = self.generate_aggregate_report()
 
-            self.decrease_exfil_of_model()
-            self.generate_aggregate_report()
+            with open(self.where_to_save_minrate_statspipelines, 'w') as f:
+                pickle.dump(min_rate_statspipelines, f)
 
-        return self.rate_to_time_gran_to_xs, self.rate_to_time_gran_to_ys, self.rate_to_timegran_list_of_methods_to_attacks_found_training_df, \
-               self.rate_to_timegran_to_methods_to_attacks_found_dfs
+            ##self.save()
+
+        else:
+            ##self.loader(self.where_to_save_this_obj)
+            ## TODO: also would want to do the aggregate report down here too... but I'd need to think about it..
+            ## note should be fairly straightforward... just wanna use the save loader functions... probably
+            ## would want to move it out to the config parser or write the world's simplest wrapper, if I
+            ## want to keep that file nice and simple...
+
+
+            ## how to do that....
+            ## load this the lowest exfil rate pipeline
+            ## then generate report
+            ## then return it (this'll be really useful for running the eval stage)
+            with open(self.where_to_save_minrate_statspipelines, 'r') as f:
+                min_rate_statspipelines = pickle.load(f)
+            min_rate_statspipelines.create_the_report()
+            return min_rate_statspipelines
+
+        return min_rate_statspipelines
 
     def generate_aggregate_report(self):
         generate_aggregate_report.generate_aggregate_report(self.rate_to_timegran_to_methods_to_attacks_found_dfs,
@@ -238,17 +260,15 @@ class multi_experiment_pipeline(object):
         path_occurence_training_df = generate_exfil_path_occurence_df(list_time_gran_to_mod_zscore_df_training, self.names)
         path_occurence_testing_df = generate_exfil_path_occurence_df(list_time_gran_to_mod_zscore_df_testing, self.names)
 
+        stats_pipelines = statistical_analysis_v2(time_gran_to_aggregate_mod_score_dfs, self.ROC_curve_p,
+                                                  cur_base_output_name, recipes_used, self.skip_model_part,
+                                                  self.ignore_physical_attacks_p, self.avg_exfil_per_min[rate_counter],
+                                                  self.avg_pkt_size[rate_counter],
+                                                  self.exfil_per_min_variance[rate_counter],
+                                                  self.pkt_size_variance[rate_counter])
 
-        stats_pipelines = statistical_analysis_v2(time_gran_to_aggregate_mod_score_dfs, self.ROC_curve_p, cur_base_output_name,
-                                    self.names, starts_of_testing, path_occurence_training_df, path_occurence_testing_df,
-                                    recipes_used, self.skip_model_part, self.ignore_physical_attacks_p,
-                                    self.avg_exfil_per_min[rate_counter], self.avg_pkt_size[rate_counter],
-                                    self.exfil_per_min_variance[rate_counter],
-                                    self.pkt_size_variance[rate_counter], self.drop_pairwise_features,
-                                    self.timegran_to_pretrained_statspipeline)
-
-        stats_pipelines.run_statistical_pipeline(self.drop_pairwise_features)
-        stats_pipelines.generate_return_values()
+        stats_pipelines.run_statistical_pipeline(self.drop_pairwise_features, self.pretrained_sav2)
+        stats_pipelines.create_the_report()
 
         list_of_optimal_fone_scores_at_this_exfil_rates, Xs, Ys, Xts, Yts, trained_models, list_of_attacks_found_dfs, \
         list_of_attacks_found_training_df, experiment_info, time_gran_to_outtraffic, timegran_to_statistical_pipeline = \
@@ -300,10 +320,7 @@ class multi_experiment_pipeline(object):
                 ## Step 3a: find performance of old rat
                 if exfil_path == ('0',) or exfil_path == 0 or exfil_path == '0':
                     continue
-                #try: ### <---- TODO: REMOVE!!!!!
                 exfil_path_key = tuple(ast.literal_eval(exfil_path.replace('\\','')))
-                #except:
-                #    pass
                 #print self.rate_to_timegran_to_statistical_pipeline[path_to_cur_rate[tuple((exfil_path,))]][timegran].method_to_cm_df_train['ensemble']
                 #print self.rate_to_timegran_to_statistical_pipeline[path_to_cur_rate[tuple((exfil_path,))]][timegran].method_to_cm_df_train['ensemble']
                 old_train_dfs = self.rate_to_timegran_to_statistical_pipeline[path_to_cur_rate[tuple((exfil_path,))]][timegran].method_to_cm_df_train['ensemble']
@@ -323,37 +340,21 @@ class multi_experiment_pipeline(object):
                 else:
                     break # no point checking the lower rates
 
-        clf = LassoCV(cv=3, max_iter=80000)
-        cur_base_output_name = self.base_output_name + '_lower_per_path_exfil_'
-        stat_pipeline = statistical_pipeline(feature_df_max_exfil, cur_base_output_name,
-                             self.skip_model_part, clf, self.ignore_physical_attacks_p, self.drop_pairwise_features,
-                             timegran, lasso_feature_selection_p=False)
-        stat_pipeline.generate_model()
-        stat_pipeline.process_model()
-        #report_section = stat_pipeline.generate_report_section()
-        return stat_pipeline
+        return feature_df_max_exfil
 
     def decrease_exfil_of_model(self):
-        modified_stats_pipeline = {}
+        timegran_to_df_max_exfil = {}
         for timegran in self.rate_to_time_gran_to_outtraffic[ self.rate_to_time_gran_to_outtraffic.keys()[0] ][0].keys():
-            modified_stats_pipeline[timegran] = self.lower_per_path_exfil_rates(timegran)
-        report_sections = {}
-        for timegran,statspipeline in modified_stats_pipeline.iteritems():
-            report_section = statspipeline.generate_report_section()
-            report_sections[timegran] = report_section
-            cur_base_output_name = self.base_output_name + '_lower_per_path_exfil_report_'
+            timegran_to_df_max_exfil[timegran] = self.lower_per_path_exfil_rates(timegran)
 
+        cur_base_output_name = self.base_output_name + '_lower_per_path_exfil_report_'
+        sav2_object = statistical_analysis_v2(timegran_to_df_max_exfil, self.ROC_curve_p, cur_base_output_name,
+                                                  self.names, self.skip_model_part, self.ignore_physical_attacks_p,
+                                                  'varies', 'varies', 'varies', 'varies')
+        sav2_object.run_statistical_pipeline(self.drop_pairwise_features, self.pretrained_sav2)
+        sav2_object.create_the_report()
 
-        multtime_trainpredictions, multtime_trainpredictions, report_section, multi_time_stats_pipeline = \
-            multi_time_gran(modified_stats_pipeline, self.base_output_name, self.skip_model_part,
-                            self.ignore_physical_attacks_p, self.drop_pairwise_features)
-        report_sections[tuple(modified_stats_pipeline.keys())] = report_section
-
-        generate_report.join_report_sections(self.names, cur_base_output_name, 'varies', 'varies',
-                                             'varies', 'varies', report_sections)
-
-        modified_stats_pipeline[str(modified_stats_pipeline.keys())] = multi_time_stats_pipeline
-        return modified_stats_pipeline
+        return sav2_object
 
 def pipeline_one_exfil_rate(rate_counter,
                             base_output_name, function_list, exps_exfil_paths, exps_initiator_info,
