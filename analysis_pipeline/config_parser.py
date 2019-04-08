@@ -8,6 +8,7 @@ from analysis_pipeline.pipeline_coordinator import multi_experiment_pipeline
 from analysis_pipeline.single_experiment_pipeline import data_anylsis_pipline
 import argparse
 import os
+import time
 
 '''
 This file is essentially just sets of parameters for the run_data_analysis_pipeline function in pipeline_coordinator.py
@@ -102,6 +103,9 @@ def parse_experimental_config(experimental_config_file):
         calc_ide = config_file['calc_ide']
         only_ide = config_file['only_ide']
 
+        #print "REMOVE THE WAITING!!!"
+        #time.sleep(1500)
+
         multi_experiment_object = \
             multi_experiment_pipeline(experiment_classes, base_output_location, True, time_of_synethic_exfil,
                                   goal_train_test_split_training, goal_attack_NoAttack_split_training, None,
@@ -159,6 +163,7 @@ if __name__=="__main__":
         #print os.getcwd()
         #parse_experimental_config('./analysis_json/sockshop_one_v2.json')
         parse_experimental_config('./analysis_json/wordpress_one_v2_nonauto.json')
+        #parse_experimental_config('./analysis_json/sockshop_one_v2_nonauto.json')
     elif len(sys.argv) == 2:
         experimental_config_file = sys.argv[1]
         parse_experimental_config(experimental_config_file)

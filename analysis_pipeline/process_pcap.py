@@ -130,6 +130,9 @@ def process_pcap(experiment_folder_path, pcap_file, intervals, exp_name, make_ed
     path_to_edgefile_dir = experiment_folder_path + 'edgefiles/'
     path_to_tshark_dir = experiment_folder_path + 'tshark_stats/'
     interval_to_edgefile_path = path_to_edgefile_dir + exp_name + '_edgefile_dict.txt'
+    interval_to_mapping_path = path_to_edgefile_dir + exp_name + 'mapping.txt'
+    interval_to_infra_path = path_to_edgefile_dir + exp_name + 'infra.txt'
+
     try:
         os.makedirs(path_to_split_pcap_dir)
     except OSError as e:
@@ -178,6 +181,10 @@ def process_pcap(experiment_folder_path, pcap_file, intervals, exp_name, make_ed
 
         with open(interval_to_edgefile_path, 'w') as f:
             f.write(json.dumps(interval_to_files))
+        with open(interval_to_mapping_path, 'w') as f:
+            f.write(json.dumps(mapping))
+        with open(interval_to_infra_path, 'w') as f:
+            f.write(json.dumps(infra_instances))
 
     else:
         print interval_to_edgefile_path
@@ -185,7 +192,10 @@ def process_pcap(experiment_folder_path, pcap_file, intervals, exp_name, make_ed
             #f.write(json.dumps(interval_to_files))
             interval_to_files = json.load(f)
             print interval_to_files, type(interval_to_files)
-
+        with open(interval_to_mapping_path, 'r') as f:
+            mapping = json.load(f)
+        with open(interval_to_infra_path, 'r') as f:
+            infra_instances = json.load(f)
 
     return interval_to_files, mapping, infra_instances
 
