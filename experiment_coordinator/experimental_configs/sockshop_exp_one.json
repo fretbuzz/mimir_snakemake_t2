@@ -12,8 +12,8 @@
       "background_locust_spawn_rate": 10
     },
     "experiment" : {
-      "number_background_locusts": 140,
-      "background_locust_spawn_rate": 40,
+      "number_background_locusts": 110,
+      "background_locust_spawn_rate": 30,
       "traffic_type" : "normal"
     },
     "exfiltration_info" : {
