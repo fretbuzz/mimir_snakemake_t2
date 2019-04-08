@@ -1419,7 +1419,7 @@ def cluster_creation_logger(log_file_loc, end_sentinal_file_loc, start_sentinal_
                         if '<none>' not in ip:
                             current_mapping[name] = (ip, namespace, 'pod', labels)
                     cur_pod_line += 1
-                print "cur_pod_line", cur_pod_line
+                #print "cur_pod_line", cur_pod_line
                 furthest_pod_line = cur_pod_line
 
                 #out = subprocess.check_output(['kubectl', 'get', 'svc', '-o', 'wide', '--all-namespaces', '--show-labels'])
@@ -1432,7 +1432,7 @@ def cluster_creation_logger(log_file_loc, end_sentinal_file_loc, start_sentinal_
                         labels = line[7].rstrip().lstrip()
                         current_mapping[name] = (ip, namespace, 'svc', labels)
                     cur_svc_line += 1
-                print "furthest_svc_line", furthest_svc_line
+                #print "furthest_svc_line", furthest_svc_line
                 furthest_svc_line = cur_svc_line
 
                 # now compare to old mapping
