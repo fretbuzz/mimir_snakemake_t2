@@ -28,10 +28,10 @@ def pod_logger(log_file_loc, sentinal_file_loc):
 
     # step 2: start streaming the relevant kubernetes info::
     pod_process = subprocess.Popen(['kubectl', 'get', 'po', '-o', 'wide', '--all-namespaces', '--show-labels', '-w',
-                                    ">>", pod_stream_file], stdout=subprocess.PIPE)
+                                    ">>", pod_stream_file], stdout=subprocess.PIPE, shell=True)
 
     svc_process = subprocess.Popen(['kubectl', 'get', 'svc', '-o', 'wide', '--all-namespaces', '--show-labels', '-w',
-                                    ">>", svc_stream_file], stdout=subprocess.PIPE)
+                                    ">>", svc_stream_file], stdout=subprocess.PIPE, shell=True)
 
 
     ###
