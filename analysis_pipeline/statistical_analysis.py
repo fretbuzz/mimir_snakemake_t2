@@ -311,14 +311,17 @@ def statistical_analysis_v2(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, b
 
         time_gran_to_outtraffic[timegran].append(stat_pipeline.out_traffic)
 
-    multtime_trainpredictions, multtime_trainpredictions, report_section =\
+    multtime_trainpredictions, multtime_trainpredictions, report_section, pipeline_object =\
         multi_time_gran(timegran_to_statistical_pipeline, base_output_name, skip_model_part,
                         ignore_physical_attacks_p, drop_pairwise_features)
+
+
     if report_section:
         report_sections[tuple(timegran_to_statistical_pipeline.keys())] = report_section
 
-    generate_report.join_report_sections(recipes_used, base_output_name, avg_exfil_per_min, avg_pkt_size, exfil_per_min_variance,
+        generate_report.join_report_sections(recipes_used, base_output_name, avg_exfil_per_min, avg_pkt_size, exfil_per_min_variance,
                          pkt_size_variance, report_sections)
+
     experiment_info = {}
     experiment_info["recipes_used"] = recipes_used
     experiment_info["avg_exfil_per_min"] = avg_exfil_per_min
@@ -337,8 +340,6 @@ def multi_time_gran(timegran_to_statspipeline,base_output_name, skip_model_part,
     # the purpose of this function is test the union of alerts...
     ### okay... can I reuse the existing statistical analysis machinery...
     # step 1: get all 0/1 predictions
-    #timegran_to_testpredictions = {}
-    #timegran_to_trainpredictions = {}
     timegran_to_predictions = {}
     for time_gran,statspipeline in timegran_to_statspipeline.iteritems():
 
@@ -368,15 +369,7 @@ def multi_time_gran(timegran_to_statspipeline,base_output_name, skip_model_part,
             cur_prediction = sum( predictions[i * conversion_to_max: (i + 1) * conversion_to_max] ) / float(conversion_to_max)
             final_predictions[time_gran][i] = final_predictions[time_gran][i] + cur_prediction
 
-        #for i in range(0, len(timegran_to_testpredictions[max_timegran]), 1):
-        #    cur_test_prediction = sum(1 in testpredictions[i * conversion_to_max: (i+1) * conversion_to_max])
-        #    final_testpredictions[time_gran][i] = final_testpredictions[time_gran][i] + cur_test_prediction
-        #for i in range(0, len(timegran_to_trainpredictions[max_timegran]), 1):
-        #    cur_train_prediction = sum(1 in timegran_to_trainpredictions[time_gran][i * conversion_to_max : (i+1) * conversion_to_max])
-        #    final_trainpredictions[time_gran][i] = final_trainpredictions[time_gran][i] + cur_train_prediction
 
-    #final_trainpredictions_df = pd.DataFrame(final_trainpredictions, columns=final_testpredictions.keys())
-    #final_testpredictions_df = pd.DataFrame(final_testpredictions, columns=final_testpredictions.keys())
     final_predictions =  pd.DataFrame(final_predictions, columns=final_predictions.keys())
 
     ## take the relevant parts from the aggregate mod score and put them up in there too.
@@ -414,7 +407,7 @@ def multi_time_gran(timegran_to_statspipeline,base_output_name, skip_model_part,
         report_section =  stats_pipeline.generate_report_section()
     final_trainpredictions = stats_pipeline.train_predictions
     final_testpredictions = stats_pipeline.test_predictions
-    return final_trainpredictions, final_testpredictions, report_section
+    return final_trainpredictions, final_testpredictions, report_section, stats_pipeline
 
 
 

@@ -4,8 +4,8 @@ pyximport.install()
 import sys
 import matplotlib
 matplotlib.use('Agg',warn=False, force=True)
-from analysis_pipeline.pipeline_coordinator import multi_experiment_pipeline
-from analysis_pipeline.single_experiment_pipeline import data_anylsis_pipline
+from pipeline_coordinator import multi_experiment_pipeline
+from single_experiment_pipeline import data_anylsis_pipline
 import argparse
 import os
 import time
@@ -130,6 +130,18 @@ def parse_experimental_config(experimental_config_file):
 if __name__=="__main__":
     print "RUNNING"
     print sys.argv
+
+
+    parser = argparse.ArgumentParser(description='This is the central CL interface for the MIMIR system')
+    parser.add_argument('--training_config_json', dest='training_config_json', default=None,
+                        help='this is the configuration file used to train/retrieve the model')
+    parser.add_argument('--eeval_config_json', dest='config_json', default=None,
+                        help='this is the configuration file used to generate actual alerts')
+    args = parser.parse_args()
+
+    ## TODO: need to hook this into the system in a coherent fashion...
+    ## TODO: change all of the import statments so that they are relevant to the analysis_pipeline direectory...
+
 
     if len(sys.argv) == 1:
         print "running_preset..."

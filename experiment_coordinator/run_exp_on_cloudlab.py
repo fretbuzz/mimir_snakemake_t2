@@ -56,7 +56,7 @@ def get_ip_and_port(app_name, sh):
     print "minikube_ip", minikube_ip, "front_facing_port", front_facing_port
     return minikube_ip, front_facing_port
 
-def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, use_cilium, physical_attacks_p, skip_app_setup):
+def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, use_cilium, physical_attacks_p, skip_app_setup, dont_pull_p):
     s = None
     while s == None:
         try:
@@ -129,8 +129,10 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, use_ciliu
 
         clone_mimir_str = "cd /mydata/; git clone https://github.com/fretbuzz/mimir_v2"
         sh.sendline(clone_mimir_str)
-        update_mimir_str = "cd ./mimir_v2/; git pull"
-        sh.sendline(update_mimir_str)
+
+        if not dont_pull_p:
+            update_mimir_str = "cd ./mimir_v2/; git pull"
+            sh.sendline(update_mimir_str)
 
         while line_rec != '':
             line_rec = sh.recvline(timeout=5)
@@ -197,8 +199,9 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, use_ciliu
         pass
 
     print "----after minikube setup---"
-    update_mimir_str = "cd /mydata/mimir_v2/; git pull"
-    sh.sendline(update_mimir_str)
+    if not dont_pull_p:
+        update_mimir_str = "cd /mydata/mimir_v2/; git pull"
+        sh.sendline(update_mimir_str)
 
     # pwd_line = ''
     line_rec = 'something something'
@@ -284,6 +287,11 @@ if __name__ == "__main__":
 
     parser.add_argument('--config_json',dest="config_json", default='None')
 
+
+    parser.add_argument('--dont_pull', dest='dont_pull_p', action='store_true',
+                        default=False,
+                        help='do NOT pull from the github repo (default is to pull)')
+
     args = parser.parse_args()
 
     if args.config_json != 'None':
@@ -300,5 +308,5 @@ if __name__ == "__main__":
 
     remote_dir = '/mydata/mimir_v2/experiment_coordinator/experimental_data/' + exp_name  # TODO
     s = run_experiment(app_name, config_file_name, exp_name, args.skip_setup_p,
-                       use_cilium, physical_attacks_p, args.skip_app_setup_p)
+                       use_cilium, physical_attacks_p, args.skip_app_setup_p, args.dont_pull_p)
     retrieve_results(s)

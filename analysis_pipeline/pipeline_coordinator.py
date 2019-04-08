@@ -166,16 +166,15 @@ class multi_experiment_pipeline(object):
             for rate_counter in range(0, len(self.avg_exfil_per_min)):
                 self.run_single_pipeline(rate_counter, self.calc_vals, self.skip_graph_injection, include_ide=self.include_ide)
 
-            self.decrease_exfil_of_model()
-
+            min_rate_statspipelines = self.decrease_exfil_of_model()
             self.generate_aggregate_report()
 
         if self.calc_ide or self.only_ide:
             for rate_counter in range(0, len(self.avg_exfil_per_min)):
                 self.run_single_pipeline(rate_counter, calc_vals=False, skip_graph_injection=True, calc_ide=True, include_ide=True, only_ide=True)
 
-                self.decrease_exfil_of_model()
-                self.generate_aggregate_report()
+            self.decrease_exfil_of_model()
+            self.generate_aggregate_report()
 
         return self.rate_to_time_gran_to_xs, self.rate_to_time_gran_to_ys, self.rate_to_timegran_list_of_methods_to_attacks_found_training_df, \
                self.rate_to_timegran_to_methods_to_attacks_found_dfs
@@ -238,15 +237,6 @@ class multi_experiment_pipeline(object):
 
         path_occurence_training_df = generate_exfil_path_occurence_df(list_time_gran_to_mod_zscore_df_training, self.names)
         path_occurence_testing_df = generate_exfil_path_occurence_df(list_time_gran_to_mod_zscore_df_testing, self.names)
-
-        '''
-        self._train_model(time_gran_to_aggregate_mod_score_dfs, cur_base_output_name, starts_of_testing,
-                          path_occurence_training_df, path_occurence_testing_df, recipes_used, rate_counter, cur_exfil_rate)
-
-
-        def _train_model(self, time_gran_to_aggregate_mod_score_dfs, cur_base_output_name, starts_of_testing, path_occurence_training_df,
-                     path_occurence_testing_df, recipes_used, rate_counter, cur_exfil_rate):
-        '''
 
 
         list_of_optimal_fone_scores_at_this_exfil_rates, Xs, Ys, Xts, Yts, trained_models, list_of_attacks_found_dfs, \
@@ -349,13 +339,16 @@ class multi_experiment_pipeline(object):
             cur_base_output_name = self.base_output_name + '_lower_per_path_exfil_report_'
 
 
-        multtime_trainpredictions, multtime_trainpredictions, report_section = \
+        multtime_trainpredictions, multtime_trainpredictions, report_section, multi_time_stats_pipeline = \
             multi_time_gran(modified_stats_pipeline, self.base_output_name, self.skip_model_part,
                             self.ignore_physical_attacks_p, self.drop_pairwise_features)
         report_sections[tuple(modified_stats_pipeline.keys())] = report_section
 
         generate_report.join_report_sections(self.names, cur_base_output_name, 'varies', 'varies',
                                              'varies', 'varies', report_sections)
+
+        modified_stats_pipeline[str(modified_stats_pipeline.keys())] = multi_time_stats_pipeline
+        return modified_stats_pipeline
 
 def pipeline_one_exfil_rate(rate_counter,
                             base_output_name, function_list, exps_exfil_paths, exps_initiator_info,
