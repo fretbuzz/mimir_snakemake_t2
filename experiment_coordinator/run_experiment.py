@@ -179,7 +179,8 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
         exfil_StartEnd_times = []
 
     thread.start_new_thread(cluster_creation_logger, ('./' + exp_name + '_cluster_creation_log.txt',
-                                                      './' + end_sentinal_file_loc, sentinal_file_loc))
+                                                      './' + end_sentinal_file_loc, sentinal_file_loc,
+                                                      exp_name))
 
     #################
     ### sentinal_file_loc ;; should wait here and then create the file...
@@ -1346,14 +1347,14 @@ def get_ip_and_port(app_name):
     print "minikube_ip", minikube_ip, "front_facing_port", front_facing_port
     return minikube_ip, front_facing_port
 
-def cluster_creation_logger(log_file_loc, end_sentinal_file_loc, start_sentinal_file_loc):
+def cluster_creation_logger(log_file_loc, end_sentinal_file_loc, start_sentinal_file_loc, exp_name):
     time_behind = 0.0 # records how much time the system is behind where it should be
     timestep_counter = 0
     last_timestep_mapping = {}
     time_step_to_changes = {}
 
-    pod_stream_file = "pod_stream.txt"
-    svc_stream_file = "svc_stream.txt"
+    pod_stream_file = exp_name + "_pod_stream.txt"
+    svc_stream_file = exp_name + "_svc_stream.txt"
 
     # step 1: clear file
     try:
@@ -1423,11 +1424,12 @@ def cluster_creation_logger(log_file_loc, end_sentinal_file_loc, start_sentinal_
                 # now compare to old mapping
                 changes_this_time_step = {}
                 for cur_name, cur_ip in current_mapping.iteritems():
-                    if cur_name not in last_timestep_mapping:
-                        changes_this_time_step[cur_name] = (cur_ip[0], '+', cur_ip[1], cur_ip[2], cur_ip[3])
-                for last_name,last_ip_tup in last_timestep_mapping.iteritems():
-                    if last_name not in current_mapping:
-                        changes_this_time_step[last_name] = (last_ip_tup[0], '-', last_ip_tup[1], last_ip_tup[2], last_ip_tup[3])
+                    #if cur_name not in last_timestep_mapping:
+                    ## note: we'll just log everything here and then be more precise in the analysis_pipeline
+                    changes_this_time_step[cur_name] = (cur_ip[0], '+', cur_ip[1], cur_ip[2], cur_ip[3])
+                #for last_name,last_ip_tup in last_timestep_mapping.iteritems():
+                #    if last_name not in current_mapping:
+                #        changes_this_time_step[last_name] = (last_ip_tup[0], '-', last_ip_tup[1], last_ip_tup[2], last_ip_tup[3])
 
                 ## https://kubernetes.io/docs/concepts/services-networking/service/
                 ## 'The set of Pods targeted by a Service is (usually) determined by a Label Selector
@@ -1457,7 +1459,7 @@ def cluster_creation_logger(log_file_loc, end_sentinal_file_loc, start_sentinal_
                     time_to_sleep = max(0.0, time_to_sleep)
                     time.sleep(time_to_sleep)
                 timestep_counter += 1
-                last_timestep_mapping = current_mapping
+                #last_timestep_mapping = current_mapping
 
     ### then kill the subprocesses here
     pod_process.terminate()
