@@ -257,8 +257,8 @@ class multi_experiment_pipeline(object):
             name = '_'.join(recipe.split('_')[1:])
             self.names.append(name)
 
-        path_occurence_training_df = generate_exfil_path_occurence_df(list_time_gran_to_mod_zscore_df_training, self.names)
-        path_occurence_testing_df = generate_exfil_path_occurence_df(list_time_gran_to_mod_zscore_df_testing, self.names)
+        #path_occurence_training_df = generate_exfil_path_occurence_df(list_time_gran_to_mod_zscore_df_training, self.names)
+        #path_occurence_testing_df = generate_exfil_path_occurence_df(list_time_gran_to_mod_zscore_df_testing, self.names)
 
         stats_pipelines = statistical_analysis_v2(time_gran_to_aggregate_mod_score_dfs, self.ROC_curve_p,
                                                   cur_base_output_name, recipes_used, self.skip_model_part,
