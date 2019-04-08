@@ -1413,7 +1413,7 @@ def cluster_creation_logger(log_file_loc, end_sentinal_file_loc, start_sentinal_
                     if line != '' and cur_pod_line >= furthest_pod_line:
                         line = [i for i in line.split('   ') if i != '']
                         name = line[1].rstrip().lstrip()
-                        ip = line[3].rstrip().lstrip()
+                        ip = line[6].rstrip().lstrip()
                         namespace = line[0].rstrip().lstrip()
                         labels = line[8].rstrip().lstrip()
                         if '<none>' not in ip:
