@@ -193,7 +193,7 @@ class multi_experiment_pipeline(object):
                 self.calculate_z_scores_p, self.calc_vals, self.end_of_train_portions, self.training_exfil_paths,
                 self.testing_exfil_paths, self.ignore_physical_attacks_p, self.skip_model_part, out_q,
                 self.ROC_curve_p, self.avg_exfil_per_min, self.exfil_per_min_variance, self.avg_pkt_size,
-                self.pkt_size_variance, self.skip_graph_injection, self.calc_ide, self.include_ide, self.only_ide,
+                self.pkt_size_variance, self.skip_graph_injection,  self.calc_ide, self.include_ide, self.only_ide,
                 self.drop_pairwise_features, self.perform_cilium_component, self.cilium_component_time,
                 self.ide_window_size, self.drop_infra_from_graph, prefix_for_inject_params]
         p = multiprocessing.Process(
