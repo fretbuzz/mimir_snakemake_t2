@@ -4,7 +4,7 @@ import pyximport
 import ast
 from matplotlib import pyplot as plt
 from analysis_pipeline.single_experiment_pipeline import determine_attacks_to_times
-from analysis_pipeline.statistical_analysis import statistical_analysis_v2,statistical_pipeline,multi_time_gran
+from analysis_pipeline.statistical_analysis import single_rate_stats_pipeline,single_model_stats_pipeline,multi_time_gran
 import analysis_pipeline.generate_aggregate_report as generate_aggregate_report
 pyximport.install() # to leverage cpython
 import math
@@ -78,7 +78,7 @@ class multi_experiment_pipeline(object):
                  max_path_length=15, max_dns_porportion=1.0,drop_infra_from_graph=False,
                  ide_window_size=10, debug_basename=None, pretrained_sav2=None):
 
-        self.pretrained_sav2 = pretrained_sav2
+        self.pretrained_min_pipeline = pretrained_sav2
         self.ROC_curve_p = ROC_curve_p
         self.training_window_size = training_window_size
         self.size_of_neighbor_training_window = size_of_neighbor_training_window
@@ -257,17 +257,14 @@ class multi_experiment_pipeline(object):
             name = '_'.join(recipe.split('_')[1:])
             self.names.append(name)
 
-        #path_occurence_training_df = generate_exfil_path_occurence_df(list_time_gran_to_mod_zscore_df_training, self.names)
-        #path_occurence_testing_df = generate_exfil_path_occurence_df(list_time_gran_to_mod_zscore_df_testing, self.names)
+        stats_pipelines = single_rate_stats_pipeline(time_gran_to_aggregate_mod_score_dfs, self.ROC_curve_p,
+                                                     cur_base_output_name, recipes_used, self.skip_model_part,
+                                                     self.ignore_physical_attacks_p, self.avg_exfil_per_min[rate_counter],
+                                                     self.avg_pkt_size[rate_counter],
+                                                     self.exfil_per_min_variance[rate_counter],
+                                                     self.pkt_size_variance[rate_counter])
 
-        stats_pipelines = statistical_analysis_v2(time_gran_to_aggregate_mod_score_dfs, self.ROC_curve_p,
-                                                  cur_base_output_name, recipes_used, self.skip_model_part,
-                                                  self.ignore_physical_attacks_p, self.avg_exfil_per_min[rate_counter],
-                                                  self.avg_pkt_size[rate_counter],
-                                                  self.exfil_per_min_variance[rate_counter],
-                                                  self.pkt_size_variance[rate_counter])
-
-        stats_pipelines.run_statistical_pipeline(self.drop_pairwise_features, self.pretrained_sav2)
+        stats_pipelines.run_statistical_pipeline(self.drop_pairwise_features, self.pretrained_min_pipeline)
         stats_pipelines.create_the_report()
 
         list_of_optimal_fone_scores_at_this_exfil_rates, Xs, Ys, Xts, Yts, trained_models, list_of_attacks_found_dfs, \
@@ -286,15 +283,8 @@ class multi_experiment_pipeline(object):
         self.list_of_optimal_fone_scores_at_exfil_rates.append(optimal_fones)
 
         if self.avg_exfil_per_min[rate_counter] not in self.rate_to_time_gran_to_xs:
-            self.rate_to_time_gran_to_xs[self.avg_exfil_per_min[rate_counter]] = []
-            self.rate_to_time_gran_to_ys[self.avg_exfil_per_min[rate_counter]] = []
             self.rate_to_time_gran_to_outtraffic[self.avg_exfil_per_min[rate_counter]] = []
-
-        for time_counter, time_gran in enumerate(
-                self.rate_to_timegran_to_methods_to_attacks_found_dfs[self.avg_exfil_per_min[rate_counter]].keys()):
-            self.rate_to_time_gran_to_xs[self.avg_exfil_per_min[rate_counter]].append((Xs[time_gran], Xts[time_gran]))
-            self.rate_to_time_gran_to_ys[self.avg_exfil_per_min[rate_counter]].append((Ys[time_gran], Yts[time_gran]))
-            self.rate_to_time_gran_to_outtraffic[self.avg_exfil_per_min[rate_counter]].append(time_gran_to_outtraffic)
+        self.rate_to_time_gran_to_outtraffic[self.avg_exfil_per_min[rate_counter]].append(time_gran_to_outtraffic)
 
         self.rate_to_timegran_to_statistical_pipeline[cur_exfil_rate] = timegran_to_statistical_pipeline
 
@@ -348,10 +338,10 @@ class multi_experiment_pipeline(object):
             timegran_to_df_max_exfil[timegran] = self.lower_per_path_exfil_rates(timegran)
 
         cur_base_output_name = self.base_output_name + '_lower_per_path_exfil_report_'
-        sav2_object = statistical_analysis_v2(timegran_to_df_max_exfil, self.ROC_curve_p, cur_base_output_name,
-                                                  self.names, self.skip_model_part, self.ignore_physical_attacks_p,
+        sav2_object = single_rate_stats_pipeline(timegran_to_df_max_exfil, self.ROC_curve_p, cur_base_output_name,
+                                                 self.names, self.skip_model_part, self.ignore_physical_attacks_p,
                                                   'varies', 'varies', 'varies', 'varies')
-        sav2_object.run_statistical_pipeline(self.drop_pairwise_features, self.pretrained_sav2)
+        sav2_object.run_statistical_pipeline(self.drop_pairwise_features, self.pretrained_min_pipeline)
         sav2_object.create_the_report()
 
         return sav2_object
