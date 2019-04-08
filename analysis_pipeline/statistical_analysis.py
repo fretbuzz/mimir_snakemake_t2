@@ -617,7 +617,6 @@ def drop_useless_columns_aggreg_DF(aggregate_mod_score_dfs):
         pass
 
 
-
     try:
         aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns='pod_comm_but_not_VIP_comms_')
     except:

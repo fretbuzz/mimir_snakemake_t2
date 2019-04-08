@@ -64,7 +64,7 @@ class BackgroundTraffic(TaskSet):
 
     @task(1) # this'll make a new user (just to keep things interesting)
     def populate_data(self):
-        print "about to populate this database!"
+        #print "about to populate this database!"
         # first register
         username = gen_random()
         # print "username: ", username
@@ -79,12 +79,12 @@ class BackgroundTraffic(TaskSet):
         # now create the object that we will pass for registration
         registerObject = {"username": username, "password": password, firstname: "HowdyG", "lastName": lastname,
                           "email": email}
-        print registerObject
+        #print registerObject
         userID = self.client.post("/register", json=registerObject).text
         # userID = self.client.post("/register", json=registerObject).text
         # tested to here! first part is working!
         # ''' Let's test only the above part for now
-        print "userID: ", userID
+        #print "userID: ", userID
         # then login
         # login(username, password)
         base64string = base64.encodestring('%s:%s' % (username, password)).replace('\n', '')
@@ -93,10 +93,10 @@ class BackgroundTraffic(TaskSet):
         cc_num = get_random_num(16)
         expir_date = "11/2020"  # let's give everything the same expir_date b/c why not?
         ccv = get_random_num(3)
-        creditCardObject = {"longNum": "string", "expires": "string", "ccv": "string", "userID": userID}
-        print creditCardObject
+        creditCardObject = {"longNum": str(cc_num), "expires": str(expir_date), "ccv": str(ccv), "userID": userID}
+        #print creditCardObject
         cc_req = self.client.post("/cards", json=creditCardObject)
-        print cc_req
+        #print cc_req
 
         # in order to buy stuff, also need to have an address on file
         # in the interests of simplicity, I am simply going to use the same address for everyone
