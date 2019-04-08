@@ -343,8 +343,10 @@ class single_rate_stats_pipeline():
         # step 1: get all 0/1 predictions
         timegran_to_predictions = {}
         for time_gran, statspipeline in self.timegran_to_statistical_pipeline.iteritems():
-            test_predictions = statspipeline.method_to_optimal_predictions_test[statspipeline.method_name]
-            train_predictions = statspipeline.method_to_optimal_predictions_train[statspipeline.method_name]
+            #test_predictions = list(statspipeline.method_to_test_predictions[statspipeline.method_name])
+            #train_predictions = list(statspipeline.method_to_train_predictions[statspipeline.method_name])
+            test_predictions = list(statspipeline.method_to_optimal_predictions_test[statspipeline.method_name])
+            train_predictions = list(statspipeline.method_to_optimal_predictions_train[statspipeline.method_name])
             timegran_to_predictions[time_gran] = train_predictions + test_predictions
 
         # step 2: take the OR of the predictions

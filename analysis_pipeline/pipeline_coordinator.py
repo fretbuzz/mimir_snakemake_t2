@@ -4,7 +4,7 @@ import pyximport
 import ast
 from matplotlib import pyplot as plt
 from analysis_pipeline.single_experiment_pipeline import determine_attacks_to_times
-from analysis_pipeline.statistical_analysis import single_rate_stats_pipeline,single_model_stats_pipeline,multi_time_gran
+from analysis_pipeline.statistical_analysis import single_rate_stats_pipeline
 import analysis_pipeline.generate_aggregate_report as generate_aggregate_report
 pyximport.install() # to leverage cpython
 import math
