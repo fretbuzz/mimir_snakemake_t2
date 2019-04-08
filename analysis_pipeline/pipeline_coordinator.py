@@ -162,13 +162,20 @@ class multi_experiment_pipeline(object):
 
         self.generate_and_assign_exfil_paths()
 
-        for rate_counter in range(0, len(self.avg_exfil_per_min)):
-            self.run_single_pipeline(rate_counter)
+        if not self.only_ide:
+            for rate_counter in range(0, len(self.avg_exfil_per_min)):
+                self.run_single_pipeline(rate_counter, self.calc_vals, self.skip_graph_injection, include_ide=self.include_ide)
 
-        self.decrease_exfil_of_model()
+            self.decrease_exfil_of_model()
 
-        self.generate_aggregate_report()
+            self.generate_aggregate_report()
 
+        if self.calc_ide or self.only_ide:
+            for rate_counter in range(0, len(self.avg_exfil_per_min)):
+                self.run_single_pipeline(rate_counter, calc_vals=False, skip_graph_injection=True, calc_ide=True, include_ide=True, only_ide=True)
+
+                self.decrease_exfil_of_model()
+                self.generate_aggregate_report()
 
         return self.rate_to_time_gran_to_xs, self.rate_to_time_gran_to_ys, self.rate_to_timegran_list_of_methods_to_attacks_found_training_df, \
                self.rate_to_timegran_to_methods_to_attacks_found_dfs
@@ -180,7 +187,7 @@ class multi_experiment_pipeline(object):
                                                             self.rate_to_time_gran_to_outtraffic)
 
     ## NOTE: I'm going to try to do this WITHOUT the call to multi-process here!!
-    def run_single_pipeline(self, rate_counter):
+    def run_single_pipeline(self, rate_counter, calc_vals, skip_graph_injection, calc_ide=False, include_ide=False, only_ide=False):
         prefix_for_inject_params = 'avg_exfil_' + str(self.avg_exfil_per_min[rate_counter]) + ':' + str(
             self.exfil_per_min_variance[rate_counter]) +  '_avg_pkt_' + str(self.avg_pkt_size[rate_counter]) + ':' + str(
             self.pkt_size_variance[rate_counter]) + '_'
@@ -190,10 +197,10 @@ class multi_experiment_pipeline(object):
         out_q = multiprocessing.Queue()
         cur_function_list = [copy.deepcopy(i) for i in self.function_list]
         args = [rate_counter, self.base_output_name, cur_function_list, self.exps_exfil_paths, self.exps_initiator_info,
-                self.calculate_z_scores_p, self.calc_vals, self.end_of_train_portions, self.training_exfil_paths,
+                self.calculate_z_scores_p, calc_vals, self.end_of_train_portions, self.training_exfil_paths,
                 self.testing_exfil_paths, self.ignore_physical_attacks_p, self.skip_model_part, out_q,
                 self.ROC_curve_p, self.avg_exfil_per_min, self.exfil_per_min_variance, self.avg_pkt_size,
-                self.pkt_size_variance, self.skip_graph_injection,  self.calc_ide, self.include_ide, self.only_ide,
+                self.pkt_size_variance, skip_graph_injection, calc_ide, include_ide, only_ide,
                 self.drop_pairwise_features, self.perform_cilium_component, self.cilium_component_time,
                 self.ide_window_size, self.drop_infra_from_graph, prefix_for_inject_params]
         p = multiprocessing.Process(
@@ -349,10 +356,6 @@ class multi_experiment_pipeline(object):
 
         generate_report.join_report_sections(self.names, cur_base_output_name, 'varies', 'varies',
                                              'varies', 'varies', report_sections)
-
-    ## TODO: putting it here to make it easier to work into the pipeline --- need to finish and test!!!
-    def run_ide_component(self):
-        pass
 
 def pipeline_one_exfil_rate(rate_counter,
                             base_output_name, function_list, exps_exfil_paths, exps_initiator_info,

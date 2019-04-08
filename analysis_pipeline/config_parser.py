@@ -116,35 +116,13 @@ def parse_experimental_config(experimental_config_file):
                                   skip_graph_injection=skip_graph_injection,
                                   get_endresult_from_memory=get_endresult_from_memory,
                                   goal_attack_NoAttack_split_testing=goal_attack_NoAttack_split_testing,
-                                  calc_ide=False, include_ide=False, only_ide=only_ide,
+                                  calc_ide=calc_ide, include_ide=include_ide, only_ide=only_ide,
                                   drop_pairwise_features=drop_pairwise_features,
                                   ide_window_size=ide_window_size, drop_infra_from_graph=drop_infra_from_graph,
                                   perform_cilium_component=perform_cilium_component)
 
         rate_to_time_gran_to_xs, rate_to_time_gran_to_ys, rate_to_timegran_list_of_methods_to_attacks_found_training_df, \
         rate_to_timegran_to_methods_to_attacks_found_dfs = multi_experiment_object.run_pipelines()
-
-        if calc_ide:
-            calc_vals = False
-            skip_graph_injection = True
-            multi_experiment_object = \
-                multi_experiment_pipeline(experiment_classes, base_output_location, True, time_of_synethic_exfil,
-                                          goal_train_test_split_training, goal_attack_NoAttack_split_training, None,
-                                          None, calc_vals, skip_model_part, ignore_physical_attacks_p,
-                                          calculate_z_scores_p=True,
-                                          avg_exfil_per_min=avg_exfil_per_min,
-                                          exfil_per_min_variance=exfil_per_min_variance,
-                                          avg_pkt_size=avg_pkt_size, pkt_size_variance=pkt_size_variance,
-                                          skip_graph_injection=skip_graph_injection,
-                                          get_endresult_from_memory=get_endresult_from_memory,
-                                          goal_attack_NoAttack_split_testing=goal_attack_NoAttack_split_testing,
-                                          calc_ide=calc_ide, include_ide=True, only_ide=True,
-                                          drop_pairwise_features=drop_pairwise_features,
-                                          ide_window_size=ide_window_size, drop_infra_from_graph=drop_infra_from_graph,
-                                          perform_cilium_component=perform_cilium_component)
-
-            rate_to_time_gran_to_xs, rate_to_time_gran_to_ys, rate_to_timegran_list_of_methods_to_attacks_found_training_df, \
-            rate_to_timegran_to_methods_to_attacks_found_dfs = multi_experiment_object.run_pipelines()
 
     return rate_to_time_gran_to_xs, rate_to_time_gran_to_ys, rate_to_timegran_list_of_methods_to_attacks_found_training_df, \
             rate_to_timegran_to_methods_to_attacks_found_dfs
