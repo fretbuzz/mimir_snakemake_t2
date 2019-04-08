@@ -27,8 +27,8 @@ def pod_logger(log_file_loc, sentinal_file_loc):
 
 
     # step 2: start streaming the relevant kubernetes info::
-    i = open(pod_stream_file, 'w')
-    h =  open(svc_stream_file, 'w')
+    i = open(pod_stream_file, 'w+')
+    h =  open(svc_stream_file, 'w+')
 
     pod_process = subprocess.Popen(['kubectl', 'get', 'po', '-o', 'wide', '--all-namespaces', '--show-labels', '-w'],
                                    stdout=i)
@@ -42,16 +42,20 @@ def pod_logger(log_file_loc, sentinal_file_loc):
 
 
     ###
-    with open('pod_stream.txt', 'r') as f:
-        with open('svc_stream.txt', 'r') as j:
-            while (not os.path.exists(sentinal_file_loc)):
+    furthest_pod_line = 0
+    furthest_svc_line = 0
+    while (not os.path.exists(sentinal_file_loc)):
+        cur_pod_line = 0
+        cur_svc_line = 0
+        with open('pod_stream.txt', 'r') as f:
+            with open('svc_stream.txt', 'r') as j:
                 #print "current_loop: ", timestep_counter
                 loop_starttime = time.time()
                 current_mapping = {}
 
                 # using technique from https://stackoverflow.com/questions/10140281/how-to-find-out-whether-a-file-is-at-its-eof
                 for line in f:
-                    if line != '':
+                    if line != '' and cur_pod_line >= furthest_pod_line:
                         line = [i for i in line.split('   ') if i != '']
                         name = line[1].rstrip().lstrip()
                         ip = line[3].rstrip().lstrip()
@@ -59,17 +63,18 @@ def pod_logger(log_file_loc, sentinal_file_loc):
                         labels = line[8].rstrip().lstrip()
                         if '<none>' not in ip:
                             current_mapping[name] = (ip, namespace, 'pod', labels)
-
+                    cur_pod_line += 1
 
                 #out = subprocess.check_output(['kubectl', 'get', 'svc', '-o', 'wide', '--all-namespaces', '--show-labels'])
                 for line in j:
-                    if line != '':
+                    if line != '' and cur_svc_line >= furthest_svc_line:
                         line = [i for i in line.split('   ') if i != '']
                         name = line[1].rstrip().lstrip()
                         ip = line[3].rstrip().lstrip()
                         namespace = line[0].rstrip().lstrip()
                         labels = line[7].rstrip().lstrip()
                         current_mapping[name] = (ip, namespace, 'svc', labels)
+                    cur_svc_line += 1
 
                 # now compare to old mapping
                 changes_this_time_step = {}
