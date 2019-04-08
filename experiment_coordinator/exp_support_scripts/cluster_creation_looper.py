@@ -6,7 +6,7 @@ import time
 import pickle
 import pyximport; pyximport.install()
 
-def pod_logger(log_file_loc, sentinal_file_loc):
+def cluster_creation_logger(log_file_loc, sentinal_file_loc):
     time_behind = 0.0 # records how much time the system is behind where it should be
     timestep_counter = 0
     last_timestep_mapping = {}
@@ -42,8 +42,8 @@ def pod_logger(log_file_loc, sentinal_file_loc):
 
 
     ###
-    furthest_pod_line = 0
-    furthest_svc_line = 0
+    furthest_pod_line = 1
+    furthest_svc_line = 1
     while (not os.path.exists(sentinal_file_loc)):
         cur_pod_line = 0
         cur_svc_line = 0
@@ -130,4 +130,4 @@ if __name__=="__main__":
     log_file_loc= sys.argv[1]
     sentinal_file_loc= sys.argv[2]
 
-    pod_logger(log_file_loc, sentinal_file_loc)
+    cluster_creation_logger(log_file_loc, sentinal_file_loc)
