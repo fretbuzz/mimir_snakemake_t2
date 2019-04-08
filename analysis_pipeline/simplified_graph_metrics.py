@@ -26,6 +26,7 @@ import numpy.random
 import pandas as pd
 import subprocess
 from process_pcap import update_mapping
+import scipy
 
 
 # okay, so things to be aware of:
@@ -396,9 +397,9 @@ class set_of_injected_graphs():
     def generate_aggregate_csv(self):
         #''''
         ### TODO: NEED TO FIX BY TAKING THE PRINCIPAL EIGENVECTOR!!
-        #col_list = self.current_total_node_list
-        #joint_col_list = ['Col_' + str(i) for i in range(0,len(col_list))]
-        joint_col_list = [(col_item1 + '-to-' + col_item2) for col_item1 in col_list for col_item2 in col_list if col_item1 != col_item2]
+        col_list = self.current_total_node_list
+        joint_col_list = ['Col_' + str(i) for i in range(0,len(col_list))]
+        #joint_col_list = [(col_item1 + '-to-' + col_item2) for col_item1 in col_list for col_item2 in col_list if col_item1 != col_item2]
         #joint_col_list +=  ['labels']
         out_df = pd.DataFrame(None, index=None, columns=joint_col_list)
 
@@ -415,9 +416,18 @@ class set_of_injected_graphs():
             # let's append this dict to the out_dict [done]
             # at the end, let's print the dict to a file. [done]
 
+            adjacency_matrix = nx.to_numpy_matrix(injected_graph.cur_1si_G, nodelist=col_list)
+            eigenvalues,eigenvectors = numpy.linalg.eig(adjacency_matrix)
+            # then find index of largest eigenvalue
+            largest_eigenvalue_index = np.argmax(eigenvalues)
+            # and then use that to index into the principal eigenvector
+            principal_eigenvector = eigenvectors[:, largest_eigenvalue_index]
+            # and then write it to a file...
+            cur_df = pd.DataFrame(principal_eigenvector, columns=joint_col_list)
+
+            '''
             adj_dict = {}
             adj_dict_of_dicts = nx.to_dict_of_dicts(injected_graph.cur_1si_G)
-
             for src_node,inner_dict in adj_dict_of_dicts.iteritems():
                 for dest_node, edge_data in inner_dict.iteritems():
                     col_name = src_node + '-to-' + dest_node
@@ -428,6 +438,7 @@ class set_of_injected_graphs():
 
             cur_df = pd.DataFrame(adj_dict, columns=joint_col_list)
             cur_df = cur_df.fillna(0)
+            '''
             #cur_df['192.168.99.100-outside'] = 0 # TODO: remove this from the graph entirely when I get a chance...maybe...
             # but for now, just set it equal to zero (it's so large that it causes scaling problems w.r.t. the other entries)
 
