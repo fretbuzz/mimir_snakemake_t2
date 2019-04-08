@@ -311,7 +311,7 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
         cilium_endpoint_args = ["kubectl", "-n", "kube-system", "exec", "cilium-6lffs", "--", "cilium", "endpoint", "list",
                             "-o", "json"]
         out = subprocess.check_output(cilium_endpoint_args)
-        container_config_file = experiment_name + '_' +  + '_cilium_network_configs.txt'
+        container_config_file = experiment_name + '_' + '_cilium_network_configs.txt'
         with open(container_config_file, 'w') as f:
             f.write(out)
     #'''
@@ -506,6 +506,7 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
 
         #subprocess.call([locust_info_file + '_requests.csv', '>>', locust_info_file])
         #try:
+        aggregate_locust_file(locust_info_file +'_requests.csv', locust_info_file + '_AGGREGATED')
         succeeded_requests, failed_requests, fail_percentage = sanity_check_locust_performance(locust_info_file +'_requests.csv')
         #except Exception as e:
         #    raise("exception_in_prepare_apps: " + e.output)
@@ -1185,6 +1186,14 @@ def find_dst_and_srcs_ips_for_det(exfil_path, current_class_name, selected_conta
 
     return dests, srcs
 
+def aggregate_locust_file(locust_csv_file, aggregate_locust_csv_file):
+    with open(locust_csv_file, 'r') as f:
+        cont = f.read()
+    with open(aggregate_locust_csv_file, 'a+') as f:
+        f.seek(0, 2)
+        f.write('######################')
+        f.writelines(cont)
+
 # note, requests means requests that succeeded
 def sanity_check_locust_performance(locust_csv_file):
     method_to_requests = {}
@@ -1350,7 +1359,6 @@ def get_ip_and_port(app_name):
 def cluster_creation_logger(log_file_loc, end_sentinal_file_loc, start_sentinal_file_loc, exp_name):
     time_behind = 0.0 # records how much time the system is behind where it should be
     timestep_counter = 0
-    last_timestep_mapping = {}
     time_step_to_changes = {}
 
     pod_stream_file = exp_name + "_pod_stream.txt"
