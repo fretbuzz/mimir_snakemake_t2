@@ -49,7 +49,7 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
     # step (1) read in the config file
     with open(config_file.rstrip().lstrip()) as f:
         config_params = json.load(f)
-    split_pcap_interval = config_params['split_pcap']
+    #split_pcap_interval = config_params['split_pcap']
     network_plugin = 'none'
     try:
         network_plugin = config_params["network_plugin"]
@@ -1289,10 +1289,10 @@ def generate_analysis_json(path_to_exp_folder, analysis_json_name, exp_config_js
     except:
         pass
 
-    try:
-        analysis_dict['split_pcap'] = exp_config_json["split_pcap"]
-    except:
-        pass
+    #try:
+    #    analysis_dict['split_pcap'] = exp_config_json["split_pcap"]
+    #except:
+    #    pass
 
     analysis_dict["pod_creation_log_name"] = exp_name  + '_cluster_creation_log.txt'
     analysis_dict["pcap_file_name"] = exp_name + '_bridge_any.pcap'
