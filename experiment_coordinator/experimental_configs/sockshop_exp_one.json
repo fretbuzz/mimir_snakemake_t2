@@ -1,6 +1,6 @@
 {
     "application_name": "sockshop",
-    "experiment_name": "sockshop_one_auto_mk2long",
+    "experiment_name": "sockshop_one_auto_mk5long",
     "path_to_docker_machine_tls_certs":"/mydata/.minikube/certs",
     "experiment_length_sec": 10800,
     "split_pcap": 10800,

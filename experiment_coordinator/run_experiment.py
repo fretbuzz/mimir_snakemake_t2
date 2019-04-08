@@ -1191,7 +1191,7 @@ def aggregate_locust_file(locust_csv_file, aggregate_locust_csv_file):
         cont = f.read()
     with open(aggregate_locust_csv_file, 'a+') as f:
         f.seek(0, 2)
-        f.write('######################')
+        f.write('\n######################\n')
         f.writelines(cont)
 
 # note, requests means requests that succeeded
@@ -1296,6 +1296,8 @@ def generate_analysis_json(path_to_exp_folder, analysis_json_name, exp_config_js
 
     analysis_dict["pod_creation_log_name"] = exp_name  + '_cluster_creation_log.txt'
     analysis_dict["pcap_file_name"] = exp_name + '_bridge_any.pcap'
+
+    analysis_dict['minikube_ip'] = get_IP(orchestrator)
 
     # this logs the relevant interfaces so we can know what is and isn't on the cluster
     # (this'll be useful in the analysis pipeline)
@@ -1417,6 +1419,7 @@ def cluster_creation_logger(log_file_loc, end_sentinal_file_loc, start_sentinal_
                         if '<none>' not in ip:
                             current_mapping[name] = (ip, namespace, 'pod', labels)
                     cur_pod_line += 1
+                furthest_pod_line = cur_pod_line
 
                 #out = subprocess.check_output(['kubectl', 'get', 'svc', '-o', 'wide', '--all-namespaces', '--show-labels'])
                 for line in j:
@@ -1428,6 +1431,7 @@ def cluster_creation_logger(log_file_loc, end_sentinal_file_loc, start_sentinal_
                         labels = line[7].rstrip().lstrip()
                         current_mapping[name] = (ip, namespace, 'svc', labels)
                     cur_svc_line += 1
+                furthest_svc_line = cur_svc_line
 
                 # now compare to old mapping
                 changes_this_time_step = {}
