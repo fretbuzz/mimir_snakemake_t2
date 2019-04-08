@@ -1402,8 +1402,8 @@ def cluster_creation_logger(log_file_loc, end_sentinal_file_loc, start_sentinal_
     while (not os.path.exists(end_sentinal_file_loc)):
         cur_pod_line = 0
         cur_svc_line = 0
-        with open('pod_stream.txt', 'r') as f:
-            with open('svc_stream.txt', 'r') as j:
+        with open(pod_stream_file, 'r') as f:
+            with open(svc_stream_file, 'r') as j:
                 #print "current_loop: ", timestep_counter
                 loop_starttime = time.time()
                 current_mapping = {}
