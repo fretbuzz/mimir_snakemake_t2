@@ -248,94 +248,107 @@ class statistical_pipeline():
                                                             self.exfil_paths_test, self.exfil_weights_test)
 
 
-def statistical_analysis_v2(time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, base_output_name, names,
-                                         starts_of_testing, path_occurence_training_df, path_occurence_testing_df,
-                                         recipes_used, skip_model_part, ignore_physical_attacks_p,
-                                         avg_exfil_per_min, avg_pkt_size, exfil_per_min_variance,
-                                         pkt_size_variance, drop_pairwise_features, timegran_to_pretrained_statspipeline):
-    print "STATISTICAL_ANALYSIS_V2"
-    report_sections = {}
-    rate = avg_exfil_per_min
-
-    list_of_optimal_fone_scores_at_this_exfil_rates = {}
-    Xs = {}
-    Ys = {}
-    Xts = {}
-    Yts = {}
-    trained_models = {}
-    timegran_to_methods_to_attacks_found_dfs = {}
-    timegran_to_methods_toattacks_found_training_df = {}
-    time_gran_to_outtraffic = {}
-    timegran_to_statistical_pipeline = {}
-    base_output_name += '_lasso'
-
-    for timegran,feature_df in time_gran_to_aggregate_mod_score_dfs.iteritems():
-        # clf = LogisticRegressionCV(penalty="l1", cv=10, max_iter=10000, solver='saga')
-        # cur_base_output_name + 'logistic_l1_mod_z_lass_feat_sel_'
-        clf = LassoCV(cv=3, max_iter=80000)
-
-        if 'lass_feat_sel' in base_output_name:
-            lasso_feature_selection_p = True
-        else:
-            lasso_feature_selection_p = False
 
 
-        stat_pipeline = statistical_pipeline(feature_df,base_output_name, skip_model_part, clf,
-                                             ignore_physical_attacks_p, drop_pairwise_features, timegran,
-                                            lasso_feature_selection_p)
-        stat_pipeline.generate_model()
-        stat_pipeline.process_model()
-        report_section = stat_pipeline.generate_report_section()
-        report_sections[timegran] = report_section
+class statistical_analysis_v2():
+    def __init__(self, time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, base_output_name, names,
+                 starts_of_testing, path_occurence_training_df, path_occurence_testing_df,
+                 recipes_used, skip_model_part, ignore_physical_attacks_p,
+                 avg_exfil_per_min, avg_pkt_size, exfil_per_min_variance,
+                 pkt_size_variance, drop_pairwise_features, timegran_to_pretrained_statspipeline):
 
-        if timegran not in timegran_to_methods_toattacks_found_training_df:
-            list_of_optimal_fone_scores_at_this_exfil_rates[timegran] = []
-            Xs[timegran] = []
-            Ys[timegran] = []
-            Xts[timegran] = []
-            Yts[timegran] = []
-            trained_models[timegran] = []
-            #timegran_to_methods_to_attacks_found_dfs[timegran] = []
-            #timegran_to_methods_toattacks_found_training_df[timegran] = []
-            time_gran_to_outtraffic[timegran] = []
+        print "STATISTICAL_ANALYSIS_V2"
+        self.report_sections = {}
+        self.list_of_optimal_fone_scores_at_this_exfil_rates = {}
+        self.Xs = {}
+        self.Ys = {}
+        self.Xts = {}
+        self.Yts = {}
+        self.trained_models = {}
+        self.timegran_to_methods_to_attacks_found_dfs = {}
+        self.timegran_to_methods_toattacks_found_training_df = {}
+        self.time_gran_to_outtraffic = {}
+        self.timegran_to_statistical_pipeline = {}
+        self.base_output_name = base_output_name + '_lasso'
+        self.time_gran_to_aggregate_mod_score_dfs = time_gran_to_aggregate_mod_score_dfs
 
-        list_of_optimal_fone_scores_at_this_exfil_rates[timegran].append(stat_pipeline.method_to_optimal_f1_scores_test)
-        Xs[timegran].append(stat_pipeline.X_train)
-        Ys[timegran].append(stat_pipeline.y_train)
-        Xts[timegran].append(stat_pipeline.X_test)
-        Yts[timegran].append(stat_pipeline.y_test)
-        trained_models[timegran].append(stat_pipeline.clf)
-        timegran_to_statistical_pipeline[timegran] = stat_pipeline
-        timegran_to_methods_to_attacks_found_dfs[timegran] = stat_pipeline.method_to_cm_df_test
-        timegran_to_methods_toattacks_found_training_df[timegran] = stat_pipeline.method_to_cm_df_train
+        for timegran,feature_df in self.time_gran_to_aggregate_mod_score_dfs.iteritems():
+            if timegran not in self.timegran_to_methods_toattacks_found_training_df:
+                self.list_of_optimal_fone_scores_at_this_exfil_rates[timegran] = []
+                self.Xs[timegran] = []
+                self.Ys[timegran] = []
+                self.Xts[timegran] = []
+                self.Yts[timegran] = []
+                self.trained_models[timegran] = []
+                self.time_gran_to_outtraffic[timegran] = []
+                self.skip_model_part = skip_model_part
+                self.ignore_physical_attacks_p = ignore_physical_attacks_p
 
-        time_gran_to_outtraffic[timegran].append(stat_pipeline.out_traffic)
+        self.recipes_used = recipes_used
+        self.avg_exfil_per_min = avg_exfil_per_min
+        self.avg_pkt_size = avg_pkt_size
+        self.exfil_per_min_variance = exfil_per_min_variance
+        self.pkt_size_variance = pkt_size_variance
 
-    multtime_trainpredictions, multtime_trainpredictions, report_section, pipeline_object =\
-        multi_time_gran(timegran_to_statistical_pipeline, base_output_name, skip_model_part,
-                        ignore_physical_attacks_p, drop_pairwise_features)
+    def run_statistical_pipeline(self, drop_pairwise_features, generate_report=True):
+        for timegran,feature_df in self.time_gran_to_aggregate_mod_score_dfs.iteritems():
+            # clf = LogisticRegressionCV(penalty="l1", cv=10, max_iter=10000, solver='saga')
+            # cur_base_output_name + 'logistic_l1_mod_z_lass_feat_sel_'
+            clf = LassoCV(cv=3, max_iter=80000)
 
+            if 'lass_feat_sel' in self.base_output_name:
+                lasso_feature_selection_p = True
+            else:
+                lasso_feature_selection_p = False
 
-    if report_section:
-        report_sections[tuple(timegran_to_statistical_pipeline.keys())] = report_section
+            stat_pipeline = statistical_pipeline(feature_df,self.base_output_name, self.skip_model_part, clf,
+                                                 self.ignore_physical_attacks_p, drop_pairwise_features, timegran,
+                                                lasso_feature_selection_p)
+            stat_pipeline.generate_model()
+            stat_pipeline.process_model()
+            if generate_report:
+                report_section = stat_pipeline.generate_report_section()
+                self.report_sections[timegran] = report_section
 
-        generate_report.join_report_sections(recipes_used, base_output_name, avg_exfil_per_min, avg_pkt_size, exfil_per_min_variance,
-                         pkt_size_variance, report_sections)
+            self.list_of_optimal_fone_scores_at_this_exfil_rates[timegran].append(stat_pipeline.method_to_optimal_f1_scores_test)
+            self.Xs[timegran].append(stat_pipeline.X_train)
+            self.Ys[timegran].append(stat_pipeline.y_train)
+            self.Xts[timegran].append(stat_pipeline.X_test)
+            self.Yts[timegran].append(stat_pipeline.y_test)
+            self.trained_models[timegran].append(stat_pipeline.clf)
+            self.timegran_to_statistical_pipeline[timegran] = stat_pipeline
+            self.timegran_to_methods_to_attacks_found_dfs[timegran] = stat_pipeline.method_to_cm_df_test
+            self.timegran_to_methods_toattacks_found_training_df[timegran] = stat_pipeline.method_to_cm_df_train
 
-    experiment_info = {}
-    experiment_info["recipes_used"] = recipes_used
-    experiment_info["avg_exfil_per_min"] = avg_exfil_per_min
-    experiment_info["avg_pkt_size"] = avg_pkt_size
-    experiment_info["exfil_per_min_variance"] = exfil_per_min_variance
-    experiment_info["pkt_size_variance"] = pkt_size_variance
+            self.time_gran_to_outtraffic[timegran].append(stat_pipeline.out_traffic)
 
-    return list_of_optimal_fone_scores_at_this_exfil_rates, Xs, Ys, Xts,Yts, trained_models, timegran_to_methods_to_attacks_found_dfs, \
-           timegran_to_methods_toattacks_found_training_df,experiment_info, time_gran_to_outtraffic, timegran_to_statistical_pipeline
+        multtime_trainpredictions, multtime_trainpredictions, report_section, pipeline_object =\
+            multi_time_gran(self.timegran_to_statistical_pipeline, self.base_output_name, self.skip_model_part,
+                            self.ignore_physical_attacks_p, drop_pairwise_features, generate_report_p=generate_report)
+        if generate_report:
+            self.report_sections[tuple(self.timegran_to_statistical_pipeline.keys())] = report_section
+
+    def generate_return_values(self, generate_report):
+        if generate_report:
+
+            generate_report.join_report_sections(self.recipes_used, self.base_output_name, self.avg_exfil_per_min,
+                                                 self.avg_pkt_size, self.exfil_per_min_variance, self.pkt_size_variance,
+                                                 self.report_sections)
+
+        experiment_info = {}
+        experiment_info["recipes_used"] = self.recipes_used
+        experiment_info["avg_exfil_per_min"] = self.avg_exfil_per_min
+        experiment_info["avg_pkt_size"] = self.avg_pkt_size
+        experiment_info["exfil_per_min_variance"] = self.exfil_per_min_variance
+        experiment_info["pkt_size_variance"] =self. pkt_size_variance
+
+        return self.list_of_optimal_fone_scores_at_this_exfil_rates, self.Xs, self.Ys, self.Xts, self.Yts, self.trained_models, \
+               self.timegran_to_methods_to_attacks_found_dfs, self.timegran_to_methods_toattacks_found_training_df, experiment_info, \
+               self.time_gran_to_outtraffic, self.timegran_to_statistical_pipeline
 
 
 def multi_time_gran(timegran_to_statspipeline,base_output_name, skip_model_part, ignore_physical_attacks_p,
                     drop_pairwise_features,  generate_report_p=True):
-    #return None, None, None ## TODO: remove this to actually test.
 
     # the purpose of this function is test the union of alerts...
     ### okay... can I reuse the existing statistical analysis machinery...
