@@ -27,7 +27,7 @@ pip install pip
 
 * Then install the necessary python packages:
 ```
-pip install docker networkx matplotlib jinja2 pdfkit numpy pandas seaborn pyximport yaml multiprocessing scipy pdfkit
+pip install docker networkx matplotlib jinja2 pdfkit numpy pandas seaborn Cython yaml multiprocessing scipy pdfkit
 ```
 
 ### Set configuration file
