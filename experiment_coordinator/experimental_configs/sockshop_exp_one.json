@@ -46,5 +46,6 @@
         },
       "autoscale_p": true
     },
-    "VM_interfaces" : ["vboxnet0"]
+    "VM_interfaces" : ["vboxnet0"],
+    "username": "jsev"
 }

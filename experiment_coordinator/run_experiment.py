@@ -62,6 +62,11 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
     except:
         pass
 
+    try:
+        username = config_params["username"]
+    except:
+        username = ""
+
     # this file will be used to synchronize the three thread/processes: tcpdump, det, and the background load generator
     end_sentinal_file_loc = './all_done.txt'
     sentinal_file_loc = './ready_to_start_exp.txt'
@@ -97,7 +102,7 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
     # note: it is assumed that the application is already deployed
     app_name = config_params["application_name"]
     if prepare_app_p:
-        prepare_app(app_name, config_params["setup"],  spec_port, spec_ip, config_params["Deployment"], exfil_paths, class_to_installer)
+        prepare_app(app_name, config_params["setup"],  spec_port, spec_ip, config_params["Deployment"], exfil_paths, class_to_installer, username)
     ip,port = get_ip_and_port(app_name)
     print "ip,port",ip,port
 
@@ -333,7 +338,7 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
     except OSError:
         pass
 
-def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_config, exfil_paths, class_to_installer):
+def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_config, exfil_paths, class_to_installer, username):
 
     if app_name == "sockshop":
         #sockshop_setup.scale_sockshop.main(deployment_config['deployment_scaling'], deployment_config['autoscale_p'])
@@ -399,7 +404,8 @@ def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_co
 
         print "about to try to do setup_wordpress..."
         try:
-            wordpress_setup.setup_wordpress.main(ip, port, "hi")
+
+            wordpress_setup.setup_wordpress.main(ip, port, "hi", username)
         except Exception,e:
             print "wordpress_setup.setup_wordpress.main triggered this exception: ", str(e)
         print "setup_wordpress completed..."

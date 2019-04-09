@@ -17,7 +17,7 @@ from multiprocessing.dummy import Pool as ThreadPool
 import threading
 from selenium.webdriver.firefox.options import Options
 import shutil
-
+import pwd
 
 def install_pluggin():
     try:
@@ -196,7 +196,9 @@ def admin_login(admin_pwd, driver_val):
     print elem
 
 
-def main(ip_of_wp, port_of_wp, admin_pwd):
+def main(ip_of_wp, port_of_wp, admin_pwd, username):
+    os.setuid(pwd.getpwnam(username).pw_uid) # ncessary b/c cannot run selenium as root
+
     global driver
     global driver_two
 
@@ -219,6 +221,7 @@ def main(ip_of_wp, port_of_wp, admin_pwd):
 
     options = Options()
     options.headless = True
+    #options.add_argument('--no-sandbox')
 
     # from: https://selenium-python.readthedocs.io/faq.html (literally copy-pasted)
     fp = webdriver.FirefoxProfile()
