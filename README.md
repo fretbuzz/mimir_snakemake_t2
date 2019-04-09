@@ -13,8 +13,8 @@ This analysis pipeline been tested on MacOS and Linux 16.04. It will not work on
 First, install non-python-related dependencies. 
 * [Docker](https://docs.docker.com/install/) is needed because the system uses the MulVal container. 
 * [SBCL](http://www.sbcl.org/getting.html) is needed if you want to compare to [directional eigenvector method](http://ide-research.net/papers/2004_KDD_Ide_p140.pdf). 
-*[Tshark \& editcap](https://www.wireshark.org/docs/wsug_html_chunked/ChapterBuildInstall.html) are used to parse the pcap. 
-*(Pdfkit)[https://github.com/pdfkit/pdfkit/wiki/Installing-WKHTMLTOPDF] is used to generate reports, which at the current stage is the best way to evaluate performance.
+* [Tshark \& editcap](https://www.wireshark.org/docs/wsug_html_chunked/ChapterBuildInstall.html) are used to parse the pcap. 
+* (Pdfkit)[https://github.com/pdfkit/pdfkit/wiki/Installing-WKHTMLTOPDF] is used to generate reports, which at the current stage is the best way to evaluate performance.
 
 Then install the python-related dependencies.
 
