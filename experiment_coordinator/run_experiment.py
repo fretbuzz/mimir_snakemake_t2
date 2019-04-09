@@ -1416,8 +1416,9 @@ def cluster_creation_logger(log_file_loc, end_sentinal_file_loc, start_sentinal_
                         ip = line[6].rstrip().lstrip()
                         namespace = line[0].rstrip().lstrip()
                         labels = line[8].rstrip().lstrip()
+                        status = line[3].rstrip().lstrip()
                         if '<none>' not in ip:
-                            current_mapping[name] = (ip, namespace, 'pod', labels)
+                            current_mapping[name] = (ip, namespace, 'pod', labels, status)
                     cur_pod_line += 1
                 #print "cur_pod_line", cur_pod_line
                 furthest_pod_line = cur_pod_line
@@ -1430,7 +1431,8 @@ def cluster_creation_logger(log_file_loc, end_sentinal_file_loc, start_sentinal_
                         ip = line[3].rstrip().lstrip()
                         namespace = line[0].rstrip().lstrip()
                         labels = line[7].rstrip().lstrip()
-                        current_mapping[name] = (ip, namespace, 'svc', labels)
+                        status = line[3].rstrip().lstrip()
+                        current_mapping[name] = (ip, namespace, 'svc', labels, status)
                     cur_svc_line += 1
                 #print "furthest_svc_line", furthest_svc_line
                 furthest_svc_line = cur_svc_line
@@ -1440,7 +1442,7 @@ def cluster_creation_logger(log_file_loc, end_sentinal_file_loc, start_sentinal_
                 for cur_name, cur_ip in current_mapping.iteritems():
                     #if cur_name not in last_timestep_mapping:
                     ## note: we'll just log everything here and then be more precise in the analysis_pipeline
-                    changes_this_time_step[cur_name] = (cur_ip[0], '+', cur_ip[1], cur_ip[2], cur_ip[3])
+                    changes_this_time_step[cur_name] = (cur_ip[0], '+', cur_ip[1], cur_ip[2], cur_ip[3], cur_ip[4])
                 #for last_name,last_ip_tup in last_timestep_mapping.iteritems():
                 #    if last_name not in current_mapping:
                 #        changes_this_time_step[last_name] = (last_ip_tup[0], '-', last_ip_tup[1], last_ip_tup[2], last_ip_tup[3])
@@ -1459,12 +1461,18 @@ def cluster_creation_logger(log_file_loc, end_sentinal_file_loc, start_sentinal_
                     # but shouldn't be a big deal
                     pod_process.kill()
                     svc_process.kill()
+                    i.close()
+                    h.close()
+                    i = open(pod_stream_file, 'w')
+                    h = open(svc_stream_file, 'w')
                     pod_process = subprocess.Popen(
                         ['kubectl', 'get', 'po', '-o', 'wide', '--all-namespaces', '--show-labels', '-w'],
                         stdout=i)
                     svc_process = subprocess.Popen(
                         ['kubectl', 'get', 'svc', '-o', 'wide', '--all-namespaces', '--show-labels', '-w'],
                         stdout=h)
+                    furthest_pod_line = 1
+                    furthest_svc_line = 1
 
                 time_to_sleep = 1.0 - (time.time() - loop_starttime) - time_behind
                 if time_to_sleep < 0.0:
