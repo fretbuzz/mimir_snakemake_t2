@@ -1378,13 +1378,13 @@ def cluster_creation_logger(log_file_loc, end_sentinal_file_loc, start_sentinal_
 
 
     # step 2: start streaming the relevant kubernetes info::
-    i = open(pod_stream_file, 'w+')
-    h =  open(svc_stream_file, 'w+')
+    i_filehandler = open(pod_stream_file, 'w+')
+    h_filehander =  open(svc_stream_file, 'w+')
 
     pod_process = subprocess.Popen(['kubectl', 'get', 'po', '-o', 'wide', '--all-namespaces', '--show-labels', '-w'],
-                                   stdout=i)
+                                   stdout=i_filehandler)
     svc_process = subprocess.Popen(['kubectl', 'get', 'svc', '-o', 'wide', '--all-namespaces', '--show-labels', '-w'],
-                                   stdout=h)
+                                   stdout=h_filehander)
 
     #pod_process = subprocess.Popen(['kubectl', 'get', 'po', '-o', 'wide', '--all-namespaces', '--show-labels', '-w',
     #                                ">>", pod_stream_file], stdout=subprocess.PIPE, shell=True)
@@ -1461,16 +1461,16 @@ def cluster_creation_logger(log_file_loc, end_sentinal_file_loc, start_sentinal_
                     # but shouldn't be a big deal
                     pod_process.kill()
                     svc_process.kill()
-                    i.close()
-                    h.close()
-                    i = open(pod_stream_file, 'w')
-                    h = open(svc_stream_file, 'w')
+                    i_filehandler.close()
+                    h_filehander.close()
+                    i_filehandler = open(pod_stream_file, 'w')
+                    h_filehander = open(svc_stream_file, 'w')
                     pod_process = subprocess.Popen(
                         ['kubectl', 'get', 'po', '-o', 'wide', '--all-namespaces', '--show-labels', '-w'],
-                        stdout=i)
+                        stdout=i_filehandler)
                     svc_process = subprocess.Popen(
                         ['kubectl', 'get', 'svc', '-o', 'wide', '--all-namespaces', '--show-labels', '-w'],
-                        stdout=h)
+                        stdout=h_filehander)
                     furthest_pod_line = 1
                     furthest_svc_line = 1
 
@@ -1484,8 +1484,8 @@ def cluster_creation_logger(log_file_loc, end_sentinal_file_loc, start_sentinal_
                 if int(time_to_sleep) < 0.0:
                     print "skipping: ", abs(int(time_to_sleep))
                     # if we are falling behind, then we need to skip if necessary
-                    for i in range(1, abs(int(time_to_sleep)) + 1):
-                        time_step_to_changes[timestep_counter + i] = {}
+                    for i_filehandler in range(1, abs(int(time_to_sleep)) + 1):
+                        time_step_to_changes[timestep_counter + i_filehandler] = {}
                         timestep_counter += 1
 
                     time_behind -= 2 * abs(int(time_to_sleep))
