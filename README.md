@@ -20,14 +20,14 @@ Then install the python-related dependencies.
 
 * Make sure [Python 2.7](https://www.python.org/downloads/) and [Pip](https://pip.pypa.io/en/stable/installing/) are installed.
 
-* Make sure pip's listing's are up-to-date via:
+* Make sure pip is up-to-date:
 ```
-pip update
+pip install pip
 ```
 
 * Then install the necessary python packages:
 ```
-pip install docker networkx matplotlib jinja2 pdfkit numpy pandas seaborn pyximport yaml multiprocessing scipy pdfkit
+pip install docker networkx matplotlib jinja2 pdfkit numpy pandas seaborn Cython pyyaml multiprocessing scipy pdfkit
 ```
 
 ### Set configuration file
