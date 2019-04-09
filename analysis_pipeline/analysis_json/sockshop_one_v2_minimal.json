@@ -1,11 +1,13 @@
 {
   "cur_experiment_name": "sockshop_one_v2_mk1",
   "exp_config_file": "/Volumes/exM2/experimental_data/sockshop_info/sockshop_exp_one_v2/sockshop_exp_one_v2_analysis.json",
-  "netsec_policy": "/Volumes/exM2/experimental_data/sockshop_info/sockshop_nine_better_exfil_netsec_seg.txt"
+  "netsec_policy": "/Volumes/exM2/experimental_data/sockshop_info/sockshop_nine_better_exfil_netsec_seg.txt",
 
   "make_edgefiles": false,
   "skip_graph_injection": false,
-  "calc_vals": false,
-  "calculate_z_scores": false,
-  "get_endresult_from_memory": false
+  "calc_vals": true,
+  "calculate_z_scores": true,
+  "get_endresult_from_memory": false,
+
+  "auto_open_pdfs": false
 }

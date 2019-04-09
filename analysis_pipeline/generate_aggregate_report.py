@@ -9,7 +9,8 @@ import math
 
 def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
                               rate_to_timegran_list_to_methods_to_attacks_found_training_df,
-                              base_output_name, rates_to_experiment_info, rate_to_time_gran_to_outtraffic):
+                              base_output_name, rates_to_experiment_info, rate_to_time_gran_to_outtraffic,
+                              auto_open_pdfs_p):
 
     date = str(datetime.datetime.now())
     env = Environment(
@@ -287,11 +288,12 @@ def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
     aggregate_report_location = base_output_name + "_aggregate_report.pdf" # TODO: is this fine??
     options={"print-media-type": None}
     pdfkit.from_file("report_templates/aggregate_report.html", aggregate_report_location, configuration=config, options=options)
-    out = subprocess.check_output(['open', aggregate_report_location])
+    if auto_open_pdfs_p:
+        out = subprocess.check_output(['open', aggregate_report_location])
 
 def update_attack_rate_linegraph_dicts(time_gran_to_attack_to_methods_to_f1s, timegran,
                                        methods_to_attacks_found_dfs, time_gran_to_attack_to_methods_to_rates, rate):
-    ## TODO: this function is probably the meat of adding the new kind of graphs... the actual function will
+    ## this function is probably the meat of adding the new kind of graphs... the actual function will
     ## be relatively straight-forward indexing (plus somethign complicated w/ figs/subfigs but that isn't super
     ## important IMHO)
     for method, attacks_found in methods_to_attacks_found_dfs.iteritems():

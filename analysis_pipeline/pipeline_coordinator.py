@@ -73,8 +73,9 @@ class multi_experiment_pipeline(object):
                  only_ide=False, perform_cilium_component=True, only_perform_cilium_component=True,
                  cilium_component_time=100, drop_pairwise_features=False,
                  max_path_length=15, max_dns_porportion=1.0,drop_infra_from_graph=False,
-                 ide_window_size=10, debug_basename=None, pretrained_sav2=None):
+                 ide_window_size=10, debug_basename=None, pretrained_sav2=None, auto_open_pdfs=True):
 
+        self.auto_open_pdfs = auto_open_pdfs
         self.pretrained_min_pipeline = pretrained_sav2
         self.ROC_curve_p = ROC_curve_p
         self.training_window_size = training_window_size
@@ -193,7 +194,7 @@ class multi_experiment_pipeline(object):
             ## then return it (this'll be really useful for running the eval stage)
             with open(self.where_to_save_minrate_statspipelines, 'r') as f:
                 min_rate_statspipelines = pickle.load(f)
-            min_rate_statspipelines.create_the_report()
+            min_rate_statspipelines.create_the_report(self.auto_open_pdfs)
             return min_rate_statspipelines
 
         return min_rate_statspipelines
@@ -202,7 +203,7 @@ class multi_experiment_pipeline(object):
         generate_aggregate_report.generate_aggregate_report(self.rate_to_timegran_to_methods_to_attacks_found_dfs,
                                                             self.rate_to_timegran_list_of_methods_to_attacks_found_training_df,
                                                             self.base_output_name, self.rates_to_experiment_info,
-                                                            self.rate_to_time_gran_to_outtraffic)
+                                                            self.rate_to_time_gran_to_outtraffic, self.auto_open_pdfs)
 
     ## NOTE: I'm going to try to do this WITHOUT the call to multi-process here!!
     def run_single_pipeline(self, rate_counter, calc_vals, skip_graph_injection, calc_ide=False, include_ide=False, only_ide=False):
@@ -262,7 +263,7 @@ class multi_experiment_pipeline(object):
                                                      self.pkt_size_variance[rate_counter])
 
         stats_pipelines.run_statistical_pipeline(self.drop_pairwise_features, self.pretrained_min_pipeline)
-        stats_pipelines.create_the_report()
+        stats_pipelines.create_the_report(self.auto_open_pdfs)
 
         list_of_optimal_fone_scores_at_this_exfil_rates, Xs, Ys, Xts, Yts, trained_models, list_of_attacks_found_dfs, \
         list_of_attacks_found_training_df, experiment_info, time_gran_to_outtraffic, timegran_to_statistical_pipeline = \
@@ -339,7 +340,7 @@ class multi_experiment_pipeline(object):
                                                  self.names, self.skip_model_part, self.ignore_physical_attacks_p,
                                                   'varies', 'varies', 'varies', 'varies')
         sav2_object.run_statistical_pipeline(self.drop_pairwise_features, self.pretrained_min_pipeline)
-        sav2_object.create_the_report()
+        sav2_object.create_the_report(self.auto_open_pdfs)
 
         return sav2_object
 

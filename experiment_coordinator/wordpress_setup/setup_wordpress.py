@@ -316,6 +316,17 @@ def main(ip_of_wp, port_of_wp, admin_pwd):
     folders_in_csv_path = os.listdir('./wp_csv_loc')
     print "folders_in_csv_path", folders_in_csv_path
     path_to_csv_file = './wp_csv_loc/' + folders_in_csv_path[0]
+
+    try:
+        os.remove("../" + "wordpress_users.csv")
+    except OSError:
+        pass
+
+    try:
+        os.remove("../wordpress_setup/" + "wordpress_users.csv")
+    except OSError:
+        pass
+
     shutil.copy(path_to_csv_file, "../" + "wordpress_users.csv")
     shutil.copy(path_to_csv_file, "../wordpress_setup/" + "wordpress_users.csv")
 

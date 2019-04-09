@@ -86,7 +86,7 @@ def generate_report(list_of_rocs, list_of_feat_coef, list_of_attacks_found_dfs, 
 
 
 def join_report_sections(recipes_used, output_location, avg_exfil_per_min, avg_pkt_size, exfil_per_min_variance,
-                         pkt_size_variance, sections):
+                         pkt_size_variance, sections, auto_open_p):
     # setup jinga and the associated template
     env = Environment(
         loader=FileSystemLoader(searchpath="./report_templates")
@@ -120,8 +120,9 @@ def join_report_sections(recipes_used, output_location, avg_exfil_per_min, avg_p
     dir_path = os.path.dirname(os.path.realpath(__file__))
     config = pdfkit.configuration(wkhtmltopdf="/usr/local/bin/wkhtmltopdf")
     pdfkit.from_file("report_templates/report.html", output_location + "_report.pdf", configuration=config)
-    out = subprocess.check_output(['open', output_location + "_report.pdf"])
-    print out
+    if auto_open_p:
+        out = subprocess.check_output(['open', output_location + "_report.pdf"])
+        print out
 
 if __name__ == "__main__":
     content = "Hello, world!"

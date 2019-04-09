@@ -7,12 +7,11 @@ matplotlib.use('Agg',warn=False, force=True)
 from pipeline_coordinator import multi_experiment_pipeline
 from single_experiment_pipeline import data_anylsis_pipline
 import argparse
-import os
+import os,errno
 import time
 
 '''
-This file is essentially just sets of parameters for the run_data_analysis_pipeline function in pipeline_coordinator.py
-There are a lot of parameters, and some of them are rather long, so I decided to make a function to store them in
+This file runs the MIMIR anomaly detection system by parsing configuration files.
 '''
 
 def parse_experimental_data_json(config_file, experimental_folder, experiment_name, make_edgefiles,
@@ -50,13 +49,6 @@ def parse_experimental_data_json(config_file, experimental_folder, experiment_na
 def parse_experimental_config(experimental_config_file):
     with open(experimental_config_file) as f:
         config_file = json.load(f)
-
-        '''  
-          "calc_vals": false,
-          "calculate_z_scores": false,
-          "get_endresult_from_memory": false,
-          
-        '''
 
         if 'skip_model_part' in config_file:
             skip_model_part = config_file['skip_model_part']
@@ -112,7 +104,7 @@ def parse_experimental_config(experimental_config_file):
             avg_pkt_size = config_file['avg_pkt_size']
         else:
             # note: this literally has no effect on the system, so don't worry about it
-            avg_pkt_size = [500 for i in range(0,len(avg_exfil_per_min))]
+            avg_pkt_size = [500.0 for i in range(0,len(avg_exfil_per_min))]
 
         if 'pkt_size_variance' in config_file:
             pkt_size_variance = config_file['pkt_size_variance']
@@ -135,7 +127,7 @@ def parse_experimental_config(experimental_config_file):
         if 'perform_cilium_component' in config_file:
             perform_cilium_component = config_file['perform_cilium_component']
         else:
-            perform_cilium_component = True
+            perform_cilium_component = True ## TODO make true once I finish debugging...
 
         cur_experiment_name = config_file['cur_experiment_name']
 
@@ -149,6 +141,12 @@ def parse_experimental_config(experimental_config_file):
             base_output_location = config_file['base_output_location']
         else:
             base_output_location = experimental_folder + 'results/'
+
+        try:
+            os.makedirs(base_output_location)
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
 
         if 'drop_infra_from_graph' in config_file:
             drop_infra_from_graph = config_file['drop_infra_from_graph']
@@ -177,6 +175,11 @@ def parse_experimental_config(experimental_config_file):
 
         netsec_policy = config_file['netsec_policy']
 
+        if 'auto_open_pdfs' in config_file:
+            auto_open_pdfs = config_file['auto_open_pdfs']
+        else:
+            auto_open_pdfs = True
+
         experiment_classes = [parse_experimental_data_json(exp_config_file, experimental_folder, cur_experiment_name,
                                                            make_edgefiles, time_interval_lengths, pcap_file_path,
                                                            pod_creation_log_path, netsec_policy, time_of_synethic_exfil)]
@@ -201,6 +204,7 @@ def parse_experimental_config(experimental_config_file):
         #print "REMOVE THE WAITING!!!"
         #time.sleep(1500)
 
+
         multi_experiment_object = \
             multi_experiment_pipeline(experiment_classes, base_output_location, True, time_of_synethic_exfil,
                                   goal_train_test_split_training, goal_attack_NoAttack_split_training, None,
@@ -214,7 +218,7 @@ def parse_experimental_config(experimental_config_file):
                                   calc_ide=calc_ide, include_ide=include_ide, only_ide=only_ide,
                                   drop_pairwise_features=drop_pairwise_features,
                                   ide_window_size=ide_window_size, drop_infra_from_graph=drop_infra_from_graph,
-                                  perform_cilium_component=perform_cilium_component)
+                                  perform_cilium_component=perform_cilium_component, auto_open_pdfs=auto_open_pdfs)
 
         min_rate_statspipelines = multi_experiment_object.run_pipelines()
 
@@ -239,7 +243,7 @@ if __name__=="__main__":
 
     if not args.training_config_json:
         print "running_preset..."
-        parse_experimental_config('./analysis_json/sockshop_one_v2.json')
+        parse_experimental_config('./analysis_json/sockshop_one_v2_minimal.json')
         #parse_experimental_config('./analysis_json/wordpress_one_v2_nonauto.json')
         #parse_experimental_config('./analysis_json/sockshop_one_v2_nonauto.json')
     else:
