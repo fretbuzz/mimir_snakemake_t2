@@ -37,5 +37,6 @@
           "wordpress": 80
       }
     },
-    "VM_interfaces" : ["vboxnet0"]
+    "VM_interfaces" : ["vboxnet0"],
+    "username": "jsev"
 }
