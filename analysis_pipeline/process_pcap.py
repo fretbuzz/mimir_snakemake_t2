@@ -2,8 +2,7 @@ import errno
 import json
 import os
 import subprocess
-
-from analysis_pipeline.pcap_to_edgelists import update_mapping
+from pcap_to_edgelists import update_mapping
 
 
 def convert_tshark_stats_to_edgefile(edgefile_path, edgefile_name, tshark_path, tshark_name, make_edgefiles_p, mapping):

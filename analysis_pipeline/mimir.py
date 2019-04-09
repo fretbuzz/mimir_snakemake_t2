@@ -51,21 +51,74 @@ def parse_experimental_config(experimental_config_file):
     with open(experimental_config_file) as f:
         config_file = json.load(f)
 
-        skip_model_part = config_file['skip_model_part']
-        ignore_physical_attacks_p = config_file['ignore_physical_attacks_p']
+        '''  
+          "calc_vals": false,
+          "calculate_z_scores": false,
+          "get_endresult_from_memory": false,
+          
+        '''
 
-        time_of_synethic_exfil = config_file['time_of_synethic_exfil']
-        goal_train_test_split_training = config_file['goal_train_test_split_training']
-        goal_attack_NoAttack_split_training = config_file['goal_attack_NoAttack_split_training']
-        goal_attack_NoAttack_split_testing = config_file['goal_attack_NoAttack_split_testing']
+        if 'skip_model_part' in config_file:
+            skip_model_part = config_file['skip_model_part']
+        else:
+            skip_model_part = False
 
-        time_interval_lengths = config_file['time_interval_lengths']
-        ide_window_size = config_file['ide_window_size']
+        if 'ignore_physical_attacks_p' in config_file:
+            ignore_physical_attacks_p = config_file['ignore_physical_attacks_p']
+        else:
+            ignore_physical_attacks_p = True
 
-        avg_exfil_per_min = config_file['avg_exfil_per_min']
-        exfil_per_min_variance = config_file['exfil_per_min_variance']
-        avg_pkt_size = config_file['avg_pkt_size']
-        pkt_size_variance = config_file['pkt_size_variance']
+        if 'time_of_synethic_exfil' in config_file:
+            time_of_synethic_exfil = config_file['time_of_synethic_exfil']
+        else:
+            time_of_synethic_exfil = 60
+
+        if 'goal_train_test_split_training' in config_file:
+            goal_train_test_split_training = config_file['goal_train_test_split_training']
+        else:
+            goal_train_test_split_training = 0.50
+
+        if "goal_attack_NoAttack_split_training" in config_file:
+            goal_attack_NoAttack_split_training = config_file['goal_attack_NoAttack_split_training']
+        else:
+            goal_attack_NoAttack_split_training = 0.50
+
+        if "goal_attack_NoAttack_split_testing" in config_file:
+            goal_attack_NoAttack_split_testing = config_file['goal_attack_NoAttack_split_testing']
+        else:
+            goal_attack_NoAttack_split_testing = 0.2
+
+        if 'time_interval_lengths' in config_file:
+            time_interval_lengths = config_file['time_interval_lengths']
+        else:
+            time_interval_lengths = [10, 60]
+
+        if 'ide_window_size' in config_file:
+            ide_window_size = config_file['ide_window_size']
+        else:
+            ide_window_size = 12
+
+        if 'avg_exfil_per_min' in config_file:
+            avg_exfil_per_min = config_file['avg_exfil_per_min']
+        else:
+            avg_exfil_per_min = [10.0, 1.0, 0.1, 0.05, 0.01]
+
+        if 'exfil_per_min_variance' in config_file:
+            exfil_per_min_variance = config_file['exfil_per_min_variance']
+        else:
+            exfil_per_min_variance = [0.3, 0.15, 0.025, 0.0125, 0.0025]
+
+        if 'avg_pkt_size' in config_file:
+            avg_pkt_size = config_file['avg_pkt_size']
+        else:
+            # note: this literally has no effect on the system, so don't worry about it
+            avg_pkt_size = [500 for i in range(0,len(avg_exfil_per_min))]
+
+        if 'pkt_size_variance' in config_file:
+            pkt_size_variance = config_file['pkt_size_variance']
+        else:
+            # note: this literally has no effect on the system, so don't worry about it
+            pkt_size_variance = [100 for i in range(0,len(avg_exfil_per_min))]
 
         BytesPerMegabyte = 1000000
         avg_exfil_per_min = [BytesPerMegabyte * i for i in avg_exfil_per_min]
@@ -73,24 +126,55 @@ def parse_experimental_config(experimental_config_file):
 
         calc_vals = config_file['calc_vals']
         calculate_z_scores = config_file['calculate_z_scores']
-        drop_pairwise_features = config_file['drop_pairwise_features']
-        perform_cilium_component = config_file['perform_cilium_component']
+
+        if 'drop_pairwise_features' in config_file:
+            drop_pairwise_features = config_file['drop_pairwise_features']
+        else:
+            drop_pairwise_features = False
+
+        if 'perform_cilium_component' in config_file:
+            perform_cilium_component = config_file['perform_cilium_component']
+        else:
+            perform_cilium_component = True
 
         cur_experiment_name = config_file['cur_experiment_name']
-        base_output_location = config_file['base_output_location']
-        drop_infra_from_graph = config_file['drop_infra_from_graph']
+
+        exp_config_file = config_file['exp_config_file']
+        if 'experimental_folder' in config_file:
+            experimental_folder = config_file['experimental_folder']
+        else:
+            experimental_folder = "/".join(exp_config_file.split('/')[:-1]) + "/"
+
+        if 'base_output_location' in config_file:
+            base_output_location = config_file['base_output_location']
+        else:
+            base_output_location = experimental_folder + 'results/'
+
+        if 'drop_infra_from_graph' in config_file:
+            drop_infra_from_graph = config_file['drop_infra_from_graph']
+        else:
+            drop_infra_from_graph = True
+
         if drop_infra_from_graph:
             cur_experiment_name += 'dropInfra'
         base_output_location += cur_experiment_name
 
         skip_graph_injection = config_file['skip_graph_injection']
+
         get_endresult_from_memory = config_file['get_endresult_from_memory']
 
         make_edgefiles = config_file['make_edgefiles']
-        experimental_folder = config_file['experimental_folder']
-        pcap_file_path = config_file['pcap_file_path']
-        pod_creation_log_path = config_file["pod_creation_log_path"]
-        exp_config_file = config_file['exp_config_file']
+
+        if 'pcap_file_path' in config_file:
+            pcap_file_path = config_file['pcap_file_path']
+        else:
+            pcap_file_path = experimental_folder
+
+        if 'pod_creation_log_path' in config_file:
+            pod_creation_log_path = config_file["pod_creation_log_path"]
+        else:
+            pod_creation_log_path = experimental_folder
+
         netsec_policy = config_file['netsec_policy']
 
         experiment_classes = [parse_experimental_data_json(exp_config_file, experimental_folder, cur_experiment_name,
@@ -99,9 +183,20 @@ def parse_experimental_config(experimental_config_file):
 
         # this is a work-around until I finish refactoring the actual system...
         # this part exists b/c I never want to interfere with actually working
-        include_ide = config_file['include_ide']
-        calc_ide = config_file['calc_ide']
-        only_ide = config_file['only_ide']
+        if 'include_ide' in config_file:
+            include_ide = config_file['include_ide']
+        else:
+            include_ide = False
+
+        if 'calc_ide' in config_file:
+            calc_ide = config_file['calc_ide']
+        else:
+            calc_ide = False
+
+        if 'only_ide' in config_file:
+            only_ide = config_file['only_ide']
+        else:
+            only_ide = False
 
         #print "REMOVE THE WAITING!!!"
         #time.sleep(1500)
@@ -133,27 +228,19 @@ if __name__=="__main__":
     parser = argparse.ArgumentParser(description='This is the central CL interface for the MIMIR system')
     parser.add_argument('--training_config_json', dest='training_config_json', default=None,
                         help='this is the configuration file used to train/retrieve the model')
-    parser.add_argument('--eeval_config_json', dest='config_json', default=None,
+    parser.add_argument('--eval_config_json', dest='config_json', default=None,
                         help='this is the configuration file used to generate actual alerts')
     args = parser.parse_args()
 
-    ## TODO: need to hook this into the system in a coherent fashion...
-    ## TODO: change all of the import statments so that they are relevant to the analysis_pipeline direectory...
+    if args.config_json:
+        ## TODO: hook this in once that part of the system is written (should be soon)
+        print "that's NOT supported ATM..."
+        exit(233)
 
-
-    if len(sys.argv) == 1:
+    if not args.training_config_json:
         print "running_preset..."
-        #autoscaling_sockshop_recipe()
-        #nonauto_sockshop_recipe()
-        #new_wordpress_autoscaling_recipe()
-        #new_wordpress_recipe()
-
-        #print os.getcwd()
-        #parse_experimental_config('./analysis_json/sockshop_one_v2.json')
-        parse_experimental_config('./analysis_json/wordpress_one_v2_nonauto.json')
+        parse_experimental_config('./analysis_json/sockshop_one_v2.json')
+        #parse_experimental_config('./analysis_json/wordpress_one_v2_nonauto.json')
         #parse_experimental_config('./analysis_json/sockshop_one_v2_nonauto.json')
-    elif len(sys.argv) == 2:
-        experimental_config_file = sys.argv[1]
-        parse_experimental_config(experimental_config_file)
     else:
-        print "too many args!"
+        parse_experimental_config(args.training_config_json)

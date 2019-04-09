@@ -7,14 +7,11 @@ import multiprocessing
 from itertools import groupby
 from operator import itemgetter
 import errno, os
-
 import pandas as pd
-import analysis_pipeline.prepare_graph
-from analysis_pipeline import gen_attack_templates, process_pcap, process_graph_metrics, simplified_graph_metrics
-from analysis_pipeline.pcap_to_edgelists import create_mappings,old_create_mappings
+import gen_attack_templates, process_pcap, process_graph_metrics, simplified_graph_metrics
+from pcap_to_edgelists import create_mappings,old_create_mappings
 import random
-from analysis_pipeline.statistical_analysis import drop_useless_columns_aggreg_DF
-from analysis_pipeline.simplified_graph_metrics import calc_ide_angles
+from statistical_analysis import drop_useless_columns_aggreg_DF
 import cilium_config_generator
 
 # Note: see run_analysis_pipeline_recipes for pre-configured sets of parameters (there are rather a lot)

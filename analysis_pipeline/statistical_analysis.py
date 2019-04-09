@@ -7,7 +7,7 @@ import sklearn
 from matplotlib import pyplot as plt
 from sklearn.linear_model import LassoCV
 from sklearn.model_selection import train_test_split
-from analysis_pipeline import generate_heatmap, process_roc, generate_report
+import generate_heatmap, process_roc, generate_report
 from jinja2 import FileSystemLoader, Environment
 
 class single_model_stats_pipeline():

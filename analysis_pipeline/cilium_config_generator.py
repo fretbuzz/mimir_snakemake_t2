@@ -4,11 +4,10 @@
 from process_pcap import process_pcap_via_tshark, convert_tshark_stats_to_edgefile
 import os,errno
 import subprocess
-from analysis_pipeline.pcap_to_edgelists import update_mapping
+from pcap_to_edgelists import update_mapping
 import glob
 import time
 import ast
-import networkx as nx
 import prepare_graph
 
 # generate_pcap_slice: int file_location -> file_location

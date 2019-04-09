@@ -1,14 +1,12 @@
 import networkx as nx
-import seaborn as sns;
-sns.set()
-import seaborn as sns;
+import seaborn as sns
 sns.set()
 import math
 import gc
 import numpy as np
-from analysis_pipeline.next_gen_metrics import create_dict_for_dns_metric, \
+from next_gen_metrics import create_dict_for_dns_metric, \
     find_dns_node_name, reverse_svc_to_pod_dict, single_step_outside_inside_ratio_dns_metric, calc_VIP_metric
-from analysis_pipeline.prepare_graph import prepare_graph, is_ip, match_name_to_pod, map_nodes_to_svcs, \
+from prepare_graph import prepare_graph, is_ip, match_name_to_pod, map_nodes_to_svcs, \
     find_infra_components_in_graph,remove_infra_from_graph
 import random
 import logging
@@ -17,7 +15,6 @@ import matplotlib
 matplotlib.use('Agg',warn=False, force=True)
 import os,errno
 import copy
-#plt.switch_backend('gtkagg')
 import cPickle as pickle
 import pyximport
 pyximport.install() # am I sure that I want this???
@@ -26,8 +23,6 @@ import numpy.random
 import pandas as pd
 import subprocess
 from process_pcap import update_mapping
-import scipy
-
 
 # okay, so things to be aware of:
 # (a) we are assuming that if we cannot label the node and it is not loopback or in the '10.X.X.X' subnet, then it is outside
