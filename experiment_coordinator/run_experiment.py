@@ -1454,6 +1454,18 @@ def cluster_creation_logger(log_file_loc, end_sentinal_file_loc, start_sentinal_
                 with open(log_file_loc, 'wb') as f:  # Just use 'w' mode in 3.x
                     f.write(pickle.dumps(time_step_to_changes))
 
+                if timestep_counter % 1000 == 0:
+                    # note: need to restart the watch command periodically. this'll lead to some duplicated content,
+                    # but shouldn't be a big deal
+                    pod_process.kill()
+                    svc_process.kill()
+                    pod_process = subprocess.Popen(
+                        ['kubectl', 'get', 'po', '-o', 'wide', '--all-namespaces', '--show-labels', '-w'],
+                        stdout=i)
+                    svc_process = subprocess.Popen(
+                        ['kubectl', 'get', 'svc', '-o', 'wide', '--all-namespaces', '--show-labels', '-w'],
+                        stdout=h)
+
                 time_to_sleep = 1.0 - (time.time() - loop_starttime) - time_behind
                 if time_to_sleep < 0.0:
                     print "time_to_sleep", time_to_sleep

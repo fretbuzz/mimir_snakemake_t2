@@ -1,14 +1,14 @@
 {
-  "cur_experiment_name": "sockshop_one_v2_mk1",
-  "exp_config_file": "/Volumes/exM2/experimental_data/sockshop_info/sockshop_exp_one_v2/sockshop_exp_one_v2_analysis.json",
+  "cur_experiment_name": "sockshop_one_v2_mk7",
+  "exp_config_file": "/Volumes/exM2/experimental_data/sockshop_info/sockshop_one_auto_mk7long/sockshop_one_auto_mk7long_analysis.json",
   "netsec_policy": "/Volumes/exM2/experimental_data/sockshop_info/sockshop_nine_better_exfil_netsec_seg.txt",
 
   "make_edgefiles": false,
   "skip_graph_injection": false,
   "calc_vals": true,
-  "calculate_z_scores": false,
+  "calculate_z_scores": true,
   "get_endresult_from_memory": false,
-  "perform_cilium_component": false,
+  "perform_cilium_component": true,
 
   "drop_pairwise_features": false,
   "drop_infra_from_graph": true,
@@ -26,5 +26,4 @@
   "goal_attack_NoAttack_split_training": 0.50,
   "goal_train_test_split_training": 0.50,
   "goal_attack_NoAttack_split_testing": 0.2
-
 }

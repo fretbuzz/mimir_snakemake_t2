@@ -264,7 +264,7 @@ class set_of_injected_graphs():
         alert_vals = []
         for counter,injected_graph_loc in enumerate(self.list_of_injected_graphs_loc):
             trigger_alert = False
-            print "injected_graph_loc",injected_graph_loc
+            print "injected_graph_loc (cilium)",injected_graph_loc
             with open(injected_graph_loc, 'rb') as pickle_input_file:
                 injected_graph = pickle.load(pickle_input_file)
 
@@ -418,7 +418,12 @@ class set_of_injected_graphs():
             # and then use that to index into the principal eigenvector
             principal_eigenvector = eigenvectors[:, largest_eigenvalue_index]
             # and then write it to a file...
-            cur_df = pd.DataFrame(principal_eigenvector, columns=joint_col_list)
+            principal_eigenvector = np.real(principal_eigenvector.T)
+            ## we know a prioir that the components of the eigenvector will all be real
+
+
+            #print principal_eigenvector.shape
+            cur_df = pd.DataFrame(principal_eigenvector, index=[1], columns=joint_col_list)
 
             '''
             adj_dict = {}
@@ -437,8 +442,10 @@ class set_of_injected_graphs():
             #cur_df['192.168.99.100-outside'] = 0 # TODO: remove this from the graph entirely when I get a chance...maybe...
             # but for now, just set it equal to zero (it's so large that it causes scaling problems w.r.t. the other entries)
 
+            #print "does it make here"
             out_df = out_df.append(cur_df, sort=True)
 
+        #print "does it makeithere"
         self.joint_col_list = joint_col_list
         out_df.to_csv(path_or_buf=self.aggregate_csv_edgefile_loc)
         #'''

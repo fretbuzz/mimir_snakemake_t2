@@ -13,6 +13,7 @@ from pcap_to_edgelists import create_mappings,old_create_mappings
 import random
 from statistical_analysis import drop_useless_columns_aggreg_DF
 import cilium_config_generator
+import time
 
 # Note: see run_analysis_pipeline_recipes for pre-configured sets of parameters (there are rather a lot)
 class data_anylsis_pipline(object):
@@ -461,7 +462,8 @@ def process_one_set_of_graphs(time_interval_length, ide_window_size,
                               avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
                               skip_graph_injection, end_of_training, pod_creation_log, calc_ide, include_ide,
                               only_ide, processed_graph_loc, drop_infra_from_graph):
-
+    print "process_one_set_of_graphs"
+    #time.sleep(30)
     if calc_vals and not only_ide:
         current_set_of_graphs = simplified_graph_metrics.set_of_injected_graphs(time_interval_length,
                                          filenames, svcs, ms_s, mapping, infra_instances,
@@ -504,12 +506,13 @@ def process_one_set_of_graphs(time_interval_length, ide_window_size,
             print "current_set_of_graphs.list_of_injected_graphs_loc", current_set_of_graphs.list_of_injected_graphs_loc
             print "time_granularity", current_set_of_graphs.time_granularity
             print "current_set_of_graphs.raw_edgefile_names",current_set_of_graphs.raw_edgefile_names
-            current_set_of_graphs.generate_aggregate_csv()
+
         current_set_of_graphs.load_serialized_metrics()
 
+        print "only_ide", only_ide
         if only_ide:
             print "waiting for ide angles to finish...."
-            #current_set_of_graphs.generate_aggregate_csv() ## TODO: <<---- REMOVE THIS LINE!!!!
+            current_set_of_graphs.generate_aggregate_csv()
             real_ide_angles = current_set_of_graphs.ide_calculations(True, ide_window_size)
             current_set_of_graphs.calculated_values['real_ide_angles'] = real_ide_angles
 

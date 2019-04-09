@@ -170,7 +170,7 @@ class multi_experiment_pipeline(object):
 
             if self.calc_ide or self.only_ide:
                 for rate_counter in range(0, len(self.avg_exfil_per_min)):
-                    self.run_single_pipeline(rate_counter, calc_vals=False, skip_graph_injection=True, calc_ide=True, include_ide=True, only_ide=True)
+                    self.run_single_pipeline(rate_counter, calc_vals=True, skip_graph_injection=True, calc_ide=True, include_ide=True, only_ide=True)
 
                 self.decrease_exfil_of_model()
                 min_rate_statspipelines = self.generate_aggregate_report()

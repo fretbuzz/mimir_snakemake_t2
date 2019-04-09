@@ -62,7 +62,7 @@ class BackgroundTraffic(TaskSet):
             print order_post
             print order_post.text
 
-    @task(1) # this'll make a new user (just to keep things interesting)
+    @task(3) # this'll make a new user (just to keep things interesting)
     def populate_data(self):
         #print "about to populate this database!"
         # first register

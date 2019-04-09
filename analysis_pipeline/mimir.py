@@ -243,8 +243,10 @@ if __name__=="__main__":
 
     if not args.training_config_json:
         print "running_preset..."
-        parse_experimental_config('./analysis_json/sockshop_one_v2_minimal.json')
+        #parse_experimental_config('./analysis_json/sockshop_one_v2_mk7.json')
+        #parse_experimental_config('./analysis_json/sockshop_one_v2.json')
+        #parse_experimental_config('./analysis_json/sockshop_one_v2_minimal.json')
         #parse_experimental_config('./analysis_json/wordpress_one_v2_nonauto.json')
-        #parse_experimental_config('./analysis_json/sockshop_one_v2_nonauto.json')
+        parse_experimental_config('./analysis_json/sockshop_one_v2_nonauto.json')
     else:
         parse_experimental_config(args.training_config_json)

@@ -214,8 +214,8 @@ def main(ip_of_wp, port_of_wp, admin_pwd):
                 os.unlink(file_path)
         except Exception as e:
             print(e)
-        if e.errno != errno.EEXIST:
-            raise
+            if e.errno != errno.EEXIST:
+                raise
 
     options = Options()
     options.headless = True
