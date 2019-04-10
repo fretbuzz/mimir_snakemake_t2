@@ -3,7 +3,6 @@
     "experiment_name": "sockshop_one_auto_mk10long",
     "path_to_docker_machine_tls_certs":"/mydata/.minikube/certs",
     "experiment_length_sec": 10800,
-    "split_pcap": 10800,
 
     "network_plugin": "none",
     "setup" : {
@@ -46,6 +45,5 @@
         },
       "autoscale_p": true
     },
-    "VM_interfaces" : ["vboxnet0"],
-    "username": "jsev"
+    "VM_interfaces" : ["vboxnet0"]
 }
