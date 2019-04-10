@@ -423,6 +423,7 @@ def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_co
         #print "setup_wordpress completed..."
     elif app_name == "hipsterStore":
         ## clone the github repo b/c we're going to use their load generator
+        '''
         if not os.path.isdir("microservices-demo"):
             out = subprocess.check_output(["git", "clone", "https://github.com/GoogleCloudPlatform/microservices-demo.git"])
             print "git-cloned-hipsterstore-demeo...", out
@@ -432,8 +433,10 @@ def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_co
         out = subprocess.check_output(["skaffold", "run"])
         print "deployming-hipsterStore...", out
         os.chdir("..")
-
+        
         time.sleep(60)
+        '''
+        ## TODO: autoscaling component!!!
         install_exfil_dependencies(exfil_paths, orchestrator, class_to_installer)
     else:
         # other applications will require other setup procedures (if they can be automated) #

@@ -156,46 +156,28 @@ class multi_experiment_pipeline(object):
                                                                     self.goal_attack_NoAttack_split_testing,
                                                                     self.max_path_length, self.max_dns_porportion)
 
-    def run_pipelines(self):
+    def run_pipelines(self, pretrained_model_object = None):
+        self.pretrained_min_pipeline = pretrained_model_object
         if not self.get_endresult_from_memory:
             min_rate_statspipelines = None
 
             self.generate_and_assign_exfil_paths()
             if not self.only_ide:
                 for rate_counter in range(0, len(self.avg_exfil_per_min)):
-                    self.run_single_pipeline(rate_counter, self.calc_vals, self.skip_graph_injection, include_ide=self.include_ide)
+                    self.run_single_pipeline(rate_counter, self.calc_vals, self.skip_graph_injection,  calc_ide=True, include_ide=True, only_ide=True)
 
-                min_rate_statspipelines = self.decrease_exfil_of_model()
+                if not self.pretrained_min_pipeline:
+                    min_rate_statspipelines = self.decrease_exfil_of_model()
+
                 self.generate_aggregate_report()
-
-            if self.calc_ide or self.only_ide:
-                for rate_counter in range(0, len(self.avg_exfil_per_min)):
-                    self.run_single_pipeline(rate_counter, calc_vals=True, skip_graph_injection=True, calc_ide=True, include_ide=True, only_ide=True)
-
-                self.decrease_exfil_of_model()
-                min_rate_statspipelines = self.generate_aggregate_report()
 
             with open(self.where_to_save_minrate_statspipelines, 'w') as f:
                 pickle.dump(min_rate_statspipelines, f)
 
-            ##self.save()
-
         else:
-            ##self.loader(self.where_to_save_this_obj)
-            ## TODO: also would want to do the aggregate report down here too... but I'd need to think about it..
-            ## note should be fairly straightforward... just wanna use the save loader functions... probably
-            ## would want to move it out to the config parser or write the world's simplest wrapper, if I
-            ## want to keep that file nice and simple...
-
-
-            ## how to do that....
-            ## load this the lowest exfil rate pipeline
-            ## then generate report
-            ## then return it (this'll be really useful for running the eval stage)
             with open(self.where_to_save_minrate_statspipelines, 'r') as f:
                 min_rate_statspipelines = pickle.load(f)
             min_rate_statspipelines.create_the_report(self.auto_open_pdfs)
-            return min_rate_statspipelines
 
         return min_rate_statspipelines
 

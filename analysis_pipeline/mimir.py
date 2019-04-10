@@ -221,16 +221,22 @@ def parse_experimental_config(experimental_config_file):
                               perform_cilium_component=perform_cilium_component, auto_open_pdfs=auto_open_pdfs)
 
 
-    return min_rate_statspipelines
+    return multi_experiment_object
 
 def run_analysis(training_config, eval_config=None):
     training_experimente_object = parse_experimental_config(training_config)
-    min_rate_training_statspipelines = training_experimente_object.run_pipelines()
+    min_rate_training_statspipelines, training_results = training_experimente_object.run_pipelines()
 
-    # eval_experimente_object = parse_experimental_config(eval_config)
-    # something with min_rate_training_statspipelines ##???
-    # results = eval_experimente_object.run_pipelines() ## ??
-    pass
+    print "training_results", training_results
+    eval_results = None
+
+    if eval_config:
+        eval_experimente_object = parse_experimental_config(eval_config)
+        _, eval_results = eval_experimente_object.run_pipelines(pretrained_model_object=min_rate_training_statspipelines)
+
+        print "eval_results", eval_results
+
+    return eval_results
 
 if __name__=="__main__":
     print "RUNNING"

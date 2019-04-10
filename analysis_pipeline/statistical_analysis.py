@@ -206,8 +206,10 @@ class single_model_stats_pipeline():
     def generate_model(self, using_pretrained_model=False):
         if not using_pretrained_model:
             self.clf.fit(self.X_train, self.y_train)
+            self.train_predictions = self.clf.predict(X=self.X_train)
+        else:
+            self.train_predictions = []
 
-        self.train_predictions = self.clf.predict(X=self.X_train)
         self.test_predictions = self.clf.predict(X=self.X_test)
 
         ## would this cause a problem on the eval set????
@@ -402,7 +404,6 @@ class single_rate_stats_pipeline():
         else:
             stats_pipeline.clf = pretrained_statistical_analysis_v2[timegran].clf
             stats_pipeline.generate_model(using_pretrained_model=True)
-
 
         self.timegran_to_statistical_pipeline[timegran] = stats_pipeline
 
