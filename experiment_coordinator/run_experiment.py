@@ -414,14 +414,10 @@ def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_co
         if not os.path.isdir("microservices-demo"):
             out = subprocess.check_output(["git", "clone", "https://github.com/GoogleCloudPlatform/microservices-demo.git"])
             print "git-cloned-hipsterstore-demeo...", out
-        # then deploy it
-        '''
-        git clone https://github.com/GoogleCloudPlatform/microservices-demo.git
-        cd ./microservices-demo
-        # third, deploy using skaffold
-        skaffold run
-        '''
-        ## TODO: deploy the application
+        # then deploy it...
+        ## TODO: not sure if this'll actually work...
+        out = subprocess.check_output(["cd", "./microservices-demo;", "skaffold", "run"])
+        print "deployming-hipsterStore...", out
     else:
         # other applications will require other setup procedures (if they can be automated) #
         # note: some cannot be automated (i.e. wordpress)
@@ -505,9 +501,10 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
                 print "wordpress_cmds", wordpress_cmds
                 proc = subprocess.Popen(wordpress_cmds, preexec_fn=os.setsid, stdout=devnull, stderr=devnull)
             elif app_name == "hipsterStore":
-                pass
-                ### TODO
-                hipsterStore_cmds = [""]
+                hipsterStore_cmds = ["locust", "-f", "./microservices-demo/src/loadgenerator/locustfile.py", "--host=https://"+ip+ ":" +str(port),
+                                  "--no-web", "-c", str(client_count), "-r", str(spawn_rate), "--csv=" + locust_info_file]
+                print "hipsterStore_cmds", hipsterStore_cmds
+                proc = subprocess.Popen(hipsterStore_cmds, preexec_fn=os.setsid, stdout=devnull, stderr=devnull)
             else:
                 print "ERROR WITH START BACKGROUND TRAFFIC- NAME NOT RECOGNIZED"
                 exit(5)

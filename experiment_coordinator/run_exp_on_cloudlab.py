@@ -104,7 +104,7 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, use_ciliu
 
         ## is this causing the problem??
         #sh.sendline("bash /mydata/mimir_v2/experiment_coordinator/dnscat_component/install_dnscat_server.sh")
-
+        line_rec = "start"
         while line_rec != '':
             line_rec = sh.recvline(timeout=5)
             if 'Please enter your response' in line_rec:
@@ -179,7 +179,6 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, use_ciliu
         sendline_and_wait_responses(sh, dwnload_skaffold_str, timeout=5)
         sendline_and_wait_responses(sh, chg_perm_skaffold_str, timeout=5)
         sendline_and_wait_responses(sh, install_skaffold_str, timeout=5)
-
     elif app_name == 'wordpress':
         sh.sendline("cd /mydata/mimir_v2/experiment_coordinator")
         deploy_str = 'python /mydata/mimir_v2/experiment_coordinator/wordpress_setup/scale_wordpress.py' + ' ' + str(7)
