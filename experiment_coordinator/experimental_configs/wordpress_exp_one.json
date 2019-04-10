@@ -29,7 +29,7 @@
     "Deployment" : {
       "deployment_scaling" :
         {
-          "wordpress": {"min": 10, "max": 23},
+          "wordpress": {"min": 10, "max": 23}
         },
       "autoscale_p": true,
       "cpu_percent_cuttoff": {
