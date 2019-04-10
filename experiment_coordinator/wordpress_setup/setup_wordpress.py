@@ -197,7 +197,8 @@ def admin_login(admin_pwd, driver_val):
 
 
 def main(ip_of_wp, port_of_wp, admin_pwd, username):
-    os.setuid(pwd.getpwnam(username).pw_uid) # ncessary b/c cannot run selenium as root
+    ## TODO MOVE THINGS BACK... THIS ATTEMPT AT REFACTORING WAS A FAILURE!
+    #os.setuid(pwd.getpwnam(username).pw_uid) # ncessary b/c cannot run selenium as root
 
     global driver
     global driver_two
@@ -350,5 +351,6 @@ if __name__ == "__main__":
     ip_of_wp = sys.argv[1]
     port_of_wp = sys.argv[2]
     admin_pwd = sys.argv[3]
+    username = sys.argv[4]
 
-    main(ip_of_wp, port_of_wp, admin_pwd)
+    main(ip_of_wp, port_of_wp, admin_pwd, username)
