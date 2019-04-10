@@ -31,7 +31,7 @@ def scale_wordpress(autoscale_p, cpu_percent_cuttoff, deployment_scaling):
             num_wp_containers += 5
             wait_until_pods_done("default")
 
-def deploy_wp(deployment_scaling):
+def deploy_wp(num_pxc_replicas):
     out = subprocess.check_output(["wget", "https://raw.githubusercontent.com/helm/helm/master/scripts/get"])
     print out
     out = subprocess.check_output(["chmod", "700", "get"])
@@ -44,7 +44,7 @@ def deploy_wp(deployment_scaling):
     wait_until_pods_done("kube-system") # need tiller pod deployed
 
     try:
-        out = subprocess.check_output(["helm", "install", "--name", "my-release", "--set", "mysqlRootPassword=secretpassword,mysqlUser=my-user,mysqlPassword=my-password,mysqlDatabase=my-database,replicas=" + str(deployment_scaling['pxc']["max"]), "stable/percona-xtradb-cluster"])
+        out = subprocess.check_output(["helm", "install", "--name", "my-release", "--set", "mysqlRootPassword=secretpassword,mysqlUser=my-user,mysqlPassword=my-password,mysqlDatabase=my-database,replicas=" + str(num_pxc_replicas), "stable/percona-xtradb-cluster"])
         print out
     except:
         print "DB cluster must have already been initiated..."
@@ -59,3 +59,11 @@ def deploy_wp(deployment_scaling):
         print out
     except:
         print "wordpress deployment must already exist"
+
+if __name__ == "__main__":
+    if len(sys.argv) <= 2:
+        print "needs a number of pxc replicas, buddy"
+
+    print sys.argv
+    num_pxc_replicas = sys.argv[1]
+    deploy_wp(num_pxc_replicas)

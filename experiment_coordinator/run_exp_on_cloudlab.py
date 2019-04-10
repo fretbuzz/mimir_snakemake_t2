@@ -214,6 +214,28 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, use_ciliu
     if app_name == 'hipster':
         print "hipsterStore (microservice from google) doesn't have an actual run_experiment component defined"
         exit(233)
+    elif app_name == 'wordpress':
+        deploy_str = 'python /mydata/mimir_v2/experiment_coordinator/wordpress_setup/scale_wordpress.py' + ' ' + str(7)
+        sh.sendline(deploy_str)
+        # pwd_line = ''
+        line_rec = 'something something'
+        while line_rec != '':
+            last_line = line_rec
+            line_rec = sh.recvline(timeout=100)
+            print("recieved line", line_rec)
+
+        time.sleep(120)
+
+        ip, port = get_ip_and_port(app_name, sh)
+        setup_str = 'python /mydata/mimir_v2/experiment_coordinator/wordpress_setup/setup_wordpress.py ' + str(ip) + ' ' + \
+            str(port) + ' \"hi\"'
+        sh.sendline(setup_str)
+        # pwd_line = ''
+        line_rec = 'something something'
+        while line_rec != '':
+            last_line = line_rec
+            line_rec = sh.recvline(timeout=100)
+            print("recieved line", line_rec)
 
     time.sleep(60)
     start_actual_experiment = 'python /mydata/mimir_v2/experiment_coordinator/run_experiment.py --exp_name ' + \

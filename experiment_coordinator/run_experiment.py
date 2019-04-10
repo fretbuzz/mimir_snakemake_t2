@@ -392,7 +392,8 @@ def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_co
         autoscale_p = deployment_config['autoscale_p']
         cpu_percent_cuttoff = deployment_config['cpu_percent_cuttoff']["wordpress"]
 
-        wordpress_setup.scale_wordpress.deploy_wp(deployment_scaling)
+        ## TODO: move the deploy + setup stuff into run_exp_on_cloud BUT scale can stay here!!!
+        #wordpress_setup.scale_wordpress.deploy_wp(deployment_scaling)
         install_exfil_dependencies(exfil_paths, orchestrator, class_to_installer)
         wordpress_setup.scale_wordpress.scale_wordpress(autoscale_p, cpu_percent_cuttoff, deployment_scaling)
 
@@ -402,13 +403,12 @@ def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_co
         else:
             ip, port = get_ip_and_port(app_name)
 
-        print "about to try to do setup_wordpress..."
-        try:
-
-            wordpress_setup.setup_wordpress.main(ip, port, "hi", username)
-        except Exception,e:
-            print "wordpress_setup.setup_wordpress.main triggered this exception: ", str(e)
-        print "setup_wordpress completed..."
+        print "scaling wordpress complete..."
+        #try:
+        #     wordpress_setup.setup_wordpress.main(ip, port, "hi")
+        #except Exception,e:
+        #    print "wordpress_setup.setup_wordpress.main triggered this exception: ", str(e)
+        #print "setup_wordpress completed..."
     else:
         # other applications will require other setup procedures (if they can be automated) #
         # note: some cannot be automated (i.e. wordpress)
