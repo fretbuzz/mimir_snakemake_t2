@@ -1383,7 +1383,8 @@ def get_ip():
 
 
 def get_ip_and_port(app_name):
-    print "get_ip_and_port"
+    print "get_ip_and_port", app_name
+    out = None
     if app_name == 'sockshop':
         out = subprocess.check_output(['minikube', 'service', 'front-end',  '--url', '--namespace=sock-shop', "--wait", "120"])
     elif app_name == 'wordpress':

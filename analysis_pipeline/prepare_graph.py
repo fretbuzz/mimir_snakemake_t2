@@ -51,16 +51,19 @@ def get_svcs_from_mapping(name2ip):
             svc_to_label[name] = label
 
             if label is not None:
-                if label in label_to_svc:
-                    print "more than one service with the smae label -- error!!!"
+                if label in label_to_svc and 'k8s-app' not in label:
+                    print "more than one service with the same label -- error!!!"
                     exit(233)
-            label_to_svc[label] = name
+
+            if label not in label_to_svc :
+                label_to_svc[label] = [name]
+            else:
+                label_to_svc[label].append(name)
+
     return svc_to_label,label_to_svc
 
 def map_nodes_to_svcs(G, svcs, ip_to_entity):
     name2ip = ip2container_to_container2ip(ip_to_entity)
-
-
 
     if (not svcs or svcs == []) and not ip_to_entity:
         return {}
@@ -70,20 +73,21 @@ def map_nodes_to_svcs(G, svcs, ip_to_entity):
 
     for u in G.nodes():
         # if the labels identify the service, then we can just use that...
-        node_attribs = name2ip[u]
-        if len(node_attribs) >= 5:
-            if node_attribs[5] != None:
-                ## the services have labels, and so do the nodes, and you have to match them!
-                label = node_attribs[4]
-                svc = label_to_svc[label]
-                containers_to_ms[u] = svc
-                continue
-        for svc in svcs:
-            if u == "wwwppp-wordpress_VIP" : # this is for debugging... I can  take it out eventually...
-                pass
-            if match_name_to_pod(svc, u) or match_name_to_pod(svc + '_VIP', u):
-                containers_to_ms[u] = svc
-                break
+        if u in name2ip:
+            node_attribs = name2ip[u]
+            if len(node_attribs) >= 4:
+                if node_attribs[4] != None:
+                    ## the services have labels, and so do the nodes, and you have to match them!
+                    label = node_attribs[4]
+                    svc = label_to_svc[label]
+                    containers_to_ms[u] = svc
+                    continue
+            for svc in svcs:
+                if u == "wwwppp-wordpress_VIP" : # this is for debugging... I can  take it out eventually...
+                    pass
+                if match_name_to_pod(svc, u) or match_name_to_pod(svc + '_VIP', u):
+                    containers_to_ms[u] = svc
+                    break
     return containers_to_ms
 
 def is_ip(node_str):
