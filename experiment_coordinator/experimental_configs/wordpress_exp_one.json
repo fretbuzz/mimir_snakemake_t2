@@ -30,7 +30,6 @@
       "deployment_scaling" :
         {
           "wordpress": {"min": 10, "max": 23},
-          "pxc" : {"min": 7, "max": 7}
         },
       "autoscale_p": true,
       "cpu_percent_cuttoff": {

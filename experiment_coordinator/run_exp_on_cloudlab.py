@@ -232,8 +232,10 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, use_ciliu
 
         setup_str = 'python /mydata/mimir_v2/experiment_coordinator/wordpress_setup/setup_wordpress.py ' + str(ip) + ' ' + \
             str(port) + ' \"hi\"'
-
-        sh.sendline(setup_str)
+        try:
+            sh.sendline(setup_str)
+        except:
+            print "I legit do not know if sh tubes can through exceptions... let's find out..."
         # pwd_line = ''
         line_rec = 'something something'
         while line_rec != '':
