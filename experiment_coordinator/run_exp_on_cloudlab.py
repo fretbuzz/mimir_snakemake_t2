@@ -227,10 +227,23 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, use_ciliu
         time.sleep(120)
 
         ip, port = get_ip_and_port(app_name, sh)
+        sh.sendline("exit")  # need to be a normal user when using selenium
+        sh.sendline("cd /mydata/mimir_v2/experiment_coordinator/experimental_configs")
+
         setup_str = 'python /mydata/mimir_v2/experiment_coordinator/wordpress_setup/setup_wordpress.py ' + str(ip) + ' ' + \
             str(port) + ' \"hi\"'
+
         sh.sendline(setup_str)
         # pwd_line = ''
+        line_rec = 'something something'
+        while line_rec != '':
+            last_line = line_rec
+            line_rec = sh.recvline(timeout=100)
+            print("recieved line", line_rec)
+
+        sh.sendline('sudo newgrp docker')
+        sh.sendline('export MINIKUBE_HOME=/mydata/')
+        sh.sendline('cd /mydata/mimir_v2/experiment_coordinator/')
         line_rec = 'something something'
         while line_rec != '':
             last_line = line_rec
