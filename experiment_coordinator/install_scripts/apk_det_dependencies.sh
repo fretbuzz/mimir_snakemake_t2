@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 apk update
 #apk upgrade
 apk add git
@@ -10,3 +11,6 @@ python get-pip.py
 set GIT_SSL_NO_VERIFY=true
 git clone https://github.com/fretbuzz/DET /DET
 pip install -r /DET/requirements.txt --user
+
+# now here's some code to reduce the size of the resulting image
+rm -rf /var/lib/apt/lists/*

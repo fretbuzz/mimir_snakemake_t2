@@ -78,14 +78,21 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
         os.remove(end_sentinal_file_loc)
     except OSError:
         pass
-
-    exfil_paths = config_params["exfiltration_info"]["exfil_paths"]
-    DET_min_exfil_bytes_in_packet = list(config_params["exfiltration_info"]["DET_min_exfil_data_per_packet_bytes"])
-    DET_max_exfil_bytes_in_packet = list(config_params["exfiltration_info"]["DET_max_exfil_data_per_packet_bytes"])
-    DET_avg_exfil_rate_KB_per_sec = list(config_params["exfiltration_info"]["DET_avg_exfiltration_rate_KB_per_sec"])
-    exfil_protocols = config_params["exfiltration_info"]["exfil_protocols"]
     orchestrator = "kubernetes"
-    class_to_installer = config_params["exfiltration_info"]["exfiltration_path_class_which_installer"]
+    try:
+        exfil_paths = config_params["exfiltration_info"]["exfil_paths"]
+        DET_min_exfil_bytes_in_packet = list(config_params["exfiltration_info"]["DET_min_exfil_data_per_packet_bytes"])
+        DET_max_exfil_bytes_in_packet = list(config_params["exfiltration_info"]["DET_max_exfil_data_per_packet_bytes"])
+        DET_avg_exfil_rate_KB_per_sec = list(config_params["exfiltration_info"]["DET_avg_exfiltration_rate_KB_per_sec"])
+        exfil_protocols = config_params["exfiltration_info"]["exfil_protocols"]
+        class_to_installer = config_params["exfiltration_info"]["exfiltration_path_class_which_installer"]
+    except:
+        exfil_paths = [[]]
+        DET_min_exfil_bytes_in_packet = []
+        DET_max_exfil_bytes_in_packet = []
+        DET_avg_exfil_rate_KB_per_sec = []
+        exfil_protocols = []
+        class_to_installer = {}
 
     # okay, now need to calculate the time between packetes (and throw an error if necessary)
     avg_exfil_bytes_in_packet = [(float(DET_min_exfil_bytes_in_packet[i]) + float(DET_max_exfil_bytes_in_packet[i])) \
@@ -418,6 +425,9 @@ def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_co
         ## TODO: not sure if this'll actually work...
         out = subprocess.check_output(["cd", "./microservices-demo;", "skaffold", "run"])
         print "deployming-hipsterStore...", out
+
+        time.sleep(60)
+        install_exfil_dependencies(exfil_paths, orchestrator, class_to_installer)
     else:
         # other applications will require other setup procedures (if they can be automated) #
         # note: some cannot be automated (i.e. wordpress)
