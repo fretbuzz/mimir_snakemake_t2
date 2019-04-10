@@ -206,7 +206,7 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, use_ciliu
         line_rec = 'something something'
         while line_rec != '':
             last_line = line_rec
-            line_rec = sh.recvline(timeout=240)
+            line_rec = sh.recvline(timeout=360) # it takes 300 sec to timeout at the end, so let's be on the safe side
             print("recieved line", line_rec)
 
         sh.sendline('sudo newgrp docker')

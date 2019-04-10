@@ -32,13 +32,28 @@ def is_private_ip(addr_bytes):
     else:
         return False
 
-def map_nodes_to_svcs(G, svcs):
-    if svcs == [] or not svcs:
+def ip2container_to_container2ip(ip_to_container):
+    container2ip = {}
+    for ip,name_and_attribs in ip_to_container.iteritems()
+        name = name_and_attribs[0]
+        name_and_attribs[0] = ip
+        container2ip[name] = name_and_attribs
+    return container2ip
+
+def map_nodes_to_svcs(G, svcs, ip_to_container):
+    container2ip = ip2container_to_container2ip(ip_to_container)
+    if (svcs == [] or not svcs) and not ip_to_container:
         return {}
     containers_to_ms = {}
     for u in G.nodes():
+        # if the labels identify the service, then we can just use that...
+        node_attribs = container2ip[u]
+        if len(node_attribs) >= 5:
+            if node_attribs[5] != None:
+                containers_to_ms[u] = node_attribs[5]
+                continue
         for svc in svcs:
-            if u == "wwwppp-wordpress_VIP" :
+            if u == "wwwppp-wordpress_VIP" : # this is for debugging... I can  take it out eventually...
                 pass
             if match_name_to_pod(svc, u) or match_name_to_pod(svc + '_VIP', u):
                 containers_to_ms[u] = svc
@@ -208,12 +223,13 @@ def remove_infra_from_graph(G, infra_nodes):
 # where app_only = 1-step induced subgraph of the application containers (so leaving out infrastructure)
 # where class = aggregate all containers of the same class into a single node
 # func returns a new graph (so doesn't modify the input graph)
+### TODO: modify this apparently!!
 def prepare_graph(G, svcs, level_of_processing, is_swarm, counter, file_path, ms_s, container_to_ip,
                   infra_instances, drop_infra_p):
     G = copy.deepcopy(G)
     G = aggregate_outside_nodes(G)
     if level_of_processing == 'app_only':
-        containers_to_ms = map_nodes_to_svcs(G, svcs)
+        containers_to_ms = map_nodes_to_svcs(G, svcs, container_to_ip)
         nx.set_node_attributes(G, containers_to_ms, 'svc')
         infra_nodes = find_infra_components_in_graph(G, infra_instances)
 

@@ -151,6 +151,7 @@ def old_create_mappings(is_swarm, container_info_path, kubernetes_svc_info, kube
     #exit()
     return mapping, list_of_infra_services
 
+## TODO: why the eheck does this function exist??????
 def create_mappings(cluster_creation_log):
     #First, get a mapping of IPs to(container_name, network_name)
     initial_ips = cluster_creation_log[0]
@@ -213,8 +214,8 @@ def update_mapping(container_to_ip, cluster_creation_log, time_gran, time_counte
                     svc = None
 
                 # NOTE: in updated experimental coordinator, now everything has a PLUS and it is therefore meaningless
+                ## TODO: MODIFY THIS CHECK ONCE I GET MORE DATA!!!
                 if plus_minus == '+':
-                    ## TODO: okay, so I actually have to do the check here...
                     if cur_ip not in container_to_ip:
                         if entity != 'svc':
                             mod_cur_creation_log[cur_ip] = (cur_pod, None, namespace, entity, svc)
@@ -242,6 +243,8 @@ def update_mapping(container_to_ip, cluster_creation_log, time_gran, time_counte
                     namespace = curIP_PlusMinus[2]
                     cur_pod = cur_pod.rstrip().lstrip()
                     plus_minus = curIP_PlusMinus[1]
+
+                    ## TODO: this check.
                     if plus_minus == '-': # not sure if I want/need this but might be useful for bug checking
                         if cur_ip in container_to_ip:
                             del container_to_ip[cur_ip]
