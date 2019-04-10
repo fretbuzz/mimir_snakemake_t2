@@ -36,8 +36,9 @@ def ip2container_to_container2ip(ip_to_container):
     container2ip = {}
     for ip,name_and_attribs in ip_to_container.iteritems():
         name = name_and_attribs[0]
+        name_and_attribs = list(name_and_attribs)
         name_and_attribs[0] = ip
-        container2ip[name] = name_and_attribs
+        container2ip[name] = tuple(name_and_attribs)
     return container2ip
 
 def get_svcs_from_mapping(name2ip):
@@ -48,14 +49,19 @@ def get_svcs_from_mapping(name2ip):
         if entity_type == 'svc':
             label = attribs[4]
             svc_to_label[name] = label
-            if label in label_to_svc:
-                print "more than one service with the smae label -- error!!!"
-                exit(233)
+
+            if label is not None:
+                if label in label_to_svc:
+                    print "more than one service with the smae label -- error!!!"
+                    exit(233)
             label_to_svc[label] = name
     return svc_to_label,label_to_svc
 
 def map_nodes_to_svcs(G, svcs, ip_to_entity):
     name2ip = ip2container_to_container2ip(ip_to_entity)
+
+
+
     if (not svcs or svcs == []) and not ip_to_entity:
         return {}
     containers_to_ms = {}

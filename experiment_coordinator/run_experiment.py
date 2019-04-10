@@ -1389,7 +1389,7 @@ def get_ip_and_port(app_name):
     elif app_name == 'wordpress':
         # step 1: get the appropriate ip / port (like above -- need for next step)
         out = subprocess.check_output(['minikube', 'service', 'wwwppp-wordpress',  '--url', "--wait", "120"])
-    elif app_name == 'hipster':
+    elif app_name == 'hipsterStore':
         out = subprocess.check_output(['minikube', 'service', 'frontend-external', '--url', "--wait", "120"])
     else:
         pass

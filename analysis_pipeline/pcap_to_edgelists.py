@@ -153,24 +153,16 @@ def old_create_mappings(is_swarm, container_info_path, kubernetes_svc_info, kube
 
 ## this function could probably be re-written utilizing update_mapping... but I dont' really feel like it ATM...
 def create_mappings(cluster_creation_log):
-    #First, get a mapping of IPs to(container_name, network_name)
-    initial_ips = cluster_creation_log[0]
     mapping = {}
     infra_instances = {}
     ms_s = set()
-    #            container_to_ip[container_ip] = (container_name, network_name)
 
-    for name, ip_info in initial_ips.iteritems():
-        if ip_info[3] != 'svc':
-            mapping[ip_info[0]] = (name, None, ip_info[2], ip_info[3], ip_info[4])
-        else:
-            mapping[ip_info[0]] = (name+'_VIP', None, ip_info[2], ip_info[3], ip_info[4])
-            if ip_info[0] != 'None' and ip_info[0] != None:
-                ms_s.add(name)
+    mapping, infra_instances = update_mapping(mapping, cluster_creation_log, 1, 0, infra_instances)
 
-        if ip_info[2] == 'kube-system' or name == 'kubernetes': # the kubernetes svc endpoint is infrastructure but shows up in the default namespaces
-            if 'kube-dns' not in name or ip_info[3] == 'svc': # the svc endpoint labeled kube-dns is shared by LOTS of system functions
-                infra_instances[name] = [ip_info[0], ip_info[3], ip_info[4]]
+    for ip,attribs in mapping.iteritems():
+        entity_type = attribs[3]
+        if entity_type == 'svc':
+            ms_s.add(attribs[0].replace('_VIP',''))
 
     return mapping, infra_instances, list(ms_s)
 
@@ -202,30 +194,30 @@ def update_mapping(container_to_ip, cluster_creation_log, time_gran, time_counte
                 # have that name [[else, the label will be "k8s-app" b/c it's infra or "component" -- else use
                 # can use regex parsing of the hostname of the pod)
                 split_labels = labels.split(",")
-                name_split_labels = [i for i in split_labels if "name=" in i]
-                k8s_split_labels = [i for i in split_labels if "k8s-app=" in i]
-                if (len(name_split_labels) >= 1 and len(k8s_split_labels) >= 1) or  (len(name_split_labels) > 1 or  len(k8s_split_labels)):
+                name_split_labels = [j for j in split_labels if "name=" in j]
+                k8s_split_labels = [j for j in split_labels if "k8s-app=" in j]
+                if (len(name_split_labels) >= 1 and len(k8s_split_labels) >= 1) or  (len(name_split_labels) > 1 or  len(k8s_split_labels) > 1):
                     print "problem with label parsing function in update"
                     exit(344)
                 if len(name_split_labels) >= 1:
-                    label = name_split_labels[0]
+                    new_label = name_split_labels[0]
                 elif len(k8s_split_labels) >= 1:
-                    label = k8s_split_labels[0]
+                    new_label = k8s_split_labels[0]
                 else:
-                    label = None
+                    new_label = None
 
                 # NOTE: in updated experimental coordinator, now everything has a PLUS and it is therefore meaningless
                 ## TODO: MODIFY THIS CHECK ONCE I GET MORE DATA!!!
                 if plus_minus == '+':
                     if cur_ip not in container_to_ip:
                         if entity != 'svc':
-                            mod_cur_creation_log[cur_ip] = (cur_pod, None, namespace, entity, label)
+                            mod_cur_creation_log[cur_ip] = (cur_pod, None, namespace, entity, new_label)
                         else:
-                            mod_cur_creation_log[cur_ip] = (cur_pod + '_VIP', None, namespace, entity, label)
+                            mod_cur_creation_log[cur_ip] = (cur_pod + '_VIP', None, namespace, entity, new_label)
 
                         if namespace == 'kube-system':
                             if 'kube-dns' not in cur_pod or entity == 'svc':  # the svc endpoint labeled kube-dns is shared by LOTS of system functions
-                                infra_instances[cur_pod] = [cur_ip, entity, label]
+                                infra_instances[cur_pod] = [cur_ip, entity, new_label]
                             else:
                                 pass
 

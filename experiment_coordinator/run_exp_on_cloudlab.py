@@ -172,6 +172,7 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, use_ciliu
         print("recieved line", line_rec)
 
     if app_name == 'hipsterStore':
+        print "hipsterStore_SPECIFIC"
         #print "hipsterStore (microservice from google) doesn't have an actual run_experiment component defined"
         dwnload_skaffold_str = "curl -Lo skaffold https://storage.googleapis.com/skaffold/releases/latest/skaffold-linux-amd64"
         chg_perm_skaffold_str = "chmod +x skaffold"
@@ -185,7 +186,7 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, use_ciliu
         clone_repo = "git clone https://github.com/GoogleCloudPlatform/microservices-demo.git"
         sendline_and_wait_responses(sh, clone_repo, timeout=10)
         sendline_and_wait_responses(sh, "cd ./microservices-demo", timeout=5)
-        sendline_and_wait_responses(sh, "skaffold run", timeout=10)
+        sendline_and_wait_responses(sh, "skaffold run", timeout=60)
         sendline_and_wait_responses(sh, "cd ..", timeout=10)
 
     elif app_name == 'wordpress':
