@@ -56,6 +56,15 @@ def get_ip_and_port(app_name, sh):
     print "minikube_ip", minikube_ip, "front_facing_port", front_facing_port
     return minikube_ip, front_facing_port
 
+def sendline_and_wait_responses(sh, cmd_str, timeout=5):
+    sh.sendline(cmd_str)
+    line_rec = 'start'
+    while line_rec != '':
+        line_rec = sh.recvline(timeout=timeout)
+        if 'Please enter your response' in line_rec:
+            sh.sendline('n')
+        print("recieved line", line_rec)
+
 def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, use_cilium, physical_attacks_p, skip_app_setup, dont_pull_p):
     s = None
     while s == None:
@@ -68,79 +77,31 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, use_ciliu
 
     # Create an initial process
     sh = s.run('sh')
-    # Send the process arguments
-    #sh.sendline('ls -la')
-    # Receive output from the executed command
-    #line_rec = 'start'
-    #while line_rec != '':
-    #    line_rec = sh.recvline(timeout=5)
-    #    print("recieved line", line_rec)
-    #print("--end ls -la ---")
 
-    sh.sendline('pwd')
-    # Receive output from the executed command
-    line_rec = 'start'
-    while line_rec != '':
-        line_rec = sh.recvline(timeout=5)
-        print("recieved line", line_rec)
+    sendline_and_wait_responses(sh, 'pwd', timeout=5)
     print("--end pwd ---")
 
-    sh.sendline('sudo newgrp docker')
-    sh.sendline('export MINIKUBE_HOME=/mydata/')
-
-    line_rec = 'start'
-    while line_rec != '':
-        line_rec = sh.recvline(timeout=5)
-        print("recieved line", line_rec)
-    print("-- newgrp and export ---")
+    sendline_and_wait_responses(sh, 'sudo newgrp docker', timeout=5)
+    sendline_and_wait_responses(sh, 'export MINIKUBE_HOME=/mydata/', timeout=5)
+    print("-- newgrp and export DONEE---")
 
     if not skip_setup_p and not skip_app_setup:
-        line_rec = 'start'
-        while line_rec != '':
-            line_rec = sh.recvline(timeout=5)
-            if 'Please enter your response' in line_rec:
-                sh.sendline('n')
-            print("recieved line", line_rec)
-
-        sh.sendline('minikube stop')
-        line_rec = 'start'
-        while line_rec != '':
-            line_rec = sh.recvline(timeout=5)
-            if 'Please enter your response' in line_rec:
-                sh.sendline('n')
-            print("recieved line", line_rec)
+        sendline_and_wait_responses(sh, 'minikube stop', timeout=5)
         print("--end minikube-stop ---")
 
-        sh.sendline('minikube delete')
-        line_rec = 'start'
-        while line_rec != '':
-            line_rec = sh.recvline(timeout=5)
-            if 'Please enter your response' in line_rec:
-                sh.sendline('n')
-            print("recieved line", line_rec)
-
+        sendline_and_wait_responses(sh, 'minikube delete', timeout=5)
         print("--end minikube delete ---")
 
-        while line_rec != '':
-            line_rec = sh.recvline(timeout=5)
-            if 'Please enter your response' in line_rec:
-                sh.sendline('n')
-            print("recieved line", line_rec)
-
         clone_mimir_str = "cd /mydata/; git clone https://github.com/fretbuzz/mimir_v2"
-        sh.sendline(clone_mimir_str)
+
+        sendline_and_wait_responses(sh, clone_mimir_str, timeout=5)
 
         if not dont_pull_p:
             update_mimir_str = "cd ./mimir_v2/; git pull"
-            sh.sendline(update_mimir_str)
-
-        while line_rec != '':
-            line_rec = sh.recvline(timeout=5)
-            if 'Please enter your response' in line_rec:
-                sh.sendline('n')
-            print("recieved line", line_rec)
+            sendline_and_wait_responses(sh, update_mimir_str, timeout=5)
 
         sh.sendline("cd ./experiment_coordinator/")
+
         ## is this causing the problem??
         #sh.sendline("bash /mydata/mimir_v2/experiment_coordinator/dnscat_component/install_dnscat_server.sh")
 
@@ -210,11 +171,17 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, use_ciliu
         line_rec = sh.recvline(timeout=100)
         print("recieved line", line_rec)
 
-    ## TODO: remove when hipster is better setup!!
     if app_name == 'hipster':
-        print "hipsterStore (microservice from google) doesn't have an actual run_experiment component defined"
-        exit(233)
+        #print "hipsterStore (microservice from google) doesn't have an actual run_experiment component defined"
+        dwnload_skaffold_str = "curl -Lo skaffold https://storage.googleapis.com/skaffold/releases/latest/skaffold-linux-amd64"
+        chg_perm_skaffold_str = "chmod +x skaffold"
+        install_skaffold_str = "sudo mv skaffold /usr/local/bin"
+        sendline_and_wait_responses(sh, dwnload_skaffold_str, timeout=5)
+        sendline_and_wait_responses(sh, chg_perm_skaffold_str, timeout=5)
+        sendline_and_wait_responses(sh, install_skaffold_str, timeout=5)
+
     elif app_name == 'wordpress':
+        sh.sendline("cd /mydata/mimir_v2/experiment_coordinator")
         deploy_str = 'python /mydata/mimir_v2/experiment_coordinator/wordpress_setup/scale_wordpress.py' + ' ' + str(7)
         sh.sendline(deploy_str)
         # pwd_line = ''

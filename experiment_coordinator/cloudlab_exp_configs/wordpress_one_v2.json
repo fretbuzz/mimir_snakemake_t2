@@ -3,7 +3,7 @@
     "exp_name" : "wordpress_one_3_auto_mk4",
     "config_file_name" : "/mydata/mimir_v2/experiment_coordinator/experimental_configs/wordpress_exp_one.json",
     "local_dir" : "/Volumes/exM2/experimental_data/wordpress_info",
-    "cloudlab_server_ip" : "c220g2-010621.wisc.cloudlab.us",
+    "cloudlab_server_ip" : "c240g5-110115.wisc.cloudlab.us",
     "exp_length" : 10800,
     "physical_attacks_p" : false
 
