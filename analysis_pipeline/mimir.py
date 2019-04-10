@@ -205,24 +205,32 @@ def parse_experimental_config(experimental_config_file):
         #time.sleep(1500)
 
 
-        multi_experiment_object = \
-            multi_experiment_pipeline(experiment_classes, base_output_location, True, time_of_synethic_exfil,
-                                  goal_train_test_split_training, goal_attack_NoAttack_split_training, None,
-                                  None, calc_vals, skip_model_part, ignore_physical_attacks_p,
-                                  calculate_z_scores_p=calculate_z_scores,
-                                  avg_exfil_per_min=avg_exfil_per_min, exfil_per_min_variance=exfil_per_min_variance,
-                                  avg_pkt_size=avg_pkt_size, pkt_size_variance=pkt_size_variance,
-                                  skip_graph_injection=skip_graph_injection,
-                                  get_endresult_from_memory=get_endresult_from_memory,
-                                  goal_attack_NoAttack_split_testing=goal_attack_NoAttack_split_testing,
-                                  calc_ide=calc_ide, include_ide=include_ide, only_ide=only_ide,
-                                  drop_pairwise_features=drop_pairwise_features,
-                                  ide_window_size=ide_window_size, drop_infra_from_graph=drop_infra_from_graph,
-                                  perform_cilium_component=perform_cilium_component, auto_open_pdfs=auto_open_pdfs)
+    multi_experiment_object = \
+        multi_experiment_pipeline(experiment_classes, base_output_location, True, time_of_synethic_exfil,
+                              goal_train_test_split_training, goal_attack_NoAttack_split_training, None,
+                              None, calc_vals, skip_model_part, ignore_physical_attacks_p,
+                              calculate_z_scores_p=calculate_z_scores,
+                              avg_exfil_per_min=avg_exfil_per_min, exfil_per_min_variance=exfil_per_min_variance,
+                              avg_pkt_size=avg_pkt_size, pkt_size_variance=pkt_size_variance,
+                              skip_graph_injection=skip_graph_injection,
+                              get_endresult_from_memory=get_endresult_from_memory,
+                              goal_attack_NoAttack_split_testing=goal_attack_NoAttack_split_testing,
+                              calc_ide=calc_ide, include_ide=include_ide, only_ide=only_ide,
+                              drop_pairwise_features=drop_pairwise_features,
+                              ide_window_size=ide_window_size, drop_infra_from_graph=drop_infra_from_graph,
+                              perform_cilium_component=perform_cilium_component, auto_open_pdfs=auto_open_pdfs)
 
-        min_rate_statspipelines = multi_experiment_object.run_pipelines()
 
     return min_rate_statspipelines
+
+def run_analysis(training_config, eval_config=None):
+    training_experimente_object = parse_experimental_config(training_config)
+    min_rate_training_statspipelines = training_experimente_object.run_pipelines()
+
+    # eval_experimente_object = parse_experimental_config(eval_config)
+    # something with min_rate_training_statspipelines ##???
+    # results = eval_experimente_object.run_pipelines() ## ??
+    pass
 
 if __name__=="__main__":
     print "RUNNING"
@@ -243,11 +251,11 @@ if __name__=="__main__":
 
     if not args.training_config_json:
         print "running_preset..."
-        #parse_experimental_config('./analysis_json/sockshop_one_v2_mk7.json')
-        #parse_experimental_config('./analysis_json/sockshop_one_v2.json')
-        #parse_experimental_config('./analysis_json/sockshop_one_v2_minimal.json')
-        #parse_experimental_config('./analysis_json/wordpress_one_v2_nonauto.json')
-        #parse_experimental_config('./analysis_json/sockshop_one_v2_nonauto.json')
-        parse_experimental_config('./analysis_json/sockshop_short.json')
+        #run_analysis('./analysis_json/sockshop_one_v2_mk7.json')
+        #run_analysis('./analysis_json/sockshop_one_v2.json')
+        #run_analysis('./analysis_json/sockshop_one_v2_minimal.json')
+        #run_analysis('./analysis_json/wordpress_one_v2_nonauto.json')
+        #run_analysis('./analysis_json/sockshop_one_v2_nonauto.json')
+        run_analysis('./analysis_json/sockshop_short.json')
     else:
         parse_experimental_config(args.training_config_json)

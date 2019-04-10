@@ -3,7 +3,7 @@
   "exp_config_file": "/Volumes/exM2/experimental_data/sockshop_info/sockshop_one_nonauto_mk9short/sockshop_one_auto_mk9long_analysis.json",
   "netsec_policy": "/Volumes/exM2/experimental_data/sockshop_info/sockshop_nine_better_exfil_netsec_seg.txt",
 
-  "make_edgefiles": true,
+  "make_edgefiles": false,
   "skip_graph_injection": false,
   "calc_vals": true,
   "calculate_z_scores": true,

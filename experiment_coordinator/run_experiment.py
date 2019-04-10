@@ -426,7 +426,7 @@ def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_co
         if not os.path.isdir("microservices-demo"):
             out = subprocess.check_output(["git", "clone", "https://github.com/GoogleCloudPlatform/microservices-demo.git"])
             print "git-cloned-hipsterstore-demeo...", out
-        os.chdir("./microservices")
+        os.chdir("./microservices-demo")
         # then deploy it...
         ## TODO: not sure if this'll actually work...
         out = subprocess.check_output(["skaffold", "run"])

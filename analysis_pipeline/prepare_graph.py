@@ -34,23 +34,43 @@ def is_private_ip(addr_bytes):
 
 def ip2container_to_container2ip(ip_to_container):
     container2ip = {}
-    for ip,name_and_attribs in ip_to_container.iteritems()
+    for ip,name_and_attribs in ip_to_container.iteritems():
         name = name_and_attribs[0]
         name_and_attribs[0] = ip
         container2ip[name] = name_and_attribs
     return container2ip
 
-def map_nodes_to_svcs(G, svcs, ip_to_container):
-    container2ip = ip2container_to_container2ip(ip_to_container)
-    if (svcs == [] or not svcs) and not ip_to_container:
+def get_svcs_from_mapping(name2ip):
+    svc_to_label = {}
+    label_to_svc = {}
+    for name,attribs in name2ip.iteritems():
+        entity_type = attribs[3]
+        if entity_type == 'svc':
+            label = attribs[4]
+            svc_to_label[name] = label
+            if label in label_to_svc:
+                print "more than one service with the smae label -- error!!!"
+                exit(233)
+            label_to_svc[label] = name
+    return svc_to_label,label_to_svc
+
+def map_nodes_to_svcs(G, svcs, ip_to_entity):
+    name2ip = ip2container_to_container2ip(ip_to_entity)
+    if (not svcs or svcs == []) and not ip_to_entity:
         return {}
     containers_to_ms = {}
+    svc_to_label,label_to_svc = get_svcs_from_mapping(name2ip)
+    svcs = svc_to_label.keys()
+
     for u in G.nodes():
         # if the labels identify the service, then we can just use that...
-        node_attribs = container2ip[u]
+        node_attribs = name2ip[u]
         if len(node_attribs) >= 5:
             if node_attribs[5] != None:
-                containers_to_ms[u] = node_attribs[5]
+                ## the services have labels, and so do the nodes, and you have to match them!
+                label = node_attribs[4]
+                svc = label_to_svc[label]
+                containers_to_ms[u] = svc
                 continue
         for svc in svcs:
             if u == "wwwppp-wordpress_VIP" : # this is for debugging... I can  take it out eventually...
@@ -198,7 +218,7 @@ def find_infra_components_in_graph(G, infra_instances):
     infra_nodes = []
     for node in G.nodes():
         for infra_instance_name, ip_and_type in infra_instances.iteritems():
-            infra_instance_name, infra_instance_PodSvc = infra_instance_name, ip_and_type[1]
+            infra_instance_name, infra_instance_PodSvc,svc = infra_instance_name, ip_and_type[1], ip_and_type[2]
             if 'heapster' in node and 'heapster' in infra_instance_name:
                 # print infra_instance_PodSvc == node
                 pass  # to be used as a debug point...
@@ -206,7 +226,7 @@ def find_infra_components_in_graph(G, infra_instances):
                 if infra_instance_name == node:
                     infra_nodes.append(node)
             elif infra_instance_PodSvc == 'svc':
-                if match_name_to_pod(infra_instance_name + '_VIP', node):
+                if match_name_to_pod(infra_instance_name + '_VIP', node, svc=svc):
                     infra_nodes.append(node)
     return infra_nodes
 
@@ -223,13 +243,12 @@ def remove_infra_from_graph(G, infra_nodes):
 # where app_only = 1-step induced subgraph of the application containers (so leaving out infrastructure)
 # where class = aggregate all containers of the same class into a single node
 # func returns a new graph (so doesn't modify the input graph)
-### TODO: modify this apparently!!
 def prepare_graph(G, svcs, level_of_processing, is_swarm, counter, file_path, ms_s, container_to_ip,
                   infra_instances, drop_infra_p):
     G = copy.deepcopy(G)
     G = aggregate_outside_nodes(G)
     if level_of_processing == 'app_only':
-        containers_to_ms = map_nodes_to_svcs(G, svcs, container_to_ip)
+        containers_to_ms = map_nodes_to_svcs(G, None, container_to_ip)
         nx.set_node_attributes(G, containers_to_ms, 'svc')
         infra_nodes = find_infra_components_in_graph(G, infra_instances)
 
@@ -325,8 +344,11 @@ def generate_network_graph_colormap(color_map, ms_s, G):
     return color_map
 
 
-def match_name_to_pod(abstract_node_name, concrete_pod_name):
+def match_name_to_pod(abstract_node_name, concrete_pod_name, svc=None):
     if '_VIP' in abstract_node_name:
+        if svc:
+            if svc + '_VIP' == abstract_node_name:
+                return True
         return abstract_node_name in concrete_pod_name
     else:
         valid = re.compile('.*' + abstract_node_name + '-[a-z0-9][a-z0-9][a-z0-9][a-z0-9][a-z0-9][a-z0-9][a-z0-9][a-z0-9][a-z0-9].*')

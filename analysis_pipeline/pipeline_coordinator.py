@@ -199,6 +199,10 @@ class multi_experiment_pipeline(object):
 
         return min_rate_statspipelines
 
+    def run_eval_pipeline(self):
+        ## TODO: is this a good idea???
+        pass
+
     def generate_aggregate_report(self):
         generate_aggregate_report.generate_aggregate_report(self.rate_to_timegran_to_methods_to_attacks_found_dfs,
                                                             self.rate_to_timegran_list_of_methods_to_attacks_found_training_df,

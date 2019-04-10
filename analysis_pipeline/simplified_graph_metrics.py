@@ -631,7 +631,7 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
         ##### I need this now b/c it is useful to have infra_instances #####
         container_to_ip, infra_instances = update_mapping(container_to_ip, pod_creation_log, time_interval, counter, infra_instances)
 
-        cur_1si_G = prepare_graph(G, svcs, 'app_only', is_swarm, counter, file_path, ms_s,
+        cur_1si_G = prepare_graph(G, None, 'app_only', is_swarm, counter, file_path, ms_s,
                                   container_to_ip, infra_instances, drop_infra_p=drop_infra_from_graph)
 
         into_outside_bytes, into_outside_pkts = find_amt_of_out_traffic(cur_1si_G)
@@ -949,17 +949,9 @@ def abstract_to_concrete_mapping(abstract_node, graph, excluded_list, container_
 
     print "modified abstract_node", abstract_node
     #matching_concrete_nodes = [node for node in graph.nodes() if abstract_node in node if node not in excluded_list]
-    matching_concrete_nodes = [node for node in graph.nodes() if match_name_to_pod(abstract_node, node) if node not in excluded_list]
 
-    '''
-    if len(matching_concrete_nodes) == 0:
-        # if no matching concrete nodes, then we are adding a new node to the graph, which'll be a
-        # VIP that was not actually used... we're already transforming it into the correct format,
-        # so we can just add it the matching set (and another function will add it to the graph later...)
-        if node_granularity != 'class':
-            print "LEN OF MATCHING CONCRETE NODES IS ZERO"
-            matching_concrete_nodes = [abstract_node]
-    '''
+    ##TODO: how about this!?!?!?!?!?
+    matching_concrete_nodes = [node[0] for node in graph.nodes(data=True) if match_name_to_pod(abstract_node, node[0],svc=node[1]['svc']) if node[0] not in excluded_list]
     print "matching_concrete_nodes", matching_concrete_nodes
     try:
         concrete_node = random.choice(matching_concrete_nodes)
@@ -969,7 +961,7 @@ def abstract_to_concrete_mapping(abstract_node, graph, excluded_list, container_
         else:
             # the pod is not present in the graph... this is kinda problematic, but in terms of labelling, let's
             # just take it from the stored names
-            matching_concrete_nodes = [node[0] for node in container_to_ip.values() if match_name_to_pod(abstract_node, node[0]) if
+            matching_concrete_nodes = [node[0] for node in container_to_ip.values() if match_name_to_pod(abstract_node, node[0], svc=node[4]) if
                                        node[0] not in excluded_list]
             if matching_concrete_nodes == []:
                 print "abstract", abstract_node
