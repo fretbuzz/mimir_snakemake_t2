@@ -108,8 +108,13 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
     # step (2) setup the application, if necessary (e.g. fill up the DB, etc.)
     # note: it is assumed that the application is already deployed
     app_name = config_params["application_name"]
+    try:
+        setup_params = config_params["setup"]
+    except:
+        setup_params = {}
+
     if prepare_app_p:
-        prepare_app(app_name, config_params["setup"],  spec_port, spec_ip, config_params["Deployment"], exfil_paths, class_to_installer, username)
+        prepare_app(app_name, setup_params,  spec_port, spec_ip, config_params["Deployment"], exfil_paths, class_to_installer, username)
     ip,port = get_ip_and_port(app_name)
     print "ip,port",ip,port
 

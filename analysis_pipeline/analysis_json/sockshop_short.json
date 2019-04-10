@@ -1,0 +1,13 @@
+{
+  "cur_experiment_name": "sockshop_short_mk1",
+  "exp_config_file": "/Volumes/exM2/experimental_data/sockshop_info/sockshop_one_nonauto_mk9short/sockshop_one_auto_mk9long_analysis.json",
+  "netsec_policy": "/Volumes/exM2/experimental_data/sockshop_info/sockshop_nine_better_exfil_netsec_seg.txt",
+
+  "make_edgefiles": true,
+  "skip_graph_injection": false,
+  "calc_vals": true,
+  "calculate_z_scores": true,
+  "get_endresult_from_memory": false,
+
+  "auto_open_pdfs": true
+}

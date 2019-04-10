@@ -192,18 +192,38 @@ def update_mapping(container_to_ip, cluster_creation_log, time_gran, time_counte
                 plus_minus = curIP_PlusMinus[1]
                 namespace = curIP_PlusMinus[2]
                 entity = curIP_PlusMinus[3]
+                labels = curIP_PlusMinus[4] # used to link pods to svcs
+                status = curIP_PlusMinus[5] # used to determine whether pods are stop/starting
 
+                # if this is an application pod (not a infrastructure pod) then one of the labels
+                # should be termed 'name' and this'll link the pod to the service, which'll also
+                # have that name [[else, the label will be "k8s-app" b/c it's infra or "component" -- else use
+                # can use regex parsing of the hostname of the pod)
+                split_labels = labels.split(",")
+                name_split_labels = [i for i in split_labels if "name=" in i]
+                k8s_split_labels = [i for i in split_labels if "k8s-app=" in i]
+                if (len(name_split_labels) >= 1 and len(k8s_split_labels) >= 1) or  (len(name_split_labels) > 1 or  len(k8s_split_labels)):
+                    print "problem with label parsing function in update"
+                    exit(344)
+                if len(name_split_labels) >= 1:
+                    svc = name_split_labels[0]
+                elif len(k8s_split_labels) >= 1:
+                    svc = k8s_split_labels[0]
+                else:
+                    svc = None
 
+                # NOTE: in updated experimental coordinator, now everything has a PLUS and it is therefore meaningless
                 if plus_minus == '+':
+                    ## TODO: okay, so I actually have to do the check here...
                     if cur_ip not in container_to_ip:
                         if entity != 'svc':
-                            mod_cur_creation_log[cur_ip] = (cur_pod, None, namespace, entity)
+                            mod_cur_creation_log[cur_ip] = (cur_pod, None, namespace, entity, svc)
                         else:
-                            mod_cur_creation_log[cur_ip] = (cur_pod + '_VIP', None, namespace, entity)
+                            mod_cur_creation_log[cur_ip] = (cur_pod + '_VIP', None, namespace, entity, svc)
 
                         if namespace == 'kube-system':
                             if 'kube-dns' not in cur_pod or entity == 'svc':  # the svc endpoint labeled kube-dns is shared by LOTS of system functions
-                                infra_instances[cur_pod] = [cur_ip, entity]
+                                infra_instances[cur_pod] = [cur_ip, entity, svc]
                             else:
                                 pass
 

@@ -102,6 +102,7 @@ def split_pcap(path, pcap_file, out_pcap_path, out_pcap_basename, interval):
 
 def process_pcap_via_tshark(path, pcap_name, tshark_stats_dir_path, make_edgefiles_p):
     print "zzz Processing_pcap_via_tshark..."
+
     # tshark -r wordpress_eight_rep_2_default_bridge_0any_COPY.pcap -z conv,ip -Q > conv_ip_info_full.txt
     cmd_list = ["tshark", "-r" + path + pcap_name, "-zconv,ip", "-Q"]
     ""
