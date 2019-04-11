@@ -162,7 +162,8 @@ def create_mappings(cluster_creation_log):
     for ip,attribs in mapping.iteritems():
         entity_type = attribs[3]
         if entity_type == 'svc':
-            ms_s.add(attribs[0].replace('_VIP',''))
+            if attribs[0] != None:
+                ms_s.add(attribs[0].replace('_VIP',''))
 
     return mapping, infra_instances, list(ms_s)
 

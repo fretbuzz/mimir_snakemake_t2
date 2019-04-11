@@ -75,7 +75,9 @@ def prepare_mulval_input(ms_s, mapping, sensitive_ms, netsec_policy, intersvc_vi
     # recall that pods can do whatever they want, vips are more limited (obvi)
     sensitive_node = None
     for svc in svcs:
-        if sensitive_ms.replace('-','_') in svc[0]:
+        ## TODO: we'd want to use the actual function for this...
+
+        if sensitive_ms.replace('-','_') + '_pod' in svc[0]:
             sensitive_node = svc[0]
             print "sensitive_node", sensitive_node
             lines.append('attackerLocated(' + svc[0] + ').')

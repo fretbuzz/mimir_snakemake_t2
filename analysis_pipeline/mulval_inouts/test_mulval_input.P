@@ -28,7 +28,6 @@ hacl(my_release_pxc_pod,kube_dns_pod, _, _).
 hacl(my_release_pxc_pod,internet, _, _).
 vulExists(my_release_pxc_pod, 'attacker_can_access_anything', is_computer).
 networkServiceInfo(my_release_pxc_pod, is_computer,  _, _ , _).
-attackerLocated(my_release_pxc_repl_pod).
 
 hacl(my_release_pxc_repl_pod,kubernetes_pod, _, _).
 hacl(my_release_pxc_repl_pod,wwwppp_wordpress_pod, _, _).

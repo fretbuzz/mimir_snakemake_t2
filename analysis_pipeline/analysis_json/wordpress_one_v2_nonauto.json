@@ -27,7 +27,7 @@
   "skip_graph_injection": false,
   "get_endresult_from_memory": false,
 
-  "make_edgefiles": true,
+  "make_edgefiles": false,
   "experimental_folder": "/Volumes/exM2/experimental_data/wordpress_info/wordpress_one_v2_nonauto_mk2/",
   "pcap_file_path": "/Volumes/exM2/experimental_data/wordpress_info/wordpress_one_v2_nonauto_mk2/",
   "pod_creation_log_path": "/Volumes/exM2/experimental_data/wordpress_info/wordpress_one_v2_nonauto_mk2/",
