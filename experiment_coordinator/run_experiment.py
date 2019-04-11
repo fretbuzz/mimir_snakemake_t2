@@ -727,6 +727,7 @@ def install_exfil_dependencies(exfil_paths, orchestrator, class_to_installer, ex
         # now commit the image
         old_image_name = None
         print "image tags", chosen_container.image.tags
+        print "element",element,"exfil_path_class_to_image",exfil_path_class_to_image, element in exfil_path_class_to_image
         try:
             container_element = exfil_path_class_to_image[element]
         except:
