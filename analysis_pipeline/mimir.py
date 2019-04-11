@@ -204,6 +204,10 @@ def parse_experimental_config(experimental_config_file):
         #print "REMOVE THE WAITING!!!"
         #time.sleep(1500)
 
+        if 'skip_heatmap_p' in config_file:
+            skip_heatmap_p = config_file['skip_heatmap_p']
+        else:
+            skip_heatmap_p = True
 
     multi_experiment_object = \
         multi_experiment_pipeline(experiment_classes, base_output_location, True, time_of_synethic_exfil,
@@ -218,7 +222,8 @@ def parse_experimental_config(experimental_config_file):
                               calc_ide=calc_ide, include_ide=include_ide, only_ide=only_ide,
                               drop_pairwise_features=drop_pairwise_features,
                               ide_window_size=ide_window_size, drop_infra_from_graph=drop_infra_from_graph,
-                              perform_cilium_component=perform_cilium_component, auto_open_pdfs=auto_open_pdfs)
+                              perform_cilium_component=perform_cilium_component, auto_open_pdfs=auto_open_pdfs,
+                              skip_heatmap_p=skip_heatmap_p)
 
 
     return multi_experiment_object

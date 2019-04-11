@@ -73,7 +73,8 @@ class multi_experiment_pipeline(object):
                  only_ide=False, perform_cilium_component=True, only_perform_cilium_component=True,
                  cilium_component_time=100, drop_pairwise_features=False,
                  max_path_length=15, max_dns_porportion=1.0,drop_infra_from_graph=False,
-                 ide_window_size=10, debug_basename=None, pretrained_sav2=None, auto_open_pdfs=True):
+                 ide_window_size=10, debug_basename=None, pretrained_sav2=None, auto_open_pdfs=True,
+                 skip_heatmap_p=True):
 
         self.auto_open_pdfs = auto_open_pdfs
         self.pretrained_min_pipeline = pretrained_sav2
@@ -133,7 +134,7 @@ class multi_experiment_pipeline(object):
         self.starts_of_testing = []
         self.rate_to_timegran_to_statistical_pipeline = {}
         self.names = []
-
+        self.skip_heatmap_p = skip_heatmap_p
 
     # note: this going to be used to load the pipeline object prior to doing all of this work...
     def loader(self, filename):
@@ -249,7 +250,8 @@ class multi_experiment_pipeline(object):
                                                      self.exfil_per_min_variance[rate_counter],
                                                      self.pkt_size_variance[rate_counter])
 
-        stats_pipelines.run_statistical_pipeline(self.drop_pairwise_features, self.pretrained_min_pipeline)
+        stats_pipelines.run_statistical_pipeline(self.drop_pairwise_features, self.pretrained_min_pipeline,
+                                                 skip_heatmap_p = self.skip_heatmap_p)
         stats_pipelines.create_the_report(self.auto_open_pdfs)
 
         list_of_optimal_fone_scores_at_this_exfil_rates, Xs, Ys, Xts, Yts, trained_models, list_of_attacks_found_dfs, \
@@ -326,7 +328,7 @@ class multi_experiment_pipeline(object):
         sav2_object = single_rate_stats_pipeline(timegran_to_df_max_exfil, self.ROC_curve_p, cur_base_output_name,
                                                  self.names, self.skip_model_part, self.ignore_physical_attacks_p,
                                                   'varies', 'varies', 'varies', 'varies')
-        sav2_object.run_statistical_pipeline(self.drop_pairwise_features, self.pretrained_min_pipeline)
+        sav2_object.run_statistical_pipeline(self.drop_pairwise_features, self.pretrained_min_pipeline, skip_heatmap_p=self.skip_heatmap_p)
         sav2_object.create_the_report(self.auto_open_pdfs)
 
         return sav2_object

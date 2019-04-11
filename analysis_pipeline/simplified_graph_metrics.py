@@ -686,6 +686,20 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
 
         # print "right after graph is prepared", level_of_processing, list(cur_G.nodes(data=True))
         logging.info("svcs, " + str(svcs))
+
+        cur_1si_G, node_attack_mapping, pre_specified_data_attribs, concrete_cont_node_path,carryover,attack_injected = \
+        inject_synthetic_attacks(cur_1si_G, synthetic_exfil_paths, attacks_to_times, counter, node_attack_mapping,
+                                 name_of_dns_pod_node, carryover, attack_injected, time_interval, avg_exfil_per_min,
+                                 exfil_per_min_variance, avg_pkt_size, pkt_size_variance, container_to_ip)
+
+        # new nodes exist now... so need to do a limited amt of re-processing...
+        containers_to_ms = map_nodes_to_svcs(cur_1si_G, svcs, container_to_ip)
+        nx.set_node_attributes(cur_1si_G, containers_to_ms, 'svc')
+        if drop_infra_from_graph:
+            infra_nodes = find_infra_components_in_graph(cur_1si_G, infra_instances)
+            cur_1si_G = remove_infra_from_graph(cur_1si_G, infra_nodes)
+
+        ## note this is actually fine, I think...
         for thing in cur_1si_G.nodes(data=True):
             logging.info(thing)
             try:
@@ -702,17 +716,6 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
 
         pod_to_svc = reverse_svc_to_pod_dict(svc_to_pod)
 
-        cur_1si_G, node_attack_mapping, pre_specified_data_attribs, concrete_cont_node_path,carryover,attack_injected = \
-        inject_synthetic_attacks(cur_1si_G, synthetic_exfil_paths, attacks_to_times, counter, node_attack_mapping,
-                                 name_of_dns_pod_node, carryover, attack_injected, time_interval, avg_exfil_per_min,
-                                 exfil_per_min_variance, avg_pkt_size, pkt_size_variance, container_to_ip)
-
-        # new nodes exist now... so need to do a limited amt of re-processing...
-        containers_to_ms = map_nodes_to_svcs(cur_1si_G, svcs)
-        nx.set_node_attributes(cur_1si_G, containers_to_ms, 'svc')
-        if drop_infra_from_graph:
-            infra_nodes = find_infra_components_in_graph(cur_1si_G, infra_instances)
-            cur_1si_G = remove_infra_from_graph(cur_1si_G, infra_nodes)
 
         attack_happened_p = 0
         if attack_injected:
@@ -950,8 +953,15 @@ def abstract_to_concrete_mapping(abstract_node, graph, excluded_list, container_
     print "modified abstract_node", abstract_node
     #matching_concrete_nodes = [node for node in graph.nodes() if abstract_node in node if node not in excluded_list]
 
-    ##TODO: how about this!?!?!?!?!?
-    matching_concrete_nodes = [node[0] for node in graph.nodes(data=True) if match_name_to_pod(abstract_node, node[0],svc=node[1]['svc']) if node[0] not in excluded_list]
+    matching_concrete_nodes = []
+    for node in graph.nodes(data=True):
+        try:
+            svc = node[1]['svc']
+        except:
+            svc = None
+        if match_name_to_pod(abstract_node, node[0], svc=svc) and node[0] not in excluded_list:
+            matching_concrete_nodes.append(node[0])
+    #matching_concrete_nodes = [node[0] for node in graph.nodes(data=True) if match_name_to_pod(abstract_node, node[0],svc=node[1]['svc']) if node[0] not in excluded_list]
     print "matching_concrete_nodes", matching_concrete_nodes
     try:
         concrete_node = random.choice(matching_concrete_nodes)
@@ -989,6 +999,7 @@ def add_edge_weight_graph(graph, concrete_node_src, concrete_node_dst, fraction_
         # need to add a node
         graph.add_node(concrete_node_src)
     else:
+        print "concrete_node_dst",concrete_node_dst
         graph.add_node(concrete_node_dst)
         graph.add_node(concrete_node_src)
 

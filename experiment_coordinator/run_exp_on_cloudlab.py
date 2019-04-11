@@ -186,7 +186,7 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, use_ciliu
         clone_repo = "git clone https://github.com/GoogleCloudPlatform/microservices-demo.git"
         sendline_and_wait_responses(sh, clone_repo, timeout=10)
         sendline_and_wait_responses(sh, "cd ./microservices-demo", timeout=5)
-        sendline_and_wait_responses(sh, "skaffold run", timeout=60)
+        sendline_and_wait_responses(sh, "skaffold run", timeout=120)
         sendline_and_wait_responses(sh, "cd ..", timeout=10)
 
     elif app_name == 'wordpress':
@@ -219,14 +219,9 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, use_ciliu
             line_rec = sh.recvline(timeout=360) # it takes 300 sec to timeout at the end, so let's be on th
             print("recieved line", line_rec)
 
-        sh.sendline('sudo newgrp docker')
+        sendline_and_wait_responses(sh, 'sudo newgrp docker', timeout=10)
         sh.sendline('export MINIKUBE_HOME=/mydata/')
-        sh.sendline('cd /mydata/mimir_v2/experiment_coordinator/')
-        line_rec = 'something something'
-        while line_rec != '':
-            last_line = line_rec
-            line_rec = sh.recvline(timeout=100)
-            print("recieved line", line_rec)
+        sendline_and_wait_responses(sh, 'cd /mydata/mimir_v2/experiment_coordinator/', timeout=100)
 
     time.sleep(60)
     start_actual_experiment = 'python /mydata/mimir_v2/experiment_coordinator/run_experiment.py --exp_name ' + \

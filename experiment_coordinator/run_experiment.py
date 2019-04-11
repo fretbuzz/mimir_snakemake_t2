@@ -86,6 +86,7 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
         DET_avg_exfil_rate_KB_per_sec = list(config_params["exfiltration_info"]["DET_avg_exfiltration_rate_KB_per_sec"])
         exfil_protocols = config_params["exfiltration_info"]["exfil_protocols"]
         class_to_installer = config_params["exfiltration_info"]["exfiltration_path_class_which_installer"]
+        originator_class = config_params["exfiltration_info"]["sensitive_ms"][0]
     except:
         exfil_paths = [[]]
         DET_min_exfil_bytes_in_packet = []
@@ -93,6 +94,7 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
         DET_avg_exfil_rate_KB_per_sec = []
         exfil_protocols = []
         class_to_installer = {}
+        originator_class = None
 
     # okay, now need to calculate the time between packetes (and throw an error if necessary)
     avg_exfil_bytes_in_packet = [(float(DET_min_exfil_bytes_in_packet[i]) + float(DET_max_exfil_bytes_in_packet[i])) \
@@ -124,7 +126,6 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
     full_network_ids = ["bridge"] # in kubernetes this is simple
     network_ids_to_namespaces = {}
     network_ids_to_namespaces['bridge'] = 'default' # in kubernetes this is simple
-    originator_class = config_params["exfiltration_info"]["sensitive_ms"][0]
 
 
     experiment_length = config_params["experiment_length_sec"]

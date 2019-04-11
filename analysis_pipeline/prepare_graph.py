@@ -55,10 +55,13 @@ def get_svcs_from_mapping(name2ip):
                     print "more than one service with the same label -- error!!!"
                     exit(233)
 
-            if label not in label_to_svc :
-                label_to_svc[label] = [name]
-            else:
-                label_to_svc[label].append(name)
+            # note: I am going to make the assumption that each label is associated with only one service.
+            # the kube-system stuff might not follow this, but I'm not calculating their average behavior anyway
+            label_to_svc[label] = name
+            #if label not in label_to_svc :
+            #    label_to_svc[label] = [name]
+            #else:
+            #    label_to_svc[label].append(name)
 
     return svc_to_label,label_to_svc
 
@@ -79,7 +82,13 @@ def map_nodes_to_svcs(G, svcs, ip_to_entity):
                 if node_attribs[4] != None:
                     ## the services have labels, and so do the nodes, and you have to match them!
                     label = node_attribs[4]
-                    svc = label_to_svc[label]
+                    try:
+                        svc = label_to_svc[label]
+                    except:
+                        if 'k8s-app' in label:
+                            pass
+                        else:
+                            raise("there's a label not a associated with a service! that's weird!")
                     containers_to_ms[u] = svc
                     continue
             for svc in svcs:

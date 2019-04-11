@@ -13,7 +13,7 @@ from jinja2 import FileSystemLoader, Environment
 class single_model_stats_pipeline():
     def __init__(self, aggregate_mod_score_df, base_output_name,
                  skip_model_part, clf, ignore_physical_attacks_p, drop_pairwise_features,
-                 timegran, lasso_feature_selection_p, dont_prepare_data_p=False):
+                 timegran, lasso_feature_selection_p, dont_prepare_data_p=False, skip_heatmap_p=True):
 
         self.dont_prepare_data_p=dont_prepare_data_p
         self.method_name = 'ensemble'
@@ -64,7 +64,7 @@ class single_model_stats_pipeline():
         self.method_to_optimal_f1_scores_train, self.method_to_optimal_predictions_train = {},{}
         self.method_to_cm_df_train, self.method_to_cm_df_test = {},{}
         self.method_to_optimal_thresh_test, self.method_to_optimal_thresh_train = {}, {}
-        self.skip_heatmaps=True
+        self.skip_heatmaps=skip_heatmap_p
 
         try:
             os.makedirs('./temp_outputs')
@@ -83,11 +83,16 @@ class single_model_stats_pipeline():
         else:
             train_test = 'test_'
 
+        print "self.time_gran", self.time_gran
+        if type(self.time_gran) == tuple:
+            time_gran = "_".join(self.time_gran)
+        else:
+            time_gran = str(self.time_gran)
         # make heatmaps so I can see which features are contributing
-        current_heatmap_val_path = self.base_output_name + train_test + 'coef_val_heatmap_' + str(self.time_gran) + '.png'
-        local_heatmap_val_path = 'temp_outputs/' + train_test + 'heatmap_coef_val_at_' +  str(self.time_gran) + '.png'
-        current_heatmap_path = self.base_output_name + train_test + 'coef_act_heatmap_' + str(self.time_gran) + '.png'
-        local_heatmap_path = 'temp_outputs/' + train_test + 'heatmap_coef_contribs_at_' +  str(self.time_gran) + '.png'
+        current_heatmap_val_path = self.base_output_name + train_test + 'coef_val_heatmap_' + str(time_gran) + '.png'
+        local_heatmap_val_path = 'temp_outputs/' + train_test + 'heatmap_coef_val_at_' +  str(time_gran) + '.png'
+        current_heatmap_path = self.base_output_name + train_test + 'coef_act_heatmap_' + str(time_gran) + '.png'
+        local_heatmap_path = 'temp_outputs/' + train_test + 'heatmap_coef_contribs_at_' +  str(time_gran) + '.png'
 
         if training_p:
             coef_impact_df, raw_feature_val_df = generate_heatmap.generate_covariate_heatmap(self.coef_dict, self.X_train, self.exfil_paths_train)
@@ -281,7 +286,7 @@ class single_rate_stats_pipeline():
         self.exfil_per_min_variance = exfil_per_min_variance
         self.pkt_size_variance = pkt_size_variance
 
-    def run_statistical_pipeline(self, drop_pairwise_features, pretrained_statistical_analysis_v2):
+    def run_statistical_pipeline(self, drop_pairwise_features, pretrained_statistical_analysis_v2, skip_heatmap_p=True):
         for timegran,feature_df in self.time_gran_to_aggregate_mod_score_dfs.iteritems():
             # clf = LogisticRegressionCV(penalty="l1", cv=10, max_iter=10000, solver='saga')
             # cur_base_output_name + 'logistic_l1_mod_z_lass_feat_sel_'
@@ -294,7 +299,7 @@ class single_rate_stats_pipeline():
 
             stat_pipeline = single_model_stats_pipeline(feature_df, self.base_output_name, self.skip_model_part, clf,
                                                         self.ignore_physical_attacks_p, drop_pairwise_features, timegran,
-                                                        lasso_feature_selection_p)
+                                                        lasso_feature_selection_p, skip_heatmap_p=skip_heatmap_p)
 
             if pretrained_statistical_analysis_v2 == None or (timegran not in pretrained_statistical_analysis_v2):
                 stat_pipeline.generate_model(using_pretrained_model=False)
@@ -314,7 +319,7 @@ class single_rate_stats_pipeline():
 
             self.time_gran_to_outtraffic[timegran].append(stat_pipeline.out_traffic)
 
-        self._train_multi_time_model( drop_pairwise_features, pretrained_statistical_analysis_v2 )
+        self._train_multi_time_model( drop_pairwise_features, pretrained_statistical_analysis_v2, skip_heatmap_p )
 
     def create_the_report(self, auto_open_p):
             ## handle it like this... self.timegran_to_statistical_pipeline[tuple(self.timegran_to_statistical_pipeline.keys())]
@@ -339,7 +344,7 @@ class single_rate_stats_pipeline():
                self.time_gran_to_outtraffic, self.timegran_to_statistical_pipeline
 
 
-    def _train_multi_time_model(self, drop_pairwise_features, pretrained_statistical_analysis_v2):
+    def _train_multi_time_model(self, drop_pairwise_features, pretrained_statistical_analysis_v2, skip_heatmap_p):
         # the purpose of this function is test the union of alerts...
         ### okay... can I reuse the existing statistical analysis machinery...
         # step 1: get all 0/1 predictions
@@ -397,7 +402,7 @@ class single_rate_stats_pipeline():
         stats_pipeline = single_model_stats_pipeline(final_predictions, self.base_output_name + '_multi_time',
                                                      self.skip_model_part, clf, self.ignore_physical_attacks_p, drop_pairwise_features,
                                                      tuple(self.timegran_to_statistical_pipeline.keys()), lasso_feature_selection_p=False,
-                                                     dont_prepare_data_p=True)
+                                                     dont_prepare_data_p=True, skip_heatmap_p=skip_heatmap_p)
 
         if pretrained_statistical_analysis_v2 == None or (timegran not in pretrained_statistical_analysis_v2):
             stats_pipeline.generate_model(using_pretrained_model=False)
