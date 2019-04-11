@@ -975,7 +975,8 @@ def install_det_dependencies(orchestrator, container, installer):
         out = subprocess.check_output(upload_install_command)
         print "upload_install_command", upload_install_command, out
         out = container.exec_run(['sh', '//install.sh'], stream=True, user="root")
-        print out
+        for outline in out.output:
+            print outline
 
             # NOTE: no longer doing it the way below... I need to copy the file in and use that instead
         #with open(filename, 'r') as fp:
