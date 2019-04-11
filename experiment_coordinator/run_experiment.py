@@ -779,7 +779,7 @@ def install_exfil_dependencies(exfil_paths, orchestrator, class_to_installer, ex
             pass
 
         # step (2): update the deployment
-        print "cur_relevant_deployment",cur_relevant_deployment
+        print "cur_relevant_deployment",cur_relevant_deployment.metadata.labels
         cur_relevant_deployment.spec.template.spec.containers[0].image = new_tag_vesion
         api_response = k8s_beta.patch_namespaced_deployment(
             name=element,

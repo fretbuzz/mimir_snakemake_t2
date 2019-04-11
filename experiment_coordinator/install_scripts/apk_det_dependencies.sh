@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+cd /
 apk update
 #apk upgrade
 apk add git
