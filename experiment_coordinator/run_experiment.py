@@ -63,10 +63,10 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
     except:
         pass
 
-    try:
-        username = config_params["username"]
-    except:
-        username = ""
+    #try:
+    #    username = config_params["username"]
+    #except:
+    #    username = ""
 
     # this file will be used to synchronize the three thread/processes: tcpdump, det, and the background load generator
     end_sentinal_file_loc = './all_done.txt'
@@ -97,6 +97,11 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
         class_to_installer = {}
         originator_class = None
 
+    try:
+        exfil_path_class_to_image = config_params["exfil_path_class_to_image"]
+    except:
+        exfil_path_class_to_image = {}
+
     # okay, now need to calculate the time between packetes (and throw an error if necessary)
     avg_exfil_bytes_in_packet = [(float(DET_min_exfil_bytes_in_packet[i]) + float(DET_max_exfil_bytes_in_packet[i])) \
                                  / 2.0 for i in range(0,len(DET_max_exfil_bytes_in_packet))]
@@ -117,7 +122,8 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
         setup_params = {}
 
     if prepare_app_p:
-        prepare_app(app_name, setup_params,  spec_port, spec_ip, config_params["Deployment"], exfil_paths, class_to_installer, username)
+        prepare_app(app_name, setup_params,  spec_port, spec_ip, config_params["Deployment"], exfil_paths,
+                    class_to_installer, exfil_path_class_to_image)
     ip,port = get_ip_and_port(app_name)
     print "ip,port",ip,port
 
@@ -352,14 +358,14 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
     except OSError:
         pass
 
-def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_config, exfil_paths, class_to_installer, username):
+def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_config, exfil_paths, class_to_installer, exfil_path_class_to_image):
 
     if app_name == "sockshop":
         #sockshop_setup.scale_sockshop.main(deployment_config['deployment_scaling'], deployment_config['autoscale_p'])
         sockshop_setup.scale_sockshop.deploy_sockshop(deployment_config['deployment_scaling'], deployment_config['autoscale_p'])
 
         # modify images appropriately
-        install_exfil_dependencies(exfil_paths, orchestrator, class_to_installer)
+        install_exfil_dependencies(exfil_paths, orchestrator, class_to_installer, exfil_path_class_to_image)
 
         sockshop_setup.scale_sockshop.scale_sockshop(deployment_config['deployment_scaling'], deployment_config['autoscale_p'])
 
@@ -407,7 +413,7 @@ def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_co
         cpu_percent_cuttoff = deployment_config['cpu_percent_cuttoff']["wordpress"]
 
         #wordpress_setup.scale_wordpress.deploy_wp(deployment_scaling)
-        install_exfil_dependencies(exfil_paths, orchestrator, class_to_installer)
+        install_exfil_dependencies(exfil_paths, orchestrator, class_to_installer, exfil_path_class_to_image)
         wordpress_setup.scale_wordpress.scale_wordpress(autoscale_p, cpu_percent_cuttoff, deployment_scaling)
 
         time.sleep(420) # note: may need to increase this...
@@ -454,7 +460,7 @@ def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_co
             print "autoscale_hipsterStore_out...", out
         except:
             pass
-        install_exfil_dependencies(exfil_paths, orchestrator, class_to_installer)
+        install_exfil_dependencies(exfil_paths, orchestrator, class_to_installer, exfil_path_class_to_image)
     else:
         # other applications will require other setup procedures (if they can be automated) #
         # note: some cannot be automated (i.e. wordpress)
@@ -705,7 +711,7 @@ def find_container_in_class(proxy_class, class_to_networks, orchestrator='kubern
     return selected_proxy, class_to_networks
 
 
-def install_exfil_dependencies(exfil_paths, orchestrator, class_to_installer):
+def install_exfil_dependencies(exfil_paths, orchestrator, class_to_installer, exfil_path_class_to_image):
     # let's find all elements (classes) on which I want to install the exfil dependencies
     exfil_elements = set()
     for exfil_path in exfil_paths:
@@ -722,8 +728,13 @@ def install_exfil_dependencies(exfil_paths, orchestrator, class_to_installer):
         old_image_name = None
         print "image tags", chosen_container.image.tags
         print "element", element
+        try:
+            container_element = exfil_path_class_to_image[element]
+        except:
+            container_element = element
+
         for tag in chosen_container.image.tags:
-            if element in tag:
+            if container_element in tag:
                 old_image_name = tag
                 break
 
@@ -1358,6 +1369,11 @@ def generate_analysis_json(path_to_exp_folder, analysis_json_name, exp_config_js
     #    analysis_dict['split_pcap'] = exp_config_json["split_pcap"]
     #except:
     #    pass
+
+    try:
+        analysis_dict["exfil_path_class_to_image"] = exp_config_json["exfil_path_class_to_image"]
+    except:
+        pass
 
     analysis_dict["pod_creation_log_name"] = exp_name  + '_cluster_creation_log.txt'
     analysis_dict["pcap_file_name"] = exp_name + '_bridge_any.pcap'
