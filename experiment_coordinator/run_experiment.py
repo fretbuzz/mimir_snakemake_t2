@@ -98,11 +98,11 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
         originator_class = None
 
     try:
-        exfil_path_class_to_image = config_params["exfil_path_class_to_image"]
+        exfil_path_class_to_image = config_params["exfiltration_info"]["exfil_path_class_to_image"]
     except:
         exfil_path_class_to_image = {}
     print "exfil_path_class_to_image",exfil_path_class_to_image
-    exit(322)
+    #exit(322)
 
     # okay, now need to calculate the time between packetes (and throw an error if necessary)
     avg_exfil_bytes_in_packet = [(float(DET_min_exfil_bytes_in_packet[i]) + float(DET_max_exfil_bytes_in_packet[i])) \
