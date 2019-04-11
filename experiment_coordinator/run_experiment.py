@@ -971,21 +971,28 @@ def install_det_dependencies(orchestrator, container, installer):
             print "unrecognized installer, cannot install DET dependencies.."
             filename = ''
 
-        with open(filename, 'r') as fp:
-            read_lines = fp.readlines()
-            read_lines = [line.rstrip('\n') for line in read_lines]
+        upload_install_command = ["docker", "cp", filename, container.id + ":/install.sh"]
+        out = subprocess.check_output(upload_install_command)
+        print "upload_install_command", upload_install_command, out
+        out = container.exec_run(['sh', '//install.sh'], stream=True, user="root")
+        print out
 
-        for command_string in read_lines:
-            command_list = command_string.split(' ')
-            print container.name
-            print "command string", command_string
-            print "command list", command_list
-            # problem: doesn't run as root...
-            out = container.exec_run(command_list, stream=True, user="root")
-            print "response from command string:"
-            for output in out.output:
-                print output
-            print "\n"
+            # NOTE: no longer doing it the way below... I need to copy the file in and use that instead
+        #with open(filename, 'r') as fp:
+        #    read_lines = fp.readlines()
+        #    read_lines = [line.rstrip('\n') for line in read_lines]
+
+        #for command_string in read_lines:
+        #    command_list = command_string.split(' ')
+        #    print container.name
+        #    print "command string", command_string
+        #    print "command list", command_list
+        #    # problem: doesn't run as root...
+        #    out = container.exec_run(command_list, stream=True, user="root")
+        #    print "response from command string:"
+        #    for output in out.output:
+        #        print output
+        #    print "\n"
     else:
         pass
 
