@@ -85,7 +85,7 @@ class single_model_stats_pipeline():
 
         print "self.time_gran", self.time_gran
         if type(self.time_gran) == tuple:
-            time_gran = "_".join(self.time_gran)
+            time_gran = "_".join([str(i) for i in self.time_gran])
         else:
             time_gran = str(self.time_gran)
         # make heatmaps so I can see which features are contributing
@@ -1040,8 +1040,11 @@ def lasso_feature_selection(X_train, y_train, X_test, y_test):
 def drop_pairwise_features_func(aggregate_mod_score_dfs):
 
     for column in aggregate_mod_score_dfs:
-        if '_to_' in column:
-            aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns=column)
+        try:
+            if '_to_' in column:
+                aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns=column)
+        except:
+            pass
     return aggregate_mod_score_dfs
 
 def generate_ROC_curves(y_test, test_predictions, base_output_name, time_gran, ide_test, ide_train,

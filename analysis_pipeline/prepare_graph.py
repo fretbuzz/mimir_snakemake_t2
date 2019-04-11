@@ -57,7 +57,7 @@ def get_svcs_from_mapping(name2ip):
 
             # note: I am going to make the assumption that each label is associated with only one service.
             # the kube-system stuff might not follow this, but I'm not calculating their average behavior anyway
-            label_to_svc[label] = name
+            label_to_svc[label] = name.replace('_VIP', '')
             #if label not in label_to_svc :
             #    label_to_svc[label] = [name]
             #else:
@@ -364,10 +364,11 @@ def generate_network_graph_colormap(color_map, ms_s, G):
 
 
 def match_name_to_pod(abstract_node_name, concrete_pod_name, svc=None):
+
+    if svc and svc == abstract_node_name and '_VIP' not in concrete_pod_name:
+        return True
+
     if '_VIP' in abstract_node_name:
-        if svc:
-            if svc + '_VIP' == abstract_node_name:
-                return True
         return abstract_node_name in concrete_pod_name
     else:
         valid = re.compile('.*' + abstract_node_name + '-[a-z0-9][a-z0-9][a-z0-9][a-z0-9][a-z0-9][a-z0-9][a-z0-9][a-z0-9][a-z0-9].*')

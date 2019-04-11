@@ -171,57 +171,58 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, use_ciliu
         line_rec = sh.recvline(timeout=100)
         print("recieved line", line_rec)
 
-    if app_name == 'hipsterStore':
-        print "hipsterStore_SPECIFIC"
-        #print "hipsterStore (microservice from google) doesn't have an actual run_experiment component defined"
-        dwnload_skaffold_str = "curl -Lo skaffold https://storage.googleapis.com/skaffold/releases/latest/skaffold-linux-amd64"
-        chg_perm_skaffold_str = "chmod +x skaffold"
-        install_skaffold_str = "sudo mv skaffold /usr/local/bin"
-        sendline_and_wait_responses(sh, dwnload_skaffold_str, timeout=5)
-        sendline_and_wait_responses(sh, chg_perm_skaffold_str, timeout=5)
-        sendline_and_wait_responses(sh, install_skaffold_str, timeout=5)
+    if not skip_app_setup:
+        if app_name == 'hipsterStore':
+            print "hipsterStore_SPECIFIC"
+            #print "hipsterStore (microservice from google) doesn't have an actual run_experiment component defined"
+            dwnload_skaffold_str = "curl -Lo skaffold https://storage.googleapis.com/skaffold/releases/latest/skaffold-linux-amd64"
+            chg_perm_skaffold_str = "chmod +x skaffold"
+            install_skaffold_str = "sudo mv skaffold /usr/local/bin"
+            sendline_and_wait_responses(sh, dwnload_skaffold_str, timeout=5)
+            sendline_and_wait_responses(sh, chg_perm_skaffold_str, timeout=5)
+            sendline_and_wait_responses(sh, install_skaffold_str, timeout=5)
 
 
-        sendline_and_wait_responses(sh, "cd /mydata/mimir_v2/experiment_coordinator", timeout=5)
-        clone_repo = "git clone https://github.com/GoogleCloudPlatform/microservices-demo.git"
-        sendline_and_wait_responses(sh, clone_repo, timeout=10)
-        sendline_and_wait_responses(sh, "cd ./microservices-demo", timeout=5)
-        sendline_and_wait_responses(sh, "skaffold run", timeout=120)
-        sendline_and_wait_responses(sh, "cd ..", timeout=10)
+            sendline_and_wait_responses(sh, "cd /mydata/mimir_v2/experiment_coordinator", timeout=5)
+            clone_repo = "git clone https://github.com/GoogleCloudPlatform/microservices-demo.git"
+            sendline_and_wait_responses(sh, clone_repo, timeout=10)
+            sendline_and_wait_responses(sh, "cd ./microservices-demo", timeout=5)
+            sendline_and_wait_responses(sh, "skaffold run", timeout=120)
+            sendline_and_wait_responses(sh, "cd ..", timeout=10)
 
-    elif app_name == 'wordpress':
-        sh.sendline("cd /mydata/mimir_v2/experiment_coordinator")
-        deploy_str = 'python /mydata/mimir_v2/experiment_coordinator/wordpress_setup/scale_wordpress.py' + ' ' + str(7)
-        sh.sendline(deploy_str)
-        # pwd_line = ''
-        line_rec = 'something something'
-        while line_rec != '':
-            last_line = line_rec
-            line_rec = sh.recvline(timeout=100)
-            print("recieved line", line_rec)
+        elif app_name == 'wordpress':
+            sh.sendline("cd /mydata/mimir_v2/experiment_coordinator")
+            deploy_str = 'python /mydata/mimir_v2/experiment_coordinator/wordpress_setup/scale_wordpress.py' + ' ' + str(7)
+            sh.sendline(deploy_str)
+            # pwd_line = ''
+            line_rec = 'something something'
+            while line_rec != '':
+                last_line = line_rec
+                line_rec = sh.recvline(timeout=100)
+                print("recieved line", line_rec)
 
-        time.sleep(120)
+            time.sleep(120)
 
-        ip, port = get_ip_and_port(app_name, sh)
-        sh.sendline("exit")  # need to be a normal user when using selenium
-        sh.sendline("cd /mydata/mimir_v2/experiment_coordinator/experimental_configs")
+            ip, port = get_ip_and_port(app_name, sh)
+            sh.sendline("exit")  # need to be a normal user when using selenium
+            sh.sendline("cd /mydata/mimir_v2/experiment_coordinator/experimental_configs")
 
-        setup_str = 'python /mydata/mimir_v2/experiment_coordinator/wordpress_setup/setup_wordpress.py ' + str(ip) + ' ' + \
-            str(port) + ' \"hi\"'
-        try:
-            sh.sendline(setup_str)
-        except:
-            print "I legit do not know if sh tubes can through exceptions... let's find out..."
-        # pwd_line = ''
-        line_rec = 'something something'
-        while line_rec != '':
-            last_line = line_rec
-            line_rec = sh.recvline(timeout=360) # it takes 300 sec to timeout at the end, so let's be on th
-            print("recieved line", line_rec)
+            setup_str = 'python /mydata/mimir_v2/experiment_coordinator/wordpress_setup/setup_wordpress.py ' + str(ip) + ' ' + \
+                str(port) + ' \"hi\"'
+            try:
+                sh.sendline(setup_str)
+            except:
+                print "I legit do not know if sh tubes can through exceptions... let's find out..."
+            # pwd_line = ''
+            line_rec = 'something something'
+            while line_rec != '':
+                last_line = line_rec
+                line_rec = sh.recvline(timeout=360) # it takes 300 sec to timeout at the end, so let's be on th
+                print("recieved line", line_rec)
 
-        sendline_and_wait_responses(sh, 'sudo newgrp docker', timeout=10)
-        sh.sendline('export MINIKUBE_HOME=/mydata/')
-        sendline_and_wait_responses(sh, 'cd /mydata/mimir_v2/experiment_coordinator/', timeout=100)
+            sendline_and_wait_responses(sh, 'sudo newgrp docker', timeout=10)
+            sh.sendline('export MINIKUBE_HOME=/mydata/')
+            sendline_and_wait_responses(sh, 'cd /mydata/mimir_v2/experiment_coordinator/', timeout=100)
 
     time.sleep(60)
     start_actual_experiment = 'python /mydata/mimir_v2/experiment_coordinator/run_experiment.py --exp_name ' + \

@@ -959,8 +959,11 @@ def abstract_to_concrete_mapping(abstract_node, graph, excluded_list, container_
             svc = node[1]['svc']
         except:
             svc = None
+        if abstract_node == 'user-db' and node[0] == 'user-db_VIP':
+            pass
         if match_name_to_pod(abstract_node, node[0], svc=svc) and node[0] not in excluded_list:
             matching_concrete_nodes.append(node[0])
+
     #matching_concrete_nodes = [node[0] for node in graph.nodes(data=True) if match_name_to_pod(abstract_node, node[0],svc=node[1]['svc']) if node[0] not in excluded_list]
     print "matching_concrete_nodes", matching_concrete_nodes
     try:

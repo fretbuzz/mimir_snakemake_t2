@@ -4,12 +4,15 @@
   "netsec_policy": "/Volumes/exM2/experimental_data/sockshop_info/sockshop_nine_better_exfil_netsec_seg.txt",
 
   "make_edgefiles": false,
-  "skip_graph_injection": true,
-  "calc_vals": false,
+  "skip_graph_injection": false,
+  "calc_vals": true,
   "calculate_z_scores": true,
   "get_endresult_from_memory": false,
 
   "auto_open_pdfs": true,
-  "skip_heatmap_p" : false
+  "skip_heatmap_p" : false,
+  "drop_pairwise_features" : true,
+  "time_of_synethic_exfil": 10,
+  "time_interval_lengths": [10]
 
 }
