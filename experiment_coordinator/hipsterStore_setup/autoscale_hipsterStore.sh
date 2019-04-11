@@ -4,8 +4,8 @@
 
 kubectl autoscale deployment adservice --cpu-percent=80 --min=1 --max=10
 ####
-kubectl autoscale deployment cartservice --cpu-percent=80 --min=1 --max=10 # doesn't seem to make a difference if autoscaled or not... maybe check again later tho...
-kubectl autoscale deployment checkoutservice --cpu-percent=80 --min=1 --max=1 # don't autoscale b/c replicas aren't used anyway0
+kubectl autoscale deployment cartservice --cpu-percent=80 --min=1 --max=10 # doesn't distribute traffic weell
+kubectl autoscale deployment checkoutservice --cpu-percent=80 --min=1 --max=1 # replicas aren't used... keep to 1.
 #####
 kubectl autoscale deployment currencyservice --cpu-percent=80 --min=1 --max=10
 kubectl autoscale deployment emailservice --cpu-percent=80 --min=1 --max=10
