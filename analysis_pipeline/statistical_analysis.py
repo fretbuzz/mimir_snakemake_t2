@@ -85,9 +85,10 @@ class single_model_stats_pipeline():
 
         print "self.time_gran", self.time_gran
         if type(self.time_gran) == tuple:
-            time_gran = "_".join([str(i) for i in self.time_gran])
+            time_gran = "_".join([str(i) for i in self.time_gran]) + '_multi_'
         else:
             time_gran = str(self.time_gran)
+
         # make heatmaps so I can see which features are contributing
         current_heatmap_val_path = self.base_output_name + train_test + 'coef_val_heatmap_' + str(time_gran) + '.png'
         local_heatmap_val_path = 'temp_outputs/' + train_test + 'heatmap_coef_val_at_' +  str(time_gran) + '.png'
@@ -176,6 +177,10 @@ class single_model_stats_pipeline():
         self.time_gran_to_debugging_csv[self.time_gran].to_csv(self.debugging_csv_path , na_rep='?')
 
     def generate_report_section(self):
+        if not self.skip_heatmaps:
+            self._generate_heatmap(training_p=True)
+            self._generate_heatmap(training_p=False)
+
         number_attacks_in_test = len(self.y_test[self.y_test['labels'] == 1])
         number_non_attacks_in_test = len(self.y_test[self.y_test['labels'] == 0])
         percent_attacks = (float(number_attacks_in_test) / (number_non_attacks_in_test + number_attacks_in_test))
@@ -237,10 +242,6 @@ class single_model_stats_pipeline():
             self._generate_optimal_predictions(self.method_to_test_predictions, self.y_test)
         self.method_to_optimal_f1_scores_train, self.method_to_optimal_predictions_train, self.method_to_optimal_thresh_train = \
             self._generate_optimal_predictions(self.method_to_train_predictions, self.y_train)
-
-        if not self.skip_heatmaps:
-            self._generate_heatmap(training_p=True)
-            self._generate_heatmap(training_p=False)
 
         self.method_to_cm_df_train = self._generate_confusion_matrixes(self.method_to_optimal_predictions_train, self.y_train,
                                                             self.exfil_paths_train, self.exfil_weights_train)

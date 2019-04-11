@@ -24,6 +24,7 @@ import netifaces
 import wordpress_setup.setup_wordpress
 import kubernetes
 import wordpress_setup.scale_wordpress
+import wordpress_setup.kubernetes_setup_functions
 import sockshop_setup.scale_sockshop
 import pickle
 
@@ -438,6 +439,17 @@ def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_co
         '''
         ## TODO: autoscaling component!!! <<<--- YES. THIS IS STILL TODO.
         ## ALSO TODO: diagnose + fix (recommendationservice) + cartservice
+        ####################################################################
+
+        heapstr_str = ["minikube", "addons", "enable", "heapster"]
+        out = subprocess.check_output(heapstr_str)
+        print "heapstr_str_response ", out
+        metrics_server_str= ["minikube", "addons", "enable", "metrics-server"]
+        out = subprocess.check_output(metrics_server_str)
+        print "metrics_server_str_response ", out
+
+        wordpress_setup.kubernetes_setup_functions.wait_until_pods_done("kube-system")
+
         out = subprocess.check_output(['bash', 'hipsterStore_setup/autoscale_hipsterStore.sh'])
         print "autoscale_hipsterStore_out...", out
         install_exfil_dependencies(exfil_paths, orchestrator, class_to_installer)
