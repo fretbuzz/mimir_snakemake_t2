@@ -405,7 +405,6 @@ def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_co
         autoscale_p = deployment_config['autoscale_p']
         cpu_percent_cuttoff = deployment_config['cpu_percent_cuttoff']["wordpress"]
 
-        ## TODO: move the deploy + setup stuff into run_exp_on_cloud BUT scale can stay here!!!
         #wordpress_setup.scale_wordpress.deploy_wp(deployment_scaling)
         install_exfil_dependencies(exfil_paths, orchestrator, class_to_installer)
         wordpress_setup.scale_wordpress.scale_wordpress(autoscale_p, cpu_percent_cuttoff, deployment_scaling)
@@ -437,7 +436,10 @@ def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_co
         
         time.sleep(60)
         '''
-        ## TODO: autoscaling component!!!
+        ## TODO: autoscaling component!!! <<<--- YES. THIS IS STILL TODO.
+        ## ALSO TODO: diagnose + fix (recommendationservice) + cartservice
+        out = subprocess.check_output(['bash', 'hipsterStore_setup/autoscale_hipsterStore.sh'])
+        print "autoscale_hipsterStore_out...", out
         install_exfil_dependencies(exfil_paths, orchestrator, class_to_installer)
     else:
         # other applications will require other setup procedures (if they can be automated) #
@@ -549,6 +551,12 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
         #try:
         aggregate_locust_file(locust_info_file +'_requests.csv', locust_info_file + '_AGGREGATED')
         succeeded_requests, failed_requests, fail_percentage = sanity_check_locust_performance(locust_info_file +'_requests.csv')
+
+        try:
+            os.remove(locust_info_file +'_requests.csv')
+        except OSError:
+            pass
+
         #except Exception as e:
         #    raise("exception_in_prepare_apps: " + e.output)
 

@@ -367,13 +367,13 @@ class single_rate_stats_pipeline():
         for time_gran, predictions in timegran_to_predictions.iteritems():
             # final_trainpredictions[time_gran] = [0 for i in range(0, len(timegran_to_trainpredictions[max_timegran]))]
             # final_testpredictions[time_gran] = [0 for i in range(0, len(timegran_to_testpredictions[max_timegran]))]
-            final_predictions[time_gran] = [0 for i in range(0, len(timegran_to_predictions[max_timegran]))]
+            final_predictions[str(time_gran)] = [0 for i in range(0, len(timegran_to_predictions[max_timegran]))]
             conversion_to_max = int(max_timegran / time_gran)  # note: going to assume they all fit in easily
             # for i in range(conversion_to_max,len(testpredictions), conversion_to_max):
             for i in range(0, len(timegran_to_predictions[max_timegran]), 1):
                 cur_prediction = sum(predictions[i * conversion_to_max: (i + 1) * conversion_to_max]) / float(
                     conversion_to_max)
-                final_predictions[time_gran][i] = final_predictions[time_gran][i] + cur_prediction
+                final_predictions[str(time_gran)][i] = final_predictions[str(time_gran)][i] + cur_prediction
 
         final_predictions = pd.DataFrame(final_predictions, columns=final_predictions.keys())
 
@@ -808,11 +808,11 @@ def extract_comparison_methods(X_train, X_test):
             ide_test = [0 for i in range(0, len(X_test))]
 
     # cilium_for_first_sec_
-    try:
         cilium_columns = []
         for column in X_train:
             if 'cilium_for_first_sec_' in column:
                 cilium_columns.append(column)
+    try:
         cilium_train = copy.deepcopy( X_train[cilium_columns[0]] )
         cilium_test = copy.deepcopy( X_test[cilium_columns[0]] )
         X_train = X_train.drop(columns=cilium_columns[0])
