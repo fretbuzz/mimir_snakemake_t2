@@ -16,7 +16,7 @@
       "folder_to_exfil": "/var/lib/mysql/",
       "regex_of_file_to_exfil": "\"galera.cach*\"",
       "exfiltration_path_class_which_installer": { "wwwppp-wordpress":"apt","my-release-pxc": "apt"  },
-      "exfil_path_class_to_image": { "wwwppp-wordpress":"wordpress", "my-release-pxc": "percona-xtradb-cluster"}
+      "exfil_path_class_to_image": { "wwwppp-wordpress":"wordpress", "my-release-pxc": "percona-xtradb-cluster"},
 
       "exfil_methods": ["DET"],
       "exfil_protocols": ["tcp"],
