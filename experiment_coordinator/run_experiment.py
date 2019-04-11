@@ -790,6 +790,7 @@ def install_exfil_dependencies(exfil_paths, orchestrator, class_to_installer, ex
 
 # returns a list of container names that correspond to the
 # selected class
+### TODO: THIS IS WRONG!!!!!!!!
 def get_class_instances(orchestrator, class_name, class_to_net):
     print "finding class instances for: ", class_name
     if orchestrator == "kubernetes":
@@ -798,7 +799,8 @@ def get_class_instances(orchestrator, class_name, class_to_net):
         for container in client.containers.list():
             #print "container", container, container.name
             # note: lots of containers have a logging container as a sidecar... wanna make sure we don't use that one
-            if class_name in container.name and 'log' not in container.name and 'POD' not in container.name:
+            if class_name in container.name and 'log' not in container.name and 'POD' not in container.name and \
+                    (('db' in class_name) == ('db' in container.name)):
                 print class_name, container.name
                 container_instances.append(container)
 
