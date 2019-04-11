@@ -217,13 +217,13 @@ def update_mapping(container_to_ip, cluster_creation_log, time_gran, time_counte
                 # NOTE: in updated experimental coordinator, now everything has a PLUS and it is therefore meaningless
                 ## TODO: MODIFY THIS CHECK ONCE I GET MORE DATA!!!
                 if plus_minus == '+':
-                    if cur_ip not in container_to_ip:
+                    if cur_ip not in container_to_ip and cur_ip != 'None':
                         if entity != 'svc':
                             mod_cur_creation_log[cur_ip] = (cur_pod, None, namespace, entity, new_label)
                         else:
                             mod_cur_creation_log[cur_ip] = (cur_pod + '_VIP', None, namespace, entity, new_label)
 
-                        if namespace == 'kube-system':
+                        if namespace == 'kube-system' or (cur_pod == 'kubernetes' and namespace=='default'):
                             if 'kube-dns' not in cur_pod or entity == 'svc':  # the svc endpoint labeled kube-dns is shared by LOTS of system functions
                                 infra_instances[cur_pod] = [cur_ip, entity, new_label]
                             else:

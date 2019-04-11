@@ -265,8 +265,9 @@ if __name__=="__main__":
         #run_analysis('./analysis_json/sockshop_one_v2_mk7.json')
         #run_analysis('./analysis_json/sockshop_one_v2.json')
         #run_analysis('./analysis_json/sockshop_one_v2_minimal.json')
-        run_analysis('./analysis_json/wordpress_one_v2_nonauto.json')
+        #run_analysis('./analysis_json/wordpress_one_v2_nonauto.json')
         #run_analysis('./analysis_json/sockshop_one_v2_nonauto.json')
         #run_analysis('./analysis_json/sockshop_short.json')
+        run_analysis('./analysis_json/wordpress_one_3_auto_mk5.json')
     else:
         parse_experimental_config(args.training_config_json)

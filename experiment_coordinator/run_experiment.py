@@ -720,6 +720,8 @@ def install_exfil_dependencies(exfil_paths, orchestrator, class_to_installer):
         install_det_dependencies(orchestrator, chosen_container, class_to_installer[element])
         # now commit the image
         old_image_name = None
+        print "image tags", chosen_container.image.tags
+        print "element", element
         for tag in chosen_container.image.tags:
             if element in tag:
                 old_image_name = tag
