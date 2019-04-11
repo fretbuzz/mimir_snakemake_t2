@@ -1,11 +1,11 @@
 {
   "skip_model_part": false,
   "ignore_physical_attacks_p": true,
-  "time_of_synethic_exfil": 60,
+  "time_of_synethic_exfil": 30,
   "goal_train_test_split_training": 0.50,
   "goal_attack_NoAttack_split_training": 0.50,
   "goal_attack_NoAttack_split_testing": 0.2,
-  "time_interval_lengths": [10, 60],
+  "time_interval_lengths": [10],
   "ide_window_size": 12,
   "avg_exfil_per_min": [10.0, 1.0, 0.1, 0.05, 0.01],
   "exfil_per_min_variance": [0.3, 0.15, 0.025, 0.0125, 0.0025],

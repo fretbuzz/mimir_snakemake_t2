@@ -186,23 +186,30 @@ def update_mapping(container_to_ip, cluster_creation_log, time_gran, time_counte
                 plus_minus = curIP_PlusMinus[1]
                 namespace = curIP_PlusMinus[2]
                 entity = curIP_PlusMinus[3]
-                labels = curIP_PlusMinus[4] # used to link pods to svcs
-                status = curIP_PlusMinus[5] # used to determine whether pods are stop/starting
+                try:
+                    labels = curIP_PlusMinus[4] # used to link pods to svcs
+                    status = curIP_PlusMinus[5] # used to determine whether pods are stop/starting
+                except:
+                    labels = None
+                    status = None
 
                 # if this is an application pod (not a infrastructure pod) then one of the labels
                 # should be termed 'name' and this'll link the pod to the service, which'll also
                 # have that name [[else, the label will be "k8s-app" b/c it's infra or "component" -- else use
                 # can use regex parsing of the hostname of the pod)
-                split_labels = labels.split(",")
-                name_split_labels = [j for j in split_labels if "name=" in j]
-                k8s_split_labels = [j for j in split_labels if "k8s-app=" in j]
-                if (len(name_split_labels) >= 1 and len(k8s_split_labels) >= 1) or  (len(name_split_labels) > 1 or  len(k8s_split_labels) > 1):
-                    print "problem with label parsing function in update"
-                    exit(344)
-                if len(name_split_labels) >= 1:
-                    new_label = name_split_labels[0]
-                elif len(k8s_split_labels) >= 1:
-                    new_label = k8s_split_labels[0]
+                if labels:
+                    split_labels = labels.split(",")
+                    name_split_labels = [j for j in split_labels if "name=" in j]
+                    k8s_split_labels = [j for j in split_labels if "k8s-app=" in j]
+                    if (len(name_split_labels) >= 1 and len(k8s_split_labels) >= 1) or  (len(name_split_labels) > 1 or  len(k8s_split_labels) > 1):
+                        print "problem with label parsing function in update"
+                        exit(344)
+                    if len(name_split_labels) >= 1:
+                        new_label = name_split_labels[0]
+                    elif len(k8s_split_labels) >= 1:
+                        new_label = k8s_split_labels[0]
+                    else:
+                        new_label = None
                 else:
                     new_label = None
 
