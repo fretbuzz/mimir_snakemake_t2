@@ -6,7 +6,7 @@
 
     "network_plugin": "none",
     "experiment" : {
-      "number_background_locusts": 50,
+      "number_background_locusts": 80,
       "background_locust_spawn_rate": 25,
       "traffic_type" : "normal"
     },

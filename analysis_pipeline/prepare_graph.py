@@ -365,7 +365,6 @@ def generate_network_graph_colormap(color_map, ms_s, G):
 
 def match_name_to_pod(abstract_node_name, concrete_pod_name, svc=None):
 
-    ## TODO: does this even make sense?? it's more like the label of the e
     if svc and svc == abstract_node_name and '_VIP' not in concrete_pod_name:
         return True
 
