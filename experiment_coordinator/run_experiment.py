@@ -758,9 +758,13 @@ def install_exfil_dependencies(exfil_paths, orchestrator, class_to_installer, ex
 
         cur_relevant_deployment = None
         for item in api_response.items:
-            print "item", item.metadata
-            if 'name' in item.metadata.labels:
+            print "item", item.metadata.labels
+            if 'name' in item.metadata.labels
                 if element == item.metadata.labels['name']:
+                    cur_relevant_deployment = item
+                    break
+            if 'app' in item.metadata.labels:
+                if element == item.metadata.labels['app']:
                     cur_relevant_deployment = item
                     break
 
