@@ -755,11 +755,12 @@ def install_exfil_dependencies(exfil_paths, orchestrator, class_to_installer, ex
         k8s_beta = kubernetes.client.ExtensionsV1beta1Api()
         # step (1): find corresponding kubernetes deployment
         api_response = k8s_beta.list_deployment_for_all_namespaces()
+        ## TODO: not a deploymnet... it's a replica set...
 
         cur_relevant_deployment = None
         for item in api_response.items:
             print "item", item.metadata.labels
-            if 'name' in item.metadata.labels
+            if 'name' in item.metadata.labels:
                 if element == item.metadata.labels['name']:
                     cur_relevant_deployment = item
                     break
@@ -767,6 +768,15 @@ def install_exfil_dependencies(exfil_paths, orchestrator, class_to_installer, ex
                 if element == item.metadata.labels['app']:
                     cur_relevant_deployment = item
                     break
+
+        if not cur_relevant_deployment:
+            ## TODO: handle the stateful set setup of the physcial exfil...
+            ## we'll do this at some point in time... but not now b/c there are more important
+            ## angles to explore...
+            #client2 = kubernetes.client.AppsV1beta1Api
+            #api_response_stateful_set = client2.V1beta1StatefulSetList()
+                #V1beta1StatefulSet()
+            pass
 
         # step (2): update the deployment
         print "cur_relevant_deployment",cur_relevant_deployment

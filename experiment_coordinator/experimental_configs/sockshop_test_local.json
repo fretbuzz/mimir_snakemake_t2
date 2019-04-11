@@ -28,5 +28,20 @@
       "DET_max_exfil_data_per_packet_bytes": [400, 400, 400],
       "DET_avg_exfiltration_rate_KB_per_sec": [1.0, 1.0, 1.0],
       "sec_between_exfil_pkts":["None", "None", "None"]
-    }
+    },
+    "Deployment" : {
+      "deployment_scaling" :
+        {
+          "orders": {"min": 3, "max": 3},
+          "queue-master" : {"min": 3, "max": 3},
+          "shipping": {"min": 3, "max": 3},
+          "catalogue": {"min": 6, "max": 6},
+          "front-end": {"min": 6, "max": 6},
+          "payment": {"min": 6, "max": 6},
+          "user": {"min": 6, "max": 6},
+          "cart": {"min": 4, "max": 4}
+        },
+      "autoscale_p": true
+    },
+    "VM_interfaces" : ["vboxnet0"]
 }
