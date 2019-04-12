@@ -24,13 +24,24 @@ def parse_experimental_data_json(config_file, experimental_folder, experiment_na
         alert_file = experimental_folder + experiment_name + '/alerts/' + experiment_name + '_'
         base_experiment_dir =  experimental_folder + experiment_name + '/'
 
-        sec_between_exfil_pkts = config_file["exfiltration_info"]['sec_between_exfil_pkts']
+        try:
+            sec_between_exfil_pkts = config_file["exfiltration_info"]['sec_between_exfil_pkts']
+        except:
+            sec_between_exfil_pkts = 1.0
+
         pcap_paths = [ pcap_file_path + config_file['pcap_file_name'] ]
         pod_creation_log = [ pod_creation_log_path + config_file['pod_creation_log_name']]
         sensitive_ms = config_file["exfiltration_info"]['sensitive_ms']
 
-        exfil_StartEnd_times = config_file["exfiltration_info"]['exfil_StartEnd_times']
-        physical_exfil_paths = config_file["exfiltration_info"]['exfil_paths']
+        try:
+            exfil_StartEnd_times = config_file["exfiltration_info"]['exfil_StartEnd_times']
+        except:
+            exfil_StartEnd_times = [[]]
+
+        try:
+            physical_exfil_paths = config_file["exfiltration_info"]['exfil_paths']
+        except:
+            physical_exfil_paths = [[]]
 
         pipeline_object = data_anylsis_pipline(pcap_paths=pcap_paths, basefile_name=basefile_name,
                                                time_interval_lengths=time_interval_lengths,
@@ -262,12 +273,15 @@ if __name__=="__main__":
 
     if not args.training_config_json:
         print "running_preset..."
+        #run_analysis('./analysis_json/hipsterStore_mk1.json')
+        run_analysis('./analysis_json/sockshop_one_auto_mk11long.json')
+        #run_analysis('./analysis_json/wordpress_one_3_auto_mk5.json')
+
         #run_analysis('./analysis_json/sockshop_one_v2_mk7.json')
         #run_analysis('./analysis_json/sockshop_one_v2.json')
         #run_analysis('./analysis_json/sockshop_one_v2_minimal.json')
         #run_analysis('./analysis_json/wordpress_one_v2_nonauto.json')
         #run_analysis('./analysis_json/sockshop_one_v2_nonauto.json')
         #run_analysis('./analysis_json/sockshop_short.json')
-        run_analysis('./analysis_json/wordpress_one_3_auto_mk5.json')
     else:
         parse_experimental_config(args.training_config_json)

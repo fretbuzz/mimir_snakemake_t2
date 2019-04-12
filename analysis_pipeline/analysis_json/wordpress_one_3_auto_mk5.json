@@ -1,7 +1,7 @@
 {
   "skip_model_part": false,
   "ignore_physical_attacks_p": true,
-  "time_of_synethic_exfil": 30,
+  "time_of_synethic_exfil": 60,
   "goal_train_test_split_training": 0.50,
   "goal_attack_NoAttack_split_training": 0.50,
   "goal_attack_NoAttack_split_testing": 0.2,
@@ -12,7 +12,7 @@
   "avg_pkt_size": [500.0, 500.0, 500.00, 500.00, 500.0, 500.0],
   "pkt_size_variance":  [100, 100, 100, 100, 100, 100],
 
-  "make_edgefiles": true,
+  "make_edgefiles": false,
   "skip_graph_injection": false,
   "calc_vals": true,
   "calculate_z_scores": true,

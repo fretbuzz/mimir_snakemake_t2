@@ -641,8 +641,8 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
 
         name_of_file = file_path.split('/')[-1]
 
-        prefix_for_inject_params = 'avg_exfil_' + str(avg_exfil_per_min) + ':' + str(exfil_per_min_variance) + \
-                                   '_avg_pkt_' + str(avg_pkt_size) + ':' + str(pkt_size_variance) + '_'
+        prefix_for_inject_params = 'avg_exfil_' + str(avg_exfil_per_min) + '_var_' + str(exfil_per_min_variance) #\
+                                   #+ '_avg_pkt_' + str(avg_pkt_size) + ':' + str(pkt_size_variance) + '_'
 
         name_of_injected_file =  prefix_for_inject_params +  file_path.split('/')[-1]
 

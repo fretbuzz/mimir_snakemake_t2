@@ -47,17 +47,18 @@ def get_svcs_from_mapping(name2ip):
     for name,attribs in name2ip.iteritems():
         entity_type = attribs[3]
         if entity_type == 'svc':
-            label = attribs[4]
-            svc_to_label[name] = label
+            labels = attribs[4]
+            svc_to_label[name] = labels
 
-            if label is not None:
-                if label in label_to_svc and 'k8s-app' not in label:
-                    print "more than one service with the same label -- error!!!"
-                    exit(233)
-
+            if labels is not None:
+                for label in labels:
+                    if label in label_to_svc and 'k8s-app' not in label:
+                        print "more than one service with the same label -- error!!!"
+                        exit(233)
+                    label_to_svc[label] = name.replace('_VIP', '')
             # note: I am going to make the assumption that each label is associated with only one service.
             # the kube-system stuff might not follow this, but I'm not calculating their average behavior anyway
-            label_to_svc[label] = name.replace('_VIP', '')
+
             #if label not in label_to_svc :
             #    label_to_svc[label] = [name]
             #else:
@@ -78,19 +79,32 @@ def map_nodes_to_svcs(G, svcs, ip_to_entity):
         # if the labels identify the service, then we can just use that...
         if u in name2ip:
             node_attribs = name2ip[u]
+            found_matching_svc = False
             if len(node_attribs) >= 4:
                 if node_attribs[4] != None:
                     ## the services have labels, and so do the nodes, and you have to match them!
-                    label = node_attribs[4]
-                    try:
-                        svc = label_to_svc[label]
-                    except:
-                        if 'k8s-app' in label:
+                    labels = node_attribs[4]
+                    for label in labels:
+                        try:
+                            svc = label_to_svc[label]
+                            if found_matching_svc:
+                                if svc != containers_to_ms[u]:
+                                    print "one node matches two services..."
+                                    exit(244)
+                            found_matching_svc = True
+                            containers_to_ms[u] = svc
+                        except:
                             pass
-                        else:
-                            raise("there's a label not a associated with a service! that's weird!")
-                    containers_to_ms[u] = svc
-                    continue
+                            '''
+                            if 'k8s-app' in label:
+                                pass
+                            else:
+                                print label, node_attribs
+                                print("there's a label not a associated with a service! that's weird! .... exiting now...")
+                                exit(222)
+                            '''
+            if found_matching_svc:
+                continue
             for svc in svcs:
                 if u == "wwwppp-wordpress_VIP" : # this is for debugging... I can  take it out eventually...
                     pass

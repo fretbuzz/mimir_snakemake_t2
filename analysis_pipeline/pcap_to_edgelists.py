@@ -1,5 +1,6 @@
 import json
 import yaml
+import re
 
 
 # swarm_container_ips : file_path -> dictionary mapping IPs to (container_name, network_name)
@@ -199,9 +200,20 @@ def update_mapping(container_to_ip, cluster_creation_log, time_gran, time_counte
                 # have that name [[else, the label will be "k8s-app" b/c it's infra or "component" -- else use
                 # can use regex parsing of the hostname of the pod)
                 if labels:
-                    split_labels = labels.split(",")
-                    name_split_labels = [j for j in split_labels if "name=" in j]
-                    k8s_split_labels = [j for j in split_labels if "k8s-app=" in j]
+                    split_labels = re.split("[,/]", labels)
+                    name_split_labels = [j for j in split_labels if j.startswith("name=")]
+                    k8s_split_labels = [j for j in split_labels if j.startswith("k8s-app=")]
+                    app_split_labels = [j for j in split_labels if j.startswith("app=")]
+                    plausible_labels = name_split_labels + k8s_split_labels + app_split_labels
+                    if len(plausible_labels) > 2:
+                        print "problem with label parsing function in update"
+                        exit(344)
+                    elif len(plausible_labels) >= 1:
+                        new_label = plausible_labels
+                    else:
+                        new_label = None
+
+                    '''
                     if (len(name_split_labels) >= 1 and len(k8s_split_labels) >= 1) or  (len(name_split_labels) > 1 or  len(k8s_split_labels) > 1):
                         print "problem with label parsing function in update"
                         exit(344)
@@ -211,12 +223,12 @@ def update_mapping(container_to_ip, cluster_creation_log, time_gran, time_counte
                         new_label = k8s_split_labels[0]
                     else:
                         new_label = None
+                    '''
                 else:
                     new_label = None
 
                 # NOTE: in updated experimental coordinator, now everything has a PLUS and it is therefore meaningless
-                ## TODO: MODIFY THIS CHECK ONCE I GET MORE DATA!!!
-                if plus_minus == '+':
+                if plus_minus == '+' and (status != 'Terminating'):
                     if cur_ip not in container_to_ip and cur_ip != 'None':
                         if entity != 'svc':
                             mod_cur_creation_log[cur_ip] = (cur_pod, None, namespace, entity, new_label)
@@ -229,13 +241,13 @@ def update_mapping(container_to_ip, cluster_creation_log, time_gran, time_counte
                             else:
                                 pass
 
-                elif plus_minus == '-': # not sure if I want/need this but might be useful for bug checking
-                    pass
+                #elif plus_minus == '-': # not sure if I want/need this but might be useful for bug checking
+                #    pass
                     # passing here b/c can't delete pods that disappear in the current
                     # time frame b/c they end up being mislabeled.
-                else:
-                    print "+/- in pod_creation_log was neither + or -!!"
-                    exit(300)
+                #else:
+                #    print "+/- in pod_creation_log was neither + or -!!"
+                #    exit(300)
 
         if i - (time_gran) >= 0:
             if (i - time_gran) in cluster_creation_log:  # sometimes the last value isn't included
@@ -244,9 +256,14 @@ def update_mapping(container_to_ip, cluster_creation_log, time_gran, time_counte
                     namespace = curIP_PlusMinus[2]
                     cur_pod = cur_pod.rstrip().lstrip()
                     plus_minus = curIP_PlusMinus[1]
+                    try:
+                        status = curIP_PlusMinus[5]  # used to determine whether pods are stop/starting
+                    except:
+                        status = None
 
-                    ## TODO: this check.
-                    if plus_minus == '-': # not sure if I want/need this but might be useful for bug checking
+                    # IP re-use can only happen after termination (for other things, such as OOMkilled or
+                    # crashloopbackoff, it stills reverses the IP address)
+                    if plus_minus == '-' and (status == None or status == 'Terminating'): # not sure if I want/need this but might be useful for bug checking
                         if cur_ip in container_to_ip:
                             del container_to_ip[cur_ip]
                         # note: no point in deleting theme b/c I am indexing by names--- which
