@@ -248,7 +248,7 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
 
             proxy_instance_to_networks_to_ip = map_container_instances_to_ips(orchestrator, selected_container,
                                                                               class_to_networks, network_plugin)
-            for exfil_element in exfil_paths[exfil_counter]:
+            for exfil_element in exfil_paths[exfil_counter][:-1]:
                 container_instance = selected_container[exfil_element]
                 # going to determine srcs and dests by looking backword into the exp_support_scripts class, index into the selected proxies,
                 dst, src = find_dst_and_src_ips_for_det(exfil_paths[exfil_counter], exfil_element,
