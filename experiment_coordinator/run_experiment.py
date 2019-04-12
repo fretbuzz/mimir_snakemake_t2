@@ -243,7 +243,7 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
             class_to_networks = {}
             for exfil_element in exfil_paths[exfil_counter]:
                 possible_containers,class_to_networks[exfil_element] = get_class_instances(orchestrator,exfil_element, "None")
-                chosen_container = random.sample(possible_containers, 1)
+                chosen_container = random.sample(possible_containers, 1)[0]
                 selected_container[exfil_element] = chosen_container
 
             proxy_instance_to_networks_to_ip = map_container_instances_to_ips(orchestrator, selected_container,
