@@ -124,6 +124,7 @@ class single_model_stats_pipeline():
 
         print "list_of_x_vals", list_of_x_vals
         print "list_of_y_vals", list_of_y_vals
+        print "roc_path", self.ROC_path + self.plot_name
         ax, _, plot_path = construct_ROC_curve(list_of_x_vals, list_of_y_vals, self.title, self.ROC_path + self.plot_name,
                                                line_titles, show_p=False)
         self.plot_path = plot_path

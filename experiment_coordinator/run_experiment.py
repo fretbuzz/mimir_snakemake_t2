@@ -929,12 +929,12 @@ def install_det_dependencies(orchestrator, container, installer):
         # make a list of lists, where each list is a line
         # and then send each to the container
         #''' # Note: this is only needed for Atsea Shop
-        upload_config_command = ["docker", "cp", "./exp_support_scripts/modify_resolve_conf.sh", container.id+ ":/modify_resolv.sh"]
-        out = subprocess.check_output(upload_config_command)
-        print "upload_config_command", upload_config_command, out
+        #upload_config_command = ["docker", "cp", "./exp_support_scripts/modify_resolve_conf.sh", container.id+ ":/modify_resolv.sh"]
+        #out = subprocess.check_output(upload_config_command)
+        #print "upload_config_command", upload_config_command, out
 
-        out = container.exec_run(['sh', '//modify_resolv.sh'], stream=True, user="root")
-        print out
+        #out = container.exec_run(['sh', '//modify_resolv.sh'], stream=True, user="root")
+        #print out
         #'''
 
         if installer == 'apk':

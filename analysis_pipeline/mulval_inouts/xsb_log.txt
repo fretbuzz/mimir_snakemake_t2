@@ -29,4 +29,4 @@ Running attack simulation...
 
 yes
 | ?- 
-End XSB (cputime 0.04 secs, elapsetime 0.05 secs)
+End XSB (cputime 0.02 secs, elapsetime 0.04 secs)

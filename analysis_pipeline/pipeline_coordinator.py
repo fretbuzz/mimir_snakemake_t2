@@ -196,8 +196,8 @@ class multi_experiment_pipeline(object):
     ## NOTE: I'm going to try to do this WITHOUT the call to multi-process here!!
     def run_single_pipeline(self, rate_counter, calc_vals, skip_graph_injection, calc_ide=False, include_ide=False, only_ide=False):
         prefix_for_inject_params = 'avg_exfil_' + str(self.avg_exfil_per_min[rate_counter]) + ':' + str(
-            self.exfil_per_min_variance[rate_counter]) +  '_avg_pkt_' + str(self.avg_pkt_size[rate_counter]) + ':' + str(
-            self.pkt_size_variance[rate_counter]) + '_'
+            self.exfil_per_min_variance[rate_counter]) + '_' #+  '_avg_pkt_' + str(self.avg_pkt_size[rate_counter]) + ':' + str(
+            #self.pkt_size_variance[rate_counter]) + '_'
         cur_base_output_name = self.base_output_name + prefix_for_inject_params
         cur_exfil_rate = self.avg_exfil_per_min[rate_counter]
 
