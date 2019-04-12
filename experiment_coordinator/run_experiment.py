@@ -235,74 +235,66 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
         next_exfil_end_time = next_StartEnd_time[1]
         cur_exfil_method = exfil_methods[exfil_counter]
 
+        ## TODO: I am up to debugging this part...
         if exfil_p:
             # setup config files for proxy DET instances and start them
             # note: this is only going to work for a single exp_support_scripts and a single dst, ATM
-            selected_containers = {}
+            selected_container = {}
             class_to_networks = {}
             for exfil_element in exfil_paths[exfil_counter]:
                 possible_containers,class_to_networks[exfil_element] = get_class_instances(orchestrator,exfil_element, "None")
                 selected_container = random.sample(possible_containers, 1)
-                selected_containers[exfil_element] = selected_container
+                selected_container[exfil_element] = selected_container
 
-            proxy_instance_to_networks_to_ip = map_container_instances_to_ips(orchestrator, selected_containers,
+            proxy_instance_to_networks_to_ip = map_container_instances_to_ips(orchestrator, selected_container,
                                                                               class_to_networks, network_plugin)
             for exfil_element in exfil_paths[exfil_counter]:
-                for container_instances in selected_containers[exfil_element]:
-                    # going to determine srcs and dests by looking backword into the exp_support_scripts class, index into the selected proxies,
-                    dsts, srcs = find_dst_and_srcs_ips_for_det(exfil_paths[exfil_counter], exfil_element,
-                                                               selected_containers, localhostip,
-                                                               proxy_instance_to_networks_to_ip, class_to_networks)
-                    print "cur_dsts_srcs", dsts, srcs
-                    for container in container_instances:
-                        for dst in dsts:
-                            print "config stuff", container.name, srcs, dst, proxy_instance_to_networks_to_ip[container]
-                            start_det_proxy_mode(orchestrator, container, srcs, dst, cur_exfil_method,
-                                                maxsleep[exfil_counter], DET_max_exfil_bytes_in_packet, DET_min_exfil_bytes_in_packet)
+                container_instance = selected_container[exfil_element]
+                # going to determine srcs and dests by looking backword into the exp_support_scripts class, index into the selected proxies,
+                dst, src = find_dst_and_src_ips_for_det(exfil_paths[exfil_counter], exfil_element,
+                                                          selected_container, localhostip,
+                                                          proxy_instance_to_networks_to_ip, class_to_networks)
+                print "cur_dst_src", dst, src
+                print "config stuff", container.name, src, dst, proxy_instance_to_networks_to_ip[container]
+                start_det_proxy_mode(orchestrator, container, src, dst, cur_exfil_method,
+                                    maxsleep[exfil_counter], DET_max_exfil_bytes_in_packet, DET_min_exfil_bytes_in_packet)
 
             # this does NOT need to be modified (somewhat surprisingly)
-            start_det_server_local(cur_exfil_method, [ip], maxsleep[exfil_counter], DET_max_exfil_bytes_in_packet,
+            start_det_server_local(cur_exfil_method, ip, maxsleep[exfil_counter], DET_max_exfil_bytes_in_packet,
                                    DET_min_exfil_bytes_in_packet, experiment_name)
 
-            # this is probably fine too...
             # now setup the originator (i.e. the client that originates the exfiltrated data)
-            next_instance_ips, _ = find_dst_and_srcs_ips_for_det(exfil_paths[exfil_counter], originator_class,
-                                                                 selected_containers, localhostip,
-                                                                 proxy_instance_to_networks_to_ip,
-                                                                 class_to_networks)
+            next_instance_ip, _ = find_dst_and_src_ips_for_det(exfil_paths[exfil_counter], originator_class,
+                                                                selected_container, localhostip,
+                                                                proxy_instance_to_networks_to_ip,
+                                                                class_to_networks)
 
-            print "next ip(s) for the originator to send to", next_instance_ips
+            print "next ip for the originator to send to", next_instance_ip
             directory_to_exfil = config_params["exfiltration_info"]["folder_to_exfil"]
             regex_to_exfil = config_params["exfiltration_info"]["regex_of_file_to_exfil"]
             files_to_exfil = []
-            for container in selected_containers[originator_class]:
-                    for next_instance_ip in next_instance_ips:
-                        # this just sets up the config file for DET... I'm not sure why there is a loop over the next_instance_ips
-                        # but I suspect it's because the base implementation requires a new instance for each exfil path,
-                        # so if you want to do multiple exfiltration path simultaneously, you need multiple instances and
-                        # therefore multiple config files
-                        file_to_exfil = setup_config_file_det_client(next_instance_ip, container, directory_to_exfil,
-                                                                     regex_to_exfil,
-                                                                     maxsleep[exfil_counter], DET_min_exfil_bytes_in_packet,
-                                                                     DET_max_exfil_bytes_in_packet)
-                        files_to_exfil.append(file_to_exfil)
+            container = selected_container[originator_class]
+            file_to_exfil = setup_config_file_det_client(next_instance_ip, container, directory_to_exfil,
+                                                         regex_to_exfil, maxsleep[exfil_counter],
+                                                         DET_min_exfil_bytes_in_packet,
+                                                         DET_max_exfil_bytes_in_packet)
+            files_to_exfil.append(file_to_exfil)
 
             time.sleep(start_time + next_exfil_start_time - time.time())
             print start_time, next_exfil_start_time, time.time(), start_time + next_exfil_start_time - time.time()
 
             file_to_exfil = files_to_exfil[0]
-            for container in selected_containers[originator_class]:
-                #for container in container_instances:
-                if cur_exfil_method == 'DET':
-                    thread.start_new_thread(start_det_client, (file_to_exfil, exfil_protocols[exfil_counter], container))
-                elif cur_exfil_method == 'dnscat':
-                    thread.start_new_thread(start_dnscat_client, (container,))
-                else:
-                    print "that exfiltration method was not recognized!"
+            container = selected_container[originator_class]
+            if cur_exfil_method == 'DET':
+                thread.start_new_thread(start_det_client, (file_to_exfil, exfil_protocols[exfil_counter], container))
+            elif cur_exfil_method == 'dnscat':
+                thread.start_new_thread(start_dnscat_client, (container,))
+            else:
+                print "that exfiltration method was not recognized!"
 
             time.sleep(start_time + next_exfil_end_time - time.time())
             # note: looping over everything b/c I wanna stop the proxies too...
-            for class_name,container in selected_containers.iteritems():
+            for class_name,container in selected_container.iteritems():
                 if cur_exfil_method == 'DET':
                     stop_det_client(container)
                 elif cur_exfil_method == 'dnscat':
@@ -432,23 +424,6 @@ def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_co
         #print "setup_wordpress completed..."
     elif app_name == "hipsterStore":
         ## clone the github repo b/c we're going to use their load generator
-        '''
-        if not os.path.isdir("microservices-demo"):
-            out = subprocess.check_output(["git", "clone", "https://github.com/GoogleCloudPlatform/microservices-demo.git"])
-            print "git-cloned-hipsterstore-demeo...", out
-        os.chdir("./microservices-demo")
-        # then deploy it...
-        ## TODO: not sure if this'll actually work...
-        out = subprocess.check_output(["skaffold", "run"])
-        print "deployming-hipsterStore...", out
-        os.chdir("..")
-        
-        time.sleep(60)
-        '''
-        ## TODO: autoscaling component!!! <<<--- YES. THIS IS STILL TODO.
-        ## ALSO TODO: diagnose + fix (recommendationservice) + cartservice
-        ####################################################################
-
         heapstr_str = ["minikube", "addons", "enable", "heapster"]
         out = subprocess.check_output(heapstr_str)
         print "heapstr_str_response ", out
@@ -790,7 +765,6 @@ def install_exfil_dependencies(exfil_paths, orchestrator, class_to_installer, ex
 
 # returns a list of container names that correspond to the
 # selected class
-### TODO: THIS IS WRONG!!!!!!!!
 def get_class_instances(orchestrator, class_name, class_to_net):
     print "finding class instances for: ", class_name
     if orchestrator == "kubernetes":
@@ -800,7 +774,7 @@ def get_class_instances(orchestrator, class_name, class_to_net):
             #print "container", container, container.name
             # note: lots of containers have a logging container as a sidecar... wanna make sure we don't use that one
             if class_name in container.name and 'log' not in container.name and 'POD' not in container.name and \
-                    (('db' in class_name) == ('db' in container.name)):
+                    (('-db' in class_name) == ('-db-' in container.name)):
                 print class_name, container.name
                 container_instances.append(container)
 
@@ -1014,7 +988,7 @@ def map_network_ids_to_namespaces(orchestrator, full_network_ids):
 
 
 # note: det must be a single ip, in string form, ATM
-def start_det_proxy_mode(orchestrator, container, srcs, dst, protocol, maxsleep, maxbytesread, minbytesread):
+def start_det_proxy_mode(orchestrator, container, src, dst, protocol, maxsleep, maxbytesread, minbytesread):
     network_ids_to_namespaces = {}
     if orchestrator == "docker_swarm" or orchestrator == 'kubernetes':
         # okay, so this is what we need to do here
@@ -1032,11 +1006,11 @@ def start_det_proxy_mode(orchestrator, container, srcs, dst, protocol, maxsleep,
         print "cp command result", out
 
         targetip_switch = "s/TARGETIP/\"" + dst + "\"/"
-        print srcs[0], srcs
+        print src
         src_string = ""
-        for src in srcs[:-1]:
-            src_string += "\\\"" + src +  "\\\"" + ','
-        src_string += "\\\"" + srcs[-1] +  "\\\""
+        #for src in srcs[:-1]:
+        #src_string += "\\\"" + src +  "\\\"" + ','
+        src_string += "\\\"" + src +  "\\\""
         proxiesip_switch = "s/PROXIESIP/" + "[" + src_string  + "]" + "/"
         print "targetip_switch", targetip_switch
         print "proxiesip_switch", proxiesip_switch
@@ -1073,19 +1047,18 @@ def start_det_proxy_mode(orchestrator, container, srcs, dst, protocol, maxsleep,
         pass
 
 
-def start_det_server_local(protocol, srcs, maxsleep, maxbytesread, minbytesread, experiment_name):
+def start_det_server_local(protocol, src, maxsleep, maxbytesread, minbytesread, experiment_name):
     # okay, need to modify this so that it can work (can use the working version above as a template)
     #'''
     cp_command = ['sudo', 'cp', "./exp_support_scripts/det_config_local_template.json", "/DET/det_config_local_configured.json"]
     out = subprocess.check_output(cp_command)
     print "cp command result", out
 
-    # todo: switch this for 1-n and n-n
     #proxiesip_switch = "s/PROXIESIP/" + "[\\\"" + srcs[0] + "\\\"]" + "/"
     src_string = ""
-    for src in srcs[:-1]:
-        src_string += "\\\"" + src +  "\\\"" + ','
-    src_string += "\\\"" + srcs[-1] +  "\\\""
+    #for src in srcs[:-1]:
+    #    src_string += "\\\"" + src +  "\\\"" + ','
+    src_string += "\\\"" + src +  "\\\""
     proxiesip_switch = "s/PROXIESIP/" + "[" + src_string  + "]" + "/"
 
     #maxsleep = float(maxsleep)
@@ -1241,42 +1214,40 @@ def stop_det_client(container):
     for output in out.output:
         print output
 
-def find_dst_and_srcs_ips_for_det(exfil_path, current_class_name, selected_containers, localhostip,
-                                  proxy_instance_to_networks_to_ip, class_to_networks):
+def find_dst_and_src_ips_for_det(exfil_path, current_class_name, selected_container, localhostip,
+                                 proxy_instance_to_networks_to_ip, class_to_networks):
     current_loc_in_exfil_path = exfil_path.index(current_class_name)
     current_class_networks = class_to_networks[current_class_name] #proxy_instance_to_networks_to_ip[current_class_name].keys()
 
     if current_class_name not in exfil_path:
         return None, None
 
-    # at originator -> no srcs (or rather, it is the exp_support_scripts for itself):
+    # at originator -> no src (or rather, it is the exp_support_scripts for itself):
     print current_class_name, current_loc_in_exfil_path+1, len(exfil_path)
     if current_loc_in_exfil_path+1 == len(exfil_path):
-        srcs = None
-        pass
-    else: # then it has srcs other than itself
+        src = None
+    else: # then it has src other than itself
         prev_class_in_path = exfil_path[current_loc_in_exfil_path + 1]
-        print selected_containers
+        print selected_container
         # iterate through selected_containers[prev_class_in_path] and append the IP's (seems easy but must wait until done w/ experiments)
-        srcs = []
         # containers must be on same network to communicate...
         prev_class_networks = class_to_networks[prev_class_in_path]
         prev_and_current_class_network = list( set(current_class_networks) & set(prev_class_networks))[0] # should be precisely one
-        for prev_instance in selected_containers[prev_class_in_path]:
-            print 'nneettss', prev_instance,selected_containers[current_class_name]
-            print current_class_name, current_class_networks
-            print prev_class_in_path, prev_class_networks
+        prev_instance = selected_container[prev_class_in_path]
+        print 'nneettss', prev_instance, selected_container[current_class_name]
+        print current_class_name, current_class_networks
+        print prev_class_in_path, prev_class_networks
 
-            # now retrieve the previous container's IP for the correct network
-            print "finding previous ip in exfiltration path...", proxy_instance_to_networks_to_ip[prev_instance], prev_instance.name
-            print prev_and_current_class_network.name, [i.name for i in proxy_instance_to_networks_to_ip[prev_instance]]
-            prev_instance_ip = proxy_instance_to_networks_to_ip[prev_instance][prev_and_current_class_network]
-            srcs.append(prev_instance_ip)
+        # now retrieve the previous container's IP for the correct network
+        print "finding previous ip in exfiltration path...", proxy_instance_to_networks_to_ip[prev_instance], prev_instance.name
+        print prev_and_current_class_network.name, [i.name for i in proxy_instance_to_networks_to_ip[prev_instance]]
+        prev_instance_ip = proxy_instance_to_networks_to_ip[prev_instance][prev_and_current_class_network]
+        src = prev_instance_ip
 
     # at last microservice hop -> next dest is local host
     if current_loc_in_exfil_path == 0:
         next_instance_ip = localhostip
-        dests = [next_instance_ip]
+        dest = next_instance_ip
     else: # then it'll hop through another microservice
         # then can just pass to another proxy in the exfiltration path
 
@@ -1284,13 +1255,12 @@ def find_dst_and_srcs_ips_for_det(exfil_path, current_class_name, selected_conta
         next_class_in_path = exfil_path[current_loc_in_exfil_path - 1]
         next_class_networks = class_to_networks[next_class_in_path]
         next_and_current_class_network = list(set(current_class_networks) & set(next_class_networks))[0]  # should be precisly one 
-        dests = []
-        for next_instance in selected_containers[next_class_in_path]:
-            print "next_and_current_class_network", next_and_current_class_network
-            next_instance_ip = proxy_instance_to_networks_to_ip[next_instance][next_and_current_class_network]
-            dests.append(next_instance_ip)
+        next_instance = selected_container[next_class_in_path]
+        print "next_and_current_class_network", next_and_current_class_network
+        next_instance_ip = proxy_instance_to_networks_to_ip[next_instance][next_and_current_class_network]
+        dest = next_instance_ip
 
-    return dests, srcs
+    return dest, src
 
 def aggregate_locust_file(locust_csv_file, aggregate_locust_csv_file):
     with open(locust_csv_file, 'r') as f:
