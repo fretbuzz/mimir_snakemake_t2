@@ -7,16 +7,15 @@
   "goal_attack_NoAttack_split_testing": 0.2,
   "time_interval_lengths": [10, 60],
   "ide_window_size": 12,
-  "avg_exfil_per_min": [10.0],
-  "avg_exfil_per_min_comment": [10.0, 1.0, 0.1, 0.05, 0.01],
+  "avg_exfil_per_min": [10.0, 1.0, 0.1, 0.05, 0.01],
   "exfil_per_min_variance": [0.3, 0.15, 0.025, 0.0125, 0.0025],
-  "avg_pkt_size": [500.0, 500.0, 500.00, 500.00, 500.0, 500.0],
-  "pkt_size_variance":  [100, 100, 100, 100, 100, 100],
+  "avg_pkt_size": [500.0, 500.0, 500.0, 500.00, 500.00, 500.0, 500.0],
+  "pkt_size_variance":  [100, 100, 100, 100, 100, 100, 100],
 
   "make_edgefiles": false,
   "skip_graph_injection": false,
-  "calc_vals": false,
-  "calculate_z_scores": false,
+  "calc_vals": true,
+  "calculate_z_scores": true,
   "get_endresult_from_memory": false,
 
   "drop_pairwise_features": false,
@@ -30,7 +29,7 @@
 
   "cur_experiment_name": "wordpress_one_3_auto_mk5",
   "base_output_location": "/Volumes/exM/experimental_data/wordpress_info/wordpress_auto_v3_mk5/",
-
+  "skip_heatmap_p" : false,
 
   "experimental_folder": "/Volumes/exM/experimental_data/wordpress_info/wordpress_auto_v3_mk5/",
   "pcap_file_path": "/Volumes/exM/experimental_data/wordpress_info/wordpress_auto_v3_mk5/",

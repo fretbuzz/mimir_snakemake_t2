@@ -146,6 +146,16 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, use_ciliu
             print("did selenium setup work??")
 
         time.sleep(170)
+        sh.sendline("docker image  prune -a")
+        line_rec = 'start'
+        while line_rec != '':
+            line_rec = sh.recvline(timeout=15)
+            if 'Please enter your response' in line_rec:
+                sh.sendline('n')
+            elif "Are you sure you want to continue" in line_rec:
+                sh.sendline('y')
+            print("recieved line", line_rec)
+
         sh.sendline('rm ' + experiment_sentinal_file)
         print "removing experimente sential file", sh.recvline(timeout=5)
         sh.sendline('minikube ssh')

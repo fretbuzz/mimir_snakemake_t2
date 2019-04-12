@@ -276,8 +276,8 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
             container = selected_container[originator_class]
             file_to_exfil = setup_config_file_det_client(next_instance_ip, container, directory_to_exfil,
                                                          regex_to_exfil, maxsleep[exfil_counter],
-                                                         DET_min_exfil_bytes_in_packet,
-                                                         DET_max_exfil_bytes_in_packet)
+                                                         DET_min_exfil_bytes_in_packet[exfil_counter],
+                                                         DET_max_exfil_bytes_in_packet[exfil_counter])
             files_to_exfil.append(file_to_exfil)
 
             ######
