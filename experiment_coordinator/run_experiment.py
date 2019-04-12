@@ -848,39 +848,38 @@ def map_container_instances_to_ips(orchestrator, class_to_instances, class_to_ne
     if network_plugin =='cilium':
         pod_to_ip = get_cilium_mapping()
         print "pod to ip", pod_to_ip
-    for class_name, containers in class_to_instances.iteritems():
+    for class_name, container in class_to_instances.iteritems():
         print 'class_to_networks[class_name]', class_to_networks[class_name], class_name,  class_to_networks
-        for container in containers:
-            # use if cilium
-            if network_plugin == 'cilium':
-                print "theoretically connected networks", class_to_networks[class_name]
-                if 'POD' not in container.name:
-                    for ip, pod_net in pod_to_ip.iteritems():
-                        if container.name.split('_')[2] in pod_net[0] and ":" not in ip: # don't want ipv6
-                            instance_to_networks_to_ip[ container ] = {}
-                            print 'pos match', ip, pod_net, container.name.split('_')[2]
-                            instance_to_networks_to_ip[container][class_to_networks[class_name][0]] = ip
-                            print "current instance_to_networks_to_ip", instance_to_networks_to_ip
+        # use if cilium
+        if network_plugin == 'cilium':
+            print "theoretically connected networks", class_to_networks[class_name]
+            if 'POD' not in container.name:
+                for ip, pod_net in pod_to_ip.iteritems():
+                    if container.name.split('_')[2] in pod_net[0] and ":" not in ip: # don't want ipv6
+                        instance_to_networks_to_ip[ container ] = {}
+                        print 'pos match', ip, pod_net, container.name.split('_')[2]
+                        instance_to_networks_to_ip[container][class_to_networks[class_name][0]] = ip
+                        print "current instance_to_networks_to_ip", instance_to_networks_to_ip
+        else:
+            # if not cilium
+            instance_to_networks_to_ip[ container ] = {}
+            if orchestrator =='kubernetes':
+                # for k8s, cannot actually use the coantiner_attribs for the container.
+                # need to use the attribs of the corresponding pod
+                container_atrribs = find_corresponding_pod_attribs(container.name) ### TODO ####
             else:
-                # if not cilium
-                instance_to_networks_to_ip[ container ] = {}
-                if orchestrator =='kubernetes':
-                    # for k8s, cannot actually use the coantiner_attribs for the container.
-                    # need to use the attribs of the corresponding pod
-                    container_atrribs = find_corresponding_pod_attribs(container.name) ### TODO ####
-                else:
-                    container_atrribs =  container.attrs
+                container_atrribs =  container.attrs
 
-                for connected_network in class_to_networks[class_name]:
-                    ice += 1
-                    instance_to_networks_to_ip[container][connected_network] = []
-                    try:
-                        print "container_attribs", container_atrribs["NetworkSettings"]["Networks"]
-                        print "connected_network.name", connected_network, 'end connected network name'
-                        ip_on_this_network = container_atrribs["NetworkSettings"]["Networks"][connected_network.name]["IPAddress"]
-                        instance_to_networks_to_ip[container][connected_network] = ip_on_this_network
-                    except:
-                        pass
+            for connected_network in class_to_networks[class_name]:
+                ice += 1
+                instance_to_networks_to_ip[container][connected_network] = []
+                try:
+                    print "container_attribs", container_atrribs["NetworkSettings"]["Networks"]
+                    print "connected_network.name", connected_network, 'end connected network name'
+                    ip_on_this_network = container_atrribs["NetworkSettings"]["Networks"][connected_network.name]["IPAddress"]
+                    instance_to_networks_to_ip[container][connected_network] = ip_on_this_network
+                except:
+                    pass
     print "ice", ice
     print "instance_to_networks_to_ip", instance_to_networks_to_ip
     return instance_to_networks_to_ip
