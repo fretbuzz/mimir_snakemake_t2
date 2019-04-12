@@ -252,7 +252,7 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
                 container_instance = selected_container[exfil_element]
                 # going to determine srcs and dests by looking backword into the exp_support_scripts class, index into the selected proxies,
                 dst, src = find_dst_and_src_ips_for_det(exfil_paths[exfil_counter], exfil_element,
-                                                        container_instance, localhostip,
+                                                        selected_container, localhostip,
                                                         proxy_instance_to_networks_to_ip, class_to_networks)
                 print "cur_dst_src", dst, src
                 print "config stuff", container_instance.name, src, dst, proxy_instance_to_networks_to_ip[container_instance]
@@ -265,7 +265,7 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
 
             # now setup the originator (i.e. the client that originates the exfiltrated data)
             next_instance_ip, _ = find_dst_and_src_ips_for_det(exfil_paths[exfil_counter], originator_class,
-                                                                selected_container[originator_class], localhostip,
+                                                                selected_container, localhostip,
                                                                 proxy_instance_to_networks_to_ip,
                                                                 class_to_networks)
 
