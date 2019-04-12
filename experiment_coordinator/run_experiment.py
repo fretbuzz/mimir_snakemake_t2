@@ -243,8 +243,8 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
             class_to_networks = {}
             for exfil_element in exfil_paths[exfil_counter]:
                 possible_containers,class_to_networks[exfil_element] = get_class_instances(orchestrator,exfil_element, "None")
-                selected_container = random.sample(possible_containers, 1)
-                selected_container[exfil_element] = selected_container
+                chosen_container = random.sample(possible_containers, 1)
+                selected_container[exfil_element] = chosen_container
 
             proxy_instance_to_networks_to_ip = map_container_instances_to_ips(orchestrator, selected_container,
                                                                               class_to_networks, network_plugin)
@@ -252,20 +252,20 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
                 container_instance = selected_container[exfil_element]
                 # going to determine srcs and dests by looking backword into the exp_support_scripts class, index into the selected proxies,
                 dst, src = find_dst_and_src_ips_for_det(exfil_paths[exfil_counter], exfil_element,
-                                                          selected_container, localhostip,
-                                                          proxy_instance_to_networks_to_ip, class_to_networks)
+                                                        container_instance, localhostip,
+                                                        proxy_instance_to_networks_to_ip, class_to_networks)
                 print "cur_dst_src", dst, src
-                print "config stuff", container.name, src, dst, proxy_instance_to_networks_to_ip[container]
-                start_det_proxy_mode(orchestrator, container, src, dst, cur_exfil_method,
-                                    maxsleep[exfil_counter], DET_max_exfil_bytes_in_packet, DET_min_exfil_bytes_in_packet)
+                print "config stuff", container_instance.name, src, dst, proxy_instance_to_networks_to_ip[container_instance]
+                start_det_proxy_mode(orchestrator, container_instance, src, dst, cur_exfil_method,
+                                    maxsleep[exfil_counter], DET_max_exfil_bytes_in_packet[exfil_counter], DET_min_exfil_bytes_in_packet[exfil_counter])
 
             # this does NOT need to be modified (somewhat surprisingly)
-            start_det_server_local(cur_exfil_method, ip, maxsleep[exfil_counter], DET_max_exfil_bytes_in_packet,
-                                   DET_min_exfil_bytes_in_packet, experiment_name)
+            start_det_server_local(cur_exfil_method, ip, maxsleep[exfil_counter], DET_max_exfil_bytes_in_packet[exfil_counter],
+                                   DET_min_exfil_bytes_in_packet[exfil_counter], experiment_name)
 
             # now setup the originator (i.e. the client that originates the exfiltrated data)
             next_instance_ip, _ = find_dst_and_src_ips_for_det(exfil_paths[exfil_counter], originator_class,
-                                                                selected_container, localhostip,
+                                                                selected_container[originator_class], localhostip,
                                                                 proxy_instance_to_networks_to_ip,
                                                                 class_to_networks)
 
@@ -280,8 +280,11 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
                                                          DET_max_exfil_bytes_in_packet)
             files_to_exfil.append(file_to_exfil)
 
+            ######
             time.sleep(start_time + next_exfil_start_time - time.time())
+
             print start_time, next_exfil_start_time, time.time(), start_time + next_exfil_start_time - time.time()
+            ######
 
             file_to_exfil = files_to_exfil[0]
             container = selected_container[originator_class]
@@ -293,6 +296,7 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
                 print "that exfiltration method was not recognized!"
 
             time.sleep(start_time + next_exfil_end_time - time.time())
+
             # note: looping over everything b/c I wanna stop the proxies too...
             for class_name,container in selected_container.iteritems():
                 if cur_exfil_method == 'DET':
@@ -302,6 +306,7 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
                 else:
                     print "that exfiltration method was not recognized!"
 
+            ## TODO: this part will need to be improved
             exfil_info_file_name = './' + experiment_name + '_det_server_local_output.txt'
             bytes_exfil, start_ex, end_ex = parse_local_det_output(exfil_info_file_name, exfil_protocols[exfil_counter])
             print bytes_exfil, "bytes exfiltrated"

@@ -1,0 +1,76 @@
+cart ALLOWED orders
+cart ALLOWED carts-db
+cart ALLOWED front-end
+carts-db ALLOWED cart
+catalogue ALLOWED catalogue-db
+catalogue ALLOWED front-end
+catalogue-db ALLOWED catalogue
+front-end ALLOWED cart
+front-end ALLOWED catalogue
+front-end ALLOWED orders
+#front-end ALLOWED payment
+front-end ALLOWED internet
+front-end ALLOWED user
+orders ALLOWED front-end
+orders ALLOWED orders-db
+orders ALLOWED shipping
+orders ALLOWED user
+orders ALLOWED cart
+orders ALLOWED payment
+orders-db ALLOWED orders
+#payment ALLOWED front-end # not true actually
+payment ALLOWED orders
+queue-master ALLOWED rabbitmq
+rabbitmq ALLOWED queue-master
+rabbitmq ALLOWED shipping
+shipping ALLOWED orders
+shipping ALLOWED rabbitmq
+user ALLOWED user-db
+user ALLOWED orders
+user ALLOWED front-end
+# misconfig
+user ALLOWED internet
+# misconfig
+user ALLOWED catalogue
+user-db ALLOWED user 
+#kube-dns ALLOWED all # going to be more specific below...
+front-end ALLOWED kube-dns
+kube-dns ALLOWED front-end
+orders ALLOWED kube-dns
+kube-dns ALLOWED orders
+cart ALLOWED kube-dns
+kube-dns ALLOWED cart
+shipping ALLOWED kube-dns
+kube-dns ALLOWED shipping
+user ALLOWED kube-dns
+kube-dns ALLOWED user
+catalogue ALLOWED kube-dns
+kube-dns ALLOWED catalogue
+# misconfigure
+shipping ALLOWED kube-dns
+kube-dns ALLOWED shipping
+# misconfigure
+user-db ALLOWED kube-dns
+kube-dns ALLOWED user-db
+---------------------
+orders_pod shipping_vip
+front_end_pod kube_dns_vip
+front_end_pod orders_vip
+front_end_pod catalogue_vip
+orders_pod user_vip
+front_end_pod carts_vip
+shipping_pod rabbitmq_vip
+orders_pod orders_db_vip
+orders_pod kube_dns_vip
+cart_pod kube_dns_vip
+queue_master_pod rabbitmq_vip
+user_pod user_db_vip
+shipping_pod kube_dns_vip
+user_pod kube_dns_vip
+catalogue_pod kube_dns_vip
+orders_pod payment_vip
+orders_pod cart_vip
+#front_end_pod user_vip # misconfigure
+cart_pod carts_db_vip
+catalogue_pod catalogue_db_vip
+ALL kube_dns_vip # the ALL here is going to specify that everything connects to kube_dns in this direction
