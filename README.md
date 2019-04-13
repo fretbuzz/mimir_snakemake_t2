@@ -30,7 +30,10 @@ pip install pip
 pip install docker networkx matplotlib jinja2 pdfkit numpy pandas seaborn Cython pyyaml multiprocessing scipy pdfkit
 ```
 
-### Step 2: Set configuration file
+### Step 2: Get example data
+\[ TODO \]
+
+### Step 3: Set configuration file
 In the analysis_pipeline/analysis_json/ directory, can modify the file sockshop_one_v2_minimal.json 
 This is a simple configuration file that the system uses. If running for the first time, only need to modify a couple lines:
 
@@ -40,7 +43,7 @@ This is a simple configuration file that the system uses. If running for the fir
 
 Various parts of the pipeline can be skipped to speed up processing. These can be found in "Analysis Pipeline configuration parameters" in the wiki.
 
-### Step 3: Starting the system
+### Step 4: Starting the system
 Move to the analysis_pipeline/ directory. The system can be started via:
 ```
 python mimir.py --training_config_json analysis_json/sockshop_one_v2_minimal.json
@@ -48,5 +51,5 @@ python mimir.py --training_config_json analysis_json/sockshop_one_v2_minimal.jso
 
 The system will LATER be also able to take an evaluation configuration file, to give online alerts. But it CANNOT do that right now. But it WILL be able to do that SOON (by ~4/15).
 
-### Step 4: Examining the Output
+### Step 5: Examining the Output
 \[TODO\]
