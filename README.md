@@ -5,7 +5,7 @@ Be advised that the project is still pre-alpha and does not do everything that y
 
 
 ## Running Analysis Pipeline
-The analysis pipeline takes pcap files and generates a trained model for detecting anomalies on further traffic from that applicaton. Currently, it ONLY generates the model (using the training set) and gives results on the validation set, at the various hyperparameter options. It WILL also be able to apply this trained model to a testing/eval set SOON, but it doesn't do that YET (should be working by ~4/12).
+The analysis pipeline takes pcap files and generates a trained model for detecting anomalies on further traffic from that applicaton. Currently, it ONLY generates the model (using the training set) and gives results on the validation set, at the various hyperparameter options. It WILL also be able to apply this trained model to a testing/eval set SOON, but it doesn't do that YET (should be working by ~4/15).
 
 This analysis pipeline been tested on MacOS and Linux 16.04. It will not work on Windows.
 
