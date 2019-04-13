@@ -41,7 +41,7 @@ This is most useful when running for the first time. On later times (i.e. if re-
 ### Step 4: Starting the system
 Move to the analysis_pipeline/ directory. The system can be started via:
 ```
-python mimir.py --training_config_json analysis_json/sockshop_one_v2_minimal.json
+python mimir.py --training_config_json analysis_json/sockshop_example.json
 ```
 
 The system will LATER be also able to take an evaluation configuration file, to give online alerts. But it CANNOT do that right now. But it WILL be able to do that SOON (by ~4/15).
