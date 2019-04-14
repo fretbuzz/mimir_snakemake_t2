@@ -1,3 +1,5 @@
+NOTE: I'll finish giving a run-down of how to run the code + some example data on 4/15.
+
 ## Mimir
 Mimir is an experimental apparatus designed to test the potential for anomaly-based data exfiltration detection in microservice-architecture applications. It creates a graphical representation of network communication and flags deviations from structural invariants.
 
@@ -27,7 +29,7 @@ pip install pip
 
 * Then install the necessary python packages:
 ```
-pip install docker networkx matplotlib jinja2 pdfkit numpy pandas seaborn Cython pyyaml multiprocessing scipy pdfkit
+pip install docker networkx matplotlib jinja2 pdfkit numpy pandas seaborn Cython pyyaml multiprocessing scipy pdfkit tabulate
 ```
 
 ### Step 2: Get example data
