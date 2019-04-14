@@ -59,6 +59,15 @@ def scale_sockshop(deployment_scaling, autoscale_p):
         out = subprocess.check_output(["kubectl", "apply", "-f", "./microservices-demo/deploy/kubernetes/autoscaling/"])
         print out
 
+        # NOTE the front-end microservice crashes fairly regularly... it's important that there's a couple more so one's always live
+        autoscale_cmd_str = ["kubectl", "autoscale", "deployment", "front-end", "--min=" + str(3), "--max=" + str(
+            10),"--cpu-percent=" + str(50), "--namespace=sock-shop"]
+        try:
+            out = subprocess.check_output(autoscale_cmd_str)
+            print out
+        except:
+            pass
+
 if __name__== "__main__":
     os.chdir("..")
     deployment_scaling = {}
