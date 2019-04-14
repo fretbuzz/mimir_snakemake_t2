@@ -523,6 +523,7 @@ def assign_exfil_paths_to_experiments(exp_infos, goal_train_test_split, goal_att
     #### 4.a. determine how many times we could inject all the exfil paths
     training_exfil_paths = []
     testing_exfil_paths = []
+
     testing_number_times_inject_all_paths = math.floor(total_testing_injections_possible / float(len(possible_exfil_paths)))
     training_number_times_inject_all_paths = math.floor(total_training_injections_possible / float(len(possible_exfil_paths)))
     if training_number_times_inject_all_paths < 1.0:

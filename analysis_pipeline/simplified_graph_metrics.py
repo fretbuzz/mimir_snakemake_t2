@@ -13,6 +13,8 @@ import logging
 import time
 import matplotlib
 matplotlib.use('Agg',warn=False, force=True)
+import matplotlib
+import matplotlib.pyplot as plt
 import os,errno
 import copy
 import cPickle as pickle

@@ -2,7 +2,11 @@ import docker
 import networkx as nx
 import os
 import matplotlib.pyplot as plt
+import matplotlib
 from networkx.drawing.nx_agraph import graphviz_layout
+matplotlib.use('Agg',warn=False, force=True)
+import matplotlib
+import matplotlib.pyplot as plt
 import time
 import os
 import random
@@ -75,8 +79,6 @@ def prepare_mulval_input(ms_s, mapping, sensitive_ms, netsec_policy, intersvc_vi
     # recall that pods can do whatever they want, vips are more limited (obvi)
     sensitive_node = None
     for svc in svcs:
-        ## TODO: we'd want to use the actual function for this...
-
         if sensitive_ms.replace('-','_') + '_pod' in svc[0]:
             sensitive_node = svc[0]
             print "sensitive_node", sensitive_node
@@ -135,21 +137,6 @@ def prepare_mulval_input(ms_s, mapping, sensitive_ms, netsec_policy, intersvc_vi
         lines.append('networkServiceInfo(' + svc[0] + ', is_computer,  _, _ , _).')
 
 
-        ## NOTE: I need port information!!! This will require reworking the mapping functions!!!!
-        #### TODO: Immediate next steps
-        ####   (a) modify mapping to get ports + feed them into mulval component
-        ####   (b) incorporate logic into this
-        ####   (c) finish input preparer by modifying new_old_test_mulval_input w/ application-info
-        ####   (d) finish the output processor (might be a bit of work...)
-        #### would be nice if I could get through c today
-        #### OKAY, did not quite get through c today... gotta finish c tomorrow and then do the output
-        #### preparer... essentially, just reverse the logic (b/c we wanna go out, not in) and make some graphs...
-        #### I'm not sure if the desired graph is an array of d3's, but it might be... anyway, probably best to
-        #### just keep it simple for now, and then can focus in on the specifics later... well actually, I kinda would
-        #### like the array, but let's make it a flag for it, and only trigger it on when the __main__ thing happens...
-        #### also, obviously, we're just putting a single node for each pod (maybe later we can put more if we want...)
-        #### yah, def. do hte grid...
-
     # might want to handle in another place... also this is a kinda nasty workaround...
     lines.append('hacl(' + 'kube_dns_pod' + ',' + 'internet' + ', ' + 'UDP' + ', ' + '53' + ').')
 
@@ -202,6 +189,9 @@ def post_process_mulval_result(sensitive_node, max_number_of_paths, intersvc_vip
     #nx.draw(G)
     #plt.draw()
 
+    print "making graphviz_layout"
+
+    plt.close('all') ## needed to avoid crashing due to sigsev when I added the eval portion...
     pos = graphviz_layout(G)
     nx.draw_networkx(G, pos, with_labels=True, arrows=True)
     #plt.show() ## remove!!! <---- <---- <----
@@ -213,6 +203,8 @@ def post_process_mulval_result(sensitive_node, max_number_of_paths, intersvc_vip
     print G.number_of_nodes(), [i for i in G.nodes()]
     #time.sleep(34)
     #exit(344)
+
+    print "networkx graph created/saved"
 
     # okay, so let's generate all the paths using this...
     paths=[]

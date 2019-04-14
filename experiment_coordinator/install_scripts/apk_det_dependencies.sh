@@ -12,7 +12,6 @@ export GIT_SSL_NO_VERIFY=1
 git clone https://github.com/fretbuzz/DET /DET
 pip2 install 'certifi==2015.4.28' --force-reinstall
 pip install -r /DET/requirements.txt --user
-pip install pycrypto
 
 git clone https://github.com/iagox86/dnscat2.git
 cd dnscat2/client/
