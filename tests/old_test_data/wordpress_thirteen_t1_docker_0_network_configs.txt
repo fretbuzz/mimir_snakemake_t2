@@ -1,0 +1,354 @@
+[
+    {
+        "Name": "bridge",
+        "Id": "63bedba8145c97bbc3f2ae702a5b9f463999ae8a1673521bfd9dea1e37863f40",
+        "Created": "2019-02-20T17:51:46.186171554Z",
+        "Scope": "local",
+        "Driver": "bridge",
+        "EnableIPv6": false,
+        "IPAM": {
+            "Driver": "default",
+            "Options": null,
+            "Config": [
+                {
+                    "Subnet": "172.17.0.0/16"
+                }
+            ]
+        },
+        "Internal": false,
+        "Attachable": false,
+        "Ingress": false,
+        "ConfigFrom": {
+            "Network": ""
+        },
+        "ConfigOnly": false,
+        "Containers": {
+            "05a259179d338f7b0eebc743ffe5f995d5e28fb74d253c66c1961e5aacbaf401": {
+                "Name": "k8s_POD_my-release-pxc-6_default_305acfd6-3539-11e9-aaab-080027b67f1a_0",
+                "EndpointID": "86a5ff603e5fd7f1f6fecb533bba2557a81484b8e7ac8f581a58b60ed692426c",
+                "MacAddress": "02:42:ac:11:00:0b",
+                "IPv4Address": "172.17.0.11/16",
+                "IPv6Address": ""
+            },
+            "0ce1c209bd2d126c177a232f0d077d9101859b3696775eba3c71273d6dc77e4e": {
+                "Name": "k8s_POD_tiller-deploy-7995854f67-g9vx2_kube-system_70be8a32-3538-11e9-aaab-080027b67f1a_0",
+                "EndpointID": "26bc503d4a855613b9b6589d4c58e5688506d29d2423a964f81cc143c446688a",
+                "MacAddress": "02:42:ac:11:00:04",
+                "IPv4Address": "172.17.0.4/16",
+                "IPv6Address": ""
+            },
+            "16a6f32e8f0c798a273942cb96d155ce4ce71d0a77af2ca1d9c337ef1dff57d1": {
+                "Name": "k8s_POD_my-release-pxc-2_default_d4206538-3538-11e9-aaab-080027b67f1a_0",
+                "EndpointID": "6c47c416caee506bccaee8b2e35729b49c6e85377940fe383fe0518cc6e4d7c7",
+                "MacAddress": "02:42:ac:11:00:07",
+                "IPv4Address": "172.17.0.7/16",
+                "IPv6Address": ""
+            },
+            "1cd1bf634f3937618767a68aa7c1a6e0fb7c9b7d0917d731f7d08c8c772ba205": {
+                "Name": "k8s_POD_wwwppp-wordpress-78f4665df5-z8nxd_default_aac39908-3539-11e9-aaab-080027b67f1a_0",
+                "EndpointID": "18e53f90e19bce0f2636f6fe75d1a23b71b3d27d00f5199d6cf1cad224d97055",
+                "MacAddress": "02:42:ac:11:00:16",
+                "IPv4Address": "172.17.0.22/16",
+                "IPv6Address": ""
+            },
+            "2c6375539379841e879f5e8685a9d422318c329f2095863c6851fe6bdf49fcc2": {
+                "Name": "k8s_POD_my-release-pxc-4_default_00ac7995-3539-11e9-aaab-080027b67f1a_0",
+                "EndpointID": "9cd745bdc87e5319da0646db0814296274ddcd5f26da76966d9f89b019bab6a8",
+                "MacAddress": "02:42:ac:11:00:09",
+                "IPv4Address": "172.17.0.9/16",
+                "IPv6Address": ""
+            },
+            "332669b1867bb9dccc4e3ca8b9b9763010285bdc37fd63cae3b83ed2df614996": {
+                "Name": "k8s_POD_wwwppp-wordpress-78f4665df5-cqmq8_default_8546f19e-3539-11e9-aaab-080027b67f1a_0",
+                "EndpointID": "6dcc1e32c03d00c356e607554b904f05a07f5fb040ca6614ec43e7822f3ac65c",
+                "MacAddress": "02:42:ac:11:00:11",
+                "IPv4Address": "172.17.0.17/16",
+                "IPv6Address": ""
+            },
+            "34bf395d3b20f1646dacb723b3195031f89fe7e931740d705ca9950b19c79bc7": {
+                "Name": "k8s_POD_wwwppp-wordpress-78f4665df5-lj7w6_default_aac36e74-3539-11e9-aaab-080027b67f1a_0",
+                "EndpointID": "6fdbd05d89e8469183c9ca98c145c569f0e2e35905c916dc104d0902911ff874",
+                "MacAddress": "02:42:ac:11:00:14",
+                "IPv4Address": "172.17.0.20/16",
+                "IPv6Address": ""
+            },
+            "36246b681ee1f98733de44b9d27f01939fbc9515bd9fda062a518a0e3c8ac72f": {
+                "Name": "k8s_POD_wwwppp-wordpress-78f4665df5-6nfk4_default_f5ebc9f7-3539-11e9-aaab-080027b67f1a_0",
+                "EndpointID": "96c2314cc69113fa60ebb8be5a0f89f101bb9b170f2a2472dd9f399a43c46c04",
+                "MacAddress": "02:42:ac:11:00:20",
+                "IPv4Address": "172.17.0.32/16",
+                "IPv6Address": ""
+            },
+            "551195b6749618f326e5b73d6d32ee7d58006add2faf9616485dc13344fb5cd8": {
+                "Name": "k8s_POD_wwwppp-wordpress-78f4665df5-jzglp_default_d03a38a4-3539-11e9-aaab-080027b67f1a_0",
+                "EndpointID": "38e7617c708bc4cced5f3fdd316b3441fe88155a88fea54a91bf315ad2e705d6",
+                "MacAddress": "02:42:ac:11:00:19",
+                "IPv4Address": "172.17.0.25/16",
+                "IPv6Address": ""
+            },
+            "67dacc75f8ab84854e14d3bbba8993575cf86176f38cbec9b9487e74a0163050": {
+                "Name": "k8s_POD_wwwppp-wordpress-78f4665df5-kwjpd_default_d03d8ba3-3539-11e9-aaab-080027b67f1a_0",
+                "EndpointID": "240da62f4ca544475f4437663e71173fa229dcb5023172084edd7cb0618a45f1",
+                "MacAddress": "02:42:ac:11:00:1a",
+                "IPv4Address": "172.17.0.26/16",
+                "IPv6Address": ""
+            },
+            "74063c4984530d9e4d4da86452bf8312adb51ebbe85ed582ec9fdbafa8958e5c": {
+                "Name": "k8s_POD_wwwppp-wordpress-78f4665df5-dz84x_default_f5e6a778-3539-11e9-aaab-080027b67f1a_0",
+                "EndpointID": "94f38d30eb7a6e700e2f3f642578a9f68ecfa16fa4ae056e34326ff669bf6f54",
+                "MacAddress": "02:42:ac:11:00:1c",
+                "IPv4Address": "172.17.0.28/16",
+                "IPv6Address": ""
+            },
+            "79cee48db721166ffa133e0b3f9bf5b3c939c1bf8177055e4bfc996587309a34": {
+                "Name": "k8s_POD_kubernetes-dashboard-5498ccf677-wlv5k_kube-system_68aa0faa-3538-11e9-aaab-080027b67f1a_0",
+                "EndpointID": "ea093f1e3e1dfff2f9ccbfbfe0cfc4df43b3d94dd45b58bac5f2f719f883c633",
+                "MacAddress": "02:42:ac:11:00:03",
+                "IPv4Address": "172.17.0.3/16",
+                "IPv6Address": ""
+            },
+            "7e6557007972d613e8092e4a9909b322b240076f6ab738a7a3601f9a4cdc853d": {
+                "Name": "k8s_POD_wwwppp-wordpress-78f4665df5-f254t_default_f5e81164-3539-11e9-aaab-080027b67f1a_0",
+                "EndpointID": "28fd974ac7281be229ce6cc8a8caf49f93c284bbb91b21ad642a7cf6e4cd54ab",
+                "MacAddress": "02:42:ac:11:00:1d",
+                "IPv4Address": "172.17.0.29/16",
+                "IPv6Address": ""
+            },
+            "8169c6a0e11477698b4b027c090949281edfd126edc2ed0bc1fc2ac99b686f51": {
+                "Name": "k8s_POD_wwwppp-wordpress-78f4665df5-5w9hq_default_8546f80f-3539-11e9-aaab-080027b67f1a_0",
+                "EndpointID": "e98751e71d32174150c061c5ee25f21e4b1a322a2904f6321f281a10c95fdaec",
+                "MacAddress": "02:42:ac:11:00:10",
+                "IPv4Address": "172.17.0.16/16",
+                "IPv6Address": ""
+            },
+            "8e2be778bebffed6e3ef582a68a03f18f5ab092fe09595ba9ffc70db7319875f": {
+                "Name": "k8s_POD_wwwppp-wordpress-78f4665df5-tgrnd_default_854288f3-3539-11e9-aaab-080027b67f1a_0",
+                "EndpointID": "fbe09351206f4d474e2174e4b362ddf9ab5626509318bd9953776c6533c8f7e8",
+                "MacAddress": "02:42:ac:11:00:0d",
+                "IPv4Address": "172.17.0.13/16",
+                "IPv6Address": ""
+            },
+            "924b3a5869912879d818d126203f71010d2c27f1a7cbfc098fb11dded1df70c4": {
+                "Name": "k8s_POD_wwwppp-wordpress-78f4665df5-h2j7v_default_d03d5514-3539-11e9-aaab-080027b67f1a_0",
+                "EndpointID": "9409dffca2fd90f0684ddd60eb5baf066b3d6856f6b24e51dd2474985572bdd2",
+                "MacAddress": "02:42:ac:11:00:1b",
+                "IPv4Address": "172.17.0.27/16",
+                "IPv6Address": ""
+            },
+            "951ffc370ce2595ea14ebd660ad2e1ba46dd4aa8e2309716edded69d7054ebc1": {
+                "Name": "k8s_POD_my-release-pxc-5_default_18330c48-3539-11e9-aaab-080027b67f1a_0",
+                "EndpointID": "474b29529f44f4469567681bc9e8ba18cbd3d45bd50e662f0773495e7a86ebf1",
+                "MacAddress": "02:42:ac:11:00:0a",
+                "IPv4Address": "172.17.0.10/16",
+                "IPv6Address": ""
+            },
+            "9631065be250393833a4d23138c4d28db70b177306ad94a1515549dde248a505": {
+                "Name": "k8s_POD_wwwppp-wordpress-78f4665df5-q4qqr_default_f5e80a64-3539-11e9-aaab-080027b67f1a_0",
+                "EndpointID": "7eeaf47eb99895931492a2ccdba9e178a956ec43b94dd96537f3f40c75144e47",
+                "MacAddress": "02:42:ac:11:00:1e",
+                "IPv4Address": "172.17.0.30/16",
+                "IPv6Address": ""
+            },
+            "a6d6d473fe27728e008ae8db603490dbcbc8d51960cc64130121a39c770d9c76": {
+                "Name": "k8s_POD_kube-dns-86f4d74b45-gsdm7_kube-system_63c6ef05-3538-11e9-aaab-080027b67f1a_0",
+                "EndpointID": "598ddfe60e86d6c19220585c3cd8721aa46158839a340aaf7b5781daebaf04dd",
+                "MacAddress": "02:42:ac:11:00:02",
+                "IPv4Address": "172.17.0.2/16",
+                "IPv6Address": ""
+            },
+            "a73d3c51f255d119582799570aa17981884b7e001bd59fe2145008c8ba03d9fb": {
+                "Name": "k8s_POD_wwwppp-wordpress-78f4665df5-7rmfz_default_f5eb5668-3539-11e9-aaab-080027b67f1a_0",
+                "EndpointID": "b0ce8aee1ec1c1859b110f1e54da50bba940c50f69e9d932e36734ea7d1cced2",
+                "MacAddress": "02:42:ac:11:00:1f",
+                "IPv4Address": "172.17.0.31/16",
+                "IPv6Address": ""
+            },
+            "af8b90a5ce0353147a7818d7c06c69013da242f208812893e0bbba965012090f": {
+                "Name": "k8s_POD_wwwppp-wordpress-78f4665df5-fmwcr_default_aac01e30-3539-11e9-aaab-080027b67f1a_0",
+                "EndpointID": "2b3787c9e82d1e70cc3bd9a05d24b6c25d76cb77b3ee18df7c77badd68994c3e",
+                "MacAddress": "02:42:ac:11:00:12",
+                "IPv4Address": "172.17.0.18/16",
+                "IPv6Address": ""
+            },
+            "bcb5b56cc63e05e1c0025ea6adfe90f8b731e6276fd9e10f5f3ed0ddd0a49b14": {
+                "Name": "k8s_POD_my-release-pxc-0_default_938defb6-3538-11e9-aaab-080027b67f1a_0",
+                "EndpointID": "42e8d91e8ce85031ae8fb656fc8c3ac7dcfb9cc6bd805079dea17f724e853f38",
+                "MacAddress": "02:42:ac:11:00:05",
+                "IPv4Address": "172.17.0.5/16",
+                "IPv6Address": ""
+            },
+            "c80fdd263dde76436014bb933ed99673dab163640099c9f255b4f8152542bbc1": {
+                "Name": "k8s_POD_wwwppp-wordpress-78f4665df5-gj2bb_default_85425b60-3539-11e9-aaab-080027b67f1a_0",
+                "EndpointID": "f80d157ae3775195114bcac8decd5c6298ba7725e060c723bfda423601c5f8f0",
+                "MacAddress": "02:42:ac:11:00:0f",
+                "IPv4Address": "172.17.0.15/16",
+                "IPv6Address": ""
+            },
+            "d0a72f0fb38ef1fe2700fba8dde122692dab99ce973996a2b4f704302c2a36af": {
+                "Name": "k8s_POD_my-release-pxc-3_default_ec54fd95-3538-11e9-aaab-080027b67f1a_0",
+                "EndpointID": "c3a117ae7a4d46d2163ece572499b49964e89b7e8a74594931745bd7eaff929b",
+                "MacAddress": "02:42:ac:11:00:08",
+                "IPv4Address": "172.17.0.8/16",
+                "IPv6Address": ""
+            },
+            "d5f3f32dc0246ef77eb007e480ff6d3a304839b5455190b8ea8fc233f2c5f69c": {
+                "Name": "k8s_POD_my-release-pxc-1_default_bbf94075-3538-11e9-aaab-080027b67f1a_0",
+                "EndpointID": "ec1c037ce0526c8e694b3d9d72b37294b8c750c81ccdf2d16666bdcc6370219e",
+                "MacAddress": "02:42:ac:11:00:06",
+                "IPv4Address": "172.17.0.6/16",
+                "IPv6Address": ""
+            },
+            "d8c6877f16b0e9bf6f1dceb3c73760ef14e4a12362c84a6c9b43d1e169da5e09": {
+                "Name": "k8s_POD_wwwppp-wordpress-78f4665df5-6j6vx_default_d03b72c4-3539-11e9-aaab-080027b67f1a_0",
+                "EndpointID": "01215591e4184d8a770c3db5fe8ea54bb549d584af736fdc13608f6d84e24bed",
+                "MacAddress": "02:42:ac:11:00:17",
+                "IPv4Address": "172.17.0.23/16",
+                "IPv6Address": ""
+            },
+            "e8df3addeec12a09d5dd031e05b8c423593caff56a803d4b5ef20632325c00ed": {
+                "Name": "k8s_POD_wwwppp-wordpress-78f4665df5-jz7q9_default_aac01c2b-3539-11e9-aaab-080027b67f1a_0",
+                "EndpointID": "b35f62587f794c4d102c9d013c4848c6012ffbdbeb6d1f18594920e859ce28aa",
+                "MacAddress": "02:42:ac:11:00:13",
+                "IPv4Address": "172.17.0.19/16",
+                "IPv6Address": ""
+            },
+            "ee4eef3992646cffa47c539d26867d7b3ca0e53f5a7c13a434639afaff3966cd": {
+                "Name": "k8s_POD_wwwppp-wordpress-78f4665df5-h8wxx_default_85400d93-3539-11e9-aaab-080027b67f1a_0",
+                "EndpointID": "19e9606ce2a72501755d83aee2873d5cdf2671b1b1295db4e0bd0386a4967481",
+                "MacAddress": "02:42:ac:11:00:0e",
+                "IPv4Address": "172.17.0.14/16",
+                "IPv6Address": ""
+            },
+            "f50730c1b34ff5f238ee304eac8f6ae420af01ea42a45de6442426654fb976e8": {
+                "Name": "k8s_POD_wwwppp-wordpress-78f4665df5-qbkl8_default_d03b5753-3539-11e9-aaab-080027b67f1a_0",
+                "EndpointID": "228eaef7999acf3631671793f16dd03cc222b332d5dbd11d18da275a5447add7",
+                "MacAddress": "02:42:ac:11:00:18",
+                "IPv4Address": "172.17.0.24/16",
+                "IPv6Address": ""
+            },
+            "f65ed0c89706a31e8f5bc4f77d6275f96f2abe69a9de74993be551c27fd2fbf9": {
+                "Name": "k8s_POD_wwwppp-wordpress-78f4665df5-vp42q_default_4c3c9e32-3539-11e9-aaab-080027b67f1a_0",
+                "EndpointID": "5e0a03603d2c6aec7e0d2bf98eb127acc178eb2fc7f8c4616023e66e997af534",
+                "MacAddress": "02:42:ac:11:00:0c",
+                "IPv4Address": "172.17.0.12/16",
+                "IPv6Address": ""
+            },
+            "f7252e213666f62b974f8f3239c6ebf5e1a015d99ea2fbae84750b0bbc16a7a7": {
+                "Name": "k8s_POD_wwwppp-wordpress-78f4665df5-tqk4j_default_aabec543-3539-11e9-aaab-080027b67f1a_0",
+                "EndpointID": "63ce72753159322ff29f64388e8618d735297e93b12bdec8f51d0fec02354411",
+                "MacAddress": "02:42:ac:11:00:15",
+                "IPv4Address": "172.17.0.21/16",
+                "IPv6Address": ""
+            }
+        },
+        "Options": {
+            "com.docker.network.bridge.default_bridge": "true",
+            "com.docker.network.bridge.enable_icc": "true",
+            "com.docker.network.bridge.enable_ip_masquerade": "true",
+            "com.docker.network.bridge.host_binding_ipv4": "0.0.0.0",
+            "com.docker.network.bridge.name": "docker0",
+            "com.docker.network.driver.mtu": "1500"
+        },
+        "Labels": {}
+    }
+]
+[
+    {
+        "Name": "host",
+        "Id": "12900f03bf7df3861f74a4d4e6f290a180fc2893094f19a6a205e66ae8be4c29",
+        "Created": "2019-02-20T17:51:46.151889983Z",
+        "Scope": "local",
+        "Driver": "host",
+        "EnableIPv6": false,
+        "IPAM": {
+            "Driver": "default",
+            "Options": null,
+            "Config": []
+        },
+        "Internal": false,
+        "Attachable": false,
+        "Ingress": false,
+        "ConfigFrom": {
+            "Network": ""
+        },
+        "ConfigOnly": false,
+        "Containers": {
+            "08ae8f0b6066040a0ad9226a7f531e01c5d9e2025782af55b77b34f3670a2fbc": {
+                "Name": "k8s_POD_kube-proxy-g4lt6_kube-system_63e94d88-3538-11e9-aaab-080027b67f1a_0",
+                "EndpointID": "a5a6bfb7f7fd992c5192c91abed6ae8b9266bd038a43703ae578270c8d6449e8",
+                "MacAddress": "",
+                "IPv4Address": "",
+                "IPv6Address": ""
+            },
+            "28b0027053d8355f0937ced9235f20e2f63b2b462558749b8900f38e2deed943": {
+                "Name": "k8s_POD_kube-addon-manager-minikube_kube-system_3afaf06535cc3b85be93c31632b765da_0",
+                "EndpointID": "46841b0df5e8ec4762716fb47a6d34098e21541cca044af238640b9ea5b3ec1c",
+                "MacAddress": "",
+                "IPv4Address": "",
+                "IPv6Address": ""
+            },
+            "31f02b6443a40531cc7db4632e2d1d3533547d6fa6c82420ff59e056ff1a5df6": {
+                "Name": "k8s_POD_kube-scheduler-minikube_kube-system_31cf0ccbee286239d451edb6fb511513_0",
+                "EndpointID": "2babaa5ca58af0492487375d08dfef92a237b36b3ba5f5ca051547177fa49e88",
+                "MacAddress": "",
+                "IPv4Address": "",
+                "IPv6Address": ""
+            },
+            "57ad36c7e0c6cae369c1db0524e2b8bf6949a7b30b11938c7434b019b563a0d4": {
+                "Name": "k8s_POD_kube-controller-manager-minikube_kube-system_65ef752fb495aff2fef6e9c4b7d4d399_0",
+                "EndpointID": "58fca9d3d8dc0969df7425efc92bce3501b675d0b346262508b3c171b10564eb",
+                "MacAddress": "",
+                "IPv4Address": "",
+                "IPv6Address": ""
+            },
+            "baf33780f72d4eb9c10ceb0afba571c4f548b8996d71ff070ae783f29bcc49dc": {
+                "Name": "k8s_POD_etcd-minikube_kube-system_af34184c0198d31dc43a4b4d3e7d2a2d_0",
+                "EndpointID": "188a3554bdd98b5f9c9df85a83a0dd2f320d1aa59adfc4204cc0a9f0340f180d",
+                "MacAddress": "",
+                "IPv4Address": "",
+                "IPv6Address": ""
+            },
+            "efcd7c520045b06537872c89b6e1b0be54cab52d7ea9aaa44a7969930568d583": {
+                "Name": "k8s_POD_storage-provisioner_kube-system_69e3e50a-3538-11e9-aaab-080027b67f1a_0",
+                "EndpointID": "0e636c3ec1eb8ffdd78f366cc5bbe40740a014d34e38d15dc0d640ea8d092ee3",
+                "MacAddress": "",
+                "IPv4Address": "",
+                "IPv6Address": ""
+            },
+            "f2ad6101764f075a27758abe8879dfd9097a93ad1e9d0226b6e2f4974254af0d": {
+                "Name": "k8s_POD_kube-apiserver-minikube_kube-system_837ee13574b040525612063ff3efd066_0",
+                "EndpointID": "5db75ddd37c9b3f1335a29f385f16ee3fd0fe166a603fa5d7af2f8084728dd32",
+                "MacAddress": "",
+                "IPv4Address": "",
+                "IPv6Address": ""
+            }
+        },
+        "Options": {},
+        "Labels": {}
+    }
+]
+[
+    {
+        "Name": "none",
+        "Id": "fae537065bb78b061094501bb259e593054f300f50b652d4c2faba3f5b6a1be0",
+        "Created": "2019-02-20T17:51:46.116032949Z",
+        "Scope": "local",
+        "Driver": "null",
+        "EnableIPv6": false,
+        "IPAM": {
+            "Driver": "default",
+            "Options": null,
+            "Config": []
+        },
+        "Internal": false,
+        "Attachable": false,
+        "Ingress": false,
+        "ConfigFrom": {
+            "Network": ""
+        },
+        "ConfigOnly": false,
+        "Containers": {},
+        "Options": {},
+        "Labels": {}
+    }
+]

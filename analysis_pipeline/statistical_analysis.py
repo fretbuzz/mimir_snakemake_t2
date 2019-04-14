@@ -290,8 +290,8 @@ class single_rate_stats_pipeline():
 
     def run_statistical_pipeline(self, drop_pairwise_features, pretrained_statistical_analysis_v2, skip_heatmap_p=True):
         for timegran,feature_df in self.time_gran_to_aggregate_mod_score_dfs.iteritems():
-            # clf = LogisticRegressionCV(penalty="l1", cv=10, max_iter=10000, solver='saga')
-            # cur_base_output_name + 'logistic_l1_mod_z_lass_feat_sel_'
+            #clf = sklearn.linear_model.LogisticRegressionCV(penalty="l1", cv=10, max_iter=10000, solver='saga')
+            #cur_base_output_name + 'logistic_l1_mod_z_lass_feat_sel_'
             clf = LassoCV(cv=3, max_iter=80000)
 
             if 'lass_feat_sel' in self.base_output_name:
@@ -450,6 +450,14 @@ def drop_useless_columns_aggreg_DF(aggregate_mod_score_dfs):
     try:
         aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(
             columns='amt_of_out_traffic_pkts')  # might wanna just stop these from being generated...
+    except:
+        pass
+    '''
+
+    '''
+    try:
+        aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(
+            columns="Fraction of Communication Between Pods not through VIPs (w abs)_")  # might wanna just stop these from being generated...
     except:
         pass
     '''
@@ -810,10 +818,10 @@ def extract_comparison_methods(X_train, X_test):
             ide_test = [0 for i in range(0, len(X_test))]
 
     # cilium_for_first_sec_
-        cilium_columns = []
-        for column in X_train:
-            if 'cilium_for_first_sec_' in column:
-                cilium_columns.append(column)
+    cilium_columns = []
+    for column in X_train:
+        if 'cilium_for_first_sec_' in column:
+            cilium_columns.append(column)
     try:
         cilium_train = copy.deepcopy( X_train[cilium_columns[0]] )
         cilium_test = copy.deepcopy( X_test[cilium_columns[0]] )
@@ -933,6 +941,7 @@ def get_coef_dict(clf, X_train_columns, base_output_name, X_train_dtypes, sanity
     for coef, feature in coef_dict.iteritems():
         print coef, feature
 
+    print "coef_dict"
     return coef_dict
 
 def prepare_data(aggregate_mod_score_dfs, skip_model_part, ignore_physical_attacks_p,

@@ -1,5 +1,3 @@
-
-
 import math
 import unittest
 
@@ -8,53 +6,9 @@ import numpy as np
 import pandas as pd
 
 from analysis_pipeline.generate_graphs import get_points_to_plot
-from analysis_pipeline.src.analyze_edgefiles import change_point_detection, find_angles, ide_angles
-from analysis_pipeline.next_gen_metrics import calc_VIP_metric
 import analysis_pipeline.simplified_graph_metrics
 import multiprocessing
 from analysis_pipeline.pcap_to_edgelists import create_mappings
-
-'''
-def mathTestSuite():
-    #suite = unittest.TestSuite()
-    #suite.addTest(WidgetTestCase("runMath"))
-    suite = unittest.makeSuite(sampleTestCase)
-    return suite
-
-#mathTestCase = sampleTestCase("runMath")
-
-class sampleTestCase(unittest.TestCase):
-    def setup(self):
-        self.foo = 2 + 3
-    def tearDown(self):
-        # nothing to tear down ATM
-        pass
-    def runMath(self):
-        assert self.foo == 5
-
-#class sampleTest(sampleTestCaseSetup):
-#    def runTest(self):
-#        assert self.foo == 5
-
-#runner = unittest.TextTestRunner()
-#runner.run(mathTestSuite)
-'''
-
-class TestStringMethods(unittest.TestCase):
-
-    def test_upper(self):
-        self.assertEqual('foo'.upper(), 'FOO')
-
-    def test_isupper(self):
-        self.assertTrue('FOO'.isupper())
-        self.assertFalse('Foo'.isupper())
-
-    def test_split(self):
-        s = 'hello world'
-        self.assertEqual(s.split(), ['hello', 'world'])
-        # check that s.split fails when the separator is not a string
-        with self.assertRaises(TypeError):
-            s.split(2)
 
 class testSyntheticAttackInjector(unittest.TestCase):
     @classmethod

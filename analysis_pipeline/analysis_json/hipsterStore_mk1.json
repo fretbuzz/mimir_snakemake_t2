@@ -1,6 +1,6 @@
 {
   "cur_experiment_name": "hipsterStore_mk1",
-  "exp_config_file": "/Volumes/exM2/experimental_data/hipsterStore_info/hipsterStore_mk1/hipsterStore_mk1_analysis.json",
+  "exp_config_file": "/Volumes/exM/experimental_data/hipsterStore_info/hipsterStore_mk1/hipsterStore_mk1_analysis.json",
   "netsec_policy": "None",
 
   "make_edgefiles": true,

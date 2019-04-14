@@ -1,0 +1,9 @@
+NAMESPACE     NAME                     TYPE           CLUSTER-IP      EXTERNAL-IP   PORT(S)                      AGE
+default       kubernetes               ClusterIP      10.96.0.1       <none>        443/TCP                      1h
+default       my-release-pxc           ClusterIP      10.98.63.191    <none>        3306/TCP                     1h
+default       my-release-pxc-metrics   ClusterIP      None            <none>        9104/TCP                     1h
+default       my-release-pxc-repl      ClusterIP      None            <none>        4567/TCP,4568/TCP,4444/TCP   1h
+default       wwwppp-wordpress         LoadBalancer   10.99.84.224    <pending>     80:32209/TCP,443:30366/TCP   1h
+kube-system   kube-dns                 ClusterIP      10.96.0.10      <none>        53/UDP,53/TCP                1h
+kube-system   kubernetes-dashboard     NodePort       10.106.142.40   <none>        80:30000/TCP                 1h
+kube-system   tiller-deploy            ClusterIP      10.103.1.244    <none>        44134/TCP                    1h

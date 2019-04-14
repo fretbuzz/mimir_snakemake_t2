@@ -171,7 +171,7 @@ def create_mappings(cluster_creation_log):
 
 def update_mapping(container_to_ip, cluster_creation_log, time_gran, time_counter, infra_instances):
     if cluster_creation_log is None:
-        return container_to_ip
+        return container_to_ip, infra_instances
 
     last_entry_into_log = max(0, time_gran * (time_counter ))
     current_entry_into_log =  time_gran * (time_counter +1)
@@ -227,6 +227,7 @@ def update_mapping(container_to_ip, cluster_creation_log, time_gran, time_counte
                 else:
                     new_label = None
 
+                #new_label = None
                 # NOTE: in updated experimental coordinator, now everything has a PLUS and it is therefore meaningless
                 if plus_minus == '+' and (status != 'Terminating'):
                     if cur_ip not in container_to_ip and cur_ip != 'None':
@@ -236,12 +237,16 @@ def update_mapping(container_to_ip, cluster_creation_log, time_gran, time_counte
                             mod_cur_creation_log[cur_ip] = (cur_pod + '_VIP', None, namespace, entity, new_label)
 
                         if namespace == 'kube-system' or (cur_pod == 'kubernetes' and namespace=='default'):
+                            '''
                             if 'kube-dns' not in cur_pod or entity == 'svc':  # the svc endpoint labeled kube-dns is shared by LOTS of system functions
                                 infra_instances[cur_pod] = [cur_ip, entity, new_label]
                             else:
                                 pass
+                            '''
+                            # update: I'm going to include kube-dns vip again, because I think it's cleaner
+                            infra_instances[cur_pod] = [cur_ip, entity, new_label]
 
-                #elif plus_minus == '-': # not sure if I want/need this but might be useful for bug checking
+                            #elif plus_minus == '-': # not sure if I want/need this but might be useful for bug checking
                 #    pass
                     # passing here b/c can't delete pods that disappear in the current
                     # time frame b/c they end up being mislabeled.

@@ -694,6 +694,10 @@ def find_container_in_class(proxy_class, class_to_networks, orchestrator='kubern
 
 
 def install_exfil_dependencies(exfil_paths, orchestrator, class_to_installer, exfil_path_class_to_image):
+    print "installing exfil_dependencies..."
+    print "exfil_paths",exfil_paths
+    print "class_to_installer",class_to_installer
+
     # let's find all elements (classes) on which I want to install the exfil dependencies
     exfil_elements = set()
     for exfil_path in exfil_paths:

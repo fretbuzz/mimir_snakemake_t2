@@ -45,8 +45,11 @@ def get_svcs_from_mapping(name2ip):
     svc_to_label = {}
     label_to_svc = {}
     for name,attribs in name2ip.iteritems():
+        if len(attribs) <= 2:
+            continue # would be using the old parse function...
         entity_type = attribs[3]
         if entity_type == 'svc':
+            name = name.replace('_VIP', '')
             labels = attribs[4]
             svc_to_label[name] = labels
 
@@ -55,7 +58,7 @@ def get_svcs_from_mapping(name2ip):
                     if label in label_to_svc and 'k8s-app' not in label:
                         print "more than one service with the same label -- error!!!"
                         exit(233)
-                    label_to_svc[label] = name.replace('_VIP', '')
+                    label_to_svc[label] = name
             # note: I am going to make the assumption that each label is associated with only one service.
             # the kube-system stuff might not follow this, but I'm not calculating their average behavior anyway
 
@@ -80,7 +83,8 @@ def map_nodes_to_svcs(G, svcs, ip_to_entity):
         if u in name2ip:
             node_attribs = name2ip[u]
             found_matching_svc = False
-            if len(node_attribs) >= 4:
+            #print "node_attribs", node_attribs
+            if len(node_attribs) >= 5:
                 if node_attribs[4] != None:
                     ## the services have labels, and so do the nodes, and you have to match them!
                     labels = node_attribs[4]
@@ -249,6 +253,7 @@ def aggregate_graph(G, ms_s):
 
 def find_infra_components_in_graph(G, infra_instances):
     infra_nodes = []
+    print "infra_instances", infra_instances
     for node in G.nodes():
         for infra_instance_name, ip_and_type in infra_instances.iteritems():
             infra_instance_name, infra_instance_PodSvc,svc = infra_instance_name, ip_and_type[1], ip_and_type[2]
@@ -283,9 +288,8 @@ def prepare_graph(G, svcs, level_of_processing, is_swarm, counter, file_path, ms
     if level_of_processing == 'app_only':
         containers_to_ms = map_nodes_to_svcs(G, None, container_to_ip)
         nx.set_node_attributes(G, containers_to_ms, 'svc')
-        infra_nodes = find_infra_components_in_graph(G, infra_instances)
-
         if drop_infra_p:
+            infra_nodes = find_infra_components_in_graph(G, infra_instances)
             induced_graph = remove_infra_from_graph(G, infra_nodes)
         else:
             induced_graph = G
