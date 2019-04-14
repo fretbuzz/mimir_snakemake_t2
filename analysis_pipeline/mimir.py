@@ -250,7 +250,11 @@ def run_analysis(training_config, eval_config=None):
         eval_experimente_object = parse_experimental_config(eval_config)
         _, eval_results = eval_experimente_object.run_pipelines(pretrained_model_object=min_rate_training_statspipelines)
 
-        print "eval_results", eval_results
+        print "----------------------------"
+        print "eval_results:",
+
+        ## TODO: print the results nicely. (but first run_pipelines will need to return the results...)
+        #print tabulate([['Alice', 24, 23, 24], ['Bob', 19, 13, 14]], headers=['Exfil Rate', 'TPs', 'FPs', 'FNs', 'TNs'])
 
     return eval_results
 
@@ -275,7 +279,9 @@ if __name__=="__main__":
         print "running_preset..."
         #run_analysis('./analysis_json/hipsterStore_mk1.json')
         #run_analysis('./analysis_json/sockshop_one_auto_mk11long.json')
-        run_analysis('./analysis_json/wordpress_one_3_auto_mk5.json')
+        run_analysis('./analysis_json/wordpress_one_3_auto_mk5.json', eval_config='./analysis_json/wordpress_one_v2_na_eval.json')
+        #run_analysis('./analysis_json/sockshop_one_auto_mk11long.json', eval_config='./analysis_json/sockshop_example.json')
+
 
         #run_analysis('./analysis_json/sockshop_one_v2_mk7.json')
         #run_analysis('./analysis_json/sockshop_one_v2.json')

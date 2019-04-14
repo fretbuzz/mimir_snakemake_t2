@@ -171,17 +171,17 @@ class multi_experiment_pipeline(object):
                 if not self.pretrained_min_pipeline:
                     min_rate_statspipelines = self.decrease_exfil_of_model()
 
+                    with open(self.where_to_save_minrate_statspipelines, 'w') as f:
+                        pickle.dump(min_rate_statspipelines, f)
+
                 self.generate_aggregate_report()
-
-            with open(self.where_to_save_minrate_statspipelines, 'w') as f:
-                pickle.dump(min_rate_statspipelines, f)
-
         else:
             with open(self.where_to_save_minrate_statspipelines, 'r') as f:
                 min_rate_statspipelines = pickle.load(f)
             min_rate_statspipelines.create_the_report(self.auto_open_pdfs)
 
-        return min_rate_statspipelines
+        ## TODO: should return performance table for second val instead of None...
+        return min_rate_statspipelines, None
 
     def run_eval_pipeline(self):
         ## TODO: is this a good idea???

@@ -16,7 +16,7 @@
   "skip_graph_injection": true,
   "calc_vals": true,
   "calculate_z_scores": true,
-  "get_endresult_from_memory": false,
+  "get_endresult_from_memory": true,
 
   "drop_pairwise_features": false,
   "drop_infra_from_graph": true,

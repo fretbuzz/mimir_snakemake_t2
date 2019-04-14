@@ -27,6 +27,7 @@ import wordpress_setup.scale_wordpress
 import wordpress_setup.kubernetes_setup_functions
 import sockshop_setup.scale_sockshop
 import pickle
+from tabulate import tabulate
 
 #Locust contemporary client count.  Calculated from the function f(x) = 1/25*(-1/2*sin(pi*x/12) + 1.1), 
 #   where x goes from 0 to 23 and x represents the hour of the day

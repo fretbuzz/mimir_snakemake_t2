@@ -4,198 +4,76 @@ vulExists(internet, 'attacker_can_access_anything', is_computer).
 networkServiceInfo(internet, is_computer, _, _, _).
 vulProperty('attacker_can_access_anything', remoteExploit, privEscalation).
 
-hacl(redis_cart_pod,frontend_pod, _, _).
-hacl(redis_cart_pod,productcatalogservice_pod, _, _).
-hacl(redis_cart_pod,shippingservice_pod, _, _).
-hacl(redis_cart_pod,recommendationservice_pod, _, _).
-hacl(redis_cart_pod,emailservice_pod, _, _).
-hacl(redis_cart_pod,paymentservice_pod, _, _).
-hacl(redis_cart_pod,currencyservice_pod, _, _).
-hacl(redis_cart_pod,adservice_pod, _, _).
-hacl(redis_cart_pod,frontend_external_pod, _, _).
-hacl(redis_cart_pod,checkoutservice_pod, _, _).
-hacl(redis_cart_pod,cartservice_pod, _, _).
-hacl(redis_cart_pod,kube_dns_pod, _, _).
-hacl(redis_cart_pod,internet, _, _).
-vulExists(redis_cart_pod, 'attacker_can_access_anything', is_computer).
-networkServiceInfo(redis_cart_pod, is_computer,  _, _ , _).
+hacl(front_end_pod,orders_pod, _, _).
+hacl(front_end_pod,catalogue_pod, _, _).
+hacl(front_end_pod,user_pod, _, _).
+hacl(front_end_pod,kube_dns_pod, _, _).
+hacl(front_end_pod,internet, _, _).
+vulExists(front_end_pod, 'attacker_can_access_anything', is_computer).
+networkServiceInfo(front_end_pod, is_computer,  _, _ , _).
 
-hacl(frontend_pod,redis_cart_pod, _, _).
-hacl(frontend_pod,productcatalogservice_pod, _, _).
-hacl(frontend_pod,shippingservice_pod, _, _).
-hacl(frontend_pod,recommendationservice_pod, _, _).
-hacl(frontend_pod,emailservice_pod, _, _).
-hacl(frontend_pod,paymentservice_pod, _, _).
-hacl(frontend_pod,currencyservice_pod, _, _).
-hacl(frontend_pod,adservice_pod, _, _).
-hacl(frontend_pod,frontend_external_pod, _, _).
-hacl(frontend_pod,checkoutservice_pod, _, _).
-hacl(frontend_pod,cartservice_pod, _, _).
-hacl(frontend_pod,kube_dns_pod, _, _).
-hacl(frontend_pod,internet, _, _).
-vulExists(frontend_pod, 'attacker_can_access_anything', is_computer).
-networkServiceInfo(frontend_pod, is_computer,  _, _ , _).
+hacl(rabbitmq_pod,queue_master_pod, _, _).
+hacl(rabbitmq_pod,shipping_pod, _, _).
+vulExists(rabbitmq_pod, 'attacker_can_access_anything', is_computer).
+networkServiceInfo(rabbitmq_pod, is_computer,  _, _ , _).
 
-hacl(productcatalogservice_pod,redis_cart_pod, _, _).
-hacl(productcatalogservice_pod,frontend_pod, _, _).
-hacl(productcatalogservice_pod,shippingservice_pod, _, _).
-hacl(productcatalogservice_pod,recommendationservice_pod, _, _).
-hacl(productcatalogservice_pod,emailservice_pod, _, _).
-hacl(productcatalogservice_pod,paymentservice_pod, _, _).
-hacl(productcatalogservice_pod,currencyservice_pod, _, _).
-hacl(productcatalogservice_pod,adservice_pod, _, _).
-hacl(productcatalogservice_pod,frontend_external_pod, _, _).
-hacl(productcatalogservice_pod,checkoutservice_pod, _, _).
-hacl(productcatalogservice_pod,cartservice_pod, _, _).
-hacl(productcatalogservice_pod,kube_dns_pod, _, _).
-hacl(productcatalogservice_pod,internet, _, _).
-vulExists(productcatalogservice_pod, 'attacker_can_access_anything', is_computer).
-networkServiceInfo(productcatalogservice_pod, is_computer,  _, _ , _).
+hacl(orders_db_pod,orders_pod, _, _).
+vulExists(orders_db_pod, 'attacker_can_access_anything', is_computer).
+networkServiceInfo(orders_db_pod, is_computer,  _, _ , _).
 
-hacl(shippingservice_pod,redis_cart_pod, _, _).
-hacl(shippingservice_pod,frontend_pod, _, _).
-hacl(shippingservice_pod,productcatalogservice_pod, _, _).
-hacl(shippingservice_pod,recommendationservice_pod, _, _).
-hacl(shippingservice_pod,emailservice_pod, _, _).
-hacl(shippingservice_pod,paymentservice_pod, _, _).
-hacl(shippingservice_pod,currencyservice_pod, _, _).
-hacl(shippingservice_pod,adservice_pod, _, _).
-hacl(shippingservice_pod,frontend_external_pod, _, _).
-hacl(shippingservice_pod,checkoutservice_pod, _, _).
-hacl(shippingservice_pod,cartservice_pod, _, _).
-hacl(shippingservice_pod,kube_dns_pod, _, _).
-hacl(shippingservice_pod,internet, _, _).
-vulExists(shippingservice_pod, 'attacker_can_access_anything', is_computer).
-networkServiceInfo(shippingservice_pod, is_computer,  _, _ , _).
+vulExists(carts_db_pod, 'attacker_can_access_anything', is_computer).
+networkServiceInfo(carts_db_pod, is_computer,  _, _ , _).
 
-hacl(recommendationservice_pod,redis_cart_pod, _, _).
-hacl(recommendationservice_pod,frontend_pod, _, _).
-hacl(recommendationservice_pod,productcatalogservice_pod, _, _).
-hacl(recommendationservice_pod,shippingservice_pod, _, _).
-hacl(recommendationservice_pod,emailservice_pod, _, _).
-hacl(recommendationservice_pod,paymentservice_pod, _, _).
-hacl(recommendationservice_pod,currencyservice_pod, _, _).
-hacl(recommendationservice_pod,adservice_pod, _, _).
-hacl(recommendationservice_pod,frontend_external_pod, _, _).
-hacl(recommendationservice_pod,checkoutservice_pod, _, _).
-hacl(recommendationservice_pod,cartservice_pod, _, _).
-hacl(recommendationservice_pod,kube_dns_pod, _, _).
-hacl(recommendationservice_pod,internet, _, _).
-vulExists(recommendationservice_pod, 'attacker_can_access_anything', is_computer).
-networkServiceInfo(recommendationservice_pod, is_computer,  _, _ , _).
+hacl(queue_master_pod,rabbitmq_pod, _, _).
+vulExists(queue_master_pod, 'attacker_can_access_anything', is_computer).
+networkServiceInfo(queue_master_pod, is_computer,  _, _ , _).
 
-hacl(emailservice_pod,redis_cart_pod, _, _).
-hacl(emailservice_pod,frontend_pod, _, _).
-hacl(emailservice_pod,productcatalogservice_pod, _, _).
-hacl(emailservice_pod,shippingservice_pod, _, _).
-hacl(emailservice_pod,recommendationservice_pod, _, _).
-hacl(emailservice_pod,paymentservice_pod, _, _).
-hacl(emailservice_pod,currencyservice_pod, _, _).
-hacl(emailservice_pod,adservice_pod, _, _).
-hacl(emailservice_pod,frontend_external_pod, _, _).
-hacl(emailservice_pod,checkoutservice_pod, _, _).
-hacl(emailservice_pod,cartservice_pod, _, _).
-hacl(emailservice_pod,kube_dns_pod, _, _).
-hacl(emailservice_pod,internet, _, _).
-vulExists(emailservice_pod, 'attacker_can_access_anything', is_computer).
-networkServiceInfo(emailservice_pod, is_computer,  _, _ , _).
+hacl(shipping_pod,rabbitmq_pod, _, _).
+hacl(shipping_pod,orders_pod, _, _).
+hacl(shipping_pod,kube_dns_pod, _, _).
+vulExists(shipping_pod, 'attacker_can_access_anything', is_computer).
+networkServiceInfo(shipping_pod, is_computer,  _, _ , _).
 
-hacl(paymentservice_pod,redis_cart_pod, _, _).
-hacl(paymentservice_pod,frontend_pod, _, _).
-hacl(paymentservice_pod,productcatalogservice_pod, _, _).
-hacl(paymentservice_pod,shippingservice_pod, _, _).
-hacl(paymentservice_pod,recommendationservice_pod, _, _).
-hacl(paymentservice_pod,emailservice_pod, _, _).
-hacl(paymentservice_pod,currencyservice_pod, _, _).
-hacl(paymentservice_pod,adservice_pod, _, _).
-hacl(paymentservice_pod,frontend_external_pod, _, _).
-hacl(paymentservice_pod,checkoutservice_pod, _, _).
-hacl(paymentservice_pod,cartservice_pod, _, _).
-hacl(paymentservice_pod,kube_dns_pod, _, _).
-hacl(paymentservice_pod,internet, _, _).
-vulExists(paymentservice_pod, 'attacker_can_access_anything', is_computer).
-networkServiceInfo(paymentservice_pod, is_computer,  _, _ , _).
+hacl(orders_pod,front_end_pod, _, _).
+hacl(orders_pod,orders_db_pod, _, _).
+hacl(orders_pod,shipping_pod, _, _).
+hacl(orders_pod,user_pod, _, _).
+hacl(orders_pod,payment_pod, _, _).
+hacl(orders_pod,kube_dns_pod, _, _).
+vulExists(orders_pod, 'attacker_can_access_anything', is_computer).
+networkServiceInfo(orders_pod, is_computer,  _, _ , _).
 
-hacl(currencyservice_pod,redis_cart_pod, _, _).
-hacl(currencyservice_pod,frontend_pod, _, _).
-hacl(currencyservice_pod,productcatalogservice_pod, _, _).
-hacl(currencyservice_pod,shippingservice_pod, _, _).
-hacl(currencyservice_pod,recommendationservice_pod, _, _).
-hacl(currencyservice_pod,emailservice_pod, _, _).
-hacl(currencyservice_pod,paymentservice_pod, _, _).
-hacl(currencyservice_pod,adservice_pod, _, _).
-hacl(currencyservice_pod,frontend_external_pod, _, _).
-hacl(currencyservice_pod,checkoutservice_pod, _, _).
-hacl(currencyservice_pod,cartservice_pod, _, _).
-hacl(currencyservice_pod,kube_dns_pod, _, _).
-hacl(currencyservice_pod,internet, _, _).
-vulExists(currencyservice_pod, 'attacker_can_access_anything', is_computer).
-networkServiceInfo(currencyservice_pod, is_computer,  _, _ , _).
+vulExists(carts_pod, 'attacker_can_access_anything', is_computer).
+networkServiceInfo(carts_pod, is_computer,  _, _ , _).
 
-hacl(adservice_pod,redis_cart_pod, _, _).
-hacl(adservice_pod,frontend_pod, _, _).
-hacl(adservice_pod,productcatalogservice_pod, _, _).
-hacl(adservice_pod,shippingservice_pod, _, _).
-hacl(adservice_pod,recommendationservice_pod, _, _).
-hacl(adservice_pod,emailservice_pod, _, _).
-hacl(adservice_pod,paymentservice_pod, _, _).
-hacl(adservice_pod,currencyservice_pod, _, _).
-hacl(adservice_pod,frontend_external_pod, _, _).
-hacl(adservice_pod,checkoutservice_pod, _, _).
-hacl(adservice_pod,cartservice_pod, _, _).
-hacl(adservice_pod,kube_dns_pod, _, _).
-hacl(adservice_pod,internet, _, _).
-vulExists(adservice_pod, 'attacker_can_access_anything', is_computer).
-networkServiceInfo(adservice_pod, is_computer,  _, _ , _).
+hacl(catalogue_pod,front_end_pod, _, _).
+hacl(catalogue_pod,catalogue_db_pod, _, _).
+hacl(catalogue_pod,kube_dns_pod, _, _).
+vulExists(catalogue_pod, 'attacker_can_access_anything', is_computer).
+networkServiceInfo(catalogue_pod, is_computer,  _, _ , _).
 
-hacl(frontend_external_pod,redis_cart_pod, _, _).
-hacl(frontend_external_pod,frontend_pod, _, _).
-hacl(frontend_external_pod,productcatalogservice_pod, _, _).
-hacl(frontend_external_pod,shippingservice_pod, _, _).
-hacl(frontend_external_pod,recommendationservice_pod, _, _).
-hacl(frontend_external_pod,emailservice_pod, _, _).
-hacl(frontend_external_pod,paymentservice_pod, _, _).
-hacl(frontend_external_pod,currencyservice_pod, _, _).
-hacl(frontend_external_pod,adservice_pod, _, _).
-hacl(frontend_external_pod,checkoutservice_pod, _, _).
-hacl(frontend_external_pod,cartservice_pod, _, _).
-hacl(frontend_external_pod,kube_dns_pod, _, _).
-hacl(frontend_external_pod,internet, _, _).
-vulExists(frontend_external_pod, 'attacker_can_access_anything', is_computer).
-networkServiceInfo(frontend_external_pod, is_computer,  _, _ , _).
+hacl(user_pod,front_end_pod, _, _).
+hacl(user_pod,orders_pod, _, _).
+hacl(user_pod,catalogue_pod, _, _).
+hacl(user_pod,user_db_pod, _, _).
+hacl(user_pod,kube_dns_pod, _, _).
+hacl(user_pod,internet, _, _).
+vulExists(user_pod, 'attacker_can_access_anything', is_computer).
+networkServiceInfo(user_pod, is_computer,  _, _ , _).
+attackerLocated(user_db_pod).
 
-hacl(checkoutservice_pod,redis_cart_pod, _, _).
-hacl(checkoutservice_pod,frontend_pod, _, _).
-hacl(checkoutservice_pod,productcatalogservice_pod, _, _).
-hacl(checkoutservice_pod,shippingservice_pod, _, _).
-hacl(checkoutservice_pod,recommendationservice_pod, _, _).
-hacl(checkoutservice_pod,emailservice_pod, _, _).
-hacl(checkoutservice_pod,paymentservice_pod, _, _).
-hacl(checkoutservice_pod,currencyservice_pod, _, _).
-hacl(checkoutservice_pod,adservice_pod, _, _).
-hacl(checkoutservice_pod,frontend_external_pod, _, _).
-hacl(checkoutservice_pod,cartservice_pod, _, _).
-hacl(checkoutservice_pod,kube_dns_pod, _, _).
-hacl(checkoutservice_pod,internet, _, _).
-vulExists(checkoutservice_pod, 'attacker_can_access_anything', is_computer).
-networkServiceInfo(checkoutservice_pod, is_computer,  _, _ , _).
+hacl(user_db_pod,user_pod, _, _).
+hacl(user_db_pod,kube_dns_pod, _, _).
+vulExists(user_db_pod, 'attacker_can_access_anything', is_computer).
+networkServiceInfo(user_db_pod, is_computer,  _, _ , _).
 
-hacl(cartservice_pod,redis_cart_pod, _, _).
-hacl(cartservice_pod,frontend_pod, _, _).
-hacl(cartservice_pod,productcatalogservice_pod, _, _).
-hacl(cartservice_pod,shippingservice_pod, _, _).
-hacl(cartservice_pod,recommendationservice_pod, _, _).
-hacl(cartservice_pod,emailservice_pod, _, _).
-hacl(cartservice_pod,paymentservice_pod, _, _).
-hacl(cartservice_pod,currencyservice_pod, _, _).
-hacl(cartservice_pod,adservice_pod, _, _).
-hacl(cartservice_pod,frontend_external_pod, _, _).
-hacl(cartservice_pod,checkoutservice_pod, _, _).
-hacl(cartservice_pod,kube_dns_pod, _, _).
-hacl(cartservice_pod,internet, _, _).
-vulExists(cartservice_pod, 'attacker_can_access_anything', is_computer).
-networkServiceInfo(cartservice_pod, is_computer,  _, _ , _).
-attackerLocated(kube_dns_pod).
+hacl(payment_pod,orders_pod, _, _).
+vulExists(payment_pod, 'attacker_can_access_anything', is_computer).
+networkServiceInfo(payment_pod, is_computer,  _, _ , _).
+
+hacl(catalogue_db_pod,catalogue_pod, _, _).
+vulExists(catalogue_db_pod, 'attacker_can_access_anything', is_computer).
+networkServiceInfo(catalogue_db_pod, is_computer,  _, _ , _).
 
 vulExists(kube_dns_pod, 'attacker_can_access_anything', is_computer).
 networkServiceInfo(kube_dns_pod, is_computer,  _, _ , _).

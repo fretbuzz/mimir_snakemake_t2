@@ -253,7 +253,7 @@ def aggregate_graph(G, ms_s):
 
 def find_infra_components_in_graph(G, infra_instances):
     infra_nodes = []
-    print "infra_instances", infra_instances
+    #print "infra_instances", infra_instances
     for node in G.nodes():
         for infra_instance_name, ip_and_type in infra_instances.iteritems():
             infra_instance_name, infra_instance_PodSvc,svc = infra_instance_name, ip_and_type[1], ip_and_type[2]
