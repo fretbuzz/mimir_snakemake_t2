@@ -27,7 +27,7 @@ pip install pip
 
 * Then install the necessary python packages:
 ```
-pip install docker networkx matplotlib jinja2 pdfkit numpy pandas seaborn Cython pyyaml multiprocessing scipy pdfkit
+pip install docker networkx matplotlib jinja2 pdfkit numpy pandas seaborn Cython pyyaml multiprocessing scipy pdfkit tabulate
 ```
 
 ### Step 2: Get example data
