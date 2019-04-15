@@ -184,7 +184,7 @@ class multi_experiment_pipeline(object):
         return min_rate_statspipelines, None
 
     def run_eval_pipeline(self):
-        ## TODO: is this a good idea???
+        ## TODO: is this a good idea??? No, probably not, I have a proto-type solution in place that'll hopefully be fine.
         pass
 
     def generate_aggregate_report(self):
@@ -524,6 +524,7 @@ def assign_exfil_paths_to_experiments(exp_infos, goal_train_test_split, goal_att
     training_exfil_paths = []
     testing_exfil_paths = []
 
+    ## TODO: modify to handle 0/100 training/testing ratio...
     testing_number_times_inject_all_paths = math.floor(total_testing_injections_possible / float(len(possible_exfil_paths)))
     training_number_times_inject_all_paths = math.floor(total_training_injections_possible / float(len(possible_exfil_paths)))
     if training_number_times_inject_all_paths < 1.0:

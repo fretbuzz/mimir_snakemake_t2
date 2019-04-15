@@ -20,9 +20,9 @@
   "avg_pkt_size": [500.0, 500.0, 500.00, 500.00, 500.0, 500.0],
   "pkt_size_variance":  [100, 100, 100, 100, 100, 100],
 
-  "make_edgefiles": false,
-  "skip_graph_injection": true,
-  "calc_vals": false,
+  "make_edgefiles": true,
+  "skip_graph_injection": false,
+  "calc_vals": true,
   "calculate_z_scores": true,
   "get_endresult_from_memory": false,
 

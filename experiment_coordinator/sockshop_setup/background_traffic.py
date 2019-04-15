@@ -13,6 +13,7 @@ with open( "users.pickle", "rb" ) as f:
     users = pickle.loads( f.read() )
 
 class BackgroundTraffic(TaskSet):
+    '''
     # the way I wrote this script, these are really the times between new users showing up
     min_wait = 2000
     max_wait = 4000
@@ -83,7 +84,7 @@ class BackgroundTraffic(TaskSet):
         userID = self.client.post("/register", json=registerObject).text
         # userID = self.client.post("/register", json=registerObject).text
         # tested to here! first part is working!
-        # ''' Let's test only the above part for now
+        # Let's test only the above part for now
         #print "userID: ", userID
         # then login
         # login(username, password)
@@ -104,7 +105,7 @@ class BackgroundTraffic(TaskSet):
         addressObject = {"street": "Whitelees Road", "number": "246", "country": "United Kingdom", "city": "Glasgow",
                          "postcode": "G67 3DL", "id": userID}
         cAddr = self.client.post("/addresses", json=addressObject)
-
+    '''
     ## COPY-PASTED FROM HERE: https://github.com/microservices-demo/load-test/blob/master/locustfile.py
     ## I DID NOT WRITE THIS ONE--- it's from the offical repo
     @task(1)

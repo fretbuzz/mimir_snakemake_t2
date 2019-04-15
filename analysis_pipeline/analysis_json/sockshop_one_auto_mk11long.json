@@ -26,5 +26,7 @@
 
   "goal_attack_NoAttack_split_training": 0.50,
   "goal_train_test_split_training": 0.50,
-  "goal_attack_NoAttack_split_testing": 0.2
+  "goal_attack_NoAttack_split_testing": 0.2,
+
+   "skip_heatmap_p" : true
 }
