@@ -15,5 +15,7 @@ skaffold run
 # vv is kinda outdated and has some problems (such as the cc # in load generator being EXPIRED)
 #kubectl apply -f ./release/kubernetes-manifests.yaml
 
+kubectl delete deploy loadgenerator
+
 # fourth, scale (either set or with auto)
 ## TODO
