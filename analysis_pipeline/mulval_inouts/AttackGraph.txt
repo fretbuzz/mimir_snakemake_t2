@@ -7,48 +7,653 @@
                (7) RULE 2 : remote exploit of a server program
                   <8>||--netAccess(kube_dns_pod,_,_)
                      (9) RULE 5 : multi-hop access
-                        [10]-hacl(my_release_pxc_pod,kube_dns_pod,_,_)
-                        <11>|--execCode(my_release_pxc_pod,_)
+                        [10]-hacl(carts_db_pod,kube_dns_pod,_,_)
+                        <11>|--execCode(carts_db_pod,_)
                            (12) RULE 2 : remote exploit of a server program
-                              <13>||--netAccess(my_release_pxc_pod,_,_)
+                              <13>||--netAccess(carts_db_pod,_,_)
                                  (14) RULE 5 : multi-hop access
-                                    [15]-hacl(wwwppp_wordpress_pod,my_release_pxc_pod,_,_)
-                                    <16>|--execCode(wwwppp_wordpress_pod,_)
+                                    [15]-hacl(carts_pod,carts_db_pod,_,_)
+                                    <16>|--execCode(carts_pod,_)
                                        (17) RULE 2 : remote exploit of a server program
-                                          <18>||--netAccess(wwwppp_wordpress_pod,_,_)
+                                          <18>||--netAccess(carts_pod,_,_)
                                              (19) RULE 5 : multi-hop access
-                                                [20]-hacl(my_release_pxc_pod,wwwppp_wordpress_pod,_,_)
-                                                execCode(my_release_pxc_pod,_)==><11>
-                                             (21) RULE 6 : direct network access
-                                                [20]-hacl(my_release_pxc_pod,wwwppp_wordpress_pod,_,_)
-                                                [22]-attackerLocated(my_release_pxc_pod)
-                                          [23]-networkServiceInfo(wwwppp_wordpress_pod,is_computer,_,_,_)
-                                          [24]-vulExists(wwwppp_wordpress_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-                                 (25) RULE 7 : direct on-host access
-                                    [22]-attackerLocated(my_release_pxc_pod)
-                              [26]-networkServiceInfo(my_release_pxc_pod,is_computer,_,_,_)
-                              [27]-vulExists(my_release_pxc_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-                     (28) RULE 5 : multi-hop access
-                        [29]-hacl(wwwppp_wordpress_pod,kube_dns_pod,_,_)
-                        execCode(wwwppp_wordpress_pod,_)==><16>
-                     (30) RULE 6 : direct network access
-                        [10]-hacl(my_release_pxc_pod,kube_dns_pod,_,_)
-                        [22]-attackerLocated(my_release_pxc_pod)
-                  [31]-networkServiceInfo(kube_dns_pod,is_computer,_,_,_)
-                  [32]-vulExists(kube_dns_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-      [33]-networkServiceInfo(internet,is_computer,_,53,_)
-      [34]-vulExists(internet,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
-   (35) RULE 2 : remote exploit of a server program
-      <36>||--netAccess(internet,_,_)
-         (37) RULE 5 : multi-hop access
-            [38]-hacl(my_release_pxc_pod,internet,_,_)
-            execCode(my_release_pxc_pod,_)==><11>
-         (39) RULE 5 : multi-hop access
-            [40]-hacl(wwwppp_wordpress_pod,internet,_,_)
-            execCode(wwwppp_wordpress_pod,_)==><16>
-         (41) RULE 6 : direct network access
-            [38]-hacl(my_release_pxc_pod,internet,_,_)
-            [22]-attackerLocated(my_release_pxc_pod)
-      [42]-networkServiceInfo(internet,is_computer,_,_,_)
-      [34]-vulExists(internet,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+                                                [20]-hacl(carts_db_pod,carts_pod,_,_)
+                                                execCode(carts_db_pod,_)==><11>
+                                             (21) RULE 5 : multi-hop access
+                                                [22]-hacl(catalogue_db_pod,carts_pod,_,_)
+                                                <23>|--execCode(catalogue_db_pod,_)
+                                                   (24) RULE 2 : remote exploit of a server program
+                                                      <25>||--netAccess(catalogue_db_pod,_,_)
+                                                         (26) RULE 5 : multi-hop access
+                                                            [27]-hacl(carts_db_pod,catalogue_db_pod,_,_)
+                                                            execCode(carts_db_pod,_)==><11>
+                                                         (28) RULE 5 : multi-hop access
+                                                            [29]-hacl(carts_pod,catalogue_db_pod,_,_)
+                                                            execCode(carts_pod,_)==><16>
+                                                         (30) RULE 5 : multi-hop access
+                                                            [31]-hacl(catalogue_pod,catalogue_db_pod,_,_)
+                                                            <32>|--execCode(catalogue_pod,_)
+                                                               (33) RULE 2 : remote exploit of a server program
+                                                                  <34>||--netAccess(catalogue_pod,_,_)
+                                                                     (35) RULE 5 : multi-hop access
+                                                                        [36]-hacl(carts_db_pod,catalogue_pod,_,_)
+                                                                        execCode(carts_db_pod,_)==><11>
+                                                                     (37) RULE 5 : multi-hop access
+                                                                        [38]-hacl(carts_pod,catalogue_pod,_,_)
+                                                                        execCode(carts_pod,_)==><16>
+                                                                     (39) RULE 5 : multi-hop access
+                                                                        [40]-hacl(catalogue_db_pod,catalogue_pod,_,_)
+                                                                        execCode(catalogue_db_pod,_)==><23>
+                                                                     (41) RULE 5 : multi-hop access
+                                                                        [42]-hacl(front_end_pod,catalogue_pod,_,_)
+                                                                        <43>|--execCode(front_end_pod,_)
+                                                                           (44) RULE 2 : remote exploit of a server program
+                                                                              <45>||--netAccess(front_end_pod,_,_)
+                                                                                 (46) RULE 5 : multi-hop access
+                                                                                    [47]-hacl(carts_db_pod,front_end_pod,_,_)
+                                                                                    execCode(carts_db_pod,_)==><11>
+                                                                                 (48) RULE 5 : multi-hop access
+                                                                                    [49]-hacl(carts_pod,front_end_pod,_,_)
+                                                                                    execCode(carts_pod,_)==><16>
+                                                                                 (50) RULE 5 : multi-hop access
+                                                                                    [51]-hacl(catalogue_db_pod,front_end_pod,_,_)
+                                                                                    execCode(catalogue_db_pod,_)==><23>
+                                                                                 (52) RULE 5 : multi-hop access
+                                                                                    [53]-hacl(catalogue_pod,front_end_pod,_,_)
+                                                                                    execCode(catalogue_pod,_)==><32>
+                                                                                 (54) RULE 5 : multi-hop access
+                                                                                    [55]-hacl(orders_db_pod,front_end_pod,_,_)
+                                                                                    <56>|--execCode(orders_db_pod,_)
+                                                                                       (57) RULE 2 : remote exploit of a server program
+                                                                                          <58>||--netAccess(orders_db_pod,_,_)
+                                                                                             (59) RULE 5 : multi-hop access
+                                                                                                [60]-hacl(carts_db_pod,orders_db_pod,_,_)
+                                                                                                execCode(carts_db_pod,_)==><11>
+                                                                                             (61) RULE 5 : multi-hop access
+                                                                                                [62]-hacl(carts_pod,orders_db_pod,_,_)
+                                                                                                execCode(carts_pod,_)==><16>
+                                                                                             (63) RULE 5 : multi-hop access
+                                                                                                [64]-hacl(catalogue_db_pod,orders_db_pod,_,_)
+                                                                                                execCode(catalogue_db_pod,_)==><23>
+                                                                                             (65) RULE 5 : multi-hop access
+                                                                                                [66]-hacl(catalogue_pod,orders_db_pod,_,_)
+                                                                                                execCode(catalogue_pod,_)==><32>
+                                                                                             (67) RULE 5 : multi-hop access
+                                                                                                [68]-hacl(front_end_pod,orders_db_pod,_,_)
+                                                                                                execCode(front_end_pod,_)==><43>
+                                                                                             (69) RULE 5 : multi-hop access
+                                                                                                [70]-hacl(orders_pod,orders_db_pod,_,_)
+                                                                                                <71>|--execCode(orders_pod,_)
+                                                                                                   (72) RULE 2 : remote exploit of a server program
+                                                                                                      <73>||--netAccess(orders_pod,_,_)
+                                                                                                         (74) RULE 5 : multi-hop access
+                                                                                                            [75]-hacl(carts_db_pod,orders_pod,_,_)
+                                                                                                            execCode(carts_db_pod,_)==><11>
+                                                                                                         (76) RULE 5 : multi-hop access
+                                                                                                            [77]-hacl(carts_pod,orders_pod,_,_)
+                                                                                                            execCode(carts_pod,_)==><16>
+                                                                                                         (78) RULE 5 : multi-hop access
+                                                                                                            [79]-hacl(catalogue_db_pod,orders_pod,_,_)
+                                                                                                            execCode(catalogue_db_pod,_)==><23>
+                                                                                                         (80) RULE 5 : multi-hop access
+                                                                                                            [81]-hacl(catalogue_pod,orders_pod,_,_)
+                                                                                                            execCode(catalogue_pod,_)==><32>
+                                                                                                         (82) RULE 5 : multi-hop access
+                                                                                                            [83]-hacl(front_end_pod,orders_pod,_,_)
+                                                                                                            execCode(front_end_pod,_)==><43>
+                                                                                                         (84) RULE 5 : multi-hop access
+                                                                                                            [85]-hacl(orders_db_pod,orders_pod,_,_)
+                                                                                                            execCode(orders_db_pod,_)==><56>
+                                                                                                         (86) RULE 5 : multi-hop access
+                                                                                                            [87]-hacl(payment_pod,orders_pod,_,_)
+                                                                                                            <88>|--execCode(payment_pod,_)
+                                                                                                               (89) RULE 2 : remote exploit of a server program
+                                                                                                                  <90>||--netAccess(payment_pod,_,_)
+                                                                                                                     (91) RULE 5 : multi-hop access
+                                                                                                                        [92]-hacl(carts_db_pod,payment_pod,_,_)
+                                                                                                                        execCode(carts_db_pod,_)==><11>
+                                                                                                                     (93) RULE 5 : multi-hop access
+                                                                                                                        [94]-hacl(carts_pod,payment_pod,_,_)
+                                                                                                                        execCode(carts_pod,_)==><16>
+                                                                                                                     (95) RULE 5 : multi-hop access
+                                                                                                                        [96]-hacl(catalogue_db_pod,payment_pod,_,_)
+                                                                                                                        execCode(catalogue_db_pod,_)==><23>
+                                                                                                                     (97) RULE 5 : multi-hop access
+                                                                                                                        [98]-hacl(catalogue_pod,payment_pod,_,_)
+                                                                                                                        execCode(catalogue_pod,_)==><32>
+                                                                                                                     (99) RULE 5 : multi-hop access
+                                                                                                                        [100]-hacl(front_end_pod,payment_pod,_,_)
+                                                                                                                        execCode(front_end_pod,_)==><43>
+                                                                                                                     (101) RULE 5 : multi-hop access
+                                                                                                                        [102]-hacl(orders_db_pod,payment_pod,_,_)
+                                                                                                                        execCode(orders_db_pod,_)==><56>
+                                                                                                                     (103) RULE 5 : multi-hop access
+                                                                                                                        [104]-hacl(orders_pod,payment_pod,_,_)
+                                                                                                                        execCode(orders_pod,_)==><71>
+                                                                                                                     (105) RULE 5 : multi-hop access
+                                                                                                                        [106]-hacl(queue_master_pod,payment_pod,_,_)
+                                                                                                                        <107>|--execCode(queue_master_pod,_)
+                                                                                                                           (108) RULE 2 : remote exploit of a server program
+                                                                                                                              <109>||--netAccess(queue_master_pod,_,_)
+                                                                                                                                 (110) RULE 5 : multi-hop access
+                                                                                                                                    [111]-hacl(carts_db_pod,queue_master_pod,_,_)
+                                                                                                                                    execCode(carts_db_pod,_)==><11>
+                                                                                                                                 (112) RULE 5 : multi-hop access
+                                                                                                                                    [113]-hacl(carts_pod,queue_master_pod,_,_)
+                                                                                                                                    execCode(carts_pod,_)==><16>
+                                                                                                                                 (114) RULE 5 : multi-hop access
+                                                                                                                                    [115]-hacl(catalogue_db_pod,queue_master_pod,_,_)
+                                                                                                                                    execCode(catalogue_db_pod,_)==><23>
+                                                                                                                                 (116) RULE 5 : multi-hop access
+                                                                                                                                    [117]-hacl(catalogue_pod,queue_master_pod,_,_)
+                                                                                                                                    execCode(catalogue_pod,_)==><32>
+                                                                                                                                 (118) RULE 5 : multi-hop access
+                                                                                                                                    [119]-hacl(front_end_pod,queue_master_pod,_,_)
+                                                                                                                                    execCode(front_end_pod,_)==><43>
+                                                                                                                                 (120) RULE 5 : multi-hop access
+                                                                                                                                    [121]-hacl(orders_db_pod,queue_master_pod,_,_)
+                                                                                                                                    execCode(orders_db_pod,_)==><56>
+                                                                                                                                 (122) RULE 5 : multi-hop access
+                                                                                                                                    [123]-hacl(orders_pod,queue_master_pod,_,_)
+                                                                                                                                    execCode(orders_pod,_)==><71>
+                                                                                                                                 (124) RULE 5 : multi-hop access
+                                                                                                                                    [125]-hacl(payment_pod,queue_master_pod,_,_)
+                                                                                                                                    execCode(payment_pod,_)==><88>
+                                                                                                                                 (126) RULE 5 : multi-hop access
+                                                                                                                                    [127]-hacl(rabbitmq_pod,queue_master_pod,_,_)
+                                                                                                                                    <128>|--execCode(rabbitmq_pod,_)
+                                                                                                                                       (129) RULE 2 : remote exploit of a server program
+                                                                                                                                          <130>||--netAccess(rabbitmq_pod,_,_)
+                                                                                                                                             (131) RULE 5 : multi-hop access
+                                                                                                                                                [132]-hacl(carts_db_pod,rabbitmq_pod,_,_)
+                                                                                                                                                execCode(carts_db_pod,_)==><11>
+                                                                                                                                             (133) RULE 5 : multi-hop access
+                                                                                                                                                [134]-hacl(carts_pod,rabbitmq_pod,_,_)
+                                                                                                                                                execCode(carts_pod,_)==><16>
+                                                                                                                                             (135) RULE 5 : multi-hop access
+                                                                                                                                                [136]-hacl(catalogue_db_pod,rabbitmq_pod,_,_)
+                                                                                                                                                execCode(catalogue_db_pod,_)==><23>
+                                                                                                                                             (137) RULE 5 : multi-hop access
+                                                                                                                                                [138]-hacl(catalogue_pod,rabbitmq_pod,_,_)
+                                                                                                                                                execCode(catalogue_pod,_)==><32>
+                                                                                                                                             (139) RULE 5 : multi-hop access
+                                                                                                                                                [140]-hacl(front_end_pod,rabbitmq_pod,_,_)
+                                                                                                                                                execCode(front_end_pod,_)==><43>
+                                                                                                                                             (141) RULE 5 : multi-hop access
+                                                                                                                                                [142]-hacl(orders_db_pod,rabbitmq_pod,_,_)
+                                                                                                                                                execCode(orders_db_pod,_)==><56>
+                                                                                                                                             (143) RULE 5 : multi-hop access
+                                                                                                                                                [144]-hacl(orders_pod,rabbitmq_pod,_,_)
+                                                                                                                                                execCode(orders_pod,_)==><71>
+                                                                                                                                             (145) RULE 5 : multi-hop access
+                                                                                                                                                [146]-hacl(payment_pod,rabbitmq_pod,_,_)
+                                                                                                                                                execCode(payment_pod,_)==><88>
+                                                                                                                                             (147) RULE 5 : multi-hop access
+                                                                                                                                                [148]-hacl(queue_master_pod,rabbitmq_pod,_,_)
+                                                                                                                                                execCode(queue_master_pod,_)==><107>
+                                                                                                                                             (149) RULE 5 : multi-hop access
+                                                                                                                                                [150]-hacl(shipping_pod,rabbitmq_pod,_,_)
+                                                                                                                                                <151>|--execCode(shipping_pod,_)
+                                                                                                                                                   (152) RULE 2 : remote exploit of a server program
+                                                                                                                                                      <153>||--netAccess(shipping_pod,_,_)
+                                                                                                                                                         (154) RULE 5 : multi-hop access
+                                                                                                                                                            [155]-hacl(carts_db_pod,shipping_pod,_,_)
+                                                                                                                                                            execCode(carts_db_pod,_)==><11>
+                                                                                                                                                         (156) RULE 5 : multi-hop access
+                                                                                                                                                            [157]-hacl(carts_pod,shipping_pod,_,_)
+                                                                                                                                                            execCode(carts_pod,_)==><16>
+                                                                                                                                                         (158) RULE 5 : multi-hop access
+                                                                                                                                                            [159]-hacl(catalogue_db_pod,shipping_pod,_,_)
+                                                                                                                                                            execCode(catalogue_db_pod,_)==><23>
+                                                                                                                                                         (160) RULE 5 : multi-hop access
+                                                                                                                                                            [161]-hacl(catalogue_pod,shipping_pod,_,_)
+                                                                                                                                                            execCode(catalogue_pod,_)==><32>
+                                                                                                                                                         (162) RULE 5 : multi-hop access
+                                                                                                                                                            [163]-hacl(front_end_pod,shipping_pod,_,_)
+                                                                                                                                                            execCode(front_end_pod,_)==><43>
+                                                                                                                                                         (164) RULE 5 : multi-hop access
+                                                                                                                                                            [165]-hacl(orders_db_pod,shipping_pod,_,_)
+                                                                                                                                                            execCode(orders_db_pod,_)==><56>
+                                                                                                                                                         (166) RULE 5 : multi-hop access
+                                                                                                                                                            [167]-hacl(orders_pod,shipping_pod,_,_)
+                                                                                                                                                            execCode(orders_pod,_)==><71>
+                                                                                                                                                         (168) RULE 5 : multi-hop access
+                                                                                                                                                            [169]-hacl(payment_pod,shipping_pod,_,_)
+                                                                                                                                                            execCode(payment_pod,_)==><88>
+                                                                                                                                                         (170) RULE 5 : multi-hop access
+                                                                                                                                                            [171]-hacl(queue_master_pod,shipping_pod,_,_)
+                                                                                                                                                            execCode(queue_master_pod,_)==><107>
+                                                                                                                                                         (172) RULE 5 : multi-hop access
+                                                                                                                                                            [173]-hacl(rabbitmq_pod,shipping_pod,_,_)
+                                                                                                                                                            execCode(rabbitmq_pod,_)==><128>
+                                                                                                                                                         (174) RULE 5 : multi-hop access
+                                                                                                                                                            [175]-hacl(user_db_pod,shipping_pod,_,_)
+                                                                                                                                                            <176>|--execCode(user_db_pod,_)
+                                                                                                                                                               (177) RULE 2 : remote exploit of a server program
+                                                                                                                                                                  <178>||--netAccess(user_db_pod,_,_)
+                                                                                                                                                                     (179) RULE 5 : multi-hop access
+                                                                                                                                                                        [180]-hacl(carts_db_pod,user_db_pod,_,_)
+                                                                                                                                                                        execCode(carts_db_pod,_)==><11>
+                                                                                                                                                                     (181) RULE 5 : multi-hop access
+                                                                                                                                                                        [182]-hacl(carts_pod,user_db_pod,_,_)
+                                                                                                                                                                        execCode(carts_pod,_)==><16>
+                                                                                                                                                                     (183) RULE 5 : multi-hop access
+                                                                                                                                                                        [184]-hacl(catalogue_db_pod,user_db_pod,_,_)
+                                                                                                                                                                        execCode(catalogue_db_pod,_)==><23>
+                                                                                                                                                                     (185) RULE 5 : multi-hop access
+                                                                                                                                                                        [186]-hacl(catalogue_pod,user_db_pod,_,_)
+                                                                                                                                                                        execCode(catalogue_pod,_)==><32>
+                                                                                                                                                                     (187) RULE 5 : multi-hop access
+                                                                                                                                                                        [188]-hacl(front_end_pod,user_db_pod,_,_)
+                                                                                                                                                                        execCode(front_end_pod,_)==><43>
+                                                                                                                                                                     (189) RULE 5 : multi-hop access
+                                                                                                                                                                        [190]-hacl(orders_db_pod,user_db_pod,_,_)
+                                                                                                                                                                        execCode(orders_db_pod,_)==><56>
+                                                                                                                                                                     (191) RULE 5 : multi-hop access
+                                                                                                                                                                        [192]-hacl(orders_pod,user_db_pod,_,_)
+                                                                                                                                                                        execCode(orders_pod,_)==><71>
+                                                                                                                                                                     (193) RULE 5 : multi-hop access
+                                                                                                                                                                        [194]-hacl(payment_pod,user_db_pod,_,_)
+                                                                                                                                                                        execCode(payment_pod,_)==><88>
+                                                                                                                                                                     (195) RULE 5 : multi-hop access
+                                                                                                                                                                        [196]-hacl(queue_master_pod,user_db_pod,_,_)
+                                                                                                                                                                        execCode(queue_master_pod,_)==><107>
+                                                                                                                                                                     (197) RULE 5 : multi-hop access
+                                                                                                                                                                        [198]-hacl(rabbitmq_pod,user_db_pod,_,_)
+                                                                                                                                                                        execCode(rabbitmq_pod,_)==><128>
+                                                                                                                                                                     (199) RULE 5 : multi-hop access
+                                                                                                                                                                        [200]-hacl(shipping_pod,user_db_pod,_,_)
+                                                                                                                                                                        execCode(shipping_pod,_)==><151>
+                                                                                                                                                                     (201) RULE 5 : multi-hop access
+                                                                                                                                                                        [202]-hacl(user_pod,user_db_pod,_,_)
+                                                                                                                                                                        <203>|--execCode(user_pod,_)
+                                                                                                                                                                           (204) RULE 2 : remote exploit of a server program
+                                                                                                                                                                              <205>||--netAccess(user_pod,_,_)
+                                                                                                                                                                                 (206) RULE 5 : multi-hop access
+                                                                                                                                                                                    [207]-hacl(carts_db_pod,user_pod,_,_)
+                                                                                                                                                                                    execCode(carts_db_pod,_)==><11>
+                                                                                                                                                                                 (208) RULE 5 : multi-hop access
+                                                                                                                                                                                    [209]-hacl(carts_pod,user_pod,_,_)
+                                                                                                                                                                                    execCode(carts_pod,_)==><16>
+                                                                                                                                                                                 (210) RULE 5 : multi-hop access
+                                                                                                                                                                                    [211]-hacl(catalogue_db_pod,user_pod,_,_)
+                                                                                                                                                                                    execCode(catalogue_db_pod,_)==><23>
+                                                                                                                                                                                 (212) RULE 5 : multi-hop access
+                                                                                                                                                                                    [213]-hacl(catalogue_pod,user_pod,_,_)
+                                                                                                                                                                                    execCode(catalogue_pod,_)==><32>
+                                                                                                                                                                                 (214) RULE 5 : multi-hop access
+                                                                                                                                                                                    [215]-hacl(front_end_pod,user_pod,_,_)
+                                                                                                                                                                                    execCode(front_end_pod,_)==><43>
+                                                                                                                                                                                 (216) RULE 5 : multi-hop access
+                                                                                                                                                                                    [217]-hacl(orders_db_pod,user_pod,_,_)
+                                                                                                                                                                                    execCode(orders_db_pod,_)==><56>
+                                                                                                                                                                                 (218) RULE 5 : multi-hop access
+                                                                                                                                                                                    [219]-hacl(orders_pod,user_pod,_,_)
+                                                                                                                                                                                    execCode(orders_pod,_)==><71>
+                                                                                                                                                                                 (220) RULE 5 : multi-hop access
+                                                                                                                                                                                    [221]-hacl(payment_pod,user_pod,_,_)
+                                                                                                                                                                                    execCode(payment_pod,_)==><88>
+                                                                                                                                                                                 (222) RULE 5 : multi-hop access
+                                                                                                                                                                                    [223]-hacl(queue_master_pod,user_pod,_,_)
+                                                                                                                                                                                    execCode(queue_master_pod,_)==><107>
+                                                                                                                                                                                 (224) RULE 5 : multi-hop access
+                                                                                                                                                                                    [225]-hacl(rabbitmq_pod,user_pod,_,_)
+                                                                                                                                                                                    execCode(rabbitmq_pod,_)==><128>
+                                                                                                                                                                                 (226) RULE 5 : multi-hop access
+                                                                                                                                                                                    [227]-hacl(shipping_pod,user_pod,_,_)
+                                                                                                                                                                                    execCode(shipping_pod,_)==><151>
+                                                                                                                                                                                 (228) RULE 5 : multi-hop access
+                                                                                                                                                                                    [229]-hacl(user_db_pod,user_pod,_,_)
+                                                                                                                                                                                    execCode(user_db_pod,_)==><176>
+                                                                                                                                                                                 (230) RULE 6 : direct network access
+                                                                                                                                                                                    [229]-hacl(user_db_pod,user_pod,_,_)
+                                                                                                                                                                                    [231]-attackerLocated(user_db_pod)
+                                                                                                                                                                              [232]-networkServiceInfo(user_pod,is_computer,_,_,_)
+                                                                                                                                                                              [233]-vulExists(user_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+                                                                                                                                                                     (234) RULE 7 : direct on-host access
+                                                                                                                                                                        [231]-attackerLocated(user_db_pod)
+                                                                                                                                                                  [235]-networkServiceInfo(user_db_pod,is_computer,_,_,_)
+                                                                                                                                                                  [236]-vulExists(user_db_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+                                                                                                                                                         (237) RULE 5 : multi-hop access
+                                                                                                                                                            [238]-hacl(user_pod,shipping_pod,_,_)
+                                                                                                                                                            execCode(user_pod,_)==><203>
+                                                                                                                                                         (239) RULE 6 : direct network access
+                                                                                                                                                            [175]-hacl(user_db_pod,shipping_pod,_,_)
+                                                                                                                                                            [231]-attackerLocated(user_db_pod)
+                                                                                                                                                      [240]-networkServiceInfo(shipping_pod,is_computer,_,_,_)
+                                                                                                                                                      [241]-vulExists(shipping_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+                                                                                                                                             (242) RULE 5 : multi-hop access
+                                                                                                                                                [243]-hacl(user_db_pod,rabbitmq_pod,_,_)
+                                                                                                                                                execCode(user_db_pod,_)==><176>
+                                                                                                                                             (244) RULE 5 : multi-hop access
+                                                                                                                                                [245]-hacl(user_pod,rabbitmq_pod,_,_)
+                                                                                                                                                execCode(user_pod,_)==><203>
+                                                                                                                                             (246) RULE 6 : direct network access
+                                                                                                                                                [243]-hacl(user_db_pod,rabbitmq_pod,_,_)
+                                                                                                                                                [231]-attackerLocated(user_db_pod)
+                                                                                                                                          [247]-networkServiceInfo(rabbitmq_pod,is_computer,_,_,_)
+                                                                                                                                          [248]-vulExists(rabbitmq_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+                                                                                                                                 (249) RULE 5 : multi-hop access
+                                                                                                                                    [250]-hacl(shipping_pod,queue_master_pod,_,_)
+                                                                                                                                    execCode(shipping_pod,_)==><151>
+                                                                                                                                 (251) RULE 5 : multi-hop access
+                                                                                                                                    [252]-hacl(user_db_pod,queue_master_pod,_,_)
+                                                                                                                                    execCode(user_db_pod,_)==><176>
+                                                                                                                                 (253) RULE 5 : multi-hop access
+                                                                                                                                    [254]-hacl(user_pod,queue_master_pod,_,_)
+                                                                                                                                    execCode(user_pod,_)==><203>
+                                                                                                                                 (255) RULE 6 : direct network access
+                                                                                                                                    [252]-hacl(user_db_pod,queue_master_pod,_,_)
+                                                                                                                                    [231]-attackerLocated(user_db_pod)
+                                                                                                                              [256]-networkServiceInfo(queue_master_pod,is_computer,_,_,_)
+                                                                                                                              [257]-vulExists(queue_master_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+                                                                                                                     (258) RULE 5 : multi-hop access
+                                                                                                                        [259]-hacl(rabbitmq_pod,payment_pod,_,_)
+                                                                                                                        execCode(rabbitmq_pod,_)==><128>
+                                                                                                                     (260) RULE 5 : multi-hop access
+                                                                                                                        [261]-hacl(shipping_pod,payment_pod,_,_)
+                                                                                                                        execCode(shipping_pod,_)==><151>
+                                                                                                                     (262) RULE 5 : multi-hop access
+                                                                                                                        [263]-hacl(user_db_pod,payment_pod,_,_)
+                                                                                                                        execCode(user_db_pod,_)==><176>
+                                                                                                                     (264) RULE 5 : multi-hop access
+                                                                                                                        [265]-hacl(user_pod,payment_pod,_,_)
+                                                                                                                        execCode(user_pod,_)==><203>
+                                                                                                                     (266) RULE 6 : direct network access
+                                                                                                                        [263]-hacl(user_db_pod,payment_pod,_,_)
+                                                                                                                        [231]-attackerLocated(user_db_pod)
+                                                                                                                  [267]-networkServiceInfo(payment_pod,is_computer,_,_,_)
+                                                                                                                  [268]-vulExists(payment_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+                                                                                                         (269) RULE 5 : multi-hop access
+                                                                                                            [270]-hacl(queue_master_pod,orders_pod,_,_)
+                                                                                                            execCode(queue_master_pod,_)==><107>
+                                                                                                         (271) RULE 5 : multi-hop access
+                                                                                                            [272]-hacl(rabbitmq_pod,orders_pod,_,_)
+                                                                                                            execCode(rabbitmq_pod,_)==><128>
+                                                                                                         (273) RULE 5 : multi-hop access
+                                                                                                            [274]-hacl(shipping_pod,orders_pod,_,_)
+                                                                                                            execCode(shipping_pod,_)==><151>
+                                                                                                         (275) RULE 5 : multi-hop access
+                                                                                                            [276]-hacl(user_db_pod,orders_pod,_,_)
+                                                                                                            execCode(user_db_pod,_)==><176>
+                                                                                                         (277) RULE 5 : multi-hop access
+                                                                                                            [278]-hacl(user_pod,orders_pod,_,_)
+                                                                                                            execCode(user_pod,_)==><203>
+                                                                                                         (279) RULE 6 : direct network access
+                                                                                                            [276]-hacl(user_db_pod,orders_pod,_,_)
+                                                                                                            [231]-attackerLocated(user_db_pod)
+                                                                                                      [280]-networkServiceInfo(orders_pod,is_computer,_,_,_)
+                                                                                                      [281]-vulExists(orders_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+                                                                                             (282) RULE 5 : multi-hop access
+                                                                                                [283]-hacl(payment_pod,orders_db_pod,_,_)
+                                                                                                execCode(payment_pod,_)==><88>
+                                                                                             (284) RULE 5 : multi-hop access
+                                                                                                [285]-hacl(queue_master_pod,orders_db_pod,_,_)
+                                                                                                execCode(queue_master_pod,_)==><107>
+                                                                                             (286) RULE 5 : multi-hop access
+                                                                                                [287]-hacl(rabbitmq_pod,orders_db_pod,_,_)
+                                                                                                execCode(rabbitmq_pod,_)==><128>
+                                                                                             (288) RULE 5 : multi-hop access
+                                                                                                [289]-hacl(shipping_pod,orders_db_pod,_,_)
+                                                                                                execCode(shipping_pod,_)==><151>
+                                                                                             (290) RULE 5 : multi-hop access
+                                                                                                [291]-hacl(user_db_pod,orders_db_pod,_,_)
+                                                                                                execCode(user_db_pod,_)==><176>
+                                                                                             (292) RULE 5 : multi-hop access
+                                                                                                [293]-hacl(user_pod,orders_db_pod,_,_)
+                                                                                                execCode(user_pod,_)==><203>
+                                                                                             (294) RULE 6 : direct network access
+                                                                                                [291]-hacl(user_db_pod,orders_db_pod,_,_)
+                                                                                                [231]-attackerLocated(user_db_pod)
+                                                                                          [295]-networkServiceInfo(orders_db_pod,is_computer,_,_,_)
+                                                                                          [296]-vulExists(orders_db_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+                                                                                 (297) RULE 5 : multi-hop access
+                                                                                    [298]-hacl(orders_pod,front_end_pod,_,_)
+                                                                                    execCode(orders_pod,_)==><71>
+                                                                                 (299) RULE 5 : multi-hop access
+                                                                                    [300]-hacl(payment_pod,front_end_pod,_,_)
+                                                                                    execCode(payment_pod,_)==><88>
+                                                                                 (301) RULE 5 : multi-hop access
+                                                                                    [302]-hacl(queue_master_pod,front_end_pod,_,_)
+                                                                                    execCode(queue_master_pod,_)==><107>
+                                                                                 (303) RULE 5 : multi-hop access
+                                                                                    [304]-hacl(rabbitmq_pod,front_end_pod,_,_)
+                                                                                    execCode(rabbitmq_pod,_)==><128>
+                                                                                 (305) RULE 5 : multi-hop access
+                                                                                    [306]-hacl(shipping_pod,front_end_pod,_,_)
+                                                                                    execCode(shipping_pod,_)==><151>
+                                                                                 (307) RULE 5 : multi-hop access
+                                                                                    [308]-hacl(user_db_pod,front_end_pod,_,_)
+                                                                                    execCode(user_db_pod,_)==><176>
+                                                                                 (309) RULE 5 : multi-hop access
+                                                                                    [310]-hacl(user_pod,front_end_pod,_,_)
+                                                                                    execCode(user_pod,_)==><203>
+                                                                                 (311) RULE 6 : direct network access
+                                                                                    [308]-hacl(user_db_pod,front_end_pod,_,_)
+                                                                                    [231]-attackerLocated(user_db_pod)
+                                                                              [312]-networkServiceInfo(front_end_pod,is_computer,_,_,_)
+                                                                              [313]-vulExists(front_end_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+                                                                     (314) RULE 5 : multi-hop access
+                                                                        [315]-hacl(orders_db_pod,catalogue_pod,_,_)
+                                                                        execCode(orders_db_pod,_)==><56>
+                                                                     (316) RULE 5 : multi-hop access
+                                                                        [317]-hacl(orders_pod,catalogue_pod,_,_)
+                                                                        execCode(orders_pod,_)==><71>
+                                                                     (318) RULE 5 : multi-hop access
+                                                                        [319]-hacl(payment_pod,catalogue_pod,_,_)
+                                                                        execCode(payment_pod,_)==><88>
+                                                                     (320) RULE 5 : multi-hop access
+                                                                        [321]-hacl(queue_master_pod,catalogue_pod,_,_)
+                                                                        execCode(queue_master_pod,_)==><107>
+                                                                     (322) RULE 5 : multi-hop access
+                                                                        [323]-hacl(rabbitmq_pod,catalogue_pod,_,_)
+                                                                        execCode(rabbitmq_pod,_)==><128>
+                                                                     (324) RULE 5 : multi-hop access
+                                                                        [325]-hacl(shipping_pod,catalogue_pod,_,_)
+                                                                        execCode(shipping_pod,_)==><151>
+                                                                     (326) RULE 5 : multi-hop access
+                                                                        [327]-hacl(user_db_pod,catalogue_pod,_,_)
+                                                                        execCode(user_db_pod,_)==><176>
+                                                                     (328) RULE 5 : multi-hop access
+                                                                        [329]-hacl(user_pod,catalogue_pod,_,_)
+                                                                        execCode(user_pod,_)==><203>
+                                                                     (330) RULE 6 : direct network access
+                                                                        [327]-hacl(user_db_pod,catalogue_pod,_,_)
+                                                                        [231]-attackerLocated(user_db_pod)
+                                                                  [331]-networkServiceInfo(catalogue_pod,is_computer,_,_,_)
+                                                                  [332]-vulExists(catalogue_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+                                                         (333) RULE 5 : multi-hop access
+                                                            [334]-hacl(front_end_pod,catalogue_db_pod,_,_)
+                                                            execCode(front_end_pod,_)==><43>
+                                                         (335) RULE 5 : multi-hop access
+                                                            [336]-hacl(orders_db_pod,catalogue_db_pod,_,_)
+                                                            execCode(orders_db_pod,_)==><56>
+                                                         (337) RULE 5 : multi-hop access
+                                                            [338]-hacl(orders_pod,catalogue_db_pod,_,_)
+                                                            execCode(orders_pod,_)==><71>
+                                                         (339) RULE 5 : multi-hop access
+                                                            [340]-hacl(payment_pod,catalogue_db_pod,_,_)
+                                                            execCode(payment_pod,_)==><88>
+                                                         (341) RULE 5 : multi-hop access
+                                                            [342]-hacl(queue_master_pod,catalogue_db_pod,_,_)
+                                                            execCode(queue_master_pod,_)==><107>
+                                                         (343) RULE 5 : multi-hop access
+                                                            [344]-hacl(rabbitmq_pod,catalogue_db_pod,_,_)
+                                                            execCode(rabbitmq_pod,_)==><128>
+                                                         (345) RULE 5 : multi-hop access
+                                                            [346]-hacl(shipping_pod,catalogue_db_pod,_,_)
+                                                            execCode(shipping_pod,_)==><151>
+                                                         (347) RULE 5 : multi-hop access
+                                                            [348]-hacl(user_db_pod,catalogue_db_pod,_,_)
+                                                            execCode(user_db_pod,_)==><176>
+                                                         (349) RULE 5 : multi-hop access
+                                                            [350]-hacl(user_pod,catalogue_db_pod,_,_)
+                                                            execCode(user_pod,_)==><203>
+                                                         (351) RULE 6 : direct network access
+                                                            [348]-hacl(user_db_pod,catalogue_db_pod,_,_)
+                                                            [231]-attackerLocated(user_db_pod)
+                                                      [352]-networkServiceInfo(catalogue_db_pod,is_computer,_,_,_)
+                                                      [353]-vulExists(catalogue_db_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+                                             (354) RULE 5 : multi-hop access
+                                                [355]-hacl(catalogue_pod,carts_pod,_,_)
+                                                execCode(catalogue_pod,_)==><32>
+                                             (356) RULE 5 : multi-hop access
+                                                [357]-hacl(front_end_pod,carts_pod,_,_)
+                                                execCode(front_end_pod,_)==><43>
+                                             (358) RULE 5 : multi-hop access
+                                                [359]-hacl(orders_db_pod,carts_pod,_,_)
+                                                execCode(orders_db_pod,_)==><56>
+                                             (360) RULE 5 : multi-hop access
+                                                [361]-hacl(orders_pod,carts_pod,_,_)
+                                                execCode(orders_pod,_)==><71>
+                                             (362) RULE 5 : multi-hop access
+                                                [363]-hacl(payment_pod,carts_pod,_,_)
+                                                execCode(payment_pod,_)==><88>
+                                             (364) RULE 5 : multi-hop access
+                                                [365]-hacl(queue_master_pod,carts_pod,_,_)
+                                                execCode(queue_master_pod,_)==><107>
+                                             (366) RULE 5 : multi-hop access
+                                                [367]-hacl(rabbitmq_pod,carts_pod,_,_)
+                                                execCode(rabbitmq_pod,_)==><128>
+                                             (368) RULE 5 : multi-hop access
+                                                [369]-hacl(shipping_pod,carts_pod,_,_)
+                                                execCode(shipping_pod,_)==><151>
+                                             (370) RULE 5 : multi-hop access
+                                                [371]-hacl(user_db_pod,carts_pod,_,_)
+                                                execCode(user_db_pod,_)==><176>
+                                             (372) RULE 5 : multi-hop access
+                                                [373]-hacl(user_pod,carts_pod,_,_)
+                                                execCode(user_pod,_)==><203>
+                                             (374) RULE 6 : direct network access
+                                                [371]-hacl(user_db_pod,carts_pod,_,_)
+                                                [231]-attackerLocated(user_db_pod)
+                                          [375]-networkServiceInfo(carts_pod,is_computer,_,_,_)
+                                          [376]-vulExists(carts_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+                                 (377) RULE 5 : multi-hop access
+                                    [378]-hacl(catalogue_db_pod,carts_db_pod,_,_)
+                                    execCode(catalogue_db_pod,_)==><23>
+                                 (379) RULE 5 : multi-hop access
+                                    [380]-hacl(catalogue_pod,carts_db_pod,_,_)
+                                    execCode(catalogue_pod,_)==><32>
+                                 (381) RULE 5 : multi-hop access
+                                    [382]-hacl(front_end_pod,carts_db_pod,_,_)
+                                    execCode(front_end_pod,_)==><43>
+                                 (383) RULE 5 : multi-hop access
+                                    [384]-hacl(orders_db_pod,carts_db_pod,_,_)
+                                    execCode(orders_db_pod,_)==><56>
+                                 (385) RULE 5 : multi-hop access
+                                    [386]-hacl(orders_pod,carts_db_pod,_,_)
+                                    execCode(orders_pod,_)==><71>
+                                 (387) RULE 5 : multi-hop access
+                                    [388]-hacl(payment_pod,carts_db_pod,_,_)
+                                    execCode(payment_pod,_)==><88>
+                                 (389) RULE 5 : multi-hop access
+                                    [390]-hacl(queue_master_pod,carts_db_pod,_,_)
+                                    execCode(queue_master_pod,_)==><107>
+                                 (391) RULE 5 : multi-hop access
+                                    [392]-hacl(rabbitmq_pod,carts_db_pod,_,_)
+                                    execCode(rabbitmq_pod,_)==><128>
+                                 (393) RULE 5 : multi-hop access
+                                    [394]-hacl(shipping_pod,carts_db_pod,_,_)
+                                    execCode(shipping_pod,_)==><151>
+                                 (395) RULE 5 : multi-hop access
+                                    [396]-hacl(user_db_pod,carts_db_pod,_,_)
+                                    execCode(user_db_pod,_)==><176>
+                                 (397) RULE 5 : multi-hop access
+                                    [398]-hacl(user_pod,carts_db_pod,_,_)
+                                    execCode(user_pod,_)==><203>
+                                 (399) RULE 6 : direct network access
+                                    [396]-hacl(user_db_pod,carts_db_pod,_,_)
+                                    [231]-attackerLocated(user_db_pod)
+                              [400]-networkServiceInfo(carts_db_pod,is_computer,_,_,_)
+                              [401]-vulExists(carts_db_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+                     (402) RULE 5 : multi-hop access
+                        [403]-hacl(carts_pod,kube_dns_pod,_,_)
+                        execCode(carts_pod,_)==><16>
+                     (404) RULE 5 : multi-hop access
+                        [405]-hacl(catalogue_db_pod,kube_dns_pod,_,_)
+                        execCode(catalogue_db_pod,_)==><23>
+                     (406) RULE 5 : multi-hop access
+                        [407]-hacl(catalogue_pod,kube_dns_pod,_,_)
+                        execCode(catalogue_pod,_)==><32>
+                     (408) RULE 5 : multi-hop access
+                        [409]-hacl(front_end_pod,kube_dns_pod,_,_)
+                        execCode(front_end_pod,_)==><43>
+                     (410) RULE 5 : multi-hop access
+                        [411]-hacl(orders_db_pod,kube_dns_pod,_,_)
+                        execCode(orders_db_pod,_)==><56>
+                     (412) RULE 5 : multi-hop access
+                        [413]-hacl(orders_pod,kube_dns_pod,_,_)
+                        execCode(orders_pod,_)==><71>
+                     (414) RULE 5 : multi-hop access
+                        [415]-hacl(payment_pod,kube_dns_pod,_,_)
+                        execCode(payment_pod,_)==><88>
+                     (416) RULE 5 : multi-hop access
+                        [417]-hacl(queue_master_pod,kube_dns_pod,_,_)
+                        execCode(queue_master_pod,_)==><107>
+                     (418) RULE 5 : multi-hop access
+                        [419]-hacl(rabbitmq_pod,kube_dns_pod,_,_)
+                        execCode(rabbitmq_pod,_)==><128>
+                     (420) RULE 5 : multi-hop access
+                        [421]-hacl(shipping_pod,kube_dns_pod,_,_)
+                        execCode(shipping_pod,_)==><151>
+                     (422) RULE 5 : multi-hop access
+                        [423]-hacl(user_db_pod,kube_dns_pod,_,_)
+                        execCode(user_db_pod,_)==><176>
+                     (424) RULE 5 : multi-hop access
+                        [425]-hacl(user_pod,kube_dns_pod,_,_)
+                        execCode(user_pod,_)==><203>
+                     (426) RULE 6 : direct network access
+                        [423]-hacl(user_db_pod,kube_dns_pod,_,_)
+                        [231]-attackerLocated(user_db_pod)
+                  [427]-networkServiceInfo(kube_dns_pod,is_computer,_,_,_)
+                  [428]-vulExists(kube_dns_pod,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+      [429]-networkServiceInfo(internet,is_computer,_,53,_)
+      [430]-vulExists(internet,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
+   (431) RULE 2 : remote exploit of a server program
+      <432>||--netAccess(internet,_,_)
+         (433) RULE 5 : multi-hop access
+            [434]-hacl(carts_db_pod,internet,_,_)
+            execCode(carts_db_pod,_)==><11>
+         (435) RULE 5 : multi-hop access
+            [436]-hacl(carts_pod,internet,_,_)
+            execCode(carts_pod,_)==><16>
+         (437) RULE 5 : multi-hop access
+            [438]-hacl(catalogue_db_pod,internet,_,_)
+            execCode(catalogue_db_pod,_)==><23>
+         (439) RULE 5 : multi-hop access
+            [440]-hacl(catalogue_pod,internet,_,_)
+            execCode(catalogue_pod,_)==><32>
+         (441) RULE 5 : multi-hop access
+            [442]-hacl(front_end_pod,internet,_,_)
+            execCode(front_end_pod,_)==><43>
+         (443) RULE 5 : multi-hop access
+            [444]-hacl(orders_db_pod,internet,_,_)
+            execCode(orders_db_pod,_)==><56>
+         (445) RULE 5 : multi-hop access
+            [446]-hacl(orders_pod,internet,_,_)
+            execCode(orders_pod,_)==><71>
+         (447) RULE 5 : multi-hop access
+            [448]-hacl(payment_pod,internet,_,_)
+            execCode(payment_pod,_)==><88>
+         (449) RULE 5 : multi-hop access
+            [450]-hacl(queue_master_pod,internet,_,_)
+            execCode(queue_master_pod,_)==><107>
+         (451) RULE 5 : multi-hop access
+            [452]-hacl(rabbitmq_pod,internet,_,_)
+            execCode(rabbitmq_pod,_)==><128>
+         (453) RULE 5 : multi-hop access
+            [454]-hacl(shipping_pod,internet,_,_)
+            execCode(shipping_pod,_)==><151>
+         (455) RULE 5 : multi-hop access
+            [456]-hacl(user_db_pod,internet,_,_)
+            execCode(user_db_pod,_)==><176>
+         (457) RULE 5 : multi-hop access
+            [458]-hacl(user_pod,internet,_,_)
+            execCode(user_pod,_)==><203>
+         (459) RULE 6 : direct network access
+            [456]-hacl(user_db_pod,internet,_,_)
+            [231]-attackerLocated(user_db_pod)
+      [460]-networkServiceInfo(internet,is_computer,_,_,_)
+      [430]-vulExists(internet,attacker_can_access_anything,is_computer,remoteExploit,privEscalation)
 

@@ -280,10 +280,10 @@ if __name__=="__main__":
         print "running_preset..."
         #run_analysis('./analysis_json/hipsterStore_mk1.json')
         #run_analysis('./analysis_json/sockshop_one_auto_mk11long.json')
-        run_analysis('./analysis_json/wordpress_one_3_auto_mk5.json', eval_config='./analysis_json/wordpress_one_v2_na_eval.json')
+        #run_analysis('./analysis_json/wordpress_one_3_auto_mk5.json', eval_config='./analysis_json/wordpress_one_v2_na_eval.json')
         #run_analysis('./analysis_json/sockshop_one_auto_mk11long.json', eval_config='./analysis_json/sockshop_example.json')
 
-
+        run_analysis('./analysis_json/sockshop_example.json')
         #run_analysis('./analysis_json/sockshop_one_v2_mk7.json')
         #run_analysis('./analysis_json/sockshop_one_v2.json')
         #run_analysis('./analysis_json/sockshop_one_v2_minimal.json')
