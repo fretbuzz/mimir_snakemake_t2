@@ -303,10 +303,10 @@ class single_rate_stats_pipeline():
                                                         self.ignore_physical_attacks_p, drop_pairwise_features, timegran,
                                                         lasso_feature_selection_p, skip_heatmap_p=skip_heatmap_p)
 
-            if pretrained_statistical_analysis_v2 == None or (timegran not in pretrained_statistical_analysis_v2):
+            if pretrained_statistical_analysis_v2 == None or (timegran not in pretrained_statistical_analysis_v2.timegran_to_statistical_pipeline):
                 stat_pipeline.generate_model(using_pretrained_model=False)
             else:
-                stat_pipeline.clf = pretrained_statistical_analysis_v2[timegran].clf
+                stat_pipeline.clf = pretrained_statistical_analysis_v2.timegran_to_statistical_pipeline[timegran].clf
                 stat_pipeline.generate_model(using_pretrained_model=True)
 
             self.list_of_optimal_fone_scores_at_this_exfil_rates[timegran].append(stat_pipeline.method_to_optimal_f1_scores_test)

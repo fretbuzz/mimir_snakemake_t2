@@ -244,7 +244,8 @@ def update_mapping(container_to_ip, cluster_creation_log, time_gran, time_counte
                                 pass
                             '''
                             # update: I'm going to include kube-dns vip again, because I think it's cleaner
-                            infra_instances[cur_pod] = [cur_ip, entity, new_label]
+                            if 'kube-dns' not in cur_pod:
+                                infra_instances[cur_pod] = [cur_ip, entity, new_label]
 
                             #elif plus_minus == '-': # not sure if I want/need this but might be useful for bug checking
                 #    pass
