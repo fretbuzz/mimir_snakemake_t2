@@ -420,17 +420,17 @@ class data_anylsis_pipline(object):
                                                          self.time_gran_to_list_of_amt_of_out_traffic_bytes,
                                                          self.time_gran_to_list_of_amt_of_out_traffic_pkts)
 
-            with open(mod_z_score_df_basefile_name  + '_transformer.pickle', 'w') as g:
-                g.write(pickle.dumps(timegran_to_transformer))
+            #with open(mod_z_score_df_basefile_name  + '_transformer.pickle', 'w') as g:
+            #    g.write(pickle.dumps(timegran_to_transformer))
         else:
             time_gran_to_mod_zscore_df = {}
             for interval in self.time_gran_to_feature_dataframe.keys():
                 time_gran_to_mod_zscore_df[interval] = pd.read_csv(
                     mod_z_score_df_basefile_name + str(interval) + '.csv', na_values='?')
 
-            with open(mod_z_score_df_basefile_name + '_transformer.pickle', 'r') as g:
-                cont = g.read()
-                timegran_to_transformer = pickle.loads(cont)
+            #with open(mod_z_score_df_basefile_name + '_transformer.pickle', 'r') as g:
+            #    cont = g.read()
+            #    timegran_to_transformer = pickle.loads(cont)
 
         print "analysis_pipeline about to return!"
 
@@ -440,7 +440,7 @@ class data_anylsis_pipline(object):
 
         # self.time_gran_to_feature_dataframe_copy, \
         return time_gran_to_mod_zscore_df, None, self.time_gran_to_feature_dataframe,\
-               self.time_gran_to_synthetic_exfil_paths_series, self.end_of_training, timegran_to_transformer
+               self.time_gran_to_synthetic_exfil_paths_series, self.end_of_training #, timegran_to_transformer
 
     def run_cilium_component(self, time_length):
         #if self.cilium_component_time_lengthL

@@ -212,7 +212,7 @@ def save_feature_datafames(time_gran_to_feature_dataframe, csv_path, time_gran_t
         feature_dataframe.to_csv(csv_path + str(time_gran) + '.csv', na_rep='?')
 
 
-def normalize_data_v2(time_gran_to_feature_dataframe, time_gran_to_attack_labels, end_of_training, pretrained_transformer=None):
+def normalize_data_v2(time_gran_to_feature_dataframe, time_gran_to_attack_labels, end_of_training, min_stats_pipeline=None):
     time_gran_to_normalized_df = {}
     time_gran_to_transformer = {}
     for time_gran, feature_dataframe in time_gran_to_feature_dataframe.iteritems():
@@ -223,21 +223,24 @@ def normalize_data_v2(time_gran_to_feature_dataframe, time_gran_to_attack_labels
         training_values = feature_dataframe.iloc[:last_label_in_training]
         training_noAttack_values = training_values.loc[training_values['attack_labels'] == 0]
 
-        transformer = RobustScaler().fit(training_noAttack_values)
-        '''
-        if not pretrained_transformer:
-            print "pretrained_transformer",pretrained_transformer
+        #transformer = RobustScaler().fit(training_noAttack_values)
+
+        # min_stats_pipeline will be None when this isn't an eval portion...
+        if not min_stats_pipeline:
+            print "min_stats_pipeline",min_stats_pipeline
             transformer = RobustScaler().fit(training_noAttack_values)
         else:
-            transformer = RobustScaler().fit(training_noAttack_values)
-
+            ## if min_stats_pipeline exists here, then it is an eval portion, and we need to handle it
+            ## accordingly... two steps:
+            ## (1) sync up the dataframes --> same # of columns and NaN's where appropriate
+            ## (2) get the robustscaler
+            # (1)
+            corresponding_pretrained =  min_stats_pipeline.Xs[time_gran][0]
+            corresponding_pretrained,feature_dataframe = corresponding_pretrained.align(feature_dataframe, joint="right", axis=1)
+            # (2)
+            transformer = min_stats_pipeline.timegran_to_robust_scaler[time_gran]
             training_values = feature_dataframe
             training_noAttack_values = training_values
-            ### TODO: FIX THIS AT SOME POINT. It SHOULD take the external vals
-            transformer = pretrained_transformer[time_gran]
-            ## this is the work around for now...
-            #transformer = RobustScaler().fit(training_noAttack_values)
-        '''
 
         # normalizes each column of the input matrix
         transformed_data = transformer.transform(feature_dataframe)

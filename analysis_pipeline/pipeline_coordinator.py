@@ -213,7 +213,7 @@ class multi_experiment_pipeline(object):
         cur_function_list = [copy.deepcopy(i) for i in self.function_list]
 
         if self.pretrained_min_pipeline:
-            timegran_to_robust_scaler = self.pretrained_min_pipeline.timegran_to_robust_scaler
+            timegran_to_robust_scaler = self.pretrained_min_pipeline
         else:
             timegran_to_robust_scaler = None
 
@@ -389,8 +389,8 @@ def pipeline_one_exfil_rate(rate_counter,
         #else:
         #    pretrained_transformer = None
 
-        time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, _, start_of_testing, \
-        timegran_to_transformer = experiment_object.calculate_values(end_of_training=end_of_train_portions[counter],
+        time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, _, start_of_testing \
+            = experiment_object.calculate_values(end_of_training=end_of_train_portions[counter],
                                            synthetic_exfil_paths_train=training_exfil_paths[counter],
                                            synthetic_exfil_paths_test=testing_exfil_paths[counter],
                                            avg_exfil_per_min=avg_exfil_per_min[rate_counter],
