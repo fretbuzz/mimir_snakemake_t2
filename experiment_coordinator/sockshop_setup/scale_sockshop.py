@@ -60,6 +60,10 @@ def scale_sockshop(deployment_scaling, autoscale_p):
         print out
 
         # NOTE the front-end microservice crashes fairly regularly... it's important that there's a couple more so one's always live
+        delete_old_front_end = ["kubectl", "delete", "hpa", "front-end", "--namespace=sock-shop"]
+        out = subprocess.check_output(delete_old_front_end)
+        print out
+
         autoscale_cmd_str = ["kubectl", "autoscale", "deployment", "front-end", "--min=" + str(3), "--max=" + str(
             10),"--cpu-percent=" + str(50), "--namespace=sock-shop"]
         try:
