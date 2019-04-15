@@ -246,6 +246,7 @@ def run_analysis(training_config, eval_config=None):
 
     print "training_results", training_results
     eval_results = None
+    #time.sleep(35)
 
     if eval_config:
         eval_experimente_object = parse_experimental_config(eval_config)
@@ -282,8 +283,10 @@ if __name__=="__main__":
         #run_analysis('./analysis_json/sockshop_one_auto_mk11long.json')
         #run_analysis('./analysis_json/wordpress_one_3_auto_mk5.json', eval_config='./analysis_json/wordpress_one_v2_na_eval.json')
         #run_analysis('./analysis_json/sockshop_one_auto_mk11long.json', eval_config='./analysis_json/sockshop_example.json')
+        ##
+        run_analysis('./analysis_json/sockshop_one_v2_nonauto.json', eval_config='./analysis_json/sockshop_example.json')
 
-        run_analysis('./analysis_json/sockshop_example.json')
+        #run_analysis('./analysis_json/sockshop_example.json')
         #run_analysis('./analysis_json/sockshop_one_v2_mk7.json')
         #run_analysis('./analysis_json/sockshop_one_v2.json')
         #run_analysis('./analysis_json/sockshop_one_v2_minimal.json')

@@ -22,7 +22,7 @@
 
   "make_edgefiles": false,
   "skip_graph_injection": false,
-  "calc_vals": true,
+  "calc_vals": false,
   "calculate_z_scores": true,
   "get_endresult_from_memory": false,
 

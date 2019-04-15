@@ -76,6 +76,14 @@ class multi_experiment_pipeline(object):
                  ide_window_size=10, debug_basename=None, pretrained_sav2=None, auto_open_pdfs=True,
                  skip_heatmap_p=True):
 
+        '''
+        if goal_train_test_split == 0:
+            self.eval_mode = True
+        else:
+            self.eval_mode = False
+        '''
+
+        self.single_rate_stats_pipelines = {}
         self.auto_open_pdfs = auto_open_pdfs
         self.pretrained_min_pipeline = pretrained_sav2
         self.ROC_curve_p = ROC_curve_p
@@ -178,7 +186,7 @@ class multi_experiment_pipeline(object):
         else:
             with open(self.where_to_save_minrate_statspipelines, 'r') as f:
                 min_rate_statspipelines = pickle.load(f)
-            min_rate_statspipelines.create_the_report(self.auto_open_pdfs)
+            #min_rate_statspipelines.create_the_report(self.auto_open_pdfs)
 
         ## TODO: should return performance table for second val instead of None...
         return min_rate_statspipelines, None
@@ -203,13 +211,19 @@ class multi_experiment_pipeline(object):
 
         out_q = multiprocessing.Queue()
         cur_function_list = [copy.deepcopy(i) for i in self.function_list]
+
+        if self.pretrained_min_pipeline:
+            timegran_to_robust_scaler = self.pretrained_min_pipeline.timegran_to_robust_scaler
+        else:
+            timegran_to_robust_scaler = None
+
         args = [rate_counter, self.base_output_name, cur_function_list, self.exps_exfil_paths, self.exps_initiator_info,
                 self.calculate_z_scores_p, calc_vals, self.end_of_train_portions, self.training_exfil_paths,
                 self.testing_exfil_paths, self.ignore_physical_attacks_p, self.skip_model_part, out_q,
                 self.ROC_curve_p, self.avg_exfil_per_min, self.exfil_per_min_variance, self.avg_pkt_size,
                 self.pkt_size_variance, skip_graph_injection, calc_ide, include_ide, only_ide,
                 self.drop_pairwise_features, self.perform_cilium_component, self.cilium_component_time,
-                self.ide_window_size, self.drop_infra_from_graph, prefix_for_inject_params]
+                self.ide_window_size, self.drop_infra_from_graph, prefix_for_inject_params, timegran_to_robust_scaler]
         p = multiprocessing.Process(
             target=pipeline_one_exfil_rate,
             args=args)
@@ -221,6 +235,7 @@ class multi_experiment_pipeline(object):
         list_time_gran_to_mod_zscore_df_training = out_q.get()
         list_time_gran_to_mod_zscore_df_testing = out_q.get()
         starts_of_testing = out_q.get()
+        timegran_to_transformer = out_q.get()
         p.join()
 
         # step (2) :  store aggregated DFs for reference purposes
@@ -248,11 +263,14 @@ class multi_experiment_pipeline(object):
                                                      self.ignore_physical_attacks_p, self.avg_exfil_per_min[rate_counter],
                                                      self.avg_pkt_size[rate_counter],
                                                      self.exfil_per_min_variance[rate_counter],
-                                                     self.pkt_size_variance[rate_counter])
+                                                     self.pkt_size_variance[rate_counter],
+                                                     timegran_to_transformer)
 
         stats_pipelines.run_statistical_pipeline(self.drop_pairwise_features, self.pretrained_min_pipeline,
                                                  skip_heatmap_p = self.skip_heatmap_p)
         stats_pipelines.create_the_report(self.auto_open_pdfs)
+
+        self.single_rate_stats_pipelines[self.avg_exfil_per_min[rate_counter]] = stats_pipelines
 
         list_of_optimal_fone_scores_at_this_exfil_rates, Xs, Ys, Xts, Yts, trained_models, list_of_attacks_found_dfs, \
         list_of_attacks_found_training_df, experiment_info, time_gran_to_outtraffic, timegran_to_statistical_pipeline = \
@@ -317,6 +335,7 @@ class multi_experiment_pipeline(object):
                 else:
                     break # no point checking the lower rates
 
+
         return feature_df_max_exfil
 
     def decrease_exfil_of_model(self):
@@ -324,10 +343,13 @@ class multi_experiment_pipeline(object):
         for timegran in self.rate_to_time_gran_to_outtraffic[ self.rate_to_time_gran_to_outtraffic.keys()[0] ][0].keys():
             timegran_to_df_max_exfil[timegran] = self.lower_per_path_exfil_rates(timegran)
 
+        t_rs = self.single_rate_stats_pipelines[self.avg_exfil_per_min[0]].timegran_to_robust_scaler
+
         cur_base_output_name = self.base_output_name + '_lower_per_path_exfil_report_'
         sav2_object = single_rate_stats_pipeline(timegran_to_df_max_exfil, self.ROC_curve_p, cur_base_output_name,
                                                  self.names, self.skip_model_part, self.ignore_physical_attacks_p,
-                                                  'varies', 'varies', 'varies', 'varies')
+                                                  'varies', 'varies', 'varies', 'varies', t_rs)
+
         sav2_object.run_statistical_pipeline(self.drop_pairwise_features, self.pretrained_min_pipeline, skip_heatmap_p=self.skip_heatmap_p)
         sav2_object.create_the_report(self.auto_open_pdfs)
 
@@ -340,7 +362,7 @@ def pipeline_one_exfil_rate(rate_counter,
                             ROC_curve_p, avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
                             skip_graph_injection, calc_ide, include_ide, only_ide, drop_pairwise_features,
                             perform_cilium_component, cilium_component_time, ide_window_size, drop_infra_from_graph,
-                            prefix_for_inject_params):
+                            prefix_for_inject_params, pretrained_transformers=None):
     ## step (1) : iterate through individual experiments...
     ##  # 1a. list of inputs [done]
     ##  # 1b. acculate DFs
@@ -362,8 +384,13 @@ def pipeline_one_exfil_rate(rate_counter,
         experiment_object.calc_zscore_p = calculate_z_scores_p or calc_vals
         experiment_object.skip_graph_injection = skip_graph_injection
 
-        time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, _, start_of_testing = \
-        experiment_object.calculate_values(end_of_training=end_of_train_portions[counter],
+        #if pretrained_transformers and time_gran in pretrained_transformers:
+        #    pretrained_transformer = pretrained_transformers[time_gran]
+        #else:
+        #    pretrained_transformer = None
+
+        time_gran_to_mod_zscore_df, time_gran_to_zscore_dataframe, time_gran_to_feature_dataframe, _, start_of_testing, \
+        timegran_to_transformer = experiment_object.calculate_values(end_of_training=end_of_train_portions[counter],
                                            synthetic_exfil_paths_train=training_exfil_paths[counter],
                                            synthetic_exfil_paths_test=testing_exfil_paths[counter],
                                            avg_exfil_per_min=avg_exfil_per_min[rate_counter],
@@ -372,7 +399,8 @@ def pipeline_one_exfil_rate(rate_counter,
                                            pkt_size_variance=pkt_size_variance[rate_counter],
                                            calc_ide=calc_ide, include_ide=include_ide,
                                            only_ide=only_ide, ide_window_size=ide_window_size,
-                                           drop_infra_from_graph=drop_infra_from_graph)
+                                           drop_infra_from_graph=drop_infra_from_graph,
+                                           pretrained_transformer=pretrained_transformers)
         if perform_cilium_component: #
             experiment_object.run_cilium_component(cilium_component_time)
             time_gran_to_cilium_alerts = experiment_object.calc_cilium_performance(avg_exfil_per_min[rate_counter],
@@ -404,6 +432,7 @@ def pipeline_one_exfil_rate(rate_counter,
     out_q.put(list_time_gran_to_mod_zscore_df_training)
     out_q.put(list_time_gran_to_mod_zscore_df_testing)
     out_q.put(starts_of_testing)
+    out_q.put(timegran_to_transformer)
 
 def determine_and_assign_exfil_paths(calc_vals, skip_model_part, function_list, goal_train_test_split, goal_attack_NoAttack_split_training,
                                      ignore_physical_attacks_p, time_each_synthetic_exfil, goal_attack_NoAttack_split_testing,
@@ -427,7 +456,11 @@ def determine_and_assign_exfil_paths(calc_vals, skip_model_part, function_list, 
             determine_injection_amnts(exp_infos, goal_train_test_split, goal_attack_NoAttack_split_training,
                                       ignore_physical_attacks_p,
                                       time_each_synthetic_exfil, float("inf"), goal_attack_NoAttack_split_testing)
-        max_number_of_paths = min(total_training_injections_possible, total_testing_injections_possible)
+        if total_training_injections_possible == 0: # this happens during eval portio
+            max_number_of_paths = total_testing_injections_possible
+        else:
+            max_number_of_paths = min(total_training_injections_possible, total_testing_injections_possible)
+
         orig_max_number_of_paths=  max_number_of_paths
         for experiment_object in function_list:
             print "experiment_object", experiment_object
@@ -440,6 +473,7 @@ def determine_and_assign_exfil_paths(calc_vals, skip_model_part, function_list, 
             exps_initiator_info.append(initiator_info_for_paths)
 
         print "orig_max_number_of_paths", orig_max_number_of_paths
+        print "orig_exps_exfil_paths",exps_exfil_paths
         #print exps_exfil_paths
         for counter,exp_path in enumerate(exps_exfil_paths[0]):
             print counter,exp_path,len(exp_path)
@@ -524,12 +558,19 @@ def assign_exfil_paths_to_experiments(exp_infos, goal_train_test_split, goal_att
     training_exfil_paths = []
     testing_exfil_paths = []
 
-    ## TODO: modify to handle 0/100 training/testing ratio...
+    print "total_testing_injections_possible",total_testing_injections_possible
+    print "total_training_injections_possible", total_training_injections_possible
+    print "possible_exfil_paths",possible_exfil_paths
+
     testing_number_times_inject_all_paths = math.floor(total_testing_injections_possible / float(len(possible_exfil_paths)))
-    training_number_times_inject_all_paths = math.floor(total_training_injections_possible / float(len(possible_exfil_paths)))
-    if training_number_times_inject_all_paths < 1.0:
-        print "can't inject all exfil paths in training set... "
-        exit(33)
+    if total_training_injections_possible == 0: # this happens when runnning the eval poriton...
+        training_number_times_inject_all_paths = 0
+    else:
+        training_number_times_inject_all_paths = math.floor(total_training_injections_possible / float(len(possible_exfil_paths)))
+        if training_number_times_inject_all_paths < 1.0:
+            print "can't inject all exfil paths in training set... "
+            exit(33)
+
     if testing_number_times_inject_all_paths < 1.0:
         print "can't inject all exfil paths in testing set..."
         exit(34)

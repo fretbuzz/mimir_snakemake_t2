@@ -253,9 +253,10 @@ class single_model_stats_pipeline():
 class single_rate_stats_pipeline():
     def __init__(self, time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, base_output_name, recipes_used,
                  skip_model_part, ignore_physical_attacks_p, avg_exfil_per_min, avg_pkt_size, exfil_per_min_variance,
-                 pkt_size_variance):
+                 pkt_size_variance, timegran_to_transformer=None):
 
         print "STATISTICAL_ANALYSIS_V2"
+        self.timegran_to_robust_scaler = timegran_to_transformer
         self.report_sections = {}
         self.list_of_optimal_fone_scores_at_this_exfil_rates = {}
         self.Xs = {}
@@ -354,8 +355,13 @@ class single_rate_stats_pipeline():
         for time_gran, statspipeline in self.timegran_to_statistical_pipeline.iteritems():
             #test_predictions = list(statspipeline.method_to_test_predictions[statspipeline.method_name])
             #train_predictions = list(statspipeline.method_to_train_predictions[statspipeline.method_name])
-            test_predictions = list(statspipeline.method_to_optimal_predictions_test[statspipeline.method_name])
-            train_predictions = list(statspipeline.method_to_optimal_predictions_train[statspipeline.method_name])
+            ### why method_to_optimal_predictions_test? -> let's change to just normal predictions...
+            #test_predictions = list(statspipeline.method_to_optimal_predictions_test[statspipeline.method_name])
+            #train_predictions = list(statspipeline.method_to_optimal_predictions_train[statspipeline.method_name])
+            ###
+            test_predictions = list(statspipeline.method_to_test_predictions[statspipeline.method_name])
+            train_predictions = list(statspipeline.method_to_train_predictions[statspipeline.method_name])
+            # method_to_test_predictions
             timegran_to_predictions[time_gran] = train_predictions + test_predictions
 
         # step 2: take the OR of the predictions

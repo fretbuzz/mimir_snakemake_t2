@@ -212,8 +212,9 @@ def save_feature_datafames(time_gran_to_feature_dataframe, csv_path, time_gran_t
         feature_dataframe.to_csv(csv_path + str(time_gran) + '.csv', na_rep='?')
 
 
-def normalize_data_v2(time_gran_to_feature_dataframe, time_gran_to_attack_labels, end_of_training):
+def normalize_data_v2(time_gran_to_feature_dataframe, time_gran_to_attack_labels, end_of_training, pretrained_transformer=None):
     time_gran_to_normalized_df = {}
+    time_gran_to_transformer = {}
     for time_gran, feature_dataframe in time_gran_to_feature_dataframe.iteritems():
         current_attack_labels = time_gran_to_attack_labels[time_gran]
         feature_dataframe['attack_labels'] = current_attack_labels
@@ -221,12 +222,26 @@ def normalize_data_v2(time_gran_to_feature_dataframe, time_gran_to_attack_labels
 
         training_values = feature_dataframe.iloc[:last_label_in_training]
         training_noAttack_values = training_values.loc[training_values['attack_labels'] == 0]
+
         transformer = RobustScaler().fit(training_noAttack_values)
+        '''
+        if not pretrained_transformer:
+            print "pretrained_transformer",pretrained_transformer
+            transformer = RobustScaler().fit(training_noAttack_values)
+        else:
+            transformer = RobustScaler().fit(training_noAttack_values)
+
+            training_values = feature_dataframe
+            training_noAttack_values = training_values
+            ### TODO: FIX THIS AT SOME POINT. It SHOULD take the external vals
+            transformer = pretrained_transformer[time_gran]
+            ## this is the work around for now...
+            #transformer = RobustScaler().fit(training_noAttack_values)
+        '''
 
         # normalizes each column of the input matrix
         transformed_data = transformer.transform(feature_dataframe)
         transformed_training_noAttack_values = transformer.transform(training_noAttack_values)
-
 
         # might modify this at some point-- prob not the way to do it at the end...
         ## actually, several statistics professors tell me that this is indeed a property of the LASSO- you need to
@@ -237,9 +252,9 @@ def normalize_data_v2(time_gran_to_feature_dataframe, time_gran_to_attack_labels
                                                                  columns=feature_dataframe.columns.values) #df_normalized
 
         # note whether or not I actually want to do this is TBD...
-        # TODO: TEST TEST TEST
         time_gran_to_normalized_df[time_gran] = time_gran_to_normalized_df[time_gran].fillna( \
             pandas.DataFrame(transformed_training_noAttack_values, columns=feature_dataframe.columns.values).median())
         time_gran_to_normalized_df[time_gran] = time_gran_to_normalized_df[time_gran].dropna(axis=1)
+        time_gran_to_transformer[time_gran] = transformer
 
-    return time_gran_to_normalized_df
+    return time_gran_to_normalized_df, time_gran_to_transformer

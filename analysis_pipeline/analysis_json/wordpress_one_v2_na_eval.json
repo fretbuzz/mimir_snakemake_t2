@@ -22,14 +22,15 @@
 
   "make_edgefiles": false,
   "skip_graph_injection": true,
-  "calc_vals": true,
-  "calculate_z_scores": true,
+  "calc_vals": false,
+  "calculate_z_scores": false,
   "get_endresult_from_memory": false,
 
   "include_ide": false,
   "calc_ide": true,
   "only_ide": false,
   "perform_cilium_component": true,
-  "drop_pairwise_features": true,
+
+  "drop_pairwise_features": false,
   "drop_infra_from_graph": true
 }

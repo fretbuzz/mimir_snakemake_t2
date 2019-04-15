@@ -187,7 +187,8 @@ class data_anylsis_pipline(object):
 
     def calculate_values(self,end_of_training, synthetic_exfil_paths_train, synthetic_exfil_paths_test,
                          avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
-                         calc_ide, include_ide, only_ide, ide_window_size, drop_infra_from_graph):
+                         calc_ide, include_ide, only_ide, ide_window_size, drop_infra_from_graph,
+                         pretrained_transformer=None):
         self.end_of_training = end_of_training
         if self.calc_vals:
             # TODO: 90% sure that there is a problem with this function...
@@ -384,9 +385,9 @@ class data_anylsis_pipline(object):
         self.time_gran_to_list_of_amt_of_out_traffic_bytes = time_gran_to_list_of_amt_of_out_traffic_bytes
         self.time_gran_to_list_of_amt_of_out_traffic_pkts = time_gran_to_list_of_amt_of_out_traffic_pkts
 
-        return self.calculate_z_scores_and_get_stat_vals()
+        return self.calculate_z_scores_and_get_stat_vals(pretrained_transformer)
 
-    def calculate_z_scores_and_get_stat_vals(self):
+    def calculate_z_scores_and_get_stat_vals(self, pretrained_transformer):
         mod_z_score_df_basefile_name = self.alert_file + 'mod_z_score_' + self.sub_path
 
         for time_gran, feature_df in self.time_gran_to_feature_dataframe.iteritems():
@@ -395,9 +396,10 @@ class data_anylsis_pipline(object):
 
         if self.calc_zscore_p:
             # note: it's not actually mod_z_score anymore, but I'm keeping the name for compatibility...
-            time_gran_to_mod_zscore_df = process_graph_metrics.normalize_data_v2(self.time_gran_to_feature_dataframe,
+            time_gran_to_mod_zscore_df,timegran_to_transformer = process_graph_metrics.normalize_data_v2(self.time_gran_to_feature_dataframe,
                                                                                  self.time_gran_to_attack_labels,
-                                                                                 self.end_of_training)
+                                                                                 self.end_of_training,
+                                                                                 pretrained_transformer)
 
             # note: do NOT actually want to normalize the ide angles... or do I?? wait, is there a shifting problem??
             # or something thike that
@@ -418,11 +420,17 @@ class data_anylsis_pipline(object):
                                                          self.time_gran_to_list_of_amt_of_out_traffic_bytes,
                                                          self.time_gran_to_list_of_amt_of_out_traffic_pkts)
 
+            with open(mod_z_score_df_basefile_name  + '_transformer.pickle', 'w') as g:
+                g.write(pickle.dumps(timegran_to_transformer))
         else:
             time_gran_to_mod_zscore_df = {}
             for interval in self.time_gran_to_feature_dataframe.keys():
                 time_gran_to_mod_zscore_df[interval] = pd.read_csv(
                     mod_z_score_df_basefile_name + str(interval) + '.csv', na_values='?')
+
+            with open(mod_z_score_df_basefile_name + '_transformer.pickle', 'r') as g:
+                cont = g.read()
+                timegran_to_transformer = pickle.loads(cont)
 
         print "analysis_pipeline about to return!"
 
@@ -432,7 +440,7 @@ class data_anylsis_pipline(object):
 
         # self.time_gran_to_feature_dataframe_copy, \
         return time_gran_to_mod_zscore_df, None, self.time_gran_to_feature_dataframe,\
-               self.time_gran_to_synthetic_exfil_paths_series, self.end_of_training
+               self.time_gran_to_synthetic_exfil_paths_series, self.end_of_training, timegran_to_transformer
 
     def run_cilium_component(self, time_length):
         #if self.cilium_component_time_lengthL

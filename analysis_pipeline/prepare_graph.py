@@ -56,9 +56,14 @@ def get_svcs_from_mapping(name2ip):
             if labels is not None:
                 for label in labels:
                     if label in label_to_svc and 'k8s-app' not in label:
-                        print "more than one service with the same label -- error!!!"
-                        exit(233)
-                    label_to_svc[label] = name
+                        print "more than one service with the same label -- wierd!!!" # but NOT actually an error...
+                        #exit(233)
+                        ## this is kinda a wierd criteria... but I'm going to say that the shorter name
+                        ## is the definitive name of the service...
+                        if len(name) < len(label_to_svc[label]):
+                            label_to_svc[label] = name
+                    else:
+                        label_to_svc[label] = name
             # note: I am going to make the assumption that each label is associated with only one service.
             # the kube-system stuff might not follow this, but I'm not calculating their average behavior anyway
 
