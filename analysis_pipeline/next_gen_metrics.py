@@ -315,7 +315,8 @@ def calc_VIP_metric(G, abs_val_p):
     print "calc_VIP_metric"
     attribs = nx.get_node_attributes(G, 'svc')
     for (node1, node2, data) in G.edges(data=True):
-        if node1 == 'outside' or node2 == 'outside' or 'kube-dns' in node1 or 'kube-dns' in node2:
+        if node1 == 'outside' or node2 == 'outside' or 'kube-dns' in node1 or 'kube-dns' in node2 or \
+                        'loadgenerator' in node1 or 'loadgenerator' in node2: # can prob remove this once hipsterstore is fixed
             continue
         service1 = attribs[node1]
         service2 = attribs[node2]

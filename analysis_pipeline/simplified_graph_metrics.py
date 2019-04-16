@@ -400,7 +400,6 @@ class set_of_injected_graphs():
 
     def generate_aggregate_csv(self):
         #''''
-        ### TODO: NEED TO FIX BY TAKING THE PRINCIPAL EIGENVECTOR!!
         col_list = self.current_total_node_list
         joint_col_list = ['Col_' + str(i) for i in range(0,len(col_list))]
         #joint_col_list = [(col_item1 + '-to-' + col_item2) for col_item1 in col_list for col_item2 in col_list if col_item1 != col_item2]

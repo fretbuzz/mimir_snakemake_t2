@@ -238,12 +238,15 @@ def normalize_data_v2(time_gran_to_feature_dataframe, time_gran_to_attack_labels
             # (1)
             corresponding_pretrained =  pretrained_min_pipeline.Xs[time_gran][0]
             corresponding_pretrained,feature_dataframe = corresponding_pretrained.align(feature_dataframe, join="left", axis=1)
-
+            '''
             # (2)
             # need to generate the relevant robust scaler on the spot
             attack_labels = pretrained_min_pipeline.time_gran_to_aggregate_mod_score_dfs[time_gran]['attack_labels'][0:corresponding_pretrained.shape[0]]
             pretrained_noexfil_vals = corresponding_pretrained.loc[ attack_labels == 0]
             transformer = RobustScaler().fit(pretrained_noexfil_vals)
+            '''
+            transformer = RobustScaler().fit(feature_dataframe) # NOTE: doing an experiment...
+            # (3) setup appropriate values for other purposes...
             training_values = feature_dataframe
             training_noAttack_values = training_values
 

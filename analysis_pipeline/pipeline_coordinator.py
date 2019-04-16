@@ -173,6 +173,7 @@ class multi_experiment_pipeline(object):
             self.generate_and_assign_exfil_paths()
             if not self.only_ide:
                 for rate_counter in range(0, len(self.avg_exfil_per_min)):
+                    # (i), (ii) <--- I think that they both belong here...
                     self.run_single_pipeline(rate_counter, self.calc_vals, self.skip_graph_injection,
                                              calc_ide=self.calc_ide, include_ide=self.include_ide, only_ide=self.only_ide)
 
@@ -189,11 +190,11 @@ class multi_experiment_pipeline(object):
             min_rate_statspipelines.create_the_report(self.auto_open_pdfs)
 
         ## TODO: should return performance table for second val instead of None...
+        ## okay, so for non-eval this should be @ same injection rate for train and test (marked i)
+        # for eval, this should simply be over eval (whether physical or strictly injected) (marked ii)
+
         return min_rate_statspipelines, None
 
-    def run_eval_pipeline(self):
-        ## TODO: is this a good idea??? No, probably not, I have a proto-type solution in place that'll hopefully be fine.
-        pass
 
     def generate_aggregate_report(self):
         generate_aggregate_report.generate_aggregate_report(self.rate_to_timegran_to_methods_to_attacks_found_dfs,
@@ -201,7 +202,8 @@ class multi_experiment_pipeline(object):
                                                             self.base_output_name, self.rates_to_experiment_info,
                                                             self.rate_to_time_gran_to_outtraffic, self.auto_open_pdfs)
 
-    ## NOTE: I'm going to try to do this WITHOUT the call to multi-process here!!
+    ## NOTE: I'm going to try to do this WITHOUT the call to multi-process here!!ee
+    # todo: i think I want to return a results dataframe/table here... maybe do that next???
     def run_single_pipeline(self, rate_counter, calc_vals, skip_graph_injection, calc_ide=False, include_ide=False, only_ide=False):
         prefix_for_inject_params = 'avg_exfil_' + str(self.avg_exfil_per_min[rate_counter]) + ':' + str(
             self.exfil_per_min_variance[rate_counter]) + '_' #+  '_avg_pkt_' + str(self.avg_pkt_size[rate_counter]) + ':' + str(

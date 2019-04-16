@@ -117,6 +117,10 @@ class single_model_stats_pipeline():
         list_of_y_vals = []
         line_titles = []
         for method, test_predictions in self.method_to_test_predictions.iteritems():
+            #print "self.y_test",self.y_test
+            #print "test_predictions", test_predictions
+            print "method", method
+            test_predictions = np.nan_to_num(test_predictions)
             fpr, tpr, thresholds = sklearn.metrics.roc_curve(y_true=self.y_test, y_score=test_predictions, pos_label=1)
             list_of_x_vals.append(fpr)
             list_of_y_vals.append(tpr)
@@ -251,6 +255,7 @@ class single_model_stats_pipeline():
         else:
             self.train_predictions = np.array([])
             self.using_pretrained_model = True
+
         print "Qt", self.time_gran
         print self.X_test.shape
         self.test_predictions = self.clf.predict(X=self.X_test)

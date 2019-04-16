@@ -112,16 +112,17 @@ def process_pcap_via_tshark(path, pcap_name, tshark_stats_dir_path, make_edgefil
         print "cmd_list", cmd_list
         out = subprocess.check_output(cmd_list)
         out = out.split('\n')
+
+        #print out
+
+        if make_edgefiles_p:
+            tshark_stats_file = tshark_stats_dir_path + pcap_name
+            with open(tshark_stats_file, 'w') as f:
+                for line in out:
+                    f.write(line)
+                    f.write('\n')
     except:
         print "pcap was probably cut short in middle... let's keep going though..."
-    #print out
-
-    if make_edgefiles_p:
-        tshark_stats_file = tshark_stats_dir_path + pcap_name
-        with open(tshark_stats_file, 'w') as f:
-            for line in out:
-                f.write(line)
-                f.write('\n')
 
     return tshark_stats_dir_path, pcap_name
 
