@@ -10,7 +10,7 @@
   "skip_model_part": false,
   "ignore_physical_attacks_p": true,
   "time_of_synethic_exfil": 60,
-  "goal_train_test_split_training": 0.5,
+  "goal_train_test_split_training": 0.0,
   "goal_attack_NoAttack_split_training": 0.1,
   "goal_attack_NoAttack_split_testing": 0.1,
   "time_interval_lengths": [10, 60],

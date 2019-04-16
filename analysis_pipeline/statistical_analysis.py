@@ -26,6 +26,7 @@ class single_model_stats_pipeline():
         self.time_gran = timegran
         self.time_gran_to_debugging_csv = {}
         self.lasso_feature_selection_p = lasso_feature_selection_p
+        self.using_pretrained_model = False
 
         self.feature_activation_heatmaps = ['none.png']
         self.feature_raw_heatmaps = ['none.png']
@@ -187,7 +188,8 @@ class single_model_stats_pipeline():
 
     def generate_report_section(self):
         if not self.skip_heatmaps:
-            self._generate_heatmap(training_p=True)
+            if  not self.using_pretrained_model:
+                self._generate_heatmap(training_p=True)
             self._generate_heatmap(training_p=False)
 
         number_attacks_in_test = len(self.y_test[self.y_test['labels'] == 1])
@@ -195,13 +197,26 @@ class single_model_stats_pipeline():
         percent_attacks = (float(number_attacks_in_test) / (number_non_attacks_in_test + number_attacks_in_test))
         number_attacks_in_train = len(self.y_train[self.y_train['labels'] == 1])
         number_non_attacks_in_train = len(self.y_train[self.y_train['labels'] == 0])
-        percent_attacks_train = (float(number_attacks_in_train) / (number_non_attacks_in_train + number_attacks_in_train))
+
+
         env = Environment(
             loader=FileSystemLoader(searchpath="./report_templates")
         )
         table_section_template = env.get_template("table_section.html")
 
         coef_feature_df = self.coef_feature_df.to_html()
+
+        if not self.using_pretrained_model:
+            attacks_found_training=self.method_to_cm_df_train[self.method_name].to_html()
+            percent_attacks_train = (float(number_attacks_in_train) / (number_non_attacks_in_train + number_attacks_in_train))
+            feature_activation_heatmap_training=self.feature_activation_heatmaps_training[0]
+            feature_raw_heatmap_training=self.feature_raw_heatmaps_training[0]
+        else:
+            attacks_found_training= 'none.png'
+            percent_attacks_train = 0.0
+            feature_activation_heatmap_training='none.png'
+            feature_raw_heatmap_training='none.png'
+
 
         report_section = table_section_template.render(
             time_gran=str(self.time_gran) + " sec granularity",
@@ -211,12 +226,12 @@ class single_model_stats_pipeline():
             optimal_fOne=self.method_to_optimal_f1_scores_test[self.method_name],
             percent_attacks=percent_attacks,
             attacks_found=self.method_to_cm_df_test[self.method_name].to_html(),
-            attacks_found_training=self.method_to_cm_df_train[self.method_name].to_html(),
+            attacks_found_training=attacks_found_training,
             percent_attacks_training=percent_attacks_train,
             feature_activation_heatmap=self.feature_activation_heatmaps[0],
-            feature_activation_heatmap_training=self.feature_activation_heatmaps_training[0],
+            feature_activation_heatmap_training=feature_activation_heatmap_training,
             feature_raw_heatmap=self.feature_raw_heatmaps[0],
-            feature_raw_heatmap_training=self.feature_raw_heatmaps_training[0],
+            feature_raw_heatmap_training=feature_raw_heatmap_training,
             ideal_threshold=self.method_to_optimal_thresh_test[self.method_name]
         )
 
@@ -226,11 +241,11 @@ class single_model_stats_pipeline():
         if not using_pretrained_model:
             self.clf.fit(self.X_train, self.y_train)
             self.train_predictions = self.clf.predict(X=self.X_train)
+            self.using_pretrained_model = False
         else:
             self.train_predictions = np.array([])
-
+            self.using_pretrained_model = True
         print "Qt", self.time_gran
-        self.train_predictions = [0 for i in range(0,self.time_gran_to_debugging_csv[self.time_gran].shape[0] - self.X_test.shape[0] )] ##TODO REMOVE! ONLY HERE TO HELP TEST EVAL
         print self.X_test.shape
         self.test_predictions = self.clf.predict(X=self.X_test)
 
@@ -252,11 +267,13 @@ class single_model_stats_pipeline():
         self._generate_rocs()
         self.method_to_optimal_f1_scores_test, self.method_to_optimal_predictions_test, self.method_to_optimal_thresh_test = \
             self._generate_optimal_predictions(self.method_to_test_predictions, self.y_test)
-        self.method_to_optimal_f1_scores_train, self.method_to_optimal_predictions_train, self.method_to_optimal_thresh_train = \
-            self._generate_optimal_predictions(self.method_to_train_predictions, self.y_train)
 
-        self.method_to_cm_df_train = self._generate_confusion_matrixes(self.method_to_optimal_predictions_train, self.y_train,
-                                                            self.exfil_paths_train, self.exfil_weights_train)
+        if not using_pretrained_model:
+            self.method_to_optimal_f1_scores_train, self.method_to_optimal_predictions_train, self.method_to_optimal_thresh_train = \
+                self._generate_optimal_predictions(self.method_to_train_predictions, self.y_train)
+            self.method_to_cm_df_train = self._generate_confusion_matrixes(self.method_to_optimal_predictions_train, self.y_train,
+                                                                self.exfil_paths_train, self.exfil_weights_train)
+
         self.method_to_cm_df_test = self._generate_confusion_matrixes(self.method_to_optimal_predictions_test, self.y_test,
                                                             self.exfil_paths_test, self.exfil_weights_test)
 
