@@ -171,19 +171,19 @@ class multi_experiment_pipeline(object):
             min_rate_statspipelines = None
 
             self.generate_and_assign_exfil_paths()
-            if not self.only_ide:
-                for rate_counter in range(0, len(self.avg_exfil_per_min)):
-                    # (i), (ii) <--- I think that they both belong here...
-                    self.run_single_pipeline(rate_counter, self.calc_vals, self.skip_graph_injection,
-                                             calc_ide=self.calc_ide, include_ide=self.include_ide, only_ide=self.only_ide)
+            #if not self.only_ide:
+            for rate_counter in range(0, len(self.avg_exfil_per_min)):
+                # (i), (ii) <--- I think that they both belong here...
+                self.run_single_pipeline(rate_counter, self.calc_vals, self.skip_graph_injection,
+                                         calc_ide=self.calc_ide, include_ide=self.include_ide, only_ide=self.only_ide)
 
-                if not self.pretrained_min_pipeline:
-                    min_rate_statspipelines = self.decrease_exfil_of_model()
+            if not self.pretrained_min_pipeline:
+                min_rate_statspipelines = self.decrease_exfil_of_model()
 
-                    with open(self.where_to_save_minrate_statspipelines, 'w') as f:
-                        pickle.dump(min_rate_statspipelines, f)
+                with open(self.where_to_save_minrate_statspipelines, 'w') as f:
+                    pickle.dump(min_rate_statspipelines, f)
 
-                self.generate_aggregate_report()
+            self.generate_aggregate_report()
         else:
             with open(self.where_to_save_minrate_statspipelines, 'r') as f:
                 min_rate_statspipelines = pickle.load(f)

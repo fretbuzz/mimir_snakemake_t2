@@ -1,9 +1,9 @@
 {
     "app_name" : "sockshop",
-    "exp_name" : "sockshop_one_auto_mk12",
+    "exp_name" : "sockshop_one_auto_mk13",
     "config_file_name" : "/mydata/mimir_v2/experiment_coordinator/experimental_configs/sockshop_exp_one.json",
     "local_dir" : "/Volumes/exM/experimental_data/sockshop_info",
-    "cloudlab_server_ip" : "c240g5-110129.wisc.cloudlab.us",
+    "cloudlab_server_ip" : "c240g5-110125.wisc.cloudlab.us",
     "exp_length" : 10800,
     "physical_attacks_p" : false
 

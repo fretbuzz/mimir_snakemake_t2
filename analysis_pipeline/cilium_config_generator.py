@@ -204,6 +204,8 @@ def cilium_component(time_length, pcap_location, cilium_component_dir, make_edge
     communicatng_svcs = calc_svc2svc_communcating(ip_to_svc, communicating_hosts, vip_debugging)
 
     output_file_name = './cilium_comp_inouts/cur_cilium_comms'
+    netsecoutput_file_name = './cilium_comp_inouts/cur_cilium_netsec_'
+    vips_present_lines = ''
     if vip_debugging:
         additional_output_file_name = output_file_name +  '_vip_debugging'
         vips_present = set()
@@ -221,6 +223,7 @@ def cilium_component(time_length, pcap_location, cilium_component_dir, make_edge
                 dst = item[1].lower().replace('-', '_')
                 src += '_pod'
                 f.write(src + " " + dst  + '\n')
+                vips_present_lines +=  src + " " + dst  + '\n'
 
     with open(output_file_name + '.txt', 'w') as f:
         for comm_svc in communicatng_svcs:
@@ -230,7 +233,21 @@ def cilium_component(time_length, pcap_location, cilium_component_dir, make_edge
         print "existing b/c vip_debugging is true. can check output file safely now."
         exit(233)
 
-    basefilename = None # TODO TODO TODO
+    basefilename = None
     generate_cilium_policy(communicatng_svcs, basefilename)
+    generate_mimir_netsec_policy(netsecoutput_file_name, communicatng_svcs, vips_present_lines)
 
     return communicatng_svcs
+
+def generate_mimir_netsec_policy(netsecoutput_file_name, communicating_services, vips_present_lines):
+    with open(netsecoutput_file_name, 'w') as f:
+        for comm_svc in communicating_services:
+            svc_one = comm_svc[0]
+            svc_two = comm_svc[1]
+            comm_str = svc_one + ' ALLOWED ' + str(svc_two)
+            f.write(comm_str + '\n')
+        f.write("---------------------\n")
+        f.write(vips_present_lines)
+        f.write("ALL kube_dns_vip")
+
+

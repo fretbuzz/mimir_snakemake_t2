@@ -7,7 +7,7 @@
   "skip_graph_injection": false,
   "calc_vals": true,
   "calculate_z_scores": true,
-  "get_endresult_from_memory": false,
+  "get_endresult_from_memory": true,
 
   "perform_cilium_component": false,
 

@@ -1,0 +1,97 @@
+internet ALLOWED kube-dns
+kubernetes ALLOWED kubernetes
+frontend ALLOWED recommendationservice
+kubernetes ALLOWED metrics-server
+checkoutservice ALLOWED frontend
+checkoutservice ALLOWED emailservice
+storage-provisioner ALLOWED storage-provisioner
+storage-provisioner ALLOWED heapster
+heapster ALLOWED influxdb-grafana-558q9
+influxdb-grafana-558q9 ALLOWED heapster
+checkoutservice ALLOWED paymentservice
+adservice ALLOWED frontend
+emailservice ALLOWED checkoutservice
+currencyservice ALLOWED checkoutservice
+frontend ALLOWED internet
+kube-dns ALLOWED checkoutservice
+productcatalogservice ALLOWED checkoutservice
+loadgenerator-847d946d9c-z2bvh ALLOWED frontend
+kubernetes ALLOWED heapster
+recommendationservice ALLOWED frontend
+productcatalogservice ALLOWED frontend
+internet ALLOWED storage-provisioner
+internet ALLOWED frontend
+kube-dns ALLOWED kubernetes
+frontend ALLOWED checkoutservice
+internet ALLOWED kubernetes
+internet ALLOWED redis-cart
+shippingservice ALLOWED checkoutservice
+storage-provisioner ALLOWED metrics-server
+frontend ALLOWED cartservice
+checkoutservice ALLOWED cartservice
+paymentservice ALLOWED checkoutservice
+kube-dns ALLOWED cartservice
+heapster ALLOWED monitoring-influxdb
+frontend ALLOWED currencyservice
+checkoutservice ALLOWED currencyservice
+redis-cart ALLOWED internet
+currencyservice ALLOWED frontend
+internet ALLOWED heapster
+monitoring-influxdb ALLOWED heapster
+cartservice ALLOWED kube-dns
+cartservice ALLOWED checkoutservice
+kubernetes ALLOWED internet
+heapster ALLOWED storage-provisioner
+metrics-server ALLOWED kubernetes
+heapster ALLOWED internet
+frontend ALLOWED shippingservice
+kube-dns ALLOWED internet
+frontend ALLOWED adservice
+checkoutservice ALLOWED productcatalogservice
+frontend ALLOWED productcatalogservice
+heapster ALLOWED kubernetes
+shippingservice ALLOWED frontend
+kubernetes ALLOWED kube-dns
+redis-cart ALLOWED cartservice
+cartservice ALLOWED redis-cart
+recommendationservice ALLOWED productcatalogservice
+frontend ALLOWED loadgenerator-847d946d9c-z2bvh
+kubernetes ALLOWED storage-provisioner
+checkoutservice ALLOWED shippingservice
+# misconfigure
+checkoutservice ALLOWED internet
+# misconfigurew
+shippingservice ALLOWED internet
+cartservice ALLOWED frontend
+storage-provisioner ALLOWED internet
+metrics-server ALLOWED storage-provisioner
+checkoutservice ALLOWED kube-dns
+productcatalogservice ALLOWED recommendationservice
+checkoutservice ALLOWED internet
+---------------------
+loadgenerator_847d946d9c_z2bvh_pod frontend_vip
+recommendationservice_pod productcatalogservice_vip
+frontend_pod adservice_vip
+checkoutservice_pod paymentservice_vip
+cartservice_pod kube_dns_vip
+checkoutservice_pod kube_dns_vip
+checkoutservice_pod productcatalogservice_vip
+metrics_server_pod kubernetes_vip
+frontend_pod cartservice_vip
+frontend_pod productcatalogservice_vip
+frontend_pod currencyservice_vip
+checkoutservice_pod cartservice_vip
+checkoutservice_pod emailservice_vip
+checkoutservice_pod currencyservice_vip
+heapster_pod monitoring_influxdb_vip
+heapster_pod kubernetes_vip
+kubernetes_pod kubernetes_vip
+frontend_pod recommendationservice_vip
+frontend_pod checkoutservice_vip
+kube_dns_pod kubernetes_vip
+frontend_pod shippingservice_vip
+# misconfigure
+checkoutservice_pod frontend_vip
+cartservice_pod redis_cart_vip
+checkoutservice_pod shippingservice_vip
+ALL kube_dns_vip

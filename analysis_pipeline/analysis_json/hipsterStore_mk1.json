@@ -1,7 +1,7 @@
 {
   "cur_experiment_name": "hipsterStore_mk1",
   "exp_config_file": "/Volumes/exM/experimental_data/hipsterStore_info/hipsterStore_mk1/hipsterStore_mk1_analysis.json",
-  "netsec_policy": "None",
+  "netsec_policy": "../experiment_coordinator/netsec_policies/hipsterStor_netsec.txt",
 
   "make_edgefiles": false,
   "skip_graph_injection": false,
