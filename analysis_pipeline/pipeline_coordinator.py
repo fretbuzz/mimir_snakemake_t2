@@ -186,7 +186,7 @@ class multi_experiment_pipeline(object):
         else:
             with open(self.where_to_save_minrate_statspipelines, 'r') as f:
                 min_rate_statspipelines = pickle.load(f)
-            #min_rate_statspipelines.create_the_report(self.auto_open_pdfs)
+            min_rate_statspipelines.create_the_report(self.auto_open_pdfs)
 
         ## TODO: should return performance table for second val instead of None...
         return min_rate_statspipelines, None

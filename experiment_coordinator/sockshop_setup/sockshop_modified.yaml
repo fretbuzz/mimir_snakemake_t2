@@ -55,7 +55,7 @@ spec:
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: cart
+  name: carts
   labels:
     name: carts
   namespace: sock-shop
@@ -69,6 +69,11 @@ spec:
       containers:
       - name: carts
         image: weaveworksdemos/carts:0.4.8
+        env:
+         - name: ZIPKIN
+           value: zipkin.jaeger.svc.cluster.local
+         - name: JAVA_OPTS
+           value: -Xms64m -Xmx128m -XX:PermSize=32m -XX:MaxPermSize=64m -XX:+UseG1GC -Djava.security.egd=file:/dev/urandom
         resources:
           limits:
             cpu: 300m
@@ -78,11 +83,6 @@ spec:
             memory: 500Mi
         ports:
          - containerPort: 80
-        env:
-         - name: ZIPKIN
-           value: zipkin.jaeger.svc.cluster.local
-         - name: JAVA_OPTS
-           value: -Xms64m -Xmx128m -XX:PermSize=32m -XX:MaxPermSize=64m -XX:+UseG1GC -Djava.security.egd=file:/dev/urandom
         securityContext:
           runAsNonRoot: true
           runAsUser: 10001
@@ -95,6 +95,18 @@ spec:
         volumeMounts:
         - mountPath: /tmp
           name: tmp-volume
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 300
+          periodSeconds: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 180
+          periodSeconds: 3
       volumes:
         - name: tmp-volume
           emptyDir:
@@ -177,6 +189,9 @@ spec:
       containers:
       - name: catalogue
         image: weaveworksdemos/catalogue:0.3.5
+        command: ["/app"]
+        args:
+        - -port=80
         resources:
           limits:
             cpu: 100m
@@ -195,6 +210,18 @@ spec:
             add:
               - NET_BIND_SERVICE
           readOnlyRootFilesystem: false
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 300
+          periodSeconds: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 180
+          periodSeconds: 3
       nodeSelector:
         beta.kubernetes.io/os: linux
 ---
@@ -237,6 +264,9 @@ spec:
             memory: 300Mi
         ports:
         - containerPort: 8079
+        env:
+        - name: SESSION_REDIS
+          value: "true"
         securityContext:
           runAsNonRoot: true
           runAsUser: 10001
@@ -372,6 +402,18 @@ spec:
         volumeMounts:
         - mountPath: /tmp
           name: tmp-volume
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 300
+          periodSeconds: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 180
+          periodSeconds: 3
       volumes:
         - name: tmp-volume
           emptyDir:
@@ -429,6 +471,18 @@ spec:
             add:
               - NET_BIND_SERVICE
           readOnlyRootFilesystem: false
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 300
+          periodSeconds: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 180
+          periodSeconds: 3
       nodeSelector:
         beta.kubernetes.io/os: linux
 ---
@@ -473,6 +527,17 @@ spec:
             memory: 500Mi
         ports:
         - containerPort: 80
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 300
+          periodSeconds: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 180
       nodeSelector:
         beta.kubernetes.io/os: linux
 ---
@@ -506,12 +571,17 @@ spec:
     metadata:
       labels:
         name: rabbitmq
+      annotations:
+        prometheus.io/scrape: "false"
     spec:
       containers:
       - name: rabbitmq
-        image: rabbitmq:3.6.8
+        image: rabbitmq:3.6.8-management
         ports:
+        - containerPort: 15672
+          name: management
         - containerPort: 5672
+          name: rabbitmq
         securityContext:
           capabilities:
             drop:
@@ -522,6 +592,11 @@ spec:
               - SETUID
               - DAC_OVERRIDE
           readOnlyRootFilesystem: false
+      - name: rabbitmq-exporter
+        image: kbudde/rabbitmq-exporter
+        ports:
+        - containerPort: 9090
+          name: exporter
       nodeSelector:
         beta.kubernetes.io/os: linux
 ---
@@ -536,9 +611,63 @@ spec:
   ports:
     # the port that this service should serve on
   - port: 5672
+    name: rabbitmq
     targetPort: 5672
+  - port: 9090
+    name: exporter
+    targetPort: exporter
+    protocol: TCP
   selector:
     name: rabbitmq
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: session-db
+  labels:
+    name: session-db
+  namespace: sock-shop
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: session-db
+      annotations:
+        prometheus.io.scrape: "false"
+    spec:
+      containers:
+      - name: session-db
+        image: redis:alpine
+        ports:
+        - name: redis
+          containerPort: 6379
+        securityContext:
+          capabilities:
+            drop:
+              - all
+            add:
+              - CHOWN
+              - SETGID
+              - SETUID
+          readOnlyRootFilesystem: false
+      nodeSelector:
+        beta.kubernetes.io/os: linux
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: session-db
+  labels:
+    name: session-db
+  namespace: sock-shop
+spec:
+  ports:
+    # the port that this service should serve on
+  - port: 6379
+    targetPort: 6379
+  selector:
+    name: session-db
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -583,6 +712,18 @@ spec:
         volumeMounts:
         - mountPath: /tmp
           name: tmp-volume
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 300
+          periodSeconds: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 180
+          periodSeconds: 3
       volumes:
         - name: tmp-volume
           emptyDir:
@@ -621,7 +762,7 @@ spec:
     spec:
       containers:
       - name: user-db
-        image: weaveworksdemos/user-db:0.4.0
+        image: weaveworksdemos/user-db:0.3.0
         ports:
         - name: mongo
           containerPort: 27017
@@ -686,7 +827,7 @@ spec:
         ports:
         - containerPort: 80
         env:
-        - name: MONGO_HOST
+        - name: mongo
           value: user-db:27017
         securityContext:
           runAsNonRoot: true
@@ -697,6 +838,18 @@ spec:
             add:
               - NET_BIND_SERVICE
           readOnlyRootFilesystem: false
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 300
+          periodSeconds: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 180
+          periodSeconds: 3
       nodeSelector:
         beta.kubernetes.io/os: linux
 ---

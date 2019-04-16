@@ -119,10 +119,13 @@ def join_report_sections(recipes_used, output_location, avg_exfil_per_min, avg_p
 
     dir_path = os.path.dirname(os.path.realpath(__file__))
     config = pdfkit.configuration(wkhtmltopdf="/usr/local/bin/wkhtmltopdf")
-    pdfkit.from_file("report_templates/report.html", output_location + "_report.pdf", configuration=config)
-    if auto_open_p:
-        out = subprocess.check_output(['open', output_location + "_report.pdf"])
-        print out
+    try:
+        pdfkit.from_file("report_templates/report.html", output_location + "_report.pdf", configuration=config)
+        if auto_open_p:
+            out = subprocess.check_output(['open', output_location + "_report.pdf"])
+            print out
+    except:
+        print "there was a problem with rendering the template, but the program will keep running."
 
 if __name__ == "__main__":
     content = "Hello, world!"

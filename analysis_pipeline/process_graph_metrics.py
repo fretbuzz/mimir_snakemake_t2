@@ -273,6 +273,7 @@ def normalize_data_v2(time_gran_to_feature_dataframe, time_gran_to_attack_labels
         else:
             # in this case dimensionality is important...
             time_gran_to_normalized_df[time_gran] = time_gran_to_normalized_df[time_gran].fillna(0.0)
+
         time_gran_to_transformer[time_gran] = transformer
 
     #time.sleep(60)

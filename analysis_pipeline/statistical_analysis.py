@@ -237,10 +237,16 @@ class single_model_stats_pipeline():
 
         return report_section
 
-    def generate_model(self, using_pretrained_model=False):
+    def generate_model(self, using_pretrained_model=False, multi_time_train=False):
         if not using_pretrained_model:
-            self.clf.fit(self.X_train, self.y_train)
-            self.train_predictions = self.clf.predict(X=self.X_train)
+            if not multi_time_train:
+                self.clf.fit(self.X_train, self.y_train)
+                self.train_predictions = self.clf.predict(X=self.X_train)
+            else: # AM I SURE I WANT THIS
+                ## fitting on the training set... so not super valid unless eval sete is there too...
+                self.clf.fit(self.X_test, self.y_test)
+                self.train_predictions = self.clf.predict(X=self.X_train)
+
             self.using_pretrained_model = False
         else:
             self.train_predictions = np.array([])
@@ -439,11 +445,12 @@ class single_rate_stats_pipeline():
                                                      tuple(self.timegran_to_statistical_pipeline.keys()), lasso_feature_selection_p=False,
                                                      dont_prepare_data_p=True, skip_heatmap_p=skip_heatmap_p)
 
+        ### TODO: what is going on here??? it's still fitting of the training data?? but it should on the testing data...
         if pretrained_statistical_analysis_v2 == None or (timegran not in pretrained_statistical_analysis_v2.timegran_to_statistical_pipeline):
-            stats_pipeline.generate_model(using_pretrained_model=False)
+            stats_pipeline.generate_model(using_pretrained_model=False, multi_time_train=True)
         else:
             stats_pipeline.clf = pretrained_statistical_analysis_v2.timegran_to_statistical_pipeline[timegran].clf
-            stats_pipeline.generate_model(using_pretrained_model=True)
+            stats_pipeline.generate_model(using_pretrained_model=True, multi_time_train=True)
 
         self.timegran_to_statistical_pipeline[timegran] = stats_pipeline
 
