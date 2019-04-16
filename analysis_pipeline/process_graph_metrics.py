@@ -156,6 +156,7 @@ def save_feature_datafames(time_gran_to_feature_dataframe, csv_path, time_gran_t
                            time_gran_to_new_neighbors_dns, time_gran_to_new_neighbors_all,
                            time_gran_to_list_of_amt_of_out_traffic_bytes, time_gran_to_list_of_amt_of_out_traffic_pkts):
 
+    print "time_gran_to_feature_dataframe","----",time_gran_to_feature_dataframe, "-----"
     print "time_gran_to_feature_dataframe",time_gran_to_feature_dataframe.keys()
     for time_gran, attack_labels in time_gran_to_attack_labels.iteritems():
         print "time_gran", time_gran, "len of attack labels", len(attack_labels)
@@ -212,7 +213,7 @@ def save_feature_datafames(time_gran_to_feature_dataframe, csv_path, time_gran_t
         feature_dataframe.to_csv(csv_path + str(time_gran) + '.csv', na_rep='?')
 
 
-def normalize_data_v2(time_gran_to_feature_dataframe, time_gran_to_attack_labels, end_of_training, min_stats_pipeline=None):
+def normalize_data_v2(time_gran_to_feature_dataframe, time_gran_to_attack_labels, end_of_training, pretrained_min_pipeline=None):
     time_gran_to_normalized_df = {}
     time_gran_to_transformer = {}
     for time_gran, feature_dataframe in time_gran_to_feature_dataframe.iteritems():
@@ -226,8 +227,8 @@ def normalize_data_v2(time_gran_to_feature_dataframe, time_gran_to_attack_labels
         #transformer = RobustScaler().fit(training_noAttack_values)
 
         # min_stats_pipeline will be None when this isn't an eval portion...
-        if not min_stats_pipeline:
-            print "min_stats_pipeline",min_stats_pipeline
+        if not pretrained_min_pipeline:
+            print "pretrained_min_pipeline",pretrained_min_pipeline
             transformer = RobustScaler().fit(training_noAttack_values)
         else:
             ## if min_stats_pipeline exists here, then it is an eval portion, and we need to handle it
@@ -235,12 +236,20 @@ def normalize_data_v2(time_gran_to_feature_dataframe, time_gran_to_attack_labels
             ## (1) sync up the dataframes --> same # of columns and NaN's where appropriate
             ## (2) get the robustscaler
             # (1)
-            corresponding_pretrained =  min_stats_pipeline.Xs[time_gran][0]
-            corresponding_pretrained,feature_dataframe = corresponding_pretrained.align(feature_dataframe, joint="right", axis=1)
+            corresponding_pretrained =  pretrained_min_pipeline.Xs[time_gran][0]
+            corresponding_pretrained,feature_dataframe = corresponding_pretrained.align(feature_dataframe, join="left", axis=1)
+
             # (2)
-            transformer = min_stats_pipeline.timegran_to_robust_scaler[time_gran]
+            # need to generate the relevant robust scaler on the spot
+            attack_labels = pretrained_min_pipeline.time_gran_to_aggregate_mod_score_dfs[time_gran]['attack_labels'][0:corresponding_pretrained.shape[0]]
+            pretrained_noexfil_vals = corresponding_pretrained.loc[ attack_labels == 0]
+            transformer = RobustScaler().fit(pretrained_noexfil_vals)
             training_values = feature_dataframe
             training_noAttack_values = training_values
+
+            print "timegran", time_gran
+            print "old_data_Shape", pretrained_min_pipeline.Xs[time_gran][0].shape
+            print "new_data_shape", transformer.transform(feature_dataframe).shape
 
         # normalizes each column of the input matrix
         transformed_data = transformer.transform(feature_dataframe)
@@ -255,9 +264,16 @@ def normalize_data_v2(time_gran_to_feature_dataframe, time_gran_to_attack_labels
                                                                  columns=feature_dataframe.columns.values) #df_normalized
 
         # note whether or not I actually want to do this is TBD...
+        ## TODO: might want to change this for the eval case...
         time_gran_to_normalized_df[time_gran] = time_gran_to_normalized_df[time_gran].fillna( \
             pandas.DataFrame(transformed_training_noAttack_values, columns=feature_dataframe.columns.values).median())
-        time_gran_to_normalized_df[time_gran] = time_gran_to_normalized_df[time_gran].dropna(axis=1)
+
+        if not pretrained_min_pipeline:
+            time_gran_to_normalized_df[time_gran] = time_gran_to_normalized_df[time_gran].dropna(axis=1)
+        else:
+            # in this case dimensionality is important...
+            time_gran_to_normalized_df[time_gran] = time_gran_to_normalized_df[time_gran].fillna(0.0)
         time_gran_to_transformer[time_gran] = transformer
 
+    #time.sleep(60)
     return time_gran_to_normalized_df, time_gran_to_transformer

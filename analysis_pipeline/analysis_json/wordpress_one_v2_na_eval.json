@@ -20,16 +20,16 @@
   "avg_pkt_size": [500.0, 500.0, 500.00, 500.00, 500.0, 500.0],
   "pkt_size_variance":  [100, 100, 100, 100, 100, 100],
 
-  "make_edgefiles": false,
-  "skip_graph_injection": true,
-  "calc_vals": false,
-  "calculate_z_scores": false,
+  "make_edgefiles": true,
+  "skip_graph_injection": false,
+  "calc_vals": true,
+  "calculate_z_scores": true,
   "get_endresult_from_memory": false,
 
   "include_ide": false,
   "calc_ide": true,
   "only_ide": false,
-  "perform_cilium_component": true,
+  "perform_cilium_component": false,
 
   "drop_pairwise_features": false,
   "drop_infra_from_graph": true

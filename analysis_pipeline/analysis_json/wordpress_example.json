@@ -14,11 +14,16 @@
   "avg_pkt_size": [500.0, 500.0, 500.00, 500.00, 500.0, 500.0],
   "pkt_size_variance":  [100, 100, 100, 100, 100, 100],
 
+  "make_edgefiles": false,
+  "skip_graph_injection": false,
   "calc_vals": true,
   "calculate_z_scores": true,
+  "get_endresult_from_memory": false,
+
   "include_ide": false,
   "calc_ide": false,
   "only_ide": false,
+
   "drop_pairwise_features": false,
   "drop_infra_from_graph": true,
   "perform_cilium_component": true,
@@ -26,10 +31,6 @@
   "cur_experiment_name": "wordpress_one_v2_nonauto",
   "base_output_location": "/Volumes/exM2/experimental_data/wordpress_summary_new_appart/",
 
-  "skip_graph_injection": false,
-  "get_endresult_from_memory": false,
-
-  "make_edgefiles": false,
   "experimental_folder": "/Volumes/exM2/experimental_data/wordpress_info/wordpress_one_v2_nonauto_mk2/",
   "pcap_file_path": "/Volumes/exM2/experimental_data/wordpress_info/wordpress_one_v2_nonauto_mk2/",
   "pod_creation_log_path": "/Volumes/exM2/experimental_data/wordpress_info/wordpress_one_v2_nonauto_mk2/",

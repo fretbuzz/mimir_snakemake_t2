@@ -155,6 +155,14 @@ class single_model_stats_pipeline():
         return method_to_cm_df
 
     def _generate_debugging_csv(self):
+        print "self.time_gran_to_debugging_csv[self.time_gran]", self.time_gran_to_debugging_csv[self.time_gran]
+        print "self.train_predictions",self.train_predictions
+        print "self.test_predictions", self.test_predictions
+        print "np.concatenate([self.train_predictions, self.test_predictions])", np.concatenate(
+            [self.train_predictions, self.test_predictions])
+        print self.time_gran_to_debugging_csv[self.time_gran].shape
+        print len(np.concatenate([self.train_predictions, self.test_predictions]))
+
         self.time_gran_to_debugging_csv[self.time_gran].loc[:, "aggreg_anom_score"] = np.concatenate(
             [self.train_predictions, self.test_predictions])
 
@@ -219,8 +227,11 @@ class single_model_stats_pipeline():
             self.clf.fit(self.X_train, self.y_train)
             self.train_predictions = self.clf.predict(X=self.X_train)
         else:
-            self.train_predictions = []
+            self.train_predictions = np.array([])
 
+        print "Qt", self.time_gran
+        self.train_predictions = [0 for i in range(0,self.time_gran_to_debugging_csv[self.time_gran].shape[0] - self.X_test.shape[0] )] ##TODO REMOVE! ONLY HERE TO HELP TEST EVAL
+        print self.X_test.shape
         self.test_predictions = self.clf.predict(X=self.X_test)
 
         ## would this cause a problem on the eval set????
@@ -253,10 +264,9 @@ class single_model_stats_pipeline():
 class single_rate_stats_pipeline():
     def __init__(self, time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, base_output_name, recipes_used,
                  skip_model_part, ignore_physical_attacks_p, avg_exfil_per_min, avg_pkt_size, exfil_per_min_variance,
-                 pkt_size_variance, timegran_to_transformer=None):
+                 pkt_size_variance):
 
         print "STATISTICAL_ANALYSIS_V2"
-        self.timegran_to_robust_scaler = timegran_to_transformer
         self.report_sections = {}
         self.list_of_optimal_fone_scores_at_this_exfil_rates = {}
         self.Xs = {}
@@ -412,10 +422,10 @@ class single_rate_stats_pipeline():
                                                      tuple(self.timegran_to_statistical_pipeline.keys()), lasso_feature_selection_p=False,
                                                      dont_prepare_data_p=True, skip_heatmap_p=skip_heatmap_p)
 
-        if pretrained_statistical_analysis_v2 == None or (timegran not in pretrained_statistical_analysis_v2):
+        if pretrained_statistical_analysis_v2 == None or (timegran not in pretrained_statistical_analysis_v2.timegran_to_statistical_pipeline):
             stats_pipeline.generate_model(using_pretrained_model=False)
         else:
-            stats_pipeline.clf = pretrained_statistical_analysis_v2[timegran].clf
+            stats_pipeline.clf = pretrained_statistical_analysis_v2.timegran_to_statistical_pipeline[timegran].clf
             stats_pipeline.generate_model(using_pretrained_model=True)
 
         self.timegran_to_statistical_pipeline[timegran] = stats_pipeline

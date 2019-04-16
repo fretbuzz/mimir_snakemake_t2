@@ -188,7 +188,7 @@ class data_anylsis_pipline(object):
     def calculate_values(self,end_of_training, synthetic_exfil_paths_train, synthetic_exfil_paths_test,
                          avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
                          calc_ide, include_ide, only_ide, ide_window_size, drop_infra_from_graph,
-                         pretrained_transformer=None):
+                         pretrained_min_pipeline=None):
         self.end_of_training = end_of_training
         if self.calc_vals:
             # TODO: 90% sure that there is a problem with this function...
@@ -385,9 +385,9 @@ class data_anylsis_pipline(object):
         self.time_gran_to_list_of_amt_of_out_traffic_bytes = time_gran_to_list_of_amt_of_out_traffic_bytes
         self.time_gran_to_list_of_amt_of_out_traffic_pkts = time_gran_to_list_of_amt_of_out_traffic_pkts
 
-        return self.calculate_z_scores_and_get_stat_vals(pretrained_transformer)
+        return self.calculate_z_scores_and_get_stat_vals(pretrained_min_pipeline)
 
-    def calculate_z_scores_and_get_stat_vals(self, pretrained_transformer):
+    def calculate_z_scores_and_get_stat_vals(self, pretrained_min_pipeline):
         mod_z_score_df_basefile_name = self.alert_file + 'mod_z_score_' + self.sub_path
 
         for time_gran, feature_df in self.time_gran_to_feature_dataframe.iteritems():
@@ -399,7 +399,7 @@ class data_anylsis_pipline(object):
             time_gran_to_mod_zscore_df,timegran_to_transformer = process_graph_metrics.normalize_data_v2(self.time_gran_to_feature_dataframe,
                                                                                  self.time_gran_to_attack_labels,
                                                                                  self.end_of_training,
-                                                                                 pretrained_transformer)
+                                                                                pretrained_min_pipeline)
 
             # note: do NOT actually want to normalize the ide angles... or do I?? wait, is there a shifting problem??
             # or something thike that

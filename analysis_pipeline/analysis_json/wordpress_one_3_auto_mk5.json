@@ -14,18 +14,18 @@
 
   "make_edgefiles": false,
   "skip_graph_injection": true,
-  "calc_vals": true,
-  "calculate_z_scores": true,
-  "get_endresult_from_memory": false,
+  "calc_vals": false,
+  "calculate_z_scores": false,
+  "get_endresult_from_memory": true,
 
   "drop_pairwise_features": false,
   "drop_infra_from_graph": true,
 
   "include_ide": false,
-  "calc_ide": true,
+  "calc_ide": false,
   "only_ide": false,
 
-  "perform_cilium_component": true,
+  "perform_cilium_component": false,
 
   "cur_experiment_name": "wordpress_one_3_auto_mk5ag",
   "cur_experiment_name_cmt": "wordpress_one_3_auto_mk5",

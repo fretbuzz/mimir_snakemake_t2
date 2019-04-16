@@ -15,17 +15,18 @@
   "goal_train_test_split_training": 0.50,
   "goal_attack_NoAttack_split_testing": 0.2,
 
-  "make_edgefiles": true,
-  "calc_vals": true,
+  "make_edgefiles": false,
+  "skip_graph_injection": false,
+  "calc_vals": false,
   "calculate_z_scores": true,
+  "get_endresult_from_memory": false,
+
   "include_ide": false,
   "calc_ide": false,
   "only_ide": false,
   "drop_pairwise_features": false,
   "drop_infra_from_graph": true,
   "perform_cilium_component": false,
-  "skip_graph_injection": false,
-  "get_endresult_from_memory": false,
 
   "cur_experiment_name": "sockshop_one_v2_nonauto",
 

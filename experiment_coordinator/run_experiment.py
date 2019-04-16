@@ -443,6 +443,10 @@ def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_co
             print "autoscale_hipsterStore_out...", out
         except:
             pass
+
+        del_load_str = ["kubectl", "delete", "deploy", "loadgenerator"]
+        out = subprocess.check_output(del_load_str)
+        print "out", out
         install_exfil_dependencies(exfil_paths, orchestrator, class_to_installer, exfil_path_class_to_image)
     else:
         # other applications will require other setup procedures (if they can be automated) #
