@@ -1115,7 +1115,7 @@ def parse_local_det_output(exfil_info_file_name, protocol):
         for line in f.readlines():
             #print "before recieved", line
             if "Received" in line and protocol in line:
-                #print "line", line
+                print "line", line
                 #print '\n'
                 #print "after recieved", line.replace('\n','')
                 matchObj = re.search(r'(.*)Received(.*)bytes(.*)', line)
@@ -1125,11 +1125,18 @@ def parse_local_det_output(exfil_info_file_name, protocol):
                 #print "bytes recieved...", bytes_recieved
                 #print "total bytes...", total_bytes
                 # okay, let's find some times...
+                #matchObjTime = re.search(r'\[(.*)\](.*)\](.*)', line)
                 matchObjTime = re.search(r'\[(.*)\](.*)\](.*)', line)
                 #print "time..", matchObjTime.group(1)
                 if not first_time:
-                    first_time = matchObjTime.group(1)
-                last_time = matchObjTime.group(1)
+                    try:
+                        first_time = matchObjTime.group(1)
+                    except:
+                        print "line caused problem: ", line, matchObjTime
+                try:
+                    last_time = matchObjTime.group(1)
+                except:
+                    print "line caused problem: ", line, matchObjTime
 
     return total_bytes, first_time, last_time
 
