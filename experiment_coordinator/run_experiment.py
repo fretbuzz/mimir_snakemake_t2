@@ -210,6 +210,8 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
                                                       './' + end_sentinal_file_loc, sentinal_file_loc,
                                                       exp_name))
 
+    exfil_aggregated_file = './' + experiment_name + 'exfil_aggregate'
+    open(exfil_aggregated_file, 'w').close()
     #################
     ### sentinal_file_loc ;; should wait here and then create the file...
     time.sleep(40) # going to wait for a longish-time so I know that the other threads/processes
@@ -239,7 +241,8 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
 
         ## TODO: I am up to debugging this part...
         if exfil_p:
-            time.sleep(start_time + next_exfil_start_time - time.time() - 10.0)
+            if start_time + next_exfil_start_time - time.time() - 20.0 > 0.0:
+                time.sleep(start_time + next_exfil_start_time - time.time() - 20.0)
 
             # setup config files for proxy DET instances and start them
             # note: this is only going to work for a single exp_support_scripts and a single dst, ATM
@@ -310,12 +313,12 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
                 else:
                     print "that exfiltration method was not recognized!"
 
-            ## TODO: this part will need to be improved
             exfil_info_file_name = './' + experiment_name + '_det_server_local_output.txt'
             bytes_exfil, start_ex, end_ex = parse_local_det_output(exfil_info_file_name, exfil_protocols[exfil_counter])
             print bytes_exfil, "bytes exfiltrated"
             print "starting at ", start_ex, "and ending at", end_ex
-            ## todo log the vals
+            with open(exfil_aggregated_file, 'a+') as g:
+                g.write(cur_exfil_protocol + ' ' + str(bytes_exfil) + " bytes exfiltrated")
     ################
 
     # step (7) wait, all the tasks are being taken care of elsewhere
