@@ -318,7 +318,7 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
             print bytes_exfil, "bytes exfiltrated"
             print "starting at ", start_ex, "and ending at", end_ex
             with open(exfil_aggregated_file, 'a+') as g:
-                g.write(cur_exfil_protocol + ' ' + str(bytes_exfil) + " bytes exfiltrated")
+                g.write(cur_exfil_protocol + ' ' + str(bytes_exfil) + " bytes exfiltrated" + '\n')
     ################
 
     # step (7) wait, all the tasks are being taken care of elsewhere
