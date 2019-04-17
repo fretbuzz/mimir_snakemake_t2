@@ -1,10 +1,10 @@
 ## Mimir
-Mimir is an experimental apparatus designed to test the potential for anomaly-based data exfiltration detection in microservice-architecture applications. It creates a graphical representation of network communication and flags deviations from structural invariants.
+Mimir is an experimental apparatus designed to test the potential for anomaly-based data exfiltration detection in microservice-architecture applications. It creates a graphical representation of network communication and flags deviations from structural invariants. The goal is to detect data exfiltration, but it should also be effective at detecting other types of anomalous traffic, such as port scans or lateral movements by attackers.
 
 Be advised that the project is still pre-alpha, does not do everything that you'd want it to, and the interface is a little rough. I recommend checking back ~4/20, which is when I hope to have it ironed out. 
 
 ## Running Analysis Pipeline
-The analysis pipeline takes pcap files and generates a trained model for detecting anomalies on further traffic from that applicaton. This model can then be applied ot 
+The analysis pipeline takes a pcap file and a log of entities that exist on the cluster (such as pods and services) and uses them to generate a graph-based statistical model of network traffic on the application. This model can then be applied to new pcaps to determine if there is anomalous traffic.
 
 This analysis pipeline been tested on MacOS and Linux 16.04. It will not work on Windows.
 
