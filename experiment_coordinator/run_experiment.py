@@ -313,6 +313,7 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
             bytes_exfil, start_ex, end_ex = parse_local_det_output(exfil_info_file_name, exfil_protocols[exfil_counter])
             print bytes_exfil, "bytes exfiltrated"
             print "starting at ", start_ex, "and ending at", end_ex
+            ## todo log the vals
     ################
 
     # step (7) wait, all the tasks are being taken care of elsewhere
@@ -1109,7 +1110,7 @@ def parse_local_det_output(exfil_info_file_name, protocol):
         for line in f.readlines():
             #print "before recieved", line
             if "Received" in line and protocol in line:
-                print "line", line ## TODO rmove!!
+                #print "line", line
                 #print '\n'
                 #print "after recieved", line.replace('\n','')
                 matchObj = re.search(r'(.*)Received(.*)bytes(.*)', line)
