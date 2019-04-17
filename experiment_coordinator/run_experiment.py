@@ -239,6 +239,8 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
 
         ## TODO: I am up to debugging this part...
         if exfil_p:
+            time.sleep(start_time + next_exfil_start_time - time.time() - 10.0)
+
             # setup config files for proxy DET instances and start them
             # note: this is only going to work for a single exp_support_scripts and a single dst, ATM
             selected_container = {}
