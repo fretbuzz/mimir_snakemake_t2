@@ -28,12 +28,8 @@
   "drop_infra_from_graph": true,
   "perform_cilium_component": true,
 
-  "cur_experiment_name": "wordpress_one_v2_nonauto",
-  "base_output_location": "/Volumes/exM2/experimental_data/wordpress_summary_new_appart/",
+  "cur_experiment_name": "wordpress_example",
 
-  "experimental_folder": "/Volumes/exM2/experimental_data/wordpress_info/wordpress_one_v2_nonauto_mk2/",
-  "pcap_file_path": "/Volumes/exM2/experimental_data/wordpress_info/wordpress_one_v2_nonauto_mk2/",
-  "pod_creation_log_path": "/Volumes/exM2/experimental_data/wordpress_info/wordpress_one_v2_nonauto_mk2/",
-  "exp_config_file": "/Volumes/exM2/experimental_data/wordpress_info/wordpress_one_v2_nonauto_mk2/wordpress_one_v2_nonauto_mk2_analysis.json",
+  "exp_config_file": "mimir_example_data/example_wordpress_analysis.json",
   "netsec_policy": "None"
 }
