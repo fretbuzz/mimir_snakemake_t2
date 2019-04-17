@@ -1109,6 +1109,7 @@ def parse_local_det_output(exfil_info_file_name, protocol):
         for line in f.readlines():
             #print "before recieved", line
             if "Received" in line and protocol in line:
+                print "line", line ## TODO rmove!!
                 #print '\n'
                 #print "after recieved", line.replace('\n','')
                 matchObj = re.search(r'(.*)Received(.*)bytes(.*)', line)
