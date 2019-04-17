@@ -319,7 +319,7 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
             with open(exfil_aggregated_file, 'a+') as g:
                 g.write(cur_exfil_protocol + ' ' + str(bytes_exfil) + " bytes exfiltrated" + '\n')
 
-            os.killpg(os.getpgid(local_det.pid), signal.SIGTERM)
+            os.killpg(os.getpgid(local_det.pid), signal.SIGKILL)
 
     ################
 
