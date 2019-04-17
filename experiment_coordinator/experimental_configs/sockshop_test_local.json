@@ -2,16 +2,16 @@
     "application_name": "sockshop",
     "experiment_name": "sockshop_local_exfil_test",
     "path_to_docker_machine_tls_certs":"/mydata/.minikube/certs",
-    "experiment_length_sec": 360,
+    "experiment_length_sec": 1800,
     "network_plugin": "none",
     "setup" : {
-      "number_customer_records": 1000,
-      "number_background_locusts": 20,
+      "number_customer_records": 10000,
+      "number_background_locusts": 80,
       "background_locust_spawn_rate": 10
     },
     "experiment" : {
-      "number_background_locusts": 40,
-      "background_locust_spawn_rate": 10,
+      "number_background_locusts": 100,
+      "background_locust_spawn_rate": 30,
       "traffic_type" : "normal"
     },
     "exfiltration_info" : {
@@ -22,7 +22,7 @@
 
       "exfil_methods": ["DET", "DET", "DET"],
       "exfil_protocols": ["tcp", "tcp", "tcp"],
-      "exfil_StartEnd_times": [[120,140], [160, 180], [200,220]],
+      "exfil_StartEnd_times": [[600,720], [900,1020], [1200, 1320]],
       "exfil_paths": [["front-end", "user", "user-db"], ["front-end", "user-db"], ["user-db"]],
       "DET_min_exfil_data_per_packet_bytes": [300, 300, 300],
       "DET_max_exfil_data_per_packet_bytes": [400, 400, 400],
