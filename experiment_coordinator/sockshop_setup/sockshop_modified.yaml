@@ -520,8 +520,8 @@ spec:
         image: weaveworksdemos/queue-master:0.3.1
         resources:
           limits: # I'm increasing the below values compared to default b/c it queue-master always gets overwhelmed.
-            cpu: 500m
-            memory: 700Mi
+            cpu: 600m
+            memory: 900Mi
           requests:
             cpu: 300m
             memory: 500Mi
