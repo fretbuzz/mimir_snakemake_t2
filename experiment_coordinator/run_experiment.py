@@ -922,14 +922,14 @@ def get_cilium_mapping():
 def find_corresponding_pod_attribs(cur_container_name):
     client = docker.from_env()
     # note: this parsing works for wordpress, might not work for others if structure of name is different
-    print "cur_container_name", cur_container_name
+    #print "cur_container_name", cur_container_name
     part_of_name_shared_by_container_and_pod = '_'.join('-'.join(cur_container_name.split('-')[3:]).split('_')[:-1])
-    print "part_of_name_shared_by_container_and_pod", part_of_name_shared_by_container_and_pod        
+    #print "part_of_name_shared_by_container_and_pod", part_of_name_shared_by_container_and_pod
     for container in client.containers.list():
         # print "containers", network.containers
         #print "part_of_name_shared_by_container_and_pod", part_of_name_shared_by_container_and_pod
         if part_of_name_shared_by_container_and_pod in container.name and 'POD' in container.name:
-            print "found container", container.name
+            #print "found container", container.name
             return container.attrs
 
 def parse_cilium(config):
