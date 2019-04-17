@@ -1141,6 +1141,8 @@ def parse_local_det_output(exfil_info_file_name, protocol):
                 except:
                     print "line caused problem: ", line, matchObjTime
 
+    open(exfil_info_file_name, 'w').close() #let's wipe it immediately... controversial, but I want to be sure
+
     return total_bytes, first_time, last_time
 
 def setup_config_file_det_client(dst, container, directory_to_exfil, regex_to_exfil, maxsleep, minbytesread, maxbytesread):
