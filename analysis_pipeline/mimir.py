@@ -272,11 +272,6 @@ if __name__=="__main__":
                         help='this is the configuration file used to generate actual alerts')
     args = parser.parse_args()
 
-    #if args.config_json:
-    #    ## TODO: hook this in once that part of the system is written (should be soon)
-    #    print "that's NOT supported ATM..."
-    #    exit(233)
-
     if not args.training_config_json:
         print "running_preset..."
         #run_analysis('./analysis_json/hipsterStore_mk1.json')
