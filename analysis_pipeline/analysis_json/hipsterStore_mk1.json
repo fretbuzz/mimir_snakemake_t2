@@ -11,7 +11,7 @@
 
   "perform_cilium_component": true,
 
-  "drop_pairwise_features": true,
+  "drop_pairwise_features": false,
   "drop_infra_from_graph": true,
 
   "include_ide": false,

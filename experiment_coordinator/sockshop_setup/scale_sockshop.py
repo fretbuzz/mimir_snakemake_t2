@@ -41,7 +41,7 @@ def scale_sockshop(deployment_scaling, autoscale_p):
     print out1,out2,out3,out4
     wait_until_pods_done("sock-shop")
     cart_containers = deployment_scaling['cart']['max']
-    out = subprocess.check_output(["kubectl", "scale", "deploy", "cart", "--replicas=" + str(cart_containers), "--namespace=sock-shop"])
+    out = subprocess.check_output(["kubectl", "scale", "deploy", "carts", "--replicas=" + str(cart_containers), "--namespace=sock-shop"])
     print out
     wait_until_pods_done("sock-shop")
     time.sleep(240)
