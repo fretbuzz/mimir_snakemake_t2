@@ -5,6 +5,6 @@
     "local_dir" : "/Volumes/exM2/experimental_data/wordpress_info",
     "cloudlab_server_ip" : "c240g5-110121.wisc.cloudlab.us",
     "exp_length" : 10800,
-    "physical_attacks_p" : true
+    "physical_attacks_p" : false
 
 }
