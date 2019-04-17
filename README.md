@@ -38,7 +38,7 @@ gzip -d example_wordpress.pcap.gz
 cd ..
 ```
 
-### Step 4: Starting the system
+### Step 3: Starting the system
 The system can be started via:
 ```
 python mimir.py --training_config_json analysis_json/wordpress_model.json --eval_config_json analysis_json/wordpress_example.json
@@ -48,5 +48,5 @@ This uses a pretrained model and detects synthetically injected attacks on a Wor
 
 A new model can be generated based off of training data (see corresponding wiki page). Be advised that it requires a pcap of network activity and a time-alignd log of entities on the kubernetes cluster (e.g. pods & services). It is likely the log of cluster entites will need to be generated from other data sources (e.g., prometheus database, etc); see the corresponding wiki page for more information.
 
-### Step 5: Examining the Output
+### Step 4: Examining the Output
 \[TODO\]
