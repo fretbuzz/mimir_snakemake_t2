@@ -239,7 +239,6 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
         cur_exfil_method = exfil_methods[exfil_counter]
         cur_exfil_protocol = exfil_protocols[exfil_counter]
 
-        ## TODO: I am up to debugging this part...
         if exfil_p:
             if start_time + next_exfil_start_time - time.time() - 20.0 > 0.0:
                 time.sleep(start_time + next_exfil_start_time - time.time() - 20.0)
@@ -276,7 +275,7 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
                                                                 proxy_instance_to_networks_to_ip,
                                                                 class_to_networks)
 
-            print "next ip for the originator to send to", next_instance_ip
+            #print "next ip for the originator to send to", next_instance_ip
             directory_to_exfil = config_params["exfiltration_info"]["folder_to_exfil"]
             regex_to_exfil = config_params["exfiltration_info"]["regex_of_file_to_exfil"]
             files_to_exfil = []
@@ -787,7 +786,7 @@ def install_exfil_dependencies(exfil_paths, orchestrator, class_to_installer, ex
 # returns a list of container names that correspond to the
 # selected class
 def get_class_instances(orchestrator, class_name, class_to_net):
-    print "finding class instances for: ", class_name
+    #print "finding class instances for: ", class_name
     if orchestrator == "kubernetes":
         client = docker.from_env(timeout=300)
         container_instances = []
@@ -796,7 +795,7 @@ def get_class_instances(orchestrator, class_name, class_to_net):
             # note: lots of containers have a logging container as a sidecar... wanna make sure we don't use that one
             if class_name in container.name and 'log' not in container.name and 'POD' not in container.name and \
                     (('-db' in class_name) == ('-db-' in container.name)):
-                print class_name, container.name
+                #print class_name, container.name
                 container_instances.append(container)
 
         for network in client.networks.list():
@@ -858,14 +857,14 @@ def map_container_instances_to_ips(orchestrator, class_to_instances, class_to_ne
     #if orchestrator == "docker_swarm":
     # i think this can work for both orchestrators
     instance_to_networks_to_ip = {}
-    print "class_to_instance_names", class_to_instances.keys()
-    print class_to_instances
+    #print "class_to_instance_names", class_to_instances.keys()
+    #print class_to_instances
     ice = 0
     if network_plugin =='cilium':
         pod_to_ip = get_cilium_mapping()
         print "pod to ip", pod_to_ip
     for class_name, container in class_to_instances.iteritems():
-        print 'class_to_networks[class_name]', class_to_networks[class_name], class_name,  class_to_networks
+        #print 'class_to_networks[class_name]', class_to_networks[class_name], class_name,  class_to_networks
         # use if cilium
         if network_plugin == 'cilium':
             print "theoretically connected networks", class_to_networks[class_name]
@@ -873,9 +872,9 @@ def map_container_instances_to_ips(orchestrator, class_to_instances, class_to_ne
                 for ip, pod_net in pod_to_ip.iteritems():
                     if container.name.split('_')[2] in pod_net[0] and ":" not in ip: # don't want ipv6
                         instance_to_networks_to_ip[ container ] = {}
-                        print 'pos match', ip, pod_net, container.name.split('_')[2]
+                        #print 'pos match', ip, pod_net, container.name.split('_')[2]
                         instance_to_networks_to_ip[container][class_to_networks[class_name][0]] = ip
-                        print "current instance_to_networks_to_ip", instance_to_networks_to_ip
+                        #print "current instance_to_networks_to_ip", instance_to_networks_to_ip
         else:
             # if not cilium
             instance_to_networks_to_ip[ container ] = {}
@@ -890,14 +889,14 @@ def map_container_instances_to_ips(orchestrator, class_to_instances, class_to_ne
                 ice += 1
                 instance_to_networks_to_ip[container][connected_network] = []
                 try:
-                    print "container_attribs", container_atrribs["NetworkSettings"]["Networks"]
-                    print "connected_network.name", connected_network, 'end connected network name'
+                    #print "container_attribs", container_atrribs["NetworkSettings"]["Networks"]
+                    #print "connected_network.name", connected_network, 'end connected network name'
                     ip_on_this_network = container_atrribs["NetworkSettings"]["Networks"][connected_network.name]["IPAddress"]
                     instance_to_networks_to_ip[container][connected_network] = ip_on_this_network
                 except:
                     pass
-    print "ice", ice
-    print "instance_to_networks_to_ip", instance_to_networks_to_ip
+    #print "ice", ice
+    #print "instance_to_networks_to_ip", instance_to_networks_to_ip
     return instance_to_networks_to_ip
     #elif orchestrator == "kubernetes":
         # okay, so that strategy above is not going to work here b/c the container configs
@@ -1107,7 +1106,7 @@ def start_det_server_local(protocol, src, maxsleep, maxbytesread, minbytesread, 
         cmd = subprocess.Popen(cmds, cwd='/DET/', preexec_fn=os.setsid, stdout=f)
 
 def parse_local_det_output(exfil_info_file_name, protocol):
-    print "this is the local det server parsing function!"
+    #print "this is the local det server parsing function!"
     total_bytes = 0
     first_time = None
     last_time = None
@@ -1115,7 +1114,7 @@ def parse_local_det_output(exfil_info_file_name, protocol):
         for line in f.readlines():
             #print "before recieved", line
             if "Received" in line and protocol in line:
-                print "line", line
+                #print "line", line
                 #print '\n'
                 #print "after recieved", line.replace('\n','')
                 matchObj = re.search(r'(.*)Received(.*)bytes(.*)', line)
@@ -1143,41 +1142,41 @@ def parse_local_det_output(exfil_info_file_name, protocol):
 def setup_config_file_det_client(dst, container, directory_to_exfil, regex_to_exfil, maxsleep, minbytesread, maxbytesread):
     # note: don't want to actually start the client yet, however
     out = subprocess.check_output(['pwd'])
-    print out
+    #print out
 
     cp_command = ['cp', './exp_support_scripts/det_config_client_template.json', './det_config_client.json']
     out = subprocess.check_output(cp_command)
-    print "cp command result", out
+    #print "cp command result", out
 
-    print 'dst', dst
+    #print 'dst', dst
     targetip_switch = "s/TARGETIP/\"" + dst + "\"/"
-    print "targetip_switch", targetip_switch
+    #print "targetip_switch", targetip_switch
     maxsleeptime_switch = "s/MAXTIMELSLEEP/" + "{:.2f}".format(maxsleep) + "/"
     maxbytesread_switch = "s/MAXBYTESREAD/" + str(maxbytesread) + "/"
     minbytesread_switch = "s/MINBYTESREAD/" + str(minbytesread) + "/"
     sed_command = ["sed", "-i", "-e", targetip_switch, "-e", maxsleeptime_switch, "-e", maxbytesread_switch, "-e",
                    minbytesread_switch, "./det_config_client.json"]
-    print "sed_command", sed_command
+    #print "sed_command", sed_command
     out = subprocess.check_output(sed_command)
-    print "sed command result", out
+    #print "sed command result", out
 
     upload_config_command = ["docker", "cp", "./det_config_client.json", container.id + ":/config.json"]
     out = subprocess.check_output(upload_config_command)
-    print "upload_config_command", upload_config_command
-    print "upload_config_command result", out
+    #print "upload_config_command", upload_config_command
+    #print "upload_config_command result", out
 
     # i also want to move ./exp_support_scripts/loop.py here (so that I can call it easily later on)
     upload_loop_command = ["docker", "cp", "./exp_support_scripts/loop.py", container.id + ":/DET/loop.py"]
     out = subprocess.check_output(upload_loop_command)
-    print "upload_loop_command", upload_loop_command
-    print "upload_loop_command result", out
+    #print "upload_loop_command", upload_loop_command
+    #print "upload_loop_command result", out
 
     find_file_to_exfil = "find " + directory_to_exfil + " -name " + regex_to_exfil
-    print "find_file_to_exfil", find_file_to_exfil
+    #print "find_file_to_exfil", find_file_to_exfil
     file_to_exfil = container.exec_run(find_file_to_exfil, user="root", stdout=True, tty=True)
-    print "file_to_exfil", file_to_exfil, file_to_exfil.output, "end file to exfil"
+    #print "file_to_exfil", file_to_exfil, file_to_exfil.output, "end file to exfil"
     file_to_exfil = file_to_exfil.output.split('\n')[0].replace("\n", "").replace("\r", "")
-    print "start file to exfil", file_to_exfil, "end file to exfil"
+    #print "start file to exfil", file_to_exfil, "end file to exfil"
     #print next( file_to_exfil.output )
     return file_to_exfil
 
@@ -1220,15 +1219,15 @@ def stop_dnscat_client(container):
 
 def start_det_client(file, protocol, container):
     cmds = ["python", "/DET/det.py", "-c", "/config.json", "-p", protocol, "-f", file]
-    print "start det client commands", str(cmds)
-    print "start det client commands", str(cmds)[1:-1]
+    #print "start det client commands", str(cmds)
+    #print "start det client commands", str(cmds)[1:-1]
     arg_string = ''
     for cmd in cmds:
         arg_string += cmd + ' '
-        print arg_string
+        #print arg_string
     arg_string = arg_string[:-1]
     loopy_cmds = ["python", "/DET/loop.py", protocol, file]
-    print "loopy_cmds", loopy_cmds
+    #print "loopy_cmds", loopy_cmds
     out = container.exec_run(loopy_cmds, user="root", workdir='/DET', stdout=False)
     #out = container.exec_run(cmds, user="root", workdir='/DET', stdout=False)
     print "start det client output", out
@@ -1251,24 +1250,24 @@ def find_dst_and_src_ips_for_det(exfil_path, current_class_name, selected_contai
         return None, None
 
     # at originator -> no src (or rather, it is the exp_support_scripts for itself):
-    print current_class_name, current_loc_in_exfil_path+1, len(exfil_path)
+    #print current_class_name, current_loc_in_exfil_path+1, len(exfil_path)
     if current_loc_in_exfil_path+1 == len(exfil_path):
         src = None
     else: # then it has src other than itself
         prev_class_in_path = exfil_path[current_loc_in_exfil_path + 1]
-        print selected_container
+        #print selected_container
         # iterate through selected_containers[prev_class_in_path] and append the IP's (seems easy but must wait until done w/ experiments)
         # containers must be on same network to communicate...
         prev_class_networks = class_to_networks[prev_class_in_path]
         prev_and_current_class_network = list( set(current_class_networks) & set(prev_class_networks))[0] # should be precisely one
         prev_instance = selected_container[prev_class_in_path]
-        print 'nneettss', prev_instance, selected_container[current_class_name]
-        print current_class_name, current_class_networks
-        print prev_class_in_path, prev_class_networks
+        #print 'nneettss', prev_instance, selected_container[current_class_name]
+        #print current_class_name, current_class_networks
+        #print prev_class_in_path, prev_class_networks
 
         # now retrieve the previous container's IP for the correct network
-        print "finding previous ip in exfiltration path...", proxy_instance_to_networks_to_ip[prev_instance], prev_instance.name
-        print prev_and_current_class_network.name, [i.name for i in proxy_instance_to_networks_to_ip[prev_instance]]
+        #print "finding previous ip in exfiltration path...", proxy_instance_to_networks_to_ip[prev_instance], prev_instance.name
+        #print prev_and_current_class_network.name, [i.name for i in proxy_instance_to_networks_to_ip[prev_instance]]
         prev_instance_ip = proxy_instance_to_networks_to_ip[prev_instance][prev_and_current_class_network]
         src = prev_instance_ip
 
@@ -1284,7 +1283,7 @@ def find_dst_and_src_ips_for_det(exfil_path, current_class_name, selected_contai
         next_class_networks = class_to_networks[next_class_in_path]
         next_and_current_class_network = list(set(current_class_networks) & set(next_class_networks))[0]  # should be precisly one 
         next_instance = selected_container[next_class_in_path]
-        print "next_and_current_class_network", next_and_current_class_network
+        #print "next_and_current_class_network", next_and_current_class_network
         next_instance_ip = proxy_instance_to_networks_to_ip[next_instance][next_and_current_class_network]
         dest = next_instance_ip
 
