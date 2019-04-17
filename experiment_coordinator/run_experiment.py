@@ -266,7 +266,7 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
                                     maxsleep[exfil_counter], DET_max_exfil_bytes_in_packet[exfil_counter], DET_min_exfil_bytes_in_packet[exfil_counter])
 
             # this does NOT need to be modified (somewhat surprisingly)
-            start_det_server_local(cur_exfil_protocol, ip, maxsleep[exfil_counter], DET_max_exfil_bytes_in_packet[exfil_counter],
+            local_det = start_det_server_local(cur_exfil_protocol, ip, maxsleep[exfil_counter], DET_max_exfil_bytes_in_packet[exfil_counter],
                                    DET_min_exfil_bytes_in_packet[exfil_counter], experiment_name)
 
             # now setup the originator (i.e. the client that originates the exfiltrated data)
@@ -318,6 +318,9 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
             print "starting at ", start_ex, "and ending at", end_ex
             with open(exfil_aggregated_file, 'a+') as g:
                 g.write(cur_exfil_protocol + ' ' + str(bytes_exfil) + " bytes exfiltrated" + '\n')
+
+            os.killpg(os.getpgid(local_det.pid), signal.SIGTERM)
+
     ################
 
     # step (7) wait, all the tasks are being taken care of elsewhere
@@ -1022,7 +1025,7 @@ def start_det_proxy_mode(orchestrator, container, src, dst, protocol, maxsleep, 
         # can just modify it in place
         cp_command = ['cp', './exp_support_scripts/det_config_template.json', './current_det_config.json']
         out = subprocess.check_output(cp_command)
-        print "cp command result", out
+        #print "cp command result", out
 
         targetip_switch = "s/TARGETIP/\"" + dst + "\"/"
         print src
@@ -1031,21 +1034,21 @@ def start_det_proxy_mode(orchestrator, container, src, dst, protocol, maxsleep, 
         #src_string += "\\\"" + src +  "\\\"" + ','
         src_string += "\\\"" + src +  "\\\""
         proxiesip_switch = "s/PROXIESIP/" + "[" + src_string  + "]" + "/"
-        print "targetip_switch", targetip_switch
-        print "proxiesip_switch", proxiesip_switch
+        #print "targetip_switch", targetip_switch
+        #print "proxiesip_switch", proxiesip_switch
         maxsleeptime_switch = "s/MAXTIMELSLEEP/" + "{:.2f}".format(maxsleep) + "/"
         maxbytesread_switch = "s/MAXBYTESREAD/" + str(maxbytesread) + "/"
         minbytesread_switch = "s/MINBYTESREAD/" + str(minbytesread) + "/"
         sed_command = ["sed", "-i", "-e",  targetip_switch, "-e", proxiesip_switch, "-e", maxsleeptime_switch,
                        "-e", maxbytesread_switch, "-e", minbytesread_switch, "./current_det_config.json"]
-        print "sed_command", sed_command
+        #print "sed_command", sed_command
         out = subprocess.check_output(sed_command)
-        print "sed command result", out
+        #print "sed command result", out
 
         upload_config_command = ["docker", "cp", "./current_det_config.json", container.id+ ":/config.json"]
         out = subprocess.check_output(upload_config_command)
-        print "upload_config_command", upload_config_command
-        print "upload_config_command result", out
+        #print "upload_config_command", upload_config_command
+        #print "upload_config_command result", out
 
         time.sleep(1)
         start_det_command = ["python", "/DET/det.py", "-c", "/config.json", "-p", protocol, "-Z"]
@@ -1104,6 +1107,7 @@ def start_det_server_local(protocol, src, maxsleep, maxbytesread, minbytesread, 
     # note: this will remove the files existing contents (which is fine w/ me!)
     with open('./' + experiment_name + '_det_server_local_output.txt', 'w') as f:
         cmd = subprocess.Popen(cmds, cwd='/DET/', preexec_fn=os.setsid, stdout=f)
+    return cmd
 
 def parse_local_det_output(exfil_info_file_name, protocol):
     #print "this is the local det server parsing function!"
