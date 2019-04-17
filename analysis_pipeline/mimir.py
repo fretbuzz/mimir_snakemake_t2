@@ -17,7 +17,7 @@ This file runs the MIMIR anomaly detection system by parsing configuration files
 
 def parse_experimental_data_json(config_file, experimental_folder, experiment_name, make_edgefiles,
                                  time_interval_lengths, pcap_file_path, pod_creation_log_path,
-                                 netsec_policy=None, time_of_synethic_exfil=None):
+                                 netsec_policy=None, time_of_synethic_exfil=None, no_processing_at_all=False):
     with open(config_file) as f:
         config_file = json.load(f)
         basefile_name = experimental_folder + experiment_name + '/edgefiles/' + experiment_name + '_'
@@ -55,7 +55,8 @@ def parse_experimental_data_json(config_file, experimental_folder, experiment_na
                                                exfil_StartEnd_times=exfil_StartEnd_times,
                                                physical_exfil_paths=physical_exfil_paths,
                                                base_experiment_dir=base_experiment_dir,
-                                               time_of_synethic_exfil=time_of_synethic_exfil)
+                                               time_of_synethic_exfil=time_of_synethic_exfil,
+                                               no_processing_at_all = no_processing_at_all)
     return pipeline_object
 
 def parse_experimental_config(experimental_config_file):
@@ -185,7 +186,10 @@ def parse_experimental_config(experimental_config_file):
         else:
             pod_creation_log_path = experimental_folder
 
-        netsec_policy = config_file['netsec_policy']
+        if 'netsec_policy' in config_file:
+            netsec_policy = config_file['netsec_policy']
+        else:
+            netsec_policy = "None"
 
         if 'auto_open_pdfs' in config_file:
             auto_open_pdfs = config_file['auto_open_pdfs']
@@ -194,7 +198,8 @@ def parse_experimental_config(experimental_config_file):
 
         experiment_classes = [parse_experimental_data_json(exp_config_file, experimental_folder, cur_experiment_name,
                                                            make_edgefiles, time_interval_lengths, pcap_file_path,
-                                                           pod_creation_log_path, netsec_policy, time_of_synethic_exfil)]
+                                                           pod_creation_log_path, netsec_policy, time_of_synethic_exfil,
+                                                           no_processing_at_all=get_endresult_from_memory)]
 
         # this is a work-around until I finish refactoring the actual system...
         # this part exists b/c I never want to interfere with actually working
@@ -278,7 +283,8 @@ if __name__=="__main__":
         #run_analysis('./analysis_json/sockshop_one_auto_mk11long.json')
 
         #run_analysis('./analysis_json/wordpress_one_3_auto_mk5.json', eval_config='./analysis_json/wordpress_one_v2_na_eval.json')
-        run_analysis('./analysis_json/sockshop_mk13.json')
+        #run_analysis('./analysis_json/sockshop_mk13.json')
+        run_analysis('analysis_json/wordpress_model.json', eval_config='analysis_json/wordpress_example.json')
         #run_analysis('./analysis_json/sockshop_one_auto_mk12long.json', eval_config='./analysis_json/sockshop_example.json')
         #run_analysis('./analysis_json/sockshop_one_auto_mk12long.json')
 

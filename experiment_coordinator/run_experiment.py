@@ -235,6 +235,7 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
         next_exfil_start_time = next_StartEnd_time[0]
         next_exfil_end_time = next_StartEnd_time[1]
         cur_exfil_method = exfil_methods[exfil_counter]
+        cur_exfil_protocol = exfil_protocols[exfil_counter]
 
         ## TODO: I am up to debugging this part...
         if exfil_p:
@@ -257,11 +258,11 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
                                                         proxy_instance_to_networks_to_ip, class_to_networks)
                 print "cur_dst_src", dst, src
                 print "config stuff", container_instance.name, src, dst, proxy_instance_to_networks_to_ip[container_instance]
-                start_det_proxy_mode(orchestrator, container_instance, src, dst, cur_exfil_method,
+                start_det_proxy_mode(orchestrator, container_instance, src, dst, cur_exfil_protocol,
                                     maxsleep[exfil_counter], DET_max_exfil_bytes_in_packet[exfil_counter], DET_min_exfil_bytes_in_packet[exfil_counter])
 
             # this does NOT need to be modified (somewhat surprisingly)
-            start_det_server_local(cur_exfil_method, ip, maxsleep[exfil_counter], DET_max_exfil_bytes_in_packet[exfil_counter],
+            start_det_server_local(cur_exfil_protocol, ip, maxsleep[exfil_counter], DET_max_exfil_bytes_in_packet[exfil_counter],
                                    DET_min_exfil_bytes_in_packet[exfil_counter], experiment_name)
 
             # now setup the originator (i.e. the client that originates the exfiltrated data)

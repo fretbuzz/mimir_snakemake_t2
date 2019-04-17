@@ -1,14 +1,13 @@
 {
   "get_endresult_from_memory": true,
   "cur_experiment_name": "wordpress_one_3_auto_mk5ag",
+  "base_output_location": "mimir_example_data/wordpress_model/",
+  "exp_config_file": "mimir_example_data/wordpress_model/wordpress_one_3_auto_mk5_analysis.json",
 
 
 
-  "base_output_location": "/Volumes/exM/experimental_data/wordpress_info/wordpress_auto_v3_mk5/",
-  "experimental_folder": "/Volumes/exM/experimental_data/wordpress_info/wordpress_auto_v3_mk5/",
-  "pcap_file_path": "/Volumes/exM/experimental_data/wordpress_info/wordpress_auto_v3_mk5/",
-  "pod_creation_log_path": "/Volumes/exM/experimental_data/wordpress_info/wordpress_auto_v3_mk5/",
-  "exp_config_file": "/Volumes/exM/experimental_data/wordpress_info/wordpress_auto_v3_mk5/wordpress_one_3_auto_mk5_analysis.json",
-
-  "netsec_policy": "None"
+  "make_edgefiles": false,
+  "skip_graph_injection": true,
+  "calc_vals": false,
+  "calculate_z_scores": false
 }

@@ -342,11 +342,13 @@ class single_rate_stats_pipeline():
                                                         self.ignore_physical_attacks_p, drop_pairwise_features, timegran,
                                                         lasso_feature_selection_p, skip_heatmap_p=skip_heatmap_p)
 
-            if pretrained_statistical_analysis_v2 == None or (timegran not in pretrained_statistical_analysis_v2.timegran_to_statistical_pipeline):
+            #if pretrained_statistical_analysis_v2 == None or (timegran not in pretrained_statistical_analysis_v2.timegran_to_statistical_pipeline):
+            if pretrained_statistical_analysis_v2 == None:
                 stat_pipeline.generate_model(using_pretrained_model=False)
             else:
-                stat_pipeline.clf = pretrained_statistical_analysis_v2.timegran_to_statistical_pipeline[timegran].clf
-                stat_pipeline.generate_model(using_pretrained_model=True)
+                if timegran in pretrained_statistical_analysis_v2.timegran_to_statistical_pipeline:
+                    stat_pipeline.clf = pretrained_statistical_analysis_v2.timegran_to_statistical_pipeline[timegran].clf
+                    stat_pipeline.generate_model(using_pretrained_model=True)
 
             self.list_of_optimal_fone_scores_at_this_exfil_rates[timegran].append(stat_pipeline.method_to_optimal_f1_scores_test)
             self.Xs[timegran].append(stat_pipeline.X_train)
@@ -360,7 +362,9 @@ class single_rate_stats_pipeline():
 
             self.time_gran_to_outtraffic[timegran].append(stat_pipeline.out_traffic)
 
-        self._train_multi_time_model( drop_pairwise_features, pretrained_statistical_analysis_v2, skip_heatmap_p )
+        # if only one time gran, no point in running this function
+        if len(self.time_gran_to_aggregate_mod_score_dfs.keys()) > 1:
+            self._train_multi_time_model( drop_pairwise_features, pretrained_statistical_analysis_v2, skip_heatmap_p )
 
     def create_the_report(self, auto_open_p):
             ## handle it like this... self.timegran_to_statistical_pipeline[tuple(self.timegran_to_statistical_pipeline.keys())]
@@ -451,11 +455,13 @@ class single_rate_stats_pipeline():
                                                      dont_prepare_data_p=True, skip_heatmap_p=skip_heatmap_p)
 
         ### TODO: what is going on here??? it's still fitting of the training data?? but it should on the testing data...
-        if pretrained_statistical_analysis_v2 == None or (timegran not in pretrained_statistical_analysis_v2.timegran_to_statistical_pipeline):
+        #if pretrained_statistical_analysis_v2 == None or (timegran not in pretrained_statistical_analysis_v2.timegran_to_statistical_pipeline):
+        if pretrained_statistical_analysis_v2 == None:
             stats_pipeline.generate_model(using_pretrained_model=False, multi_time_train=True)
         else:
-            stats_pipeline.clf = pretrained_statistical_analysis_v2.timegran_to_statistical_pipeline[timegran].clf
-            stats_pipeline.generate_model(using_pretrained_model=True, multi_time_train=True)
+            if timegran in pretrained_statistical_analysis_v2.timegran_to_statistical_pipeline:
+                stats_pipeline.clf = pretrained_statistical_analysis_v2.timegran_to_statistical_pipeline[timegran].clf
+                stats_pipeline.generate_model(using_pretrained_model=True, multi_time_train=True)
 
         self.timegran_to_statistical_pipeline[timegran] = stats_pipeline
 

@@ -1,20 +1,18 @@
 {
   "skip_model_part": false,
   "ignore_physical_attacks_p": true,
-  "time_of_synethic_exfil": 60,
-  "goal_train_test_split_training": 0.50,
+  "time_of_synethic_exfil": 30,
+  "goal_train_test_split_training": 0.0,
   "goal_attack_NoAttack_split_training": 0.50,
-  "goal_attack_NoAttack_split_testing": 0.2,
+  "goal_attack_NoAttack_split_testing": 0.5,
   "time_interval_lengths": [10],
   "ide_window_size": 12,
-  "avg_exfil_per_min_comment": [0.01],
-  "avg_exfil_per_min": [10.0, 2.0, 1.0, 0.25, 0.1, 0.01],
-  "exfil_per_min_variance_comment": [0.001],
-  "exfil_per_min_variance": [0.3, 0.2, 0.15, 0.08, 0.05, 0.001],
+  "avg_exfil_per_min": [10.0, 1.0, 0.25, 0.1, 0.005, 0.01],
+  "exfil_per_min_variance": [0.3, 0.15, 0.08, 0.05, 0.0025, 0.001],
   "avg_pkt_size": [500.0, 500.0, 500.00, 500.00, 500.0, 500.0],
   "pkt_size_variance":  [100, 100, 100, 100, 100, 100],
 
-  "make_edgefiles": true,
+  "make_edgefiles": false,
   "skip_graph_injection": false,
   "calc_vals": true,
   "calculate_z_scores": true,
@@ -26,7 +24,7 @@
 
   "drop_pairwise_features": false,
   "drop_infra_from_graph": true,
-  "perform_cilium_component": true,
+  "perform_cilium_component": false,
 
   "cur_experiment_name": "wordpress_example",
 

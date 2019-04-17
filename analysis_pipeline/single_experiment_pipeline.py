@@ -24,7 +24,7 @@ class data_anylsis_pipline(object):
                  sec_between_exfil_pkts=1, time_of_synethic_exfil=None, injected_exfil_path='None',
                  netsec_policy=None, skip_graph_injection=False, cluster_creation_log=None,
                  sensitive_ms=None, exfil_StartEnd_times=[], physical_exfil_paths=[], old_mulval_info=None,
-                 base_experiment_dir=''):
+                 base_experiment_dir='', no_processing_at_all = False):
 
         print "basefile_name", basefile_name
         try:
@@ -123,16 +123,17 @@ class data_anylsis_pipline(object):
         self.exfil_StartEnd_times = exfil_StartEnd_times
         self.physical_exfil_paths = physical_exfil_paths
 
-        self.process_pcaps()
+        if not no_processing_at_all:
+            self.process_pcaps()
 
-        if exfil_start_time is None or exfil_end_time is None:
-            min_time_gran = min([int(i) for i in self.interval_to_filenames.keys()])
-            exp_length = len(self.interval_to_filenames[str(min_time_gran)]) * min_time_gran
-            self.exfil_start_time = exp_length
-            self.exfil_end_time = exp_length
-        else:
-            self.exfil_start_time = exfil_start_time
-            self.exfil_end_time = exfil_end_time
+            if exfil_start_time is None or exfil_end_time is None:
+                min_time_gran = min([int(i) for i in self.interval_to_filenames.keys()])
+                exp_length = len(self.interval_to_filenames[str(min_time_gran)]) * min_time_gran
+                self.exfil_start_time = exp_length
+                self.exfil_end_time = exp_length
+            else:
+                self.exfil_start_time = exfil_start_time
+                self.exfil_end_time = exfil_end_time
 
 
     def generate_synthetic_exfil_paths(self, max_number_of_paths, max_path_length, dns_porportion):

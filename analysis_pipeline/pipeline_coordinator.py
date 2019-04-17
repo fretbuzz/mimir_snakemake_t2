@@ -167,6 +167,7 @@ class multi_experiment_pipeline(object):
 
     def run_pipelines(self, pretrained_model_object = None):
         self.pretrained_min_pipeline = pretrained_model_object
+        print "self.get_endresult_from_memory", self.get_endresult_from_memory
         if not self.get_endresult_from_memory:
             min_rate_statspipelines = None
 
@@ -187,7 +188,7 @@ class multi_experiment_pipeline(object):
         else:
             with open(self.where_to_save_minrate_statspipelines, 'r') as f:
                 min_rate_statspipelines = pickle.load(f)
-            min_rate_statspipelines.create_the_report(self.auto_open_pdfs)
+            #min_rate_statspipelines.create_the_report(self.auto_open_pdfs)
 
         ## TODO: should return performance table for second val instead of None...
         ## okay, so for non-eval this should be @ same injection rate for train and test (marked i)
