@@ -1,13 +1,10 @@
-NOTE: I'll finish giving a run-down of how to run the code + some example data on 4/17.
-
 ## Mimir
-Mimir is an experimental apparatus designed to test the potential for anomaly-based data exfiltration detection in microservice-architecture applications. It creates a graphical representation of network communication and flags deviations from structural invariants.
+Mimir is an experimental apparatus designed to test the potential for anomaly-based data exfiltration detection in microservice-architecture applications. It creates a graphical representation of network communication and flags deviations from structural invariants. The goal is to detect data exfiltration, but it should also be effective at detecting other types of anomalous traffic, such as port scans or lateral movements by attackers.
 
-Be advised that the project is still pre-alpha and does not do everything that you'd want it to.
-
+Be advised that the project is still pre-alpha, does not do everything that you'd want it to, and the interface is a little rough. I recommend checking back ~4/20, which is when I hope to have it ironed out. 
 
 ## Running Analysis Pipeline
-The analysis pipeline takes pcap files and generates a trained model for detecting anomalies on further traffic from that applicaton. Currently, it ONLY generates the model (using the training set) and gives results on the validation set, at the various hyperparameter options. It WILL also be able to apply this trained model to a testing/eval set SOON, but it doesn't do that YET (should be working by ~4/15).
+The analysis pipeline takes a pcap file and a log of entities that exist on the cluster (such as pods and services) and uses them to generate a graph-based statistical model of network traffic on the application. This model can then be applied to new pcaps to determine if there is anomalous traffic.
 
 This analysis pipeline been tested on MacOS and Linux 16.04. It will not work on Windows.
 
@@ -33,20 +30,23 @@ pip install docker networkx matplotlib jinja2 pdfkit numpy pandas seaborn Cython
 ```
 
 ### Step 2: Get example data
-\[ TODO \]
-
-### Step 3: Set configuration file
-We'll use the analysis_pipeline/analysis_json/sockshop_example.json configuration file. If you copied the example data into the analysis_pipeline/ directory, as explained in step two, then you do NOT need to do anything and can move to step 3. Else, you'll need to modify some parts of the configuration file, as explained in the "Analysis Pipeline configuration parameters" page in the wiki.
-
-This is most useful when running for the first time. On later times (i.e. if re-running), you can skip some parts of the analysis pipeline by setting the parameters of the configuration file appropriateley (as explained in the aforementioned wiki page).
-
-### Step 4: Starting the system
-Move to the analysis_pipeline/ directory. The system can be started via:
 ```
-python mimir.py --training_config_json analysis_json/sockshop_example.json
+cd mimir_v2/analysis_pipeline
+git clone https://github.com/fretbuzz/mimir_example_data.git
+cd ./mimir_example_data/
+gzip -d example_wordpress.pcap.gz
+cd ..
 ```
 
-The system will LATER be also able to take an evaluation configuration file, to give online alerts. But it CANNOT do that right now. But it WILL be able to do that SOON (by ~4/15).
+### Step 3: Starting the system
+The system can be started via:
+```
+python mimir.py --training_config_json analysis_json/wordpress_model.json --eval_config_json analysis_json/wordpress_example.json
+```
 
-### Step 5: Examining the Output
+This uses a pretrained model and detects synthetically injected attacks on a Wordpress deployment. There is a pcap corresponding to this deployment in the example data. Note: the system does NOT currently give alerts based on physical abnormalities in the pcap, it only runs in "synthetic injection mode", for research purposes. It will SOON give alerts based on physical abnormalities (~4/20).
+
+A new model can be generated based off of training data (see corresponding wiki page). Be advised that it requires a pcap of network activity and a time-alignd log of entities on the kubernetes cluster (e.g. pods & services). It is likely the log of cluster entites will need to be generated from other data sources (e.g., prometheus database, etc); see the corresponding wiki page for more information.
+
+### Step 4: Examining the Output
 \[TODO\]
