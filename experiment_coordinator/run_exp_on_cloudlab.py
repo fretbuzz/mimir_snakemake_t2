@@ -7,15 +7,6 @@ from pwn import *
 import time
 import json
 
-################################
-
-cloudlab_private_key = '/Users/jseverin/Dropbox/cloudlab.pem'
-possible_apps = ['drupal', 'sockshop', 'gitlab', 'eShop', 'wordpress', 'hipster']
-experiment_sentinal_file = '/mydata/mimir_v2/experiment_coordinator/experiment_done.txt'
-sentinal_file = '/mydata/all_done.txt'
-
-###############################
-
 def retrieve_results(s):
     print('hello')
 
@@ -71,7 +62,7 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, use_ciliu
         try:
             s = pwnlib.tubes.ssh.ssh(host=cloudlab_server_ip,
                 keyfile=cloudlab_private_key,
-                user='jsev')
+                user=user)
         except:
             time.sleep(60)
 
@@ -301,10 +292,15 @@ if __name__ == "__main__":
         cloudlab_server_ip = config_params["cloudlab_server_ip"]
         exp_length = config_params["exp_length"]
         physical_attacks_p = config_params["physical_attacks_p"]
+        cloudlab_private_key = config_params["cloudlab_private_key"]
+        user = config_params["user"]
 
     exp_length = max(10800, exp_length) # min is 10800 b/c it pauses that long during setup...
     use_cilium = False
 
+    remote_dir = '/mydata/mimir_v2/experiment_coordinator/experimental_data/' + exp_name
+    experiment_sentinal_file = '/mydata/mimir_v2/experiment_coordinator/experiment_done.txt'
+    sentinal_file = '/mydata/all_done.txt'
     s = run_experiment(app_name, config_file_name, exp_name, args.skip_setup_p,
                        use_cilium, physical_attacks_p, args.skip_app_setup_p, args.dont_pull_p)
     retrieve_results(s)

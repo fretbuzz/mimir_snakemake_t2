@@ -5,6 +5,7 @@
     "local_dir" : "/Volumes/exM2/experimental_data/sockshop_info",
     "cloudlab_server_ip" : "c240g5-110129.wisc.cloudlab.us",
     "exp_length" : 360,
-    "physical_attacks_p" : true
-
+    "physical_attacks_p" : true,
+    "cloudlab_private_key" : "/Users/jseverin/Dropbox/cloudlab.pem",
+    "user" : "jsev"
 }
