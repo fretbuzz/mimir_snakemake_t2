@@ -260,7 +260,7 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
                 dst, src = find_dst_and_src_ips_for_det(exfil_paths[exfil_counter], exfil_element,
                                                         selected_container, localhostip,
                                                         proxy_instance_to_networks_to_ip, class_to_networks)
-                print "cur_dst_src", dst, src
+                print "cur_dst_src", dst,  src
                 print "config stuff", container_instance.name, src, dst, proxy_instance_to_networks_to_ip[container_instance]
                 start_det_proxy_mode(orchestrator, container_instance, src, dst, cur_exfil_protocol,
                                     maxsleep[exfil_counter], DET_max_exfil_bytes_in_packet[exfil_counter], DET_min_exfil_bytes_in_packet[exfil_counter])
