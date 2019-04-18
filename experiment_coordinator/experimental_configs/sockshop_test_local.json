@@ -41,7 +41,7 @@
           "user": {"min": 6, "max": 6},
           "cart": {"min": 4, "max": 4}
         },
-      "autoscale_p": false
+      "autoscale_p": true
     },
     "VM_interfaces" : ["vboxnet0"]
 }
