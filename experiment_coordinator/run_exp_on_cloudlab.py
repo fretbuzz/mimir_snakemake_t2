@@ -268,31 +268,6 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, use_ciliu
 
 if __name__ == "__main__":
 
-    #################################
-    #app_name = possible_apps[4] # wordpress
-    app_name = possible_apps[1] # sockshop
-    #app_name = possible_apps[5] # hipsterStore (google's example microservice)
-    sock_config_file_name = '/mydata/mimir_v2/experiment_coordinator/experimental_configs/sockshop_exp_one.json'
-    wp_config_file_name = '/mydata/mimir_v2/experiment_coordinator/experimental_configs/wordpress_exp_one.json'
-    config_file_name = sock_config_file_name #wp_config_file_name
-    use_cilium = False # note: if actually running an experiment, will probably want "False"
-    physical_attacks_p = False
-
-    #local_dir = '/Volumes/exM2/experimental_data/wordpress_info'  # '/Users/jseverin/Documents'
-    #local_dir = '/Volumes/exM2/experimental_data/wordpress_info'
-    local_dir = '/Volumes/exM2/experimental_data/sockshop_info'
-    #exp_name = 'wordpress_fourteen_mark7_final'
-    #exp_name = 'sockshop_thirteen_NOautoscale_mark1' #mark3 is good too
-    #exp_name = 'sockshop_autoscaling_tests'
-    exp_name = 'sockshop_exp_one_v2_noauto'
-    #exp_name = 'wordpress_exp_one_v2_noauto'
-    #mimir_1 = 'c220g5-111314.wisc.cloudlab.us'  #'c240g5-110119.wisc.cloudlab.us'
-    mimir_1 = 'c240g5-110123.wisc.cloudlab.us'
-    mimir_2 = 'c220g5-111211.wisc.cloudlab.us' #
-    cloudlab_server_ip = mimir_2  # note: remove the username@ from the beggining
-    exp_length = 10800  # 10800 #7200 # in seconds
-    #################################
-
     parser = argparse.ArgumentParser(description='Handles e2e setup, running, and extract of microservice traffic experiments')
 
     parser.add_argument('--straight_to_experiment', dest='skip_setup_p', action='store_true',
@@ -306,26 +281,30 @@ if __name__ == "__main__":
 
     parser.add_argument('--config_json',dest="config_json", default='None')
 
-
     parser.add_argument('--dont_pull', dest='dont_pull_p', action='store_true',
                         default=False,
                         help='do NOT pull from the github repo (default is to pull)')
 
     args = parser.parse_args()
 
-    if args.config_json != 'None':
-        with open(args.config_json) as f:
-            config_params = json.load(f)
+    if args.config_json == 'None':
+        print "please give a config file"
+        exit(344)
 
-            app_name = config_params["app_name"]
-            exp_name = config_params["exp_name"]
-            config_file_name = config_params["config_file_name"]
-            local_dir = config_params["local_dir"]
-            cloudlab_server_ip = config_params["cloudlab_server_ip"]
-            exp_length = config_params["exp_length"]
-            physical_attacks_p = config_params["physical_attacks_p"]
+    with open(args.config_json) as f:
+        config_params = json.load(f)
 
-    remote_dir = '/mydata/mimir_v2/experiment_coordinator/experimental_data/' + exp_name  # TODO
+        app_name = config_params["app_name"]
+        exp_name = config_params["exp_name"]
+        config_file_name = config_params["config_file_name"]
+        local_dir = config_params["local_dir"]
+        cloudlab_server_ip = config_params["cloudlab_server_ip"]
+        exp_length = config_params["exp_length"]
+        physical_attacks_p = config_params["physical_attacks_p"]
+
+    exp_length = max(10800, exp_length) # min is 10800 b/c it pauses that long during setup...
+    use_cilium = False
+
     s = run_experiment(app_name, config_file_name, exp_name, args.skip_setup_p,
                        use_cilium, physical_attacks_p, args.skip_app_setup_p, args.dont_pull_p)
     retrieve_results(s)

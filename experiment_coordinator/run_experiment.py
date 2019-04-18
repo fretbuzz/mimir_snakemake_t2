@@ -233,89 +233,66 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
     # now loop through the various exfiltration scenarios listed in the experimental configuration specification
     start_time = time.time()
     i = 0
+    exfil_info_file_name = './' + experiment_name + '_det_server_local_output.txt'
+
     for exfil_counter, next_StartEnd_time in enumerate(exfil_StartEnd_times):
         next_exfil_start_time = next_StartEnd_time[0]
         next_exfil_end_time = next_StartEnd_time[1]
         cur_exfil_method = exfil_methods[exfil_counter]
         cur_exfil_protocol = exfil_protocols[exfil_counter]
 
+        bytes_exfil_list = []
+        start_ex_list = []
+        end_ex_list = []
+        selected_container = {}
+
         if exfil_p:
             if start_time + next_exfil_start_time - time.time() - 20.0 > 0.0:
                 time.sleep(start_time + next_exfil_start_time - time.time() - 20.0)
 
-            # setup config files for proxy DET instances and start them
-            # note: this is only going to work for a single exp_support_scripts and a single dst, ATM
-            selected_container = {}
-            class_to_networks = {}
-            for exfil_element in exfil_paths[exfil_counter]:
-                possible_containers,class_to_networks[exfil_element] = get_class_instances(orchestrator,exfil_element, "None")
-                chosen_container = random.sample(possible_containers, 1)[0]
-                selected_container[exfil_element] = chosen_container
+            selected_container,local_det = setup_and_start_det_exfil_path(exfil_paths, exfil_counter, cur_exfil_protocol, localhostip,
+                                                                maxsleep, DET_max_exfil_bytes_in_packet, DET_min_exfil_bytes_in_packet,
+                                                                experiment_name, start_time, network_plugin, next_exfil_start_time,
+                                                                originator_class, cur_exfil_method, exfil_protocols, True, selected_container)
 
-            proxy_instance_to_networks_to_ip = map_container_instances_to_ips(orchestrator, selected_container,
-                                                                              class_to_networks, network_plugin)
-            for exfil_element in exfil_paths[exfil_counter][:-1]:
-                container_instance = selected_container[exfil_element]
-                # going to determine srcs and dests by looking backword into the exp_support_scripts class, index into the selected proxies,
-                dst, src = find_dst_and_src_ips_for_det(exfil_paths[exfil_counter], exfil_element,
-                                                        selected_container, localhostip,
-                                                        proxy_instance_to_networks_to_ip, class_to_networks)
-                print "cur_dst_src", dst,  src
-                print "config stuff", container_instance.name, src, dst, proxy_instance_to_networks_to_ip[container_instance]
-                start_det_proxy_mode(orchestrator, container_instance, src, dst, cur_exfil_protocol,
-                                    maxsleep[exfil_counter], DET_max_exfil_bytes_in_packet[exfil_counter], DET_min_exfil_bytes_in_packet[exfil_counter])
+            #time.sleep(start_time + next_exfil_end_time - time.time())
+            ## monitor for one of the exfil containers being stopped and restart if possible...
+            while(start_time + next_exfil_end_time - time.time() > 0.0):
+                time.sleep(1.0)
+                # then check if everything is still alive.
+                all_alive, stopped_containers = containers_still_alive_p(selected_container)
+                if not all_alive:  # if it's not...
+                    # stop everything.
+                    stop_det_instances(selected_container, cur_exfil_method)
+                    os.killpg(os.getpgid(local_det.pid), signal.SIGKILL)
 
-            # this does NOT need to be modified (somewhat surprisingly)
-            local_det = start_det_server_local(cur_exfil_protocol, ip, maxsleep[exfil_counter], DET_max_exfil_bytes_in_packet[exfil_counter],
-                                   DET_min_exfil_bytes_in_packet[exfil_counter], experiment_name)
+                    # (recall: need to process everything...)
+                    bytes_exfil, start_ex, end_ex = parse_local_det_output(exfil_info_file_name, exfil_protocols[exfil_counter])
+                    bytes_exfil_list.append( bytes_exfil )
+                    start_ex_list.append( start_ex )
+                    end_ex_list.append( end_ex_list )
 
-            # now setup the originator (i.e. the client that originates the exfiltrated data)
-            next_instance_ip, _ = find_dst_and_src_ips_for_det(exfil_paths[exfil_counter], originator_class,
-                                                                selected_container, localhostip,
-                                                                proxy_instance_to_networks_to_ip,
-                                                                class_to_networks)
+                    # restart everything
+                    ## need remove stopped container from selected_container
+                    for stopped_container in stopped_containers:
+                        exfil_element, container = stopped_container[0], stopped_container[1]
+                        del selected_container[exfil_element]
+                    selected_container, local_det = \
+                        setup_and_start_det_exfil_path(exfil_paths, exfil_counter, cur_exfil_protocol, localhostip,
+                                                       maxsleep, DET_max_exfil_bytes_in_packet,
+                                                       DET_min_exfil_bytes_in_packet, experiment_name, start_time,
+                                                       network_plugin, next_exfil_start_time, originator_class,
+                                                       cur_exfil_method, exfil_protocols, False, selected_container)
 
-            #print "next ip for the originator to send to", next_instance_ip
-            directory_to_exfil = config_params["exfiltration_info"]["folder_to_exfil"]
-            regex_to_exfil = config_params["exfiltration_info"]["regex_of_file_to_exfil"]
-            files_to_exfil = []
-            container = selected_container[originator_class]
-            file_to_exfil = setup_config_file_det_client(next_instance_ip, container, directory_to_exfil,
-                                                         regex_to_exfil, maxsleep[exfil_counter],
-                                                         DET_min_exfil_bytes_in_packet[exfil_counter],
-                                                         DET_max_exfil_bytes_in_packet[exfil_counter])
-            files_to_exfil.append(file_to_exfil)
+            stop_det_instances(selected_container, cur_exfil_method)
 
-            ######
-            time.sleep(start_time + next_exfil_start_time - time.time())
-
-            print start_time, next_exfil_start_time, time.time(), start_time + next_exfil_start_time - time.time()
-            ######
-
-            file_to_exfil = files_to_exfil[0]
-            container = selected_container[originator_class]
-            if cur_exfil_method == 'DET':
-                thread.start_new_thread(start_det_client, (file_to_exfil, exfil_protocols[exfil_counter], container))
-            elif cur_exfil_method == 'dnscat':
-                thread.start_new_thread(start_dnscat_client, (container,))
-            else:
-                print "that exfiltration method was not recognized!"
-
-            time.sleep(start_time + next_exfil_end_time - time.time())
-
-            # note: looping over everything b/c I wanna stop the proxies too...
-            for class_name,container in selected_container.iteritems():
-                if cur_exfil_method == 'DET':
-                    stop_det_client(container)
-                elif cur_exfil_method == 'dnscat':
-                    stop_dnscat_client(container)
-                else:
-                    print "that exfiltration method was not recognized!"
-
-            exfil_info_file_name = './' + experiment_name + '_det_server_local_output.txt'
+            ## is this part fine???
             bytes_exfil, start_ex, end_ex = parse_local_det_output(exfil_info_file_name, exfil_protocols[exfil_counter])
-            print bytes_exfil, "bytes exfiltrated"
+            print bytes_exfil, "bytes exfiltrated_in_most_recent_instance"
             print "starting at ", start_ex, "and ending at", end_ex
+            print bytes_exfil + sum(bytes_exfil_list), "bytes exfiltrated_in_current_exfil_scenario"
+
+            bytes_exfil = bytes_exfil + sum(bytes_exfil_list)
             with open(exfil_aggregated_file, 'a+') as g:
                 g.write(cur_exfil_protocol + ' ' + str(bytes_exfil) + " bytes exfiltrated" + '\n')
 
@@ -366,6 +343,115 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
         os.remove(end_sentinal_file_loc)
     except OSError:
         pass
+
+def stop_det_instances(selected_container, cur_exfil_method):
+    # note: looping over everything b/c I wanna stop the proxies too...
+    for class_name, container in selected_container.iteritems():
+        if cur_exfil_method == 'DET':
+            stop_det_client(container)
+        elif cur_exfil_method == 'dnscat':
+            stop_dnscat_client(container)
+        else:
+            print "that exfiltration method was not recognized!"
+
+def containers_still_alive_p(selected_containers):
+    # recall: selected_container[exfil_element] = chosen_container
+    all_alive = True
+    stopped_containers = []
+    for exfil_element, container in selected_containers.iteritems():
+        if container.status != "running":
+            all_alive = False
+            stopped_containers.append((exfil_element, container))
+    return all_alive, stopped_containers
+
+
+def setup_and_start_det_exfil_path(exfil_paths, exfil_counter, cur_exfil_protocol, localhostip, maxsleep,
+                                   DET_max_exfil_bytes_in_packet, DET_min_exfil_bytes_in_packet, experiment_name,
+                                   start_time, network_plugin, next_exfil_start_time, originator_class,
+                                   cur_exfil_method, exfil_protocols, wait_p, selected_container):
+    # setup config files for proxy DET instances and start them
+    # note: this is only going to work for a single exp_support_scripts and a single dst, ATM
+    selected_container, class_to_networks = find_exfil_path(exfil_paths, exfil_counter, selected_container)
+
+    proxy_instance_to_networks_to_ip = map_container_instances_to_ips(orchestrator, selected_container,
+                                                                      class_to_networks, network_plugin)
+
+    start_det_proxies(exfil_paths, exfil_counter, selected_container, proxy_instance_to_networks_to_ip,
+                      cur_exfil_protocol, localhostip, class_to_networks, maxsleep,
+                      DET_max_exfil_bytes_in_packet, DET_min_exfil_bytes_in_packet)
+
+    # this does NOT need to be modified (somewhat surprisingly)
+    local_det = start_det_server_local(cur_exfil_protocol, ip, maxsleep[exfil_counter],
+                                       DET_max_exfil_bytes_in_packet[exfil_counter],
+                                       DET_min_exfil_bytes_in_packet[exfil_counter], experiment_name)
+
+    ######
+    if wait_p:
+        time.sleep(start_time + next_exfil_start_time - time.time())
+
+        print start_time, next_exfil_start_time, time.time(), start_time + next_exfil_start_time - time.time()
+    ######
+
+    start_det_exfil_originator(exfil_paths, exfil_counter, originator_class, selected_container,
+                               proxy_instance_to_networks_to_ip, localhostip, class_to_networks, maxsleep,
+                               DET_min_exfil_bytes_in_packet, DET_max_exfil_bytes_in_packet,
+                               cur_exfil_method, exfil_protocols)
+
+    return selected_container, local_det
+
+def find_exfil_path(exfil_paths, exfil_counter, selected_container):
+    selected_container = {}
+    class_to_networks = {}
+    for exfil_element in exfil_paths[exfil_counter]:
+        if exfil_element not in selected_container:
+            possible_containers, class_to_networks[exfil_element] = get_class_instances(orchestrator, exfil_element, "None")
+            chosen_container = random.sample(possible_containers, 1)[0]
+            selected_container[exfil_element] = chosen_container
+    return selected_container, class_to_networks
+
+def start_det_proxies(exfil_paths, exfil_counter, selected_container,proxy_instance_to_networks_to_ip, cur_exfil_protocol,
+                      localhostip, class_to_networks, maxsleep, DET_max_exfil_bytes_in_packet, DET_min_exfil_bytes_in_packet):
+    for exfil_element in exfil_paths[exfil_counter][:-1]:
+        container_instance = selected_container[exfil_element]
+        # going to determine srcs and dests by looking backword into the exp_support_scripts class, index into the selected proxies,
+        dst, src = find_dst_and_src_ips_for_det(exfil_paths[exfil_counter], exfil_element,
+                                                selected_container, localhostip,
+                                                proxy_instance_to_networks_to_ip, class_to_networks)
+        print "cur_dst_src", dst, src
+        print "config stuff", container_instance.name, src, dst, proxy_instance_to_networks_to_ip[container_instance]
+        start_det_proxy_mode(orchestrator, container_instance, src, dst, cur_exfil_protocol,
+                             maxsleep[exfil_counter], DET_max_exfil_bytes_in_packet[exfil_counter],
+                             DET_min_exfil_bytes_in_packet[exfil_counter])
+
+
+def start_det_exfil_originator(exfil_paths, exfil_counter, originator_class, selected_container, proxy_instance_to_networks_to_ip,
+                               localhostip, class_to_networks, maxsleep, DET_min_exfil_bytes_in_packet, DET_max_exfil_bytes_in_packet,
+                               cur_exfil_method, exfil_protocols):
+    # now setup the originator (i.e. the client that originates the exfiltrated data)
+    next_instance_ip, _ = find_dst_and_src_ips_for_det(exfil_paths[exfil_counter], originator_class,
+                                                       selected_container, localhostip,
+                                                       proxy_instance_to_networks_to_ip,
+                                                       class_to_networks)
+
+    # print "next ip for the originator to send to", next_instance_ip
+    directory_to_exfil = config_params["exfiltration_info"]["folder_to_exfil"]
+    regex_to_exfil = config_params["exfiltration_info"]["regex_of_file_to_exfil"]
+    files_to_exfil = []
+    container = selected_container[originator_class]
+    file_to_exfil = setup_config_file_det_client(next_instance_ip, container, directory_to_exfil,
+                                                 regex_to_exfil, maxsleep[exfil_counter],
+                                                 DET_min_exfil_bytes_in_packet[exfil_counter],
+                                                 DET_max_exfil_bytes_in_packet[exfil_counter])
+    files_to_exfil.append(file_to_exfil)
+
+    file_to_exfil = files_to_exfil[0]
+    container = selected_container[originator_class]
+    if cur_exfil_method == 'DET':
+        thread.start_new_thread(start_det_client, (file_to_exfil, exfil_protocols[exfil_counter], container))
+    elif cur_exfil_method == 'dnscat':
+        thread.start_new_thread(start_dnscat_client, (container,))
+    else:
+        print "that exfiltration method was not recognized!"
 
 def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_config, exfil_paths, class_to_installer, exfil_path_class_to_image):
 
