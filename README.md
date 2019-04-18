@@ -53,4 +53,4 @@ This uses a pretrained model and detects synthetically injected attacks on a Wor
 A new model can be generated based off of training data (see corresponding wiki page). Be advised that it requires a pcap of network activity and a time-alignd log of entities on the kubernetes cluster (e.g. pods & services). It is likely the log of cluster entites will need to be generated from other data sources (e.g., prometheus database, etc); see the corresponding wiki page for more information.
 
 ### Step 4: Examining the Output
-\[TODO\]
+Go the mimir_example_data/results directory. There should be several csv files with the metrics. There should also be several pdfs with ROC curves, descriptions of the model coefficients, and per-path detection resutls.
