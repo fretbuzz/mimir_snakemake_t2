@@ -151,12 +151,11 @@ class data_anylsis_pipline(object):
         self.interval_to_filenames,self.mapping, self.infra_instances = process_pcap.process_pcap(self.experiment_folder_path, self.pcap_file, self.time_interval_lengths,
                                                                             self.exp_name, self.make_edgefiles_p, copy.deepcopy(self.mapping),
                                                                             self.cluster_creation_log, self.pcap_path, self.infra_instances)
+        time_grans = [int(i) for i in self.interval_to_filenames.keys()]
+        self.smallest_time_gran = min(time_grans)
 
     def get_exp_info(self):
-        time_grans = [int(i) for i in self.interval_to_filenames.keys()]
-        smallest_time_gran = min(time_grans)
-        self.smallest_time_gran = smallest_time_gran
-        self.total_experiment_length = len(self.interval_to_filenames[str(smallest_time_gran)]) * smallest_time_gran
+        self.total_experiment_length = len(self.interval_to_filenames[str(self.smallest_time_gran)]) * self.smallest_time_gran
         print "about to return from only_exp_info section", self.total_experiment_length, self.exfil_StartEnd_times, \
             None, None
         #return total_experiment_length, self.exfil_start_time, self.exfil_end_time, self.system_startup_time

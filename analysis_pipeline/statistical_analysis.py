@@ -12,8 +12,10 @@ from jinja2 import FileSystemLoader, Environment
 
 class single_model_stats_pipeline():
     def __init__(self, aggregate_mod_score_df, base_output_name, skip_model_part, clf, drop_pairwise_features, timegran,
-                 lasso_feature_selection_p, dont_prepare_data_p=False, skip_heatmap_p=True):
+                 lasso_feature_selection_p, dont_prepare_data_p=False, skip_heatmap_p=True,
+                 no_labeled_data=False):
 
+        self.no_labeled_data = no_labeled_data
         self.dont_prepare_data_p=dont_prepare_data_p
         self.method_name = 'ensemble'
         self.aggregate_mod_score_df = copy.deepcopy(aggregate_mod_score_df)
@@ -274,23 +276,25 @@ class single_model_stats_pipeline():
         self.method_to_train_predictions[self.method_name] = self.train_predictions
 
         ## the parts below assume that we know the labels...
-        self._generate_rocs()
-        self.method_to_optimal_f1_scores_test, self.method_to_optimal_predictions_test, self.method_to_optimal_thresh_test = \
-            self._generate_optimal_predictions(self.method_to_test_predictions, self.y_test)
+        if not self.no_labeled_data:
+            self._generate_rocs()
+            self.method_to_optimal_f1_scores_test, self.method_to_optimal_predictions_test, self.method_to_optimal_thresh_test = \
+                self._generate_optimal_predictions(self.method_to_test_predictions, self.y_test)
 
-        if not using_pretrained_model:
-            self.method_to_optimal_f1_scores_train, self.method_to_optimal_predictions_train, self.method_to_optimal_thresh_train = \
-                self._generate_optimal_predictions(self.method_to_train_predictions, self.y_train)
-            self.method_to_cm_df_train = self._generate_confusion_matrixes(self.method_to_optimal_predictions_train, self.y_train,
-                                                                self.exfil_paths_train, self.exfil_weights_train)
+            if not using_pretrained_model:
+                self.method_to_optimal_f1_scores_train, self.method_to_optimal_predictions_train, self.method_to_optimal_thresh_train = \
+                    self._generate_optimal_predictions(self.method_to_train_predictions, self.y_train)
+                self.method_to_cm_df_train = self._generate_confusion_matrixes(self.method_to_optimal_predictions_train, self.y_train,
+                                                                    self.exfil_paths_train, self.exfil_weights_train)
 
-        self.method_to_cm_df_test = self._generate_confusion_matrixes(self.method_to_optimal_predictions_test, self.y_test,
-                                                            self.exfil_paths_test, self.exfil_weights_test)
+            self.method_to_cm_df_test = self._generate_confusion_matrixes(self.method_to_optimal_predictions_test, self.y_test,
+                                                                self.exfil_paths_test, self.exfil_weights_test)
 
 
 class single_rate_stats_pipeline():
     def __init__(self, time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, base_output_name, recipes_used,
-                 skip_model_part, avg_exfil_per_min, avg_pkt_size, exfil_per_min_variance, pkt_size_variance):
+                 skip_model_part, avg_exfil_per_min, avg_pkt_size, exfil_per_min_variance, pkt_size_variance,
+                 no_labeled_data):
 
         print "STATISTICAL_ANALYSIS_V2"
         self.report_sections = {}
@@ -299,6 +303,7 @@ class single_rate_stats_pipeline():
         self.Ys = {}
         self.Xts = {}
         self.Yts = {}
+        self.no_labeled_data = no_labeled_data
         self.trained_models = {}
         self.timegran_to_methods_to_attacks_found_dfs = {}
         self.timegran_to_methods_toattacks_found_training_df = {}
@@ -306,6 +311,7 @@ class single_rate_stats_pipeline():
         self.timegran_to_statistical_pipeline = {}
         self.base_output_name = base_output_name + '_lasso'
         self.time_gran_to_aggregate_mod_score_dfs = time_gran_to_aggregate_mod_score_dfs
+        self.time_gran_to_predicted_test = None
 
         for timegran,feature_df in self.time_gran_to_aggregate_mod_score_dfs.iteritems():
             if timegran not in self.timegran_to_methods_toattacks_found_training_df:
@@ -337,7 +343,7 @@ class single_rate_stats_pipeline():
 
             stat_pipeline = single_model_stats_pipeline(feature_df, self.base_output_name, self.skip_model_part, clf,
                                                         drop_pairwise_features, timegran, lasso_feature_selection_p,
-                                                        skip_heatmap_p=skip_heatmap_p)
+                                                        skip_heatmap_p=skip_heatmap_p, no_labeled_data=self.no_labeled_data)
 
             #if pretrained_statistical_analysis_v2 == None or (timegran not in pretrained_statistical_analysis_v2.timegran_to_statistical_pipeline):
             if pretrained_statistical_analysis_v2 == None:
@@ -347,6 +353,7 @@ class single_rate_stats_pipeline():
                     stat_pipeline.clf = pretrained_statistical_analysis_v2.timegran_to_statistical_pipeline[timegran].clf
                     stat_pipeline.generate_model(using_pretrained_model=True)
 
+            self.time_gran_to_predicted_test[timegran] = stat_pipeline.test_predictions
             self.list_of_optimal_fone_scores_at_this_exfil_rates[timegran].append(stat_pipeline.method_to_optimal_f1_scores_test)
             self.Xs[timegran].append(stat_pipeline.X_train)
             self.Ys[timegran].append(stat_pipeline.y_train)
@@ -450,16 +457,19 @@ class single_rate_stats_pipeline():
                                                      self.skip_model_part, clf, drop_pairwise_features,
                                                      tuple(self.timegran_to_statistical_pipeline.keys()),
                                                      lasso_feature_selection_p=False, dont_prepare_data_p=True,
-                                                     skip_heatmap_p=skip_heatmap_p)
+                                                     skip_heatmap_p=skip_heatmap_p, no_labeled_data=self.no_labeled_data)
 
         ### TODO: what is going on here??? it's still fitting of the training data?? but it should on the testing data...
         #if pretrained_statistical_analysis_v2 == None or (timegran not in pretrained_statistical_analysis_v2.timegran_to_statistical_pipeline):
         if pretrained_statistical_analysis_v2 == None:
             stats_pipeline.generate_model(using_pretrained_model=False, multi_time_train=True)
+            self.time_gran_to_predicted_test[timegran] = stats_pipeline.test_predictions
+
         else:
             if timegran in pretrained_statistical_analysis_v2.timegran_to_statistical_pipeline:
                 stats_pipeline.clf = pretrained_statistical_analysis_v2.timegran_to_statistical_pipeline[timegran].clf
                 stats_pipeline.generate_model(using_pretrained_model=True, multi_time_train=True)
+                self.time_gran_to_predicted_test[timegran] = stats_pipeline.test_predictions
 
         self.timegran_to_statistical_pipeline[timegran] = stats_pipeline
 

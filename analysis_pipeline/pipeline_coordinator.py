@@ -74,14 +74,7 @@ class multi_experiment_pipeline(object):
                  perform_cilium_component=True, only_perform_cilium_component=True, cilium_component_time=100,
                  drop_pairwise_features=False, max_path_length=15, max_dns_porportion=1.0, drop_infra_from_graph=False,
                  ide_window_size=10, debug_basename=None, pretrained_sav2=None, auto_open_pdfs=True,
-                 skip_heatmap_p=True):
-
-        '''
-        if goal_train_test_split == 0:
-            self.eval_mode = True
-        else:
-            self.eval_mode = False
-        '''
+                 skip_heatmap_p=True, no_labeled_data=False):
 
         self.single_rate_stats_pipelines = {}
         self.auto_open_pdfs = auto_open_pdfs
@@ -142,6 +135,8 @@ class multi_experiment_pipeline(object):
         self.rate_to_timegran_to_statistical_pipeline = {}
         self.names = []
         self.skip_heatmap_p = skip_heatmap_p
+        self.no_labeled_data = no_labeled_data
+        self.rate_to_time_gran_to_predicted_test = {}
 
     # note: this going to be used to load the pipeline object prior to doing all of this work...
     def loader(self, filename):
@@ -174,7 +169,8 @@ class multi_experiment_pipeline(object):
             for rate_counter in range(0, len(self.avg_exfil_per_min)):
                 # (i), (ii) <--- I think that they both belong here...
                 self.run_single_pipeline(rate_counter, self.calc_vals, self.skip_graph_injection,
-                                         calc_ide=self.calc_ide, include_ide=self.include_ide, only_ide=self.only_ide)
+                                         calc_ide=self.calc_ide, include_ide=self.include_ide, only_ide=self.only_ide,
+                                         no_labeled_data=self.no_labeled_data)
 
             if not self.pretrained_min_pipeline:
                 min_rate_statspipelines = self.decrease_exfil_of_model()
@@ -192,6 +188,9 @@ class multi_experiment_pipeline(object):
         ## okay, so for non-eval this should be @ same injection rate for train and test (marked i)
         # for eval, this should simply be over eval (whether physical or strictly injected) (marked ii)
 
+        if self.no_labeled_data and self.skip_model_part:
+            return min_rate_statspipelines, self.rate_to_time_gran_to_predicted_test[min(self.avg_exfil_per_min())]
+
         return min_rate_statspipelines, None
 
 
@@ -203,7 +202,8 @@ class multi_experiment_pipeline(object):
 
     ## NOTE: I'm going to try to do this WITHOUT the call to multi-process here!!ee
     # todo: i think I want to return a results dataframe/table here... maybe do that next???
-    def run_single_pipeline(self, rate_counter, calc_vals, skip_graph_injection, calc_ide=False, include_ide=False, only_ide=False):
+    def run_single_pipeline(self, rate_counter, calc_vals, skip_graph_injection, calc_ide=False, include_ide=False,
+                            only_ide=False, no_labeled_data=False):
         prefix_for_inject_params = 'avg_exfil_' + str(self.avg_exfil_per_min[rate_counter]) + ':' + str(
             self.exfil_per_min_variance[rate_counter]) + '_' #+  '_avg_pkt_' + str(self.avg_pkt_size[rate_counter]) + ':' + str(
             #self.pkt_size_variance[rate_counter]) + '_'
@@ -263,7 +263,8 @@ class multi_experiment_pipeline(object):
                                                      self.avg_exfil_per_min[rate_counter],
                                                      self.avg_pkt_size[rate_counter],
                                                      self.exfil_per_min_variance[rate_counter],
-                                                     self.pkt_size_variance[rate_counter])
+                                                     self.pkt_size_variance[rate_counter],
+                                                     self.no_labeled_data)
 
         stats_pipelines.run_statistical_pipeline(self.drop_pairwise_features, self.pretrained_min_pipeline,
                                                  skip_heatmap_p = self.skip_heatmap_p)
@@ -291,6 +292,7 @@ class multi_experiment_pipeline(object):
         self.rate_to_time_gran_to_outtraffic[self.avg_exfil_per_min[rate_counter]].append(time_gran_to_outtraffic)
 
         self.rate_to_timegran_to_statistical_pipeline[cur_exfil_rate] = timegran_to_statistical_pipeline
+        self.rate_to_time_gran_to_predicted_test[cur_exfil_rate] = stats_pipelines.time_gran_to_predicted_test
 
     def lower_per_path_exfil_rates(self, timegran):
         exfil_rates = sorted(self.avg_exfil_per_min )

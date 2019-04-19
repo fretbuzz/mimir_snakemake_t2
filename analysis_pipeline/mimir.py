@@ -9,7 +9,7 @@ from single_experiment_pipeline import data_anylsis_pipline
 import argparse
 import os,errno
 import time
-#from tabulate import tabulate
+from tabulate import tabulate
 
 '''
 This file runs the MIMIR anomaly detection system by parsing configuration files.
@@ -67,7 +67,7 @@ def parse_experimental_data_json(config_file, experimental_folder, experiment_na
                                                no_processing_at_all=no_processing_at_all)
     return pipeline_object
 
-def parse_experimental_config(experimental_config_file):
+def parse_experimental_config(experimental_config_file, live=False):
     with open(experimental_config_file) as f:
         config_file = json.load(f)
 
@@ -229,6 +229,13 @@ def parse_experimental_config(experimental_config_file):
         else:
             skip_heatmap_p = False
 
+        no_labeled_data = False
+
+    if live:
+        skip_model_part = True
+        no_labeled_data = True
+        avg_exfil_per_min = [0.0]
+
     multi_experiment_object = \
         multi_experiment_pipeline(experiment_classes, base_output_location, True, time_of_synethic_exfil,
                                   goal_train_test_split_training, goal_attack_NoAttack_split_training, None, None,
@@ -242,12 +249,13 @@ def parse_experimental_config(experimental_config_file):
                                   perform_cilium_component=perform_cilium_component,
                                   drop_pairwise_features=drop_pairwise_features,
                                   drop_infra_from_graph=drop_infra_from_graph, ide_window_size=ide_window_size,
-                                  auto_open_pdfs=auto_open_pdfs, skip_heatmap_p=skip_heatmap_p)
+                                  auto_open_pdfs=auto_open_pdfs, skip_heatmap_p=skip_heatmap_p,
+                                  no_labeled_data=no_labeled_data)
 
 
     return multi_experiment_object
 
-def run_analysis(training_config, eval_config=None):
+def run_analysis(training_config, eval_config=None, live=False):
     training_experimente_object = parse_experimental_config(training_config)
     min_rate_training_statspipelines, training_results = training_experimente_object.run_pipelines()
 
@@ -256,11 +264,18 @@ def run_analysis(training_config, eval_config=None):
     #time.sleep(35)
 
     if eval_config:
-        eval_experimente_object = parse_experimental_config(eval_config)
+        eval_experimente_object = parse_experimental_config(eval_config, live=live)
         _, eval_results = eval_experimente_object.run_pipelines(pretrained_model_object=min_rate_training_statspipelines)
 
         print "----------------------------"
         print "eval_results:",
+
+        if eval_results:
+            lowest_timegran = min(eval_results.keys())
+            predicted_vals =  eval_results[lowest_timegran] # predicted alert vals at each time granularity
+            data = [ (lowest_timegran * counter, val) for counter,val in enumerate(predicted_vals)]
+            print(tabulate(data, headers=['time', 'alert_value']))
+
 
         ## TODO: print the results nicely. (but first run_pipelines will need to return the results...)
         #print tabulate([['Alice', 24, 23, 24], ['Bob', 19, 13, 14]], headers=['Exfil Rate', 'TPs', 'FPs', 'FNs', 'TNs'])
@@ -276,7 +291,9 @@ if __name__=="__main__":
     parser.add_argument('--training_config_json', dest='training_config_json', default=None,
                         help='this is the configuration file used to train/retrieve the model')
     parser.add_argument('--eval_config_json', dest='config_json', default=None,
-                        help='this is the configuration file used to generate actual alerts')
+                        help='this the data that the trained model is applied to')
+    parser.add_argument('--live', dest='live', default=False, action='store_true',
+                        help='the eval set doesn\'t have attack labels')
     args = parser.parse_args()
 
     if not args.training_config_json:
@@ -285,8 +302,8 @@ if __name__=="__main__":
         #run_analysis('./analysis_json/sockshop_one_auto_mk11long.json')
 
         #run_analysis('./analysis_json/wordpress_one_3_auto_mk5.json', eval_config='./analysis_json/wordpress_one_v2_na_eval.json')
-        #run_analysis('./analysis_json/sockshop_mk13.json')
-        run_analysis('./analysis_json/sockshop_exfil_test.json')
+        run_analysis('./analysis_json/sockshop_mk13.json', eval_config = './analysis_json/sockshop_exfil_test.json', live=True)
+        #run_analysis('./analysis_json/sockshop_exfil_test.json')
         #run_analysis('analysis_json/wordpress_model.json', eval_config='analysis_json/wordpress_example.json')
         #run_analysis('./analysis_json/sockshop_one_auto_mk12long.json', eval_config='./analysis_json/sockshop_example.json')
         #run_analysis('./analysis_json/sockshop_one_auto_mk12long.json')
@@ -303,4 +320,5 @@ if __name__=="__main__":
         #run_analysis('./analysis_json/sockshop_one_v2_nonauto.json')
         #run_analysis('./analysis_json/sockshop_short.json')
     else:
-        parse_experimental_config(args.training_config_json)
+        #parse_experimental_config(args.training_config_json, eval_config)
+        run_analysis(args.training_config_json, eval_config=args.config_json, live=args.live)
