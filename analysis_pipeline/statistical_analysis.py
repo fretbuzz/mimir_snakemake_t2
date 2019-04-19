@@ -270,13 +270,13 @@ class single_model_stats_pipeline():
             self.model_params['alpha_val'] = self.clf.alpha_
         except:
             pass
-        self._generate_debugging_csv()
-
         self.method_to_test_predictions[self.method_name] = self.test_predictions
         self.method_to_train_predictions[self.method_name] = self.train_predictions
 
         ## the parts below assume that we know the labels...
         if not self.no_labeled_data:
+            self._generate_debugging_csv()
+
             self._generate_rocs()
             self.method_to_optimal_f1_scores_test, self.method_to_optimal_predictions_test, self.method_to_optimal_thresh_test = \
                 self._generate_optimal_predictions(self.method_to_test_predictions, self.y_test)
@@ -311,7 +311,7 @@ class single_rate_stats_pipeline():
         self.timegran_to_statistical_pipeline = {}
         self.base_output_name = base_output_name + '_lasso'
         self.time_gran_to_aggregate_mod_score_dfs = time_gran_to_aggregate_mod_score_dfs
-        self.time_gran_to_predicted_test = None
+        self.time_gran_to_predicted_test = {}
 
         for timegran,feature_df in self.time_gran_to_aggregate_mod_score_dfs.iteritems():
             if timegran not in self.timegran_to_methods_toattacks_found_training_df:

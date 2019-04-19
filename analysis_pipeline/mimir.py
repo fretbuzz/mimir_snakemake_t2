@@ -268,7 +268,7 @@ def run_analysis(training_config, eval_config=None, live=False):
         _, eval_results = eval_experimente_object.run_pipelines(pretrained_model_object=min_rate_training_statspipelines)
 
         print "----------------------------"
-        print "eval_results:",
+        print "eval_results:"
 
         if eval_results:
             lowest_timegran = min(eval_results.keys())

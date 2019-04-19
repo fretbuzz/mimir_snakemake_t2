@@ -178,7 +178,8 @@ class multi_experiment_pipeline(object):
                 with open(self.where_to_save_minrate_statspipelines, 'w') as f:
                     pickle.dump(min_rate_statspipelines, f)
 
-            self.generate_aggregate_report()
+            if not self.no_labeled_data:
+                self.generate_aggregate_report()
         else:
             with open(self.where_to_save_minrate_statspipelines, 'r') as f:
                 min_rate_statspipelines = pickle.load(f)
@@ -189,7 +190,7 @@ class multi_experiment_pipeline(object):
         # for eval, this should simply be over eval (whether physical or strictly injected) (marked ii)
 
         if self.no_labeled_data and self.skip_model_part:
-            return min_rate_statspipelines, self.rate_to_time_gran_to_predicted_test[min(self.avg_exfil_per_min())]
+            return min_rate_statspipelines, self.rate_to_time_gran_to_predicted_test[min(self.avg_exfil_per_min)]
 
         return min_rate_statspipelines, None
 
@@ -268,7 +269,9 @@ class multi_experiment_pipeline(object):
 
         stats_pipelines.run_statistical_pipeline(self.drop_pairwise_features, self.pretrained_min_pipeline,
                                                  skip_heatmap_p = self.skip_heatmap_p)
-        stats_pipelines.create_the_report(self.auto_open_pdfs)
+
+        if not self.no_labeled_data:
+            stats_pipelines.create_the_report(self.auto_open_pdfs)
 
         self.single_rate_stats_pipelines[self.avg_exfil_per_min[rate_counter]] = stats_pipelines
 
