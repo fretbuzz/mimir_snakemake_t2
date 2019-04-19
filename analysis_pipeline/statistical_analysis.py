@@ -275,6 +275,7 @@ class single_model_stats_pipeline():
         self.method_to_test_predictions[self.method_name] = self.test_predictions
         self.method_to_train_predictions[self.method_name] = self.train_predictions
 
+        ## the parts below assume that we know the labels...
         self._generate_rocs()
         self.method_to_optimal_f1_scores_test, self.method_to_optimal_predictions_test, self.method_to_optimal_thresh_test = \
             self._generate_optimal_predictions(self.method_to_test_predictions, self.y_test)

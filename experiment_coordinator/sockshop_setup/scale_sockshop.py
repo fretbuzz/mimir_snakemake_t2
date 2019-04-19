@@ -63,8 +63,19 @@ def scale_sockshop(deployment_scaling, autoscale_p):
         delete_old_front_end = ["kubectl", "delete", "hpa", "front-end", "--namespace=sock-shop"]
         out = subprocess.check_output(delete_old_front_end)
         print out
+        delete_old_front_end = ["kubectl", "delete", "hpa", "cart", "--namespace=sock-shop"]
+        out = subprocess.check_output(delete_old_front_end)
+        print out
 
         autoscale_cmd_str = ["kubectl", "autoscale", "deployment", "front-end", "--min=" + str(3), "--max=" + str(
+            10),"--cpu-percent=" + str(50), "--namespace=sock-shop"]
+        try:
+            out = subprocess.check_output(autoscale_cmd_str)
+            print out
+        except:
+            pass
+
+        autoscale_cmd_str = ["kubectl", "autoscale", "deployment", "carts", "--min=" + str(1), "--max=" + str(
             10),"--cpu-percent=" + str(50), "--namespace=sock-shop"]
         try:
             out = subprocess.check_output(autoscale_cmd_str)

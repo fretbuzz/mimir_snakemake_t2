@@ -37,11 +37,14 @@ def determine_injection_times(exps_info, goal_train_test_split,goal_attack_NoAtt
         ## now to find how much time to spending injecting during training and testing...
         ## okay, let's do testing first b/c it should be relatively straightforward...
         testing_time = exp_info['total_experiment_length'] - time_split
+
+        ###### todo: improve this code for the physical case...
         physical_attack_time = exp_info['exfil_end_time'] - exp_info['exfil_start_time']
         if ignore_physical_attacks_p:
             testing_time_for_attack_injection = (testing_time - physical_attack_time) * goal_attack_NoAttack_split_testing
         else:
             testing_time_for_attack_injection = (testing_time) * goal_attack_NoAttack_split_testing -physical_attack_time
+        ###### todo: improvements should end here...
 
         #testing_time_without_physical_attack = testing_time - physical_attack_time
         print "physical_attack_time",physical_attack_time, "testing_time", testing_time, testing_time_for_attack_injection

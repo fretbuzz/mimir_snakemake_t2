@@ -1587,12 +1587,6 @@ def cluster_creation_logger(log_file_loc, end_sentinal_file_loc, start_sentinal_
     svc_process = subprocess.Popen(['kubectl', 'get', 'svc', '-o', 'wide', '--all-namespaces', '--show-labels', '-w'],
                                    stdout=h_filehander)
 
-    #pod_process = subprocess.Popen(['kubectl', 'get', 'po', '-o', 'wide', '--all-namespaces', '--show-labels', '-w',
-    #                                ">>", pod_stream_file], stdout=subprocess.PIPE, shell=True)
-    #svc_process = subprocess.Popen(['kubectl', 'get', 'svc', '-o', 'wide', '--all-namespaces', '--show-labels', '-w',
-    #                                ">>", svc_stream_file], stdout=subprocess.PIPE, shell=True)
-
-
     ###
     furthest_pod_line = 1
     furthest_svc_line = 1
