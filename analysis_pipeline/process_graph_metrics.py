@@ -10,69 +10,31 @@ import logging
 from sklearn.preprocessing import RobustScaler
 
 # TODO: NOTE: I'm 90% sure that this function is wrong...
+#### TODO: WELL IT'S FINALLY TIME TO FIX IT!!!!
 # exfil_rate used to determine if there should be a gap between exfil labels
-def generate_attack_labels(time_gran, exfil_start, exfil_end, exp_length, sec_between_exfil_events=1):
-    #attack_labels = [0 for i in range(0, exfil_start / time_gran -1)]
-    #attack_labels.extend([1 for i in range(0, (exfil_end - exfil_start)/time_gran)])
-
+def generate_attack_labels(time_gran, exfil_startEnd_times, exp_length):
     # let's find the specific time intervals during the exfil period (note: potentially not all of the time intervals
     # actually have exfil occur during them)
-    if exfil_start == exfil_end:
-        return [0 for i in range(0, exp_length / time_gran)]
-    else:
-        attack_labels = [0 for i in range(0, exfil_start / time_gran)]
-        #if exfil_start % time_gran == 0:
-        #    # in this case, going to count the time interval right before too, since
-        #    attack_labels = [0 for i in range(0, exfil_start / time_gran - 1)]
-        #    time_intervals_during_potential_exfil = [exfil_start - time_gran] + [exfil_start + i * time_gran for i in range(0, int(math.ceil((exfil_end - exfil_start)/float(time_gran))) + 2)]
-        #else:
-        #    attack_labels = [0 for i in range(0, exfil_start / time_gran)]
-        #    time_intervals_during_potential_exfil = [exfil_start + i * time_gran for i in range(0, int(math.ceil((exfil_end - exfil_start)/float(time_gran))) + 2)]
 
-    # okay now let's find which ones to include/not-include
-    ## note: this was to handle itermittent exfil (like dns w/ 5/10/15 sec spacing). I don't like it so I am going to
-    ## comment it out and put in some simpler code.
-    # TODO: I'm go to need to re-word all of this logic once I actually want to analyze physical exfiltrations again...
-    '''
-    specific_times_when_exfil_occurs = [exfil_start + i * sec_between_exfil_events for i in range(0, int(math.ceil((exfil_end - exfil_start)/sec_between_exfil_events)) + 1)]
-    # okay, now we want to make sure that those specific exfil times occur during a time interval during the exfil period
-    # before marking it as one in which exfil occurs
-    attack_labels_during_exfil_period = []
-    print "time_intervals_during_potential_exfil",time_intervals_during_potential_exfil
-    print "specific_times_when_exfil_occurs",specific_times_when_exfil_occurs
-    for i in range(0,len(time_intervals_during_potential_exfil)-1):
-        start_of_interval = time_intervals_during_potential_exfil[i]
-        end_of_interval = time_intervals_during_potential_exfil[i+1]
-        found = False
-        for specific_times in specific_times_when_exfil_occurs:
-            # why geater-than-or-equal-to and less-than-or-equal-to? B/c it should happen slightly earlier (due to
-            # timing mismatch of tcpdump) but it should get a response from the DNS server slightly later, which would
-            # put it in the next camp. (This is really only meaningful for dnscat exfil, since using DET won't cause
-            # gaps in the exfil line, necessarily)
-            print start_of_interval, specific_times, end_of_interval, start_of_interval <= specific_times <= end_of_interval
-            if start_of_interval <= specific_times <= end_of_interval:
-                found = True
-                break
-        if found:
-            print "attack found to occur at", start_of_interval, '-', end_of_interval
-            attack_labels_during_exfil_period.append(1)
-        else:
-            attack_labels_during_exfil_period.append(0)
+    current_time_counter = 0
+    cur_attack_labels = [] # does a zero go in here??
+    if exfil_startEnd_times != [[]]:
+        for exfil_start_end in exfil_startEnd_times:
+            exfil_start = exfil_start_end[0]
+            exfil_end = exfil_start_end[1]
+            cur_attack_labels.extend( [0 for i in range(current_time_counter, exfil_start/time_gran)] )
+            cur_attack_labels.extend( [1 for i in range( exfil_start/time_gran,  exfil_end/time_gran)] )
+            current_time_counter = exfil_end/time_gran
 
-    print "attack_labels_during_exfil_period",attack_labels_during_exfil_period
-    attack_labels.extend(attack_labels_during_exfil_period)
-    print type(exp_length), type(exfil_end), type(time_gran)
-    '''
-    attack_labels.extend([0 for i in range(0, (exfil_start - exfil_end)/time_gran)])
-    attack_labels.extend([0 for i in range(0, (exp_length - exfil_end)/time_gran )])
+    cur_attack_labels.extend([0 for i in range(current_time_counter, int(math.ceil(float(exp_length)/time_gran)))])
 
-    return attack_labels
+    return cur_attack_labels
 
-def generate_time_gran_to_attack_labels(time_interval_lengths, exfil_start, exfil_end, sec_between_exfil_events, exp_length):
+def generate_time_gran_to_attack_labels(time_interval_lengths, exfil_startEnd_times, exp_length):
     time_gran_to_attack_lables = {}
     for time_gran in time_interval_lengths:
         #exp_length = exfil_end - exfil_start
-        attack_labels = generate_attack_labels(time_gran, exfil_start, exfil_end, exp_length, sec_between_exfil_events)
+        attack_labels = generate_attack_labels(time_gran, exfil_startEnd_times, exp_length)
         time_gran_to_attack_lables[time_gran] = attack_labels
     return time_gran_to_attack_lables
 

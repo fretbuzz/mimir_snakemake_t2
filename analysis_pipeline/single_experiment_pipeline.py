@@ -17,14 +17,11 @@ import time
 
 # Note: see run_analysis_pipeline_recipes for pre-configured sets of parameters (there are rather a lot)
 class data_anylsis_pipline(object):
-    def __init__(self, pcap_paths=None, basefile_name=None,
-                 time_interval_lengths=None, make_edgefiles_p=False, basegraph_name=None,
-                 exfil_start_time=None, exfil_end_time=None, calc_vals=True,
-                 make_net_graphs_p=False, alert_file=None,
-                 sec_between_exfil_pkts=1, time_of_synethic_exfil=None, injected_exfil_path='None',
-                 netsec_policy=None, skip_graph_injection=False, cluster_creation_log=None,
-                 sensitive_ms=None, exfil_StartEnd_times=[], physical_exfil_paths=[], old_mulval_info=None,
-                 base_experiment_dir='', no_processing_at_all = False):
+    def __init__(self, pcap_paths=None, basefile_name=None, time_interval_lengths=None, make_edgefiles_p=False,
+                 basegraph_name=None, calc_vals=True, make_net_graphs_p=False, alert_file=None,
+                 sec_between_exfil_pkts=1, time_of_synethic_exfil=None, netsec_policy=None, skip_graph_injection=False,
+                 cluster_creation_log=None, sensitive_ms=None, exfil_StartEnd_times=[], physical_exfil_paths=[],
+                 old_mulval_info=None, base_experiment_dir='', no_processing_at_all=False):
 
         print "basefile_name", basefile_name
         try:
@@ -93,7 +90,6 @@ class data_anylsis_pipline(object):
         self.netsec_policy = netsec_policy
         self.make_edgefiles_p=make_edgefiles_p
         self.time_of_synethic_exfil = time_of_synethic_exfil
-        self.injected_exfil_path = injected_exfil_path
         self.make_net_graphs_p=make_net_graphs_p
         self.alert_file=alert_file
         self.sec_between_exfil_events=sec_between_exfil_pkts
@@ -120,20 +116,24 @@ class data_anylsis_pipline(object):
         self.intersvc_vip_pairs = None
 
         ## TODO: these values need to be encorporated into the pipeline.
-        self.exfil_StartEnd_times = exfil_StartEnd_times
-        self.physical_exfil_paths = physical_exfil_paths
+        #self.exfil_StartEnd_times = exfil_StartEnd_times
+        #self.physical_exfil_paths = physical_exfil_paths
 
         if not no_processing_at_all:
             self.process_pcaps()
 
-            if exfil_start_time is None or exfil_end_time is None:
+            if exfil_StartEnd_times is None or exfil_StartEnd_times == [[]]:
                 min_time_gran = min([int(i) for i in self.interval_to_filenames.keys()])
                 exp_length = len(self.interval_to_filenames[str(min_time_gran)]) * min_time_gran
-                self.exfil_start_time = exp_length
-                self.exfil_end_time = exp_length
+                self.exfil_StartEnd_times = [[exp_length, exp_length]]
+                self.physical_exfil_paths = [[]]
+                #self.exfil_start_time = exp_length
+                #self.exfil_end_time = exp_length
             else:
-                self.exfil_start_time = exfil_start_time
-                self.exfil_end_time = exfil_end_time
+                #self.exfil_start_time = exfil_start_time
+                #self.exfil_end_time = exfil_end_time
+                self.exfil_StartEnd_times = exfil_StartEnd_times
+                self.physical_exfil_paths = physical_exfil_paths
 
 
     def generate_synthetic_exfil_paths(self, max_number_of_paths, max_path_length, dns_porportion):
@@ -157,11 +157,12 @@ class data_anylsis_pipline(object):
         smallest_time_gran = min(time_grans)
         self.smallest_time_gran = smallest_time_gran
         self.total_experiment_length = len(self.interval_to_filenames[str(smallest_time_gran)]) * smallest_time_gran
-        print "about to return from only_exp_info section", self.total_experiment_length, self.exfil_start_time, self.exfil_end_time, \
+        print "about to return from only_exp_info section", self.total_experiment_length, self.exfil_StartEnd_times, \
             None, None
         #return total_experiment_length, self.exfil_start_time, self.exfil_end_time, self.system_startup_time
-        return self.total_experiment_length, self.exfil_start_time, self.exfil_end_time, None
+        return self.total_experiment_length, self.exfil_StartEnd_times
 
+    ## i'm not sure if this function is needed/wanted anymore...
     def correct_attacks_labels_using_exfil_amts(self, time_gran_to_attack_labels, time_gran_to_list_of_exfil_amts):
         time_gran_to_new_attack_labels = {}
         for time_gran, attack_labels in time_gran_to_attack_labels.iteritems():
@@ -192,21 +193,10 @@ class data_anylsis_pipline(object):
                          pretrained_min_pipeline=None):
         self.end_of_training = end_of_training
         if self.calc_vals:
-            # TODO: 90% sure that there is a problem with this function...
-            # largest_interval = int(min(interval_to_filenames.keys()))
             exp_length = len(self.interval_to_filenames[str(self.smallest_time_gran)]) * self.smallest_time_gran
             print "exp_length_ZZZ", exp_length, type(exp_length)
-            # if not skip_model_part:
             time_gran_to_attack_labels = process_graph_metrics.generate_time_gran_to_attack_labels(
-                self.time_interval_lengths,
-                self.exfil_start_time, self.exfil_end_time,
-                self.sec_between_exfil_events,
-                exp_length)
-            # else:
-            # time_gran_to_attack_labels = {}
-            # for time_gran in time_interval_lengths:
-            #    time_gran_to_attack_labels[time_gran] = [(1,1)]
-            # pass
+                                        self.time_interval_lengths, self.exfil_StartEnd_times, exp_length)
 
             # print "interval_to_filenames_ZZZ",interval_to_filenames
             for interval, filenames in self.interval_to_filenames.iteritems():
@@ -238,12 +228,12 @@ class data_anylsis_pipline(object):
             print "time_gran_to_attack_ranges", time_gran_to_attack_ranges
             # time.sleep(50)
 
-            time_gran_to_synthetic_exfil_paths_series = determine_time_gran_to_synthetic_exfil_paths_series(
+            time_gran_to_exfil_paths_series = determine_time_gran_to_exfil_paths_series(
                 time_gran_to_attack_ranges,
                 synthetic_exfil_paths, self.interval_to_filenames,
-                time_gran_to_physical_attack_ranges, self.injected_exfil_path)
+                time_gran_to_physical_attack_ranges, self.physical_exfil_paths)
 
-            print "time_gran_to_synthetic_exfil_paths_series", time_gran_to_synthetic_exfil_paths_series
+            print "time_gran_to_exfil_paths_series", time_gran_to_exfil_paths_series
             # time.sleep(50)
 
             # exit(200) ## TODO ::: <<<---- remove!!
@@ -267,15 +257,15 @@ class data_anylsis_pipline(object):
             ## time_gran_to_attack_labels needs to be corrected using time_gran_to_list_of_concrete_exfil_paths
             ## because just because it was assigned, doesn't mean that it is necessarily going to be injected (might
             ## have to wait...)
-            time_gran_to_attack_labels = self.correct_attacks_labels_using_exfil_amts(time_gran_to_attack_labels,
-                                                                                      time_gran_to_list_of_exfil_amts)
+            #time_gran_to_attack_labels = self.correct_attacks_labels_using_exfil_amts(time_gran_to_attack_labels,
+            #                                                                          time_gran_to_list_of_exfil_amts)
 
             time_gran_to_feature_dataframe = process_graph_metrics.generate_feature_dfs(total_calculated_vals,
                                                                                         self.time_interval_lengths)
 
             process_graph_metrics.save_feature_datafames(time_gran_to_feature_dataframe, self.alert_file + self.sub_path,
                                                          time_gran_to_attack_labels,
-                                                         time_gran_to_synthetic_exfil_paths_series,
+                                                         time_gran_to_exfil_paths_series,
                                                          time_gran_to_list_of_concrete_exfil_paths,
                                                          time_gran_to_list_of_exfil_amts,
                                                          int(end_of_training), time_gran_to_new_neighbors_outside,
@@ -284,66 +274,66 @@ class data_anylsis_pipline(object):
                                                          time_gran_to_list_of_amt_of_out_traffic_pkts)
 
         #else:
-        if True: # due to the behavior of some later components, why actually wanna read the values from memory everytime
+        #if True: # due to the behavior of some later components, why actually wanna read the values from memory everytime
                  # (even if we literally have those values in memory) b/c writing/loading changes some values (in particular
                  # types) in a way that makes the latter part actually work (other option is extensive debugging, which I do
                  # not have time to do at the moment)
-            time_gran_to_feature_dataframe = {}
-            time_gran_to_attack_labels = {}
-            time_gran_to_synthetic_exfil_paths_series = {}
-            time_gran_to_list_of_concrete_exfil_paths = {}
-            time_gran_to_list_of_exfil_amts = {}
-            time_gran_to_list_of_amt_of_out_traffic_bytes = {}
-            time_gran_to_list_of_amt_of_out_traffic_pkts = {}
-            time_gran_to_new_neighbors_outside, time_gran_to_new_neighbors_dns, time_gran_to_new_neighbors_all = {}, {}, {}
-            min_interval = min(self.time_interval_lengths)
+        time_gran_to_feature_dataframe = {}
+        time_gran_to_attack_labels = {}
+        time_gran_to_exfil_paths_series = {}
+        time_gran_to_list_of_concrete_exfil_paths = {}
+        time_gran_to_list_of_exfil_amts = {}
+        time_gran_to_list_of_amt_of_out_traffic_bytes = {}
+        time_gran_to_list_of_amt_of_out_traffic_pkts = {}
+        time_gran_to_new_neighbors_outside, time_gran_to_new_neighbors_dns, time_gran_to_new_neighbors_all = {}, {}, {}
+        min_interval = min(self.time_interval_lengths)
 
-            for interval in self.time_interval_lengths:
-                # if interval in time_interval_lengths:
-                print "time_interval_lengths", self.time_interval_lengths, "interval", interval
-                print "feature_df_path", self.alert_file + self.sub_path + str(interval) + '.csv'
-                time_gran_to_feature_dataframe[interval] = pd.read_csv(self.alert_file + self.sub_path + str(interval) + '.csv',
-                                                                       na_values='?')
-                # time_gran_to_feature_dataframe[interval] = time_gran_to_feature_dataframe[interval].apply(lambda x: np.real(x))
-                # this just extracts the various necessary components into seperate variables...
-                print "dtypes_of_df", time_gran_to_feature_dataframe[interval].dtypes
-                time_gran_to_attack_labels[interval] = time_gran_to_feature_dataframe[interval]['labels']
+        for interval in self.time_interval_lengths:
+            # if interval in time_interval_lengths:
+            print "time_interval_lengths", self.time_interval_lengths, "interval", interval
+            print "feature_df_path", self.alert_file + self.sub_path + str(interval) + '.csv'
+            time_gran_to_feature_dataframe[interval] = pd.read_csv(self.alert_file + self.sub_path + str(interval) + '.csv',
+                                                                   na_values='?')
+            # time_gran_to_feature_dataframe[interval] = time_gran_to_feature_dataframe[interval].apply(lambda x: np.real(x))
+            # this just extracts the various necessary components into seperate variables...
+            print "dtypes_of_df", time_gran_to_feature_dataframe[interval].dtypes
+            time_gran_to_attack_labels[interval] = time_gran_to_feature_dataframe[interval]['labels']
 
-                time_gran_to_list_of_amt_of_out_traffic_bytes[interval] = time_gran_to_feature_dataframe[interval]['amt_of_out_traffic_bytes']
-                time_gran_to_list_of_amt_of_out_traffic_pkts[interval] = time_gran_to_feature_dataframe[interval]['amt_of_out_traffic_pkts']
+            time_gran_to_list_of_amt_of_out_traffic_bytes[interval] = time_gran_to_feature_dataframe[interval]['amt_of_out_traffic_bytes']
+            time_gran_to_list_of_amt_of_out_traffic_pkts[interval] = time_gran_to_feature_dataframe[interval]['amt_of_out_traffic_pkts']
 
-                try:
-                    time_gran_to_new_neighbors_outside[interval] = time_gran_to_feature_dataframe[interval][
-                        'new_neighbors_outside']
-                    time_gran_to_new_neighbors_dns[interval] = time_gran_to_feature_dataframe[interval][
-                        'new_neighbors_dns']
-                    time_gran_to_new_neighbors_all[interval] = time_gran_to_feature_dataframe[interval][
-                        'new_neighbors_all']
-                except:
-                    time_gran_to_new_neighbors_outside[interval] = [[] for i in
-                                                                    range(0, len(time_gran_to_attack_labels[interval]))]
-                    time_gran_to_new_neighbors_dns[interval] = [[] for i in
+            try:
+                time_gran_to_new_neighbors_outside[interval] = time_gran_to_feature_dataframe[interval][
+                    'new_neighbors_outside']
+                time_gran_to_new_neighbors_dns[interval] = time_gran_to_feature_dataframe[interval][
+                    'new_neighbors_dns']
+                time_gran_to_new_neighbors_all[interval] = time_gran_to_feature_dataframe[interval][
+                    'new_neighbors_all']
+            except:
+                time_gran_to_new_neighbors_outside[interval] = [[] for i in
                                                                 range(0, len(time_gran_to_attack_labels[interval]))]
-                    time_gran_to_new_neighbors_all[interval] = [[] for i in
-                                                                range(0, len(time_gran_to_attack_labels[interval]))]
+                time_gran_to_new_neighbors_dns[interval] = [[] for i in
+                                                            range(0, len(time_gran_to_attack_labels[interval]))]
+                time_gran_to_new_neighbors_all[interval] = [[] for i in
+                                                            range(0, len(time_gran_to_attack_labels[interval]))]
 
-                time_gran_to_synthetic_exfil_paths_series[interval] = time_gran_to_feature_dataframe[interval][
-                    'exfil_path']
-                ##recover time_gran_to_list_of_concrete_exfil_paths, time_gran_to_list_of_exfil_amts
-                time_gran_to_list_of_concrete_exfil_paths[interval] = time_gran_to_feature_dataframe[interval][
-                    'concrete_exfil_path']
-                list_of_exfil_amts = []
-                for counter in range(0, len(time_gran_to_feature_dataframe[interval]['exfil_weight'])):
-                    weight = time_gran_to_feature_dataframe[interval]['exfil_weight'][counter]
-                    pkts = time_gran_to_feature_dataframe[interval]['exfil_pkts'][counter]
-                    current_exfil_dict = {'weight': weight, 'frames': pkts}
-                    list_of_exfil_amts.append(current_exfil_dict)
-                time_gran_to_list_of_exfil_amts[interval] = list_of_exfil_amts
-                if min_interval == interval:
-                    print time_gran_to_feature_dataframe[interval]['is_test'], type(
-                        time_gran_to_feature_dataframe[interval]['is_test'])
-                    self.end_of_training = time_gran_to_feature_dataframe[interval]['is_test'].tolist().index(
-                        1) * min_interval
+            time_gran_to_exfil_paths_series[interval] = time_gran_to_feature_dataframe[interval][
+                'exfil_path']
+            ##recover time_gran_to_list_of_concrete_exfil_paths, time_gran_to_list_of_exfil_amts
+            time_gran_to_list_of_concrete_exfil_paths[interval] = time_gran_to_feature_dataframe[interval][
+                'concrete_exfil_path']
+            list_of_exfil_amts = []
+            for counter in range(0, len(time_gran_to_feature_dataframe[interval]['exfil_weight'])):
+                weight = time_gran_to_feature_dataframe[interval]['exfil_weight'][counter]
+                pkts = time_gran_to_feature_dataframe[interval]['exfil_pkts'][counter]
+                current_exfil_dict = {'weight': weight, 'frames': pkts}
+                list_of_exfil_amts.append(current_exfil_dict)
+            time_gran_to_list_of_exfil_amts[interval] = list_of_exfil_amts
+            if min_interval == interval:
+                print time_gran_to_feature_dataframe[interval]['is_test'], type(
+                    time_gran_to_feature_dataframe[interval]['is_test'])
+                self.end_of_training = time_gran_to_feature_dataframe[interval]['is_test'].tolist().index(
+                    1) * min_interval
 
         print "about to calculate some alerts!"
 
@@ -377,7 +367,7 @@ class data_anylsis_pipline(object):
 
         self.time_gran_to_feature_dataframe=time_gran_to_feature_dataframe
         self.time_gran_to_attack_labels=time_gran_to_attack_labels
-        self.time_gran_to_synthetic_exfil_paths_series=time_gran_to_synthetic_exfil_paths_series
+        self.time_gran_to_synthetic_exfil_paths_series=time_gran_to_exfil_paths_series
         self.time_gran_to_list_of_concrete_exfil_paths  = time_gran_to_list_of_concrete_exfil_paths
         self.time_gran_to_list_of_exfil_amts=time_gran_to_list_of_exfil_amts
         self.time_gran_to_new_neighbors_outside=time_gran_to_new_neighbors_outside
@@ -744,14 +734,14 @@ def determine_physical_attack_ranges(physical_attack_labels):
     physical_attack_ranges = []
     for k, g in groupby(enumerate(indexes_of_attack_labels), lambda (i, x): i - x):
         attack_grp =  map(itemgetter(1), g) #groupby, itemgetter
-        physical_attack_ranges.append((attack_grp[0], attack_grp[-1]))
+        physical_attack_ranges.append((attack_grp[0], attack_grp[-1] + 1))
     #print "physical_attack_ranges", physical_attack_ranges
     return physical_attack_ranges
 
 
-def determine_time_gran_to_synthetic_exfil_paths_series(time_gran_to_attack_ranges, synthetic_exfil_paths,
-                                                        interval_to_filenames, time_gran_to_physical_attack_ranges,
-                                                        injected_exfil_path):
+def determine_time_gran_to_exfil_paths_series(time_gran_to_attack_ranges, synthetic_exfil_paths,
+                                              interval_to_filenames, time_gran_to_physical_attack_ranges,
+                                              physical_exfil_paths):
     time_gran_to_synthetic_exfil_paths_series = {}
     for time_gran, attack_ranges in time_gran_to_attack_ranges.iteritems():
         print interval_to_filenames.keys()
@@ -763,7 +753,8 @@ def determine_time_gran_to_synthetic_exfil_paths_series(time_gran_to_attack_rang
         physical_attack_ranges = time_gran_to_physical_attack_ranges[time_gran]
         for attack_counter, attack_range in enumerate(physical_attack_ranges):
             for i in range(attack_range[0], attack_range[1]):
-                current_exfil_path_series[i] = ['physical:'] + injected_exfil_path
+                print "physical_exfil_path",physical_exfil_paths
+                current_exfil_path_series[i] = ['physical:'] + physical_exfil_paths[attack_counter]
 
         # then add the injected attacks
         for attack_counter, attack_range in enumerate(attack_ranges):

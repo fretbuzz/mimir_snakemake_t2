@@ -11,9 +11,8 @@ import generate_heatmap, process_roc, generate_report
 from jinja2 import FileSystemLoader, Environment
 
 class single_model_stats_pipeline():
-    def __init__(self, aggregate_mod_score_df, base_output_name,
-                 skip_model_part, clf, ignore_physical_attacks_p, drop_pairwise_features,
-                 timegran, lasso_feature_selection_p, dont_prepare_data_p=False, skip_heatmap_p=True):
+    def __init__(self, aggregate_mod_score_df, base_output_name, skip_model_part, clf, drop_pairwise_features, timegran,
+                 lasso_feature_selection_p, dont_prepare_data_p=False, skip_heatmap_p=True):
 
         self.dont_prepare_data_p=dont_prepare_data_p
         self.method_name = 'ensemble'
@@ -21,7 +20,6 @@ class single_model_stats_pipeline():
         self.base_output_name = base_output_name
         self.skip_model_part = skip_model_part
         self.clf = clf
-        self.ignore_physical_attacks_p = ignore_physical_attacks_p
         self.drop_pairwise_features = drop_pairwise_features
         self.time_gran = timegran
         self.time_gran_to_debugging_csv = {}
@@ -38,9 +36,9 @@ class single_model_stats_pipeline():
         #if not dont_prepare_data_p:
         self.X_train, self.y_train, self.X_test, self.y_test, self.pre_drop_X_train, self.time_gran_to_debugging_csv, \
         self.dropped_feature_list, self.ide_train, self.ide_test, self.exfil_weights_train, self.exfil_weights_test, \
-        self.exfil_paths_test, self.exfil_paths_train, self.out_traffic, self.cilium_train, self.cilium_test =\
-            prepare_data(self.aggregate_mod_score_df, self.skip_model_part, self.ignore_physical_attacks_p,
-            self.time_gran_to_debugging_csv, self.time_gran, self.drop_pairwise_features)
+        self.exfil_paths_test, self.exfil_paths_train, self.out_traffic, self.cilium_train, self.cilium_test = \
+            prepare_data(self.aggregate_mod_score_df, self.skip_model_part, self.time_gran_to_debugging_csv,
+                         self.time_gran, self.drop_pairwise_features)
 
         self.method_to_test_predictions['ide'] = self.ide_test
         self.method_to_train_predictions['ide'] = self.ide_train
@@ -292,8 +290,7 @@ class single_model_stats_pipeline():
 
 class single_rate_stats_pipeline():
     def __init__(self, time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, base_output_name, recipes_used,
-                 skip_model_part, ignore_physical_attacks_p, avg_exfil_per_min, avg_pkt_size, exfil_per_min_variance,
-                 pkt_size_variance):
+                 skip_model_part, avg_exfil_per_min, avg_pkt_size, exfil_per_min_variance, pkt_size_variance):
 
         print "STATISTICAL_ANALYSIS_V2"
         self.report_sections = {}
@@ -320,7 +317,6 @@ class single_rate_stats_pipeline():
                 self.trained_models[timegran] = []
                 self.time_gran_to_outtraffic[timegran] = []
                 self.skip_model_part = skip_model_part
-                self.ignore_physical_attacks_p = ignore_physical_attacks_p
 
         self.recipes_used = recipes_used
         self.avg_exfil_per_min = avg_exfil_per_min
@@ -340,8 +336,8 @@ class single_rate_stats_pipeline():
                 lasso_feature_selection_p = False
 
             stat_pipeline = single_model_stats_pipeline(feature_df, self.base_output_name, self.skip_model_part, clf,
-                                                        self.ignore_physical_attacks_p, drop_pairwise_features, timegran,
-                                                        lasso_feature_selection_p, skip_heatmap_p=skip_heatmap_p)
+                                                        drop_pairwise_features, timegran, lasso_feature_selection_p,
+                                                        skip_heatmap_p=skip_heatmap_p)
 
             #if pretrained_statistical_analysis_v2 == None or (timegran not in pretrained_statistical_analysis_v2.timegran_to_statistical_pipeline):
             if pretrained_statistical_analysis_v2 == None:
@@ -451,9 +447,10 @@ class single_rate_stats_pipeline():
         clf = LassoCV(cv=3, max_iter=80000)
         # use the existing machinery in the statistical_pipeline object
         stats_pipeline = single_model_stats_pipeline(final_predictions, self.base_output_name + '_multi_time',
-                                                     self.skip_model_part, clf, self.ignore_physical_attacks_p, drop_pairwise_features,
-                                                     tuple(self.timegran_to_statistical_pipeline.keys()), lasso_feature_selection_p=False,
-                                                     dont_prepare_data_p=True, skip_heatmap_p=skip_heatmap_p)
+                                                     self.skip_model_part, clf, drop_pairwise_features,
+                                                     tuple(self.timegran_to_statistical_pipeline.keys()),
+                                                     lasso_feature_selection_p=False, dont_prepare_data_p=True,
+                                                     skip_heatmap_p=skip_heatmap_p)
 
         ### TODO: what is going on here??? it's still fitting of the training data?? but it should on the testing data...
         #if pretrained_statistical_analysis_v2 == None or (timegran not in pretrained_statistical_analysis_v2.timegran_to_statistical_pipeline):
@@ -1012,8 +1009,8 @@ def get_coef_dict(clf, X_train_columns, base_output_name, X_train_dtypes, sanity
     print "coef_dict"
     return coef_dict
 
-def prepare_data(aggregate_mod_score_dfs, skip_model_part, ignore_physical_attacks_p,
-                 time_gran_to_debugging_csv, time_gran, drop_pairwise_features):
+def prepare_data(aggregate_mod_score_dfs, skip_model_part, time_gran_to_debugging_csv, time_gran,
+                 drop_pairwise_features):
 
     out_traffic=None
     '''
@@ -1031,11 +1028,11 @@ def prepare_data(aggregate_mod_score_dfs, skip_model_part, ignore_physical_attac
         aggregate_mod_score_dfs = drop_pairwise_features_func(aggregate_mod_score_dfs)
 
     if not skip_model_part:
-        if ignore_physical_attacks_p:
-            aggregate_mod_score_dfs = \
-                aggregate_mod_score_dfs[~((aggregate_mod_score_dfs['labels'] == 1) &
-                                          ((aggregate_mod_score_dfs['exfil_pkts'] == 0) &
-                                           (aggregate_mod_score_dfs['exfil_weight'] == 0)))]
+        #if ignore_physical_attacks_p:
+        #    aggregate_mod_score_dfs = \
+         #       aggregate_mod_score_dfs[~((aggregate_mod_score_dfs['labels'] == 1) &
+         #                                 ((aggregate_mod_score_dfs['exfil_pkts'] == 0) &
+         #                                  (aggregate_mod_score_dfs['exfil_weight'] == 0)))]
 
         aggregate_mod_score_dfs_training = aggregate_mod_score_dfs[aggregate_mod_score_dfs['is_test'] == 0]
         aggregate_mod_score_dfs_testing = aggregate_mod_score_dfs[aggregate_mod_score_dfs['is_test'] == 1]

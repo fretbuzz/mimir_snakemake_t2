@@ -1431,7 +1431,7 @@ def copy_experimental_info_to_experimental_folder(exp_name):
 
 # def generate_analysis_json ??? -> ??
 # this function generates the json that will be used be the analysis_pipeline pipeline
-def generate_analysis_json(path_to_exp_folder, analysis_json_name, exp_config_json, exp_name):
+def generate_analysis_json(path_to_exp_folder, analysis_json_name, exp_config_json, exp_name, physical_exfil_p):
     # okay, so what I want is just a dict with the relevant values...
 
     analysis_dict = {}
@@ -1461,23 +1461,27 @@ def generate_analysis_json(path_to_exp_folder, analysis_json_name, exp_config_js
     except:
         analysis_dict["experiment"]["traffic_type"] = "normal"
 
-    try:
-        analysis_dict["exfiltration_info"] = {}
-        analysis_dict["exfiltration_info"]["sensitive_ms"] = exp_config_json["exfiltration_info"]["sensitive_ms"]
-        analysis_dict["exfiltration_info"]["exfiltration_path_class_which_installer"] = exp_config_json["exfiltration_info"]["exfiltration_path_class_which_installer"]
-        analysis_dict["exfiltration_info"]["exfil_paths"] = exp_config_json["exfiltration_info"]["exfil_paths"]
-        analysis_dict["exfiltration_info"]["folder_to_exfil"] = exp_config_json["exfiltration_info"]["folder_to_exfil"]
-        analysis_dict["exfiltration_info"]["regex_of_file_to_exfil"] = exp_config_json["exfiltration_info"]["regex_of_file_to_exfil"]
-        analysis_dict["exfiltration_info"]["exfil_methods"] = exp_config_json["exfiltration_info"]["exfil_methods"]
-        analysis_dict["exfiltration_info"]["exfil_protocols"] = exp_config_json["exfiltration_info"]["exfil_protocols"]
-        analysis_dict["exfiltration_info"]["exfil_StartEnd_times"] = exp_config_json["exfiltration_info"]["exfil_StartEnd_times"]
-        analysis_dict["exfiltration_info"]["DET_min_exfil_data_per_packet_bytes"] = exp_config_json["exfiltration_info"]["DET_min_exfil_data_per_packet_bytes"]
-        analysis_dict["exfiltration_info"]["DET_max_exfil_data_per_packet_bytes"] = exp_config_json["exfiltration_info"]["DET_max_exfil_data_per_packet_bytes"]
-        analysis_dict["exfiltration_info"]["DET_avg_exfiltration_rate_KB_per_sec"] = exp_config_json["exfiltration_info"]["DET_avg_exfiltration_rate_KB_per_sec"]
-        analysis_dict["exfiltration_info"]["sec_between_exfil_pkts"] = exp_config_json["exfiltration_info"]["sec_between_exfil_pkts"]
-        analysis_dict['exfiltration_info']['sec_between_exfil_pkts'] = exp_config_json["exfiltration_info"]["sec_between_exfil_pkts"]
-    except:
-        pass # exfil must not be being simulated during this experiment
+
+    analysis_dict["exfiltration_info"] = {}
+    analysis_dict["exfiltration_info"]["sensitive_ms"] = exp_config_json["exfiltration_info"]["sensitive_ms"]
+    analysis_dict["exfiltration_info"]["physical_exfil_performed"] = physical_exfil_p
+
+    if physical_exfil_p:
+        try:
+            analysis_dict["exfiltration_info"]["exfiltration_path_class_which_installer"] = exp_config_json["exfiltration_info"]["exfiltration_path_class_which_installer"]
+            analysis_dict["exfiltration_info"]["exfil_paths"] = exp_config_json["exfiltration_info"]["exfil_paths"]
+            analysis_dict["exfiltration_info"]["folder_to_exfil"] = exp_config_json["exfiltration_info"]["folder_to_exfil"]
+            analysis_dict["exfiltration_info"]["regex_of_file_to_exfil"] = exp_config_json["exfiltration_info"]["regex_of_file_to_exfil"]
+            analysis_dict["exfiltration_info"]["exfil_methods"] = exp_config_json["exfiltration_info"]["exfil_methods"]
+            analysis_dict["exfiltration_info"]["exfil_protocols"] = exp_config_json["exfiltration_info"]["exfil_protocols"]
+            analysis_dict["exfiltration_info"]["exfil_StartEnd_times"] = exp_config_json["exfiltration_info"]["exfil_StartEnd_times"]
+            analysis_dict["exfiltration_info"]["DET_min_exfil_data_per_packet_bytes"] = exp_config_json["exfiltration_info"]["DET_min_exfil_data_per_packet_bytes"]
+            analysis_dict["exfiltration_info"]["DET_max_exfil_data_per_packet_bytes"] = exp_config_json["exfiltration_info"]["DET_max_exfil_data_per_packet_bytes"]
+            analysis_dict["exfiltration_info"]["DET_avg_exfiltration_rate_KB_per_sec"] = exp_config_json["exfiltration_info"]["DET_avg_exfiltration_rate_KB_per_sec"]
+            analysis_dict["exfiltration_info"]["sec_between_exfil_pkts"] = exp_config_json["exfiltration_info"]["sec_between_exfil_pkts"]
+            analysis_dict['exfiltration_info']['sec_between_exfil_pkts'] = exp_config_json["exfiltration_info"]["sec_between_exfil_pkts"]
+        except:
+            pass # exfil must not be being simulated during this experiment
 
     try:
         analysis_dict['Deploymenet'] = exp_config_json["Deploymenet"]
@@ -1756,7 +1760,8 @@ if __name__=="__main__":
     path_to_docker_machine_tls_certs = ''
     with open(args.config_file) as f:
         config_params = json.load(f)
-        generate_analysis_json('./experimental_data/' + exp_name + '/', exp_name + '_analysis.json', config_params, exp_name)
+        generate_analysis_json('./experimental_data/' + exp_name + '/', exp_name + '_analysis.json', config_params,
+                               exp_name, args.exfil_p)
         path_to_docker_machine_tls_certs = config_params["path_to_docker_machine_tls_certs"]
 
     print "path_to_docker_machine_tls_certs", path_to_docker_machine_tls_certs

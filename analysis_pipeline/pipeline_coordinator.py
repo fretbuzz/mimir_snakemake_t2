@@ -20,7 +20,7 @@ import pickle
 # temporally before the physical attack starts) and the goal percentage of split that we are aiming for.
 # I think we're going to aim for the desired split in each experiment, but we WON'T try  to compensate
 # not meeting one experiment's goal by modifying how we handle another experiment.
-def determine_injection_times(exps_info, goal_train_test_split,goal_attack_NoAttack_split_training, ignore_physical_attacks_p,
+def determine_injection_times(exps_info, goal_train_test_split, goal_attack_NoAttack_split_training,
                               goal_attack_NoAttack_split_testing):
     #time_splits = []
     exp_injection_info = []
@@ -30,21 +30,21 @@ def determine_injection_times(exps_info, goal_train_test_split,goal_attack_NoAtt
     for exp_info in exps_info:
         print "exp_info", exp_info['total_experiment_length'], "float(goal_train_test_split)", float(goal_train_test_split)
         time_split = ((exp_info['total_experiment_length']) * float(goal_train_test_split))
-        if time_split > exp_info['exfil_start_time']:
-            time_split = exp_info['exfil_start_time']
+
+        # we want physical to be in testing phase...
+        if time_split > exp_info['exfil_startEnd_times'][0][0]:
+            time_split = exp_info['exfil_startEnd_times'][0][0]
+
         end_of_train_portions.append(time_split)
         print "end_of_train_portions", end_of_train_portions
         ## now to find how much time to spending injecting during training and testing...
         ## okay, let's do testing first b/c it should be relatively straightforward...
         testing_time = exp_info['total_experiment_length'] - time_split
 
-        ###### todo: improve this code for the physical case...
-        physical_attack_time = exp_info['exfil_end_time'] - exp_info['exfil_start_time']
-        if ignore_physical_attacks_p:
-            testing_time_for_attack_injection = (testing_time - physical_attack_time) * goal_attack_NoAttack_split_testing
-        else:
-            testing_time_for_attack_injection = (testing_time) * goal_attack_NoAttack_split_testing -physical_attack_time
-        ###### todo: improvements should end here...
+        physical_attack_time = 0
+        for start_end_tuple in exp_info['exfil_startEnd_times']:
+            physical_attack_time += start_end_tuple[1] - start_end_tuple[0]
+        testing_time_for_attack_injection = (testing_time) * goal_attack_NoAttack_split_testing - physical_attack_time
 
         #testing_time_without_physical_attack = testing_time - physical_attack_time
         print "physical_attack_time",physical_attack_time, "testing_time", testing_time, testing_time_for_attack_injection
@@ -52,8 +52,8 @@ def determine_injection_times(exps_info, goal_train_test_split,goal_attack_NoAtt
 
         # now let's find the time to inject during training... this'll be a percentage of the time between
         # system startup and the training/testing split point...
-        training_time_after_startup = time_split # - exp_info["startup_time"]
-        training_time_for_attack_injection = training_time_after_startup * goal_attack_NoAttack_split_training
+        #training_time_after_startup = time_split # - exp_info["startup_time"]
+        training_time_for_attack_injection = time_split * goal_attack_NoAttack_split_training
 
         exp_injection_info.append({'testing': testing_time_for_attack_injection,
                                    "training": training_time_for_attack_injection})
@@ -66,16 +66,13 @@ def determine_injection_times(exps_info, goal_train_test_split,goal_attack_NoAtt
 # feature dataframes, and then performs LASSO regression to determine a concise graphical model that can detect
 # the injected synthetic attacks
 class multi_experiment_pipeline(object):
-    def __init__(self, function_list, base_output_name, ROC_curve_p, time_each_synthetic_exfil,
-                 goal_train_test_split, goal_attack_NoAttack_split_training, training_window_size,
-                 size_of_neighbor_training_window, calc_vals, skip_model_part, ignore_physical_attacks_p,
-                 calculate_z_scores_p=True, avg_exfil_per_min=None, exfil_per_min_variance=None,
-                 avg_pkt_size=None, pkt_size_variance=None,
-                 skip_graph_injection=False, get_endresult_from_memory=False,
-                 goal_attack_NoAttack_split_testing=0.0, calc_ide=False, include_ide=False,
-                 only_ide=False, perform_cilium_component=True, only_perform_cilium_component=True,
-                 cilium_component_time=100, drop_pairwise_features=False,
-                 max_path_length=15, max_dns_porportion=1.0,drop_infra_from_graph=False,
+    def __init__(self, function_list, base_output_name, ROC_curve_p, time_each_synthetic_exfil, goal_train_test_split,
+                 goal_attack_NoAttack_split_training, training_window_size, size_of_neighbor_training_window, calc_vals,
+                 skip_model_part, calculate_z_scores_p=True, avg_exfil_per_min=None, exfil_per_min_variance=None,
+                 avg_pkt_size=None, pkt_size_variance=None, skip_graph_injection=False, get_endresult_from_memory=False,
+                 goal_attack_NoAttack_split_testing=0.0, calc_ide=False, include_ide=False, only_ide=False,
+                 perform_cilium_component=True, only_perform_cilium_component=True, cilium_component_time=100,
+                 drop_pairwise_features=False, max_path_length=15, max_dns_porportion=1.0, drop_infra_from_graph=False,
                  ide_window_size=10, debug_basename=None, pretrained_sav2=None, auto_open_pdfs=True,
                  skip_heatmap_p=True):
 
@@ -128,7 +125,6 @@ class multi_experiment_pipeline(object):
         self.function_list = function_list
         self.goal_train_test_split = goal_train_test_split
         self.goal_attack_NoAttack_split_training = goal_attack_NoAttack_split_training
-        self.ignore_physical_attacks_p = ignore_physical_attacks_p
         self.time_each_synthetic_exfil = time_each_synthetic_exfil
         self.goal_attack_NoAttack_split_testing = goal_attack_NoAttack_split_testing
         self.max_path_length = max_path_length
@@ -160,10 +156,9 @@ class multi_experiment_pipeline(object):
 
     def generate_and_assign_exfil_paths(self):
         self.exps_exfil_paths, self.end_of_train_portions, self.training_exfil_paths, self.testing_exfil_paths, \
-        self.exps_initiator_info = determine_and_assign_exfil_paths(self.calc_vals, self.skip_model_part, self.function_list,
-                                                                    self.goal_train_test_split,
+        self.exps_initiator_info = determine_and_assign_exfil_paths(self.calc_vals, self.skip_model_part,
+                                                                    self.function_list, self.goal_train_test_split,
                                                                     self.goal_attack_NoAttack_split_training,
-                                                                    self.ignore_physical_attacks_p,
                                                                     self.time_each_synthetic_exfil,
                                                                     self.goal_attack_NoAttack_split_testing,
                                                                     self.max_path_length, self.max_dns_porportion)
@@ -225,7 +220,7 @@ class multi_experiment_pipeline(object):
 
         args = [rate_counter, self.base_output_name, cur_function_list, self.exps_exfil_paths, self.exps_initiator_info,
                 self.calculate_z_scores_p, calc_vals, self.end_of_train_portions, self.training_exfil_paths,
-                self.testing_exfil_paths, self.ignore_physical_attacks_p, self.skip_model_part, out_q,
+                self.testing_exfil_paths, self.skip_model_part, out_q,
                 self.ROC_curve_p, self.avg_exfil_per_min, self.exfil_per_min_variance, self.avg_pkt_size,
                 self.pkt_size_variance, skip_graph_injection, calc_ide, include_ide, only_ide,
                 self.drop_pairwise_features, self.perform_cilium_component, self.cilium_component_time,
@@ -265,7 +260,7 @@ class multi_experiment_pipeline(object):
 
         stats_pipelines = single_rate_stats_pipeline(time_gran_to_aggregate_mod_score_dfs, self.ROC_curve_p,
                                                      cur_base_output_name, recipes_used, self.skip_model_part,
-                                                     self.ignore_physical_attacks_p, self.avg_exfil_per_min[rate_counter],
+                                                     self.avg_exfil_per_min[rate_counter],
                                                      self.avg_pkt_size[rate_counter],
                                                      self.exfil_per_min_variance[rate_counter],
                                                      self.pkt_size_variance[rate_counter])
@@ -351,22 +346,21 @@ class multi_experiment_pipeline(object):
 
         cur_base_output_name = self.base_output_name + '_lower_per_path_exfil_report_'
         sav2_object = single_rate_stats_pipeline(timegran_to_df_max_exfil, self.ROC_curve_p, cur_base_output_name,
-                                                 self.names, self.skip_model_part, self.ignore_physical_attacks_p,
-                                                  'varies', 'varies', 'varies', 'varies')
+                                                 self.names, self.skip_model_part, 'varies', 'varies', 'varies',
+                                                 'varies')
 
         sav2_object.run_statistical_pipeline(self.drop_pairwise_features, self.pretrained_min_pipeline, skip_heatmap_p=self.skip_heatmap_p)
         sav2_object.create_the_report(self.auto_open_pdfs)
 
         return sav2_object
 
-def pipeline_one_exfil_rate(rate_counter,
-                            base_output_name, function_list, exps_exfil_paths, exps_initiator_info,
+def pipeline_one_exfil_rate(rate_counter, base_output_name, function_list, exps_exfil_paths, exps_initiator_info,
                             calculate_z_scores_p, calc_vals, end_of_train_portions, training_exfil_paths,
-                            testing_exfil_paths, ignore_physical_attacks_p, skip_model_part, out_q,
-                            ROC_curve_p, avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
-                            skip_graph_injection, calc_ide, include_ide, only_ide, drop_pairwise_features,
-                            perform_cilium_component, cilium_component_time, ide_window_size, drop_infra_from_graph,
-                            prefix_for_inject_params, pretrained_min_pipeline=None):
+                            testing_exfil_paths, skip_model_part, out_q, ROC_curve_p, avg_exfil_per_min,
+                            exfil_per_min_variance, avg_pkt_size, pkt_size_variance, skip_graph_injection, calc_ide,
+                            include_ide, only_ide, drop_pairwise_features, perform_cilium_component,
+                            cilium_component_time, ide_window_size, drop_infra_from_graph, prefix_for_inject_params,
+                            pretrained_min_pipeline=None):
     ## step (1) : iterate through individual experiments...
     ##  # 1a. list of inputs [done]
     ##  # 1b. acculate DFs
@@ -437,19 +431,17 @@ def pipeline_one_exfil_rate(rate_counter,
     out_q.put(list_time_gran_to_mod_zscore_df_testing)
     out_q.put(starts_of_testing)
 
-def determine_and_assign_exfil_paths(calc_vals, skip_model_part, function_list, goal_train_test_split, goal_attack_NoAttack_split_training,
-                                     ignore_physical_attacks_p, time_each_synthetic_exfil, goal_attack_NoAttack_split_testing,
-                                     max_path_length, dns_porportion):
+def determine_and_assign_exfil_paths(calc_vals, skip_model_part, function_list, goal_train_test_split,
+                                     goal_attack_NoAttack_split_training, time_each_synthetic_exfil,
+                                     goal_attack_NoAttack_split_testing, max_path_length, dns_porportion):
     if calc_vals and not skip_model_part:
         print function_list
         exp_infos = []
         for experiment_object in function_list:
             print "calc_vals", calc_vals
-            total_experiment_length, exfil_start_time, exfil_end_time, _ = \
-                experiment_object.get_exp_info()
-            print "func_exp_info", total_experiment_length, exfil_start_time, exfil_end_time
-            exp_infos.append({"total_experiment_length":total_experiment_length, "exfil_start_time":exfil_start_time,
-                             "exfil_end_time":exfil_end_time})
+            total_experiment_length, exfil_startEnd_times = experiment_object.get_exp_info()
+            print "func_exp_info", total_experiment_length, exfil_startEnd_times
+            exp_infos.append({"total_experiment_length":total_experiment_length, "exfil_startEnd_times":exfil_startEnd_times})
 
         ## get the exfil_paths that were generated using the mulval component...
         ## this'll require passing a parameter to the single-experiment pipeline and then getting the set of paths
@@ -457,10 +449,10 @@ def determine_and_assign_exfil_paths(calc_vals, skip_model_part, function_list, 
         exps_initiator_info = []
         total_training_injections_possible, total_testing_injections_possible, _, _ = \
             determine_injection_amnts(exp_infos, goal_train_test_split, goal_attack_NoAttack_split_training,
-                                      ignore_physical_attacks_p,
                                       time_each_synthetic_exfil, float("inf"), goal_attack_NoAttack_split_testing)
-        if total_training_injections_possible == 0: # this happens during eval portio
-            max_number_of_paths = total_testing_injections_possible
+        if total_training_injections_possible == 0 or total_testing_injections_possible == 0:
+            # this happens during eval portion or when there's a bunch of physical exfiltration events occuring
+            max_number_of_paths = max(total_testing_injections_possible, total_training_injections_possible)
         else:
             max_number_of_paths = min(total_training_injections_possible, total_testing_injections_possible)
 
@@ -481,10 +473,12 @@ def determine_and_assign_exfil_paths(calc_vals, skip_model_part, function_list, 
         for counter,exp_path in enumerate(exps_exfil_paths[0]):
             print counter,exp_path,len(exp_path)
         #exit(344)
-        training_exfil_paths, testing_exfil_paths, end_of_train_portions = assign_exfil_paths_to_experiments(exp_infos, goal_train_test_split,
-                                                                                      goal_attack_NoAttack_split_training,time_each_synthetic_exfil,
-                                                                                      exps_exfil_paths, ignore_physical_attacks_p,
-                                                                                      goal_attack_NoAttack_split_testing)
+        training_exfil_paths, testing_exfil_paths, end_of_train_portions = assign_exfil_paths_to_experiments(exp_infos,
+                                                                                                             goal_train_test_split,
+                                                                                                             goal_attack_NoAttack_split_training,
+                                                                                                             time_each_synthetic_exfil,
+                                                                                                             exps_exfil_paths,
+                                                                                                             goal_attack_NoAttack_split_testing)
         print "end_of_train_portions", end_of_train_portions
         print total_training_injections_possible, total_testing_injections_possible
         possible_exps_exfil_paths = []
@@ -538,8 +532,8 @@ def aggregate_dfs(list_time_gran_to_mod_zscore_df):
     return time_gran_to_aggregate_mod_score_dfs#, time_gran_to_aggregate_mod_score_dfs_training, time_gran_to_aggregate_mod_score_dfs_testing
 
 # this function determines which experiments should have which synthetic exfil paths injected into them
-def assign_exfil_paths_to_experiments(exp_infos, goal_train_test_split, goal_attack_NoAttack_split_training,time_each_synthetic_exfil,
-                                      exps_exfil_paths, ignore_physical_attacks_p, goal_attack_NoAttack_split_testing):
+def assign_exfil_paths_to_experiments(exp_infos, goal_train_test_split, goal_attack_NoAttack_split_training,
+                                      time_each_synthetic_exfil, exps_exfil_paths, goal_attack_NoAttack_split_testing):
 
     flat_exps_exfil_paths = [tuple(exfil_path) for exp_exfil_paths in exps_exfil_paths for exfil_path in exp_exfil_paths]
     print "flat_exps_exfil_paths",flat_exps_exfil_paths
@@ -547,7 +541,6 @@ def assign_exfil_paths_to_experiments(exp_infos, goal_train_test_split, goal_att
 
     total_training_injections_possible,total_testing_injections_possible,possible_exfil_path_injections,end_of_train_portions = \
         determine_injection_amnts(exp_infos, goal_train_test_split, goal_attack_NoAttack_split_training,
-                                  ignore_physical_attacks_p,
                                   time_each_synthetic_exfil, possible_exfil_paths, goal_attack_NoAttack_split_testing)
 
     exfil_path_to_occurences = {}
@@ -565,6 +558,7 @@ def assign_exfil_paths_to_experiments(exp_infos, goal_train_test_split, goal_att
     print "total_training_injections_possible", total_training_injections_possible
     print "possible_exfil_paths",possible_exfil_paths
 
+    #if
     testing_number_times_inject_all_paths = math.floor(total_testing_injections_possible / float(len(possible_exfil_paths)))
     if total_training_injections_possible == 0: # this happens when runnning the eval poriton...
         training_number_times_inject_all_paths = 0
@@ -574,9 +568,10 @@ def assign_exfil_paths_to_experiments(exp_infos, goal_train_test_split, goal_att
             print "can't inject all exfil paths in training set... "
             exit(33)
 
-    if testing_number_times_inject_all_paths < 1.0:
-        print "can't inject all exfil paths in testing set..."
-        exit(34)
+    if total_training_injections_possible == 0: ## happens when there's lots of physical attacks
+        if testing_number_times_inject_all_paths < 1.0:
+            print "can't inject all exfil paths in testing set..."
+            exit(34)
 
     exfil_paths_to_test_injection_counts = {}
     exfil_paths_to_train_injection_counts = {}
@@ -635,12 +630,12 @@ def generate_time_gran_sub_dataframes(time_gran_to_df_dataframe, column_name, co
         time_gran_to_sub_dataframe[time_gran] = sub_dataframe
     return time_gran_to_sub_dataframe
 
-def determine_injection_amnts(exp_infos, goal_train_test_split, goal_attack_NoAttack_split_training, ignore_physical_attacks_p,
+def determine_injection_amnts(exp_infos, goal_train_test_split, goal_attack_NoAttack_split_training,
                               time_each_synthetic_exfil, possible_exfil_paths, goal_attack_NoAttack_split_testing):
     ## now perform the actual assignment portion...
     # first, find the amt of time available for attack injections in each experiments training/testing phase...
     inject_times,end_of_train_portions = determine_injection_times(exp_infos, goal_train_test_split,
-                                                                   goal_attack_NoAttack_split_training, ignore_physical_attacks_p,
+                                                                   goal_attack_NoAttack_split_training,
                                                                    goal_attack_NoAttack_split_testing)
     # second, find how many exfil_paths can be injected into each experiments training/testing
     possible_exfil_path_injections = []

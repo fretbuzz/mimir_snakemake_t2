@@ -15,7 +15,7 @@
   "goal_train_test_split_training": 0.50,
   "goal_attack_NoAttack_split_testing": 0.2,
 
-  "make_edgefiles": false,
+  "make_edgefiles": true,
   "skip_graph_injection": false,
   "calc_vals": true,
   "calculate_z_scores": true,
