@@ -74,7 +74,7 @@ class injected_graph():
         with open(self.where_to_save_this_obj, 'wb') as output:  # Overwrites any existing file.
             pickle.dump(self, output, pickle.HIGHEST_PROTOCOL)
 
-    def calc_single_step_metrics(self):
+    def calc_single_step_metrics(self, sensitive_ms):
         self.graph_feature_dict = {}
         self._load_graph()
         self._load_nonInjected_graph()
@@ -139,13 +139,16 @@ class injected_graph():
         self.graph_feature_dict = add_c_metric(self.graph_feature_dict, harmonic_centrality_coef_var_of_classes,
                                                harmonic_centrality_mean, hc_max, svc_to_pod_with_outside, 'harmonic_centrality')
 
-        dict_of_clustering_coef = nx.clustering(self.cur_1si_G, nodes=svc_to_pod_with_outside, weight='weight')
+        dict_of_clustering_coef = nx.clustering(self.cur_1si_G, weight='weight')
         clustering_coef_coef_of_var, clustering_coef_mean, clustering_coef_max = \
             find_coef_of_var_for_nodes(dict_of_clustering_coef, svc_to_pod_with_outside)
         self.graph_feature_dict = add_c_metric(self.graph_feature_dict, clustering_coef_coef_of_var,
                                                clustering_coef_mean, clustering_coef_max, svc_to_pod_with_outside, 'clustering_coef')
 
-
+        dict_of_cfbc = nx.current_flow_betweenness_centrality(self.cur_1si_G, normalized=True, weight='weight')
+        cfbc_coef_of_var, cfbc_mean, cfbc_max = find_coef_of_var_for_nodes(dict_of_cfbc, svc_to_pod_with_outside)
+        self.graph_feature_dict = add_c_metric(self.graph_feature_dict, cfbc_coef_of_var,
+                                               cfbc_mean, cfbc_max, svc_to_pod_with_outside, 'current_flow_bc_')
 
         # this currently exists for legacy reasons, but if the code above works, then I can safely delete it...
         for service in svc_to_pod_with_outside.keys():
@@ -175,6 +178,85 @@ class injected_graph():
             #self.graph_feature_dict['max_harmonic_centrality_' + str(service)] = hc_max[service]
 
         ######
+        # these metrics are new... might want to get rid of these or the previous ones, depending on how it goes...
+        betweeness_centrality_nodes = nx.betweenness_centrality(self.cur_class_G, weight='weight',endpoints=True, normalized=True)
+        for service in svc_to_pod_with_outside.keys():
+            try:
+                self.graph_feature_dict['class_betweeness_centrality_' + service] = betweeness_centrality_nodes[service]
+            except:
+                self.graph_feature_dict['class_betweeness_centrality_' + service] = float('NaN')
+
+        load_centrality_nodes = nx.load_centrality(self.cur_class_G, weight='weight')
+        for service in svc_to_pod_with_outside.keys():
+            try:
+                self.graph_feature_dict['class_load_centrality_' + service] = load_centrality_nodes[service]
+            except:
+                self.graph_feature_dict['class_load_centrality_' + service] = float('NaN')
+
+        harmonic_centrality_nodes = nx.harmonic_centrality(self.cur_class_G, distance='weight')
+        for service in svc_to_pod_with_outside.keys():
+            try:
+                self.graph_feature_dict['class_harmonic_centrality_' + service] = harmonic_centrality_nodes[service]
+            except:
+                self.graph_feature_dict['class_harmonic_centrality_' + service] = float('NaN')
+
+        dict_of_clustering_coef = nx.clustering(self.cur_class_G, weight='weight')
+        for service in svc_to_pod_with_outside.keys():
+            try:
+                self.graph_feature_dict['class_clustering_coef_' + service] = dict_of_clustering_coef[service]
+            except:
+                self.graph_feature_dict['class_clustering_coef_' + service] = float('NaN')
+
+        dict_of_cfbc = nx.current_flow_betweenness_centrality(self.cur_1si_G, normalized=True, weight='weight')
+        cfbc_coef_of_var, cfbc_mean, cfbc_max = find_coef_of_var_for_nodes(dict_of_cfbc, svc_to_pod_with_outside)
+        self.graph_feature_dict = add_c_metric(self.graph_feature_dict, cfbc_coef_of_var,
+                                               cfbc_mean, cfbc_max, svc_to_pod_with_outside, 'current_flow_bc_')
+
+        cfbc_nodes = nx.current_flow_betweenness_centrality(self.cur_class_G, weight='weight')
+        for service in svc_to_pod_with_outside.keys():
+            try:
+                self.graph_feature_dict['class_current_flow_bc_' + service] = cfbc_nodes[service]
+            except:
+                self.graph_feature_dict['class_current_flow_bc_' + service] = float('NaN')
+
+        ######
+        ######
+        cfbc_sub_nodes = nx.current_flow_betweenness_centrality_subset(self.cur_class_G, weight='weight',
+                                                            targets=['outside'], sources=[sensitive_ms], normalized=True)
+        for service in svc_to_pod_with_outside.keys():
+            try:
+                self.graph_feature_dict['class_current_flow_bc_sub_' + service] = cfbc_sub_nodes[service]
+            except:
+                self.graph_feature_dict['class_current_flow_bc_sub_' + service] = float('NaN')
+
+        betweeness_centrality_subset_nodes = nx.betweenness_centrality_subset(self.cur_class_G, weight='weight',
+                                                                              targets=['outside'], sources=[sensitive_ms],
+                                                                              normalized=True)
+        for service in svc_to_pod_with_outside.keys():
+            try:
+                self.graph_feature_dict['class_betweeness_centrality_sub_' + service] = betweeness_centrality_subset_nodes[service]
+            except:
+                self.graph_feature_dict['class_betweeness_centrality_sub_' + service] = float('NaN')
+
+        cfbc_sub_pods = nx.current_flow_betweenness_centrality_subset(self.cur_1si_G, weight='weight',
+                                                                       targets=['outside'],
+                                                                       sources=svc_to_pod_with_outside(sensitive_ms),
+                                                                       normalized=True)
+
+        cfbc_sub_pods_coefvar, cfbc_sub_pods_mean, cfbc_sub_pods_max = find_coef_of_var_for_nodes(cfbc_sub_pods, svc_to_pod_with_outside)
+        self.graph_feature_dict = add_c_metric(self.graph_feature_dict, cfbc_sub_pods_coefvar,
+                                               cfbc_sub_pods_mean, cfbc_sub_pods_max, svc_to_pod_with_outside, 'current_flow_bc_sub_')
+
+        betweeness_centrality_subset_pods = nx.betweenness_centrality_subset(self.cur_1si_G, weight='weight',
+                                                                              targets=['outside'],
+                                                                             sources=svc_to_pod_with_outside(sensitive_ms),
+                                                                              normalized=True)
+        bc_sub_pods_coefvar, bc_sub_pods_mean, bc_sub_pods_max = find_coef_of_var_for_nodes(betweeness_centrality_subset_pods, svc_to_pod_with_outside)
+        self.graph_feature_dict = add_c_metric(self.graph_feature_dict, bc_sub_pods_coefvar,
+                                               bc_sub_pods_mean, bc_sub_pods_max, svc_to_pod_with_outside, 'bc_sub_')
+
+        #####
+        #####
 
         try: # this try-except exists b/c sockshop doesn't have this entry in the graph_feature_dict
             if math.isnan(self.graph_feature_dict['outside_to_wwwppp-wordpress_edge_coef_of_var']):
@@ -259,8 +341,10 @@ class set_of_injected_graphs():
                 svcs, ms_s, container_to_ip, infra_instances, synthetic_exfil_paths, initiator_info_for_paths,
                 attacks_to_times, collected_metrics_location, current_set_of_graphs_loc,
                  avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
-                 end_of_training, pod_creation_log, processed_graph_loc, drop_infra_from_graph):#, out_q):
+                 end_of_training, pod_creation_log, processed_graph_loc, drop_infra_from_graph):
+                 #sensitive_ms):#, out_q):
 
+        #self.sensitive_ms = sensitive_ms
         self.drop_infra_from_graph = drop_infra_from_graph
         self.list_of_injected_graphs_loc = []
         self.time_granularity = time_granularity
@@ -416,7 +500,7 @@ class set_of_injected_graphs():
             #print "cur_contents", cur_contents
             self.calculated_values = pickle.loads(cur_contents)
 
-    def calcuated_single_step_metrics(self):
+    def calcuated_single_step_metrics(self, sensitive_ms):
         print("self.list_of_injected_graphs_loc",self.list_of_injected_graphs_loc)
         overall_graph_feature_dict_keys = set()
         for counter, injected_obj_loc in enumerate(self.list_of_injected_graphs_loc):
@@ -426,7 +510,7 @@ class set_of_injected_graphs():
             with open(injected_obj_loc, 'r') as input_file:
                 injected_graph_obj = pickle.load(input_file)
 
-            graph_feature_dict_keys = injected_graph_obj.calc_single_step_metrics()
+            graph_feature_dict_keys = injected_graph_obj.calc_single_step_metrics(sensitive_ms)
             overall_graph_feature_dict_keys = overall_graph_feature_dict_keys.union(set(graph_feature_dict_keys))
             #injected_graph_obj.calc_existing_single_step_metrics()
             injected_graph_obj.save_metrics_dict()
