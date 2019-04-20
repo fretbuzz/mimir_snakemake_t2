@@ -202,7 +202,6 @@ class multi_experiment_pipeline(object):
                                                             self.rate_to_time_gran_to_outtraffic, self.auto_open_pdfs)
 
     ## NOTE: I'm going to try to do this WITHOUT the call to multi-process here!!ee
-    # todo: i think I want to return a results dataframe/table here... maybe do that next???
     def run_single_pipeline(self, rate_counter, calc_vals, skip_graph_injection, calc_ide=False, include_ide=False,
                             only_ide=False, no_labeled_data=False):
         prefix_for_inject_params = 'avg_exfil_' + str(self.avg_exfil_per_min[rate_counter]) + ':' + str(
@@ -352,7 +351,7 @@ class multi_experiment_pipeline(object):
         cur_base_output_name = self.base_output_name + '_lower_per_path_exfil_report_'
         sav2_object = single_rate_stats_pipeline(timegran_to_df_max_exfil, self.ROC_curve_p, cur_base_output_name,
                                                  self.names, self.skip_model_part, 'varies', 'varies', 'varies',
-                                                 'varies')
+                                                 'varies', False)
 
         sav2_object.run_statistical_pipeline(self.drop_pairwise_features, self.pretrained_min_pipeline, skip_heatmap_p=self.skip_heatmap_p)
         sav2_object.create_the_report(self.auto_open_pdfs)

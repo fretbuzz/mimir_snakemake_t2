@@ -116,39 +116,65 @@ class injected_graph():
             except:
                 self.graph_feature_dict[cur_svc_pair_of_coef] = 0.0
 
+        #####
+
         betweeness_centrality_nodes = nx.betweenness_centrality(self.cur_1si_G, weight='weight',endpoints=True, normalized=True)
-        betweeness_centrality_coef_var_of_classes,betweeness_centrality_mean, bc_max = find_coef_of_var_for_nodes(betweeness_centrality_nodes, svc_to_pod_with_outside)
+        betweeness_centrality_coef_var_of_classes,betweeness_centrality_mean, bc_max = \
+            find_coef_of_var_for_nodes(betweeness_centrality_nodes, svc_to_pod_with_outside)
+
+        self.graph_feature_dict = add_c_metric(self.graph_feature_dict, betweeness_centrality_coef_var_of_classes,
+                                    betweeness_centrality_mean, bc_max, svc_to_pod_with_outside, 'betweeness_centrality')
+
         load_centrality_nodes = nx.load_centrality(self.cur_1si_G, weight='weight')
-        load_centrality_coef_var_of_classes,load_centrality_mean, lc_max = find_coef_of_var_for_nodes(load_centrality_nodes, svc_to_pod_with_outside)
+        load_centrality_coef_var_of_classes,load_centrality_mean, lc_max = \
+            find_coef_of_var_for_nodes(load_centrality_nodes, svc_to_pod_with_outside)
+
+        self.graph_feature_dict = add_c_metric(self.graph_feature_dict, load_centrality_coef_var_of_classes,
+                                               load_centrality_mean, lc_max, svc_to_pod_with_outside, 'load_centrality')
+
         harmonic_centrality_nodes = nx.harmonic_centrality(self.cur_1si_G, distance='weight')
-        harmonic_centrality_coef_var_of_classes, harmonic_centrality_mean, hc_max = find_coef_of_var_for_nodes(harmonic_centrality_nodes, svc_to_pod_with_outside)
+        harmonic_centrality_coef_var_of_classes, harmonic_centrality_mean, hc_max = \
+            find_coef_of_var_for_nodes(harmonic_centrality_nodes, svc_to_pod_with_outside)
 
+        self.graph_feature_dict = add_c_metric(self.graph_feature_dict, harmonic_centrality_coef_var_of_classes,
+                                               harmonic_centrality_mean, hc_max, svc_to_pod_with_outside, 'harmonic_centrality')
+
+        dict_of_clustering_coef = nx.clustering(self.cur_1si_G, nodes=svc_to_pod_with_outside, weight='weight')
+        clustering_coef_coef_of_var, clustering_coef_mean, clustering_coef_max = \
+            find_coef_of_var_for_nodes(dict_of_clustering_coef, svc_to_pod_with_outside)
+        self.graph_feature_dict = add_c_metric(self.graph_feature_dict, clustering_coef_coef_of_var,
+                                               clustering_coef_mean, clustering_coef_max, svc_to_pod_with_outside, 'clustering_coef')
+
+
+
+        # this currently exists for legacy reasons, but if the code above works, then I can safely delete it...
         for service in svc_to_pod_with_outside.keys():
-            #self.graph_feature_dict['eigenvector_centrality_coef_of_var_' + str(service)] = eigenvector_centrality_coef_var_of_classes[service]
-            #self.graph_feature_dict['information_centrality_coef_of_var_' + str(service)] = information_centrality_coef_var_of_classes[service]
-            self.graph_feature_dict['betweeness_centrality_coef_of_var_' + str(service)] = betweeness_centrality_coef_var_of_classes[service]
-            #self.graph_feature_dict['current_flow_betweeness_centrality_coef_of_var_' + str(service)] = current_flow_betweenness_centrality_coef_var_of_classes[service]
-            self.graph_feature_dict['load_centrality_coef_of_var_' + str(service)] = load_centrality_coef_var_of_classes[service]
-            self.graph_feature_dict['harmonic_centrality_coef_of_var_' + str(service)] = harmonic_centrality_coef_var_of_classes[service]
+            pass
+            #self.graph_feature_dict['betweeness_centrality_coef_of_var_' + str(service)] = betweeness_centrality_coef_var_of_classes[service]
+            #self.graph_feature_dict['load_centrality_coef_of_var_' + str(service)] = load_centrality_coef_var_of_classes[service]
+            #self.graph_feature_dict['harmonic_centrality_coef_of_var_' + str(service)] = harmonic_centrality_coef_var_of_classes[service]
 
-            dict_of_clustering_coef = nx.clustering(self.cur_1si_G, nodes=svc_to_pod_with_outside[service], weight='weight')
-            avg_clustering_coef = np.sum(dict_of_clustering_coef.values()) / len(dict_of_clustering_coef.keys())
-            self.graph_feature_dict['avg_clustering_coef_of' + str(service)] = avg_clustering_coef
-            clustering_coef_coef_of_var,clustering_coef_mean, clustering_coef_max = \
-                                find_coef_of_var_for_nodes(dict_of_clustering_coef, svc_to_pod_with_outside)
-            self.graph_feature_dict['clustering_coef_of_var_' + str(service)] = clustering_coef_coef_of_var[service]
-            self.graph_feature_dict['avg_clustering_coef_' + str(service)] = clustering_coef_mean[service]
+            #dict_of_clustering_coef = nx.clustering(self.cur_1si_G, nodes=svc_to_pod_with_outside[service], weight='weight')
+            #avg_clustering_coef = np.sum(dict_of_clustering_coef.values()) / len(dict_of_clustering_coef.keys())
 
-            self.graph_feature_dict['avg_betweeness_centrality_' + str(service)] = betweeness_centrality_mean[service]
-            self.graph_feature_dict['avg_load_centrality_' + str(service)] = load_centrality_mean[service]
-            self.graph_feature_dict['avg_harmonic_centrality_' + str(service)] = harmonic_centrality_mean[service]
+            #self.graph_feature_dict['avg_clustering_coef_of' + str(service)] = avg_clustering_coef
+            #clustering_coef_coef_of_var,clustering_coef_mean, clustering_coef_max = \
+            #                    find_coef_of_var_for_nodes(dict_of_clustering_coef, svc_to_pod_with_outside)
 
-            ## TODO: add the new max terms here...
-            self.graph_feature_dict['max_load_centrality_' + str(service)] = lc_max[service]
-            self.graph_feature_dict['max_betweeness_centrality_' + str(service)] = bc_max[service]
-            self.graph_feature_dict['max_harmonic_centrality_' + str(service)] = hc_max[service]
-            self.graph_feature_dict['max_clustering_coef_' + str(service)] = clustering_coef_max[service]
+            #self.graph_feature_dict['clustering_coef_of_var_' + str(service)] = clustering_coef_coef_of_var[service]
+            #self.graph_feature_dict['avg_clustering_coef_' + str(service)] = clustering_coef_mean[service]
+            #self.graph_feature_dict['max_clustering_coef_' + str(service)] = clustering_coef_max[service]
 
+            #self.graph_feature_dict['avg_betweeness_centrality_' + str(service)] = betweeness_centrality_mean[service]
+            #self.graph_feature_dict['avg_load_centrality_' + str(service)] = load_centrality_mean[service]
+            #self.graph_feature_dict['avg_harmonic_centrality_' + str(service)] = harmonic_centrality_mean[service]
+
+            ## add the new max terms here...
+            #self.graph_feature_dict['max_load_centrality_' + str(service)] = lc_max[service]
+            #self.graph_feature_dict['max_betweeness_centrality_' + str(service)] = bc_max[service]
+            #self.graph_feature_dict['max_harmonic_centrality_' + str(service)] = hc_max[service]
+
+        ######
 
         try: # this try-except exists b/c sockshop doesn't have this entry in the graph_feature_dict
             if math.isnan(self.graph_feature_dict['outside_to_wwwppp-wordpress_edge_coef_of_var']):
@@ -217,6 +243,16 @@ class injected_graph():
     def _create_class_level_graph(self):
         self.cur_class_G = prepare_graph(self.cur_1si_G, self.svcs, 'class', 0, self.counter, self.injected_graph_loc,
                                     self.ms_s, self.container_to_ip, self.infra_instances)
+
+def add_c_metric(feature_dict, coefvar_dict, mean_dict, max_dict, svc_to_pod, metric_name):
+    for service in svc_to_pod.keys():
+        feature_dict[metric_name + '_coef_of_var_' + str(service)] = coefvar_dict[service]
+
+        feature_dict['avg_' + metric_name + '_'  + str(service)] = mean_dict[service]
+
+        feature_dict['max_' + metric_name + '_' + str(service)] = max_dict[service]
+
+    return feature_dict
 
 class set_of_injected_graphs():
     def __init__(self, time_granularity, raw_edgefile_names,
