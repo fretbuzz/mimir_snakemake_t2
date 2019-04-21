@@ -7,28 +7,20 @@ from networkx.drawing.nx_agraph import graphviz_layout
 from itertools import chain
 
 
-# TODO: at some point, what I probably want to do is pass in the hosting machine's IP addresses, b/c I'm justing using heuristics
-# to identify it ATM
-def is_private_ip(addr_bytes):
+def is_private_ip(addr_bytes, ip_gatway):
     # note: i am going to assume that if the ip is not loopback or in the  '10.X.X.X' subnet, then it is outside
 
     # private_subnet_one = ('10.0.0.0', '10.255.255.255') # so if 10.XX.XX.XX
     # private_subnet_two = ('172.16.0.0', '172.31.255.255') # so if
     # private_subnet_three = ('192.168.0.0', '192.168.255.255') # so if 192.168.XX.XX
 
-    ### TODO : better waY: just make all private IP addresses not in the outside, private
-
     if addr_bytes[0] == '10':
         return True
     elif addr_bytes[0] == '127' and addr_bytes[1] == '0' and addr_bytes[2] == '0' and addr_bytes[3] == '1':
         return True # loopback is definitely private
-    elif addr_bytes[0] == '172' and addr_bytes[1] == '17' and addr_bytes[2] == '0' and addr_bytes[3] != '1':
-    #    # this corresponds to pods in the minikube cluster... tho if I change the experimental apparatus, that might change too
+    elif addr_bytes[0] == ip_gatway[0] and addr_bytes[1] == ip_gatway[1] and addr_bytes[2] == ip_gatway[2] and \
+                    addr_bytes[3] != ip_gatway[3]:
         return True
-    # todo: this is a heuristic way to identify the host machine's IP
-    elif addr_bytes[0] == '192' and addr_bytes[1] == '168'  and addr_bytes[3] != '1':
-       return True # assuming that the only 192.168.XX.1 addresses will be the hosting computer
-    # actually 172.17.0.1 can effectively be treated as an outside entity, due to NAT-like behavior
     else:
         return False
 
@@ -141,33 +133,65 @@ def is_ip(node_str):
 # node, with the name 'outside'
 # it identifies outside nodes by assuming that all in-cluster nodes either labeled, loopback,
 # or in the '10.X.X.X' subnet
-def aggregate_outside_nodes(G):
+### TODO: should pass the default params in from the calling function... (can be passed in from my dump of the docker network + logs)
+def aggregate_outside_nodes(G, gateway_ip = '172.17.0.1', minikube_ip = '192.168.99.100'):
     outside_nodes = []
+
+    #minikube_ip = is_ip(minikube_ip)
+    #gateway_ip = is_ip(gateway_ip)
 
     for node in G.nodes():
         # okay, now check if the node is in the outside
         #print "aggregate_outside_nodes", node
         addr_bytes = is_ip(node)
         if ( addr_bytes ):
-            if (not is_private_ip(addr_bytes)):
+            #if ((not is_private_ip(addr_bytes) or addr_bytes == gateway_ip) and addr_bytes != minikube_ip):
+            # for now, we are keeping the docker network gateway as a seperate node
+            if (not is_private_ip(addr_bytes, is_ip(gateway_ip)) and node != minikube_ip and node != gateway_ip):
                 outside_nodes.append( node )
                 # might wanna put below line back in...
                 #print "new outside node!", node
-    # might wanna put below line back in...
-    #print "outside nodes", outside_nodes
-    #try:
-    #print("trying...")
+
     if len(outside_nodes) == 0: #probably already aggregated
         H = G.copy()
         return H
 
-    first_node = outside_nodes[0]
     H = G.copy()
-    for cur_node in outside_nodes[1:]:
+    H = consolidate_nodes(H, outside_nodes)
+
+    ## now implement the compensation mechanism here...
+    ## then walk through it and then go home...
+    for cur_node in H.nodes():
+        #print "cur_node", cur_node
+        sending_nodes = [u for u,v,d in H.in_edges(cur_node, data=True)]
+        receiving_nodes = [v for u,v,d in H.out_edges(cur_node, data=True)]
+        # if the docker network gateway sends no traffic to the pod in question, then we can safely ignore it
+        if gateway_ip not in sending_nodes:
+            continue
+        # but if the docker network gatway does send traffic to the pod, then does the pod send traffic to the outside??
+        if 'outside' not in receiving_nodes:
+            # if it does not, then the only data exchanged is stuff from the kubelet, so we can just delete it and move on
+            H.remove_edge(gateway_ip, cur_node)
+            if cur_node != gateway_ip: # why would this happen
+                H.remove_edge(cur_node, gateway_ip)
+        else:
+            # if it does, then we cannot tell whether the traffic from the gateway is from the actual outside or from the
+            # kubelet. In this case, we should keep node->outside and gateway->node, but delete node->gateway
+            H.remove_edge(cur_node, gateway_ip)
+
+    # and then consolidate again
+    outside_nodes = ['outside', gateway_ip]
+    H = consolidate_nodes(H, outside_nodes)
+
+    return H
+
+def consolidate_nodes(H, nodes_to_consolidate):
+    first_node = nodes_to_consolidate[0]
+    for cur_node in nodes_to_consolidate[1:]:
         ## going to modify the exp_support_scripts code for contracted_edges in networkx 1.10
         ##  ## https://networkx.github.io/documentation/networkx-1.10/_modules/networkx/algorithms/minors.html#contracted_nodes
-        in_edges = ((w, first_node, d) for w, x, d in G.in_edges(cur_node, data=True))
-        out_edges = ((first_node, w, d) for x, w, d in G.out_edges(cur_node, data=True))
+        in_edges = ((w, first_node, d) for w, x, d in H.in_edges(cur_node, data=True))
+        out_edges = ((first_node, w, d) for x, w, d in H.out_edges(cur_node, data=True))
         new_edges = chain(in_edges, out_edges)
         #print("new_edges_chain...", new_edges)
         for new_edge in new_edges:
@@ -189,8 +213,6 @@ def aggregate_outside_nodes(G):
         #G = nx.contracted_nodes(G, first_node, cur_node, self_loops=False)
     mapping = {first_node: 'outside'}
     nx.relabel_nodes(H, mapping, copy=False)
-    #except:
-    #    pass
     return H
 
 # aggregate all nodes of the same class into a single node
