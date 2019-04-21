@@ -6,8 +6,8 @@
   "make_edgefiles": false,
   "skip_graph_injection": true,
   "calc_vals": true,
-  "calculate_z_scores": true,
-  "get_endresult_from_memory": true,
+  "calculate_z_scores": false,
+  "get_endresult_from_memory": false,
 
   "perform_cilium_component": false,
 

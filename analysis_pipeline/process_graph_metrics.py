@@ -9,8 +9,6 @@ import scipy.stats
 import logging
 from sklearn.preprocessing import RobustScaler
 
-# TODO: NOTE: I'm 90% sure that this function is wrong...
-#### TODO: WELL IT'S FINALLY TIME TO FIX IT!!!!
 # exfil_rate used to determine if there should be a gap between exfil labels
 def generate_attack_labels(time_gran, exfil_startEnd_times, exp_length):
     # let's find the specific time intervals during the exfil period (note: potentially not all of the time intervals

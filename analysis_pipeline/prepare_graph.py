@@ -195,8 +195,19 @@ def aggregate_outside_nodes(G):
 
 # aggregate all nodes of the same class into a single node
 # let's use a multigraph, so we can keep all the edges as intact...
-def aggregate_graph(G, ms_s):
+def aggregate_graph(G, containers_to_ms):
+    containers_to_ms['outside'] = 'outside'
+    # step 1: convert containers_to_ms to ms_to_container
+    '''
+    ms_to_container = {}
+    for container,ms in containers_to_ms.iteritems():
+        if ms not in ms_to_container:
+            ms_to_container[ms] = []
+        ms_to_container[ms].append( container )
+    '''
+
     H = nx.MultiDiGraph()
+    '''
     mapping = {}
     mapping_node_to_ms = {}
     for ms in ms_s:
@@ -208,22 +219,26 @@ def aggregate_graph(G, ms_s):
                 mapping[ms].append(node)
                 mapping_node_to_ms[node] = ms
                 break
+    '''
     # note: might wanna re-enable the below line...
     # print mapping_node_to_ms
     for (u, v, data) in G.edges(data=True):
         # print (u,v,data)
-        try:
-            H.add_edge(mapping_node_to_ms[u], mapping_node_to_ms[v], weight=data['weight'],
-                       frames=data['frames'])
-        except:
-            # might wanna put back in vvv
-            # print "this edge did NOT show up in the map!", (u,v,data)
+        #try:
+        #    H.add_edge(containers_to_ms[u], containers_to_ms[v], weight=data['weight'],
+        #               frames=data['frames'])
+        #except:
+        # might wanna put back in vvv
+        # print "this edge did NOT show up in the map!", (u,v,data)
 
-            if u in mapping_node_to_ms:
-                u = mapping_node_to_ms[u]
-            if v in mapping_node_to_ms:
-                v = mapping_node_to_ms[v]
-            H.add_edge(u, v, weight=data['weight'], frames=data['frames'])
+        #if u in containers_to_ms:
+        #    u = containers_to_ms[u]
+        #if v in containers_to_ms:
+        #    v = containers_to_ms[v]
+
+        u = containers_to_ms[u]
+        v = containers_to_ms[v]
+        H.add_edge(u, v, weight=data['weight'], frames=data['frames'])
 
     pos = graphviz_layout(H)
     nx.draw_networkx(H, pos, with_labels=True, arrows=True)
@@ -290,8 +305,8 @@ def prepare_graph(G, svcs, level_of_processing, is_swarm, counter, file_path, ms
                   infra_instances, drop_infra_p):
     G = copy.deepcopy(G)
     G = aggregate_outside_nodes(G)
+    containers_to_ms = map_nodes_to_svcs(G, None, container_to_ip)
     if level_of_processing == 'app_only':
-        containers_to_ms = map_nodes_to_svcs(G, None, container_to_ip)
         nx.set_node_attributes(G, containers_to_ms, 'svc')
         if drop_infra_p:
             infra_nodes = find_infra_components_in_graph(G, infra_instances)
@@ -305,7 +320,7 @@ def prepare_graph(G, svcs, level_of_processing, is_swarm, counter, file_path, ms
                                ms_s=ms_s)
         return induced_graph
     elif level_of_processing == 'class':
-        aggreg_multi_G, aggreg_simple_G = aggregate_graph(G, ms_s)# + infra_service)
+        aggreg_multi_G, aggreg_simple_G = aggregate_graph(G, containers_to_ms)# + infra_service)
         if counter < 85:
             filename = file_path.replace('.txt', '') + '_network_graph_class.png'
             make_network_graph(aggreg_simple_G, edge_label_p=True, filename=filename, figsize=(16, 10),
