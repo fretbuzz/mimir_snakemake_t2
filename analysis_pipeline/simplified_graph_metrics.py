@@ -929,7 +929,7 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
                 if 'outside' in u or 'outside' in v:
                     print (u,v,d)
             print "into_outside_bytes equals ZERO!! CRAZY!!!"
-            exit(222) # it can happen sometimes...
+            #exit(222) # it can happen sometimes...
 
         del injected_graph_obj  # help??
         cur_1si_G.clear()
