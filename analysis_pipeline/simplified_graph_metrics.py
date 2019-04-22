@@ -83,6 +83,8 @@ class injected_graph():
         self.cur_1si_G = set_weight_inverse(self.cur_1si_G) ## ??
         self.cur_class_G = set_weight_inverse(self.cur_class_G) ##???
         undirected_class_G = create_unweighted_graph(self.cur_class_G)
+        # want undirected graph to have a single connected component...
+        undirected_class_G = undirected_class_G.subgraph(max(nx.connected_components(undirected_class_G), key=len)).copy()
         undirected_class_G =  set_weight_inverse(undirected_class_G)
         ### ^^ note: this is used down below with random-walk betweeness...
 
@@ -113,7 +115,6 @@ class injected_graph():
             cur_recip_key = str(svc_pair[0]) + '_to_' + str(svc_pair[1]) + '_reciprocity'
             cur_density_key = str(svc_pair[0]) + '_to_' + str(svc_pair[1]) + '_density'
             cur_svc_pair_of_coef = str(svc_pair[0]) + '_to_' + str(svc_pair[1]) + '_edge_coef_of_var'
-
 
             self.graph_feature_dict[cur_recip_key] = reciprocity
             self.graph_feature_dict[cur_density_key] = svc_pair_to_density[svc_pair]
@@ -219,7 +220,9 @@ class injected_graph():
         #                                       cfbc_mean, cfbc_max, svc_to_pod_with_outside, 'current_flow_bc_')
 
         # normal weight instead of inverse weight b/c which path taken is proportional to the weight... which is what we want.
+        #try:
         cfbc_nodes = nx.current_flow_betweenness_centrality(undirected_class_G, weight='weight')
+        #except:
         for service in svc_to_pod_with_outside.keys():
             try:
                 self.graph_feature_dict['class_current_flow_bc_' + service] = cfbc_nodes[service]
@@ -228,24 +231,33 @@ class injected_graph():
 
         ######
         ######
-        cfbc_sub_nodes = nx.current_flow_betweenness_centrality_subset(undirected_class_G, weight='weight',
+        try:
+            cfbc_sub_nodes = nx.current_flow_betweenness_centrality_subset(undirected_class_G, weight='weight',
                                                             targets=['outside'], sources=[sensitive_ms], normalized=True)
+        except:
+            pass # if cannot reach outside, there will be a key error... and we'll want all of the values to be 0.0...
+                 # this'll be handled by the code below so we can just pass here...
+
         for service in svc_to_pod_with_outside.keys():
             try:
                 self.graph_feature_dict['class_current_flow_bc_sub_' + service] = cfbc_sub_nodes[service]
             except:
-                self.graph_feature_dict['class_current_flow_bc_sub_' + service] = float('NaN')
+                self.graph_feature_dict['class_current_flow_bc_sub_' + service] = 0.0 #float('NaN')
 
         print [i for i in self.cur_1si_G.nodes()]
         print [i for i in self.cur_class_G.nodes()]
-        betweeness_centrality_subset_nodes = nx.betweenness_centrality_subset(self.cur_class_G, weight='inverse_weight',
+        try:
+            betweeness_centrality_subset_nodes = nx.betweenness_centrality_subset(self.cur_class_G, weight='inverse_weight',
                                                                               targets=['outside'], sources=[sensitive_ms],
                                                                               normalized=True)
+        except:
+            pass ## same reasoning as above (in the previous centrality measure...)
+
         for service in svc_to_pod_with_outside.keys():
             try:
                 self.graph_feature_dict['class_betweeness_centrality_sub_' + service] = betweeness_centrality_subset_nodes[service]
             except:
-                self.graph_feature_dict['class_betweeness_centrality_sub_' + service] = float('NaN')
+                self.graph_feature_dict['class_betweeness_centrality_sub_' + service] = 0.0 #float('NaN')
 
         #cfbc_sub_pods = nx.current_flow_betweenness_centrality_subset(self.cur_1si_G, weight='weight',
         #                                                               targets=['outside'],
@@ -256,10 +268,17 @@ class injected_graph():
         #self.graph_feature_dict = add_c_metric(self.graph_feature_dict, cfbc_sub_pods_coefvar,
         #                                       cfbc_sub_pods_mean, cfbc_sub_pods_max, svc_to_pod_with_outside, 'current_flow_bc_sub_')
 
-        betweeness_centrality_subset_pods = nx.betweenness_centrality_subset(self.cur_1si_G, weight='inverse_weight',
+        try:
+            betweeness_centrality_subset_pods = nx.betweenness_centrality_subset(self.cur_1si_G, weight='inverse_weight',
                                                                               targets=['outside'],
                                                                              sources=svc_to_pod_with_outside[sensitive_ms],
                                                                               normalized=True)
+        except:
+            betweeness_centrality_subset_pods = {}
+            for svc,pods in svc_to_pod_with_outside.iteritems():
+                for pod in pods:
+                    betweeness_centrality_subset_pods[pod] = 0.0
+
         bc_sub_pods_coefvar, bc_sub_pods_mean, bc_sub_pods_max = find_coef_of_var_for_nodes(betweeness_centrality_subset_pods, svc_to_pod_with_outside)
         self.graph_feature_dict = add_c_metric(self.graph_feature_dict, bc_sub_pods_coefvar,
                                                bc_sub_pods_mean, bc_sub_pods_max, svc_to_pod_with_outside, 'bc_sub_')
@@ -338,14 +357,24 @@ class injected_graph():
 # heavier paths should actually be treated as LESS heavy w.r.t. to the graph community's definition of weight
 def set_weight_inverse(G):
     for (u,v,d) in G.edges(data=True):
-        G[u][v]['inverse_weght'] = (1.0 / float(d['weight'])) # no, i don't think it does anything... * 1000 # TODO is the 1000 necessary for scaling problems???
+        if d['weight'] == 0:
+            G.remove_edge(u,v)
+        else:
+            G[u][v]['inverse_weight'] = (1.0 / float(d['weight'])) # no, i don't think it does anything... * 1000 # TODO is the 1000 necessary for scaling problems???
     return G
 
 def create_unweighted_graph(G):
     G_undirected = copy.deepcopy(G)
     G_undirected = G_undirected.to_undirected()
+    # want to make sure that none of the edges are over-counted...
+    # first, set all edge weights to zero...
     for (u,v,d) in G.edges(data=True):
-        G_undirected[u][v]['weight'] = G[u][v]['weight'] + G[v][u]['weight']
+        G_undirected[u][v]['weight'] = 0
+    # then add the values appropriately...
+    # (only use in edges so that no values are counted twice...)
+    for cur_node in G.nodes():
+        for (u,v,d) in G.in_edges(cur_node, data=True):
+            G_undirected[u][v]['weight'] += G[u][v]['weight'] #+ G[v][u]['weight']
     return G_undirected
 
 def add_c_metric(feature_dict, coefvar_dict, mean_dict, max_dict, svc_to_pod, metric_name):

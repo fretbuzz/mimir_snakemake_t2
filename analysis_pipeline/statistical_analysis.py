@@ -488,9 +488,19 @@ def drop_useless_columns_aggreg_DF(aggregate_mod_score_dfs):
 
     for column in aggregate_mod_score_dfs:
         #if ('centrality' in column or 'clustering' in column) and 'sub_' not in column:
-        if 'sub_' not in column and column.count('_') >= 3:
-            aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns=column)
+        #if 'sub_' not in column and column.count('_') >= 3:
+        #if 'current_flow_bc_sub_' not in column and column.count('_') >= 3:
+        #if 'current_flow_bc_' not in column and column.count('_') >= 3:
+        #if 'current_flow_bc_' not in column and column.count('_') >= 3 or 'sub_' in column:
+        #if 'current_flow_bc_' not in column and column.count('_') >= 3:
 
+        ##  _reciprocity, _density, _edge_coef_of_var
+        #if 'class_harmonic_centrality_' not in column and column.count('_') >= 3 and '_reciprocity' not in column and \
+        #    '_edge_coef_of_var' not in column:
+        if column.count('_') >= 3 and '_reciprocity' not in column and '_edge_coef_of_var' not in column and \
+            'class_harmonic_centrality_' not in column and 'harmonic_centrality_coef_of_var_' not in column:
+            aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns=column)
+        ##### ### # ### #####
 
     #amt_of_out_traffic_pkts
     #''' ## put in at some point -- right now it is interesting that it cannot get 100% when the literal

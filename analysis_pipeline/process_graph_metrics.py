@@ -222,6 +222,7 @@ def normalize_data_v2(time_gran_to_feature_dataframe, time_gran_to_attack_labels
         ## actually, several statistics professors tell me that this is indeed a property of the LASSO- you need to
         # bound it for extreme values.
         transformed_data = np.minimum(transformed_data, 100) #100
+        transformed_data = np.maximum(transformed_data, -100) #100
 
         time_gran_to_normalized_df[time_gran] = pandas.DataFrame(transformed_data, index=feature_dataframe.index,\
                                                                  columns=feature_dataframe.columns.values) #df_normalized
