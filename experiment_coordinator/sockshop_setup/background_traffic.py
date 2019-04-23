@@ -9,11 +9,11 @@ import time
 from pop_db import get_random_num, gen_random
 
 # this way we can simulate users using already-existing accounts
-with open( "users.pickle", "rb" ) as f:
-    users = pickle.loads( f.read() )
+#with open( "users.pickle", "rb" ) as f:
+#    users = pickle.loads( f.read() )
 
 class BackgroundTraffic(TaskSet):
-    #'''
+    '''
     # the way I wrote this script, these are really the times between new users showing up
     min_wait = 2000
     max_wait = 4000
