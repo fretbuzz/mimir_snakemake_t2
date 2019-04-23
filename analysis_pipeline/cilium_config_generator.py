@@ -95,7 +95,7 @@ def cal_host2svc(hosts, svcs):
                 break
     return host2svc
 
-def calc_svc2svc_communcating(host2svc, communicating_hosts, vip_debugging):
+def calc_svc2svc_communcating(host2svc, communicating_hosts, vip_debugging, gateway_ip):
     communicatng_svcs = set()
     for comm_host_pair in communicating_hosts:
         if comm_host_pair[0] in host2svc and not ('VIP' in comm_host_pair[0] and vip_debugging):
@@ -122,12 +122,12 @@ def calc_svc2svc_communcating(host2svc, communicating_hosts, vip_debugging):
 
         if prepare_graph.is_ip(src_svc):
             addr_bytes = prepare_graph.is_ip(src_svc)
-            if not prepare_graph.is_private_ip(addr_bytes):
+            if not prepare_graph.is_private_ip(addr_bytes, gateway_ip):
                 #src_svc = 'outside'
                 src_svc_is_outside = True
         if prepare_graph.is_ip(dst_svc):
             addr_bytes = prepare_graph.is_ip(dst_svc)
-            if not prepare_graph.is_private_ip(addr_bytes):
+            if not prepare_graph.is_private_ip(addr_bytes, gateway_ip):
                 #dst_svc = 'outside'
                 dst_svc_is_outside = True
 
@@ -161,8 +161,9 @@ def generate_cilium_policy(communicating_svc, basefilename):
 
 # this function coordinates the overall functionality of the cilium component of MIMIR
 # for more information, please see comment at top of page
+### TODO: pass in the gateway IP from the calling function...
 def cilium_component(time_length, pcap_location, cilium_component_dir, make_edgefiles_p, svcs, inital_mapping,
-                     pod_creation_log):
+                     pod_creation_log, gateway_ip = '172.17.0.1'):
     make_edgefiles_p = True ## TODO PROBABLY WANT TO REMOVE AT SOME POINT
     vip_debugging = False # this function exists for debugging purposes. It makese the cur_cilium_comms
                          # also print the relevant VIPS and then quit right after. This is useful for
@@ -201,7 +202,7 @@ def cilium_component(time_length, pcap_location, cilium_component_dir, make_edge
     # step (4) generate service-to-ip mapping
     communicating_hosts, hosts = host2_host_comm(edgefile)
     ip_to_svc = cal_host2svc(hosts, svcs)
-    communicatng_svcs = calc_svc2svc_communcating(ip_to_svc, communicating_hosts, vip_debugging)
+    communicatng_svcs = calc_svc2svc_communcating(ip_to_svc, communicating_hosts, vip_debugging, gateway_ip)
 
     output_file_name = './cilium_comp_inouts/cur_cilium_comms'
     netsecoutput_file_name = './cilium_comp_inouts/cur_cilium_netsec_'

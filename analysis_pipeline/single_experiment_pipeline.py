@@ -242,7 +242,7 @@ class data_anylsis_pipline(object):
             # OKAY, let's verify that this determine_attacks_to_times function is wokring before moving on to the next one...
             total_calculated_vals, time_gran_to_list_of_concrete_exfil_paths, time_gran_to_list_of_exfil_amts, \
             time_gran_to_new_neighbors_outside, time_gran_to_new_neighbors_dns, time_gran_to_new_neighbors_all, \
-            time_gran_to_list_of_amt_of_out_traffic_bytes, time_gran_to_list_of_amt_of_out_traffic_pkts= \
+            time_gran_to_list_of_amt_of_out_traffic_bytes, time_gran_to_list_of_amt_of_out_traffic_pkts, time_gran_to_exfil_paths_series = \
                 calculate_raw_graph_metrics(self.time_interval_lengths, self.interval_to_filenames, self.ms_s, self.basegraph_name,
                                             self.calc_vals,
                                             ide_window_size, self.mapping, self.make_net_graphs_p,
@@ -252,7 +252,7 @@ class data_anylsis_pipline(object):
                                             self.skip_graph_injection, self.end_of_training,
                                             self.cluster_creation_log, calc_ide, include_ide, only_ide,
                                             self.basefile_name, drop_infra_from_graph, self.exp_name,
-                                            self.sensitive_ms)
+                                            self.sensitive_ms, time_gran_to_exfil_paths_series)
 
             ## time_gran_to_attack_labels needs to be corrected using time_gran_to_list_of_concrete_exfil_paths
             ## because just because it was assigned, doesn't mean that it is necessarily going to be injected (might
@@ -468,22 +468,23 @@ def process_one_set_of_graphs(time_interval_length, ide_window_size,
                                collected_metrics_location, current_set_of_graphs_loc, calc_vals, out_q,
                               avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
                               skip_graph_injection, end_of_training, pod_creation_log, calc_ide, include_ide,
-                              only_ide, processed_graph_loc, drop_infra_from_graph, sensitive_ms):
+                              only_ide, processed_graph_loc, drop_infra_from_graph, sensitive_ms,
+                              exfil_paths_series):
     print "process_one_set_of_graphs"
     #time.sleep(30)
     if calc_vals and not only_ide:
-        current_set_of_graphs = simplified_graph_metrics.set_of_injected_graphs(time_interval_length,
-                                         filenames, svcs, ms_s, mapping, infra_instances,
-                                         synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
-                                         collected_metrics_location, current_set_of_graphs_loc,
-                                         avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
-                                         end_of_training, pod_creation_log, processed_graph_loc, drop_infra_from_graph)
-
         if skip_graph_injection:
             with open(current_set_of_graphs_loc, mode='rb') as f:
                 current_set_of_graphs_loc_contents = f.read()
                 current_set_of_graphs = pickle.loads(current_set_of_graphs_loc_contents)
         else:
+            current_set_of_graphs = \
+                simplified_graph_metrics.set_of_injected_graphs(time_interval_length, filenames, svcs, ms_s, mapping,
+                                                                infra_instances, synthetic_exfil_paths, initiator_info_for_paths,
+                                                                attacks_to_times, collected_metrics_location, current_set_of_graphs_loc,
+                                                                avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
+                                                                end_of_training, pod_creation_log, processed_graph_loc,
+                                                                drop_infra_from_graph, exfil_paths_series)
             current_set_of_graphs.generate_injected_edgefiles()
             current_set_of_graphs.save() # I think this is valid...
 
@@ -540,10 +541,12 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
                                 avg_exfil_per_min,
                                 exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
                                 skip_graph_injection, end_of_training, pod_creation_log, calc_ide, include_ide,
-                                only_ide, edgefile_path, drop_infra_from_graph, exp_name, sensitive_ms):
+                                only_ide, edgefile_path, drop_infra_from_graph, exp_name, sensitive_ms,
+                                time_gran_to_exfil_paths_series):
     total_calculated_vals = {}
     time_gran_to_list_of_concrete_exfil_paths = {}
     time_gran_to_list_of_exfil_amts = {}
+    time_gran_to_exfil_paths_series_new = {}
     time_gran_to_new_neighbors_outside = {}
     time_gran_to_new_neighbors_dns = {}
     time_gran_to_new_neighbors_all = {}
@@ -568,13 +571,15 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
             if e.errno != errno.EEXIST:
                 raise
 
+        # skip_graph_injection
+
         args = [time_interval_length, ide_window_size,
                 interval_to_filenames[str(time_interval_length)], svcs, ms_s, mapping,
                 infra_instances, synthetic_exfil_paths,  initiator_info_for_paths,
                 time_gran_to_attacks_to_times[time_interval_length], collected_metrics_location, current_set_of_graphs_loc,
                 calc_vals, out_q, avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
                 skip_graph_injection, end_of_training, pod_creation_log, calc_ide, include_ide, only_ide,
-                processed_graph_loc, drop_infra_from_graph, sensitive_ms]
+                processed_graph_loc, drop_infra_from_graph, sensitive_ms, time_gran_to_exfil_paths_series[time_interval_length]]
         p = multiprocessing.Process(
             target=process_one_set_of_graphs,
             args=args)
@@ -587,6 +592,7 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
         new_neighbors_all = out_q.get()
         list_of_amt_of_out_traffic_bytes = out_q.get()
         list_of_amt_of_out_traffic_pkts = out_q.get()
+        list_of_logical_exfil_paths = out_q.get()
 
         p.join()
 
@@ -598,12 +604,14 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
         time_gran_to_new_neighbors_all[time_interval_length] = None # no longer used
         time_gran_to_list_of_amt_of_out_traffic_bytes[time_interval_length] = list_of_amt_of_out_traffic_bytes
         time_gran_to_list_of_amt_of_out_traffic_pkts[time_interval_length] = list_of_amt_of_out_traffic_pkts
+        time_gran_to_exfil_paths_series_new[time_interval_length] = list_of_logical_exfil_paths
 
         #total_calculated_vals.update(newly_calculated_values)
         gc.collect()
     return total_calculated_vals, time_gran_to_list_of_concrete_exfil_paths, time_gran_to_list_of_exfil_amts,\
         time_gran_to_new_neighbors_outside, time_gran_to_new_neighbors_dns, time_gran_to_new_neighbors_all,\
-        time_gran_to_list_of_amt_of_out_traffic_bytes, time_gran_to_list_of_amt_of_out_traffic_pkts
+        time_gran_to_list_of_amt_of_out_traffic_bytes, time_gran_to_list_of_amt_of_out_traffic_pkts, \
+           time_gran_to_exfil_paths_series_new
 
 ## NOTE: portion_for_training is the percentage to devote to using for the training period (b/c attacks will be injected
 ## into both the training period and the testing period)

@@ -120,7 +120,9 @@ class single_model_stats_pipeline():
             #print "self.y_test",self.y_test
             #print "test_predictions", test_predictions
             print "method", method
+            #print "test_predictions", test_predictions
             test_predictions = np.nan_to_num(test_predictions)
+            #print "self.y_test",self.y_test
             fpr, tpr, thresholds = sklearn.metrics.roc_curve(y_true=self.y_test, y_score=test_predictions, pos_label=1)
             list_of_x_vals.append(fpr)
             list_of_y_vals.append(tpr)
@@ -498,7 +500,8 @@ def drop_useless_columns_aggreg_DF(aggregate_mod_score_dfs):
         #if 'class_harmonic_centrality_' not in column and column.count('_') >= 3 and '_reciprocity' not in column and \
         #    '_edge_coef_of_var' not in column:
         if column.count('_') >= 3 and '_reciprocity' not in column and '_edge_coef_of_var' not in column and \
-            'class_harmonic_centrality_' not in column and 'harmonic_centrality_coef_of_var_' not in column:
+            'class_harmonic_centrality_' not in column and 'harmonic_centrality_coef_of_var_' not in column and \
+                'cilium' not in column and '_ide' not in column:
             aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns=column)
         ##### ### # ### #####
 
@@ -850,7 +853,6 @@ def extract_comparison_methods(X_train, X_test):
 
     #### start complicated ide stuff...
     try:
-        pass
         ide_train = copy.deepcopy(X_train['real_ide_angles_'])
         copy_of_X_test = X_test.copy(deep=True)
         ide_test = copy.deepcopy(copy_of_X_test['real_ide_angles_'])

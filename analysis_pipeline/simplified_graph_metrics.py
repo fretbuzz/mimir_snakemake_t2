@@ -389,10 +389,11 @@ def add_c_metric(feature_dict, coefvar_dict, mean_dict, max_dict, svc_to_pod, me
 
 class set_of_injected_graphs():
     def __init__(self, time_granularity, raw_edgefile_names,
-                svcs, ms_s, container_to_ip, infra_instances, synthetic_exfil_paths, initiator_info_for_paths,
-                attacks_to_times, collected_metrics_location, current_set_of_graphs_loc,
+                 svcs, ms_s, container_to_ip, infra_instances, synthetic_exfil_paths, initiator_info_for_paths,
+                 attacks_to_times, collected_metrics_location, current_set_of_graphs_loc,
                  avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
-                 end_of_training, pod_creation_log, processed_graph_loc, drop_infra_from_graph):
+                 end_of_training, pod_creation_log, processed_graph_loc, drop_infra_from_graph,
+                 exfil_paths_series):
                  #sensitive_ms):#, out_q):
 
         #self.sensitive_ms = sensitive_ms
@@ -413,11 +414,13 @@ class set_of_injected_graphs():
         self.end_of_training = end_of_training
         #self.out_q = out_q
         self.pod_creation_log = pod_creation_log
+        self.exfil_paths_series = exfil_paths_series
 
         self.calculated_values = {}
         self.calculated_values_keys = None
 
         self.list_of_concrete_container_exfil_paths = []
+        self.list_of_logical_exfil_paths = []
         self.list_of_exfil_amts = []
 
         self.avg_exfil_per_min = avg_exfil_per_min
@@ -543,6 +546,7 @@ class set_of_injected_graphs():
         out_q.put([])  # new_neighbors_all
         out_q.put(self.list_of_amt_of_out_traffic_bytes)
         out_q.put(self.list_of_amt_of_out_traffic_pkts)
+        out_q.put(self.exfil_paths_series)
         #out_q.put(self.container_to_ip)
 
     def load_serialized_metrics(self):
@@ -697,11 +701,13 @@ class set_of_injected_graphs():
             amt_of_out_traffic_bytes = out_q.get()
             amt_of_out_traffic_pkts = out_q.get()
             container_to_ip = out_q.get()
+            attack_occuring_list = out_q.get()
             p.join()
 
             ## okay, literally the code above should be wrapped in a function call...
             ## however, you'd probably wanna process like 40-50 of these on a single call...
             self.list_of_concrete_container_exfil_paths.extend(concrete_cont_node_path)
+            self.list_of_logical_exfil_paths.extend(attack_occuring_list)
             self.list_of_exfil_amts.extend(pre_specified_data_attribs)
             self.list_of_injected_graphs_loc.extend(injected_graph_obj_loc)
             if amt_of_out_traffic_bytes == 0:
@@ -777,6 +783,7 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
     injected_graph_obj_loc_list = []
     amt_of_out_traffic_bytes = []
     amt_of_out_traffic_pkts = []
+    attack_occuring_list = []
 
     for counter_add, file_path in enumerate(file_paths):
         counter = counter_starting + counter_add
@@ -870,6 +877,10 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
         inject_synthetic_attacks(cur_1si_G, synthetic_exfil_paths, attacks_to_times, counter, node_attack_mapping,
                                  name_of_dns_pod_node, carryover, attack_injected, time_interval, avg_exfil_per_min,
                                  exfil_per_min_variance, avg_pkt_size, pkt_size_variance, container_to_ip)
+        if attack_injected:
+            attack_occuring_list.append(synthetic_exfil_paths[attack_injected])
+        else:
+            attack_occuring_list.append(0)
 
         # new nodes exist now... so need to do a limited amt of re-processing...
         containers_to_ms = map_nodes_to_svcs(cur_1si_G, svcs, container_to_ip)
@@ -982,6 +993,7 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
     out_q.put(amt_of_out_traffic_bytes)
     out_q.put(amt_of_out_traffic_pkts)
     out_q.put(container_to_ip)
+    out_q.put(attack_occuring_list)
 
 def find_amt_of_out_traffic(cur_1si_G):
     into_outside_bytes = 0
