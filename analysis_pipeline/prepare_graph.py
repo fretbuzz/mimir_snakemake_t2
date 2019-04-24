@@ -342,6 +342,7 @@ def prepare_graph(G, svcs, level_of_processing, is_swarm, counter, file_path, ms
                                ms_s=ms_s)
         return induced_graph
     elif level_of_processing == 'class':
+        #print "containers_to_ms",containers_to_ms
         aggreg_multi_G, aggreg_simple_G = aggregate_graph(G, containers_to_ms)# + infra_service)
         if counter < 85:
             filename = file_path.replace('.txt', '') + '_network_graph_class.png'

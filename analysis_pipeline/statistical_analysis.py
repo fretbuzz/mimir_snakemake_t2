@@ -1059,28 +1059,28 @@ def prepare_data(aggregate_mod_score_dfs, skip_model_part, time_gran_to_debuggin
     if drop_pairwise_features:
         aggregate_mod_score_dfs = drop_pairwise_features_func(aggregate_mod_score_dfs)
 
-    if not skip_model_part:
-        #if ignore_physical_attacks_p:
-        #    aggregate_mod_score_dfs = \
-         #       aggregate_mod_score_dfs[~((aggregate_mod_score_dfs['labels'] == 1) &
-         #                                 ((aggregate_mod_score_dfs['exfil_pkts'] == 0) &
-         #                                  (aggregate_mod_score_dfs['exfil_weight'] == 0)))]
+    #if not skip_model_part:
+    #if ignore_physical_attacks_p:
+    #    aggregate_mod_score_dfs = \
+     #       aggregate_mod_score_dfs[~((aggregate_mod_score_dfs['labels'] == 1) &
+     #                                 ((aggregate_mod_score_dfs['exfil_pkts'] == 0) &
+     #                                  (aggregate_mod_score_dfs['exfil_weight'] == 0)))]
 
-        aggregate_mod_score_dfs_training = aggregate_mod_score_dfs[aggregate_mod_score_dfs['is_test'] == 0]
-        aggregate_mod_score_dfs_testing = aggregate_mod_score_dfs[aggregate_mod_score_dfs['is_test'] == 1]
-        time_gran_to_debugging_csv[time_gran] = aggregate_mod_score_dfs.copy(deep=True)
-        print "aggregate_mod_score_dfs_training", aggregate_mod_score_dfs_training
-        print "aggregate_mod_score_dfs_testing", aggregate_mod_score_dfs_testing
-        print aggregate_mod_score_dfs['is_test']
+    aggregate_mod_score_dfs_training = aggregate_mod_score_dfs[aggregate_mod_score_dfs['is_test'] == 0]
+    aggregate_mod_score_dfs_testing = aggregate_mod_score_dfs[aggregate_mod_score_dfs['is_test'] == 1]
+    time_gran_to_debugging_csv[time_gran] = aggregate_mod_score_dfs.copy(deep=True)
+    print "aggregate_mod_score_dfs_training", aggregate_mod_score_dfs_training
+    print "aggregate_mod_score_dfs_testing", aggregate_mod_score_dfs_testing
+    print aggregate_mod_score_dfs['is_test']
 
-    else:
+    #else:
         ## note: generally you'd want to split into test and train sets, but if we're not doing logic
         ## part anyway, we just want quick-and-dirty results, so don't bother (note: so for formal purposes,
         ## DO NOT USE WITHOUT LOGIC CHECKING OR SOLVE THE TRAINING-TESTING split problem)
-        aggregate_mod_score_dfs_training, aggregate_mod_score_dfs_testing = train_test_split(aggregate_mod_score_dfs,
-                                                                                             test_size=0.5)
-        time_gran_to_debugging_csv[time_gran] = aggregate_mod_score_dfs_training.copy(deep=True).append(
-            aggregate_mod_score_dfs_testing.copy(deep=True))
+    #    aggregate_mod_score_dfs_training, aggregate_mod_score_dfs_testing = train_test_split(aggregate_mod_score_dfs,
+    #                                                                                         test_size=0.5)
+    #    time_gran_to_debugging_csv[time_gran] = aggregate_mod_score_dfs_training.copy(deep=True).append(
+    #        aggregate_mod_score_dfs_testing.copy(deep=True))
 
     print aggregate_mod_score_dfs_training.index
     #aggregate_mod_score_dfs_training, aggregate_mod_score_dfs_testing = \

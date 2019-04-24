@@ -296,9 +296,9 @@ if __name__=="__main__":
         print "running_preset..."
         #run_analysis('./analysis_json/hipsterStore_mk1.json')
         #run_analysis('./analysis_json/sockshop_one_auto_mk11long.json')
-        #####run_analysis('./analysis_json/sockshop_mk13.json', eval_config = './analysis_json/sockshop_exfil_test.json', live=True)
+        run_analysis('./analysis_json/sockshop_mk13.json', eval_config = './analysis_json/sockshop_exfil_test.json', live=True)
 
-        run_analysis('./analysis_json/wordpress_one_3_auto_mk5.json', eval_config='./analysis_json/wordpress_one_v2_na_eval.json')
+        ######run_analysis('./analysis_json/wordpress_one_3_auto_mk5.json', eval_config='./analysis_json/wordpress_one_v2_na_eval.json')
         #run_analysis('./analysis_json/sockshop_exfil_test.json')
         #run_analysis('analysis_json/wordpress_model.json', eval_config='analysis_json/wordpress_example.json')
         #run_analysis('./analysis_json/sockshop_one_auto_mk12long.json', eval_config='./analysis_json/sockshop_example.json')
