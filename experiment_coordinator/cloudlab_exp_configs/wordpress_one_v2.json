@@ -1,9 +1,9 @@
 {
     "app_name" : "wordpress",
-    "exp_name" : "wordpress_auto_mk15",
-    "config_file_name" : "/mydata/mimir_v2/experiment_coordinator/experimental_configs/wordpress_exp_two.json",
+    "exp_name" : "wordpress_auto_mk17",
+    "config_file_name" : "/mydata/mimir_v2/experiment_coordinator/experimental_configs/wordpress_exp_five.json",
     "local_dir" : "/Volumes/exM/experimental_data/wordpress_info",
-    "cloudlab_server_ip" : "c220g2-011009.wisc.cloudlab.us",
+    "cloudlab_server_ip" : "c220g2-010631.wisc.cloudlab.us",
     "exp_length" : 10800,
     "physical_attacks_p" : false,
     "cloudlab_private_key" : "/Users/jseverin/Dropbox/cloudlab.pem",
