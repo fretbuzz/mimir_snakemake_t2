@@ -292,6 +292,9 @@ class single_model_stats_pipeline():
             self.method_to_cm_df_test = self._generate_confusion_matrixes(self.method_to_optimal_predictions_test, self.y_test,
                                                                 self.exfil_paths_test, self.exfil_weights_test)
 
+            return self.method_to_cm_df_test[self.method_name]
+        return None
+
 
 class single_rate_stats_pipeline():
     def __init__(self, time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, base_output_name, recipes_used,
@@ -314,6 +317,7 @@ class single_rate_stats_pipeline():
         self.base_output_name = base_output_name + '_lasso'
         self.time_gran_to_aggregate_mod_score_dfs = time_gran_to_aggregate_mod_score_dfs
         self.time_gran_to_predicted_test = {}
+        self.time_gran_to_cm = {}
 
         for timegran,feature_df in self.time_gran_to_aggregate_mod_score_dfs.iteritems():
             if timegran not in self.timegran_to_methods_toattacks_found_training_df:
@@ -349,11 +353,11 @@ class single_rate_stats_pipeline():
 
             #if pretrained_statistical_analysis_v2 == None or (timegran not in pretrained_statistical_analysis_v2.timegran_to_statistical_pipeline):
             if pretrained_statistical_analysis_v2 == None:
-                stat_pipeline.generate_model(using_pretrained_model=False)
+                self.time_gran_to_cm[timegran] = stat_pipeline.generate_model(using_pretrained_model=False)
             else:
                 if timegran in pretrained_statistical_analysis_v2.timegran_to_statistical_pipeline:
                     stat_pipeline.clf = pretrained_statistical_analysis_v2.timegran_to_statistical_pipeline[timegran].clf
-                    stat_pipeline.generate_model(using_pretrained_model=True)
+                    self.time_gran_to_cm[timegran] = stat_pipeline.generate_model(using_pretrained_model=True)
 
             self.time_gran_to_predicted_test[timegran] = stat_pipeline.test_predictions
             self.list_of_optimal_fone_scores_at_this_exfil_rates[timegran].append(stat_pipeline.method_to_optimal_f1_scores_test)
@@ -464,13 +468,13 @@ class single_rate_stats_pipeline():
         ### TODO: what is going on here??? it's still fitting of the training data?? but it should on the testing data...
         #if pretrained_statistical_analysis_v2 == None or (timegran not in pretrained_statistical_analysis_v2.timegran_to_statistical_pipeline):
         if pretrained_statistical_analysis_v2 == None:
-            stats_pipeline.generate_model(using_pretrained_model=False, multi_time_train=True)
+            self.time_gran_to_cm[timegran] = stats_pipeline.generate_model(using_pretrained_model=False, multi_time_train=True)
             self.time_gran_to_predicted_test[timegran] = stats_pipeline.test_predictions
 
         else:
             if timegran in pretrained_statistical_analysis_v2.timegran_to_statistical_pipeline:
                 stats_pipeline.clf = pretrained_statistical_analysis_v2.timegran_to_statistical_pipeline[timegran].clf
-                stats_pipeline.generate_model(using_pretrained_model=True, multi_time_train=True)
+                self.time_gran_to_cm[timegran] = stats_pipeline.generate_model(using_pretrained_model=True, multi_time_train=True)
                 self.time_gran_to_predicted_test[timegran] = stats_pipeline.test_predictions
 
         self.timegran_to_statistical_pipeline[timegran] = stats_pipeline

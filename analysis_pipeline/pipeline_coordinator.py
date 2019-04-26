@@ -192,7 +192,11 @@ class multi_experiment_pipeline(object):
         if self.no_labeled_data and self.skip_model_part:
             return min_rate_statspipelines, self.rate_to_time_gran_to_predicted_test[min(self.avg_exfil_per_min)]
 
-        return min_rate_statspipelines, None
+        rate_to_tg_to_cm = {}
+        for rate,single_rate_statsp in self.single_rate_stats_pipelines.iteritems():
+            rate_to_tg_to_cm[rate] = single_rate_statsp.time_gran_to_cm
+
+        return min_rate_statspipelines, rate_to_tg_to_cm
 
 
     def generate_aggregate_report(self):

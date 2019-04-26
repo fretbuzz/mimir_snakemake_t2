@@ -270,11 +270,13 @@ def run_analysis(training_config, eval_config=None, live=False):
         print "----------------------------"
         print "eval_results:"
 
-        if eval_results:
+        if eval_results and live:
             lowest_timegran = min(eval_results.keys())
             predicted_vals =  eval_results[lowest_timegran] # predicted alert vals at each time granularity
             data = [ (lowest_timegran * counter, val) for counter,val in enumerate(predicted_vals)]
             print(tabulate(data, headers=['time', 'alert_value']))
+        elif eval_results:
+            print eval_results
 
     return eval_results
 
@@ -299,6 +301,7 @@ if __name__=="__main__":
         #run_analysis('./analysis_json/sockshop_mk13.json', eval_config = './analysis_json/sockshop_exfil_test.json', live=True)
         #run_analysis('./analysis_json/sockshop_mk13.json', eval_config = './new_analysis_json/sockshop_mk20.json')
         run_analysis('./analysis_json/sockshop_mk13.json', eval_config = './new_analysis_json/sockshop_mk22.json')
+        #time.sleep(7200)
         #run_analysis('./analysis_json/sockshop_mk13.json', eval_config = './new_analysis_json/sockshop_mk23.json')
         #run_analysis('./analysis_json/sockshop_mk13.json', eval_config = './new_analysis_json/sockshop_mk24.json')
 
