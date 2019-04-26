@@ -594,8 +594,15 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
     subprocess.call(['touch', locust_info_file])
 
     if prob_distro:
-        with open('./sockshop_setup/prob_distro_sock.pickle', 'w') as f:
-            f.write(pickle.dumps(prob_distro))
+        if app_name == "sockshop":
+                with open('./sockshop_setup/prob_distro_sock.pickle', 'w') as f:
+                    f.write(pickle.dumps(prob_distro))
+        elif app_name == "wordpress":
+            with open('./wordpress_setup/prob_distro_wp.pickle', 'w') as f:
+                f.write(pickle.dumps(prob_distro))
+        elif app_name == "hipsterStore":
+            with open('./hipsterStore_setup/prob_distro_hs.pickle', 'w') as f:
+                f.write(pickle.dumps(prob_distro))
 
     #############################################
     # this code is to help sync up the various components
@@ -635,8 +642,12 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
                 print "wordpress_cmds", wordpress_cmds
                 proc = subprocess.Popen(wordpress_cmds, preexec_fn=os.setsid, stdout=devnull, stderr=devnull)
             elif app_name == "hipsterStore":
-                hipsterStore_cmds = ["locust", "-f", "./microservices-demo/src/loadgenerator/locustfile.py", "--host=http://"+ip+ ":" +str(port),
-                                  "--no-web", "-c", str(client_count), "-r", str(spawn_rate), "--csv=" + locust_info_file]
+                #hipsterStore_cmds = ["locust", "-f", "./microservices-demo/src/loadgenerator/locustfile.py", "--host=http://"+ip+ ":" +str(port),
+                #                  "--no-web", "-c", str(client_count), "-r", str(spawn_rate), "--csv=" + locust_info_file]
+                hipsterStore_cmds = ["locust", "-f", "./hipsterStore_setup/background_traffic.py",
+                                     "--host=http://" + ip + ":" + str(port),
+                                     "--no-web", "-c", str(client_count), "-r", str(spawn_rate),
+                                     "--csv=" + locust_info_file]
                 print "hipsterStore_cmds", hipsterStore_cmds
                 proc = subprocess.Popen(hipsterStore_cmds, preexec_fn=os.setsid, stdout=devnull, stderr=devnull)
             else:
