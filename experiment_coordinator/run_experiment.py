@@ -58,6 +58,11 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
     except:
         pass
 
+    try:
+        prob_distro = config_params["prob_distro"]
+    except:
+        prob_distro = None
+
     exfil_methods = ['DET']
     try:
         exfil_methods = config_params["exfiltration_info"]["exfil_methods"]
@@ -188,7 +193,7 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
     thread.start_new_thread(generate_background_traffic, ((int(experiment_length)+2.4), max_client_count,
                 config_params["experiment"]["traffic_type"], config_params["experiment"]["background_locust_spawn_rate"],
                                                           config_params["application_name"], ip, port, experiment_name,
-                                                          sentinal_file_loc))
+                                                          sentinal_file_loc, prob_distro))
 
     # step (4) setup testing infrastructure (i.e. tcpdump)
     for network_id, network_namespace in network_ids_to_namespaces.iteritems():
@@ -453,7 +458,8 @@ def start_det_exfil_originator(exfil_paths, exfil_counter, originator_class, sel
     else:
         print "that exfiltration method was not recognized!"
 
-def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_config, exfil_paths, class_to_installer, exfil_path_class_to_image):
+def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_config, exfil_paths, class_to_installer,
+                exfil_path_class_to_image):
 
     if app_name == "sockshop":
         #sockshop_setup.scale_sockshop.main(deployment_config['deployment_scaling'], deployment_config['autoscale_p'])
@@ -554,14 +560,13 @@ def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_co
 #   time: total time for test. Will be subdivided into 24 smaller chunks to represent 1 hour each
 #   max_clients: Arg provided by user in parameters.py. Represents maximum number of simultaneous clients
 def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate, app_name, ip, port, experiment_name,
-                                sentinal_file_loc):
+                                sentinal_file_loc, prob_distro):
     #minikube = get_IP()#subprocess.check_output(["minikube", "ip"]).rstrip()
     devnull = open(os.devnull, 'wb')  # disposing of stdout manualy
 
     client_ratio = []
     total_succeeded_requests = 0
     total_failed_requests = 0
-
 
     if (traffic_type == "normal"):
         client_ratio = CLIENT_RATIO_NORMAL
@@ -587,6 +592,10 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
         print locust_info_file, "   ", "does not exist"
 
     subprocess.call(['touch', locust_info_file])
+
+    if prob_distro:
+        with open('./sockshop_setup/prob_distro_sock.pickle', 'w') as f:
+            f.write(pickle.dumps(prob_distro))
 
     #############################################
     # this code is to help sync up the various components

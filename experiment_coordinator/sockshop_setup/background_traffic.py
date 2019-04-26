@@ -13,7 +13,6 @@ import os
 with open( "users.pickle", "rb" ) as f:
     users = pickle.loads( f.read() )
 
-## TODO: get the distro....
 if os.path.isfile('prob_distro_sock.pickle'):
     with open('prob_distro_sock.pickle', 'r') as f:
         prob_distr = pickle.loads(f.read())
