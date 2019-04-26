@@ -1,0 +1,45 @@
+{
+    "application_name": "sockshop",
+    "experiment_name": "sockshop_two_mk1",
+    "path_to_docker_machine_tls_certs":"/mydata/.minikube/certs",
+    "experiment_length_sec_comment": 10800,
+    "experiment_length_sec": 360,
+
+    "network_plugin": "none",
+    "setup" : {
+      "number_customer_records": 10000,
+      "number_background_locusts": 80,
+      "background_locust_spawn_rate": 10
+    },
+
+    "experiment" : {
+      "number_background_locusts": 100,
+      "background_locust_spawn_rate": 30,
+      "traffic_type" : "normal"
+    },
+    "prob_distro" : {
+      "buy": 0.3,
+      "browse": 0.5,
+      "register": 0.2
+    },
+
+    "exfiltration_info" : {
+      "sensitive_ms":[ "user-db" ],
+      "physical_attacks": false
+    },
+    "Deployment" : {
+      "deployment_scaling" :
+        {
+          "orders": {"min": 3, "max": 3},
+          "queue-master" : {"min": 3, "max": 3},
+          "shipping": {"min": 3, "max": 3},
+          "catalogue": {"min": 6, "max": 6},
+          "front-end": {"min": 6, "max": 6},
+          "payment": {"min": 6, "max": 6},
+          "user": {"min": 6, "max": 6},
+          "cart": {"min": 4, "max": 4}
+        },
+      "autoscale_p": true
+    },
+    "VM_interfaces" : ["vboxnet0"]
+}

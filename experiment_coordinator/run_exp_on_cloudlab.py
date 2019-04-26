@@ -7,7 +7,7 @@ from pwn import *
 import time
 import json
 
-def retrieve_results(s):
+def retrieve_results(s, experiment_sentinal_file, remote_dir, local_dir):
     print('hello')
 
     # check every five minutes until the sentinal file is present
@@ -56,7 +56,11 @@ def sendline_and_wait_responses(sh, cmd_str, timeout=5):
             sh.sendline('n')
         print("recieved line", line_rec)
 
-def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, use_cilium, physical_attacks_p, skip_app_setup, dont_pull_p):
+def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, use_cilium, physical_attacks_p, skip_app_setup,
+                   dont_pull_p, exp_length, user, cloudlab_private_key, cloudlab_server_ip,
+                   experiment_sentinal_file):
+    exp_length = max(10800, exp_length) # min is 10800 b/c it pauses that long during setup...
+
     s = None
     while s == None:
         try:
@@ -295,12 +299,15 @@ if __name__ == "__main__":
         cloudlab_private_key = config_params["cloudlab_private_key"]
         user = config_params["user"]
 
-    exp_length = max(10800, exp_length) # min is 10800 b/c it pauses that long during setup...
     use_cilium = False
 
     remote_dir = '/mydata/mimir_v2/experiment_coordinator/experimental_data/' + exp_name
     experiment_sentinal_file = '/mydata/mimir_v2/experiment_coordinator/experiment_done.txt'
     sentinal_file = '/mydata/all_done.txt'
+
     s = run_experiment(app_name, config_file_name, exp_name, args.skip_setup_p,
-                       use_cilium, physical_attacks_p, args.skip_app_setup_p, args.dont_pull_p)
-    retrieve_results(s)
+                       use_cilium, physical_attacks_p, args.skip_app_setup_p, args.dont_pull_p,
+                       exp_length, user, cloudlab_private_key, cloudlab_server_ip,
+                       experiment_sentinal_file)
+
+    retrieve_results(s, experiment_sentinal_file, remote_dir, local_dir)
