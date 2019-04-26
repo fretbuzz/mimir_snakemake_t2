@@ -192,6 +192,21 @@ class single_model_stats_pipeline():
 
         self.time_gran_to_debugging_csv[self.time_gran].to_csv(self.debugging_csv_path , na_rep='?')
 
+    # this function will find the cm that results from having <= a specified fp_limit
+    # the point here is to fit allow the formation of the resulting model by decreasing the value
+    # of the exfil rates along the various paths in a coherent way
+    def find_optimal_cm_given_fps(self, fp_limit):
+        fpr_limit = float(fp_limit) / len(self.y_test)
+        fprs, tprs, thresholds = sklearn.metrics.roc_curve(y_true=self.y_test, y_score=self.test_predictions, pos_label=1)
+        fprs_belowLimit = [fpr for fpr in fprs if fpr < fpr_limit]
+        max_fpr_index = np.argmax(fprs_belowLimit)
+        max_fpr = fprs[max_fpr_index]
+        max_threshold = thresholds[max_fpr_index]
+        cur_predictions = [i > max_threshold for i in self.test_predictions]
+        confusion_matrix = determine_categorical_cm_df(self.y_test, cur_predictions,
+                                                       self.exfil_paths_test, self.exfil_weights_test)
+        return confusion_matrix
+
     def generate_report_section(self):
         if not self.skip_heatmaps:
             if  not self.using_pretrained_model:
@@ -384,6 +399,11 @@ class single_rate_stats_pipeline():
             generate_report.join_report_sections(self.recipes_used, self.base_output_name, self.avg_exfil_per_min,
                                                  self.avg_pkt_size, self.exfil_per_min_variance, self.pkt_size_variance,
                                                  self.report_sections, auto_open_p)
+
+    def find_operating_point_given_fps(self, timegran, fp_limit):
+        cur_statspipelines = self.timegran_to_statistical_pipeline[timegran]
+        new_cm = cur_statspipelines.find_optimal_cm_given_fps(fp_limit)
+        return new_cm
 
     def generate_return_values(self):
 

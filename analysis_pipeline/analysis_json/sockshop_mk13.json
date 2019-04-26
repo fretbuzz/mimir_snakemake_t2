@@ -3,11 +3,11 @@
   "exp_config_file": "/Volumes/exM/experimental_data/sockshop_info/sockshop_one_auto_mk13/sockshop_one_auto_mk13_analysis.json",
   "netsec_policy": "../experiment_coordinator/netsec_policies/sockshop_netsec_seg.txt",
 
-  "make_edgefiles": true,
+  "make_edgefiles": false,
   "skip_graph_injection": false,
   "calc_vals": false,
   "calculate_z_scores": false,
-  "get_endresult_from_memory": true,
+  "get_endresult_from_memory": false,
 
   "perform_cilium_component": false,
 

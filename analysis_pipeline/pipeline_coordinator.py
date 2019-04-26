@@ -74,7 +74,7 @@ class multi_experiment_pipeline(object):
                  perform_cilium_component=True, only_perform_cilium_component=True, cilium_component_time=100,
                  drop_pairwise_features=False, max_path_length=15, max_dns_porportion=1.0, drop_infra_from_graph=False,
                  ide_window_size=10, debug_basename=None, pretrained_sav2=None, auto_open_pdfs=True,
-                 skip_heatmap_p=True, no_labeled_data=False):
+                 skip_heatmap_p=True, no_labeled_data=False, time_fraction_fp_increase=0.05):
 
         self.single_rate_stats_pipelines = {}
         self.auto_open_pdfs = auto_open_pdfs
@@ -137,6 +137,7 @@ class multi_experiment_pipeline(object):
         self.skip_heatmap_p = skip_heatmap_p
         self.no_labeled_data = no_labeled_data
         self.rate_to_time_gran_to_predicted_test = {}
+        self.time_fraction_fp = time_fraction_fp_increase
 
     # note: this going to be used to load the pipeline object prior to doing all of this work...
     def loader(self, filename):
@@ -313,10 +314,31 @@ class multi_experiment_pipeline(object):
             exfil_paths.add(tuple((exfil_path,)))
             path_to_cur_rate[tuple((exfil_path,))] = max(exfil_rates)
         exfil_paths = list(exfil_paths)
-        for counter,exfil_path in enumerate(exfil_paths):
-            exfil_path = exfil_path[0]
-            for rate_counter in range(0, len(self.avg_exfil_per_min)):
-                print "counter", counter, type(exfil_path), exfil_path
+
+        ## do I still want to modify lowering via:: find_operating_point_given_fps(self, timegran, fp_limit)??
+        ## b/c if I do... I probably wanna change the logic so that the rate counter goes from big to small
+        ## and then new_exfil_rate_statspipeline to involve th call to find_operating_point_given_fps to get the new operating point...
+        ## (plus the calculation of the fps that are permissible)
+        ## update: it does indeed go from big to smaller (b/c that is how self.avg_exfil_per_min is organized...)
+        ## okay, then it is time to commence operation: find_operating_point_given_fps!!
+        ## should be straightforward, but might add a parameter...
+
+        fp_limit = (float(self.time_fraction_fp) * len(self.rate_to_timegran_to_statistical_pipeline[self.avg_exfil_per_min[0]][
+                            timegran].test_predictions))
+        ## initial FP limit is # of FPs at optimal F1 operating point of highst exfil rate systtem
+        for rate_counter in range(0, len(self.avg_exfil_per_min)):
+            print "cur_fp_limit", fp_limit
+            new_exfil_rate_statspipeline = self.rate_to_timegran_to_statistical_pipeline[self.avg_exfil_per_min[rate_counter]][timegran]
+            new_rate_cm = new_exfil_rate_statspipeline.find_optimal_cm_given_fps(fp_limit)
+            ## do we actually need to do this??? yes we do. as shown by performance at the 60 second granularity...
+            #new_rate_cm = new_exfil_rate_statspipeline.method_to_cm_df_test['ensemble']
+
+            ## note: I am still assuming that the paths are independent... otherwise I'd retrain after every completion
+            ## of the loop through the possible exfil_paths...
+
+            for counter, exfil_path in enumerate(exfil_paths):
+                exfil_path = exfil_path[0]
+                #print "counter", counter, type(exfil_path), exfil_path
                 # step 3: all exfil paths in the feature_df_max_exfil have 'max' detection capabilities ATM...
                 # if I can decrease the rate w/o decreasing the TPR, then I should do so.
                 ## Step 3a: find performance of old rat
@@ -325,23 +347,24 @@ class multi_experiment_pipeline(object):
                 exfil_path_key = tuple(ast.literal_eval(exfil_path.replace('\\','')))
                 #print self.rate_to_timegran_to_statistical_pipeline[path_to_cur_rate[tuple((exfil_path,))]][timegran].method_to_cm_df_train['ensemble']
                 #print self.rate_to_timegran_to_statistical_pipeline[path_to_cur_rate[tuple((exfil_path,))]][timegran].method_to_cm_df_train['ensemble']
-                old_train_dfs = self.rate_to_timegran_to_statistical_pipeline[path_to_cur_rate[tuple((exfil_path,))]][timegran].method_to_cm_df_train['ensemble']
-                cur_exfil_path_performance = old_train_dfs.loc[[exfil_path_key]]
+
+                old_test_dfs = self.rate_to_timegran_to_statistical_pipeline[path_to_cur_rate[tuple((exfil_path,))]][timegran].method_to_cm_df_test['ensemble']
+                cur_exfil_path_performance = old_test_dfs.loc[[exfil_path_key]]
                 cur_exfil_path_tpr = float(cur_exfil_path_performance['tp']) / (cur_exfil_path_performance['tp'] + cur_exfil_path_performance['fn'])
                 cur_exfil_path_tpr = cur_exfil_path_tpr._values[0]
+
                 ## Step 3b: find performance of new rate
-                new_exfil_rate_statspipeline = self.rate_to_timegran_to_statistical_pipeline[self.avg_exfil_per_min[rate_counter]][timegran]
-                new_exfil_path_performance = new_exfil_rate_statspipeline.method_to_cm_df_train['ensemble'].loc[[exfil_path_key]]
+                new_exfil_path_performance = new_rate_cm.loc[[exfil_path_key]]
                 new_exfil_path_tpr = float(new_exfil_path_performance['tp']) / (new_exfil_path_performance['tp'] + new_exfil_path_performance['fn'])
                 new_exfil_path_tpr = new_exfil_path_tpr._values[0]
+
                 ## Step 3c: if new performance just as good, switch
                 ##### note: may due to make modifications b/c increasing TPR could be a result of increasing FPR too
                 if new_exfil_path_tpr >= cur_exfil_path_tpr:
                     feature_df_max_exfil[feature_df_max_exfil['exfil_path'] == exfil_path] = \
                         new_exfil_rate_statspipeline.aggregate_mod_score_df[ new_exfil_rate_statspipeline.aggregate_mod_score_df['exfil_path'] == exfil_path]
-                else:
-                    break # no point checking the lower rates
 
+            ## increase fp limit  based on some  percentage of time length that has been passed as a system parameter...
 
         return feature_df_max_exfil
 
