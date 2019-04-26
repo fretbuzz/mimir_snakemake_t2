@@ -198,11 +198,11 @@ class single_model_stats_pipeline():
     def find_optimal_cm_given_fps(self, fp_limit):
         fpr_limit = float(fp_limit) / len(self.y_test)
         fprs, tprs, thresholds = sklearn.metrics.roc_curve(y_true=self.y_test, y_score=self.test_predictions, pos_label=1)
-        fprs_belowLimit = [fpr for fpr in fprs if fpr < fpr_limit]
+        fprs_belowLimit = [fpr for fpr in fprs if fpr <= fpr_limit]
         max_fpr_index = np.argmax(fprs_belowLimit)
         max_fpr = fprs[max_fpr_index]
         max_threshold = thresholds[max_fpr_index]
-        cur_predictions = [i > max_threshold for i in self.test_predictions]
+        cur_predictions = [i >= max_threshold for i in self.test_predictions]
         confusion_matrix = determine_categorical_cm_df(self.y_test, cur_predictions,
                                                        self.exfil_paths_test, self.exfil_weights_test)
         return confusion_matrix

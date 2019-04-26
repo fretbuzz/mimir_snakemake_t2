@@ -360,7 +360,7 @@ class multi_experiment_pipeline(object):
 
                 ## Step 3c: if new performance just as good, switch
                 ##### note: may due to make modifications b/c increasing TPR could be a result of increasing FPR too
-                if new_exfil_path_tpr >= cur_exfil_path_tpr:
+                if new_exfil_path_tpr >= cur_exfil_path_tpr and cur_exfil_path_tpr != 0.0:
                     feature_df_max_exfil[feature_df_max_exfil['exfil_path'] == exfil_path] = \
                         new_exfil_rate_statspipeline.aggregate_mod_score_df[ new_exfil_rate_statspipeline.aggregate_mod_score_df['exfil_path'] == exfil_path]
 
