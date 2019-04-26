@@ -31,7 +31,7 @@ class BackgroundTraffic(TaskSet):
     max_wait = 4000
 
     ## note: assuming visitor will only login if they mean to buy osmething...
-    @task(prob_distr['buy'] * 100)
+    @task(int(prob_distr['buy'] * 100))
     def buy(self):
         self.client.get("/")
         # first login
@@ -60,7 +60,7 @@ class BackgroundTraffic(TaskSet):
         print order_post
         print order_post.text
 
-    @task(prob_distr['browse'] * 100)
+    @task(int(prob_distr['browse'] * 100))
     def browse(self):
         self.client.get("/")
         catalogue = self.client.get("/catalogue").json()
@@ -72,7 +72,7 @@ class BackgroundTraffic(TaskSet):
             time.sleep(randint(min_wait,max_wait) / 1000.0) # going to wait a bit between events
             self.client.get("/detail.html?id={}".format(item_id))
 
-    @task(prob_distr['register'] * 100)
+    @task(int(prob_distr['register'] * 100))
     def register(self):
         #print "about to populate this database!"
         # first register

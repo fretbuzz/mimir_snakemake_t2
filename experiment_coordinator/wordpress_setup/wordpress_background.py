@@ -63,7 +63,7 @@ class BackgroundTraffic(TaskSet):
     min_wait = 2000
     max_wait = 4000
 
-    @task(prob_distr['visitor'] * 100)
+    @task(int(prob_distr['visitor'] * 100))
     def visitor(self):
         num_browsing = randint(1,num_browsing_max)
         for i in range(0, num_browsing):
@@ -73,7 +73,7 @@ class BackgroundTraffic(TaskSet):
             print r
             time.sleep(randint(min_wait,max_wait) / 1000.0) # going to wait a bit between events
 
-    @task(prob_distr['user_post'] * 100)
+    @task(int(prob_distr['user_post'] * 100))
     def user_post(self):
         title = ''.join(choice(string.ascii_lowercase + ' ') for _ in range(randint(5, 20)))
         cont = ''.join(choice(string.ascii_lowercase + ' ' + '.') for _ in range(randint(20, 80)))
@@ -137,7 +137,7 @@ class BackgroundTraffic(TaskSet):
             print r
             time.sleep(randint(min_wait, max_wait) / 1000.0)  # going to wait a bit between events
 
-    @task(prob_distr['user_update'] * 100)
+    @task(int(prob_distr['user_update'] * 100))
     def user_update(self):
         update_succeeded = False
         trys = 0
