@@ -595,13 +595,13 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
 
     if prob_distro:
         if app_name == "sockshop":
-                with open('./sockshop_setup/prob_distro_sock.pickle', 'w') as f:
+                with open('./prob_distro_sock.pickle', 'w') as f:
                     f.write(pickle.dumps(prob_distro))
         elif app_name == "wordpress":
-            with open('./wordpress_setup/prob_distro_wp.pickle', 'w') as f:
+            with open('./prob_distro_wp.pickle', 'w') as f:
                 f.write(pickle.dumps(prob_distro))
         elif app_name == "hipsterStore":
-            with open('./hipsterStore_setup/prob_distro_hs.pickle', 'w') as f:
+            with open('./prob_distro_hs.pickle', 'w') as f:
                 f.write(pickle.dumps(prob_distro))
 
     #############################################
