@@ -13,10 +13,12 @@ import time
 import copy
 import ast
 from experiment_coordinator.run_exp_on_cloudlab import run_experiment, retrieve_results
+from analysis_pipeline.mimir import run_analysis
 
 # this is a wrapper around run_exp_on_cloudlab.py
 def run_new_experiment(template, template_changes, cloudlab_ip, flags, user, private_key, exp_name, local_dir,
-                       remote_experimental_data_dir, experiment_sentinal_file, remote_experimental_config_folder):
+                       remote_experimental_data_dir, experiment_sentinal_file, remote_experimental_config_folder,
+                       e2e_eval_configs_dir):
     ## NOTE: eventually I'll use the flags param to skip duplicate setup... but not for now...
 
     # (0) establish connection to cloudlab server
@@ -48,9 +50,10 @@ def run_new_experiment(template, template_changes, cloudlab_ip, flags, user, pri
 
     # upload to cloudlab...
     filename = exp_name + '_exp.json'
-    modified_template_filename = './e2e_eval_configs/' + filename
+    modified_template_filename = e2e_eval_configs_dir + filename
     with open(modified_template_filename, 'w') as f:
-        f.write(json.dumps(template))
+        json.dump(template, f, indent=2)
+        #f.write(json.dumps(template))
 
     remote = remote_experimental_config_folder + filename ## destination on remote
     s.put(file_or_directory=modified_template_filename, remote=remote)
@@ -69,21 +72,30 @@ def run_new_experiment(template, template_changes, cloudlab_ip, flags, user, pri
 
     remote_dir = remote_experimental_data_dir + exp_name
 
+    skip_app_setup = False
+    if flags:
+        if 'skip_app_setup' in flags and flags['skip_app_setup']:
+            skip_app_setup = True
+
     s = run_experiment(app_name, config_file_name, exp_name, skip_setup_p=False, use_cilium=False,
-                   physical_attacks_p=physical_attacks_p, skip_app_setup=False,dont_pull_p=False,
+                   physical_attacks_p=physical_attacks_p, skip_app_setup=skip_app_setup, dont_pull_p=False,
                    exp_length = exp_length, user = user, cloudlab_private_key=private_key,
                    cloudlab_server_ip = cloudlab_ip, experiment_sentinal_file = experiment_sentinal_file)
 
     retrieve_results(s, experiment_sentinal_file, remote_dir, local_dir)
 
+def create_analysis_json_from_template(template, exp_name, exp_config_file):
+    template["cur_experiment_name"] = exp_name
+    template["exp_config_file"] = exp_config_file
+    return template
 
-def perform_eval_work(cloudlab_exps_file, cloudlab_exps_dir):
+def perform_eval_work(cloudlab_exps_file, cloudlab_exps_dir, analysis_exp_file, max_local_processing_instances=2):
     remote_experimental_data_dir = '/mydata/mimir_v2/experiment_coordinator/experimental_data/'
     experiment_sentinal_file = '/mydata/mimir_v2/experiment_coordinator/experiment_done.txt'
-    #remote_experimental_config_folder = "/mydata/mimir_v2/experiment_coordinator/experimental_configs/"
     remote_experimental_config_folder = "/users/jsev/"
-    cloudlab_exps_file = cloudlab_exps_dir + cloudlab_exps_file
+    e2e_eval_configs_dir = cloudlab_exps_dir
 
+    cloudlab_exps_file = cloudlab_exps_dir + cloudlab_exps_file
     ## complication: (a) and (b) must be done simulataneously
     ## (a) run stuff on cloudlab
     #### current step:
@@ -93,21 +105,32 @@ def perform_eval_work(cloudlab_exps_file, cloudlab_exps_dir):
     with open(cloudlab_exps_file, 'r') as f:
         cloudlab_config = json.loads(f.read())
 
-    minikube_ips = cloudlab_config["minikube_ips_to_lifetime"].keys()
+    with open(cloudlab_exps_dir + analysis_exp_file, 'r') as f:
+        analysis_config = json.loads(f.read())
+
+    cloudlab_ips = cloudlab_config["minikube_ips_to_lifetime"].keys()
     experiments_running = True
 
+    exp_name_to_localdir = {}
     experiment_name_to_status = {}
     for exp_name in cloudlab_config["name_to_diff_params"].keys():
         experiment_name_to_status[exp_name] = 0 # 0 indicates that this experiment has NOT been run yet.
 
     cloudlab_instances_to_status = {}
-    for minikube_ip in minikube_ips:
-        cloudlab_instances_to_status[minikube_ip] = 0 # 0 indicates NOT running an experiment
+    for cloudlab_ip in cloudlab_ips:
+        cloudlab_instances_to_status[cloudlab_ip] = 0 # 0 indicates NOT running an experiment
     number_cloudlab_instances = len(cloudlab_instances_to_status.keys())
     experiment_name_to_assigned_ip = {}
 
-    while experiments_running:
-        jobs = []
+    cloudlab_instance_to_setup_status = {}
+    for cloudlab_ip in cloudlab_ips:
+        cloudlab_instance_to_setup_status[cloudlab_ip] = None # 0 indicates nothing was setup
+
+    exp_name_to_mimir_config = {}
+    processed_expriments = []
+    jobs = []
+    processing_jobs = []
+    while 0 in experiment_name_to_status.values() or 1 in experiment_name_to_status.values():
         for ip,status in cloudlab_instances_to_status.iteritems():
             if status == 0:
                 with open(cloudlab_exps_dir + cloudlab_config["template"], 'r') as f:
@@ -126,17 +149,27 @@ def perform_eval_work(cloudlab_exps_file, cloudlab_exps_dir):
                 user = cloudlab_config["user"]
                 private_key = cloudlab_config["private_key"]
                 local_dir = cloudlab_config["local_dir"] + exp_name + '/'
-                cur_args = [template_copy, template_changes, ip, None, user, private_key, exp_name, local_dir,
-                            remote_experimental_data_dir, experiment_sentinal_file, remote_experimental_config_folder]
+                if cloudlab_instance_to_setup_status[ip] == template_copy['application_name']:
+                    ## in this case, the current application was already setup... can therefore move straight to exp
+                    flags = {'skip_app_setup': True}
+                else:
+                    flags = False
+
+                cur_args = [template_copy, template_changes, ip, flags, user, private_key, exp_name, local_dir,
+                            remote_experimental_data_dir, experiment_sentinal_file, remote_experimental_config_folder,
+                            e2e_eval_configs_dir]
                 service = multiprocessing.Process(name=exp_name, target=run_new_experiment, args=cur_args)
                 service.start()
                 jobs.append(service)
                 # and now change the statuses of everything appropriately...
                 experiment_name_to_status[exp_name] = 1
                 cloudlab_instances_to_status[ip] = 1
+                cloudlab_instance_to_setup_status[ip] = template_copy['application_name']
+                exp_name_to_localdir[exp_name] = local_dir
+
         # okay, if we made it out here then all the cloudlab instances must have assigned work.
         # we must wait for a job to complete now...
-        while(len(jobs) == number_cloudlab_instances):
+        while(len(jobs) > 0): # TODO: modify this to handle analysis
             jobs_to_remove = []
             for job in jobs:
                 if not job.is_alive():
@@ -146,20 +179,65 @@ def perform_eval_work(cloudlab_exps_file, cloudlab_exps_dir):
                     ## of the system...
                     finished_exp_name = job.name
                     freed_ip = experiment_name_to_assigned_ip[finished_exp_name]
+                    experiment_name_to_status[finished_exp_name] = 2
                     cloudlab_instances_to_status[freed_ip] = 0
-            if jobs_to_remove == []:
+                    print "newly_freed_ip", freed_ip
+
+
+                    ''' ## TODO: need to test if this works... (needed to gather real data so couldn't test before)
+                    ## create analysis json file from template and start local processing (if possible)
+                    analysis_strategy = analysis_config["name_to_analysis_status"][finished_exp_name]
+                    if analysis_strategy == 'eval':
+                        analysis_template_file = analysis_config["eval_template"]
+                    elif analysis_strategy == 'train':
+                        analysis_template_file = analysis_config["train_template"]
+                    with open(analysis_template_file, 'r') as f:
+                        analysis_template = json.loads(f.read())
+
+                    local_dir = exp_name_to_localdir[finished_exp_name]
+                    exp_config_file =  local_dir + finished_exp_name + '_exp.json' # i know the name b/c i assign it earlier...
+                    mod_analysis_template = create_analysis_json_from_template(analysis_template, finished_exp_name, exp_config_file)
+                    mod_analysis_template_loc = local_dir + finished_exp_name + '_exp_proc.json'
+                    with open(mod_analysis_template_loc, 'w') as f:
+                        json.dump(mod_analysis_template, f, indent=2)
+
+                    # store the location... this also makes it easy for latter on if I want to decide to only process...
+                    # (though the reason why I would not just use mimir is unclear... is the ability to generate from the
+                    # template? then I wouldn't want to generate them here ... though if skipping then I suppose that
+                    # I could generate them earlier...)
+                    exp_name_to_mimir_config[finished_exp_name] = mod_analysis_template_loc
+                    '''
+
+            '''
+            ## TODO: SECOND part of the functionality should occur HERE... it's a big deal...
+            ## TODO: modify this to handle local too (probably nest a check on local files before running existing code)
+            ## tODO: ADD FLAG TO ONLY do local
+            
+            service = multiprocessing.Process(name=finished_exp_name + '_analysis', target=run_analysis,
+                                              args=cur_args)
+            if len(processing_jobs) <= max_local_processing_instances:
+                service.start()
+                processing_jobs.append(service)
+            else:
+                pass
+            # and now change the statuses of
+            
+            # this is pretty straightforward right?
+            # (a) start processing of the training (so I can get the model)
+            # (b) modify the analysis json
+            # (c) call the other functions, making sure not to over-use system resources...
+            ## HOWEVER, A **KEY** consideration is that it can integrate with existing data that I've acquired...
+            ## ... so maybe check analysis_exps.kson against cloudlab_exps.json (or whatever the name is) and load
+            ## up the system as required (and then follow the above system...)
+            '''
+
+            if jobs_to_remove == []:  # <-----
                 time.sleep(60) # wait a min and check again
             else:
                 for job_to_remove in jobs_to_remove:
                     jobs.remove(job_to_remove)
+                break
 
-    ## TODO: okay, let's take stock of the current situation... the current code is the basic outline
-    ## for assign experiments to cloudlab instances and looping through it... this is NOT a large
-    ## advantage over just straight-up using the command line... howevever, the killer features are next:
-    #### (1) finish run_new_experiment
-        ## (1) modify template appropriately
-        ## (2) upload to cloudlab
-        ## (3) make sure that run_exp_on_cloudlab.py still knows what's up.
     #### (2) start LOCAL experiments... perhaps I can abstract the existing logic into a function???
         ## cause it'll be essentially equivalent for the multiprocessing part... however
             ## (1) ALSO need to autogenerate analysis json
@@ -168,12 +246,12 @@ def perform_eval_work(cloudlab_exps_file, cloudlab_exps_dir):
         ## the same thing at atll...)
 
     ## (b) create analysis json + run stuff locally... this'll also require the same kinda multiprocess logic as above...
-
     ## create graphs
 
     pass
 
 if __name__=="__main__":
     cloudlab_exps_file = 'cloudlab_exps.json'
+    analysis_exp_file = 'analysis_exps.json'
     cloudlab_exps_dir = './e2e_eval_configs/'
-    perform_eval_work(cloudlab_exps_file, cloudlab_exps_dir)
+    perform_eval_work(cloudlab_exps_file, cloudlab_exps_dir, analysis_exp_file)

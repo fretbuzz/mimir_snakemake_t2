@@ -173,6 +173,12 @@ def save_feature_datafames(time_gran_to_feature_dataframe, csv_path, time_gran_t
         feature_dataframe.to_csv(csv_path + str(time_gran) + '.csv', na_rep='?')
 
 
+def add_additional_features(feature_df):
+    for column in feature_df:
+        if 'class_current_flow_bc_sub_' in column:
+            feature_df[column + '_abs'] = abs(feature_df[column])
+    return feature_df
+
 def normalize_data_v2(time_gran_to_feature_dataframe, time_gran_to_attack_labels, end_of_training, pretrained_min_pipeline=None):
     time_gran_to_normalized_df = {}
     time_gran_to_transformer = {}
@@ -217,6 +223,10 @@ def normalize_data_v2(time_gran_to_feature_dataframe, time_gran_to_attack_labels
         # normalizes each column of the input matrix
         transformed_data = transformer.transform(feature_dataframe)
         transformed_training_noAttack_values = transformer.transform(training_noAttack_values)
+
+        ## create some other features here...
+        transformed_data = add_additional_features(transformed_data)
+
 
         # might modify this at some point-- prob not the way to do it at the end...
         ## actually, several statistics professors tell me that this is indeed a property of the LASSO- you need to

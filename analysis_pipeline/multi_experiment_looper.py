@@ -64,14 +64,24 @@ def create_eval_graph(model_config_file, eval_configs_to_xvals, xlabel, use_cach
 
 if __name__=="__main__":
     print "RUNNING"
+    #'''
     model_config_file = './analysis_json/sockshop_mk13.json'
     eval_configs_to_xvals = {'./new_analysis_json/sockshop_mk22.json': 60,
                              './new_analysis_json/sockshop_mk20.json' : 120,
                              './new_analysis_json/sockshop_mk23.json': 80,
-                             './new_analysis_json/sockshop_mk24.json': 140}
+                             './new_analysis_json/sockshop_mk24.json': 140,
+                             './new_analysis_json/sockshop_auto_mk27.json' : 100}
                              #'./new_analysis_json/sockshop_auto_mk27.json': 100 } ## TODO: need to process this!!
+    #'''
+    '''
+    model_config_file = './analysis_json/wordpress_one_3_auto_mk5.json'
+    eval_configs_to_xvals = {'./new_analysis_json/wordpress_mk10.json' : 45,
+                             './new_analysis_json/wordpress_mk21.json' : 125,
+                             './new_analysis_json/wordpress_mk22.json' : 65,
+                             './new_analysis_json/wordpress_mk24.json' : 85}
+    #'''
     xlabel = 'load (# instances of load generation)'
-    use_cached = True
+    use_cached = False
     exfil_rate = 1000000.0
     timegran = 10
     create_eval_graph(model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran)

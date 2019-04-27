@@ -23,7 +23,7 @@
   "pkt_size_variance":  [100, 100, 100, 100, 100, 100],
 
   "make_edgefiles": false,
-  "skip_graph_injection": false,
+  "skip_graph_injection": true,
   "calc_vals": true,
   "calculate_z_scores": true,
   "get_endresult_from_memory": false,

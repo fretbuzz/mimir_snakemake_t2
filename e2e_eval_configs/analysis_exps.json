@@ -1,3 +1,14 @@
 {
-
+    "name_to_analysis_status": {
+      "sockshop_two_mk5" :  "eval",
+      "sockshop_two_mk6" :  "eval",
+      "sockshop_two_mk7" :  "eval",
+      "sockshop_two_mk8" :  "train",
+      "sockshop_two_mk9" :  "eval",
+      "sockshop_two_mk10" : "eval",
+      "sockshop_two_mk11" : "eval",
+      "sockshop_two_mk12" : "eval"
+  },
+  "eval_template": "analysis_eval_template.json",
+  "f": "analysis_train_template.json"
 }

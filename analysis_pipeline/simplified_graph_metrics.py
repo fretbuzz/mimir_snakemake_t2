@@ -81,12 +81,17 @@ class injected_graph():
         #self._create_class_level_graph()
 
         self.cur_1si_G = set_weight_inverse(self.cur_1si_G) ## ??
-        self.cur_class_G = set_weight_inverse(self.cur_class_G) ##???
-        undirected_class_G = create_unweighted_graph(self.cur_class_G)
+        undirected_class_G = create_undirected_graph(self.cur_class_G)
         # want undirected graph to have a single connected component...
         undirected_class_G = undirected_class_G.subgraph(max(nx.connected_components(undirected_class_G), key=len)).copy()
         undirected_class_G =  set_weight_inverse(undirected_class_G)
         ### ^^ note: this is used down below with random-walk betweeness...
+        self.cur_class_G = normalize_graph(self.cur_class_G) # <--- Normalization!! Decide if I want to keep it or get rid of it!!!
+        self.cur_class_G = set_weight_inverse(self.cur_class_G)
+
+        undirected_pod_graph = create_undirected_graph(self.cur_1si_G)
+        undirected_pod_graph = undirected_pod_graph.subgraph(max(nx.connected_components(undirected_pod_graph), key=len)).copy()
+
 
         density = nx.density(self.cur_1si_G)
         self.graph_feature_dict['pod_1si_density_list'] = density
@@ -139,6 +144,7 @@ class injected_graph():
         self.graph_feature_dict = add_c_metric(self.graph_feature_dict, load_centrality_coef_var_of_classes,
                                                load_centrality_mean, lc_max, svc_to_pod_with_outside, 'load_centrality')
 
+        ## note: this doesn't make any sense...
         harmonic_centrality_nodes = nx.harmonic_centrality(self.cur_1si_G, distance='inverse_weight')
         harmonic_centrality_coef_var_of_classes, harmonic_centrality_mean, hc_max = \
             find_coef_of_var_for_nodes(harmonic_centrality_nodes, svc_to_pod_with_outside)
@@ -152,37 +158,21 @@ class injected_graph():
         self.graph_feature_dict = add_c_metric(self.graph_feature_dict, clustering_coef_coef_of_var,
                                                clustering_coef_mean, clustering_coef_max, svc_to_pod_with_outside, 'clustering_coef')
 
-        #dict_of_cfbc = nx.current_flow_betweenness_centrality(self.cur_1si_G, normalized=True, weight='weight')
-        #cfbc_coef_of_var, cfbc_mean, cfbc_max = find_coef_of_var_for_nodes(dict_of_cfbc, svc_to_pod_with_outside)
-        #self.graph_feature_dict = add_c_metric(self.graph_feature_dict, cfbc_coef_of_var,
-        #                                       cfbc_mean, cfbc_max, svc_to_pod_with_outside, 'current_flow_bc_')
-
-        # this currently exists for legacy reasons, but if the code above works, then I can safely delete it...
-        for service in svc_to_pod_with_outside.keys():
+        #dict_of_cfbc = nx.current_flow_betweenness_centrality(undirected_pod_graph, normalized=False, weight='weight')
+        try:
+            cfbc_sub_pods = nx.current_flow_betweenness_centrality_subset(undirected_pod_graph, weight='weight',
+                                                                          targets=['outside'],
+                                                                          sources=svc_to_pod_with_outside[sensitive_ms],
+                                                                          normalized=False)
+            cfbc_coef_of_var, _, _ = find_coef_of_var_for_nodes(cfbc_sub_pods, svc_to_pod_with_outside)
+        except:
             pass
-            #self.graph_feature_dict['betweeness_centrality_coef_of_var_' + str(service)] = betweeness_centrality_coef_var_of_classes[service]
-            #self.graph_feature_dict['load_centrality_coef_of_var_' + str(service)] = load_centrality_coef_var_of_classes[service]
-            #self.graph_feature_dict['harmonic_centrality_coef_of_var_' + str(service)] = harmonic_centrality_coef_var_of_classes[service]
 
-            #dict_of_clustering_coef = nx.clustering(self.cur_1si_G, nodes=svc_to_pod_with_outside[service], weight='weight')
-            #avg_clustering_coef = np.sum(dict_of_clustering_coef.values()) / len(dict_of_clustering_coef.keys())
-
-            #self.graph_feature_dict['avg_clustering_coef_of' + str(service)] = avg_clustering_coef
-            #clustering_coef_coef_of_var,clustering_coef_mean, clustering_coef_max = \
-            #                    find_coef_of_var_for_nodes(dict_of_clustering_coef, svc_to_pod_with_outside)
-
-            #self.graph_feature_dict['clustering_coef_of_var_' + str(service)] = clustering_coef_coef_of_var[service]
-            #self.graph_feature_dict['avg_clustering_coef_' + str(service)] = clustering_coef_mean[service]
-            #self.graph_feature_dict['max_clustering_coef_' + str(service)] = clustering_coef_max[service]
-
-            #self.graph_feature_dict['avg_betweeness_centrality_' + str(service)] = betweeness_centrality_mean[service]
-            #self.graph_feature_dict['avg_load_centrality_' + str(service)] = load_centrality_mean[service]
-            #self.graph_feature_dict['avg_harmonic_centrality_' + str(service)] = harmonic_centrality_mean[service]
-
-            ## add the new max terms here...
-            #self.graph_feature_dict['max_load_centrality_' + str(service)] = lc_max[service]
-            #self.graph_feature_dict['max_betweeness_centrality_' + str(service)] = bc_max[service]
-            #self.graph_feature_dict['max_harmonic_centrality_' + str(service)] = hc_max[service]
+        for service in svc_to_pod_with_outside.keys():
+            try:
+                self.graph_feature_dict['pods_cfbc_sub_coef_of_var_' + str(service)] = cfbc_coef_of_var[service]
+            except:
+                self.graph_feature_dict['pods_cfbc_sub_coef_of_var_' + str(service)] = float('NaN')
 
         ######
         # these metrics are new... might want to get rid of these or the previous ones, depending on how it goes...
@@ -235,14 +225,13 @@ class injected_graph():
             cfbc_sub_nodes = nx.current_flow_betweenness_centrality_subset(undirected_class_G, weight='weight',
                                                             targets=['outside'], sources=[sensitive_ms], normalized=True)
         except:
-            pass # if cannot reach outside, there will be a key error... and we'll want all of the values to be 0.0...
-                 # this'll be handled by the code below so we can just pass here...
+            pass # if cannot reach outside, there will be a key error...
 
         for service in svc_to_pod_with_outside.keys():
             try:
                 self.graph_feature_dict['class_current_flow_bc_sub_' + service] = cfbc_sub_nodes[service]
             except:
-                self.graph_feature_dict['class_current_flow_bc_sub_' + service] = 0.0 #float('NaN')
+                self.graph_feature_dict['class_current_flow_bc_sub_' + service] = float('NaN')
 
         print [i for i in self.cur_1si_G.nodes()]
         print [i for i in self.cur_class_G.nodes()]
@@ -257,7 +246,7 @@ class injected_graph():
             try:
                 self.graph_feature_dict['class_betweeness_centrality_sub_' + service] = betweeness_centrality_subset_nodes[service]
             except:
-                self.graph_feature_dict['class_betweeness_centrality_sub_' + service] = 0.0 #float('NaN')
+                self.graph_feature_dict['class_betweeness_centrality_sub_' + service] = float('NaN')
 
         #cfbc_sub_pods = nx.current_flow_betweenness_centrality_subset(self.cur_1si_G, weight='weight',
         #                                                               targets=['outside'],
@@ -277,7 +266,7 @@ class injected_graph():
             betweeness_centrality_subset_pods = {}
             for svc,pods in svc_to_pod_with_outside.iteritems():
                 for pod in pods:
-                    betweeness_centrality_subset_pods[pod] = 0.0
+                    betweeness_centrality_subset_pods[pod] = float('NaN) ')#0.0
 
         bc_sub_pods_coefvar, bc_sub_pods_mean, bc_sub_pods_max = find_coef_of_var_for_nodes(betweeness_centrality_subset_pods, svc_to_pod_with_outside)
         self.graph_feature_dict = add_c_metric(self.graph_feature_dict, bc_sub_pods_coefvar,
@@ -354,6 +343,19 @@ class injected_graph():
         self.cur_class_G = prepare_graph(self.cur_1si_G, self.svcs, 'class', 0, self.counter, self.injected_graph_loc,
                                     self.ms_s, self.container_to_ip, self.infra_instances)
 
+def normalize_graph(G):
+    total_weight = 0.0
+    # doing in_edges so that stuff isn't double counted
+    for (u,v,d) in G.in_edges(data=True):
+        total_weight += d['weight']
+    print "total_weight_in_graph", total_weight
+
+    # then modify the edge weights accordingly...
+    for (u,v,d) in G.in_edges(data=True):
+        G[u][v]['weight'] = float(d['weight']) / total_weight
+
+    return G
+
 # heavier paths should actually be treated as LESS heavy w.r.t. to the graph community's definition of weight
 def set_weight_inverse(G):
     for (u,v,d) in G.edges(data=True):
@@ -363,7 +365,7 @@ def set_weight_inverse(G):
             G[u][v]['inverse_weight'] = (1.0 / float(d['weight'])) # no, i don't think it does anything... * 1000 # TODO is the 1000 necessary for scaling problems???
     return G
 
-def create_unweighted_graph(G):
+def create_undirected_graph(G):
     G_undirected = copy.deepcopy(G)
     G_undirected = G_undirected.to_undirected()
     # want to make sure that none of the edges are over-counted...

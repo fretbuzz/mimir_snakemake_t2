@@ -3,7 +3,7 @@
     "experiment_name": "sockshop_two_mk1",
     "path_to_docker_machine_tls_certs":"/mydata/.minikube/certs",
     "experiment_length_sec_comment": 10800,
-    "experiment_length_sec": 360,
+    "experiment_length_sec": 5400,
 
     "network_plugin": "none",
     "setup" : {
