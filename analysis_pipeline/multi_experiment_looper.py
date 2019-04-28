@@ -79,6 +79,20 @@ if __name__=="__main__":
                              './new_analysis_json/wordpress_mk22.json' : 65,
                              './new_analysis_json/wordpress_mk24.json' : 85}
     #'''
+    ## TODO: reconfigure for the probability distributions
+    '''
+    model_config_file = './analysis_json/sockshop_mk13.json'
+    eval_configs_to_xvals = {'./new_analysis_json/sockshop_three_mk5.json' : 100,
+                             './new_analysis_json/sockshop_three_mk6.json' : 100,
+                             './new_analysis_json/sockshop_three_mk7.json' : 100,
+                             './new_analysis_json/sockshop_three_mk8.json' : 100,
+                             './new_analysis_json/sockshop_three_mk9.json' : 100,
+                             './new_analysis_json/sockshop_three_mk10.json' : 100,
+                             './new_analysis_json/sockshop_three_mk11.json' : 100,
+                             './new_analysis_json/sockshop_three_mk12.json' : 100,
+                             './new_analysis_json/sockshop_three_mk13.json' : 100}
+    '''
+
     xlabel = 'load (# instances of load generation)'
     use_cached = False
     exfil_rate = 1000000.0

@@ -61,7 +61,7 @@ def scale_sockshop(deployment_scaling, autoscale_p):
         print out
         '''
 
-        out = subprocess.check_output(["kubectl", "apply", "-f", "./hpa_configs/"])
+        out = subprocess.check_output(["kubectl", "apply", "-f", "./sockshop_setup/hpa_configs/"])
         print out
 
         '''
