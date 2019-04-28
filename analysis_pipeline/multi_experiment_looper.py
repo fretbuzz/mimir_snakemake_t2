@@ -76,7 +76,6 @@ if __name__=="__main__":
     '''
     model_config_file = './analysis_json/wordpress_one_3_auto_mk5.json'
     eval_configs_to_xvals = {'./new_analysis_json/wordpress_mk10.json' : 45,
-                             './new_analysis_json/wordpress_mk21.json' : 125,
                              './new_analysis_json/wordpress_mk22.json' : 65,
                              './new_analysis_json/wordpress_mk24.json' : 85}
     #'''

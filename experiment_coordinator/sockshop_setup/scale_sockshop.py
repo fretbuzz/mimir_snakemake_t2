@@ -51,6 +51,7 @@ def scale_sockshop(deployment_scaling, autoscale_p):
         print out
         out = subprocess.check_output(["minikube", "addons", "enable", "metrics-server"])
         print out
+        '''
         try:
             out = subprocess.check_output(["git", "clone", "https://github.com/microservices-demo/microservices-demo.git"])
             print out
@@ -58,7 +59,12 @@ def scale_sockshop(deployment_scaling, autoscale_p):
             pass
         out = subprocess.check_output(["kubectl", "apply", "-f", "./microservices-demo/deploy/kubernetes/autoscaling/"])
         print out
+        '''
 
+        out = subprocess.check_output(["kubectl", "apply", "-f", "./hpa_configs/"])
+        print out
+
+        '''
         # NOTE the front-end microservice crashes fairly regularly... it's important that there's a couple more so one's always live
         delete_old_front_end = ["kubectl", "delete", "hpa", "front-end", "--namespace=sock-shop"]
         out = subprocess.check_output(delete_old_front_end)
@@ -75,13 +81,14 @@ def scale_sockshop(deployment_scaling, autoscale_p):
         except:
             pass
 
-        autoscale_cmd_str = ["kubectl", "autoscale", "deployment", "carts", "--min=" + str(1), "--max=" + str(
+        autoscale_cmd_str = ["kubectl", "autoscale", "deployment", "carts", "--min=" + str(2), "--max=" + str(
             10),"--cpu-percent=" + str(50), "--namespace=sock-shop"]
         try:
             out = subprocess.check_output(autoscale_cmd_str)
             print out
         except:
             pass
+        '''
 
 if __name__== "__main__":
     os.chdir("..")

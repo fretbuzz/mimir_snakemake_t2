@@ -175,8 +175,9 @@ def save_feature_datafames(time_gran_to_feature_dataframe, csv_path, time_gran_t
 
 def add_additional_features(feature_df):
     for column in feature_df:
-        if 'class_current_flow_bc_sub_' in column:
-            feature_df[column + '_abs'] = abs(feature_df[column])
+        if 'class_current_flow_bc_sub_' in column or 'class_harmonic_centrality_' in column:
+            feature_df['abs_' + column ] = abs(feature_df[column])
+            feature_df.drop(columns=column, inplace=True)
     return feature_df
 
 def normalize_data_v2(time_gran_to_feature_dataframe, time_gran_to_attack_labels, end_of_training, pretrained_min_pipeline=None):
@@ -224,10 +225,6 @@ def normalize_data_v2(time_gran_to_feature_dataframe, time_gran_to_attack_labels
         transformed_data = transformer.transform(feature_dataframe)
         transformed_training_noAttack_values = transformer.transform(training_noAttack_values)
 
-        ## create some other features here...
-        transformed_data = add_additional_features(transformed_data)
-
-
         # might modify this at some point-- prob not the way to do it at the end...
         ## actually, several statistics professors tell me that this is indeed a property of the LASSO- you need to
         # bound it for extreme values.
@@ -241,6 +238,10 @@ def normalize_data_v2(time_gran_to_feature_dataframe, time_gran_to_attack_labels
         ## TODO: might want to change this for the eval case...
         time_gran_to_normalized_df[time_gran] = time_gran_to_normalized_df[time_gran].fillna( \
             pandas.DataFrame(transformed_training_noAttack_values, columns=feature_dataframe.columns.values).median())
+
+        ## create some other features here... in particular the abs value (at the moment...)
+        ## this seems to make things WAAAAY worse??
+        #time_gran_to_normalized_df[time_gran] = add_additional_features(time_gran_to_normalized_df[time_gran])
 
         if not pretrained_min_pipeline:
             time_gran_to_normalized_df[time_gran] = time_gran_to_normalized_df[time_gran].dropna(axis=1)

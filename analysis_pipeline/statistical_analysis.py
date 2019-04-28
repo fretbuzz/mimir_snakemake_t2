@@ -523,10 +523,14 @@ def drop_useless_columns_aggreg_DF(aggregate_mod_score_dfs):
         ##  _reciprocity, _density, _edge_coef_of_var
         #if 'class_harmonic_centrality_' not in column and column.count('_') >= 3 and '_reciprocity' not in column and \
         #    '_edge_coef_of_var' not in column:
+        #if 'class_current_flow_bc_sub_' in column or 'class_harmonic_centrality_' in column:
+        #     class_harmonic_centrality_' not in column and \
+
         if column.count('_') >= 3 and '_reciprocity' not in column and '_edge_coef_of_var' not in column and \
+            'cilium' not in column and '_ide' not in column and \
             'class_harmonic_centrality_' not in column and \
-            'cilium' not in column and '_ide' not in column and '_abs' not in column and \
-            'pods_cfbc_sub_coef_of_var_' not in column:
+            'pods_cfbc_sub_coef_of_var_' not in column or\
+            'class_current_flow_bc_sub_' in column:
             aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns=column)
         ##### ### # ### #####
 

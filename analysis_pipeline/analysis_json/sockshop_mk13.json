@@ -4,8 +4,8 @@
   "netsec_policy": "../experiment_coordinator/netsec_policies/sockshop_netsec_seg.txt",
 
   "make_edgefiles": false,
-  "skip_graph_injection": false,
-  "calc_vals": true,
+  "skip_graph_injection": true,
+  "calc_vals": false,
   "calculate_z_scores": true,
   "get_endresult_from_memory": true,
 

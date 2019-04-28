@@ -1,0 +1,14 @@
+---
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: carts
+  namespace: sock-shop
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1beta1
+    kind: Deployment
+    name: carts
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 50
