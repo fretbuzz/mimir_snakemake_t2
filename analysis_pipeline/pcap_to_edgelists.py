@@ -236,16 +236,16 @@ def update_mapping(container_to_ip, cluster_creation_log, time_gran, time_counte
                         else:
                             mod_cur_creation_log[cur_ip] = (cur_pod + '_VIP', None, namespace, entity, new_label)
 
-                        if namespace == 'kube-system' or (cur_pod == 'kubernetes' and namespace=='default'):
-                            '''
-                            if 'kube-dns' not in cur_pod or entity == 'svc':  # the svc endpoint labeled kube-dns is shared by LOTS of system functions
-                                infra_instances[cur_pod] = [cur_ip, entity, new_label]
-                            else:
-                                pass
-                            '''
-                            # update: I'm going to include kube-dns vip again, because I think it's cleaner
-                            if 'kube-dns' not in cur_pod:
-                                infra_instances[cur_pod] = [cur_ip, entity, new_label]
+                    if namespace == 'kube-system' or (cur_pod == 'kubernetes' and namespace=='default'):
+                        '''
+                        if 'kube-dns' not in cur_pod or entity == 'svc':  # the svc endpoint labeled kube-dns is shared by LOTS of system functions
+                            infra_instances[cur_pod] = [cur_ip, entity, new_label]
+                        else:
+                            pass
+                        '''
+                        # update: I'm going to include kube-dns vip again, because I think it's cleaner
+                        if 'kube-dns' not in cur_pod:
+                            infra_instances[cur_pod] = [cur_ip, entity, new_label]
 
                             #elif plus_minus == '-': # not sure if I want/need this but might be useful for bug checking
                 #    pass

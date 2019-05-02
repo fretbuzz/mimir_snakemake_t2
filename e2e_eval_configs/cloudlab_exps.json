@@ -5,46 +5,42 @@
   "template": "sockshop_exp_template.json",
 
   "name_to_diff_params": {
-    "sockshop_three_mk5" : {
+    "sockshop_four_100" : {
       "(\"experiment\", \"number_background_locusts\")" : 100,
-      "prob_distro" : { "buy": 0.2, "browse": 0.55, "register": 0.25 }
+      "prob_distro" : { "buy": 0.3, "browse": 0.5, "register": 0.2 }
     },
-    "sockshop_three_mk6" : {
+    "sockshop_four_100_mk2" : {
       "(\"experiment\", \"number_background_locusts\")" : 100,
-      "prob_distro" : { "buy": 0.35, "browse": 0.4, "register": 0.25 }
+      "prob_distro" : { "buy": 0.3, "browse": 0.5, "register": 0.2 }
     },
-    "sockshop_three_mk7" : {
-      "(\"experiment\", \"number_background_locusts\")" : 100,
-      "prob_distro" : { "buy": 0.35, "browse": 0.55, "register": 0.1 }
+    "sockshop_four_120" : {
+      "(\"experiment\", \"number_background_locusts\")" : 120,
+      "prob_distro" : { "buy": 0.3, "browse": 0.5, "register": 0.2 }
     },
-    "sockshop_three_mk8" : {
-      "(\"experiment\", \"number_background_locusts\")" : 100,
-      "prob_distro" : { "buy": 0.0, "browse": 0.5, "register": 0.5 }
+    "sockshop_four_140" : {
+      "(\"experiment\", \"number_background_locusts\")" : 140,
+      "prob_distro" : { "buy": 0.3, "browse": 0.5, "register": 0.2 }
     },
-    "sockshop_three_mk9" : {
-      "(\"experiment\", \"number_background_locusts\")" : 100,
-      "prob_distro" : { "buy": 0.5, "browse": 0.0, "register": 0.5 }
+    "sockshop_four_160" : {
+      "(\"experiment\", \"number_background_locusts\")" : 160,
+      "prob_distro" : { "buy": 0.3, "browse": 0.5, "register": 0.2 }
     },
-    "sockshop_three_mk10" : {
-      "(\"experiment\", \"number_background_locusts\")" : 100,
-      "prob_distro" : { "buy": 0.5, "browse": 0.5, "register": 0.0 }
+    "sockshop_four_80" : {
+      "(\"experiment\", \"number_background_locusts\")" : 80,
+      "prob_distro" : { "buy": 0.3, "browse": 0.5, "register": 0.2 }
     },
-    "sockshop_three_mk11" : {
-      "(\"experiment\", \"number_background_locusts\")" : 100,
-      "prob_distro" : { "buy": 0.0, "browse": 0.0, "register": 1.0 }
+    "sockshop_four_60" : {
+      "(\"experiment\", \"number_background_locusts\")" : 60,
+      "prob_distro" : { "buy": 0.3, "browse": 0.5, "register": 0.2 }
     },
-    "sockshop_three_mk12" : {
-      "(\"experiment\", \"number_background_locusts\")" : 100,
-      "prob_distro" : { "buy": 0.0, "browse": 1.0, "register": 0.0 }
-    },
-    "sockshop_three_mk13" : {
-      "(\"experiment\", \"number_background_locusts\")" : 100,
-      "prob_distro" : { "buy": 1.0, "browse": 0.0, "register": 0.0 }
+    "sockshop_four_40" : {
+      "(\"experiment\", \"number_background_locusts\")" : 40,
+      "prob_distro" : { "buy": 0.3, "browse": 0.5, "register": 0.2 }
     }
   },
 
   "minikube_ips_to_lifetime": {
-    "c240g5-110113.wisc.cloudlab.us":"",
-    "c240g5-110105.wisc.cloudlab.us":""
+    "c240g5-110225.wisc.cloudlab.us":"",
+    "c220g5-111019.wisc.cloudlab.us":""
   }
 }

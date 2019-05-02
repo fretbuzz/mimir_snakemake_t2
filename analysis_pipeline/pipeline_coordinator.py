@@ -301,6 +301,24 @@ class multi_experiment_pipeline(object):
         self.rate_to_timegran_to_statistical_pipeline[cur_exfil_rate] = timegran_to_statistical_pipeline
         self.rate_to_time_gran_to_predicted_test[cur_exfil_rate] = stats_pipelines.time_gran_to_predicted_test
 
+    def train_multi_exfilrate_model(self):
+        ## using this is the current plan I think: self.rate_to_timegran_to_statistical_pipeline
+        ## steps: (1) go through, get all the vals with injected exfil paths
+        ##        (2) extract non-injected values
+        ##        (3) create new-combined dataset that I can send to the stats part
+
+        ## Q: would this be better??? single_rate_stats_pipelines
+        ## A: yes. Xs and stuff are easy to get.
+
+        # Okay, so we want to call the function below. so the goal of the above part is the make this new DF that can
+        # be used in this function.
+        '''
+        sav2_object = single_rate_stats_pipeline(timegran_to_df_max_exfil, self.ROC_curve_p, cur_base_output_name,
+                                         self.names, self.skip_model_part, 'varies', 'varies', 'varies',
+                                         'varies', False)
+        '''
+        pass
+
     def lower_per_path_exfil_rates(self, timegran):
         exfil_rates = sorted(self.avg_exfil_per_min )
         # step 1: find the feature dataframe corresponding to the largest exfil rate

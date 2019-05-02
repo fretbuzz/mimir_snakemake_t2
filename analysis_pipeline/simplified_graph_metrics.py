@@ -450,19 +450,17 @@ class set_of_injected_graphs():
         for counter,injected_graph_loc in enumerate(self.list_of_injected_graphs_loc):
             trigger_alert = False
             print "injected_graph_loc (cilium)",injected_graph_loc
+
             with open(injected_graph_loc, 'rb') as pickle_input_file:
                 injected_graph = pickle.load(pickle_input_file)
-
-
-            #class_edgefile = injected_graph.nodeAttrib_injected_graph_loc_class
             class_edgefile = injected_graph.nodeAttrib_injected_graph_loc_class
             class_graph = nx.read_gpickle(class_edgefile)
-            container_graph = nx.read_gpickle(injected_graph.nodeAttrib_injected_graph_loc)
+            #container_graph = nx.read_gpickle(injected_graph.nodeAttrib_injected_graph_loc)
 
-            container_graph_non_injected = nx.DiGraph()
-            with open(injected_graph.non_injected_graph_loc, 'r') as f:
-                lines = f.readlines()
-                nx.parse_edgelist(lines, delimiter=' ', create_using=container_graph_non_injected, data=[('frames',int), ('weight',int)])
+            #container_graph_non_injected = nx.DiGraph()
+            #with open(injected_graph.non_injected_graph_loc, 'r') as f:
+            #    lines = f.readlines()
+            #    nx.parse_edgelist(lines, delimiter=' ', create_using=container_graph_non_injected, data=[('frames',int), ('weight',int)])
 
             for (u,v,d) in class_graph.edges(data=True):
                 if d['frames'] > 0:

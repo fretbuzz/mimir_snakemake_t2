@@ -8,15 +8,10 @@ from itertools import chain
 
 
 def is_private_ip(addr_bytes, ip_gatway):
-    # note: i am going to assume that if the ip is not loopback or in the  '10.X.X.X' subnet, then it is outside
 
-    # private_subnet_one = ('10.0.0.0', '10.255.255.255') # so if 10.XX.XX.XX
-    # private_subnet_two = ('172.16.0.0', '172.31.255.255') # so if
-    # private_subnet_three = ('192.168.0.0', '192.168.255.255') # so if 192.168.XX.XX
-
-    if addr_bytes[0] == '10':
-        return True
-    elif addr_bytes[0] == '127' and addr_bytes[1] == '0' and addr_bytes[2] == '0' and addr_bytes[3] == '1':
+    # if the IP is loopback or in the docker network, then it is local. Otherwise, it is not.
+    # (note that most entities should have names, so they'd never even get here)
+    if addr_bytes[0] == '127' and addr_bytes[1] == '0' and addr_bytes[2] == '0' and addr_bytes[3] == '1':
         return True # loopback is definitely private
     elif addr_bytes[0] == ip_gatway[0] and addr_bytes[1] == ip_gatway[1] and addr_bytes[2] == ip_gatway[2] and \
                     addr_bytes[3] != ip_gatway[3]:
@@ -134,7 +129,7 @@ def is_ip(node_str):
 # it identifies outside nodes by assuming that all in-cluster nodes either labeled, loopback,
 # or in the '10.X.X.X' subnet
 ### TODO: should pass the default params in from the calling function... (can be passed in from my dump of the docker network + logs)
-def aggregate_outside_nodes(G, gateway_ip = '172.17.0.1', minikube_ip = '192.168.99.100'):
+def aggregate_outside_nodes(G, gateway_ip = '172.17.0.1'): #, minikube_ip = '192.168.99.100'):
     outside_nodes = []
 
     #minikube_ip = is_ip(minikube_ip)
@@ -147,7 +142,8 @@ def aggregate_outside_nodes(G, gateway_ip = '172.17.0.1', minikube_ip = '192.168
         if ( addr_bytes ):
             #if ((not is_private_ip(addr_bytes) or addr_bytes == gateway_ip) and addr_bytes != minikube_ip):
             # for now, we are keeping the docker network gateway as a seperate node
-            if (not is_private_ip(addr_bytes, is_ip(gateway_ip)) and node != minikube_ip and node != gateway_ip):
+            #if (not is_private_ip(addr_bytes, is_ip(gateway_ip)) and node != minikube_ip and node != gateway_ip):
+            if (not is_private_ip(addr_bytes, is_ip(gateway_ip)) and node != gateway_ip):
                 outside_nodes.append( node )
                 # might wanna put below line back in...
                 #print "new outside node!", node
@@ -159,8 +155,15 @@ def aggregate_outside_nodes(G, gateway_ip = '172.17.0.1', minikube_ip = '192.168
     H = G.copy()
     H = consolidate_nodes(H, outside_nodes)
 
-    ## now implement the compensation mechanism here...
-    ## then walk through it and then go home...
+    ## now here's the compensation mechanism here...
+    # this exists b/c health checks (and other traffic from the kubernetes daemon) are routed through the
+    # docker gateway, which functions as a load balancer. Therefore, all the containers tend to talk to
+    # the gateway IP. however, traffic going outside the cluster also goes throught the gateway IP.
+    # if we want to detect when a pod is really talking to the outside, we'll see it talk to both an outside
+    # IP address AND the gateway IP address. Sounds easy? Except traffic from the outside to the pod ONLY
+    # shows up from the gateway IP (draw it out if this doesn't make sense). So if pod <-> gateway IP exists,
+    # then we need to check if pod -> outside exists, in which case we want to keep pod -> outside and
+    # gateway -> ip (b/c we do not care about communication with the kubernetes daemon)
     for cur_node in H.nodes():
         #print "cur_node", cur_node
         sending_nodes = [u for u,v,d in H.in_edges(cur_node, data=True)]

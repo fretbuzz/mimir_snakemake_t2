@@ -23,15 +23,15 @@
   "pkt_size_variance":  [100, 100, 100, 100, 100, 100],
 
   "make_edgefiles": false,
-  "skip_graph_injection": true,
+  "skip_graph_injection": false,
   "calc_vals": true,
-  "calculate_z_scores": true,
+  "calculate_z_scores": false,
   "get_endresult_from_memory": false,
 
-  "include_ide": false,
-  "calc_ide": true,
+  "include_ide": true,
+  "calc_ide": false,
   "only_ide": false,
-  "perform_cilium_component": false,
+  "perform_cilium_component": true,
 
   "drop_pairwise_features": false,
   "drop_infra_from_graph": true,

@@ -9,15 +9,19 @@ import glob
 import time
 import ast
 import prepare_graph
+from prepare_graph import aggregate_outside_nodes, map_nodes_to_svcs, find_infra_components_in_graph, remove_infra_from_graph
+import math
+import networkx as nx
 
 # generate_pcap_slice: int file_location -> file_location
 # Takes the location of the full pcap file and creates a slice consisting of the first time_length seconds
 # (note: time_length should be in seconds (and be a float))
-def generate_pcap_slice(time_length, pcap_location, split_pcap_dir, make_edgefile_p):
+def generate_pcap_slice(time_length, pcap_location, split_pcap_dir, make_edgefile_p, length_of_each_split=10):
     #split_pcap_loc = split_pcap_dir + '/first_' + str(time_length) + "_sec.pap"
     split_pcap_loc = split_pcap_dir + '/split_cap_'
     new_files = []
 
+    number_splits_to_create = int(math.ceil(time_length / length_of_each_split))
     if make_edgefile_p: ## TODO: put back in!!!!
         # okay, this is stupid, but what I am going to need to do is monitor the creation of the files in the system
         # and then kill the editcap process once one of the files comes into existance...
@@ -31,7 +35,7 @@ def generate_pcap_slice(time_length, pcap_location, split_pcap_dir, make_edgefil
         print "inital_files_in_split_dir", inital_files_in_split_dir
         print "splitting with editcap now..."
         #split_cmds = ["tshark", "-r", pcap_location, "-Y", "frame.time_relative <= " + str(time_length), "-w", split_pcap_loc]
-        split_cmds = ["editcap", "-i " + str(time_length), pcap_location, split_pcap_loc]
+        split_cmds = ["editcap", "-i " + str(length_of_each_split), pcap_location, split_pcap_loc]
 
         proc = subprocess.Popen(split_cmds)
 
@@ -43,7 +47,7 @@ def generate_pcap_slice(time_length, pcap_location, split_pcap_dir, make_edgefil
             print "files_in_split_dir...", files_in_split_dir
             new_files = list(files_in_split_dir.difference(inital_files_in_split_dir))
             print "new_files", new_files
-            if len(new_files) >= 2: # need >= 2 b/c first file is created before being completely written too... leads to problems if stopped before writing is done...
+            if len(new_files) >= (number_splits_to_create + 1): # need + 1 b/c first file is created before being completely written too... leads to problems if stopped before writing is done...
                 new_split_pcap_exists = True
 
         proc.terminate()
@@ -51,9 +55,9 @@ def generate_pcap_slice(time_length, pcap_location, split_pcap_dir, make_edgefil
 
     new_files.sort()
     print "final_new_files", new_files
-    split_pcap_loc = new_files[0]
-    print "generate_relevant_pcap_slice_out", split_pcap_loc
-    return split_pcap_dir + '/' + split_pcap_loc
+    split_pcap_locs = new_files[0:number_splits_to_create]
+    print "generate_relevant_pcap_slice_out", split_pcap_locs
+    return [split_pcap_dir + '/' + split_pcap_loc for split_pcap_loc in split_pcap_locs]
 
 # TODO: probably wanna incorporate who is initiating the flows at some point..
 def find_communicating_ips():
@@ -120,6 +124,7 @@ def calc_svc2svc_communcating(host2svc, communicating_hosts, vip_debugging, gate
         src_svc_is_outside = False
         dst_svc_is_outside = False
 
+        ''' ## this should no longer be needed...
         if prepare_graph.is_ip(src_svc):
             addr_bytes = prepare_graph.is_ip(src_svc)
             if not prepare_graph.is_private_ip(addr_bytes, gateway_ip):
@@ -130,6 +135,7 @@ def calc_svc2svc_communcating(host2svc, communicating_hosts, vip_debugging, gate
             if not prepare_graph.is_private_ip(addr_bytes, gateway_ip):
                 #dst_svc = 'outside'
                 dst_svc_is_outside = True
+        '''
 
         if not vip_debugging:
             if 'POD' in src_svc or 'VIP' in src_svc or prepare_graph.is_ip(src_svc):
@@ -162,7 +168,7 @@ def generate_cilium_policy(communicating_svc, basefilename):
 # this function coordinates the overall functionality of the cilium component of MIMIR
 # for more information, please see comment at top of page
 ### TODO: pass in the gateway IP from the calling function...
-def cilium_component(time_length, pcap_location, cilium_component_dir, make_edgefiles_p, svcs, inital_mapping,
+def cilium_component(time_length, pcap_location, cilium_component_dir, make_edgefiles_p, svcs, mapping,
                      pod_creation_log, gateway_ip = '172.17.0.1'):
     make_edgefiles_p = True ## TODO PROBABLY WANT TO REMOVE AT SOME POINT
     vip_debugging = False # this function exists for debugging purposes. It makese the cur_cilium_comms
@@ -179,31 +185,61 @@ def cilium_component(time_length, pcap_location, cilium_component_dir, make_edge
 
     # step (1) generate relevant slice of pcap
     print "calling generate_pcap_slice now..."
-    pcap_slice_location = generate_pcap_slice(time_length, pcap_location, cilium_component_dir, make_edgefiles_p)
+    pcap_slice_locations = generate_pcap_slice(time_length, pcap_location, cilium_component_dir, make_edgefiles_p)
 
+
+    infra_instances = {}
+    communicatng_svcs = []
     # step (2) generate corresponding tshark stats file
-    pcap_slice_location_components = pcap_slice_location.split('/')
-    pcap_slice_path = '/'.join(pcap_slice_location_components[:-1]) + '/'
-    pcap_slice_name = pcap_slice_location_components[-1]
-    print "getting convo stats via tshark now..."
-    time.sleep(5)
-    tshark_stats_path, tshark_stats_file = process_pcap_via_tshark(pcap_slice_path, pcap_slice_name,
-                                                                   cilium_component_dir , make_edgefiles_p)
+    for pcap_slice_location in pcap_slice_locations:
+        pcap_slice_location_components = pcap_slice_location.split('/')
+        pcap_slice_path = '/'.join(pcap_slice_location_components[:-1]) + '/'
+        pcap_slice_name = pcap_slice_location_components[-1]
+        print "getting convo stats via tshark now..."
+        time.sleep(5)
 
-    # step (3) generate edgefile (hostnames rather than ip addresses)
-    edgefile_name = cilium_component_dir + '/edgefile_first_' + str(time_length) + '_sec.txt'
-    mapping,_ = update_mapping(inital_mapping, pod_creation_log, time_length, 0, {})
+        tshark_stats_path, tshark_stats_file = process_pcap_via_tshark(pcap_slice_path, pcap_slice_name,
+                                                                       cilium_component_dir , make_edgefiles_p)
 
-    edgefile =  convert_tshark_stats_to_edgefile('', edgefile_name, tshark_stats_path, tshark_stats_file,
-                                     make_edgefiles_p, mapping)
+        # step (3) generate edgefile (hostnames rather than ip addresses)
+        edgefile_name = cilium_component_dir + '/edgefile_first_' + str(time_length) + '_sec.txt'
+        mapping,infra_instances = update_mapping(mapping, pod_creation_log, time_length, 0, infra_instances)
 
-    print "edgefile", edgefile
-    print 'remainder of cilium component is... TODO'
-    # step (4) generate service-to-ip mapping
-    communicating_hosts, hosts = host2_host_comm(edgefile)
-    ip_to_svc = cal_host2svc(hosts, svcs)
-    communicatng_svcs = calc_svc2svc_communcating(ip_to_svc, communicating_hosts, vip_debugging, gateway_ip)
+        edgefile =  convert_tshark_stats_to_edgefile('', edgefile_name, tshark_stats_path, tshark_stats_file,
+                                         make_edgefiles_p, mapping)
 
+        print "edgefile", edgefile
+        print 'remainder of cilium component is... TODO'
+        # step (4) generate service-to-ip mapping
+        #communicating_hosts, hosts = host2_host_comm(edgefile)
+
+        # i think we can repurpose the existing code that I wrote for the other component...
+        f = open(edgefile, 'r')
+        lines = f.readlines()
+        G = nx.DiGraph()
+        nx.parse_edgelist(lines, delimiter=' ', create_using=G)
+        G = aggregate_outside_nodes(G)
+        containers_to_ms = map_nodes_to_svcs(G, None, mapping)
+        containers_to_ms['outside'] = 'outside'
+        #_, service_G = aggregate_graph(G, containers_to_ms)
+        nx.set_node_attributes(G, containers_to_ms, 'svc')
+        infra_nodes = find_infra_components_in_graph(G, infra_instances)
+        G = remove_infra_from_graph(G, infra_nodes)
+
+        name_to_svc = {}
+        for node,data in G.nodes(data=True):
+            try:
+                name_to_svc[node] = data['svc']
+            except:
+                print node, data
+
+        communicating_hosts = []
+        for (u,v,d) in G.edges(data=True):
+            communicating_hosts.append((u,v))
+
+        communicatng_svcs.extend(calc_svc2svc_communcating(name_to_svc, communicating_hosts, vip_debugging, gateway_ip))
+
+    communicatng_svcs = list(set(communicatng_svcs))
     output_file_name = './cilium_comp_inouts/cur_cilium_comms'
     netsecoutput_file_name = './cilium_comp_inouts/cur_cilium_netsec_'
     vips_present_lines = ''

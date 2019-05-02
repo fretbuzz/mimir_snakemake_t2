@@ -70,14 +70,14 @@ if __name__=="__main__":
                              './new_analysis_json/sockshop_mk20.json' : 120,
                              './new_analysis_json/sockshop_mk23.json': 80,
                              './new_analysis_json/sockshop_mk24.json': 140,
-                             './new_analysis_json/sockshop_auto_mk27.json' : 100}
-                             #'./new_analysis_json/sockshop_auto_mk27.json': 100 } ## TODO: need to process this!!
+                             './new_analysis_json/sockshop_auto_mk27.json' : 100} ## TODO: need to process this!!
     #'''
     '''
     model_config_file = './analysis_json/wordpress_one_3_auto_mk5.json'
     eval_configs_to_xvals = {'./new_analysis_json/wordpress_mk10.json' : 45,
                              './new_analysis_json/wordpress_mk22.json' : 65,
                              './new_analysis_json/wordpress_mk24.json' : 85}
+    ## TODO TODO TODO ^^ NEED SOME MORE OF THIS WORDPRESS DATA!!!
     #'''
     ## TODO: reconfigure for the probability distributions
     '''
@@ -89,9 +89,9 @@ if __name__=="__main__":
                              './new_analysis_json/sockshop_three_mk9.json' : 100,
                              './new_analysis_json/sockshop_three_mk10.json' : 100,
                              './new_analysis_json/sockshop_three_mk11.json' : 100,
-                             './new_analysis_json/sockshop_three_mk12.json' : 100,
+                             './new_analysis_json/sockshop_three_mk12.json' : 100, # <<--apparently good up to here??
                              './new_analysis_json/sockshop_three_mk13.json' : 100}
-    '''
+    #'''
 
     xlabel = 'load (# instances of load generation)'
     use_cached = False
