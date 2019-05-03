@@ -1,14 +1,14 @@
 {
-    "name_to_analysis_status": {
-      "sockshop_two_mk5" :  "eval",
-      "sockshop_two_mk6" :  "eval",
-      "sockshop_two_mk7" :  "eval",
-      "sockshop_two_mk8" :  "train",
-      "sockshop_two_mk9" :  "eval",
-      "sockshop_two_mk10" : "eval",
-      "sockshop_two_mk11" : "eval",
-      "sockshop_two_mk12" : "eval"
+  "name_to_analysis_status": {
+    "sockshop_five_100": "eval",
+    "sockshop_five_100_mk2": "train",
+    "sockshop_five_120": "eval",
+    "sockshop_five_140": "eval",
+    "sockshop_five_160": "eval",
+    "sockshop_five_80": "eval",
+    "sockshop_five_60": "eval",
+    "sockshop_five_40": "eval"
   },
   "eval_template": "analysis_eval_template.json",
-  "f": "analysis_train_template.json"
+  "train_template": "analysis_train_template.json"
 }

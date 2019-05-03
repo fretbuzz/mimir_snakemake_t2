@@ -3,44 +3,45 @@
   "private_key": "/Users/jseverin/Dropbox/cloudlab.pem",
   "local_dir": "/Volumes/exM/experimental_data/sockshop_info/",
   "template": "sockshop_exp_template.json",
+  "cur_name": "v_short",
 
   "name_to_diff_params": {
-    "sockshop_four_100" : {
+    "sockshop_five_100" : {
       "(\"experiment\", \"number_background_locusts\")" : 100,
       "prob_distro" : { "buy": 0.3, "browse": 0.5, "register": 0.2 }
     },
-    "sockshop_four_100_mk2" : {
+    "sockshop_five_100_mk2" : {
       "(\"experiment\", \"number_background_locusts\")" : 100,
       "prob_distro" : { "buy": 0.3, "browse": 0.5, "register": 0.2 }
     },
-    "sockshop_four_120" : {
+    "sockshop_five_120" : {
       "(\"experiment\", \"number_background_locusts\")" : 120,
       "prob_distro" : { "buy": 0.3, "browse": 0.5, "register": 0.2 }
     },
-    "sockshop_four_140" : {
+    "sockshop_five_140" : {
       "(\"experiment\", \"number_background_locusts\")" : 140,
       "prob_distro" : { "buy": 0.3, "browse": 0.5, "register": 0.2 }
     },
-    "sockshop_four_160" : {
+    "sockshop_five_160" : {
       "(\"experiment\", \"number_background_locusts\")" : 160,
       "prob_distro" : { "buy": 0.3, "browse": 0.5, "register": 0.2 }
     },
-    "sockshop_four_80" : {
+    "sockshop_five_80" : {
       "(\"experiment\", \"number_background_locusts\")" : 80,
       "prob_distro" : { "buy": 0.3, "browse": 0.5, "register": 0.2 }
     },
-    "sockshop_four_60" : {
+    "sockshop_five_60" : {
       "(\"experiment\", \"number_background_locusts\")" : 60,
       "prob_distro" : { "buy": 0.3, "browse": 0.5, "register": 0.2 }
     },
-    "sockshop_four_40" : {
+    "sockshop_five_40" : {
       "(\"experiment\", \"number_background_locusts\")" : 40,
       "prob_distro" : { "buy": 0.3, "browse": 0.5, "register": 0.2 }
     }
   },
 
   "minikube_ips_to_lifetime": {
-    "c240g5-110225.wisc.cloudlab.us":"",
-    "c220g5-111019.wisc.cloudlab.us":""
+    "c240g5-110131.wisc.cloudlab.us": "",
+    "c220g5-110504.wisc.cloudlab.us": ""
   }
 }

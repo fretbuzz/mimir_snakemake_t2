@@ -2,6 +2,7 @@ from mimir import run_analysis
 import pickle
 import matplotlib.pyplot as plt
 import argparse
+import json
 
 
 def get_eval_results(model_config_file, list_of_eval_configs):
@@ -26,7 +27,8 @@ def cm_to_f1(cm, exfil_rate, timegran):
     f1_score = (2.0 * tp) / (2.0 * tp + fp + fn)
     return f1_score
 
-def create_eval_graph(model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran, type_of_graph):
+def create_eval_graph(model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rates, timegran,
+                      type_of_graph, graph_name):
     if use_cached:
         with open('./temp_outputs/cached_looper.pickle', 'r') as f:
             evalconfigs_to_cm = pickle.loads(f.read())
@@ -35,39 +37,101 @@ def create_eval_graph(model_config_file, eval_configs_to_xvals, xlabel, use_cach
         with open('./temp_outputs/cached_looper.pickle', 'w') as f:
             f.write(pickle.dumps(evalconfigs_to_cm))
 
-    x_vals_list = []
-    y_vals_list = []
-    for evalconfig,xval in eval_configs_to_xvals.iteritems():
-        x_vals_list.append(xval)
-        cur_cm = evalconfigs_to_cm[evalconfig]
-        optimal_f1 = cm_to_f1(cur_cm, exfil_rate, timegran)
-        y_vals_list.append( optimal_f1 )
+    for exfil_rate in exfil_rates:
+        x_vals_list = []
+        y_vals_list = []
+        eval_to_prob_dist = {}
+        for evalconfig,xval in eval_configs_to_xvals.iteritems():
+            x_vals_list.append(xval)
+            cur_cm = evalconfigs_to_cm[evalconfig]
+            optimal_f1 = cm_to_f1(cur_cm, exfil_rate, timegran)
+            y_vals_list.append( optimal_f1 )
 
-        ## (step1) cache the results from get_eval_results (b/c gotta iterate on steps2&3) [[[done]]]
-        ## (step2) put process cms (to get F1 scores)
-        ## (step3) make actual graphs (can just stick into temp_outputs for now... I gues...)
+            if type_of_graph == 'euclidean_distance':
+                with open(evalconfig, 'r') as g:
+                    config_stuff = json.loads(g.read())
+                    with open(config_stuff['exp_config_file'], 'r') as z:
+                        exp_config = json.loads(g.read())
+                        eval_to_prob_dist[evalconfig] = None ## TODO
+                        ## ## TODO: get the angles from the json configs. ## ##
 
-    if type_of_graph == 'euclidean_distance':
-        pass
-    if type_of_graph == 'table':
-        pass
-    # then load is really straightforward
+            ## (step1) cache the results from get_eval_results (b/c gotta iterate on steps2&3) [[[done]]]
+            ## (step2) put process cms (to get F1 scores)
+            ## (step3) make actual graphs (can just stick into temp_outputs for now... I gues...)
 
-    print "x_vals_list", x_vals_list
-    print "y_vals_list", y_vals_list
-    x_vals_list, y_vals_list = zip(*sorted(zip(x_vals_list, y_vals_list)))
 
-    plt.clf()
-    plt.plot(x_vals_list, y_vals_list, marker='.')
-    plt.xlabel(xlabel)
-    plt.ylabel('f1 score')
-    plt.show()
-    plt.savefig('./temp_outputs/aaa.png')
 
-#eval_results = run_analysis('./analysis_json/sockshop_mk13.json', eval_config='./new_analysis_json/sockshop_mk22.json')
-# run_analysis('./analysis_json/sockshop_mk13.json', eval_config = './new_analysis_json/sockshop_mk23.json')
-# run_analysis('./analysis_json/sockshop_mk13.json', eval_config = './new_analysis_json/sockshop_mk24.json')
-# run_analysis('./analysis_json/sockshop_mk13.json', eval_config = './new_analysis_json/sockshop_mk20.json')
+        if type_of_graph == 'euclidean_distance':
+            pass
+        if type_of_graph == 'table':
+            pass
+        # then load is really straightforward
+
+        print "x_vals_list", x_vals_list
+        print "y_vals_list", y_vals_list
+        x_vals_list, y_vals_list = zip(*sorted(zip(x_vals_list, y_vals_list)))
+
+        plt.clf()
+        plt.plot(x_vals_list, y_vals_list, marker='.', markersize=22)
+        plt.xlabel(xlabel)
+        plt.ylabel('f1 score')
+        plt.show()
+        plt.savefig('./temp_outputs/' + graph_name + '_' + str(exfil_rate) + '.png')
+
+def parse_config(config_file_pth):
+    model_config_file = {}
+    with open(config_file_pth) as f:
+        config_file = json.load(f)
+
+        if 'model_config_file' in config_file:
+            model_config_file = config_file['model_config_file']
+        else:
+            model_config_file = False
+
+        if 'eval_configs_to_xvals' in config_file:
+            eval_configs_to_xvals = config_file['eval_configs_to_xvals']
+        else:
+            eval_configs_to_xvals = False
+
+        if 'xlabel' in config_file:
+            xlabel = config_file['xlabel']
+        else:
+            xlabel = False
+
+        if 'use_cached' in config_file:
+            use_cached = config_file['use_cached']
+        else:
+            use_cached = False
+
+        if 'exfil_rate' in config_file:
+            exfil_rate = config_file['exfil_rate']
+        else:
+            exfil_rate = False
+
+        if 'timegran' in config_file:
+            timegran = config_file['timegran']
+        else:
+            timegran = False
+
+        if 'type_of_graph' in config_file:
+            type_of_graph = config_file['type_of_graph']
+        else:
+            type_of_graph = False
+
+        if 'graph_name' in config_file:
+            graph_name = config_file['graph_name']
+        else:
+            graph_name = False
+    return config_file
+
+def run_looper(config_file_pth):
+    model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran, type_of_graph, graph_name = \
+        parse_config(config_file_pth)
+
+    # DON'T FORGET ABOUT use_cached (it's very useful -- especially when iterating on graphs!!)
+    create_eval_graph(model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran,
+                      type_of_graph, graph_name)
+
 
 if __name__=="__main__":
     print "RUNNING"
@@ -76,63 +140,18 @@ if __name__=="__main__":
     ## TODO: use tabulate to make table
     ## TODO: add vector support (euclidean disance perhaps???)
     ### so what is the plan??
-    ### (a) add config files!!!!
-    ### (b) add a params that specifies the type of graph/table
-    ### (c) add support for these graphs/tables
+    ### (a) add config files!!!! [done]
+    ### (b) add a params that specifies the type of graph/table [done]
+    ### (c) add support for these graphs/tables [TODO --- and it's the hard part]
 
-    parser = argparse.ArgumentParser(description='This is the central CL interface for the MIMIR system')
+    parser = argparse.ArgumentParser(description='This can run multiple experiments in a row on MIMIR. Also makes graphs')
     parser.add_argument('--config_json', dest='config_json', default=None,
                         help='this is the configuration file used to run to loop through several experiments')
     args = parser.parse_args()
 
     if not args.config_json:
-        print "running_preset..."
-
-        '''
-        model_config_file = './analysis_json/sockshop_mk13.json'
-        eval_configs_to_xvals = {'./new_analysis_json/sockshop_mk22.json': 60,
-                                 './new_analysis_json/sockshop_mk20.json' : 120,
-                                 './new_analysis_json/sockshop_mk23.json': 80,
-                                 './new_analysis_json/sockshop_mk24.json': 140,
-                                 './new_analysis_json/sockshop_auto_mk27.json' : 100}
-        #'''
-        #'''
-        model_config_file = './analysis_json/wordpress_one_3_auto_mk5.json'
-        eval_configs_to_xvals = {'./new_analysis_json/wordpress_mk10.json' : 45,
-                                 './new_analysis_json/wordpress_mk22.json' : 65,
-                                 './new_analysis_json/wordpress_mk24.json' : 85}
-        ## TODO TODO TODO ^^ NEED SOME MORE OF THIS WORDPRESS DATA!!!
-        #'''
-        ## TODO: reconfigure for the probability distributions
-        '''
-        model_config_file = './analysis_json/sockshop_mk13.json'
-        eval_configs_to_xvals = {'./new_analysis_json/sockshop_three_mk5.json' : 100,
-                                 './new_analysis_json/sockshop_three_mk6.json' : 100,
-                                 './new_analysis_json/sockshop_three_mk7.json' : 100,
-                                 './new_analysis_json/sockshop_three_mk8.json' : 100,
-                                 './new_analysis_json/sockshop_three_mk9.json' : 100,
-                                 './new_analysis_json/sockshop_three_mk10.json' : 100,
-                                 './new_analysis_json/sockshop_three_mk11.json' : 100,
-                                 './new_analysis_json/sockshop_three_mk12.json' : 100, # <<--apparently good up to here??
-                                 './new_analysis_json/sockshop_three_mk13.json' : 100}
-        #'''
-
-        xlabel = 'load (# instances of load generation)'
-        use_cached = False
-        exfil_rate = 1000000.0
-        timegran = 10
-        type_of_graph = 'load'
-
+        config_file_pth = "./multi_experiment_configs/wordpress_scale.json"
     else:
-        ### TODO: this section will parse from the given configuration file...
-        model_config_file = None ## TODO
-        eval_configs_to_xvals = None ## TODO
-        xlabel = None ## TODO
-        use_cached = None ## TODO
-        exfil_rate = None ## TODO
-        timegran = None ## TODO
-        type_of_graph = None ## TODO
+        config_file_pth = args.config_json
 
-    ## TODO : add graph name... (also maybe table should go in aggregate?? idk...)
-    ## TODO: make exfil_rate a loop b/c it's stupid to have to reload everything everytime...
-    create_eval_graph(model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran, type_of_graph)
+    run_looper(config_file_pth)

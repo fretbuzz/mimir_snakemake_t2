@@ -1481,6 +1481,10 @@ def generate_analysis_json(path_to_exp_folder, analysis_json_name, exp_config_js
     except:
         analysis_dict["experiment"]["traffic_type"] = "normal"
 
+    try:
+        analysis_dict["prob_distro"] = exp_config_json["prob_distro"]
+    except:
+        pass
 
     analysis_dict["exfiltration_info"] = {}
     analysis_dict["exfiltration_info"]["sensitive_ms"] = exp_config_json["exfiltration_info"]["sensitive_ms"]

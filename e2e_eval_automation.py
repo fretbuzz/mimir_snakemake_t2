@@ -14,6 +14,7 @@ import copy
 import ast
 from experiment_coordinator.run_exp_on_cloudlab import run_experiment, retrieve_results
 from analysis_pipeline.mimir import run_analysis
+from analysis_pipeline.multi_experiment_looper import run_looper
 
 # this is a wrapper around run_exp_on_cloudlab.py
 def run_new_experiment(template, template_changes, cloudlab_ip, flags, user, private_key, exp_name, local_dir,
@@ -95,6 +96,9 @@ def perform_eval_work(cloudlab_exps_file, cloudlab_exps_dir, analysis_exp_file, 
     remote_experimental_config_folder = "/users/jsev/"
     e2e_eval_configs_dir = cloudlab_exps_dir
 
+    train_exp = None
+    eval_exps = []
+
     cloudlab_exps_file = cloudlab_exps_dir + cloudlab_exps_file
     ## complication: (a) and (b) must be done simulataneously
     ## (a) run stuff on cloudlab
@@ -142,6 +146,7 @@ def perform_eval_work(cloudlab_exps_file, cloudlab_exps_dir, analysis_exp_file, 
                     if experiment_name_to_status[exp_name] == 0:
                         # this is the experiment that we shall run now.
                         template_changes = cloudlab_config["name_to_diff_params"][exp_name]
+                        template_changes["experiment_name"] = exp_name
                         experiment_name_to_assigned_ip[exp_name] = ip
                         break
                 ## now that we have the next experiment selected, we must run it
@@ -184,15 +189,18 @@ def perform_eval_work(cloudlab_exps_file, cloudlab_exps_dir, analysis_exp_file, 
                     print "newly_freed_ip", freed_ip
 
 
-                    ''' ## TODO: need to test if this works... (needed to gather real data so couldn't test before)
+                    #''' ## TODO: need to test if this works... (needed to gather real data so couldn't test before)
                     ## create analysis json file from template and start local processing (if possible)
                     analysis_strategy = analysis_config["name_to_analysis_status"][finished_exp_name]
                     if analysis_strategy == 'eval':
+                        eval_exps.append(finished_exp_name)
                         analysis_template_file = analysis_config["eval_template"]
                     elif analysis_strategy == 'train':
+                        train_exp = finished_exp_name
                         analysis_template_file = analysis_config["train_template"]
                     with open(analysis_template_file, 'r') as f:
                         analysis_template = json.loads(f.read())
+
 
                     local_dir = exp_name_to_localdir[finished_exp_name]
                     exp_config_file =  local_dir + finished_exp_name + '_exp.json' # i know the name b/c i assign it earlier...
@@ -206,12 +214,14 @@ def perform_eval_work(cloudlab_exps_file, cloudlab_exps_dir, analysis_exp_file, 
                     # template? then I wouldn't want to generate them here ... though if skipping then I suppose that
                     # I could generate them earlier...)
                     exp_name_to_mimir_config[finished_exp_name] = mod_analysis_template_loc
-                    '''
+                    #'''
 
             '''
             ## TODO: SECOND part of the functionality should occur HERE... it's a big deal...
             ## TODO: modify this to handle local too (probably nest a check on local files before running existing code)
             ## tODO: ADD FLAG TO ONLY do local
+            
+            ## NOTE: THIS IS NOT THE CURRENT PROPOSED DESIGN. PLEASE SEE THE ACTUAL DESIGN DOCUMENT FOR HOW TO DO THIS. ##
             
             service = multiprocessing.Process(name=finished_exp_name + '_analysis', target=run_analysis,
                                               args=cur_args)
@@ -238,6 +248,31 @@ def perform_eval_work(cloudlab_exps_file, cloudlab_exps_dir, analysis_exp_file, 
                     jobs.remove(job_to_remove)
                 break
 
+    # for the moment, let's keep this REAL nice and simple... just make input file for multi_experiment_looper.py and call that....
+    # exp_name_to_mimir_config[finished_exp_name] = mod_analysis_template_loc ;;;
+    ## ??? -- ||| -- ???
+
+    ## NOTE: MIGHT WANT TO TAKE THESE FROM A CONFIG FILE TOO
+    multi_exp_looper_config = {}
+    multi_exp_looper_config['model_config_file'] = exp_name_to_mimir_config[train_exp]
+    multi_exp_looper_config['xlabel'] = "load (# instances of load generation)"
+    multi_exp_looper_config['use_cached'] = False
+    multi_exp_looper_config['exfil_rate'] = [10000000.0, 1000000.0, 100000.0, 10000.0],
+    multi_exp_looper_config['timegran'] = 10
+    multi_exp_looper_config['type_of_graph'] = "load"
+    multi_exp_looper_config['graph_name'] = cloudlab_config['cur_name']
+
+    eval_configs_to_xvals = {}
+    for eval_exp in eval_exps:
+        eval_configs_to_xvals[exp_name_to_mimir_config[eval_exp]] = 50 ## NOTE: this is WRONG but it WILL make the thing RUN!
+    multi_exp_looper_config["eval_configs_to_xvals"] = eval_configs_to_xvals
+
+    multi_experiment_config_file_path = './e2e_eval_configs' + cloudlab_config['cur_name'] + '_multi_config.json'
+    with open(multi_experiment_config_file_path, 'w') as g:
+        json.dump(multi_exp_looper_config, g, indent=2)
+
+    run_looper(multi_experiment_config_file_path)
+
     #### (2) start LOCAL experiments... perhaps I can abstract the existing logic into a function???
         ## cause it'll be essentially equivalent for the multiprocessing part... however
             ## (1) ALSO need to autogenerate analysis json
@@ -247,8 +282,6 @@ def perform_eval_work(cloudlab_exps_file, cloudlab_exps_dir, analysis_exp_file, 
 
     ## (b) create analysis json + run stuff locally... this'll also require the same kinda multiprocess logic as above...
     ## create graphs
-
-    pass
 
 if __name__=="__main__":
     cloudlab_exps_file = 'cloudlab_exps.json'
