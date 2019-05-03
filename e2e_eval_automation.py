@@ -90,7 +90,7 @@ def create_analysis_json_from_template(template, exp_name, exp_config_file):
     template["exp_config_file"] = exp_config_file
     return template
 
-def perform_eval_work(cloudlab_exps_file, cloudlab_exps_dir, analysis_exp_file, max_local_processing_instances=2):
+def perform_eval_work(cloudlab_exps_file, cloudlab_exps_dir, analysis_exp_file, skip_app_setup=False):
     remote_experimental_data_dir = '/mydata/mimir_v2/experiment_coordinator/experimental_data/'
     experiment_sentinal_file = '/mydata/mimir_v2/experiment_coordinator/experiment_done.txt'
     remote_experimental_config_folder = "/users/jsev/"
@@ -154,7 +154,7 @@ def perform_eval_work(cloudlab_exps_file, cloudlab_exps_dir, analysis_exp_file, 
                 user = cloudlab_config["user"]
                 private_key = cloudlab_config["private_key"]
                 local_dir = cloudlab_config["local_dir"] + exp_name + '/'
-                if cloudlab_instance_to_setup_status[ip] == template_copy['application_name']:
+                if cloudlab_instance_to_setup_status[ip] == template_copy['application_name'] or skip_app_setup:
                     ## in this case, the current application was already setup... can therefore move straight to exp
                     flags = {'skip_app_setup': True}
                 else:
@@ -194,12 +194,14 @@ def perform_eval_work(cloudlab_exps_file, cloudlab_exps_dir, analysis_exp_file, 
                     analysis_strategy = analysis_config["name_to_analysis_status"][finished_exp_name]
                     if analysis_strategy == 'eval':
                         eval_exps.append(finished_exp_name)
-                        analysis_template_file = analysis_config["eval_template"]
+                        analysis_template_file = cloudlab_exps_dir + analysis_config["eval_template"]
                     elif analysis_strategy == 'train':
                         train_exp = finished_exp_name
-                        analysis_template_file = analysis_config["train_template"]
+                        analysis_template_file = cloudlab_exps_dir + analysis_config["train_template"]
                     with open(analysis_template_file, 'r') as f:
-                        analysis_template = json.loads(f.read())
+                        # using OrderedDict shoud ensure that it is in the order that I like...
+                        analysis_template = json.loads(f.read(), object_pairs_hook=OrderedDict)
+                        #analysis_template = json.loads(f.read())
 
 
                     local_dir = exp_name_to_localdir[finished_exp_name]
@@ -287,4 +289,5 @@ if __name__=="__main__":
     cloudlab_exps_file = 'cloudlab_exps.json'
     analysis_exp_file = 'analysis_exps.json'
     cloudlab_exps_dir = './e2e_eval_configs/'
-    perform_eval_work(cloudlab_exps_file, cloudlab_exps_dir, analysis_exp_file)
+    skip_app_setup = True
+    perform_eval_work(cloudlab_exps_file, cloudlab_exps_dir, analysis_exp_file, skip_app_setup)

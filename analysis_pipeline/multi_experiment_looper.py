@@ -3,7 +3,7 @@ import pickle
 import matplotlib.pyplot as plt
 import argparse
 import json
-
+from collections import OrderedDict
 
 def get_eval_results(model_config_file, list_of_eval_configs):
     eval_config_to_cm = {}
@@ -79,9 +79,9 @@ def create_eval_graph(model_config_file, eval_configs_to_xvals, xlabel, use_cach
         plt.savefig('./temp_outputs/' + graph_name + '_' + str(exfil_rate) + '.png')
 
 def parse_config(config_file_pth):
-    model_config_file = {}
     with open(config_file_pth) as f:
-        config_file = json.load(f)
+        #config_file = json.load(f)
+        config_file = json.loads(f.read(), object_pairs_hook=OrderedDict)
 
         if 'model_config_file' in config_file:
             model_config_file = config_file['model_config_file']
@@ -122,13 +122,18 @@ def parse_config(config_file_pth):
             graph_name = config_file['graph_name']
         else:
             graph_name = False
-    return config_file
+
+    return model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran, type_of_graph, graph_name
 
 def run_looper(config_file_pth):
     model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran, type_of_graph, graph_name = \
         parse_config(config_file_pth)
 
+    #print("type(eval_configs_to_xvals)", type(eval_configs_to_xvals))
+    #exit(233)
+
     # DON'T FORGET ABOUT use_cached (it's very useful -- especially when iterating on graphs!!)
+    use_cached = use_cached
     create_eval_graph(model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran,
                       type_of_graph, graph_name)
 
@@ -137,8 +142,8 @@ if __name__=="__main__":
     print "RUNNING"
 
     ### Okay, so the key here is to
-    ## TODO: use tabulate to make table
-    ## TODO: add vector support (euclidean disance perhaps???)
+    ## TODO: use tabulate to make table (should be easy enough...)
+    ## TODO: add vector support (euclidean disance perhaps??? probably...)
     ### so what is the plan??
     ### (a) add config files!!!! [done]
     ### (b) add a params that specifies the type of graph/table [done]
@@ -150,7 +155,8 @@ if __name__=="__main__":
     args = parser.parse_args()
 
     if not args.config_json:
-        config_file_pth = "./multi_experiment_configs/wordpress_scale.json"
+        #config_file_pth = "./multi_experiment_configs/wordpress_scale.json"
+        config_file_pth = "./multi_experiment_configs/old_sockshop_angle.json"
     else:
         config_file_pth = args.config_json
 
