@@ -74,9 +74,11 @@ class multi_experiment_pipeline(object):
                  perform_cilium_component=True, only_perform_cilium_component=True, cilium_component_time=100,
                  drop_pairwise_features=False, max_path_length=15, max_dns_porportion=1.0, drop_infra_from_graph=False,
                  ide_window_size=10, debug_basename=None, pretrained_sav2=None, auto_open_pdfs=True,
-                 skip_heatmap_p=True, no_labeled_data=False, time_fraction_fp_increase=0.05):
+                 skip_heatmap_p=True, no_labeled_data=False, time_fraction_fp_increase=0.05,
+                 use_ts_lower=False):
 
         self.single_rate_stats_pipelines = {}
+        self.use_ts_lower = use_ts_lower
         self.auto_open_pdfs = auto_open_pdfs
         self.pretrained_min_pipeline = pretrained_sav2
         self.ROC_curve_p = ROC_curve_p
@@ -174,7 +176,15 @@ class multi_experiment_pipeline(object):
                                          no_labeled_data=self.no_labeled_data)
 
             if not self.pretrained_min_pipeline:
-                min_rate_statspipelines = self.decrease_exfil_of_model()
+                min_rate_statspipelines_ts = self.decrease_exfil_of_model()
+
+                ## let's generate both reports... we can then use a param to pick between them...
+                min_rate_statspipelines_agg = self.train_multi_exfilrate_model()
+
+                if self.use_ts_lower:
+                    min_rate_statspipelines = min_rate_statspipelines_ts
+                else:
+                    min_rate_statspipelines = min_rate_statspipelines_agg
 
                 with open(self.where_to_save_minrate_statspipelines, 'w') as f:
                     pickle.dump(min_rate_statspipelines, f)
@@ -317,7 +327,32 @@ class multi_experiment_pipeline(object):
                                          self.names, self.skip_model_part, 'varies', 'varies', 'varies',
                                          'varies', False)
         '''
-        pass
+        time_gran_to_new_df = {}
+        for rate,timegran_to_statistical_pipeline in self.rate_to_timegran_to_statistical_pipeline.iteritems():
+            for timegran, stats_pipeline in timegran_to_statistical_pipeline.iteritems():
+                if type(timegran) == tuple:
+                    continue
+                if timegran not in time_gran_to_new_df:
+                    time_gran_to_new_df[timegran] = stats_pipeline.aggregate_mod_score_df
+                    continue
+                # TODO: append relevant part to the time_gran_to_new_df and flip is_test (b/c don't need is_test anymore)
+                cur_df = stats_pipeline.aggregate_mod_score_df
+                ## TODO: (a) :: get only those with injected
+                attack_portions = cur_df.loc[cur_df['labels'] == 1]
+                ## TODO: (b) :: append onto dataframe
+                time_gran_to_new_df[timegran] = time_gran_to_new_df[timegran].append(attack_portions, ignore_index=True)
+                ## TODO: (c) :: switch is_test to all zeros (REMOVE IF I MAKE THE SWITCH PERMENANT)
+                #time_gran_to_new_df[timegran]['is_test'] = 0
+
+        cur_base_output_name = self.base_output_name + 'multi_rate_exfil_report'
+        new_sav2_object = single_rate_stats_pipeline(time_gran_to_new_df, self.ROC_curve_p, cur_base_output_name,
+                                         self.names, self.skip_model_part, ' multirate_varies', 'multirate_varies',
+                                        'multirate_varies', 'multirate_varies', False)
+
+        new_sav2_object.run_statistical_pipeline(self.drop_pairwise_features, self.pretrained_min_pipeline, skip_heatmap_p=self.skip_heatmap_p)
+        new_sav2_object.create_the_report(self.auto_open_pdfs)
+
+        return new_sav2_object
 
     def lower_per_path_exfil_rates(self, timegran):
         exfil_rates = sorted(self.avg_exfil_per_min )

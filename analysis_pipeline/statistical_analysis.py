@@ -66,6 +66,7 @@ class single_model_stats_pipeline():
         self.method_to_cm_df_train, self.method_to_cm_df_test = {},{}
         self.method_to_optimal_thresh_test, self.method_to_optimal_thresh_train = {}, {}
         self.skip_heatmaps=skip_heatmap_p
+        self.no_testing=False
 
         try:
             os.makedirs('./temp_outputs')
@@ -101,6 +102,7 @@ class single_model_stats_pipeline():
         else:
             coef_impact_df, raw_feature_val_df = generate_heatmap.generate_covariate_heatmap(self.coef_dict, self.X_test, self.exfil_paths_test)
 
+
         generate_heatmap.generate_heatmap(coef_impact_df, local_heatmap_path, current_heatmap_path)
         generate_heatmap.generate_heatmap(raw_feature_val_df, local_heatmap_val_path, current_heatmap_val_path)
 
@@ -113,17 +115,27 @@ class single_model_stats_pipeline():
         print coef_impact_df
 
     def _generate_rocs(self):
+        #if self.no_testing:
+        #    return
+
         list_of_x_vals = []
         list_of_y_vals = []
         line_titles = []
-        for method, test_predictions in self.method_to_test_predictions.iteritems():
+        if self.no_testing:
+            method_to_predictions = self.method_to_train_predictions
+            correct_labels = self.y_train
+        else:
+            method_to_predictions = self.method_to_test_predictions
+            correct_labels = self.y_test
+
+        for method, test_predictions in method_to_predictions.iteritems():
             #print "self.y_test",self.y_test
             #print "test_predictions", test_predictions
             print "method", method
             #print "test_predictions", test_predictions
             test_predictions = np.nan_to_num(test_predictions)
             #print "self.y_test",self.y_test
-            fpr, tpr, thresholds = sklearn.metrics.roc_curve(y_true=self.y_test, y_score=test_predictions, pos_label=1)
+            fpr, tpr, thresholds = sklearn.metrics.roc_curve(y_true=correct_labels, y_score=test_predictions, pos_label=1)
             list_of_x_vals.append(fpr)
             list_of_y_vals.append(tpr)
             line_titles.append(method)
@@ -170,6 +182,7 @@ class single_model_stats_pipeline():
         print self.time_gran_to_debugging_csv[self.time_gran].shape
         print len(np.concatenate([self.train_predictions, self.test_predictions]))
 
+        print(np.concatenate([self.train_predictions, self.test_predictions]))
         self.time_gran_to_debugging_csv[self.time_gran].loc[:, "aggreg_anom_score"] = np.concatenate(
             [self.train_predictions, self.test_predictions])
 
@@ -209,16 +222,21 @@ class single_model_stats_pipeline():
 
     def generate_report_section(self):
         if not self.skip_heatmaps:
-            if  not self.using_pretrained_model:
+            if not self.using_pretrained_model:
                 self._generate_heatmap(training_p=True)
-            self._generate_heatmap(training_p=False)
+            if not self.no_testing:
+                self._generate_heatmap(training_p=False)
 
         number_attacks_in_test = len(self.y_test[self.y_test['labels'] == 1])
         number_non_attacks_in_test = len(self.y_test[self.y_test['labels'] == 0])
-        percent_attacks = (float(number_attacks_in_test) / (number_non_attacks_in_test + number_attacks_in_test))
         number_attacks_in_train = len(self.y_train[self.y_train['labels'] == 1])
         number_non_attacks_in_train = len(self.y_train[self.y_train['labels'] == 0])
 
+        if self.no_testing:
+            percent_attacks = 0.0
+        else:
+            # so testing in this case.
+            percent_attacks = (float(number_attacks_in_test) / (number_non_attacks_in_test + number_attacks_in_test))
 
         env = Environment(
             loader=FileSystemLoader(searchpath="./report_templates")
@@ -238,22 +256,30 @@ class single_model_stats_pipeline():
             feature_activation_heatmap_training='none.png'
             feature_raw_heatmap_training='none.png'
 
+        if self.no_testing:
+            ensemble_optimal_f1_scores_test = self.method_to_optimal_f1_scores_train[self.method_name]
+            ensemble_df_test = self.method_to_cm_df_train[self.method_name]
+            ensemble_optimal_thresh_test = self.method_to_optimal_thresh_train[self.method_name]
+        else:
+            ensemble_optimal_f1_scores_test = self.method_to_optimal_f1_scores_test[self.method_name]
+            ensemble_df_test = self.method_to_cm_df_test[self.method_name]
+            ensemble_optimal_thresh_test = self.method_to_optimal_thresh_test[self.method_name]
 
         report_section = table_section_template.render(
             time_gran=str(self.time_gran) + " sec granularity",
             roc=self.plot_path,
             feature_table=coef_feature_df,
             model_params=self.model_params,
-            optimal_fOne=self.method_to_optimal_f1_scores_test[self.method_name],
+            optimal_fOne=ensemble_optimal_f1_scores_test,
             percent_attacks=percent_attacks,
-            attacks_found=self.method_to_cm_df_test[self.method_name].to_html(),
+            attacks_found=ensemble_df_test.to_html(),
             attacks_found_training=attacks_found_training,
             percent_attacks_training=percent_attacks_train,
             feature_activation_heatmap=self.feature_activation_heatmaps[0],
             feature_activation_heatmap_training=feature_activation_heatmap_training,
             feature_raw_heatmap=self.feature_raw_heatmaps[0],
             feature_raw_heatmap_training=feature_raw_heatmap_training,
-            ideal_threshold=self.method_to_optimal_thresh_test[self.method_name]
+            ideal_threshold = ensemble_optimal_thresh_test
         )
 
         return report_section
@@ -263,21 +289,41 @@ class single_model_stats_pipeline():
             if not multi_time_train:
                 self.clf.fit(self.X_train, self.y_train)
                 self.train_predictions = self.clf.predict(X=self.X_train)
+
+                print "self.X_test.shape", self.X_test.shape, self.X_test.shape[0]
+                if self.X_test.shape[0] != 0:
+                    self.test_predictions = self.clf.predict(X=self.X_test)
+                else:
+                    self.test_predictions = np.array([])
+                    self.no_testing = True  # no wait, here's the plan... just treat training like testing for purposes of the report...)
+
             else: # AM I SURE I WANT THIS
                 ## fitting on the training set... so not super valid unless eval sete is there too...
-                self.clf.fit(self.X_test, self.y_test)
-                self.train_predictions = self.clf.predict(X=self.X_train)
+
+                print "self.X_test.shape", self.X_test.shape, self.X_test.shape[0]
+                if self.X_test.shape[0] != 0:
+                    self.clf.fit(self.X_test, self.y_test)
+                    self.train_predictions = self.clf.predict(X=self.X_train)
+                    self.test_predictions = self.clf.predict(X=self.X_test)
+                else:
+                    self.clf.fit(self.X_train, self.y_train)
+                    self.train_predictions = self.clf.predict(X=self.X_train)
+                    self.test_predictions = np.array([])
+                    self.no_testing = True  # no wait, here's the plan... just treat training like testing for purposes of the report...)
+
 
             self.using_pretrained_model = False
         else:
             self.train_predictions = np.array([])
             self.using_pretrained_model = True
+            self.test_predictions = self.clf.predict(X=self.X_test)
 
         print "Qt", self.time_gran
         print self.X_test.shape
-        self.test_predictions = self.clf.predict(X=self.X_test)
 
-        ## would this cause a problem on the eval set????
+
+
+            ## would this cause a problem on the eval set????
         self.coef_dict  = get_coef_dict(self.clf, self.X_train.columns.values, self.base_output_name, self.X_train.dtypes, sanity_check_number_coefs=(not using_pretrained_model))
         self.coef_feature_df = pd.DataFrame.from_dict(self.coef_dict, orient='index')
         self.coef_feature_df.columns = ['Coefficient']
@@ -295,17 +341,26 @@ class single_model_stats_pipeline():
             self._generate_debugging_csv()
 
             self._generate_rocs()
-            self.method_to_optimal_f1_scores_test, self.method_to_optimal_predictions_test, self.method_to_optimal_thresh_test = \
-                self._generate_optimal_predictions(self.method_to_test_predictions, self.y_test)
+
+            if self.no_testing:
+                self.method_to_optimal_f1_scores_train, self.method_to_optimal_predictions_train, self.method_to_optimal_thresh_train = \
+                    self._generate_optimal_predictions(self.method_to_train_predictions, self.y_train)
+                self.method_to_cm_df_test = self._generate_confusion_matrixes(self.method_to_optimal_predictions_train,
+                                                                              self.y_train, self.exfil_paths_train,
+                                                                              self.exfil_weights_train)
+            else:
+                self.method_to_optimal_f1_scores_test, self.method_to_optimal_predictions_test, self.method_to_optimal_thresh_test = \
+                    self._generate_optimal_predictions(self.method_to_test_predictions, self.y_test)
+                self.method_to_cm_df_test = self._generate_confusion_matrixes(self.method_to_optimal_predictions_test,
+                                                                              self.y_test, self.exfil_paths_test,
+                                                                              self.exfil_weights_test)
+
 
             if not using_pretrained_model:
                 self.method_to_optimal_f1_scores_train, self.method_to_optimal_predictions_train, self.method_to_optimal_thresh_train = \
                     self._generate_optimal_predictions(self.method_to_train_predictions, self.y_train)
                 self.method_to_cm_df_train = self._generate_confusion_matrixes(self.method_to_optimal_predictions_train, self.y_train,
                                                                     self.exfil_paths_train, self.exfil_weights_train)
-
-            self.method_to_cm_df_test = self._generate_confusion_matrixes(self.method_to_optimal_predictions_test, self.y_test,
-                                                                self.exfil_paths_test, self.exfil_weights_test)
 
             return self.method_to_cm_df_test[self.method_name]
         return None
@@ -417,7 +472,6 @@ class single_rate_stats_pipeline():
         return self.list_of_optimal_fone_scores_at_this_exfil_rates, self.Xs, self.Ys, self.Xts, self.Yts, self.trained_models, \
                self.timegran_to_methods_to_attacks_found_dfs, self.timegran_to_methods_toattacks_found_training_df, experiment_info, \
                self.time_gran_to_outtraffic, self.timegran_to_statistical_pipeline
-
 
     def _train_multi_time_model(self, drop_pairwise_features, pretrained_statistical_analysis_v2, skip_heatmap_p):
         # the purpose of this function is test the union of alerts...

@@ -67,7 +67,7 @@ def parse_experimental_data_json(config_file, experimental_folder, experiment_na
                                                no_processing_at_all=no_processing_at_all)
     return pipeline_object
 
-def parse_experimental_config(experimental_config_file, live=False):
+def parse_experimental_config(experimental_config_file, live=False, is_eval=False):
     with open(experimental_config_file) as f:
         config_file = json.load(f)
 
@@ -84,7 +84,10 @@ def parse_experimental_config(experimental_config_file, live=False):
         if 'goal_train_test_split_training' in config_file:
             goal_train_test_split_training = config_file['goal_train_test_split_training']
         else:
-            goal_train_test_split_training = 0.50
+            if is_eval:
+                goal_train_test_split_training = 0.0 # if eval, everything is test
+            else:
+                goal_train_test_split_training = 1.0 # if train, everything is train
 
         if "goal_attack_NoAttack_split_training" in config_file:
             goal_attack_NoAttack_split_training = config_file['goal_attack_NoAttack_split_training']
@@ -256,7 +259,7 @@ def parse_experimental_config(experimental_config_file, live=False):
     return multi_experiment_object
 
 def run_analysis(training_config, eval_config=None, live=False):
-    training_experimente_object = parse_experimental_config(training_config)
+    training_experimente_object = parse_experimental_config(training_config, is_eval=False)
     min_rate_training_statspipelines, training_results = training_experimente_object.run_pipelines()
 
     print "training_results", training_results
@@ -264,7 +267,7 @@ def run_analysis(training_config, eval_config=None, live=False):
     #time.sleep(35)
 
     if eval_config:
-        eval_experimente_object = parse_experimental_config(eval_config, live=live)
+        eval_experimente_object = parse_experimental_config(eval_config, live=live, is_eval=True)
         _, eval_results = eval_experimente_object.run_pipelines(pretrained_model_object=min_rate_training_statspipelines)
 
         print "----------------------------"
@@ -306,9 +309,9 @@ if __name__=="__main__":
         #run_analysis('./analysis_json/sockshop_mk13.json', eval_config = './new_analysis_json/sockshop_mk23.json')
         #run_analysis('./analysis_json/sockshop_mk13.json', eval_config = './new_analysis_json/sockshop_mk24.json')
 
-        run_analysis('./analysis_json/sockshop_mk13.json', eval_config = './new_analysis_json/sockshop_auto_mk27.json')
+        #run_analysis('./analysis_json/sockshop_mk13.json', eval_config = './new_analysis_json/sockshop_auto_mk27.json')
 
-        ####run_analysis('./analysis_json/wordpress_one_3_auto_mk5.json', eval_config='./analysis_json/wordpress_one_v2_na_eval.json')
+        run_analysis('./analysis_json/wordpress_one_3_auto_mk5.json', eval_config='./analysis_json/wordpress_one_v2_na_eval.json')
         #run_analysis('./analysis_json/sockshop_exfil_test.json')
         #run_analysis('analysis_json/wordpress_model.json', eval_config='analysis_json/wordpress_example.json')
         #run_analysis('./analysis_json/sockshop_one_auto_mk12long.json', eval_config='./analysis_json/sockshop_example.json')

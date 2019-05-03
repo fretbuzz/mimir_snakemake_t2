@@ -1,2 +1,3 @@
 *.pyc
 experimental_data/*
+analysis_pipeline/new_analysis_json/*

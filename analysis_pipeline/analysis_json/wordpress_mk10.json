@@ -1,13 +1,13 @@
 {
-  "cur_experiment_name": "wordpress_one_3_auto_mk5ag",
-  "exp_config_file": "/Volumes/exM/experimental_data/wordpress_info/wordpress_auto_v3_mk5/wordpress_one_3_auto_mk5_analysis.json",
+  "cur_experiment_name": "wordpress_mk10",
+  "exp_config_file": "/Volumes/exM/experimental_data/wordpress_info/wordpress_auto_mk10/wordpress_auto_mk10_analysis.json",
   "netsec_policy": "None",
 
   "make_edgefiles": false,
   "skip_graph_injection": true,
   "calc_vals": false,
   "calculate_z_scores": true,
-  "get_endresult_from_memory": true,
+  "get_endresult_from_memory": false,
 
   "perform_cilium_component": false,
 
@@ -23,9 +23,9 @@
   "avg_exfil_per_min": [10.0, 1.0, 0.1, 0.05, 0.01],
   "exfil_per_min_variance": [0.3, 0.15, 0.025, 0.0125, 0.0025],
 
-  "goal_attack_NoAttack_split_training": 0.50,
-  "goal_train_test_split_training": 0.50,
-  "goal_attack_NoAttack_split_testing": 0.2,
+  "goal_attack_NoAttack_split_training": 0.0,
+  "goal_train_test_split_training": 0.0,
+  "goal_attack_NoAttack_split_testing": 0.10,
 
   "skip_heatmap_p" : true
 }
