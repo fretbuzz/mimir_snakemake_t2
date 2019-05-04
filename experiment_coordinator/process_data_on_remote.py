@@ -188,15 +188,17 @@ def process_on_remote(remote_server_ip, remote_server_key, user, eval_dir_with_d
     sendline_and_wait_responses(sh, eval_sed_mod_paths_cmd, timeout=15)
     sendline_and_wait_responses(sh, train_sed_mod_paths_cmd, timeout=15)
 
+    # the '../' is b/c I'm in too much of a hurry to just figure out what the above dir is...
     if not dont_retreive_eval:
-        s.download_dir(remote=eval_config_dir, local=eval_data_dir)
+        s.download_dir(remote=eval_config_dir + '../', local=eval_data_dir)
     if not dont_retreive_train:
-        s.download_dir(remote=training_config_dir, local=model_dir)
+        s.download_dir(remote=training_config_dir + '../', local=model_dir)
 
     # step (8) return some kinda relevant information (-- this'll be the eval cm's that are needed by the looper)
     ### the biggest question is how to get them -- simple. they must be saved by mimir in a text file, that we can then
     ### read and extract the values from...
     ## TODO ::: get self.rate_to_tg_to_cm ... don't really know where that is (physically) but prob easiest just to run and check
+
 
     # step (9) (not actually a part of this file) -- need to modify components of system
     # to be able to cope with being processed on another system -- mostly the file paths will
