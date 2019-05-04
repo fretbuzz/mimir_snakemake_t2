@@ -75,7 +75,7 @@ class multi_experiment_pipeline(object):
                  drop_pairwise_features=False, max_path_length=15, max_dns_porportion=1.0, drop_infra_from_graph=False,
                  ide_window_size=10, debug_basename=None, pretrained_sav2=None, auto_open_pdfs=True,
                  skip_heatmap_p=True, no_labeled_data=False, time_fraction_fp_increase=0.05,
-                 use_ts_lower=False):
+                 use_ts_lower=True, use_logistic=False):
 
         self.single_rate_stats_pipelines = {}
         self.use_ts_lower = use_ts_lower
@@ -140,6 +140,7 @@ class multi_experiment_pipeline(object):
         self.no_labeled_data = no_labeled_data
         self.rate_to_time_gran_to_predicted_test = {}
         self.time_fraction_fp = time_fraction_fp_increase
+        self.use_logistic = use_logistic
 
     # note: this going to be used to load the pipeline object prior to doing all of this work...
     def loader(self, filename):
@@ -282,7 +283,7 @@ class multi_experiment_pipeline(object):
                                                      self.no_labeled_data)
 
         stats_pipelines.run_statistical_pipeline(self.drop_pairwise_features, self.pretrained_min_pipeline,
-                                                 skip_heatmap_p = self.skip_heatmap_p)
+                                                 skip_heatmap_p = self.skip_heatmap_p, logistic_p=self.use_logistic)
 
         if not self.no_labeled_data:
             stats_pipelines.create_the_report(self.auto_open_pdfs)
@@ -333,7 +334,7 @@ class multi_experiment_pipeline(object):
                 if type(timegran) == tuple:
                     continue
                 if timegran not in time_gran_to_new_df:
-                    time_gran_to_new_df[timegran] = stats_pipeline.aggregate_mod_score_df
+                    time_gran_to_new_df[timegran] = copy.deepcopy(stats_pipeline.aggregate_mod_score_df)
                     continue
                 # TODO: append relevant part to the time_gran_to_new_df and flip is_test (b/c don't need is_test anymore)
                 cur_df = stats_pipeline.aggregate_mod_score_df
@@ -342,14 +343,15 @@ class multi_experiment_pipeline(object):
                 ## TODO: (b) :: append onto dataframe
                 time_gran_to_new_df[timegran] = time_gran_to_new_df[timegran].append(attack_portions, ignore_index=True)
                 ## TODO: (c) :: switch is_test to all zeros (REMOVE IF I MAKE THE SWITCH PERMENANT)
-                #time_gran_to_new_df[timegran]['is_test'] = 0
+                time_gran_to_new_df[timegran]['is_test'] = 0 ## acctually going to keep this... so both models can be useful....
 
         cur_base_output_name = self.base_output_name + 'multi_rate_exfil_report'
         new_sav2_object = single_rate_stats_pipeline(time_gran_to_new_df, self.ROC_curve_p, cur_base_output_name,
                                          self.names, self.skip_model_part, ' multirate_varies', 'multirate_varies',
                                         'multirate_varies', 'multirate_varies', False)
 
-        new_sav2_object.run_statistical_pipeline(self.drop_pairwise_features, self.pretrained_min_pipeline, skip_heatmap_p=self.skip_heatmap_p)
+        new_sav2_object.run_statistical_pipeline(self.drop_pairwise_features, self.pretrained_min_pipeline,
+                                                 skip_heatmap_p=self.skip_heatmap_p, logistic_p=self.use_logistic)
         new_sav2_object.create_the_report(self.auto_open_pdfs)
 
         return new_sav2_object
@@ -433,7 +435,8 @@ class multi_experiment_pipeline(object):
                                                  self.names, self.skip_model_part, 'varies', 'varies', 'varies',
                                                  'varies', False)
 
-        sav2_object.run_statistical_pipeline(self.drop_pairwise_features, self.pretrained_min_pipeline, skip_heatmap_p=self.skip_heatmap_p)
+        sav2_object.run_statistical_pipeline(self.drop_pairwise_features, self.pretrained_min_pipeline,
+                                             skip_heatmap_p=self.skip_heatmap_p, logistic_p=self.use_logistic)
         sav2_object.create_the_report(self.auto_open_pdfs)
 
         return sav2_object

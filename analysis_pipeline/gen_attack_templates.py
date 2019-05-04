@@ -431,7 +431,7 @@ def parse_netsec_policy(netsec_policy):
         else:
             allowed_dict[allowed_dict_key] = allow_all
 
-    print allowed_dict
+    print "allowed_dict", allowed_dict
     #exit(34)
     return allowed_dict,intersvc_vip_pairs
 

@@ -9,6 +9,8 @@ from sklearn.linear_model import LassoCV
 from sklearn.model_selection import train_test_split
 import generate_heatmap, process_roc, generate_report
 from jinja2 import FileSystemLoader, Environment
+from sklearn.svm import LinearSVC
+from sklearn.feature_selection import SelectFromModel
 
 class single_model_stats_pipeline():
     def __init__(self, aggregate_mod_score_df, base_output_name, skip_model_part, clf, drop_pairwise_features, timegran,
@@ -26,6 +28,7 @@ class single_model_stats_pipeline():
         self.time_gran = timegran
         self.time_gran_to_debugging_csv = {}
         self.lasso_feature_selection_p = lasso_feature_selection_p
+        self.feature_select_transformer = None
         self.using_pretrained_model = False
 
         self.feature_activation_heatmaps = ['none.png']
@@ -183,6 +186,7 @@ class single_model_stats_pipeline():
         print len(np.concatenate([self.train_predictions, self.test_predictions]))
 
         print(np.concatenate([self.train_predictions, self.test_predictions]))
+        print self.base_output_name
         self.time_gran_to_debugging_csv[self.time_gran].loc[:, "aggreg_anom_score"] = np.concatenate(
             [self.train_predictions, self.test_predictions])
 
@@ -287,6 +291,22 @@ class single_model_stats_pipeline():
     def generate_model(self, using_pretrained_model=False, multi_time_train=False):
         if not using_pretrained_model:
             if not multi_time_train:
+                if self.lasso_feature_selection_p:
+                    lsvc = LinearSVC(C=0.01, penalty="l1", dual=False).fit(self.X_test, self.y_test)
+                    model = SelectFromModel(lsvc, prefit=True)
+                    feature_idx = model.get_support()
+                    feature_name = self.X_test.columns[feature_idx]
+
+                    X_train = model.transform(self.X_train)
+                    self.X_train = pd.DataFrame(X_train, index=self.X_train.index,columns=feature_name.values)
+
+                    self.feature_select_transformer = model
+
+                    if self.X_test.shape[0] != 0:
+                        X_test = model.transform(self.X_test)
+                        self.X_test = pd.DataFrame(X_test, index=self.X_test.index,
+                                                    columns=feature_name.values)
+
                 self.clf.fit(self.X_train, self.y_train)
                 self.train_predictions = self.clf.predict(X=self.X_train)
 
@@ -302,10 +322,32 @@ class single_model_stats_pipeline():
 
                 print "self.X_test.shape", self.X_test.shape, self.X_test.shape[0]
                 if self.X_test.shape[0] != 0:
+                    if self.lasso_feature_selection_p:
+                        lsvc = LinearSVC(C=0.01, penalty="l1", dual=False).fit(self.X_test, self.y_test)
+                        model = SelectFromModel(lsvc, prefit=True)
+                        X_train = model.transform(self.X_train)
+
+                        self.X_train = pd.DataFrame(X_train, index=self.X_train.index,
+                                                    columns=self.X_train.columns.values)
+
+                        X_test = model.transform(self.X_test)
+                        self.X_test = pd.DataFrame(X_test, index=self.X_test.index,
+                                                    columns=self.X_test.columns.values)
+
+                        self.feature_select_transformer = model
+
                     self.clf.fit(self.X_test, self.y_test)
                     self.train_predictions = self.clf.predict(X=self.X_train)
                     self.test_predictions = self.clf.predict(X=self.X_test)
                 else:
+                    if self.lasso_feature_selection_p:
+                        lsvc = LinearSVC(C=0.01, penalty="l1", dual=False).fit(self.X_train, self.y_train)
+                        model = SelectFromModel(lsvc, prefit=True)
+                        X_train = model.transform(self.X_train)
+                        self.X_train = pd.DataFrame(X_train, index=self.X_train.index,
+                                                    columns=self.X_train.columns.values)
+                        self.feature_select_transformer = model
+
                     self.clf.fit(self.X_train, self.y_train)
                     self.train_predictions = self.clf.predict(X=self.X_train)
                     self.test_predictions = np.array([])
@@ -324,7 +366,11 @@ class single_model_stats_pipeline():
 
 
             ## would this cause a problem on the eval set????
-        self.coef_dict  = get_coef_dict(self.clf, self.X_train.columns.values, self.base_output_name, self.X_train.dtypes, sanity_check_number_coefs=(not using_pretrained_model))
+        self.coef_dict  = get_coef_dict(self.clf, self.X_train.columns.values, self.base_output_name,
+                                        self.X_train.dtypes, sanity_check_number_coefs=(not using_pretrained_model),
+                                        lasso_feature_selection_p = self.lasso_feature_selection_p)
+        print("self.X_train",self.X_train)
+        print("self.coef_dict",self.coef_dict)
         self.coef_feature_df = pd.DataFrame.from_dict(self.coef_dict, orient='index')
         self.coef_feature_df.columns = ['Coefficient']
 
@@ -406,13 +452,17 @@ class single_rate_stats_pipeline():
         self.exfil_per_min_variance = exfil_per_min_variance
         self.pkt_size_variance = pkt_size_variance
 
-    def run_statistical_pipeline(self, drop_pairwise_features, pretrained_statistical_analysis_v2, skip_heatmap_p=True):
+    def run_statistical_pipeline(self, drop_pairwise_features, pretrained_statistical_analysis_v2, skip_heatmap_p=True,
+                                 logistic_p = False):
         for timegran,feature_df in self.time_gran_to_aggregate_mod_score_dfs.iteritems():
-            #clf = sklearn.linear_model.LogisticRegressionCV(penalty="l1", cv=10, max_iter=10000, solver='saga')
-            #cur_base_output_name + 'logistic_l1_mod_z_lass_feat_sel_'
-            clf = LassoCV(cv=3, max_iter=80000)
+            if logistic_p:
+                clf = sklearn.linear_model.LogisticRegressionCV(penalty="l1", cv=10, max_iter=10000, solver='saga')
 
-            if 'lass_feat_sel' in self.base_output_name:
+                #cur_base_output_name + 'logistic_l1_mod_z_lass_feat_sel_'
+            else:
+                clf = LassoCV(cv=3, max_iter=80000) ## putting positive here makes it works.
+
+            if 'lass_feat_sel' in self.base_output_name or logistic_p:
                 lasso_feature_selection_p = True
             else:
                 lasso_feature_selection_p = False
@@ -1093,14 +1143,14 @@ def drop_useless_columns_testTrain_Xs( X_train, X_test ):
 
     return X_train, X_test, dropped_feature_list, X_train_exfil_weight, X_test_exfil_weight
 
-def get_coef_dict(clf, X_train_columns, base_output_name, X_train_dtypes, sanity_check_number_coefs):
+def get_coef_dict(clf, X_train_columns, base_output_name, X_train_dtypes, sanity_check_number_coefs, lasso_feature_selection_p):
     coef_dict = {}
     print "Coefficients: "
     print "LASSO model", clf.get_params()
     print '----------------------'
     print "len(clf.coef_)", len(clf.coef_), "len(X_train_columns)", len(X_train_columns)
 
-    if 'logistic' in base_output_name:
+    if 'logistic' in base_output_name or lasso_feature_selection_p:
         model_coefs = clf.coef_[0]
     else:
         model_coefs = clf.coef_
@@ -1112,7 +1162,8 @@ def get_coef_dict(clf, X_train_columns, base_output_name, X_train_dtypes, sanity
                 print counter, i, X_train_columns[counter]
                 print model_coefs  # [counter]
                 print len(model_coefs)
-            exit(888)
+            if not lasso_feature_selection_p:
+                exit(888)
 
     for coef, feat in zip(model_coefs, X_train_columns):
         coef_dict[feat] = coef

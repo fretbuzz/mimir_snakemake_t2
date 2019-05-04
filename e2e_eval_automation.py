@@ -205,9 +205,9 @@ def perform_eval_work(cloudlab_exps_file, cloudlab_exps_dir, analysis_exp_file, 
 
 
                     local_dir = exp_name_to_localdir[finished_exp_name]
-                    exp_config_file =  local_dir + finished_exp_name + '_exp.json' # i know the name b/c i assign it earlier...
+                    exp_config_file = local_dir + finished_exp_name + "/" + finished_exp_name + '_analysis.json'
                     mod_analysis_template = create_analysis_json_from_template(analysis_template, finished_exp_name, exp_config_file)
-                    mod_analysis_template_loc = local_dir + finished_exp_name + '_exp_proc.json'
+                    mod_analysis_template_loc = local_dir + finished_exp_name + "/" + finished_exp_name + '_exp_proc.json'
                     with open(mod_analysis_template_loc, 'w') as f:
                         json.dump(mod_analysis_template, f, indent=2)
 
@@ -269,11 +269,12 @@ def perform_eval_work(cloudlab_exps_file, cloudlab_exps_dir, analysis_exp_file, 
         eval_configs_to_xvals[exp_name_to_mimir_config[eval_exp]] = 50 ## NOTE: this is WRONG but it WILL make the thing RUN!
     multi_exp_looper_config["eval_configs_to_xvals"] = eval_configs_to_xvals
 
-    multi_experiment_config_file_path = './e2e_eval_configs' + cloudlab_config['cur_name'] + '_multi_config.json'
+    multi_experiment_config_file_path = cloudlab_exps_dir + cloudlab_config['cur_name'] + '_multi_config.json'
     with open(multi_experiment_config_file_path, 'w') as g:
         json.dump(multi_exp_looper_config, g, indent=2)
 
-    run_looper(multi_experiment_config_file_path)
+    print "calling run_looper with this config file...", multi_experiment_config_file_path
+    run_looper(multi_experiment_config_file_path, True)
 
     #### (2) start LOCAL experiments... perhaps I can abstract the existing logic into a function???
         ## cause it'll be essentially equivalent for the multiprocessing part... however

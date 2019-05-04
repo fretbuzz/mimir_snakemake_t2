@@ -286,10 +286,13 @@ def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
     config = pdfkit.configuration(wkhtmltopdf="/usr/local/bin/wkhtmltopdf")
 
     aggregate_report_location = base_output_name + "_aggregate_report.pdf" # TODO: is this fine??
-    options={"print-media-type": None}
-    pdfkit.from_file("report_templates/aggregate_report.html", aggregate_report_location, configuration=config, options=options)
-    if auto_open_pdfs_p:
-        out = subprocess.check_output(['open', aggregate_report_location])
+    try:
+        options={"print-media-type": None}
+        pdfkit.from_file("report_templates/aggregate_report.html", aggregate_report_location, configuration=config, options=options)
+        if auto_open_pdfs_p:
+            out = subprocess.check_output(['open', aggregate_report_location])
+    except:
+        pass
 
 def update_attack_rate_linegraph_dicts(time_gran_to_attack_to_methods_to_f1s, timegran,
                                        methods_to_attacks_found_dfs, time_gran_to_attack_to_methods_to_rates, rate):

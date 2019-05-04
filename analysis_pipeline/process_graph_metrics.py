@@ -159,8 +159,6 @@ def save_feature_datafames(time_gran_to_feature_dataframe, csv_path, time_gran_t
         ## TODO: this function needs to be fixed so that everything can work.... okay. It's pretty clear to me that
         ## we need to determine the split based off of the max time granularity and then set the other thing srelative to that
 
-        #max_time_gran
-
         current_end_of_train = int(end_of_training / max_time_gran) * int(max_time_gran/time_gran)
 
         test_period_list = [0 for i in range(0,int(current_end_of_train))] + \
@@ -212,6 +210,13 @@ def normalize_data_v2(time_gran_to_feature_dataframe, time_gran_to_attack_labels
             pretrained_noexfil_vals = corresponding_pretrained.loc[ attack_labels == 0]
             transformer = RobustScaler().fit(pretrained_noexfil_vals)
             '''
+
+            #feature_dataframe = np.minimum(feature_dataframe, 1000000)  # 100
+            #feature_dataframe = np.maximum(feature_dataframe, -10000000)  # 100
+            #feature_dataframe = feature_dataframe.clip(upper=1000000, lower=-10000000, axis=1)
+            #feature_dataframe = feature_dataframe.fillna(feature_dataframe.median())
+            #feature_dataframe = feature_dataframe.fillna(0.0) # maybe? (once done w/ overhaul of graph gen, should never trigger anyway...)
+
             transformer = RobustScaler().fit(feature_dataframe) # NOTE: doing an experiment...
             # (3) setup appropriate values for other purposes...
             training_values = feature_dataframe
@@ -233,6 +238,8 @@ def normalize_data_v2(time_gran_to_feature_dataframe, time_gran_to_attack_labels
 
         time_gran_to_normalized_df[time_gran] = pandas.DataFrame(transformed_data, index=feature_dataframe.index,\
                                                                  columns=feature_dataframe.columns.values) #df_normalized
+
+
 
         # note whether or not I actually want to do this is TBD...
         ## TODO: might want to change this for the eval case...
