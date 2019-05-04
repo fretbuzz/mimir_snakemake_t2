@@ -141,6 +141,7 @@ class multi_experiment_pipeline(object):
         self.rate_to_time_gran_to_predicted_test = {}
         self.time_fraction_fp = time_fraction_fp_increase
         self.use_logistic = use_logistic
+        self.rate_to_tg_to_cm = {}
 
     # note: this going to be used to load the pipeline object prior to doing all of this work...
     def loader(self, filename):
@@ -204,11 +205,15 @@ class multi_experiment_pipeline(object):
         if self.no_labeled_data and self.skip_model_part:
             return min_rate_statspipelines, self.rate_to_time_gran_to_predicted_test[min(self.avg_exfil_per_min)]
 
-        rate_to_tg_to_cm = {}
+        self.rate_to_tg_to_cm = {}
         for rate,single_rate_statsp in self.single_rate_stats_pipelines.iteritems():
-            rate_to_tg_to_cm[rate] = single_rate_statsp.time_gran_to_cm
+            self.rate_to_tg_to_cm[rate] = single_rate_statsp.time_gran_to_cm
 
-        return min_rate_statspipelines, rate_to_tg_to_cm
+        ## okay, now write it out...
+        with open(self.base_output_name + '_rate_to_tg_to_cm.pickle', 'w') as f:
+            f.write(pickle.dumps(self.rate_to_tg_to_cm))
+
+        return min_rate_statspipelines, self.rate_to_tg_to_cm
 
 
     def generate_aggregate_report(self):

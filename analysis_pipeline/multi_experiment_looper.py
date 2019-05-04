@@ -23,22 +23,35 @@ def update_config_file(config_file_pth, if_trained_model):
     with open(config_file_pth, 'w') as f:
         json.dump(config_file, f, indent=2)
 
-def get_eval_results(model_config_file, list_of_eval_configs, update_config, use_remote):
+def get_eval_results(model_config_file, list_of_eval_configs, update_config, use_remote, remote_server_ip=None,
+                     remote_server_key=None, user=None, dont_retrieve_from_remote=None):
     eval_config_to_cm = {}
     for eval_config in list_of_eval_configs:
         if not use_remote:
             eval_cm = run_analysis(model_config_file, eval_config=eval_config)
         else:
-            pass ## TODO :: need to somehow acquire these values... well the first 3 clearly need to be explicitly in the config files
-            remote_server_ip = None     ## TODO
-            remote_server_key = None    ## TODO
-            user = None                 ## TODO
-            eval_dir_with_data = None   ## TODO
-            eval_analysis_config_file=  None  ## TODO
-            model_dir = None                  ## TODO
-            model_analysis_config_file = None ## TODO
-            process_on_remote(remote_server_ip, remote_server_key, user, eval_dir_with_data, eval_analysis_config_file,
-                              model_dir, model_analysis_config_file, skip_install=False, skip_upload=False)
+            # need to go into the config file and look @ exp_config_file and take the containing directory
+            eval_analysis_config_file = eval_config
+            with open(eval_analysis_config_file, 'r') as g:
+                eval_conf = json.loads(g.read())
+            eval_dir_with_data = "/".join(eval_conf.split("/")[-1])
+
+            model_analysis_config_file = model_config_file
+            with open(model_analysis_config_file, 'r') as g:
+                model_conf = json.loads(g.read())
+            model_dir = "/".join(model_conf.split("/")[-1])
+
+            dont_retreive_train = False
+            dont_retreive_eval = False
+            if dont_retrieve_from_remote is not None:
+                if model_analysis_config_file in dont_retrieve_from_remote:
+                    dont_retreive_train = True
+                if eval_analysis_config_file not in dont_retrieve_from_remote:
+                    dont_retreive_eval = True
+
+            eval_cm = process_on_remote(remote_server_ip, remote_server_key, user, eval_dir_with_data, eval_analysis_config_file,
+                              model_dir, model_analysis_config_file, skip_install=False, skip_upload=False,
+                                    dont_retreive_eval=dont_retreive_eval, dont_retreive_train=dont_retreive_train)
 
         eval_config_to_cm[eval_config] = eval_cm
         ## modify the config file so that you don't redo previously done experiments...
@@ -64,12 +77,15 @@ def cm_to_f1(cm, exfil_rate, timegran):
     return f1_score
 
 def create_eval_graph(model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rates, timegran,
-                      type_of_graph, graph_name, update_config_p, use_remote):
+                      type_of_graph, graph_name, update_config_p, use_remote, remote_server_ip, remote_server_key,
+                      user, dont_retrieve_from_remote):
     if use_cached:
         with open('./temp_outputs/' + graph_name + '_cached_looper.pickle', 'r') as f:
             evalconfigs_to_cm = pickle.loads(f.read())
     else:
-        evalconfigs_to_cm = get_eval_results(model_config_file, eval_configs_to_xvals.keys(), update_config_p, use_remote)
+        evalconfigs_to_cm = get_eval_results(model_config_file, eval_configs_to_xvals.keys(), update_config_p, use_remote,
+                                             remote_server_ip=remote_server_ip, remote_server_key=remote_server_key,
+                                             user=user, dont_retrieve_from_remote=dont_retrieve_from_remote)
         with open('./temp_outputs/' + graph_name + '_cached_looper.pickle', 'w') as f:
             f.write(pickle.dumps(evalconfigs_to_cm))
 
@@ -176,12 +192,33 @@ def parse_config(config_file_pth):
         else:
             use_remote = None
 
+        if 'remote_server_ip' in config_file:
+            remote_server_ip = config_file['remote_server_ip']
+        else:
+            remote_server_ip = None
+
+        if 'remote_server_key' in config_file:
+            remote_server_key = config_file['remote_server_key']
+        else:
+            remote_server_key = None
+
+        if 'user' in config_file:
+            user = config_file['user']
+        else:
+            user = None
+
+        if 'dont_retrieve_from_remote' in config_file:
+            dont_retrieve_from_remote = config_file['dont_retrieve_from_remote']
+        else:
+            dont_retrieve_from_remote = None
+
+
     return model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran, type_of_graph, \
-           graph_name, use_remote
+           graph_name, use_remote, remote_server_ip, remote_server_key, user, dont_retrieve_from_remote
 
 def run_looper(config_file_pth, update_config, use_remote):
-    model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran, type_of_graph, \
-    graph_name, use_remote_from_config = parse_config(config_file_pth)
+    model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran, type_of_graph, graph_name, \
+    use_remote_from_config, remote_server_ip, remote_server_key, user, dont_retrieve_from_remote = parse_config(config_file_pth)
 
     if use_remote_from_config is not None:
         use_remote = use_remote_from_config or use_remote
@@ -194,7 +231,8 @@ def run_looper(config_file_pth, update_config, use_remote):
     update_config = update_config
     use_remote = use_remote
     create_eval_graph(model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran,
-                      type_of_graph, graph_name, update_config, use_remote)
+                      type_of_graph, graph_name, update_config, use_remote, remote_server_ip, remote_server_key, user,
+                      dont_retrieve_from_remote)
 
 if __name__=="__main__":
     print "RUNNING"

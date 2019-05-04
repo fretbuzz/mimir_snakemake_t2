@@ -23,7 +23,8 @@ def modify_file_path():
 
 
 def process_on_remote(remote_server_ip, remote_server_key, user, eval_dir_with_data, eval_analysis_config_file,
-                      model_dir, model_analysis_config_file, skip_install=True, skip_upload = False):
+                      model_dir, model_analysis_config_file, skip_install=True, skip_upload = False,
+                      dont_retreive_eval = False, dont_retreive_train = False):
     print "starting to run on remote..."
 
     # step (0): connect
@@ -181,11 +182,21 @@ def process_on_remote(remote_server_ip, remote_server_key, user, eval_dir_with_d
     sendline_and_wait_responses(sh, mimir_start_str , timeout=120)
 
     # step (7) once completed, recover the end results (both model + eval dirs)
-    s.download_dir(remote=training_config_dir, local=model_dir)
-    s.download_dir(remote=eval_config_dir, local=eval_data_dir)
+    # but first, reverse the sed that we did earlier...
+    eval_sed_mod_paths_cmd = "sed -i 's;" + eval_config_dir + ';' + eval_data_dir + ';\'' + ' ' + eval_config_json
+    train_sed_mod_paths_cmd = "sed -i 's;" + training_config_dir + ';' + model_dir +';\'' + ' ' + training_config_json
+    sendline_and_wait_responses(sh, eval_sed_mod_paths_cmd, timeout=15)
+    sendline_and_wait_responses(sh, train_sed_mod_paths_cmd, timeout=15)
 
-    # step (8) return some kinda relevant information (the function, that is)
-    ## TODO
+    if not dont_retreive_eval:
+        s.download_dir(remote=eval_config_dir, local=eval_data_dir)
+    if not dont_retreive_train:
+        s.download_dir(remote=training_config_dir, local=model_dir)
+
+    # step (8) return some kinda relevant information (-- this'll be the eval cm's that are needed by the looper)
+    ### the biggest question is how to get them -- simple. they must be saved by mimir in a text file, that we can then
+    ### read and extract the values from...
+    ## TODO ::: get self.rate_to_tg_to_cm ... don't really know where that is (physically) but prob easiest just to run and check
 
     # step (9) (not actually a part of this file) -- need to modify components of system
     # to be able to cope with being processed on another system -- mostly the file paths will
