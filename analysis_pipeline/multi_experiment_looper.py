@@ -5,6 +5,98 @@ import argparse
 import json
 from collections import OrderedDict
 from experiment_coordinator.process_data_on_remote import process_on_remote
+import multiprocessing
+import time
+
+def track_multiple_remotes(remote_ips, eval_experiment_names, training_experiment_name, exps_per_server,
+                           name_to_config, remote_server_key, user, dont_retrieve_from_remote):
+    '''
+    This function will handle assigning the processing to the various remote servers
+    and monitor / aggregate the results.
+
+    Note: for now, we'll assume that there's only a single remote server. However, this server
+    can still have multiple processes (maybe like 7 or so), so there's still some complexity here.
+    '''
+    evalconfigs_to_cm = {}
+
+    # step (1): setup structures to track status of servers and experiments
+    remote_instances_to_status = {}
+    for remote_ip in remote_ips:
+        remote_instances_to_status[remote_ip] = 0 # 0 indicates NO running experiments...
+
+    experiment_name_to_status = {}
+    for exp_name in eval_experiment_names:
+        experiment_name_to_status[exp_name] = 0 # 0 indicates that this experiment has NOT been run yet.
+    experiment_name_to_status[training_experiment_name] = 0
+    # 0 = not running ; 1 = currrently running ; 2 = finished running
+
+    # step (2): if existing servers have extra capacity, use it for processing
+    experiment_name_to_assigned_ip = {}
+    jobs = []
+    can_run_additional_exps = True
+    while 0 in experiment_name_to_status.values() or 1 in experiment_name_to_status.values():
+        for ip,status in remote_instances_to_status.iteritems():
+            update_config = True
+            use_remote = True
+            remote_server_ip = ip
+            if status < exps_per_server and can_run_additional_exps:
+                # if the training model isn't created yet, must do that before ANY other experiments...
+                if experiment_name_to_status[training_experiment_name] != 2:
+                    model_config_file = name_to_config[training_experiment_name]
+                    list_of_eval_configs = [name_to_config[training_experiment_name]]
+                    cur_args = [model_config_file, list_of_eval_configs, update_config, use_remote, remote_server_ip,
+                                remote_server_key, user, dont_retrieve_from_remote]
+                    service = multiprocessing.Process(name=training_experiment_name, target=get_eval_results, args=cur_args)
+                    service.start()
+                    jobs.append(service)
+
+                    experiment_name_to_status[training_experiment_name] = 1
+                    remote_instances_to_status[ip] += 1
+                    experiment_name_to_assigned_ip[training_experiment_name] = ip
+                    can_run_additional_exps = False
+                else:
+                    for exp_name in experiment_name_to_status.keys():
+                        if experiment_name_to_status[exp_name] == 0:
+                            # if we are here, then there is extra compute available + data that needs processing
+                            model_config_file = name_to_config[training_experiment_name]
+                            list_of_eval_configs = [name_to_config[exp_name]]
+                            cur_args = [model_config_file, list_of_eval_configs, update_config, use_remote, remote_server_ip,
+                                        remote_server_key, user, dont_retrieve_from_remote]
+                            service = multiprocessing.Process(name=exp_name, target=get_eval_results, args=cur_args)
+                            service.start()
+                            jobs.append(service)
+
+                            experiment_name_to_status[exp_name] = 1
+                            remote_instances_to_status[ip] += 1
+                            experiment_name_to_assigned_ip[exp_name] = ip
+
+        # step 3: check if any current jobs are done. if they are, then modify the state appropriately.
+        while (len(jobs) > 0):
+            jobs_to_remove = []
+            for job in jobs:
+                if not job.is_alive():
+                    jobs_to_remove.append(job)
+                    finished_exp_name = job.name
+                    finished_ip = experiment_name_to_assigned_ip[finished_exp_name]
+                    remote_instances_to_status[finished_ip] -= 1
+                    experiment_name_to_status[finished_exp_name] = 2
+
+                    can_run_additional_exps = True # training experiment is done first... so if any is done, then it must be done
+
+                    if finished_exp_name in eval_experiment_names:
+                        evalconfigs_to_cm[finished_exp_name] = None ## TODO: should this be something????
+            if jobs_to_remove == []:
+                time.sleep(60) # wait a min and check again
+            else:
+                for job_to_remove in jobs_to_remove:
+                    jobs.remove(job_to_remove)
+                break
+
+    # step 4: ???
+    # once we get here, all the experiments must have finished running... so what's next
+    # okay, well if everything ran, then once we get to here, we just want to returnt the correct stuff
+    # evalconfigs_to_cm
+    ### OR could i use: create_eval_graph ???? would it be possible???
 
 def update_config_file(config_file_pth, if_trained_model):
     with open(config_file_pth, 'r') as f:
@@ -23,7 +115,7 @@ def update_config_file(config_file_pth, if_trained_model):
     with open(config_file_pth, 'w') as f:
         json.dump(config_file, f, indent=2)
 
-def get_eval_results(model_config_file, list_of_eval_configs, update_config, use_remote, remote_server_ip=None,
+def get_eval_results(model_config_file, list_of_eval_configs, update_config, use_remote=False, remote_server_ip=None,
                      remote_server_key=None, user=None, dont_retrieve_from_remote=None):
     eval_config_to_cm = {}
     for eval_config in list_of_eval_configs:
@@ -77,8 +169,8 @@ def cm_to_f1(cm, exfil_rate, timegran):
     return f1_score
 
 def create_eval_graph(model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rates, timegran,
-                      type_of_graph, graph_name, update_config_p, use_remote, remote_server_ip, remote_server_key,
-                      user, dont_retrieve_from_remote):
+                      type_of_graph, graph_name, update_config_p, use_remote=False, remote_server_ip=None,
+                      remote_server_key=None,user=None, dont_retrieve_from_remote=None):
     if use_cached:
         with open('./temp_outputs/' + graph_name + '_cached_looper.pickle', 'r') as f:
             evalconfigs_to_cm = pickle.loads(f.read())
@@ -89,6 +181,10 @@ def create_eval_graph(model_config_file, eval_configs_to_xvals, xlabel, use_cach
         with open('./temp_outputs/' + graph_name + '_cached_looper.pickle', 'w') as f:
             f.write(pickle.dumps(evalconfigs_to_cm))
 
+    return evalconfigs_to_cm
+
+
+def generate_graphs(eval_configs_to_xvals, exfil_rates, evalconfigs_to_cm, timegran, type_of_graph, graph_name, xlabel):
     rate_to_xlist_ylist = {}
     for exfil_rate in exfil_rates:
         x_vals_list = []
@@ -192,10 +288,10 @@ def parse_config(config_file_pth):
         else:
             use_remote = None
 
-        if 'remote_server_ip' in config_file:
-            remote_server_ip = config_file['remote_server_ip']
+        if 'remote_server_ips' in config_file:
+            remote_server_ips = config_file['remote_server_ips']
         else:
-            remote_server_ip = None
+            remote_server_ips = None
 
         if 'remote_server_key' in config_file:
             remote_server_key = config_file['remote_server_key']
@@ -214,11 +310,12 @@ def parse_config(config_file_pth):
 
 
     return model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran, type_of_graph, \
-           graph_name, use_remote, remote_server_ip, remote_server_key, user, dont_retrieve_from_remote
+           graph_name, use_remote, remote_server_ips, remote_server_key, user, dont_retrieve_from_remote
 
 def run_looper(config_file_pth, update_config, use_remote):
+
     model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran, type_of_graph, graph_name, \
-    use_remote_from_config, remote_server_ip, remote_server_key, user, dont_retrieve_from_remote = parse_config(config_file_pth)
+    use_remote_from_config, remote_ips, remote_server_key, user, dont_retrieve_from_remote = parse_config(config_file_pth)
 
     if use_remote_from_config is not None:
         use_remote = use_remote_from_config or use_remote
@@ -230,9 +327,25 @@ def run_looper(config_file_pth, update_config, use_remote):
     use_cached = use_cached
     update_config = update_config
     use_remote = use_remote
-    create_eval_graph(model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran,
-                      type_of_graph, graph_name, update_config, use_remote, remote_server_ip, remote_server_key, user,
-                      dont_retrieve_from_remote)
+
+    if use_remote:
+        eval_experiment_names = eval_configs_to_xvals.keys()
+        training_experiment_name = model_config_file
+        exps_per_server = 6
+
+        name_to_config = {}
+        for eval_config in eval_configs_to_xvals.keys():
+            name_to_config[eval_config] = eval_config
+        name_to_config[training_experiment_name] = training_experiment_name
+
+        evalconfigs_to_cm = track_multiple_remotes(remote_ips, eval_experiment_names, training_experiment_name,
+                                                   exps_per_server, name_to_config, remote_server_key, user,
+                                                   dont_retrieve_from_remote)
+    else:
+        evalconfigs_to_cm = create_eval_graph(model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran,
+                                            type_of_graph, graph_name, update_config)
+
+    generate_graphs(eval_configs_to_xvals, exfil_rate, evalconfigs_to_cm, timegran, type_of_graph, graph_name, xlabel)
 
 if __name__=="__main__":
     print "RUNNING"

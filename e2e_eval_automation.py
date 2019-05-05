@@ -188,8 +188,6 @@ def perform_eval_work(cloudlab_exps_file, cloudlab_exps_dir, analysis_exp_file, 
                     cloudlab_instances_to_status[freed_ip] = 0
                     print "newly_freed_ip", freed_ip
 
-
-                    #''' ## TODO: need to test if this works... (needed to gather real data so couldn't test before)
                     ## create analysis json file from template and start local processing (if possible)
                     analysis_strategy = analysis_config["name_to_analysis_status"][finished_exp_name]
                     if analysis_strategy == 'eval':
@@ -224,6 +222,8 @@ def perform_eval_work(cloudlab_exps_file, cloudlab_exps_dir, analysis_exp_file, 
             ## tODO: ADD FLAG TO ONLY do local
             
             ## NOTE: THIS IS NOT THE CURRENT PROPOSED DESIGN. PLEASE SEE THE ACTUAL DESIGN DOCUMENT FOR HOW TO DO THIS. ##
+            ## (i think start analysis immediately is over-rated... so just wait until all is complete and then use the 
+            ## multi-experiment looper)
             
             service = multiprocessing.Process(name=finished_exp_name + '_analysis', target=run_analysis,
                                               args=cur_args)
@@ -254,7 +254,8 @@ def perform_eval_work(cloudlab_exps_file, cloudlab_exps_dir, analysis_exp_file, 
     # exp_name_to_mimir_config[finished_exp_name] = mod_analysis_template_loc ;;;
     ## ??? -- ||| -- ???
 
-    ## NOTE: MIGHT WANT TO TAKE THESE FROM A CONFIG FILE TOO
+    ## NOTE: MIGHT WANT TO TAKE THESE FROM A CONFIG FILE TOO... especially if I want to
+    ## use a remote server... (such as for running the whole thing during the night...)
     multi_exp_looper_config = {}
     multi_exp_looper_config['model_config_file'] = exp_name_to_mimir_config[train_exp]
     multi_exp_looper_config['xlabel'] = "load (# instances of load generation)"
