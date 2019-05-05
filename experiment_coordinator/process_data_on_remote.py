@@ -42,12 +42,8 @@ def process_on_remote(remote_server_ip, remote_server_key, user, eval_dir_with_d
     #################
     # step (2) install dependencies (see github page)
     sh.sendline("sudo sh")
-    #sh.sendline("whoami")
-
     line_rec = sh.recvline(timeout=5)
     print "line_rec", line_rec
-
-    #exit(233)
 
     if not skip_install:
         '''
@@ -81,22 +77,19 @@ def process_on_remote(remote_server_ip, remote_server_key, user, eval_dir_with_d
         sendline_and_wait_responses(sh, "aptitude install sbcl -y", timeout=30)
 
         print "installing pygraphviz"
-        sendline_and_wait_responses(sh, "apt-get install graphviz libgraphviz-dev pkg-config", timeout=30)
+        sendline_and_wait_responses(sh, "apt-get install -y graphviz libgraphviz-dev pkg-config", timeout=30)
         sendline_and_wait_responses(sh, "pip install pygraphviz --install-option=\"--include-path=/usr/include/graphviz\" "
                                         "--install-option=\"--library-path=/usr/lib/graphviz/\"", timeout=30)
-
-        print "giving user access to /mydata"
-        sendline_and_wait_responses(sh, "sudo chown -R jsev /mydata", timeout=30)
     ####################
 
     # step (3): create relevant directory and put mimir there
     # we are going to install at ~/mimir-1/ (where the 1 should be incremented for each existing...)
-    #sh.sendline("exit") ## TODO??? is this line wanted/needed????
     print "sending this now... ls -l"
-    #sh.sendline("cd /mydata/")
-    #sh.sendline("cd /mydata/")
     sh.sendline("cd /users/jsev")
+    line_rec = sh.recvline(timeout=5)
+    print "line_rec", line_rec
 
+    #'''
     line_rec = sh.recvline(timeout=5)
     print "line_rec", line_rec
     sh.sendline("ls -l")
@@ -110,9 +103,14 @@ def process_on_remote(remote_server_ip, remote_server_key, user, eval_dir_with_d
 
     num_lines_rec = len(lines_rec)
     existing_mimir_dirs = num_lines_rec
-
     '''
-    print "num_lines_rec",lines_rec, len(lines_rec)
+    sh.sendline("ls -l")
+    line_rec = sh.recvline(timeout=5)
+    print "line_rec", line_rec
+
+    ## TODO: parse line_rec here... (i'll just put some super simple code here now for workflow purposes)
+    num_lines_rec = len(line_rec.split("\n"))
+    print "num_lines_rec",num_lines_rec
     if num_lines_rec != 2:
         exit(244) # (going to exit b/c this part isn't implemented yet...)
         pass # todo: do the stuff here (if the # of lines is 2, then there's nothing there...)
@@ -123,11 +121,13 @@ def process_on_remote(remote_server_ip, remote_server_key, user, eval_dir_with_d
     current_mimir_dir = existing_mimir_dirs + 1
     cur_mimir_dir_name = 'mimir-' + str(current_mimir_dir)
 
+
     # step (4): put relevant data there
     # okay, so what actually is this???
         # it is the moving of two things:
             # (1) the dir with all the data
             # (2) the config file (might overlap with (1) but maybe not...)
+    print "eval_dir_with_data",eval_dir_with_data
     eval_dir_with_data_name = '/' + eval_dir_with_data.split("/")[-2]
     eval_exp_config_file = cur_mimir_dir_name + eval_dir_with_data_name
     print "eval_analysis_config_file.split", eval_analysis_config_file.split("/")
@@ -137,33 +137,35 @@ def process_on_remote(remote_server_ip, remote_server_key, user, eval_dir_with_d
     model_exp_config_file = cur_mimir_dir_name + model_dir_with_data_name
     model_config_file_name = model_analysis_config_file.split("/")[-1]
 
+    sh.sendline("pwd")
+    print sh.recvline(timeout=5)
+
     if not skip_upload:
         line_rec = sh.recvline(timeout=5)
         print "line_rec", line_rec
-        sendline_and_wait_responses(sh, "mkdir " +  cur_mimir_dir_name, timeout=30)
-        sendline_and_wait_responses(sh, "mkdir " +  cur_mimir_dir_name + eval_dir_with_data_name, timeout=30)
-        sh.sendline("pwd")
-        print "pwd", sh.recvline(timeout=5)
-
+        sh.sendline("mkdir " +  cur_mimir_dir_name)
+        sh.sendline("mkdir " +  cur_mimir_dir_name + eval_dir_with_data_name)
+        print "mkdir rec_line",sh.recvline(timeout=5)
         # (1) the EVAL dir with all the data
-        print "eval_dir_with_data",eval_dir_with_data
-        print "eval_exp_config_file",eval_exp_config_file
-
-        sendline_and_wait_responses(sh, "sudo chown -R jsev /mydata", timeout=10)
-        #sendline_and_wait_responses(sh, "sudo chown -R jsev /mydata", timeout=10)
-        s.upload(eval_dir_with_data, remote= eval_exp_config_file + '/')
+        print "eval_exp_config_file", eval_exp_config_file
+        #### TODO TODO TODO TODO TODO TODO TODO TODO ####
+        sendline_and_wait_responses(sh, "sudo chown -R jsev:dna-PG0 ~", timeout=5)
+        sendline_and_wait_responses(sh, "sudo chown -R jsev:dna-PG0 " + cur_mimir_dir_name, timeout=5)
+        sendline_and_wait_responses(sh, "sudo chown -R jsev:dna-PG0 " + cur_mimir_dir_name + eval_dir_with_data_name, timeout=5)
+        s.upload(eval_dir_with_data, remote="~/" + eval_exp_config_file)
         # (2) the config file (might overlap with (1) but maybe not...)
         try:
-            s.upload(eval_analysis_config_file, remote=  cur_mimir_dir_name + '/')
+            s.upload(eval_analysis_config_file, remote=cur_mimir_dir_name)
         except:
             print "eval_analysis_config_file probably already exists..."
 
         # (3) now repeat with the MODEL dir
         print "try_making_this_dir:", cur_mimir_dir_name + model_dir_with_data_name
         sh.sendline("mkdir " +  cur_mimir_dir_name + model_dir_with_data_name)
-        s.upload(model_dir, remote=   model_exp_config_file)
+        sendline_and_wait_responses(sh, "sudo chown -R jsev:dna-PG0 " + cur_mimir_dir_name + model_dir_with_data_name, timeout=5)
+        s.upload(model_dir, remote=model_exp_config_file)
         try:
-            s.upload(model_analysis_config_file, remote=  cur_mimir_dir_name)
+            s.upload(model_analysis_config_file, remote=cur_mimir_dir_name)
         except:
             print "eval_analysis_config_file probably already exists..."
 
@@ -182,6 +184,7 @@ def process_on_remote(remote_server_ip, remote_server_key, user, eval_dir_with_d
     #sh.sendline(cur_mimir_dir_name )
     sh.sendline("cd " + cur_mimir_dir_name)
     sendline_and_wait_responses(sh, "ls", timeout=5)
+    sendline_and_wait_responses(sh, "git clone https://github.com/fretbuzz/mimir_v2.git", timeout=5)
     sh.sendline("pwd" )
     cur_cwd = sh.recvline(timeout=5)
     print "cur_cwd.split", cur_cwd.split(" ")
@@ -210,7 +213,6 @@ def process_on_remote(remote_server_ip, remote_server_key, user, eval_dir_with_d
             " --eval_config_json " + eval_config_json
     else:
         mimir_start_str = "python mimir.py --training_config_json " + training_config_json
-
     print "mimir_start_str",mimir_start_str
     sendline_and_wait_responses(sh, mimir_start_str , timeout=120)
 
@@ -223,9 +225,9 @@ def process_on_remote(remote_server_ip, remote_server_key, user, eval_dir_with_d
 
     # the '../' is b/c I'm in too much of a hurry to just figure out what the above dir is...
     if not dont_retreive_eval:
-        s.download_dir(remote=eval_config_dir, local=eval_data_dir + '../')
+        s.download_dir(remote=eval_config_dir + '../', local=eval_data_dir)
     if not dont_retreive_train:
-        s.download_dir(remote=training_config_dir, local=model_dir + '../')
+        s.download_dir(remote=training_config_dir + '../', local=model_dir)
 
     # step (8) return some kinda relevant information (-- this'll be the eval cm's that are needed by the looper)
     ### the biggest question is how to get them -- simple. they must be saved by mimir in a text file, that we can then
@@ -233,10 +235,10 @@ def process_on_remote(remote_server_ip, remote_server_key, user, eval_dir_with_d
     ## TODO ::: get self.rate_to_tg_to_cm ... don't really know where that is (physically) but prob easiest just to run and check
 
 
-
     # step (9) (not actually a part of this file) -- need to modify components of system
     # to be able to cope with being processed on another system -- mostly the file paths will
     # be wrong...
+    return None
 
 if __name__ == "__main__":
     remote_server_ip = "c220g5-111030.wisc.cloudlab.us"
@@ -244,10 +246,11 @@ if __name__ == "__main__":
     user =  "jsev"
     eval_data_dir = '/Volumes/exM/experimental_data/sockshop_info/sockshop_five_100/sockshop_five_100/'
     eval_analysis_config_file = eval_data_dir + 'sockshop_five_100_exp_proc.json'
-    eval_data_dir = '/Volumes/exM/experimental_data/sockshop_info/sockshop_five_100/sockshop_five_100/debug/'
-
     model_dir = "/Volumes/exM/experimental_data/sockshop_info/sockshop_five_100_mk2/sockshop_five_100_mk2/"
+    skip_install = False
+    skip_upload = True
     model_analysis_config_file = model_dir + 'sockshop_five_100_mk2_exp_proc.json'
 
     process_on_remote(remote_server_ip, remote_server_key, user, eval_data_dir, eval_analysis_config_file, model_dir,
-                      model_analysis_config_file)
+                      model_analysis_config_file, skip_install=skip_install,
+                      skip_upload=skip_upload)

@@ -1,4 +1,4 @@
-from mimir import run_analysis
+from analysis_pipeline.mimir import run_analysis
 import pickle
 import matplotlib.pyplot as plt
 import argparse
@@ -126,12 +126,17 @@ def get_eval_results(model_config_file, list_of_eval_configs, update_config, use
             eval_analysis_config_file = eval_config
             with open(eval_analysis_config_file, 'r') as g:
                 eval_conf = json.loads(g.read())
-            eval_dir_with_data = "/".join(eval_conf.split("/")[-1])
+
+            print "multi_eval_analysis_config_file",eval_analysis_config_file
+            #eval_conf_file = eval_conf["eval_conf"]
+            eval_dir_with_data = "/".join(eval_analysis_config_file.split("/")[:-1])
+            print "multi_eval_analysis_config_file_after_split",eval_dir_with_data
 
             model_analysis_config_file = model_config_file
             with open(model_analysis_config_file, 'r') as g:
                 model_conf = json.loads(g.read())
-            model_dir = "/".join(model_conf.split("/")[-1])
+            #model_conf_dir = model_conf["eval_conf"]
+            model_dir = "/".join(model_analysis_config_file.split("/")[-1])
 
             dont_retreive_train = False
             dont_retreive_eval = False
@@ -373,7 +378,8 @@ if __name__=="__main__":
     if not args.config_json:
         #config_file_pth = "./multi_experiment_configs/wordpress_scale.json"
         #config_file_pth = "./multi_experiment_configs/old_sockshop_angle.json"
-        config_file_pth = "./multi_experiment_configs/old_sockshop_scale.json"
+        #config_file_pth = "./analysis_pipeline/multi_experiment_configs/old_sockshop_scale.json"
+        config_file_pth = "./analysis_pipeline/multi_experiment_configs/sockshop_test_remote.json"
         ##config_file_pth = "./multi_experiment_configs/new_sockshop_scale.json"
     else:
         config_file_pth = args.config_json

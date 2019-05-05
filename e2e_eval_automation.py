@@ -5,16 +5,18 @@ analysis component, with a much more concise configuration format. It'll let me 
 work I am going to do without exhausting me from handling too much stuff by hand.
 '''
 
+import ast
+import copy
 import json
 import multiprocessing
+import time
+
 import pwnlib.tubes.ssh
 from pwn import *
-import time
-import copy
-import ast
+
 from experiment_coordinator.run_exp_on_cloudlab import run_experiment, retrieve_results
-from analysis_pipeline.mimir import run_analysis
-from analysis_pipeline.multi_experiment_looper import run_looper
+from multi_experiment_looper import run_looper
+
 
 # this is a wrapper around run_exp_on_cloudlab.py
 def run_new_experiment(template, template_changes, cloudlab_ip, flags, user, private_key, exp_name, local_dir,
