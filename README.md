@@ -1,3 +1,5 @@
+NOTE: I WILL UPDATE THESE INSTRUCTIONS LITERALLY AS SOON AS I HAVE TIME. SHOULD BE WITHIN A DAY!
+
 ## Mimir
 Mimir is an experimental apparatus designed to test the potential for anomaly-based data exfiltration detection in microservice-architecture applications. It creates a graphical representation of network communication and flags deviations from structural invariants. The goal is to detect data exfiltration, but it should also be effective at detecting other types of anomalous traffic, such as port scans or lateral movements by attackers.
 
