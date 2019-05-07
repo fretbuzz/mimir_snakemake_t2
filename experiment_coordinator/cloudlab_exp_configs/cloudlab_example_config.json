@@ -1,6 +1,6 @@
 {
     "app_name" : "sockshop",
-    "exp_name" : "sockshop_network_testing",
+    "exp_name" : "sockshop_example_test",
     "config_file_name" : "/mydata/mimir_v2/experiment_coordinator/experimental_configs/sockshop_exp_one_higher.json",
     "local_dir" : "/Volumes/exM/experimental_data/sockshop_info",
     "cloudlab_server_ip" : "c240g5-110203.wisc.cloudlab.us",

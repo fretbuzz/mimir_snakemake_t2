@@ -20,6 +20,7 @@
     },
 
     "Deployment" : {
+      "comment": "deployment_scaling is not supported for hipsterStore applications at the moment (i.e. autoscaling min/max are hardcoded)",
       "autoscale_p": true
     },
     "VM_interfaces" : ["vboxnet0"]

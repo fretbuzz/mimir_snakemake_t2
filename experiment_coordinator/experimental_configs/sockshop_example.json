@@ -27,6 +27,7 @@
     },
 
     "Deployment" : {
+      "comment": "the values below do not actually do anything when autoscaling is enabled",
       "deployment_scaling" :
         {
           "orders": {"min": 3, "max": 3},
