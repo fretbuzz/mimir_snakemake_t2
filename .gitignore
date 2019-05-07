@@ -3,3 +3,6 @@ experimental_data/*
 analysis_pipeline/new_analysis_json/*
 e2e_eval_configs/*
 analysis_pipeline/multilooper_outs/*
+experiment_coordinator/experimental_configs/*
+experiment_coordinator/cloudlab_exp_configs/*
+experiment_coordinator/cloudlab_temp_configs/*
