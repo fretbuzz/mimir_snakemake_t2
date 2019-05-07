@@ -408,7 +408,7 @@ class single_model_stats_pipeline():
                 self.method_to_cm_df_train = self._generate_confusion_matrixes(self.method_to_optimal_predictions_train, self.y_train,
                                                                     self.exfil_paths_train, self.exfil_weights_train)
 
-            return self.method_to_cm_df_test[self.method_name]
+            return self.method_to_cm_df_test #[self.method_name]
         return None
 
 

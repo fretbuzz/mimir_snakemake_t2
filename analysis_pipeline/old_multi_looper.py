@@ -4,13 +4,13 @@ import matplotlib.pyplot as plt
 import argparse
 import json
 from collections import OrderedDict
-from experiment_coordinator.process_data_on_remote import process_on_remote
+#from experiment_coordinator.process_data_on_remote import process_on_remote
 import multiprocessing
 import time
+from tabulate import tabulate
 
 def track_multiple_remotes(remote_ips, eval_experiment_names, training_experiment_name, exps_per_server,
-                           name_to_config, remote_server_key, user, dont_retrieve_from_remote,
-                           skip_install, skip_upload, mimir_num):
+                           name_to_config, remote_server_key, user, dont_retrieve_from_remote):
     '''
     This function will handle assigning the processing to the various remote servers
     and monitor / aggregate the results.
@@ -46,10 +46,8 @@ def track_multiple_remotes(remote_ips, eval_experiment_names, training_experimen
                     model_config_file = name_to_config[training_experiment_name]
                     list_of_eval_configs = [name_to_config[training_experiment_name]]
                     cur_args = [model_config_file, list_of_eval_configs, update_config, use_remote, remote_server_ip,
-                                remote_server_key, user, dont_retrieve_from_remote] #, skip_install, skip_upload] #??
-                    kwargs = {"skip_install":skip_install, "skip_upload": skip_upload, "mimir_num":mimir_num}
-                    service = multiprocessing.Process(name=training_experiment_name, target=get_eval_results,
-                                                      args=cur_args, kwargs=kwargs)
+                                remote_server_key, user, dont_retrieve_from_remote]
+                    service = multiprocessing.Process(name=training_experiment_name, target=get_eval_results, args=cur_args)
                     service.start()
                     jobs.append(service)
 
@@ -64,10 +62,8 @@ def track_multiple_remotes(remote_ips, eval_experiment_names, training_experimen
                             model_config_file = name_to_config[training_experiment_name]
                             list_of_eval_configs = [name_to_config[exp_name]]
                             cur_args = [model_config_file, list_of_eval_configs, update_config, use_remote, remote_server_ip,
-                                        remote_server_key, user, dont_retrieve_from_remote] #, skip_install, skip_upload] #??
-                            kwargs = {"skip_install": skip_install, "skip_upload": skip_upload, "mimir_num":mimir_num}
-                            service = multiprocessing.Process(name=exp_name, target=get_eval_results,
-                                                              args=cur_args, kwargs=kwargs)
+                                        remote_server_key, user, dont_retrieve_from_remote]
+                            service = multiprocessing.Process(name=exp_name, target=get_eval_results, args=cur_args)
                             service.start()
                             jobs.append(service)
 
@@ -121,8 +117,7 @@ def update_config_file(config_file_pth, if_trained_model):
         json.dump(config_file, f, indent=2)
 
 def get_eval_results(model_config_file, list_of_eval_configs, update_config, use_remote=False, remote_server_ip=None,
-                     remote_server_key=None, user=None, dont_retrieve_from_remote=None, skip_install=False,
-                     skip_upload=False, mimir_num = None):
+                     remote_server_key=None, user=None, dont_retrieve_from_remote=None):
     eval_config_to_cm = {}
     for eval_config in list_of_eval_configs:
         if not use_remote:
@@ -135,36 +130,26 @@ def get_eval_results(model_config_file, list_of_eval_configs, update_config, use
 
             print "multi_eval_analysis_config_file",eval_analysis_config_file
             #eval_conf_file = eval_conf["eval_conf"]
-            eval_dir_with_data = "/".join(eval_analysis_config_file.split("/")[:-1]) + '/'
+            eval_dir_with_data = "/".join(eval_analysis_config_file.split("/")[:-1])
             print "multi_eval_analysis_config_file_after_split",eval_dir_with_data
 
             model_analysis_config_file = model_config_file
             with open(model_analysis_config_file, 'r') as g:
                 model_conf = json.loads(g.read())
             #model_conf_dir = model_conf["eval_conf"]
-            model_dir = "/".join(model_analysis_config_file.split("/")[:-1]) + '/'
+            model_dir = "/".join(model_analysis_config_file.split("/")[-1])
 
             dont_retreive_train = False
             dont_retreive_eval = False
-            #print "dont_retrieve_from_remote", dont_retrieve_from_remote
-            #print "model_analysis_config_file",model_analysis_config_file
-            #print "eval_analysis_config_file",eval_analysis_config_file
-            #print  model_analysis_config_file in dont_retrieve_from_remote
-            #print eval_analysis_config_file not in dont_retrieve_from_remote
-            #exit(233)
-
             if dont_retrieve_from_remote is not None:
                 if model_analysis_config_file in dont_retrieve_from_remote:
                     dont_retreive_train = True
-                if eval_analysis_config_file in dont_retrieve_from_remote:
+                if eval_analysis_config_file not in dont_retrieve_from_remote:
                     dont_retreive_eval = True
 
-            # kwargs = {"skip_install": skip_install, "skip_upload": skip_upload}
-
-            eval_cm = process_on_remote(remote_server_ip, remote_server_key, user, eval_dir_with_data, eval_analysis_config_file,
-                              model_dir, model_analysis_config_file, skip_install=skip_install, skip_upload=skip_upload,
-                                    dont_retreive_eval=dont_retreive_eval, dont_retreive_train=dont_retreive_train,
-                                    mimir_num=mimir_num)
+            #eval_cm = process_on_remote(remote_server_ip, remote_server_key, user, eval_dir_with_data, eval_analysis_config_file,
+            #                  model_dir, model_analysis_config_file, skip_install=False, skip_upload=False,
+            #                        dont_retreive_eval=dont_retreive_eval, dont_retreive_train=dont_retreive_train)
 
         eval_config_to_cm[eval_config] = eval_cm
         ## modify the config file so that you don't redo previously done experiments...
@@ -174,18 +159,31 @@ def get_eval_results(model_config_file, list_of_eval_configs, update_config, use
 
     return eval_config_to_cm
 
-def cm_to_f1(cm, exfil_rate, timegran):
-    cm = cm[exfil_rate][timegran]
-    #print "cm", cm
+def aggregate_cm_vals_over_paths(cm):
     tn = 0.0
     fp = 0.0
     fn = 0.0
     tp = 0.0
+    #print "cm.keys()", cm.keys()
+    if type(cm) == dict:
+        cm = cm["ensemble"]
+    else:
+        pass
     for index, row in cm.iterrows():
         tn += row['tn']
         fp += row['fp']
         fn += row['fn']
         tp += row['tp']
+    return tn,fp,fn,tp
+
+def cm_to_f1(cm, exfil_rate, timegran,method=None):
+    #print "cm", cm
+    if method:
+        cm = cm[exfil_rate][timegran][method]
+    else:
+        cm = cm[exfil_rate][timegran]
+    print "cm",cm
+    tn, fp, fn, tp = aggregate_cm_vals_over_paths(cm)
     f1_score = (2.0 * tp) / (2.0 * tp + fp + fn)
     return f1_score
 
@@ -213,8 +211,12 @@ def generate_graphs(eval_configs_to_xvals, exfil_rates, evalconfigs_to_cm, timeg
         eval_to_prob_dist = {}
         for evalconfig,xval in eval_configs_to_xvals.iteritems():
             x_vals_list.append(xval)
+
+            #print "evalconfigs_to_cm[evalconfig]", evalconfigs_to_cm[evalconfig]
+            #evalconfigs_to_cm[evalconfig] = evalconfigs_to_cm[evalconfig]["ensemble"]
+
             cur_cm = evalconfigs_to_cm[evalconfig]
-            optimal_f1 = cm_to_f1(cur_cm, exfil_rate, timegran)
+            optimal_f1 = cm_to_f1(cur_cm, exfil_rate, timegran, method=None) #"ensemble")
             y_vals_list.append( optimal_f1 )
 
             if type_of_graph == 'euclidean_distance':
@@ -254,9 +256,37 @@ def generate_graphs(eval_configs_to_xvals, exfil_rates, evalconfigs_to_cm, timeg
     for counter,rate in enumerate(exfil_rates):
         x_vals,y_vals = rate_to_xlist_ylist[rate]
         axes[counter].plot(x_vals, y_vals, label=str(rate), marker='*', markersize=22)
-        axes[counter].set_ylim(top=1.1,bottom=0.75) #  we can do it manually...
+        axes[counter].set_ylim(top=1.1,bottom=-0.1) #  we can do it manually...
+        axes[counter].set_ylabel("f1 score")
+        axes[counter].set_xlabel("number of load generators")
     fig.align_ylabels(axes)
     fig.savefig('./multilooper_outs/aggreg_' + graph_name + '.png')
+
+    ## TODO: make the table...
+    '''
+    System  Application TP  FN  TN  FP  TPR     FPR
+    '''
+    # okay, we can leave the first two out... since I can just type it in with my HANDS.
+    ## new plan: paper draft. use what we do have: old sock + wordpress. if we can fix hipsterstore, then we can use that.
+    ## but i think processing will take too long (to get it by tomorrow...)
+
+    # so just add this: TP  FN  TN  FP  TPR     FPR into a tuple and load the tuples into a list...
+    # I guess we'll make one table per exfil rate per application...
+    for exfil_rate in exfil_rates:
+        for evalconfig,xval in eval_configs_to_xvals.iteritems():
+            cur_cm = evalconfigs_to_cm[evalconfig][exfil_rate][timegran]
+            tn, fp, fn, tp = aggregate_cm_vals_over_paths(cur_cm)
+            #print "tp", tp, "fn", fn, "tn", tn, "fp",fp
+            tpr = tp / float(tp + fn)
+            fpr = fp / float(fp + tn)
+            cur_vals = (tp, fn, tn, fp, tpr, fpr)
+
+            ###
+            print "evalconfig",evalconfig,"exfil_rate",exfil_rate, "xval", xval
+            data = [ cur_vals ]
+            print(tabulate(data, headers=['tp', 'fn', 'tn', 'fp', 'tpr', 'fpr']))
+            print "-----"
+            print "\n"
 
 
 def parse_config(config_file_pth):
@@ -329,30 +359,14 @@ def parse_config(config_file_pth):
         else:
             dont_retrieve_from_remote = None
 
-        if 'skip_install' in config_file:
-            skip_install = config_file['skip_install']
-        else:
-            skip_install = False
-
-        if 'skip_upload' in config_file:
-            skip_upload = config_file['skip_upload']
-        else:
-            skip_upload = False
-
-        if 'mimir_num' in config_file:
-            mimir_num = config_file['mimir_num']
-        else:
-            mimir_num = False
 
     return model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran, type_of_graph, \
-           graph_name, use_remote, remote_server_ips, remote_server_key, user, dont_retrieve_from_remote, \
-           skip_install, skip_upload, mimir_num
+           graph_name, use_remote, remote_server_ips, remote_server_key, user, dont_retrieve_from_remote
 
 def run_looper(config_file_pth, update_config, use_remote):
 
     model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran, type_of_graph, graph_name, \
-    use_remote_from_config, remote_ips, remote_server_key, user, dont_retrieve_from_remote, skip_install, skip_upload, \
-        mimir_num = parse_config(config_file_pth)
+    use_remote_from_config, remote_ips, remote_server_key, user, dont_retrieve_from_remote = parse_config(config_file_pth)
 
     if use_remote_from_config is not None:
         use_remote = use_remote_from_config or use_remote
@@ -368,7 +382,7 @@ def run_looper(config_file_pth, update_config, use_remote):
     if use_remote:
         eval_experiment_names = eval_configs_to_xvals.keys()
         training_experiment_name = model_config_file
-        exps_per_server = 4
+        exps_per_server = 6
 
         name_to_config = {}
         for eval_config in eval_configs_to_xvals.keys():
@@ -377,7 +391,7 @@ def run_looper(config_file_pth, update_config, use_remote):
 
         evalconfigs_to_cm = track_multiple_remotes(remote_ips, eval_experiment_names, training_experiment_name,
                                                    exps_per_server, name_to_config, remote_server_key, user,
-                                                   dont_retrieve_from_remote, skip_install, skip_upload, mimir_num)
+                                                   dont_retrieve_from_remote)
     else:
         evalconfigs_to_cm = create_eval_graph(model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran,
                                             type_of_graph, graph_name, update_config)
@@ -410,10 +424,10 @@ if __name__=="__main__":
     if not args.config_json:
         #config_file_pth = "./multi_experiment_configs/wordpress_scale.json"
         #config_file_pth = "./analysis_pipeline/multi_experiment_configs/old_sockshop_angle_remote2.json"
-        #config_file_pth = "./analysis_pipeline/multi_experiment_configs/old_sockshop_scale.json"
-        config_file_pth = "./analysis_pipeline/multi_experiment_configs/sockshop_test_remote.json"
-        #config_file_pth = "./analysis_pipeline/multi_experiment_configs/new_sockshop_scale.json"
-        #config_file_pth = "./analysis_pipeline/multi_experiment_configs/old_sockshop_angle_remote2.json"
+        #config_file_pth = "./multi_experiment_configs/old_sockshop_scale.json"
+        config_file_pth = "./multi_experiment_configs/old_sockshop_angle.json"
+        #config_file_pth = "./analysis_pipeline/multi_experiment_configs/sockshop_test_remote.json"
+        #config_file_pth = "./multi_experiment_configs/new_sockshop_scale.json"
     else:
         config_file_pth = args.config_json
 

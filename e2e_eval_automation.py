@@ -58,8 +58,11 @@ def run_new_experiment(template, template_changes, cloudlab_ip, flags, user, pri
         json.dump(template, f, indent=2)
         #f.write(json.dumps(template))
 
-    remote = remote_experimental_config_folder + filename ## destination on remote
-    s.put(file_or_directory=modified_template_filename, remote=remote)
+    # NOTE: I KNOW WHERE THE FILE IS LOCALLY, SO JUST LET the other function do it now!!!!
+    # TODO ZXXZZ: note: I just made some changes to run_exp_on_cloudlab.py, so that people using only that component will not
+    # have to push their configs to the github repo. However, I am going to leave the
+    #remote = remote_experimental_config_folder + filename ## destination on remote
+    #s.put(file_or_directory=modified_template_filename, remote=remote)
 
     ## (3) call the relevant components of run_exp_on_cloudlab.py
     ### what the heck does this mean? I guess it means that the params are all okay and all
@@ -80,10 +83,12 @@ def run_new_experiment(template, template_changes, cloudlab_ip, flags, user, pri
         if 'skip_app_setup' in flags and flags['skip_app_setup']:
             skip_app_setup = True
 
-    s = run_experiment(app_name, config_file_name, exp_name, skip_setup_p=False, use_cilium=False,
-                   physical_attacks_p=physical_attacks_p, skip_app_setup=skip_app_setup, dont_pull_p=False,
-                   exp_length = exp_length, user = user, cloudlab_private_key=private_key,
-                   cloudlab_server_ip = cloudlab_ip, experiment_sentinal_file = experiment_sentinal_file)
+
+    ## TODO ZXXZZ: config_file_name should be the local name
+    s = run_experiment(app_name, modified_template_filename, exp_name, skip_setup_p=False, use_cilium=False,
+                       physical_attacks_p=physical_attacks_p, skip_app_setup=skip_app_setup, pull_from_github=False,
+                       exp_length = exp_length, user = user, cloudlab_private_key=private_key,
+                       cloudlab_server_ip = cloudlab_ip, experiment_sentinal_file = experiment_sentinal_file)
 
     retrieve_results(s, experiment_sentinal_file, remote_dir, local_dir)
 
@@ -92,7 +97,7 @@ def create_analysis_json_from_template(template, exp_name, exp_config_file):
     template["exp_config_file"] = exp_config_file
     return template
 
-def perform_eval_work(cloudlab_exps_file, cloudlab_exps_dir, analysis_exp_file, skip_app_setup=False):
+def perform_eval_work(cloudlab_exps_file, cloudlab_exps_dir, analysis_exp_file, skip_app_setup=False, run_analysis=False):
     remote_experimental_data_dir = '/mydata/mimir_v2/experiment_coordinator/experimental_data/'
     experiment_sentinal_file = '/mydata/mimir_v2/experiment_coordinator/experiment_done.txt'
     remote_experimental_config_folder = "/users/jsev/"
@@ -276,8 +281,9 @@ def perform_eval_work(cloudlab_exps_file, cloudlab_exps_dir, analysis_exp_file, 
     with open(multi_experiment_config_file_path, 'w') as g:
         json.dump(multi_exp_looper_config, g, indent=2)
 
-    print "calling run_looper with this config file...", multi_experiment_config_file_path
-    run_looper(multi_experiment_config_file_path, True)
+    if run_analysis:
+        print "calling run_looper with this config file...", multi_experiment_config_file_path
+        run_looper(multi_experiment_config_file_path, True)
 
     #### (2) start LOCAL experiments... perhaps I can abstract the existing logic into a function???
         ## cause it'll be essentially equivalent for the multiprocessing part... however
@@ -294,4 +300,5 @@ if __name__=="__main__":
     analysis_exp_file = 'analysis_exps.json'
     cloudlab_exps_dir = './e2e_eval_configs/'
     skip_app_setup = True
-    perform_eval_work(cloudlab_exps_file, cloudlab_exps_dir, analysis_exp_file, skip_app_setup)
+    run_analysis= True
+    perform_eval_work(cloudlab_exps_file, cloudlab_exps_dir, analysis_exp_file, skip_app_setup, run_analysis)

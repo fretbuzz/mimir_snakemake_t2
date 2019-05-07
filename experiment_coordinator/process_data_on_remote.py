@@ -21,10 +21,10 @@ def sendline_and_wait_responses(sh, cmd_str, timeout=5):
 def modify_file_path():
     pass # how to do this??? can I see sed???
 
-
+## TODO: mimir_num to re-use directoryies..
 def process_on_remote(remote_server_ip, remote_server_key, user, eval_dir_with_data, eval_analysis_config_file,
                       model_dir, model_analysis_config_file, skip_install=True, skip_upload = False,
-                      dont_retreive_eval = False, dont_retreive_train = False):
+                      dont_retreive_eval = False, dont_retreive_train = False, mimir_num = None):
     print "starting to run on remote..."
 
     # step (0): connect
@@ -85,24 +85,30 @@ def process_on_remote(remote_server_ip, remote_server_key, user, eval_dir_with_d
     # step (3): create relevant directory and put mimir there
     # we are going to install at ~/mimir-1/ (where the 1 should be incremented for each existing...)
     print "sending this now... ls -l"
-    sh.sendline("cd /users/jsev")
+    #sh.sendline("cd /users/jsev")
+    sh.sendline("cd /mydata/")
     line_rec = sh.recvline(timeout=5)
     print "line_rec", line_rec
 
     #'''
     line_rec = sh.recvline(timeout=5)
     print "line_rec", line_rec
-    sh.sendline("ls -l")
 
     ## TODO: parse line_rec here... (i'll just put some super simple code here now for workflow purposes)
-    lines_rec = []
-    line_rec = 'start'
-    while line_rec != '':
-        line_rec = sh.recvline(timeout=5)
-        lines_rec.append(line_rec)
+    if mimir_num is not None:
+        current_mimir_dir = mimir_num
+    else:
+        sh.sendline("ls -l")
+        lines_rec = []
+        line_rec = 'start'
+        while line_rec != '':
+            line_rec = sh.recvline(timeout=5)
+            lines_rec.append(line_rec)
 
-    num_lines_rec = len(lines_rec)
-    existing_mimir_dirs = num_lines_rec
+        num_lines_rec = len(lines_rec)
+        existing_mimir_dirs = num_lines_rec
+        current_mimir_dir = existing_mimir_dirs + 1
+
     '''
     sh.sendline("ls -l")
     line_rec = sh.recvline(timeout=5)
@@ -118,9 +124,8 @@ def process_on_remote(remote_server_ip, remote_server_key, user, eval_dir_with_d
         existing_mimir_dirs = 0 # (so this'd be thing
     '''
 
-    current_mimir_dir = existing_mimir_dirs + 1
     cur_mimir_dir_name = 'mimir-' + str(current_mimir_dir)
-
+    print "cur_mimir_dir_name",cur_mimir_dir_name
 
     # step (4): put relevant data there
     # okay, so what actually is this???
@@ -143,31 +148,37 @@ def process_on_remote(remote_server_ip, remote_server_key, user, eval_dir_with_d
     if not skip_upload:
         line_rec = sh.recvline(timeout=5)
         print "line_rec", line_rec
+        print "cmd_to_make_cur_mimir_dir",cur_mimir_dir_name
         sh.sendline("mkdir " +  cur_mimir_dir_name)
         sh.sendline("mkdir " +  cur_mimir_dir_name + eval_dir_with_data_name)
         print "mkdir rec_line",sh.recvline(timeout=5)
         # (1) the EVAL dir with all the data
         print "eval_exp_config_file", eval_exp_config_file
         #### TODO TODO TODO TODO TODO TODO TODO TODO ####
-        sendline_and_wait_responses(sh, "sudo chown -R jsev:dna-PG0 ~", timeout=5)
-        sendline_and_wait_responses(sh, "sudo chown -R jsev:dna-PG0 " + cur_mimir_dir_name, timeout=5)
-        sendline_and_wait_responses(sh, "sudo chown -R jsev:dna-PG0 " + cur_mimir_dir_name + eval_dir_with_data_name, timeout=5)
-        s.upload(eval_dir_with_data, remote="~/" + eval_exp_config_file)
+        #sendline_and_wait_responses(sh, "sudo chown -R jsev:dna-PG0 ~", timeout=5)
+        #sendline_and_wait_responses(sh, "sudo chown -R jsev:dna-PG0 " + cur_mimir_dir_name, timeout=5)
+        #sendline_and_wait_responses(sh, "sudo chown -R jsev:dna-PG0 " + cur_mimir_dir_name + eval_dir_with_data_name, timeout=5)
+        sendline_and_wait_responses(sh, "sudo chown -R jsev:dna-PG0 /mydata/", timeout=5)
+        sendline_and_wait_responses(sh, "sudo chown -R jsev:dna-PG0 /mydata/" + cur_mimir_dir_name, timeout=5)
+        sendline_and_wait_responses(sh, "sudo chown -R jsev:dna-PG0 /mydata/" + cur_mimir_dir_name + eval_dir_with_data_name, timeout=5)
+        #s.upload(eval_dir_with_data, remote="~/" + eval_exp_config_file)
+        s.upload(eval_dir_with_data, remote="/mydata/" + eval_exp_config_file) #eval_exp_config_file)
         # (2) the config file (might overlap with (1) but maybe not...)
         try:
-            s.upload(eval_analysis_config_file, remote=cur_mimir_dir_name)
+            s.upload(eval_analysis_config_file, remote= "/mydata/" + cur_mimir_dir_name)
         except:
             print "eval_analysis_config_file probably already exists..."
 
         # (3) now repeat with the MODEL dir
-        print "try_making_this_dir:", cur_mimir_dir_name + model_dir_with_data_name
-        sh.sendline("mkdir " +  cur_mimir_dir_name + model_dir_with_data_name)
-        sendline_and_wait_responses(sh, "sudo chown -R jsev:dna-PG0 " + cur_mimir_dir_name + model_dir_with_data_name, timeout=5)
-        s.upload(model_dir, remote=model_exp_config_file)
-        try:
-            s.upload(model_analysis_config_file, remote=cur_mimir_dir_name)
-        except:
-            print "eval_analysis_config_file probably already exists..."
+        if eval_dir_with_data != model_dir or eval_analysis_config_file != model_analysis_config_file:
+            print "try_making_this_dir:", cur_mimir_dir_name + model_dir_with_data_name
+            sh.sendline("mkdir " +  cur_mimir_dir_name + model_dir_with_data_name)
+            sendline_and_wait_responses(sh, "sudo chown -R jsev:dna-PG0 " + cur_mimir_dir_name + model_dir_with_data_name, timeout=5)
+            s.upload(model_dir, remote= "/mydata/" + model_exp_config_file)
+            try:
+                s.upload(model_analysis_config_file, remote= "/mydata/" + cur_mimir_dir_name)
+            except:
+                print "eval_analysis_config_file probably already exists..."
 
     ## TODO: Okay, once I get to here, test everything above...
 
@@ -197,7 +208,7 @@ def process_on_remote(remote_server_ip, remote_server_key, user, eval_dir_with_d
     eval_config_json = eval_config_dir + eval_config_file_name
     print "eval_config_json", eval_config_json
 
-    eval_sed_mod_paths_cmd = "sed -i 's;" + eval_data_dir + ';' + eval_config_dir + ';\'' + ' ' + eval_config_json
+    eval_sed_mod_paths_cmd = "sed -i 's;" + eval_dir_with_data + ';' + eval_config_dir + ';\'' + ' ' + eval_config_json
     train_sed_mod_paths_cmd = "sed -i 's;" + model_dir + ';' + training_config_dir +';\'' + ' ' + training_config_json
 
     #print "eval_sed_mod_paths_cmd:::::", eval_sed_mod_paths_cmd
@@ -214,20 +225,24 @@ def process_on_remote(remote_server_ip, remote_server_key, user, eval_dir_with_d
     else:
         mimir_start_str = "python mimir.py --training_config_json " + training_config_json
     print "mimir_start_str",mimir_start_str
-    sendline_and_wait_responses(sh, mimir_start_str , timeout=120)
+    sendline_and_wait_responses(sh, mimir_start_str , timeout=240)
 
     # step (7) once completed, recover the end results (both model + eval dirs)
     # but first, reverse the sed that we did earlier...
-    eval_sed_mod_paths_cmd = "sed -i 's;" + eval_config_dir + ';' + eval_data_dir + ';\'' + ' ' + eval_config_json
+    eval_sed_mod_paths_cmd = "sed -i 's;" + eval_config_dir + ';' + eval_dir_with_data + ';\'' + ' ' + eval_config_json
     train_sed_mod_paths_cmd = "sed -i 's;" + training_config_dir + ';' + model_dir +';\'' + ' ' + training_config_json
     sendline_and_wait_responses(sh, eval_sed_mod_paths_cmd, timeout=15)
     sendline_and_wait_responses(sh, train_sed_mod_paths_cmd, timeout=15)
 
     # the '../' is b/c I'm in too much of a hurry to just figure out what the above dir is...
+    print "dont_retreive_eval",dont_retreive_eval
+    print "dont_retreive_train", dont_retreive_train
+    print "eval_config_dir",eval_config_dir, "eval_dir_with_data", eval_dir_with_data
+    print "training_config_dir",training_config_dir, "model_dir",model_dir
     if not dont_retreive_eval:
-        s.download_dir(remote=eval_config_dir + '../', local=eval_data_dir)
+        s.download(file_or_directory=eval_config_dir, local=eval_dir_with_data)
     if not dont_retreive_train:
-        s.download_dir(remote=training_config_dir + '../', local=model_dir)
+        s.download(file_or_directory=training_config_dir, local=model_dir)
 
     # step (8) return some kinda relevant information (-- this'll be the eval cm's that are needed by the looper)
     ### the biggest question is how to get them -- simple. they must be saved by mimir in a text file, that we can then
@@ -241,16 +256,26 @@ def process_on_remote(remote_server_ip, remote_server_key, user, eval_dir_with_d
     return None
 
 if __name__ == "__main__":
-    remote_server_ip = "c220g5-111030.wisc.cloudlab.us"
+    remote_server_ip = "c240g5-110107.wisc.cloudlab.us"
     remote_server_key = "/Users/jseverin/Dropbox/cloudlab.pem"
     user =  "jsev"
+    skip_install = True
+    skip_upload = False
+    dont_retreive_eval = False
+    dont_retreive_train = False
+
+    '''
     eval_data_dir = '/Volumes/exM/experimental_data/sockshop_info/sockshop_five_100/sockshop_five_100/'
     eval_analysis_config_file = eval_data_dir + 'sockshop_five_100_exp_proc.json'
     model_dir = "/Volumes/exM/experimental_data/sockshop_info/sockshop_five_100_mk2/sockshop_five_100_mk2/"
-    skip_install = False
-    skip_upload = True
     model_analysis_config_file = model_dir + 'sockshop_five_100_mk2_exp_proc.json'
+    '''
+    eval_data_dir              =  '/Volumes/exM/experimental_data/sockshop_info/sockshop_four_100/sockshop_four_100/'
+    eval_analysis_config_file  = 'sockshop_four_100.json'
+    model_dir                  = '/Volumes/exM/experimental_data/sockshop_info/sockshop_four_100_mk2/sockshop_four_100_mk2/'
+    model_analysis_config_file = 'sockshop_four_100_mk2.json'
 
     process_on_remote(remote_server_ip, remote_server_key, user, eval_data_dir, eval_analysis_config_file, model_dir,
                       model_analysis_config_file, skip_install=skip_install,
-                      skip_upload=skip_upload)
+                      skip_upload=skip_upload, dont_retreive_eval=dont_retreive_eval,
+                      dont_retreive_train=dont_retreive_train)

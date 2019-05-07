@@ -56,8 +56,8 @@ def sendline_and_wait_responses(sh, cmd_str, timeout=5):
             sh.sendline('n')
         print("recieved line", line_rec)
 
-def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, use_cilium, physical_attacks_p, skip_app_setup,
-                   dont_pull_p, exp_length, user, cloudlab_private_key, cloudlab_server_ip,
+def run_experiment(app_name, local_path_to_exp_config, exp_name, skip_setup_p, use_cilium, physical_attacks_p, skip_app_setup,
+                   pull_from_github, exp_length, user, cloudlab_private_key, cloudlab_server_ip,
                    experiment_sentinal_file):
     exp_length = max(10800, exp_length) # min is 10800 b/c it pauses that long during setup...
 
@@ -88,10 +88,9 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, use_ciliu
         print("--end minikube delete ---")
 
         clone_mimir_str = "cd /mydata/; git clone https://github.com/fretbuzz/mimir_v2"
-
         sendline_and_wait_responses(sh, clone_mimir_str, timeout=5)
 
-        if not dont_pull_p:
+        if pull_from_github:
             update_mimir_str = "cd ./mimir_v2/; git pull"
             sendline_and_wait_responses(sh, update_mimir_str, timeout=5)
 
@@ -165,9 +164,23 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, use_ciliu
         pass
 
     print "----after minikube setup---"
-    if not dont_pull_p:
+    if pull_from_github:
         update_mimir_str = "cd /mydata/mimir_v2/; git pull"
         sh.sendline(update_mimir_str)
+    else:
+        pass
+
+    ## move the config_files w/o relying on the push-to-github workaround
+    ## two parts:
+    # part 1: where is the config file locally?
+    # part 2: put it into the correct remote location...
+    with open(local_path_to_exp_config, 'r') as f:
+        test = f.read()
+    print "test",test
+
+    remote_path_to_experimental_config = local_path_to_exp_config.split('/')[-1]
+    print "remote_path_to_experimental_config",remote_path_to_experimental_config
+    s.put(file_or_directory=local_path_to_exp_config, remote=remote_path_to_experimental_config)
 
     # pwd_line = ''
     line_rec = 'something something'
@@ -231,7 +244,7 @@ def run_experiment(app_name, config_file_name, exp_name, skip_setup_p, use_ciliu
 
     time.sleep(60)
     start_actual_experiment = 'python /mydata/mimir_v2/experiment_coordinator/run_experiment.py --exp_name ' + \
-                              exp_name + ' --config_file ' + config_file_name
+                              exp_name + ' --config_file ~/' + remote_path_to_experimental_config
     if not physical_attacks_p:
         start_actual_experiment += ' --no_exfil'
     print "skip_app_setup",skip_app_setup
@@ -276,7 +289,7 @@ if __name__ == "__main__":
 
     parser.add_argument('--config_json',dest="config_json", default='None')
 
-    parser.add_argument('--dont_pull', dest='dont_pull_p', action='store_true',
+    parser.add_argument('--dont_pull_github', dest='dont_pull_github', action='store_true',
                         default=False,
                         help='do NOT pull from the github repo (default is to pull)')
 
@@ -291,7 +304,7 @@ if __name__ == "__main__":
 
         app_name = config_params["app_name"]
         exp_name = config_params["exp_name"]
-        config_file_name = config_params["config_file_name"]
+        local_path_to_exp_config = config_params["local_path_to_exp_config"]
         local_dir = config_params["local_dir"]
         cloudlab_server_ip = config_params["cloudlab_server_ip"]
         exp_length = config_params["exp_length"]
@@ -305,8 +318,8 @@ if __name__ == "__main__":
     experiment_sentinal_file = '/mydata/mimir_v2/experiment_coordinator/experiment_done.txt'
     sentinal_file = '/mydata/all_done.txt'
 
-    s = run_experiment(app_name, config_file_name, exp_name, args.skip_setup_p,
-                       use_cilium, physical_attacks_p, args.skip_app_setup_p, args.dont_pull_p,
+    s = run_experiment(app_name, local_path_to_exp_config, exp_name, args.skip_setup_p,
+                       use_cilium, physical_attacks_p, args.skip_app_setup_p, args.dont_pull_github,
                        exp_length, user, cloudlab_private_key, cloudlab_server_ip,
                        experiment_sentinal_file)
 

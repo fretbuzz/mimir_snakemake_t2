@@ -265,9 +265,12 @@ def aggregate_graph(G, containers_to_ms):
         v = containers_to_ms[v]
         H.add_edge(u, v, weight=data['weight'], frames=data['frames'])
 
-    pos = graphviz_layout(H)
-    nx.draw_networkx(H, pos, with_labels=True, arrows=True)
-    # plt.show()
+    try:
+        pos = graphviz_layout(H)
+        nx.draw_networkx(H, pos, with_labels=True, arrows=True)
+        # plt.show()
+    except:
+        pass
 
     # while we are at it, let's also return a simpler graph, which is just
     # the multigraph but with all the edges aggregated together
@@ -289,10 +292,12 @@ def aggregate_graph(G, containers_to_ms):
     for edges, weights in mapping_edge_to_weight.iteritems():
         if weights:
             M.add_edge(edges[0], edges[1], weight=weights, frames=mapping_edge_to_frames[edges])
-
-    pos = graphviz_layout(M)
-    nx.draw_networkx(M, pos, with_labels=True, arrows=True)
-    # plt.show()
+    try:
+        pos = graphviz_layout(M)
+        nx.draw_networkx(M, pos, with_labels=True, arrows=True)
+        # plt.show()
+    except:
+        pass
 
     return H, M
 
@@ -386,17 +391,19 @@ def make_network_graph(G, edge_label_p, filename, figsize, node_color_p, ms_s):
     if node_color_p:
         color_map = generate_network_graph_colormap(color_map, ms_s, G)
     plt.figure(figsize=figsize)  # todo: turn back to (27, 16)
-    pos = graphviz_layout(G)
-    for key in pos.keys():
-        pos[key] = (pos[key][0] * 4, pos[key][1] * 4)  # too close otherwise
-    nx.draw_networkx(G, pos, with_labels=True, arrows=True, font_size=8, font_color='b')
-    edge_labels = nx.get_edge_attributes(G, 'weight')
-    # might wanna put the below line back in...
-    #print "edge_labels", edge_labels
-    if edge_label_p:
-        nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=7, label_pos=0.3)
-    plt.savefig(filename, format='png')
-
+    try:
+        pos = graphviz_layout(G)
+        for key in pos.keys():
+            pos[key] = (pos[key][0] * 4, pos[key][1] * 4)  # too close otherwise
+        nx.draw_networkx(G, pos, with_labels=True, arrows=True, font_size=8, font_color='b')
+        edge_labels = nx.get_edge_attributes(G, 'weight')
+        # might wanna put the below line back in...
+        #print "edge_labels", edge_labels
+        if edge_label_p:
+            nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=7, label_pos=0.3)
+        plt.savefig(filename, format='png')
+    except:
+        pass
 
 def generate_network_graph_colormap(color_map, ms_s, G):
     # okay, now I want to color the different classes different colors. I am going to make the assumption

@@ -1,0 +1,12 @@
+{
+    "comment": "need to modify config_file_name so it points at ~ and I can upload",
+    "app_name" : "sockshop",
+    "exp_name" : "sockshop_updated_runnr_testing",
+    "local_path_to_exp_config" : "./experimental_configs/sockshop_one_higher_test.json",
+    "local_dir" : "/Volumes/exM/experimental_data/sockshop_info",
+    "cloudlab_server_ip" : "c220g2-011320.wisc.cloudlab.us",
+    "exp_length" : 10800,
+    "physical_attacks_p" : false,
+    "cloudlab_private_key" : "/Users/jseverin/Dropbox/cloudlab.pem",
+    "user" : "jsev"
+}

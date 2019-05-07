@@ -266,7 +266,7 @@ class injected_graph():
             betweeness_centrality_subset_pods = {}
             for svc,pods in svc_to_pod_with_outside.iteritems():
                 for pod in pods:
-                    betweeness_centrality_subset_pods[pod] = float('NaN) ')#0.0
+                    betweeness_centrality_subset_pods[pod] = float('NaN') #')#0.0
 
         bc_sub_pods_coefvar, bc_sub_pods_mean, bc_sub_pods_max = find_coef_of_var_for_nodes(betweeness_centrality_subset_pods, svc_to_pod_with_outside)
         self.graph_feature_dict = add_c_metric(self.graph_feature_dict, bc_sub_pods_coefvar,

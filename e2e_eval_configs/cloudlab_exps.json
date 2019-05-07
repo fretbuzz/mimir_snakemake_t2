@@ -1,21 +1,19 @@
 {
   "user": "jsev",
   "private_key": "/Users/jseverin/Dropbox/cloudlab.pem",
-  "local_dir": "/Volumes/exM/experimental_data/sockshop_info/",
-  "template": "sockshop_exp_template.json",
-  "cur_name": "v_short",
+  "local_dir": "/Volumes/exM/experimental_data/wordpress_info/",
+  "template": "wordpress_exp_template.json",
+  "cur_name": "more_wordpress_tests",
 
   "name_to_diff_params": {
-    "sockshop_five_100" : {
-      "(\"experiment\", \"number_background_locusts\")" : 100,
-      "prob_distro" : { "buy": 0.3, "browse": 0.5, "register": 0.2 }
+    "wordpress_105" : {
+      "(\"experiment\", \"number_background_locusts\")" : 105
     },
-    "sockshop_five_100_mk2" : {
-      "(\"experiment\", \"number_background_locusts\")" : 100,
-      "prob_distro" : { "buy": 0.3, "browse": 0.5, "register": 0.2 }
+    "wordpress_125" : {
+      "(\"experiment\", \"number_background_locusts\")" : 125
     }},
 
   "minikube_ips_to_lifetime": {
-    "c240g5-110131.wisc.cloudlab.us": ""
+    "c220g1-030814.wisc.cloudlab.us": ""
   }
 }

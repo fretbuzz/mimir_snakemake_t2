@@ -7,7 +7,9 @@
     "sockshop_five_160": "eval",
     "sockshop_five_80": "eval",
     "sockshop_five_60": "eval",
-    "sockshop_five_40": "eval"
+    "sockshop_five_40": "eval",
+    "wordpress_105": "eval",
+    "wordpress_125": "eval"
   },
   "eval_template": "analysis_eval_template.json",
   "train_template": "analysis_train_template.json"

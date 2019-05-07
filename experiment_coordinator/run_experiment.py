@@ -513,7 +513,12 @@ def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_co
         autoscale_p = deployment_config['autoscale_p']
         cpu_percent_cuttoff = deployment_config['cpu_percent_cuttoff']["wordpress"]
 
-        #wordpress_setup.scale_wordpress.deploy_wp(deployment_scaling)
+        if 'pxc' in deployment_scaling:
+            pxc_replicas = deployment_scaling['pxc']
+        else:
+            pxc_replicas = 7
+
+        wordpress_setup.scale_wordpress.deploy_wp(pxc_replicas)
         install_exfil_dependencies(exfil_paths, orchestrator, class_to_installer, exfil_path_class_to_image)
         wordpress_setup.scale_wordpress.scale_wordpress(autoscale_p, cpu_percent_cuttoff, deployment_scaling)
 
