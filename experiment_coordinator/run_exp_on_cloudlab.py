@@ -90,8 +90,10 @@ def run_experiment(app_name, local_path_to_exp_config, exp_name, skip_setup_p, u
         clone_mimir_str = "cd /mydata/; git clone https://github.com/fretbuzz/mimir_v2"
         sendline_and_wait_responses(sh, clone_mimir_str, timeout=5)
 
+        sendline_and_wait_responses(sh, "cd ./mimir_v2/", timeout=5)
+
         if pull_from_github:
-            update_mimir_str = "cd ./mimir_v2/; git pull"
+            update_mimir_str = "git pull"
             sendline_and_wait_responses(sh, update_mimir_str, timeout=5)
 
         sh.sendline("cd ./experiment_coordinator/")
@@ -164,8 +166,9 @@ def run_experiment(app_name, local_path_to_exp_config, exp_name, skip_setup_p, u
         pass
 
     print "----after minikube setup---"
+    sendline_and_wait_responses(sh, "cd /mydata/mimir_v2/", timeout=5)
     if pull_from_github:
-        update_mimir_str = "cd /mydata/mimir_v2/; git pull"
+        update_mimir_str = "git pull"
         sh.sendline(update_mimir_str)
     else:
         pass

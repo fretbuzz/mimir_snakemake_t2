@@ -3,17 +3,34 @@
   "private_key": "/Users/jseverin/Dropbox/cloudlab.pem",
   "local_dir": "/Volumes/exM/experimental_data/wordpress_info/",
   "template": "wordpress_exp_template.json",
-  "cur_name": "more_wordpress_tests",
+  "cur_name": "wordpress_probdistro_mod",
 
   "name_to_diff_params": {
-    "wordpress_105" : {
-      "(\"experiment\", \"number_background_locusts\")" : 105
+    "wordpress_4_4_2" : {
+      "prob_distro" : { "visitor": 0.4, "user_post": 0.4, "user_update": 0.2 }
     },
-    "wordpress_125" : {
-      "(\"experiment\", \"number_background_locusts\")" : 125
-    }},
+    "wordpress_10_0_0" : {
+      "prob_distro" : { "visitor": 1.0, "user_post": 0.0, "user_update": 0.0 }
+    },
+    "wordpress_0_10_0" : {
+      "prob_distro" : { "visitor": 0.0, "user_post": 1.0, "user_update": 0.0 }
+    },
+    "wordpress_0_0_10" : {
+      "prob_distro" : { "visitor": 0.0, "user_post": 0.0, "user_update": 1.0 }
+    },
+    "wordpress_5_0_5" : {
+      "prob_distro" : { "visitor": 0.5, "user_post": 0.0, "user_update": 0.5 }
+    },
+    "wordpress_5_5_0" : {
+      "prob_distro" : { "visitor": 0.5, "user_post": 0.5, "user_update": 0.0 }
+    },
+    "wordpress_0_5_5" : {
+      "prob_distro" : { "visitor": 0.0, "user_post": 0.5, "user_update": 0.5 }
+    }
+  },
 
   "minikube_ips_to_lifetime": {
+    "c220g2-011320.wisc.cloudlab.us": "",
     "c220g1-030814.wisc.cloudlab.us": ""
   }
 }

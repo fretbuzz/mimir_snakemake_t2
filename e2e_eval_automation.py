@@ -299,6 +299,6 @@ if __name__=="__main__":
     cloudlab_exps_file = 'cloudlab_exps.json'
     analysis_exp_file = 'analysis_exps.json'
     cloudlab_exps_dir = './e2e_eval_configs/'
-    skip_app_setup = True
+    skip_app_setup = False
     run_analysis= True
     perform_eval_work(cloudlab_exps_file, cloudlab_exps_dir, analysis_exp_file, skip_app_setup, run_analysis)
