@@ -19,6 +19,13 @@
         "user-db"
       ]
     },
+
+    "prob_distro" : {
+      "buy": 0.3,
+      "browse": 0.5,
+      "register": 0.2
+    },
+
     "Deployment" : {
       "deployment_scaling" :
         {
