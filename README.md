@@ -8,7 +8,7 @@ Please see the Wiki for full documentation on how to run the experimental appara
 ## Running Analysis Pipeline Demo
 The analysis pipeline takes a pcap file and a log of entities that exist on the cluster (such as pods and services) and uses them to generate a graph-based statistical model of network traffic on the application. This model can then be applied to new pcaps to determine if there is anomalous traffic.
 
-This analysis pipeline been tested on MacOS and Linux 16.04. It will not work on Windows.
+This analysis pipeline been tested on MacOS and Ubuntu 16.04. It will not work on Windows.
 
 This demo will walk through installing the necessary dependencies, acquiring example data (including a pretrained model and a short pcap file), running pipeline, and examining the output.
 
@@ -39,7 +39,7 @@ pip install docker networkx matplotlib jinja2 pdfkit numpy pandas seaborn Cython
 ```
 apt-get install -y graphviz libgraphviz-dev pkg-config
 ```
-On linux 16.04 the following options are needed when installing pygraphviz (might not be needed on other OS's):
+On Ubuntu 16.04 the following options are needed when installing pygraphviz (might not be needed on other OS's):
 ```
 pip install pygraphviz --install-option="--include-path=/usr/include/graphviz" --install-option="--library-path=/usr/lib/graphviz/"
 ```
