@@ -143,10 +143,13 @@ def parse_experimental_config(experimental_config_file, live=False, is_eval=Fals
         else:
             drop_pairwise_features = False
 
-        if 'perform_cilium_component' in config_file:
-            perform_cilium_component = config_file['perform_cilium_component']
+        if 'perform_svcpair_sec_component' in config_file or 'perform_svcpair_sec_component' in config_file:
+            if 'perform_svcpair_sec_component' in config_file:
+                perform_svcpair_sec_component = config_file['perform_svcpair_sec_component']
+            else:
+                perform_svcpair_sec_component = config_file['perform_svcpair_sec_component']
         else:
-            perform_cilium_component = True
+            perform_svcpair_sec_component = True
 
         cur_experiment_name = config_file['cur_experiment_name']
 
@@ -242,7 +245,7 @@ def parse_experimental_config(experimental_config_file, live=False, is_eval=Fals
                                   get_endresult_from_memory=get_endresult_from_memory,
                                   goal_attack_NoAttack_split_testing=goal_attack_NoAttack_split_testing,
                                   calc_ide=calc_ide, only_ide=only_ide,
-                                  perform_cilium_component=perform_cilium_component,
+                                  perform_svcpair_sec_component=perform_svcpair_sec_component,
                                   drop_pairwise_features=drop_pairwise_features,
                                   drop_infra_from_graph=drop_infra_from_graph, ide_window_size=ide_window_size,
                                   auto_open_pdfs=auto_open_pdfs, skip_heatmap_p=skip_heatmap_p,

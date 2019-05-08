@@ -17,7 +17,7 @@
 
   "goal_attack_NoAttack_split_testing": 0.10,
 
-  "perform_cilium_component": false,
+  "perform_svcpair_sec_component": false,
   "calc_ide": false,
   "only_ide": false
 }

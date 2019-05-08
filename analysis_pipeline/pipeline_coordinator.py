@@ -71,7 +71,7 @@ class multi_experiment_pipeline(object):
                  skip_model_part, calculate_z_scores_p=True, avg_exfil_per_min=None, exfil_per_min_variance=None,
                  avg_pkt_size=None, pkt_size_variance=None, skip_graph_injection=False, get_endresult_from_memory=False,
                  goal_attack_NoAttack_split_testing=0.0, calc_ide=False, only_ide=False,
-                 perform_cilium_component=True, only_perform_cilium_component=True, cilium_component_time=100,
+                 perform_svcpair_sec_component=True, only_perform_cilium_component=True, svcpair_sec_component_time=100,
                  drop_pairwise_features=False, max_path_length=15, max_dns_porportion=1.0, drop_infra_from_graph=False,
                  ide_window_size=10, debug_basename=None, pretrained_sav2=None, auto_open_pdfs=True,
                  skip_heatmap_p=True, no_labeled_data=False, time_fraction_fp_increase=0.05,
@@ -92,9 +92,9 @@ class multi_experiment_pipeline(object):
         self.skip_graph_injection = skip_graph_injection
         self.calc_ide = calc_ide
         self.only_ide = only_ide
-        self.perform_cilium_component = perform_cilium_component
+        self.perform_svcpair_sec_component = perform_svcpair_sec_component
         self.only_perform_cilium_component = only_perform_cilium_component
-        self.cilium_component_time = cilium_component_time
+        self.cilium_component_time = svcpair_sec_component_time
         self.drop_pairwise_features = drop_pairwise_features
         self.drop_infra_from_graph = drop_infra_from_graph
         self.ide_window_size = ide_window_size
@@ -243,7 +243,7 @@ class multi_experiment_pipeline(object):
                 self.testing_exfil_paths, self.skip_model_part, out_q,
                 self.ROC_curve_p, self.avg_exfil_per_min, self.exfil_per_min_variance, self.avg_pkt_size,
                 self.pkt_size_variance, skip_graph_injection, calc_ide, only_ide,
-                self.drop_pairwise_features, self.perform_cilium_component, self.cilium_component_time,
+                self.drop_pairwise_features, self.perform_svcpair_sec_component, self.cilium_component_time,
                 self.ide_window_size, self.drop_infra_from_graph, prefix_for_inject_params, pretrained_min_pipeline]
         p = multiprocessing.Process(
             target=pipeline_one_exfil_rate,
@@ -489,7 +489,7 @@ def pipeline_one_exfil_rate(rate_counter, base_output_name, function_list, exps_
                                            calc_ide=calc_ide,
                                            only_ide=only_ide, ide_window_size=ide_window_size,
                                            drop_infra_from_graph=drop_infra_from_graph,
-                                            pretrained_min_pipeline=pretrained_min_pipeline)
+                                           pretrained_min_pipeline=pretrained_min_pipeline)
         if perform_cilium_component: #
             experiment_object.run_cilium_component(cilium_component_time)
             time_gran_to_cilium_alerts = experiment_object.calc_cilium_performance(avg_exfil_per_min[rate_counter],
