@@ -92,7 +92,10 @@ def cal_host2svc(hosts, svcs):
                 break
     return host2svc
 
-def calc_svc2svc_communcating(host2svc, communicating_hosts, vip_debugging, gateway_ip):
+def calc_svc2svc_communcating(host2svc, communicating_hosts, vip_debugging):
+    # note: this function is a little complicated because *sometimes* we do not want to take the VIPs into account
+
+    # first, simply find which nodes communicate, and then map to the associated services (if applicable)
     communicatng_svcs = set()
     for comm_host_pair in communicating_hosts:
         if comm_host_pair[0] in host2svc and not ('VIP' in comm_host_pair[0] and vip_debugging):
@@ -108,7 +111,8 @@ def calc_svc2svc_communcating(host2svc, communicating_hosts, vip_debugging, gate
 
         communicatng_svcs.add( (src_svc, dst_svc) )
 
-    # now filter communicatng_svcs so that only real services remain...
+    # second, not all communicating paris generated above actually correspond to service-level communication.
+    # We compensate for that via filtering here.
     svc_pairs_to_remove = []
     svc_pairs_to_append = []
     for comm_svc in communicatng_svcs:
@@ -116,19 +120,6 @@ def calc_svc2svc_communcating(host2svc, communicating_hosts, vip_debugging, gate
         dst_svc = comm_svc[1]
         src_svc_is_outside = False
         dst_svc_is_outside = False
-
-        ''' ## this should no longer be needed...
-        if prepare_graph.is_ip(src_svc):
-            addr_bytes = prepare_graph.is_ip(src_svc)
-            if not prepare_graph.is_private_ip(addr_bytes, gateway_ip):
-                #src_svc = 'outside'
-                src_svc_is_outside = True
-        if prepare_graph.is_ip(dst_svc):
-            addr_bytes = prepare_graph.is_ip(dst_svc)
-            if not prepare_graph.is_private_ip(addr_bytes, gateway_ip):
-                #dst_svc = 'outside'
-                dst_svc_is_outside = True
-        '''
 
         if not vip_debugging:
             if 'POD' in src_svc or 'VIP' in src_svc or prepare_graph.is_ip(src_svc):
@@ -160,10 +151,8 @@ def generate_cilium_policy(communicating_svc, basefilename):
 
 # this function coordinates the overall functionality of the cilium component of MIMIR
 # for more information, please see comment at top of page
-### TODO: pass in the gateway IP from the calling function...
-def cilium_component(time_length, pcap_location, cilium_component_dir, make_edgefiles_p, svcs, mapping,
-                     pod_creation_log, gateway_ip = '172.17.0.1'):
-    make_edgefiles_p = True ## TODO PROBABLY WANT TO REMOVE AT SOME POINT
+def cilium_component(time_length, pcap_location, cilium_component_dir, make_edgefiles_p, svcs, mapping, pod_creation_log):
+    make_edgefiles_p = True ##  might want to remove at some point... idk for sure though...
     vip_debugging = False # this function exists for debugging purposes. It makese the cur_cilium_comms
                          # also print the relevant VIPS and then quit right after. This is useful for
                          # setting up the netsec policy.
@@ -185,40 +174,46 @@ def cilium_component(time_length, pcap_location, cilium_component_dir, make_edge
     communicatng_svcs = []
     # step (2) generate corresponding tshark stats file
     for pcap_slice_location in pcap_slice_locations:
+        # find where the sliced pcap is
         pcap_slice_location_components = pcap_slice_location.split('/')
         pcap_slice_path = '/'.join(pcap_slice_location_components[:-1]) + '/'
         pcap_slice_name = pcap_slice_location_components[-1]
         print "getting convo stats via tshark now..."
         time.sleep(5)
 
+        # then get communication statistics using tshark
         tshark_stats_path, tshark_stats_file = process_pcap_via_tshark(pcap_slice_path, pcap_slice_name,
                                                                        cilium_component_dir , make_edgefiles_p)
 
-        # step (3) generate edgefile (hostnames rather than ip addresses)
+        # step (3) generate edgefile (hostnames rather than ip addresses) using mapping from IPs->components
         edgefile_name = cilium_component_dir + '/edgefile_first_' + str(time_length) + '_sec.txt'
         mapping,infra_instances = update_mapping(mapping, pod_creation_log, time_length, 0, infra_instances)
 
         edgefile =  convert_tshark_stats_to_edgefile('', edgefile_name, tshark_stats_path, tshark_stats_file,
                                          make_edgefiles_p, mapping)
 
-        print "edgefile", edgefile
-        print 'remainder of cilium component is... TODO'
-        # step (4) generate service-to-ip mapping
-        #communicating_hosts, hosts = host2_host_comm(edgefile)
+        #print "edgefile", edgefile
+        #print 'remainder of cilium component is... TODO'
 
-        # i think we can repurpose the existing code that I wrote for the other component...
+        # step (4) we want to remove infrastructure from this graph, as well, since it is not processed by the rest of
+        # the system. By infrastructure, I am referring to components of the system deployed by the orchestrator. For
+        # kubernetes, this is pretty much everything in the Kube-system namespace other than the DNS server.
+        # step 4a: convert edgefile into networkx graph
         f = open(edgefile, 'r')
         lines = f.readlines()
         G = nx.DiGraph()
         nx.parse_edgelist(lines, delimiter=' ', create_using=G)
         G = aggregate_outside_nodes(G)
+        # step 4b: map nodes->svc's
         containers_to_ms = map_nodes_to_svcs(G, None, mapping)
         containers_to_ms['outside'] = 'outside'
         #_, service_G = aggregate_graph(G, containers_to_ms)
         nx.set_node_attributes(G, containers_to_ms, 'svc')
+        # step 4c: remove nodes belonging to the infrastructure services
         infra_nodes = find_infra_components_in_graph(G, infra_instances)
         G = remove_infra_from_graph(G, infra_nodes)
 
+        # step 5: parse the remaining graph to figure out which services communnicate
         name_to_svc = {}
         for node,data in G.nodes(data=True):
             try:
@@ -230,11 +225,15 @@ def cilium_component(time_length, pcap_location, cilium_component_dir, make_edge
         for (u,v,d) in G.edges(data=True):
             communicating_hosts.append((u,v))
 
-        communicatng_svcs.extend(calc_svc2svc_communcating(name_to_svc, communicating_hosts, vip_debugging, gateway_ip))
+        communicatng_svcs.extend(calc_svc2svc_communcating(name_to_svc, communicating_hosts, vip_debugging))
 
+    # step (6) write which services communicate out to a file, for reference purposes
     communicatng_svcs = list(set(communicatng_svcs))
-    output_file_name = './cilium_comp_inouts/cur_cilium_comms'
-    netsecoutput_file_name = './cilium_comp_inouts/cur_cilium_netsec_'
+    cilium_inout_dir = './cilium_comp_inouts/'
+    output_file_name = cilium_inout_dir +  'cur_cilium_comms'
+    netsecoutput_file_name = cilium_inout_dir + 'cur_cilium_netsec_'
+
+
     vips_present_lines = ''
     if vip_debugging:
         additional_output_file_name = output_file_name +  '_vip_debugging'
@@ -256,7 +255,7 @@ def cilium_component(time_length, pcap_location, cilium_component_dir, make_edge
                 vips_present_lines +=  src + " " + dst  + '\n'
 
     try:
-        os.makedirs(output_file_name + '.txt')
+        os.makedirs(cilium_inout_dir + '.txt')
     except OSError as e:
         if e.errno != errno.EEXIST:
             raise
