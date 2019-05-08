@@ -156,6 +156,9 @@ def cilium_component(time_length, pcap_location, cilium_component_dir, make_edge
     vip_debugging = False # this function exists for debugging purposes. It makese the cur_cilium_comms
                          # also print the relevant VIPS and then quit right after. This is useful for
                          # setting up the netsec policy.
+    cilium_inout_dir = './svcpair_comp_inouts/'
+    output_file_name = cilium_inout_dir + 'cur_svcpair_comms'
+    netsecoutput_file_name = cilium_inout_dir + 'cur_svcpcair_netsec_' # this prints out what COULD be a
 
     # step (0) make sure the directory where we are going to store all the MIMIR cilium component files exist
     try:
@@ -163,9 +166,7 @@ def cilium_component(time_length, pcap_location, cilium_component_dir, make_edge
     except OSError as e:
         if e.errno != errno.EEXIST:
             raise
-    #print "okay, there should now be the cilium_component_dir: ", cilium_component_dir
 
-    cilium_inout_dir = './cilium_comp_inouts/'
     try:
         os.makedirs(cilium_inout_dir)
     except OSError as e:
@@ -176,9 +177,9 @@ def cilium_component(time_length, pcap_location, cilium_component_dir, make_edge
     #print "calling generate_pcap_slice now..."
     pcap_slice_locations = generate_pcap_slice(time_length, pcap_location, cilium_component_dir, make_edgefiles_p)
 
-
     infra_instances = {}
     communicatng_svcs = []
+    communicating_svcc_with_vips = []
     # step (2) generate corresponding tshark stats file
     for pcap_slice_location in pcap_slice_locations:
         # find where the sliced pcap is
@@ -232,44 +233,43 @@ def cilium_component(time_length, pcap_location, cilium_component_dir, make_edge
         for (u,v,d) in G.edges(data=True):
             communicating_hosts.append((u,v))
 
-        communicatng_svcs.extend(calc_svc2svc_communcating(name_to_svc, communicating_hosts, vip_debugging))
+        communicatng_svcs.extend(calc_svc2svc_communcating(name_to_svc, communicating_hosts, False))
+        communicating_svcc_with_vips.extend(calc_svc2svc_communcating(name_to_svc, communicating_hosts, True))
 
     # step (6) write which services communicate out to a file, for reference purposes
     communicatng_svcs = list(set(communicatng_svcs))
-    output_file_name = cilium_inout_dir +  'cur_cilium_comms'
-    netsecoutput_file_name = cilium_inout_dir + 'cur_cilium_netsec_'
-
+    communicating_svcc_with_vips = list(set(communicating_svcc_with_vips))
 
     vips_present_lines = ''
-    if vip_debugging:
-        additional_output_file_name = output_file_name +  '_vip_debugging'
-        vips_present = set()
-        for comm_pair in communicatng_svcs:
-            #if 'VIP' in comm_pair[0] or 'VIP' in comm_pair[1]:
+    #if vip_debugging:
+    additional_output_file_name = output_file_name +  '_vip_debugging'
+    vips_present = set()
+    for comm_pair in communicating_svcc_with_vips:
+        #if 'VIP' in comm_pair[0] or 'VIP' in comm_pair[1]:
 
-            # w/ current tshark setup, 'VIP' being in either 0 or 1 is semantically equivalent.
-            if 'VIP' in comm_pair[1]:
-                vips_present.add(comm_pair)
-            #if 'VIP' in comm_pair[1]:
-            #    vips_present.add(comm_pair[1])
-        with open(additional_output_file_name + '.txt', 'w') as f:
-            for item in vips_present:
-                src = item[0].lower().replace('-', '_')
-                dst = item[1].lower().replace('-', '_')
-                src += '_pod'
-                f.write(src + " " + dst  + '\n')
-                vips_present_lines +=  src + " " + dst  + '\n'
+        # w/ current tshark setup, 'VIP' being in either 0 or 1 is semantically equivalent.
+        if 'VIP' in comm_pair[1]:
+            vips_present.add(comm_pair)
+        #if 'VIP' in comm_pair[1]:
+        #    vips_present.add(comm_pair[1])
+    with open(additional_output_file_name + '.txt', 'w') as f:
+        for item in vips_present:
+            src = item[0].lower().replace('-', '_')
+            dst = item[1].lower().replace('-', '_')
+            src += '_pod'
+            f.write(src + " " + dst  + '\n')
+            vips_present_lines +=  src + " " + dst  + '\n'
 
     with open(output_file_name + '.txt', 'w') as f:
         for comm_svc in communicatng_svcs:
             f.write(str(comm_svc) + '\n')
 
-    if vip_debugging:
-        print "existing b/c vip_debugging is true. can check output file safely now."
-        exit(233)
+    #if vip_debugging:
+    #    print "existing b/c vip_debugging is true. can check output file safely now."
+    #    exit(233)
 
     basefilename = None
-    generate_cilium_policy(communicatng_svcs, basefilename)
+    #generate_cilium_policy(communicatng_svcs, basefilename)
     generate_mimir_netsec_policy(netsecoutput_file_name, communicatng_svcs, vips_present_lines)
 
     return communicatng_svcs
