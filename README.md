@@ -61,7 +61,7 @@ cd ..
 ### Step 4: Starting the system
 The system can be started via:
 ```
-python mimir.py --training_config_json analysis_json/wordpress_model.json --eval_config_json analysis_json/wordpress_example.json
+python mimir.py --training_config_json mimir_example_data/wordpress_model.json --eval_config_json mimir_example_data/wordpress_example.json
 ```
 
 This uses a pretrained model and detects synthetically injected attacks on a Wordpress deployment. There is a pcap corresponding to this deployment in the example data. Note: there are no physical exfiltration events in this pcap file-- all exfiltration events are simulated by the system. This is why it takes a while to run.
