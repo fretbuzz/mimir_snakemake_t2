@@ -1,4 +1,4 @@
-NOTE: I WILL UPDATE THESE INSTRUCTIONS LITERALLY AS SOON AS I HAVE TIME. SHOULD BE WITHIN A DAY! 
+NOTE: Literally updating these instructions ATM. 
 
 ## Mimir
 Mimir is an experimental apparatus designed to test the potential for anomaly-based data exfiltration detection in microservice-architecture applications. It creates a graphical representation of network communication and flags deviations from structural invariants. The goal is to detect data exfiltration, but it should also be effective at detecting other types of anomalous traffic, such as port scans or lateral movements by attackers.
@@ -44,8 +44,12 @@ On linux 16.04 the following options are needed when installing pygraphviz (migh
 pip install pygraphviz --install-option="--include-path=/usr/include/graphviz" --install-option="--library-path=/usr/lib/graphviz/"
 ```
 
+### Step 2: Clone Repo
+```
+git clone https://github.com/fretbuzz/mimir_v2.git
+```
 
-### Step 2: Get example data
+### Step 3: Get example data
 ```
 cd mimir_v2/analysis_pipeline
 git clone https://github.com/fretbuzz/mimir_example_data.git
@@ -54,7 +58,7 @@ gzip -d example_wordpress.pcap.gz
 cd ..
 ```
 
-### Step 3: Starting the system
+### Step 4: Starting the system
 The system can be started via:
 ```
 python mimir.py --training_config_json analysis_json/wordpress_model.json --eval_config_json analysis_json/wordpress_example.json
@@ -64,5 +68,5 @@ This uses a pretrained model and detects synthetically injected attacks on a Wor
 
 A new model can be generated based off of training data (see corresponding wiki page). Be advised that it requires a pcap of network activity and a time-alignd log of entities on the kubernetes cluster (e.g. pods & services). It is likely the log of cluster entites will need to be generated from other data sources (e.g., prometheus database, etc); see the corresponding wiki page for more information.
 
-### Step 4: Examining the Output
+### Step 5: Examining the Output
 Go the mimir_example_data/results directory. There should be several csv files with the metrics. There should also be several pdfs with ROC curves, descriptions of the model coefficients, and per-path detection resutls.
