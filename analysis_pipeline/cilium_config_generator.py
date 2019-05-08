@@ -158,7 +158,7 @@ def cilium_component(time_length, pcap_location, cilium_component_dir, make_edge
     #                     # also print the relevant VIPS and then quit right after. This is useful for
     #                     # setting up the netsec policy.
     print "svccpair_results_dir", results_dir
-    cilium_inout_dir = results_dir + '/svcpair_comp_inouts/'
+    cilium_inout_dir = results_dir + '_svcpair_comp_inouts/'
     print "svcpair_comp_inout", cilium_inout_dir
     output_file_name = cilium_inout_dir + 'cur_svcpair_comms'
     netsecoutput_file_name = cilium_inout_dir + 'cur_svcpcair_netsec_' # this prints out what COULD be a
