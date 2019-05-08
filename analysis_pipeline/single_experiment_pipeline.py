@@ -188,7 +188,7 @@ class data_anylsis_pipline(object):
 
     def calculate_values(self,end_of_training, synthetic_exfil_paths_train, synthetic_exfil_paths_test,
                          avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
-                         calc_ide, include_ide, only_ide, ide_window_size, drop_infra_from_graph,
+                         calc_ide, only_ide, ide_window_size, drop_infra_from_graph,
                          pretrained_min_pipeline=None):
         self.end_of_training = end_of_training
         if self.calc_vals or calc_ide:
@@ -250,7 +250,7 @@ class data_anylsis_pipline(object):
                                             synthetic_exfil_paths, self.initiator_info_for_paths, time_gran_to_attack_ranges,
                                             avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
                                             self.skip_graph_injection, self.end_of_training,
-                                            self.cluster_creation_log, calc_ide, include_ide, only_ide,
+                                            self.cluster_creation_log, calc_ide, only_ide,
                                             self.basefile_name, drop_infra_from_graph, self.exp_name,
                                             self.sensitive_ms, time_gran_to_exfil_paths_series)
 
@@ -467,7 +467,7 @@ def process_one_set_of_graphs(time_interval_length, ide_window_size,
                                 synthetic_exfil_paths, initiator_info_for_paths, attacks_to_times,
                                collected_metrics_location, current_set_of_graphs_loc, calc_vals, out_q,
                               avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
-                              skip_graph_injection, end_of_training, pod_creation_log, calc_ide, include_ide,
+                              skip_graph_injection, end_of_training, pod_creation_log, calc_ide,
                               only_ide, processed_graph_loc, drop_infra_from_graph, sensitive_ms,
                               exfil_paths_series):
     print "process_one_set_of_graphs"
@@ -493,7 +493,7 @@ def process_one_set_of_graphs(time_interval_length, ide_window_size,
 
         # these relate to ide
         #'''
-        if include_ide or calc_ide:
+        if calc_ide:
 
             current_set_of_graphs.generate_aggregate_csv()
             print "waiting for ide angles to finish...."
@@ -541,7 +541,7 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
                                 initiator_info_for_paths, time_gran_to_attacks_to_times,
                                 avg_exfil_per_min,
                                 exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
-                                skip_graph_injection, end_of_training, pod_creation_log, calc_ide, include_ide,
+                                skip_graph_injection, end_of_training, pod_creation_log, calc_ide,
                                 only_ide, edgefile_path, drop_infra_from_graph, exp_name, sensitive_ms,
                                 time_gran_to_exfil_paths_series):
     total_calculated_vals = {}
@@ -579,7 +579,7 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
                 infra_instances, synthetic_exfil_paths,  initiator_info_for_paths,
                 time_gran_to_attacks_to_times[time_interval_length], collected_metrics_location, current_set_of_graphs_loc,
                 calc_vals, out_q, avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
-                skip_graph_injection, end_of_training, pod_creation_log, calc_ide, include_ide, only_ide,
+                skip_graph_injection, end_of_training, pod_creation_log, calc_ide, only_ide,
                 processed_graph_loc, drop_infra_from_graph, sensitive_ms, time_gran_to_exfil_paths_series[time_interval_length]]
         p = multiprocessing.Process(
             target=process_one_set_of_graphs,

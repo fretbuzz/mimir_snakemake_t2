@@ -70,7 +70,7 @@ class multi_experiment_pipeline(object):
                  goal_attack_NoAttack_split_training, training_window_size, size_of_neighbor_training_window, calc_vals,
                  skip_model_part, calculate_z_scores_p=True, avg_exfil_per_min=None, exfil_per_min_variance=None,
                  avg_pkt_size=None, pkt_size_variance=None, skip_graph_injection=False, get_endresult_from_memory=False,
-                 goal_attack_NoAttack_split_testing=0.0, calc_ide=False, include_ide=False, only_ide=False,
+                 goal_attack_NoAttack_split_testing=0.0, calc_ide=False, only_ide=False,
                  perform_cilium_component=True, only_perform_cilium_component=True, cilium_component_time=100,
                  drop_pairwise_features=False, max_path_length=15, max_dns_porportion=1.0, drop_infra_from_graph=False,
                  ide_window_size=10, debug_basename=None, pretrained_sav2=None, auto_open_pdfs=True,
@@ -91,7 +91,6 @@ class multi_experiment_pipeline(object):
         self.pkt_size_variance = pkt_size_variance
         self.skip_graph_injection = skip_graph_injection
         self.calc_ide = calc_ide
-        self.include_ide = include_ide
         self.only_ide = only_ide
         self.perform_cilium_component = perform_cilium_component
         self.only_perform_cilium_component = only_perform_cilium_component
@@ -174,7 +173,7 @@ class multi_experiment_pipeline(object):
             for rate_counter in range(0, len(self.avg_exfil_per_min)):
                 # (i), (ii) <--- I think that they both belong here...
                 self.run_single_pipeline(rate_counter, self.calc_vals, self.skip_graph_injection,
-                                         calc_ide=self.calc_ide, include_ide=self.include_ide, only_ide=self.only_ide,
+                                         calc_ide=self.calc_ide, only_ide=self.only_ide,
                                          no_labeled_data=self.no_labeled_data)
 
             if not self.pretrained_min_pipeline:
@@ -223,7 +222,7 @@ class multi_experiment_pipeline(object):
                                                             self.rate_to_time_gran_to_outtraffic, self.auto_open_pdfs)
 
     ## NOTE: I'm going to try to do this WITHOUT the call to multi-process here!!ee
-    def run_single_pipeline(self, rate_counter, calc_vals, skip_graph_injection, calc_ide=False, include_ide=False,
+    def run_single_pipeline(self, rate_counter, calc_vals, skip_graph_injection, calc_ide=False,
                             only_ide=False, no_labeled_data=False):
         prefix_for_inject_params = 'avg_exfil_' + str(self.avg_exfil_per_min[rate_counter]) + ':' + str(
             self.exfil_per_min_variance[rate_counter]) + '_' #+  '_avg_pkt_' + str(self.avg_pkt_size[rate_counter]) + ':' + str(
@@ -243,7 +242,7 @@ class multi_experiment_pipeline(object):
                 self.calculate_z_scores_p, calc_vals, self.end_of_train_portions, self.training_exfil_paths,
                 self.testing_exfil_paths, self.skip_model_part, out_q,
                 self.ROC_curve_p, self.avg_exfil_per_min, self.exfil_per_min_variance, self.avg_pkt_size,
-                self.pkt_size_variance, skip_graph_injection, calc_ide, include_ide, only_ide,
+                self.pkt_size_variance, skip_graph_injection, calc_ide, only_ide,
                 self.drop_pairwise_features, self.perform_cilium_component, self.cilium_component_time,
                 self.ide_window_size, self.drop_infra_from_graph, prefix_for_inject_params, pretrained_min_pipeline]
         p = multiprocessing.Process(
@@ -450,7 +449,7 @@ def pipeline_one_exfil_rate(rate_counter, base_output_name, function_list, exps_
                             calculate_z_scores_p, calc_vals, end_of_train_portions, training_exfil_paths,
                             testing_exfil_paths, skip_model_part, out_q, ROC_curve_p, avg_exfil_per_min,
                             exfil_per_min_variance, avg_pkt_size, pkt_size_variance, skip_graph_injection, calc_ide,
-                            include_ide, only_ide, drop_pairwise_features, perform_cilium_component,
+                            only_ide, drop_pairwise_features, perform_cilium_component,
                             cilium_component_time, ide_window_size, drop_infra_from_graph, prefix_for_inject_params,
                             pretrained_min_pipeline=None):
     ## step (1) : iterate through individual experiments...
@@ -487,7 +486,7 @@ def pipeline_one_exfil_rate(rate_counter, base_output_name, function_list, exps_
                                            exfil_per_min_variance=exfil_per_min_variance[rate_counter],
                                            avg_pkt_size=avg_pkt_size[rate_counter],
                                            pkt_size_variance=pkt_size_variance[rate_counter],
-                                           calc_ide=calc_ide, include_ide=include_ide,
+                                           calc_ide=calc_ide,
                                            only_ide=only_ide, ide_window_size=ide_window_size,
                                            drop_infra_from_graph=drop_infra_from_graph,
                                             pretrained_min_pipeline=pretrained_min_pipeline)

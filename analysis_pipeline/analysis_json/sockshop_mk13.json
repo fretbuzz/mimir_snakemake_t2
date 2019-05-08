@@ -18,7 +18,6 @@
   "goal_train_test_split_training": 0.5,
 
   "perform_cilium_component": false,
-  "include_ide": false,
   "calc_ide": false,
   "only_ide": false
 }

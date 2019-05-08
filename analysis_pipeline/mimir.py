@@ -207,13 +207,6 @@ def parse_experimental_config(experimental_config_file, live=False, is_eval=Fals
                                                            pod_creation_log_path, netsec_policy, time_of_synethic_exfil,
                                                            no_processing_at_all=get_endresult_from_memory)]
 
-        # this is a work-around until I finish refactoring the actual system...
-        # this part exists b/c I never want to interfere with actually working
-        if 'include_ide' in config_file:
-            include_ide = config_file['include_ide']
-        else:
-            include_ide = False
-
         if 'calc_ide' in config_file:
             calc_ide = config_file['calc_ide']
         else:
@@ -248,7 +241,7 @@ def parse_experimental_config(experimental_config_file, live=False, is_eval=Fals
                                   skip_graph_injection=skip_graph_injection,
                                   get_endresult_from_memory=get_endresult_from_memory,
                                   goal_attack_NoAttack_split_testing=goal_attack_NoAttack_split_testing,
-                                  calc_ide=calc_ide, include_ide=include_ide, only_ide=only_ide,
+                                  calc_ide=calc_ide, only_ide=only_ide,
                                   perform_cilium_component=perform_cilium_component,
                                   drop_pairwise_features=drop_pairwise_features,
                                   drop_infra_from_graph=drop_infra_from_graph, ide_window_size=ide_window_size,

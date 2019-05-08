@@ -722,29 +722,29 @@ class set_of_injected_graphs():
 def calc_ide_angles(aggregate_csv_edgefile_loc, joint_col_list, window_size, raw_edgefile_names, out_q, calc_ide):
     # okay, so what this'll probably be is just a way of interacting with common lisp...
 
-    if calc_ide: #False: #calc_ide:
+    #if calc_ide: #False: #calc_ide:
     # step 1: setup the file with the params...
-        with open('./clml_ide_params.txt', 'w') as f:
-            # first thing: location of aggregatee-edgefile
-            f.write(aggregate_csv_edgefile_loc + '\n')
-            # second thing: number of columns ## NOTE: USED TO BE +1
-            f.write(str(len(joint_col_list) + 1) + '\n') # plus one is for the unamed column (TODO: figure outwhat is it)
-            # third thing: sliding window size
-            f.write( str( window_size) + '\n')
-            # fourth thing: total time
-            f.write( str( len(raw_edgefile_names))  + '\n')
-            # fifth thing: output file location
-            f.write( aggregate_csv_edgefile_loc + '_clml_ide_results.txt' )
+    with open('./clml_ide_params.txt', 'w') as f:
+        # first thing: location of aggregatee-edgefile
+        f.write(aggregate_csv_edgefile_loc + '\n')
+        # second thing: number of columns ## NOTE: USED TO BE +1
+        f.write(str(len(joint_col_list) + 1) + '\n') # plus one is for the unamed column (TODO: figure outwhat is it)
+        # third thing: sliding window size
+        f.write( str( window_size) + '\n')
+        # fourth thing: total time
+        f.write( str( len(raw_edgefile_names))  + '\n')
+        # fifth thing: output file location
+        f.write( aggregate_csv_edgefile_loc + '_clml_ide_results.txt' )
 
-        time.sleep(10)
+    time.sleep(10)
 
-        # step 2: start sbcl on the appropriate script...
-        #        out = subprocess.check_output(['sbcl', "--dynamic-space-size", "2560", "--script", "clml_ide.lisp"])
-        print "calling sbcl now..."
-        # note: http://quickdocs.org/clml/ indicates that a dynamic-space-size of 2560 should be sufficient, but
-        # in my experience, that's actually not big enough (i.e. it'll crash unless you give it more)
-        out = subprocess.check_output(['sbcl', "--dynamic-space-size", "5540", "--script", "clml_ide.lisp"])
-        print "ide_out", out
+    # step 2: start sbcl on the appropriate script...
+    #        out = subprocess.check_output(['sbcl', "--dynamic-space-size", "2560", "--script", "clml_ide.lisp"])
+    print "calling sbcl now..."
+    # note: http://quickdocs.org/clml/ indicates that a dynamic-space-size of 2560 should be sufficient, but
+    # in my experience, that's actually not big enough (i.e. it'll crash unless you give it more)
+    out = subprocess.check_output(['sbcl', "--dynamic-space-size", "5540", "--script", "clml_ide.lisp"])
+    print "ide_out", out
 
     # step 3: copy the results into the appropriate location...
     ## okay, let's just store it in a seperate location, cause that'll be easier, I guess...
