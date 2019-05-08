@@ -310,11 +310,8 @@ if __name__=="__main__":
         #run_analysis('./analysis_json/sockshop_mk13.json', eval_config = './analysis_json/sockshop_exfil_test.json', live=True)
         #run_analysis('./analysis_json/sockshop_mk13.json', eval_config = './new_analysis_json/sockshop_mk20.json')
         #run_analysis('./analysis_json/sockshop_mk13.json', eval_config = './new_analysis_json/sockshop_mk22.json')
-        ###run_analysis('./analysis_json/sockshop_mk13.json')
-        #time.sleep(7200)
         #run_analysis('./analysis_json/sockshop_mk13.json', eval_config = './new_analysis_json/sockshop_mk23.json')
         #run_analysis('./analysis_json/sockshop_mk13.json', eval_config = './new_analysis_json/sockshop_mk24.json')
-
         #run_analysis('./analysis_json/sockshop_mk13.json', eval_config = './new_analysis_json/sockshop_auto_mk27.json')
 
         run_analysis('./analysis_json/wordpress_one_3_auto_mk5.json', eval_config='./analysis_json/wordpress_one_v2_na_eval.json')
@@ -322,18 +319,8 @@ if __name__=="__main__":
         #run_analysis('analysis_json/wordpress_model.json', eval_config='analysis_json/wordpress_example.json')
         #run_analysis('./analysis_json/sockshop_one_auto_mk12long.json', eval_config='./analysis_json/sockshop_example.json')
         #run_analysis('./analysis_json/sockshop_one_auto_mk12long.json')
-
         #run_analysis('./analysis_json/sockshop_one_auto_mk11long.json', eval_config='./analysis_json/sockshop_example.json')
-        ##
-        #run_analysis('./analysis_json/sockshop_one_v2_nonauto.json', eval_config='./analysis_json/sockshop_example.json')
 
-        #run_analysis('./analysis_json/sockshop_example.json')
-        #run_analysis('./analysis_json/sockshop_one_v2_mk7.json')
-        #run_analysis('./analysis_json/sockshop_one_v2.json')
-        #run_analysis('./analysis_json/sockshop_one_v2_minimal.json')
-        #run_analysis('./analysis_json/wordpress_one_v2_nonauto.json')
-        #run_analysis('./analysis_json/sockshop_one_v2_nonauto.json')
-        #run_analysis('./analysis_json/sockshop_short.json')
     else:
         #parse_experimental_config(args.training_config_json, eval_config)
         run_analysis(args.training_config_json, eval_config=args.config_json, live=args.live)

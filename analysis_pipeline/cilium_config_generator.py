@@ -59,13 +59,6 @@ def generate_pcap_slice(time_length, pcap_location, split_pcap_dir, make_edgefil
     print "generate_relevant_pcap_slice_out", split_pcap_locs
     return [split_pcap_dir + '/' + split_pcap_loc for split_pcap_loc in split_pcap_locs]
 
-# TODO: probably wanna incorporate who is initiating the flows at some point..
-def find_communicating_ips():
-    # okay, there's actually two different possible situations here...
-    # if it is over TCP than we can (theoretically) see who initiated the flows
-    # else, we can't know
-    pass
-
 def host2_host_comm(edgefile):
     communicating_ips = set()
     ips = set()
@@ -157,7 +150,7 @@ def calc_svc2svc_communcating(host2svc, communicating_hosts, vip_debugging, gate
 
     return communicatng_svcs
 
-# TODO:: this is NOT DONE ATM... it's mostly just some starter code to
+# might want to do this at some point... generate the relevant cilium config file
 # play around with ATM, but I'll try to fill the whole thing out later...
 def generate_cilium_policy(communicating_svc, basefilename):
     for comm_svc_pair in communicating_svc:
@@ -261,6 +254,12 @@ def cilium_component(time_length, pcap_location, cilium_component_dir, make_edge
                 src += '_pod'
                 f.write(src + " " + dst  + '\n')
                 vips_present_lines +=  src + " " + dst  + '\n'
+
+    try:
+        os.makedirs(output_file_name + '.txt')
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise
 
     with open(output_file_name + '.txt', 'w') as f:
         for comm_svc in communicatng_svcs:
