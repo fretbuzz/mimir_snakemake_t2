@@ -69,4 +69,4 @@ Note: there are no physical exfiltration events in this pcap file, i.e. all exfi
 Of course, A new model can be also be generated based off of training data. Please see the Wiki for a full descriptin.
 
 ### Step 5: Examining the Output
-Go the mimir_example_data/results directory. There will be a LOT of generated files there, but please focus your attention on the PDF files. These contain reports describing system perform, including ROC curves, per-path confusion matrices, and descriptions of the model coefficients.
+Go the mimir_example_data/results directory. There will be a LOT of generated files there, but please focus your attention on the PDF files. These contain reports describing system perform, including ROC curves, per-path confusion matrices, and descriptions of the model coefficients. The CSV files can also be useful for debugging purposes (or if you want to run your own statistical analysis, e.g. in R).
