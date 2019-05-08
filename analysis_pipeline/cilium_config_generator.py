@@ -163,10 +163,17 @@ def cilium_component(time_length, pcap_location, cilium_component_dir, make_edge
     except OSError as e:
         if e.errno != errno.EEXIST:
             raise
-    print "okay, there should now be the cilium_component_dir: ", cilium_component_dir
+    #print "okay, there should now be the cilium_component_dir: ", cilium_component_dir
+
+    cilium_inout_dir = './cilium_comp_inouts/'
+    try:
+        os.makedirs(cilium_inout_dir)
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise
 
     # step (1) generate relevant slice of pcap
-    print "calling generate_pcap_slice now..."
+    #print "calling generate_pcap_slice now..."
     pcap_slice_locations = generate_pcap_slice(time_length, pcap_location, cilium_component_dir, make_edgefiles_p)
 
 
@@ -229,7 +236,6 @@ def cilium_component(time_length, pcap_location, cilium_component_dir, make_edge
 
     # step (6) write which services communicate out to a file, for reference purposes
     communicatng_svcs = list(set(communicatng_svcs))
-    cilium_inout_dir = './cilium_comp_inouts/'
     output_file_name = cilium_inout_dir +  'cur_cilium_comms'
     netsecoutput_file_name = cilium_inout_dir + 'cur_cilium_netsec_'
 
@@ -253,12 +259,6 @@ def cilium_component(time_length, pcap_location, cilium_component_dir, make_edge
                 src += '_pod'
                 f.write(src + " " + dst  + '\n')
                 vips_present_lines +=  src + " " + dst  + '\n'
-
-    try:
-        os.makedirs(cilium_inout_dir + '.txt')
-    except OSError as e:
-        if e.errno != errno.EEXIST:
-            raise
 
     with open(output_file_name + '.txt', 'w') as f:
         for comm_svc in communicatng_svcs:
