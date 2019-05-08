@@ -433,22 +433,25 @@ class data_anylsis_pipline(object):
         return time_gran_to_mod_zscore_df, None, self.time_gran_to_feature_dataframe,\
                self.time_gran_to_synthetic_exfil_paths_series, self.end_of_training #, timegran_to_transformer
 
-    def run_cilium_component(self, time_length):
+    def run_cilium_component(self, time_length, results_dir):
         #if self.cilium_component_time_lengthL
         #    time_length = self.cilium_component_time_length
         #else:
         self.cilium_component_time_length = time_length
 
         print "calling_cilium_component_now..."
-        self.cilium_allowed_svc_comm = cilium_config_generator.cilium_component(time_length, self.pcap_path + self.pcap_file, self.cilium_component_dir,
-                                                                                self.make_edgefiles_p, self.ms_s, self.mapping, self.cluster_creation_log)
+        self.cilium_allowed_svc_comm = cilium_config_generator.cilium_component(time_length, self.pcap_path + self.pcap_file,
+                                                                                self.cilium_component_dir,
+                                                                                self.make_edgefiles_p, self.ms_s, self.mapping,
+                                                                                self.cluster_creation_log,
+                                                                                results_dir)
 
     def calc_cilium_performance(self, avg_exfil_per_min, exfil_var_per_min, avg_pkt_size, avg_pkt_var):
         time_gran_to_cil_alerts = {}
         for time_gran in self.time_interval_lengths:
-            prefix_for_inject_params = 'avg_exfil_' + str(avg_exfil_per_min) + ':' + str(
-                exfil_var_per_min) + '_avg_pkt_' + str(avg_pkt_size) + ':' + str(
-                avg_pkt_var) + '_'
+            #prefix_for_inject_params = 'avg_exfil_' + str(avg_exfil_per_min) + ':' + str(
+            #    exfil_var_per_min) + '_avg_pkt_' + str(avg_pkt_size) + ':' + str(
+            #    avg_pkt_var) + '_'
             #self.basegraph_name = self.orig_basegraph_name + prefix_for_inject_params
             #current_set_of_graphs_loc = self.basegraph_name + 'set_of_graphs' + str(time_gran) + '.csv'
             processed_graph_loc = "/".join(self.basefile_name.split("/")[:-1]) + '/' + 'exfil_at_' + str(avg_exfil_per_min) + '/'

@@ -449,7 +449,7 @@ def pipeline_one_exfil_rate(rate_counter, base_output_name, function_list, exps_
                             calculate_z_scores_p, calc_vals, end_of_train_portions, training_exfil_paths,
                             testing_exfil_paths, skip_model_part, out_q, ROC_curve_p, avg_exfil_per_min,
                             exfil_per_min_variance, avg_pkt_size, pkt_size_variance, skip_graph_injection, calc_ide,
-                            drop_pairwise_features, perform_cilium_component,
+                            drop_pairwise_features, perform_svcpair_component,
                             cilium_component_time, ide_window_size, drop_infra_from_graph, prefix_for_inject_params,
                             pretrained_min_pipeline=None):
     ## step (1) : iterate through individual experiments...
@@ -490,8 +490,8 @@ def pipeline_one_exfil_rate(rate_counter, base_output_name, function_list, exps_
                                            ide_window_size=ide_window_size,
                                            drop_infra_from_graph=drop_infra_from_graph,
                                            pretrained_min_pipeline=pretrained_min_pipeline)
-        if perform_cilium_component: #
-            experiment_object.run_cilium_component(cilium_component_time)
+        if perform_svcpair_component: #
+            experiment_object.run_cilium_component(cilium_component_time, base_output_name)
             time_gran_to_cilium_alerts = experiment_object.calc_cilium_performance(avg_exfil_per_min[rate_counter],
                     exfil_per_min_variance[rate_counter], avg_pkt_size[rate_counter], pkt_size_variance[rate_counter])
             # okay, so now I probably need to do something with these alerts...
