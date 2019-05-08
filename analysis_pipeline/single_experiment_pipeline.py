@@ -191,7 +191,7 @@ class data_anylsis_pipline(object):
                          calc_ide, include_ide, only_ide, ide_window_size, drop_infra_from_graph,
                          pretrained_min_pipeline=None):
         self.end_of_training = end_of_training
-        if self.calc_vals:
+        if self.calc_vals or calc_ide:
             exp_length = len(self.interval_to_filenames[str(self.smallest_time_gran)]) * self.smallest_time_gran
             print "exp_length_ZZZ", exp_length, type(exp_length)
             time_gran_to_attack_labels = process_graph_metrics.generate_time_gran_to_attack_labels(
@@ -494,6 +494,7 @@ def process_one_set_of_graphs(time_interval_length, ide_window_size,
         # these relate to ide
         #'''
         if include_ide or calc_ide:
+
             current_set_of_graphs.generate_aggregate_csv()
             print "waiting for ide angles to finish...."
             real_ide_angles = current_set_of_graphs.ide_calculations(calc_ide, ide_window_size)

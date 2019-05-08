@@ -214,10 +214,15 @@ def normalize_data_v2(time_gran_to_feature_dataframe, time_gran_to_attack_labels
             #feature_dataframe = np.minimum(feature_dataframe, 1000000)  # 100
             #feature_dataframe = np.maximum(feature_dataframe, -10000000)  # 100
             #feature_dataframe = feature_dataframe.clip(upper=1000000, lower=-10000000, axis=1)
-            #feature_dataframe = feature_dataframe.fillna(feature_dataframe.median())
-            #feature_dataframe = feature_dataframe.fillna(0.0) # maybe? (once done w/ overhaul of graph gen, should never trigger anyway...)
 
+            #### TODO: probably want to normalize based off of the model's data... not the current data
+            ## (note: all this code below exists b/c I'm normalizing using the current feature set instead of the model's)
+            feature_dataframe = feature_dataframe.fillna(feature_dataframe.median())
+            feature_dataframe = feature_dataframe.fillna(0.0) # maybe? (once done w/ overhaul of graph gen, should never trigger anyway...)
+            feature_dataframe = np.minimum(feature_dataframe, 1000000)  # 100
+            feature_dataframe = np.maximum(feature_dataframe, -10000000)  # 100
             transformer = RobustScaler().fit(feature_dataframe) # NOTE: doing an experiment...
+            ####
             # (3) setup appropriate values for other purposes...
             training_values = feature_dataframe
             training_noAttack_values = training_values

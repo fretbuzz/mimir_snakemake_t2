@@ -230,7 +230,7 @@ def parse_experimental_config(experimental_config_file, live=False, is_eval=Fals
         if 'skip_heatmap_p' in config_file:
             skip_heatmap_p = config_file['skip_heatmap_p']
         else:
-            skip_heatmap_p = False
+            skip_heatmap_p = True
 
         no_labeled_data = False
 

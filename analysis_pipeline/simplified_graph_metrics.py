@@ -722,8 +722,6 @@ class set_of_injected_graphs():
 def calc_ide_angles(aggregate_csv_edgefile_loc, joint_col_list, window_size, raw_edgefile_names, out_q, calc_ide):
     # okay, so what this'll probably be is just a way of interacting with common lisp...
 
-    ## TODO: actually you'd probably want this whole thing to be non-blocking, so maybe wrap it in another process???
-
     if calc_ide: #False: #calc_ide:
     # step 1: setup the file with the params...
         with open('./clml_ide_params.txt', 'w') as f:

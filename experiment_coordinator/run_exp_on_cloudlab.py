@@ -292,7 +292,7 @@ if __name__ == "__main__":
 
     parser.add_argument('--config_json',dest="config_json", default='None')
 
-    parser.add_argument('--dont_pull_github', dest='dont_pull_github', action='store_true',
+    parser.add_argument('--pull_github', dest='pull_github', action='store_true',
                         default=False,
                         help='do NOT pull from the github repo (default is to pull)')
 
@@ -322,7 +322,7 @@ if __name__ == "__main__":
     sentinal_file = '/mydata/all_done.txt'
 
     s = run_experiment(app_name, local_path_to_exp_config, exp_name, args.skip_setup_p,
-                       use_cilium, physical_attacks_p, args.skip_app_setup_p, args.dont_pull_github,
+                       use_cilium, physical_attacks_p, args.skip_app_setup_p, args.pull_github,
                        exp_length, user, cloudlab_private_key, cloudlab_server_ip,
                        experiment_sentinal_file)
 
