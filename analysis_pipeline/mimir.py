@@ -228,6 +228,11 @@ def parse_experimental_config(experimental_config_file, live=False, is_eval=Fals
         else:
             skip_heatmap_p = True
 
+        if 'svcpair_sec_component_time' in config_file:
+            svcpair_sec_component_time = config_file['svcpair_sec_component_time']
+        else:
+            svcpair_sec_component_time = 100
+
         no_labeled_data = False
 
     if live:
@@ -249,7 +254,7 @@ def parse_experimental_config(experimental_config_file, live=False, is_eval=Fals
                                   drop_pairwise_features=drop_pairwise_features,
                                   drop_infra_from_graph=drop_infra_from_graph, ide_window_size=ide_window_size,
                                   auto_open_pdfs=auto_open_pdfs, skip_heatmap_p=skip_heatmap_p,
-                                  no_labeled_data=no_labeled_data)
+                                  no_labeled_data=no_labeled_data, svcpair_sec_component_time=svcpair_sec_component_time)
 
 
     return multi_experiment_object
