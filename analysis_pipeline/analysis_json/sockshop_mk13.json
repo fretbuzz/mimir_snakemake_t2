@@ -19,5 +19,6 @@
 
   "perform_svcpair_sec_component": false,
   "svcpair_sec_component_time": 100,
-  "calc_ide": false
+  "calc_ide": false,
+  "ide_window_size": 10
 }

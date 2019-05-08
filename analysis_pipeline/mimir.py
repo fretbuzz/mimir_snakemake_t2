@@ -215,6 +215,11 @@ def parse_experimental_config(experimental_config_file, live=False, is_eval=Fals
         else:
             calc_ide = False
 
+        if 'ide_window_size' in config_file:
+            ide_window_size = config_file['ide_window_size']
+        else:
+            ide_window_size = 10
+
         #if 'only_ide' in config_file:
         #    only_ide = config_file['only_ide']
         #else:
