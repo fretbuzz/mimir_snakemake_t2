@@ -154,10 +154,11 @@ def generate_cilium_policy(communicating_svc, basefilename):
 def cilium_component(time_length, pcap_location, cilium_component_dir, make_edgefiles_p, svcs,
                      mapping, pod_creation_log, results_dir):
     make_edgefiles_p = True ##  might want to remove at some point... idk for sure though...
-    vip_debugging = False # this function exists for debugging purposes. It makese the cur_cilium_comms
-                         # also print the relevant VIPS and then quit right after. This is useful for
-                         # setting up the netsec policy.
+    #vip_debugging = False # this function exists for debugging purposes. It makese the cur_cilium_comms
+    #                     # also print the relevant VIPS and then quit right after. This is useful for
+    #                     # setting up the netsec policy.
     cilium_inout_dir = results_dir + '/svcpair_comp_inouts/'
+    print "svcpair_comp_inout", cilium_inout_dir
     output_file_name = cilium_inout_dir + 'cur_svcpair_comms'
     netsecoutput_file_name = cilium_inout_dir + 'cur_svcpcair_netsec_' # this prints out what COULD be a
 
