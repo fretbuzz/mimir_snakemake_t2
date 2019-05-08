@@ -35,6 +35,14 @@ pip install pip
 ```
 pip install docker networkx matplotlib jinja2 pdfkit numpy pandas seaborn Cython pyyaml multiprocessing scipy pdfkit tabulate
 ```
+* Then install the graphviz-related dependencies:
+```
+apt-get install -y graphviz libgraphviz-dev pkg-config
+```
+```
+pip install pygraphviz --install-option="--include-path=/usr/include/graphviz" --install-option="--library-path=/usr/lib/graphviz/"
+```
+
 
 ### Step 2: Get example data
 ```
