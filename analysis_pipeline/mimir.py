@@ -67,7 +67,7 @@ def parse_experimental_data_json(config_file, experimental_folder, experiment_na
                                                no_processing_at_all=no_processing_at_all)
     return pipeline_object
 
-def parse_experimental_config(experimental_config_file, live=False, is_eval=False):
+def parse_experimental_config(experimental_config_file, live=False, is_eval=False, add_dropInfo_to_name=True):
     with open(experimental_config_file) as f:
         config_file = json.load(f)
 
@@ -176,7 +176,10 @@ def parse_experimental_config(experimental_config_file, live=False, is_eval=Fals
             drop_infra_from_graph = True
 
         if drop_infra_from_graph:
-            cur_experiment_name += 'dropInfra'
+            if add_dropInfo_to_name: # exists for compatibility reasons
+                cur_experiment_name += 'dropInfra'
+
+
         base_output_location += cur_experiment_name
 
         skip_graph_injection = config_file['skip_graph_injection']
@@ -219,14 +222,6 @@ def parse_experimental_config(experimental_config_file, live=False, is_eval=Fals
             ide_window_size = config_file['ide_window_size']
         else:
             ide_window_size = 10
-
-        #if 'only_ide' in config_file:
-        #    only_ide = config_file['only_ide']
-        #else:
-        #    only_ide = False
-
-        #print "REMOVE THE WAITING!!!"
-        #time.sleep(1500)
 
         if 'skip_heatmap_p' in config_file:
             skip_heatmap_p = config_file['skip_heatmap_p']
