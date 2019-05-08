@@ -53,24 +53,24 @@
 (print "all-vars-set")
 
 
-;;(defmethod make-db-detector-without-online-thresh ((ts time-series-dataset)
-;;                             &key beta (typical :svd) (pc 0.005d0) (normalize t))
-;;  (assert (< 0d0 pc 1d0) (pc))
-;;  (let* ((dim (length (dataset-dimensions ts)))
-;;        (vecs (map 'list
-;;                 (lambda (p) (let ((vec (ts-p-pos p)))
-;;                              (if normalize (normalize-vec vec (copy-seq vec)) vec)))
-;;                 (ts-points ts)))
-;;         (moments (get-initial-moments vecs :typical-method typical)))
-;;    (unless beta (setf beta (dfloat (/ (length vecs)))))
-;;    (lambda (new-dvec)
-;;      (assert (eql (length new-dvec) dim))
-;;      (let* ((vec (if normalize (normalize-vec new-dvec (copy-seq new-dvec)) new-dvec))
-;;             (typ (calc-typical-pattern vecs :method typical))
-;;             (score (dissimilarity typ vec)))
-;;        (setf moments (next-moments score moments beta)
-;;              vecs (append (cdr vecs) (list vec)))
-;;        (values score)))))
+(defmethod make-db-detector-without-online-thresh ((ts time-series-dataset)
+                             &key beta (typical :svd) (pc 0.005d0) (normalize t))
+  (assert (< 0d0 pc 1d0) (pc))
+  (let* ((dim (length (dataset-dimensions ts)))
+        (vecs (map 'list
+                 (lambda (p) (let ((vec (ts-p-pos p)))
+                              (if normalize (normalize-vec vec (copy-seq vec)) vec)))
+                 (ts-points ts)))
+         (moments (get-initial-moments vecs :typical-method typical)))
+    (unless beta (setf beta (dfloat (/ (length vecs)))))
+    (lambda (new-dvec)
+      (assert (eql (length new-dvec) dim))
+      (let* ((vec (if normalize (normalize-vec new-dvec (copy-seq new-dvec)) new-dvec))
+             (typ (calc-typical-pattern vecs :method typical))
+             (score (dissimilarity typ vec)))
+        (setf moments (next-moments score moments beta)
+              vecs (append (cdr vecs) (list vec)))
+        (values score)))))
 
 
 
@@ -84,13 +84,13 @@
 (print "about to do ide portion")
 (print (list (+ window-size 1) 1))
 
-;;(setq results (loop with detector = (make-db-detector-without-online-thresh  (sub-ts relevantData :start '(1 1) :end (list window-size num-cols)))
-;;	for p across (ts-points (sub-ts relevantData :start (list (+ window-size 1) 1) :end (list total-length-timesteps num-cols)))
-;;	collect (funcall detector (ts-p-pos p))))
+(setq results (loop with detector = (make-db-detector-without-online-thresh  (sub-ts relevantData :start '(1 1) :end (list window-size num-cols)))
+	for p across (ts-points (sub-ts relevantData :start (list (+ window-size 1) 1) :end (list total-length-timesteps num-cols)))
+	collect (funcall detector (ts-p-pos p))))
 
-(setq results (loop with detector = (make-db-detector (sub-ts relevantData :start '(1 1) :end (list window-size num-cols)))
-    for p across (ts-points (sub-ts relevantData :start (list (+ window-size 1) 1) :end (list total-length-timesteps num-cols)))
-    collect (funcall detector (ts-p-pos p))))
+;;(setq results (loop with detector = (make-db-detector (sub-ts relevantData :start '(1 1) :end (list window-size num-cols)))
+;;    for p across (ts-points (sub-ts relevantData :start (list (+ window-size 1) 1) :end (list total-length-timesteps num-cols)))
+;;    collect (funcall detector (ts-p-pos p))))
 
 (print "about to write results to file")
 
