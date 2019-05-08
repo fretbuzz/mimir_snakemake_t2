@@ -188,7 +188,7 @@ class data_anylsis_pipline(object):
 
     def calculate_values(self,end_of_training, synthetic_exfil_paths_train, synthetic_exfil_paths_test,
                          avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
-                         calc_ide, only_ide, ide_window_size, drop_infra_from_graph,
+                         calc_ide, ide_window_size, drop_infra_from_graph,
                          pretrained_min_pipeline=None):
         self.end_of_training = end_of_training
         if self.calc_vals or calc_ide:
@@ -250,7 +250,7 @@ class data_anylsis_pipline(object):
                                             synthetic_exfil_paths, self.initiator_info_for_paths, time_gran_to_attack_ranges,
                                             avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
                                             self.skip_graph_injection, self.end_of_training,
-                                            self.cluster_creation_log, calc_ide, only_ide,
+                                            self.cluster_creation_log, calc_ide,
                                             self.basefile_name, drop_infra_from_graph, self.exp_name,
                                             self.sensitive_ms, time_gran_to_exfil_paths_series)
 
@@ -468,11 +468,11 @@ def process_one_set_of_graphs(time_interval_length, ide_window_size,
                                collected_metrics_location, current_set_of_graphs_loc, calc_vals, out_q,
                               avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
                               skip_graph_injection, end_of_training, pod_creation_log, calc_ide,
-                              only_ide, processed_graph_loc, drop_infra_from_graph, sensitive_ms,
+                              processed_graph_loc, drop_infra_from_graph, sensitive_ms,
                               exfil_paths_series):
     print "process_one_set_of_graphs"
     #time.sleep(30)
-    if calc_vals and not only_ide:
+    if calc_vals:
         if skip_graph_injection:
             with open(current_set_of_graphs_loc, mode='rb') as f:
                 current_set_of_graphs_loc_contents = f.read()
@@ -492,19 +492,7 @@ def process_one_set_of_graphs(time_interval_length, ide_window_size,
         current_set_of_graphs.calc_serialize_metrics()
 
         # these relate to ide
-        #'''
-        if calc_ide:
-
-            current_set_of_graphs.generate_aggregate_csv()
-            print "waiting for ide angles to finish...."
-            real_ide_angles = current_set_of_graphs.ide_calculations(calc_ide, ide_window_size)
-            current_set_of_graphs.calculated_values['real_ide_angles'] = real_ide_angles
-
-            # okay, now save all of the values coherently..
-            current_set_of_graphs.calculated_values_keys = current_set_of_graphs.calculated_values.keys()
-            with open(current_set_of_graphs.collected_metrics_location, 'wb') as f:  # Just use 'w' mode in 3.x
-                f.write(pickle.dumps(current_set_of_graphs.calculated_values))
-        #'''
+        #''
 
         current_set_of_graphs.save()
         #print "hi"
@@ -518,20 +506,19 @@ def process_one_set_of_graphs(time_interval_length, ide_window_size,
 
         current_set_of_graphs.load_serialized_metrics()
 
-        print "only_ide", only_ide
-        if only_ide:
-            print "waiting for ide angles to finish...."
-            current_set_of_graphs.generate_aggregate_csv()
-            real_ide_angles = current_set_of_graphs.ide_calculations(True, ide_window_size)
-            current_set_of_graphs.calculated_values['real_ide_angles'] = real_ide_angles
+    if calc_ide:
+        print "waiting for ide angles to finish...."
+        current_set_of_graphs.generate_aggregate_csv()
+        real_ide_angles = current_set_of_graphs.ide_calculations(True, ide_window_size)
+        current_set_of_graphs.calculated_values['real_ide_angles'] = real_ide_angles
 
-            # okay, now save all of the values coherently..
-            current_set_of_graphs.calculated_values_keys = current_set_of_graphs.calculated_values.keys()
-            with open(current_set_of_graphs.collected_metrics_location, 'wb') as f:  # Just use 'w' mode in 3.x
-                f.write(pickle.dumps(current_set_of_graphs.calculated_values))
+        # okay, now save all of the values coherently..
+        current_set_of_graphs.calculated_values_keys = current_set_of_graphs.calculated_values.keys()
+        with open(current_set_of_graphs.collected_metrics_location, 'wb') as f:  # Just use 'w' mode in 3.x
+            f.write(pickle.dumps(current_set_of_graphs.calculated_values))
 
-            # okay,now save the whole hting coherently...
-            current_set_of_graphs.save()
+        # okay,now save the whole hting coherently...
+        current_set_of_graphs.save()
 
     current_set_of_graphs.put_values_into_outq(out_q)
 
@@ -542,7 +529,7 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
                                 avg_exfil_per_min,
                                 exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
                                 skip_graph_injection, end_of_training, pod_creation_log, calc_ide,
-                                only_ide, edgefile_path, drop_infra_from_graph, exp_name, sensitive_ms,
+                                edgefile_path, drop_infra_from_graph, exp_name, sensitive_ms,
                                 time_gran_to_exfil_paths_series):
     total_calculated_vals = {}
     time_gran_to_list_of_concrete_exfil_paths = {}
@@ -579,7 +566,7 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
                 infra_instances, synthetic_exfil_paths,  initiator_info_for_paths,
                 time_gran_to_attacks_to_times[time_interval_length], collected_metrics_location, current_set_of_graphs_loc,
                 calc_vals, out_q, avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
-                skip_graph_injection, end_of_training, pod_creation_log, calc_ide, only_ide,
+                skip_graph_injection, end_of_training, pod_creation_log, calc_ide,
                 processed_graph_loc, drop_infra_from_graph, sensitive_ms, time_gran_to_exfil_paths_series[time_interval_length]]
         p = multiprocessing.Process(
             target=process_one_set_of_graphs,

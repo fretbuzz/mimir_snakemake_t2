@@ -215,10 +215,10 @@ def parse_experimental_config(experimental_config_file, live=False, is_eval=Fals
         else:
             calc_ide = False
 
-        if 'only_ide' in config_file:
-            only_ide = config_file['only_ide']
-        else:
-            only_ide = False
+        #if 'only_ide' in config_file:
+        #    only_ide = config_file['only_ide']
+        #else:
+        #    only_ide = False
 
         #print "REMOVE THE WAITING!!!"
         #time.sleep(1500)
@@ -249,7 +249,7 @@ def parse_experimental_config(experimental_config_file, live=False, is_eval=Fals
                                   skip_graph_injection=skip_graph_injection,
                                   get_endresult_from_memory=get_endresult_from_memory,
                                   goal_attack_NoAttack_split_testing=goal_attack_NoAttack_split_testing,
-                                  calc_ide=calc_ide, only_ide=only_ide,
+                                  calc_ide=calc_ide,
                                   perform_svcpair_sec_component=perform_svcpair_sec_component,
                                   drop_pairwise_features=drop_pairwise_features,
                                   drop_infra_from_graph=drop_infra_from_graph, ide_window_size=ide_window_size,
