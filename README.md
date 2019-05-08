@@ -39,6 +39,7 @@ pip install docker networkx matplotlib jinja2 pdfkit numpy pandas seaborn Cython
 ```
 apt-get install -y graphviz libgraphviz-dev pkg-config
 ```
+On linux 16.04 the following options are needed when installing pygraphviz (might not be needed on other OS's):
 ```
 pip install pygraphviz --install-option="--include-path=/usr/include/graphviz" --install-option="--library-path=/usr/lib/graphviz/"
 ```
