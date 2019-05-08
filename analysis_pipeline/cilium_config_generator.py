@@ -161,7 +161,7 @@ def cilium_component(time_length, pcap_location, cilium_component_dir, make_edge
     cilium_inout_dir = results_dir + '_svcpair_comp_inouts/'
     print "svcpair_comp_inout", cilium_inout_dir
     output_file_name = cilium_inout_dir + 'cur_svcpair_comms'
-    netsecoutput_file_name = cilium_inout_dir + 'cur_svcpcair_netsec_' # this prints out what COULD be a
+    netsecoutput_file_name = cilium_inout_dir + 'cur_svcpcair_netsec_policy.txt' # this prints out what COULD be a
 
     # step (0) make sure the directory where we are going to store all the MIMIR cilium component files exist
     try:
