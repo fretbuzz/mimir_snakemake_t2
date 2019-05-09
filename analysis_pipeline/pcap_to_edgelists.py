@@ -279,7 +279,10 @@ def update_mapping(container_to_ip, cluster_creation_log, time_gran, time_counte
                         #    del infra_instances[cur_pod]
                     elif status == 'Terminating':
                         if cur_ip in container_to_ip:
-                            del container_to_ip[cur_ip]
+                            try:
+                                del container_to_ip[cur_ip]
+                            except:
+                                pass # b/c can appear in log multiple times (b/c prints everything into log occassionally)
 
         container_to_ip.update( mod_cur_creation_log )
 
