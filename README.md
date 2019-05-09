@@ -52,14 +52,14 @@ git clone https://github.com/fretbuzz/mimir_v2.git
 cd mimir_v2/analysis_pipeline
 git clone https://github.com/fretbuzz/mimir_example_data.git
 cd ./mimir_example_data/
-gzip -d example_wordpress.pcap.gz
+gzip -d wordpress_example_final.pcap.gz
 cd ..
 ```
 
 ### Step 4: Starting the system
 The system can be started via:
 ```
-python mimir.py --training_config_json mimir_example_data/wordpress_model.json --eval_config_json mimir_example_data/wordpress_example.json
+python mimir.py --training_config_json mimir_example_data/wordpress_model/example_wordpress_exp_config.json --eval_config_json mimir_example_data/wordpress_example_experiment.json
 ```
 
 This example uses a pretrained model and detects synthetically injected attacks on a Wordpress deployment.
