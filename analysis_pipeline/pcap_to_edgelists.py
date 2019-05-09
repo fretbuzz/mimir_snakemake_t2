@@ -230,7 +230,8 @@ def update_mapping(container_to_ip, cluster_creation_log, time_gran, time_counte
                 #new_label = None
                 # NOTE: in updated experimental coordinator, now everything has a PLUS and it is therefore meaningless
                 if plus_minus == '+' and (status != 'Terminating'):
-                    if cur_ip not in container_to_ip and cur_ip != 'None':
+                    #if cur_ip not in container_to_ip and cur_ip != 'None':
+                    if cur_ip != 'None':
                         if entity != 'svc':
                             mod_cur_creation_log[cur_ip] = (cur_pod, None, namespace, entity, new_label)
                         else:
@@ -276,6 +277,9 @@ def update_mapping(container_to_ip, cluster_creation_log, time_gran, time_counte
                         # obviously will never be re-used by a non-infra component.
                         #if cur_pod in infra_instances and namespace == 'kube-system':
                         #    del infra_instances[cur_pod]
+                    elif status == 'Terminating':
+                        if cur_ip in container_to_ip:
+                            del container_to_ip[cur_ip]
 
         container_to_ip.update( mod_cur_creation_log )
 

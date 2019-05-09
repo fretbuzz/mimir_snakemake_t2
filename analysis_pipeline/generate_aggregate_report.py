@@ -6,6 +6,7 @@ import subprocess
 import numpy as np
 import pandas
 import math
+#from old_multi_looper import aggregate_cm_vals_over_paths
 
 def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
                               rate_to_timegran_list_to_methods_to_attacks_found_training_df,
@@ -18,6 +19,7 @@ def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
     )
     aggreg_res_section = env.get_template("aggreg_res_section.html")
     comp_res_section = env.get_template("comp_graph_section.html")
+    exfil_vs_f1_sec = env.get_template("f1_vs_exfil_template.html")
     sections = []
 
     ## STEP (1): composite bar graph
@@ -269,6 +271,57 @@ def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
         timegran_to_fp_loc[time_gran] = cur_g_loc
     '''
 
+    ## TODO: need to make the new exfil_rate vs f1_score graph here...
+    ## woooaaaahhh maaannnn....
+    ## okay, let's split this into the component pieces...
+    ## step (a) : want timegran -> rate -> method f1
+    ## currently have: rate -> timegran -> methods -> attacks-found DF
+    #timegran_to_rate_to_method_to_f1 = {} # WAIT THIS IS NOT REALLY WHAT WE WANT!!!
+    methods = []
+    timegran_to_method_to_rate_to_f1 = {}
+    for rate, timegran_to_methods_to_attacks_found_dfs in rate_to_timegran_to_methods_to_attacks_found_dfs.iteritems():
+        for timegran, methods_to_attacks_found_dfs in timegran_to_methods_to_attacks_found_dfs.iteritems():
+            ## ^^ i don't think this really matters all that much??pass
+            methods = methods_to_attacks_found_dfs.keys()
+            for method,attacks_found_dfs in methods_to_attacks_found_dfs.iteritems():
+                f1_score = cm_to_f1(timegran_to_methods_to_attacks_found_dfs, None, timegran, method=method)
+
+                # okay, here we go...
+                if timegran not in timegran_to_method_to_rate_to_f1:
+                    timegran_to_method_to_rate_to_f1[timegran] = {}
+                if method not in timegran_to_method_to_rate_to_f1[timegran]:
+                    timegran_to_method_to_rate_to_f1[timegran][method] = {}
+                timegran_to_method_to_rate_to_f1[timegran][method][rate] = f1_score
+
+    ## step (b) : graph it!!!
+    for timegan,method_to_rate_to_f1 in timegran_to_method_to_rate_to_f1.iteritems():
+        plt.clf()
+        plt.figure(figsize=(15, 20))
+        fig, ax = plt.subplots()
+        for method in methods:
+            rate_to_f1 = method_to_rate_to_f1[method]
+            rates = rate_to_f1.keys()
+            f1s = rate_to_f1.values()
+            rates, f1s = zip(*sorted(zip(rates, f1s)))
+
+            # so rates would be x-axis and f1s would be the y-axis
+
+            ax.plot(rates, f1s, label=str(method), marker='*', alpha=0.5, linewidth=3.0)
+            ax.set_title('exfil_rate vs f1', fontsize=15)
+            ax.set_ylabel('f1 scores', fontsize=25)
+            ax.set_xscale('log')
+            ax.set_xlabel('log exfil rate (MB/min)', fontsize=25)
+            ax.legend()
+
+        f1_vs_exfil_rate_filname = "./temp_outputs/" + str(timegan) + "_f1_vs_exfil_rate.png"
+        fig.savefig(f1_vs_exfil_rate_filname)
+
+        sections.append(exfil_vs_f1_sec.render(
+            time_gran = timegan,
+            f1_vs_exfil_rate = f1_vs_exfil_rate_filname
+        ))
+
+
     # Step (3) put it all into a handy-dandy report
     base_template = env.get_template("report_template.html")
     with open("report_templates/aggregate_report.html", "w") as f:
@@ -352,6 +405,35 @@ def results_df_to_attack_accuracy(results_df):
         attack_to_accuracy[attack] = curAccuracy
 
     return attack_to_accuracy
+
+def aggregate_cm_vals_over_paths(cm, method=None):
+    tn = 0.0
+    fp = 0.0
+    fn = 0.0
+    tp = 0.0
+    #print "cm.keys()", cm.keys()
+    if type(cm) == dict and method is not None:
+        cm = cm[method] #["ensemble"]
+    else:
+        pass
+    for index, row in cm.iterrows():
+        tn += row['tn']
+        fp += row['fp']
+        fn += row['fn']
+        tp += row['tp']
+    return tn,fp,fn,tp
+
+def cm_to_f1(cm, exfil_rate, timegran,method=None):
+    #print "cm", cm
+    if method:
+        cm = cm[timegran]
+        cm = cm[method]
+    else:
+        cm = cm[timegran]
+    print "cm",cm
+    tn, fp, fn, tp = aggregate_cm_vals_over_paths(cm, method=method)
+    f1_score = (2.0 * tp) / (2.0 * tp + fp + fn)
+    return f1_score
 
 def per_attack_bar_graphs(method_to_results_df, temp_location, file_storage_location, relevant_subplots_axis):
     '''Taken more-or-less wholesale from https://matplotlib.org/gallery/statistics/barchart_demo.html'''

@@ -143,13 +143,13 @@ def parse_experimental_config(experimental_config_file, live=False, is_eval=Fals
         else:
             drop_pairwise_features = False
 
-        if 'perform_svcpair_sec_component' in config_file or 'perform_svcpair_sec_component' in config_file:
-            if 'perform_svcpair_sec_component' in config_file:
-                perform_svcpair_sec_component = config_file['perform_svcpair_sec_component']
+        if 'perform_cilium_component' in config_file or 'perform_svcpair_sec_component' in config_file:
+            if 'perform_cilium_component' in config_file:
+                perform_svcpair_sec_component = config_file['perform_cilium_component']
             else:
                 perform_svcpair_sec_component = config_file['perform_svcpair_sec_component']
         else:
-            perform_svcpair_sec_component = True
+            perform_svcpair_sec_component = False
 
         cur_experiment_name = config_file['cur_experiment_name']
 
@@ -306,10 +306,10 @@ if __name__=="__main__":
         #run_analysis('./analysis_json/sockshop_mk13.json', eval_config = './new_analysis_json/sockshop_mk20.json')
         #run_analysis('./analysis_json/sockshop_mk13.json', eval_config = './new_analysis_json/sockshop_mk22.json')
         #run_analysis('./analysis_json/sockshop_mk13.json', eval_config = './new_analysis_json/sockshop_mk23.json')
-        #run_analysis('./analysis_json/sockshop_mk13.json', eval_config = './new_analysis_json/sockshop_mk24.json')
+        run_analysis('./new_analysis_json/sockshop_mk13.json', eval_config = './new_analysis_json/sockshop_mk24.json')
         #run_analysis('./analysis_json/sockshop_mk13.json', eval_config = './new_analysis_json/sockshop_auto_mk27.json')
 
-        run_analysis('./analysis_json/wordpress_one_3_auto_mk5.json', eval_config='./analysis_json/wordpress_one_v2_na_eval.json')
+        #run_analysis('./analysis_json/wordpress_one_3_auto_mk5.json', eval_config='./analysis_json/wordpress_one_v2_na_eval.json')
         #run_analysis('./analysis_json/sockshop_exfil_test.json')
         #run_analysis('analysis_json/wordpress_model.json', eval_config='analysis_json/wordpress_example.json')
         #run_analysis('./analysis_json/sockshop_one_auto_mk12long.json', eval_config='./analysis_json/sockshop_example.json')

@@ -1,4 +1,4 @@
-from analysis_pipeline.mimir import run_analysis
+from mimir import run_analysis
 import pickle
 import matplotlib.pyplot as plt
 import argparse
@@ -117,11 +117,18 @@ def update_config_file(config_file_pth, if_trained_model):
         json.dump(config_file, f, indent=2)
 
 def get_eval_results(model_config_file, list_of_eval_configs, update_config, use_remote=False, remote_server_ip=None,
-                     remote_server_key=None, user=None, dont_retrieve_from_remote=None):
+                     remote_server_key=None, user=None, dont_retrieve_from_remote=None, only_finished_p=False):
     eval_config_to_cm = {}
     for eval_config in list_of_eval_configs:
         if not use_remote:
-            eval_cm = run_analysis(model_config_file, eval_config=eval_config)
+            if only_finished_p:
+                if has_experiment_already_been_run(eval_config):
+                    eval_cm = run_analysis(model_config_file, eval_config=eval_config)
+                else:
+                    continue  # don't want to wait ---> so just pass over this one.
+                pass
+            else:
+                eval_cm = run_analysis(model_config_file, eval_config=eval_config)
         else:
             # need to go into the config file and look @ exp_config_file and take the containing directory
             eval_analysis_config_file = eval_config
@@ -159,14 +166,15 @@ def get_eval_results(model_config_file, list_of_eval_configs, update_config, use
 
     return eval_config_to_cm
 
-def aggregate_cm_vals_over_paths(cm):
+def aggregate_cm_vals_over_paths(cm, method=None):
     tn = 0.0
     fp = 0.0
     fn = 0.0
     tp = 0.0
     #print "cm.keys()", cm.keys()
     if type(cm) == dict:
-        cm = cm["ensemble"]
+        if method:
+            cm = cm[method]
     else:
         pass
     for index, row in cm.iterrows():
@@ -188,105 +196,142 @@ def cm_to_f1(cm, exfil_rate, timegran,method=None):
     return f1_score
 
 def create_eval_graph(model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rates, timegran,
-                      type_of_graph, graph_name, update_config_p, use_remote=False, remote_server_ip=None,
-                      remote_server_key=None,user=None, dont_retrieve_from_remote=None):
+                      type_of_graph, graph_name, update_config_p, only_finished_p, use_remote=False,
+                      remote_server_ip=None, remote_server_key=None,user=None, dont_retrieve_from_remote=None):
     if use_cached:
         with open('./temp_outputs/' + graph_name + '_cached_looper.pickle', 'r') as f:
             evalconfigs_to_cm = pickle.loads(f.read())
     else:
         evalconfigs_to_cm = get_eval_results(model_config_file, eval_configs_to_xvals.keys(), update_config_p, use_remote,
                                              remote_server_ip=remote_server_ip, remote_server_key=remote_server_key,
-                                             user=user, dont_retrieve_from_remote=dont_retrieve_from_remote)
+                                             user=user, dont_retrieve_from_remote=dont_retrieve_from_remote,
+                                             only_finished_p=only_finished_p)
         with open('./temp_outputs/' + graph_name + '_cached_looper.pickle', 'w') as f:
             f.write(pickle.dumps(evalconfigs_to_cm))
 
     return evalconfigs_to_cm
 
+def has_experiment_already_been_run(config_file_pth):
+    with open(config_file_pth, 'r') as f:
+        config_file = json.loads(f.read(), object_pairs_hook=OrderedDict)
+    # (b) make appropriate modifications to the file
+
+    if config_file["get_endresult_from_memory"]:
+        return True
+    else:
+        if (not config_file["make_edgefiles"]) and (config_file["skip_graph_injection"]) and (not config_file["calc_vals"]):
+            # note: calculating z_scores is fast, so don't worry about it...
+            return True
+    return False
 
 def generate_graphs(eval_configs_to_xvals, exfil_rates, evalconfigs_to_cm, timegran, type_of_graph, graph_name, xlabel):
-    rate_to_xlist_ylist = {}
+    method_to_rate_to_xlist_ylist = {}
+    methods = evalconfigs_to_cm[eval_configs_to_xvals.keys()[0]][exfil_rates[0]][timegran].keys()
+
     for exfil_rate in exfil_rates:
-        x_vals_list = []
-        y_vals_list = []
-        eval_to_prob_dist = {}
-        for evalconfig,xval in eval_configs_to_xvals.iteritems():
-            x_vals_list.append(xval)
+        method_to_x_vals_list = {}
+        method_to_y_vals_list = {}
+        for method in methods:
+            x_vals_list = []
+            y_vals_list = []
+            eval_to_prob_dist = {}
+            for evalconfig,xval in eval_configs_to_xvals.iteritems():
+                x_vals_list.append(xval)
 
-            #print "evalconfigs_to_cm[evalconfig]", evalconfigs_to_cm[evalconfig]
-            #evalconfigs_to_cm[evalconfig] = evalconfigs_to_cm[evalconfig]["ensemble"]
+                #print "evalconfigs_to_cm[evalconfig]", evalconfigs_to_cm[evalconfig]
+                #evalconfigs_to_cm[evalconfig] = evalconfigs_to_cm[evalconfig]["ensemble"]
 
-            cur_cm = evalconfigs_to_cm[evalconfig]
-            optimal_f1 = cm_to_f1(cur_cm, exfil_rate, timegran, method=None) #"ensemble")
-            y_vals_list.append( optimal_f1 )
+                if evalconfig not in evalconfigs_to_cm:
+                    continue
+                else:
+                    cur_cm = evalconfigs_to_cm[evalconfig]
 
-            if type_of_graph == 'euclidean_distance':
-                with open(evalconfig, 'r') as g:
-                    config_stuff = json.loads(g.read())
-                    with open(config_stuff['exp_config_file'], 'r') as z:
-                        exp_config = json.loads(g.read())
-                        eval_to_prob_dist[evalconfig] = None ## TODO
-                        ## ## TODO: get the angles from the json configs. ## ##
+                optimal_f1 = cm_to_f1(cur_cm, exfil_rate, timegran, method=method)
+                y_vals_list.append( optimal_f1 )
 
-            ## (step1) cache the results from get_eval_results (b/c gotta iterate on steps2&3) [[[done]]]
-            ## (step2) put process cms (to get F1 scores)
-            ## (step3) make actual graphs (can just stick into temp_outputs for now... I gues...)
+                if type_of_graph == 'euclidean_distance':
+                    with open(evalconfig, 'r') as g:
+                        config_stuff = json.loads(g.read())
+                        with open(config_stuff['exp_config_file'], 'r') as z:
+                            exp_config = json.loads(g.read())
+                            eval_to_prob_dist[evalconfig] = None ## TODO
+                            ## ## TODO: get the angles from the json configs. ## ##
+
+                ## (step1) cache the results from get_eval_results (b/c gotta iterate on steps2&3) [[[done]]]
+                ## (step2) put process cms (to get F1 scores)
+                ## (step3) make actual graphs (can just stick into temp_outputs for now... I gues...)
+
+            method_to_x_vals_list[method] = x_vals_list
+            method_to_y_vals_list[method] = y_vals_list
+
 
         if type_of_graph == 'euclidean_distance':
             pass
-        if type_of_graph == 'table':
-            pass
         # then load is really straightforward
 
-        print "x_vals_list", x_vals_list
-        print "y_vals_list", y_vals_list
-        x_vals_list, y_vals_list = zip(*sorted(zip(x_vals_list, y_vals_list)))
-
         plt.clf()
-        plt.plot(x_vals_list, y_vals_list, marker='.', markersize=22)
-        plt.xlabel(xlabel)
-        plt.ylabel('f1 score')
+        for method in methods:
+            x_vals_list = method_to_x_vals_list[method]
+            y_vals_list = method_to_y_vals_list[method]
+
+            print "x_vals_list", x_vals_list
+            print "y_vals_list", y_vals_list
+            x_vals_list, y_vals_list = zip(*sorted(zip(x_vals_list, y_vals_list)))
+
+            plt.plot(x_vals_list, y_vals_list, marker='.', markersize=22, label=method)
+            plt.xlabel(xlabel)
+            plt.ylabel('f1 score')
+            if method not in method_to_rate_to_xlist_ylist:
+                method_to_rate_to_xlist_ylist[method] = {}
+            method_to_rate_to_xlist_ylist[method][exfil_rate] = (x_vals_list, y_vals_list)
+
+        plt.legend()
         plt.show()
         plt.savefig('./multilooper_outs/' + graph_name + '_' + str(exfil_rate) + '.png')
 
-        rate_to_xlist_ylist[exfil_rate] =  (x_vals_list, y_vals_list)
 
-    ## TODO put them all on the same grid... (I'm just going to do it manually b/c hurry...)
+    ##  put them all on the same grid + y-axis scale... (I'm just going to do it manually b/c hurry...)
     fig, axes = plt.subplots(nrows=1, ncols=len(exfil_rates), figsize=(50, 10))
     fig.suptitle(str(graph_name) + ' f1 vs load at various exfil rates')
     for counter,rate in enumerate(exfil_rates):
-        x_vals,y_vals = rate_to_xlist_ylist[rate]
-        axes[counter].plot(x_vals, y_vals, label=str(rate), marker='*', markersize=22)
-        axes[counter].set_ylim(top=1.1,bottom=-0.1) #  we can do it manually...
-        axes[counter].set_ylabel("f1 score")
-        axes[counter].set_xlabel("number of load generators")
+        for method, rate_to_xlist_ylist in method_to_rate_to_xlist_ylist.iteritems():
+            x_vals,y_vals = rate_to_xlist_ylist[rate]
+            axes[counter].plot(x_vals, y_vals, marker='*', markersize=22, label=method)
+            axes[counter].set_ylim(top=1.1,bottom=-0.1) #  we can do it manually...
+            axes[counter].set_ylabel("f1 score")
+            axes[counter].set_xlabel("number of load generators")
+            BytesPerMegabyte = 1000000.0
+            axes[counter].set_title(str(rate / BytesPerMegabyte) + ' MB/min Exfil')
+            axes[counter].legend()
     fig.align_ylabels(axes)
     fig.savefig('./multilooper_outs/aggreg_' + graph_name + '.png')
 
-    ## TODO: make the table...
-    '''
-    System  Application TP  FN  TN  FP  TPR     FPR
-    '''
     # okay, we can leave the first two out... since I can just type it in with my HANDS.
     ## new plan: paper draft. use what we do have: old sock + wordpress. if we can fix hipsterstore, then we can use that.
     ## but i think processing will take too long (to get it by tomorrow...)
 
     # so just add this: TP  FN  TN  FP  TPR     FPR into a tuple and load the tuples into a list...
     # I guess we'll make one table per exfil rate per application...
+    data = []
     for exfil_rate in exfil_rates:
         for evalconfig,xval in eval_configs_to_xvals.iteritems():
             cur_cm = evalconfigs_to_cm[evalconfig][exfil_rate][timegran]
-            tn, fp, fn, tp = aggregate_cm_vals_over_paths(cur_cm)
-            #print "tp", tp, "fn", fn, "tn", tn, "fp",fp
-            tpr = tp / float(tp + fn)
-            fpr = fp / float(fp + tn)
-            cur_vals = (tp, fn, tn, fp, tpr, fpr)
+            for method in methods:
+                tn, fp, fn, tp = aggregate_cm_vals_over_paths(cur_cm, method=method)
+                #print "tp", tp, "fn", fn, "tn", tn, "fp",fp
+                tpr = tp / float(tp + fn)
+                fpr = fp / float(fp + tn)
+
+                exp_name = evalconfig.split('/')[-1]
+                cur_vals = (exfil_rate, exp_name, method, tp, fn, tn, fp, tpr, fpr)
+                data.append( cur_vals )
 
             ###
-            print "evalconfig",evalconfig,"exfil_rate",exfil_rate, "xval", xval
-            data = [ cur_vals ]
-            print(tabulate(data, headers=['tp', 'fn', 'tn', 'fp', 'tpr', 'fpr']))
-            print "-----"
-            print "\n"
+    #print "evalconfig",evalconfig,"exfil_rate",exfil_rate, "xval", xval, "\n"
+    #data = [ cur_vals ]
+    print(tabulate(data, headers=['exfil_rate', 'exp_name', 'method', 'tp', 'fn', 'tn', 'fp', 'tpr', 'fpr']))
+    print "-----"
+    print "\n"
 
 
 def parse_config(config_file_pth):
@@ -363,7 +408,7 @@ def parse_config(config_file_pth):
     return model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran, type_of_graph, \
            graph_name, use_remote, remote_server_ips, remote_server_key, user, dont_retrieve_from_remote
 
-def run_looper(config_file_pth, update_config, use_remote):
+def run_looper(config_file_pth, update_config, use_remote, only_finished_p):
 
     model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran, type_of_graph, graph_name, \
     use_remote_from_config, remote_ips, remote_server_key, user, dont_retrieve_from_remote = parse_config(config_file_pth)
@@ -375,9 +420,10 @@ def run_looper(config_file_pth, update_config, use_remote):
     #exit(233)
 
     # DON'T FORGET ABOUT use_cached (it's very useful -- especially when iterating on graphs!!)
-    use_cached = use_cached
+    use_cached = False #use_cached
     update_config = update_config
     use_remote = use_remote
+    only_finished_p = True #only_finished_p ## VERY USEFUL
 
     if use_remote:
         eval_experiment_names = eval_configs_to_xvals.keys()
@@ -394,7 +440,7 @@ def run_looper(config_file_pth, update_config, use_remote):
                                                    dont_retrieve_from_remote)
     else:
         evalconfigs_to_cm = create_eval_graph(model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran,
-                                            type_of_graph, graph_name, update_config)
+                                            type_of_graph, graph_name, update_config, only_finished_p)
 
     generate_graphs(eval_configs_to_xvals, exfil_rate, evalconfigs_to_cm, timegran, type_of_graph, graph_name, xlabel)
 
@@ -419,6 +465,9 @@ if __name__=="__main__":
     parser.add_argument('--use_remote_server', dest='use_remote',
                         default=False, action='store_true')
 
+    parser.add_argument('--only_use_finished_exps', dest='only_finished_p',
+                        default=False, action='store_true')
+
     args = parser.parse_args()
 
     if not args.config_json:
@@ -431,4 +480,4 @@ if __name__=="__main__":
     else:
         config_file_pth = args.config_json
 
-    run_looper(config_file_pth, (not args.dont_update_config), args.use_remote)
+    run_looper(config_file_pth, (not args.dont_update_config), args.use_remote, args.only_finished_p)

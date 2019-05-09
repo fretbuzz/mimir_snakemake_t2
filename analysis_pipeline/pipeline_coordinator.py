@@ -93,7 +93,7 @@ class multi_experiment_pipeline(object):
         self.calc_ide = calc_ide
         #self.only_ide = only_ide
         self.perform_svcpair_sec_component = perform_svcpair_sec_component
-        self.only_perform_cilium_component = only_perform_cilium_component
+        #self.only_perform_cilium_component = only_perform_cilium_component  # never does anything anymore...
         self.cilium_component_time = svcpair_sec_component_time
         self.drop_pairwise_features = drop_pairwise_features
         self.drop_infra_from_graph = drop_infra_from_graph
