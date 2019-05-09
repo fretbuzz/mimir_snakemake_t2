@@ -387,15 +387,6 @@ def run_looper(config_file_pth, update_config, use_remote):
 if __name__=="__main__":
     print "RUNNING"
 
-    ### Okay, so the key here is to
-    ## TODO: use tabulate to make table (should be easy enough...)
-    ## TODO: add vector support (euclidean disance perhaps??? probably...)
-    ### so what is the plan??
-    ### (a) add config files!!!! [done]
-    ### (b) add a params that specifies the type of graph/table [done]
-    ### (c) add support for these graphs/tables [TODO --- and it's the hard part]
-        ### I mean, it's not that hard... just make with tabulate and write text to file (can put manually into PP table)
-
     parser = argparse.ArgumentParser(description='This can run multiple experiments in a row on MIMIR. Also makes graphs')
     parser.add_argument('--config_json', dest='config_json', default=None,
                         help='this is the configuration file used to run to loop through several experiments')

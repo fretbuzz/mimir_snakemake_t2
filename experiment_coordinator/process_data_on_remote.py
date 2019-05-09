@@ -21,7 +21,8 @@ def sendline_and_wait_responses(sh, cmd_str, timeout=5):
 def modify_file_path():
     pass # how to do this??? can I see sed???
 
-## TODO: mimir_num to re-use directoryies..
+## TODO: mimir_num to re-use directoryies... do i really want that though?? well, some kinda state needs to be maintained...
+## so that I don't keep re-uploading the same training data over and over...
 def process_on_remote(remote_server_ip, remote_server_key, user, eval_dir_with_data, eval_analysis_config_file,
                       model_dir, model_analysis_config_file, skip_install=True, skip_upload = False,
                       dont_retreive_eval = False, dont_retreive_train = False, mimir_num = None):
@@ -80,6 +81,13 @@ def process_on_remote(remote_server_ip, remote_server_key, user, eval_dir_with_d
         sendline_and_wait_responses(sh, "apt-get install -y graphviz libgraphviz-dev pkg-config", timeout=30)
         sendline_and_wait_responses(sh, "pip install pygraphviz --install-option=\"--include-path=/usr/include/graphviz\" "
                                         "--install-option=\"--library-path=/usr/lib/graphviz/\"", timeout=30)
+
+        print "pip install pip rec:"
+        sendline_and_wait_responses(sh, "pip install pip --user", timeout=30)
+        print "pip install python depend encies rec:"
+        sendline_and_wait_responses(sh, "pip install docker networkx matplotlib jinja2 pdfkit numpy pandas seaborn Cython \
+                                    pyyaml multiprocessing scipy pdfkit tabulate --user", timeout=30)
+
     ####################
 
     # step (3): create relevant directory and put mimir there
@@ -95,7 +103,8 @@ def process_on_remote(remote_server_ip, remote_server_key, user, eval_dir_with_d
     print "line_rec", line_rec
 
     ## TODO: parse line_rec here... (i'll just put some super simple code here now for workflow purposes)
-    if mimir_num is not None:
+    print "mimir_num",mimir_num
+    if mimir_num is not None and mimir_num is not False:
         current_mimir_dir = mimir_num
     else:
         sh.sendline("ls -l")
@@ -107,6 +116,7 @@ def process_on_remote(remote_server_ip, remote_server_key, user, eval_dir_with_d
 
         num_lines_rec = len(lines_rec)
         existing_mimir_dirs = num_lines_rec
+        print "existing_mimir_dirs",existing_mimir_dirs
         current_mimir_dir = existing_mimir_dirs + 1
 
     '''
@@ -162,33 +172,32 @@ def process_on_remote(remote_server_ip, remote_server_key, user, eval_dir_with_d
         sendline_and_wait_responses(sh, "sudo chown -R jsev:dna-PG0 /mydata/" + cur_mimir_dir_name, timeout=5)
         sendline_and_wait_responses(sh, "sudo chown -R jsev:dna-PG0 /mydata/" + cur_mimir_dir_name + eval_dir_with_data_name, timeout=5)
         #s.upload(eval_dir_with_data, remote="~/" + eval_exp_config_file)
+        print "local_dir_to_upload", eval_dir_with_data
+        print "remote_dir_to_upload_to", "/mydata/" + eval_exp_config_file
         s.upload(eval_dir_with_data, remote="/mydata/" + eval_exp_config_file) #eval_exp_config_file)
         # (2) the config file (might overlap with (1) but maybe not...)
         try:
             s.upload(eval_analysis_config_file, remote= "/mydata/" + cur_mimir_dir_name)
         except:
             print "eval_analysis_config_file probably already exists..."
+        ## clear /tmp after uploading is complete... otherwise all the space will fill up...
+        sendline_and_wait_responses(sh, "sudo rm -rf  /tmp/*", timeout=5)
 
         # (3) now repeat with the MODEL dir
         if eval_dir_with_data != model_dir or eval_analysis_config_file != model_analysis_config_file:
             print "try_making_this_dir:", cur_mimir_dir_name + model_dir_with_data_name
             sh.sendline("mkdir " +  cur_mimir_dir_name + model_dir_with_data_name)
             sendline_and_wait_responses(sh, "sudo chown -R jsev:dna-PG0 " + cur_mimir_dir_name + model_dir_with_data_name, timeout=5)
+            print "local_model_dir", model_dir
             s.upload(model_dir, remote= "/mydata/" + model_exp_config_file)
             try:
                 s.upload(model_analysis_config_file, remote= "/mydata/" + cur_mimir_dir_name)
             except:
                 print "eval_analysis_config_file probably already exists..."
+            ## clear /tmp after uploading is complete... otherwise all the space will fill up...
+            sendline_and_wait_responses(sh, "sudo rm -rf  /tmp/*", timeout=5)
 
-    ## TODO: Okay, once I get to here, test everything above...
-
-    # step (5): install python dependencies...
-    if not skip_install:
-        print "pip install pip rec:"
-        sendline_and_wait_responses(sh, "pip install pip --user", timeout=30)
-        print "pip install python depend encies rec:"
-        sendline_and_wait_responses(sh, "pip install docker networkx matplotlib jinja2 pdfkit numpy pandas seaborn Cython \
-                                    pyyaml multiprocessing scipy pdfkit tabulate --user", timeout=30)
+    # step (5): install python dependencies... [note: it was moved]
 
     ##  ACTUALLY START IT
     # step (6): now actually start the system...
@@ -259,7 +268,7 @@ if __name__ == "__main__":
     remote_server_ip = "c240g5-110107.wisc.cloudlab.us"
     remote_server_key = "/Users/jseverin/Dropbox/cloudlab.pem"
     user =  "jsev"
-    skip_install = True
+    skip_install = False
     skip_upload = False
     dont_retreive_eval = False
     dont_retreive_train = False

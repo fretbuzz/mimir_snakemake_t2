@@ -8,6 +8,7 @@ from collections import OrderedDict
 import multiprocessing
 import time
 from tabulate import tabulate
+import numpy as np
 
 def track_multiple_remotes(remote_ips, eval_experiment_names, training_experiment_name, exps_per_server,
                            name_to_config, remote_server_key, user, dont_retrieve_from_remote):
@@ -224,10 +225,30 @@ def has_experiment_already_been_run(config_file_pth):
             return True
     return False
 
-def generate_graphs(eval_configs_to_xvals, exfil_rates, evalconfigs_to_cm, timegran, type_of_graph, graph_name, xlabel):
+def get_prob_distr(processing_config):
+    with open(processing_config, 'r') as g:
+        config_stuff = json.loads(g.read())
+        print "file_made_by_experimental_apparatus", config_stuff['exp_config_file']
+        with open(config_stuff['exp_config_file'], 'r') as z:
+            z_cont = z.read()
+            print "g_cont", z_cont, len(z_cont)
+            exp_config = json.loads(z_cont)
+    return exp_config['prob_distro']
+
+def convert_prob_distro_dict_to_array(prob_distro_dict, prob_distro_keys):
+    prob_distro_list = []
+    for cur_key in prob_distro_keys:
+        prob_distro_list.append(prob_distro_dict[cur_key])
+    prob_distro_vector = np.array(prob_distro_list)
+    return prob_distro_vector
+
+def generate_graphs(eval_configs_to_xvals, exfil_rates, evalconfigs_to_cm, timegran, type_of_graph, graph_name,
+                    xlabel, model_config_file):
     method_to_rate_to_xlist_ylist = {}
     methods = evalconfigs_to_cm[eval_configs_to_xvals.keys()[0]][exfil_rates[0]][timegran].keys()
+    angles_method_to_rate_to_xlist_ylist = {}
 
+    method_to_eval_to_f1 = {}
     for exfil_rate in exfil_rates:
         method_to_x_vals_list = {}
         method_to_y_vals_list = {}
@@ -249,13 +270,15 @@ def generate_graphs(eval_configs_to_xvals, exfil_rates, evalconfigs_to_cm, timeg
                 optimal_f1 = cm_to_f1(cur_cm, exfil_rate, timegran, method=method)
                 y_vals_list.append( optimal_f1 )
 
-                if type_of_graph == 'euclidean_distance':
-                    with open(evalconfig, 'r') as g:
-                        config_stuff = json.loads(g.read())
-                        with open(config_stuff['exp_config_file'], 'r') as z:
-                            exp_config = json.loads(g.read())
-                            eval_to_prob_dist[evalconfig] = None ## TODO
-                            ## ## TODO: get the angles from the json configs. ## ##
+                if method not in method_to_eval_to_f1:
+                    method_to_eval_to_f1[method] = {}
+                method_to_eval_to_f1[method][evalconfig] = optimal_f1
+
+
+                if type_of_graph == 'angle':
+                    prob_distro = get_prob_distr(evalconfig)
+                    eval_to_prob_dist[evalconfig] = prob_distro
+                print "eval_to_prob_dist",eval_to_prob_dist
 
                 ## (step1) cache the results from get_eval_results (b/c gotta iterate on steps2&3) [[[done]]]
                 ## (step2) put process cms (to get F1 scores)
@@ -265,15 +288,42 @@ def generate_graphs(eval_configs_to_xvals, exfil_rates, evalconfigs_to_cm, timeg
             method_to_y_vals_list[method] = y_vals_list
 
 
-        if type_of_graph == 'euclidean_distance':
-            pass
-        # then load is really straightforward
+        print "type_of_graph",type_of_graph
+        if type_of_graph == 'angle':
+            print "---angle--"
+            ## TODO: okay, we want to make the desired graph...
+            ## x-axis will be euclidean distance...
+            ## y-axis will be the F1 score...
+            # step (1) : need to find the prob distro of the trained model
+            model_prob_distro = get_prob_distr(model_config_file)
+            prob_distro_keys = model_prob_distro.keys()
+            model_prob_distro_vector = convert_prob_distro_dict_to_array(model_prob_distro, prob_distro_keys)
+
+            # step (2) : then map name to distances
+            evalconfig_to_distance_from_model = {}
+            for eval,cur_prob_distro in eval_to_prob_dist.iteritems():
+                prob_distr_vector = convert_prob_distro_dict_to_array(cur_prob_distro, prob_distro_keys)
+                euclidean_dist = np.linalg.norm(model_prob_distro_vector - prob_distr_vector)
+                evalconfig_to_distance_from_model[eval] = euclidean_dist
+
+            # step (3) : create x_vals_list and y_vals_list
+            angles_method_to_x_vals_list = {}
+            angles_method_to_y_vals_list = {}
+            for method in methods:
+                angles_x_vals_list = []
+                angles_y_vals_list = []
+                for eval,euclidean_dist in evalconfig_to_distance_from_model.iteritems():
+                    #print "euclidean_dist",euclidean_dist
+                    angles_x_vals_list.append(euclidean_dist)
+                    angles_y_vals_list.append(method_to_eval_to_f1[method][eval])
+                    if method not in angles_method_to_rate_to_xlist_ylist:
+                        angles_method_to_rate_to_xlist_ylist[method] = {}
+                    angles_method_to_rate_to_xlist_ylist[method][exfil_rate] = (angles_x_vals_list, angles_y_vals_list)
 
         plt.clf()
         for method in methods:
             x_vals_list = method_to_x_vals_list[method]
             y_vals_list = method_to_y_vals_list[method]
-
             print "x_vals_list", x_vals_list
             print "y_vals_list", y_vals_list
             x_vals_list, y_vals_list = zip(*sorted(zip(x_vals_list, y_vals_list)))
@@ -284,13 +334,32 @@ def generate_graphs(eval_configs_to_xvals, exfil_rates, evalconfigs_to_cm, timeg
             if method not in method_to_rate_to_xlist_ylist:
                 method_to_rate_to_xlist_ylist[method] = {}
             method_to_rate_to_xlist_ylist[method][exfil_rate] = (x_vals_list, y_vals_list)
-
         plt.legend()
         plt.show()
         plt.savefig('./multilooper_outs/' + graph_name + '_' + str(exfil_rate) + '.png')
 
+    # [continuing on work for angle graphs] step (4) : finally create the graph (probably a scatterplot)
+    if type_of_graph == 'angle':
+        plt.clf()
+        fig, axes = plt.subplots(nrows=1, ncols=len(exfil_rates), figsize=(50, 10))
+        fig.suptitle(str(graph_name) + ' f1 vs euclidean distance at various exfil rates')
+        for counter, rate in enumerate(exfil_rates):
+            for method, angles_rate_to_xlist_ylist in angles_method_to_rate_to_xlist_ylist.iteritems():
+                x_vals, y_vals = angles_rate_to_xlist_ylist[rate]
+                #print "x_vals",x_vals
+                #print "y_vals",y_vals
+                axes[counter].scatter(x_vals, y_vals, marker='*', label=method, s=700)
+                axes[counter].set_ylim(top=1.1, bottom=-0.1)  # we can do it manually...
+                axes[counter].set_ylabel("f1 score")
+                axes[counter].set_xlabel("euclidean distance")
+                BytesPerMegabyte = 1000000.0
+                axes[counter].set_title(str(rate / BytesPerMegabyte) + ' MB/min Exfil')
+                axes[counter].legend()
+        fig.align_ylabels(axes)
+        fig.savefig('./multilooper_outs/euclidean_distance_' + graph_name + '.png')
 
     ##  put them all on the same grid + y-axis scale... (I'm just going to do it manually b/c hurry...)
+    plt.clf()
     fig, axes = plt.subplots(nrows=1, ncols=len(exfil_rates), figsize=(50, 10))
     fig.suptitle(str(graph_name) + ' f1 vs load at various exfil rates')
     for counter,rate in enumerate(exfil_rates):
@@ -315,21 +384,25 @@ def generate_graphs(eval_configs_to_xvals, exfil_rates, evalconfigs_to_cm, timeg
     data = []
     for exfil_rate in exfil_rates:
         for evalconfig,xval in eval_configs_to_xvals.iteritems():
+            if evalconfig not in  evalconfigs_to_cm:
+                continue
+
             cur_cm = evalconfigs_to_cm[evalconfig][exfil_rate][timegran]
             for method in methods:
                 tn, fp, fn, tp = aggregate_cm_vals_over_paths(cur_cm, method=method)
                 #print "tp", tp, "fn", fn, "tn", tn, "fp",fp
                 tpr = tp / float(tp + fn)
                 fpr = fp / float(fp + tn)
+                f1_score = (2.0 * tp) / (2.0 * tp + fp + fn)
 
                 exp_name = evalconfig.split('/')[-1]
-                cur_vals = (exfil_rate, exp_name, method, tp, fn, tn, fp, tpr, fpr)
+                cur_vals = (exfil_rate, exp_name, method, tp, fn, tn, fp, tpr, fpr, f1_score)
                 data.append( cur_vals )
 
             ###
     #print "evalconfig",evalconfig,"exfil_rate",exfil_rate, "xval", xval, "\n"
     #data = [ cur_vals ]
-    print(tabulate(data, headers=['exfil_rate', 'exp_name', 'method', 'tp', 'fn', 'tn', 'fp', 'tpr', 'fpr']))
+    print(tabulate(data, headers=['exfil_rate', 'exp_name', 'method', 'tp', 'fn', 'tn', 'fp', 'tpr', 'fpr', 'f1_score']))
     print "-----"
     print "\n"
 
@@ -420,10 +493,10 @@ def run_looper(config_file_pth, update_config, use_remote, only_finished_p):
     #exit(233)
 
     # DON'T FORGET ABOUT use_cached (it's very useful -- especially when iterating on graphs!!)
-    use_cached = False #use_cached
+    use_cached = True #use_cached
     update_config = update_config
     use_remote = use_remote
-    only_finished_p = True #only_finished_p ## VERY USEFUL
+    only_finished_p = False #only_finished_p ## VERY USEFUL
 
     if use_remote:
         eval_experiment_names = eval_configs_to_xvals.keys()
@@ -442,19 +515,11 @@ def run_looper(config_file_pth, update_config, use_remote, only_finished_p):
         evalconfigs_to_cm = create_eval_graph(model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran,
                                             type_of_graph, graph_name, update_config, only_finished_p)
 
-    generate_graphs(eval_configs_to_xvals, exfil_rate, evalconfigs_to_cm, timegran, type_of_graph, graph_name, xlabel)
+    generate_graphs(eval_configs_to_xvals, exfil_rate, evalconfigs_to_cm, timegran, type_of_graph, graph_name, xlabel,
+                    model_config_file)
 
 if __name__=="__main__":
     print "RUNNING"
-
-    ### Okay, so the key here is to
-    ## TODO: use tabulate to make table (should be easy enough...)
-    ## TODO: add vector support (euclidean disance perhaps??? probably...)
-    ### so what is the plan??
-    ### (a) add config files!!!! [done]
-    ### (b) add a params that specifies the type of graph/table [done]
-    ### (c) add support for these graphs/tables [TODO --- and it's the hard part]
-        ### I mean, it's not that hard... just make with tabulate and write text to file (can put manually into PP table)
 
     parser = argparse.ArgumentParser(description='This can run multiple experiments in a row on MIMIR. Also makes graphs')
     parser.add_argument('--config_json', dest='config_json', default=None,

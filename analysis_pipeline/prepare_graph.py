@@ -11,6 +11,7 @@ def is_private_ip(addr_bytes, ip_gatway):
 
     # if the IP is loopback or in the docker network, then it is local. Otherwise, it is not.
     # (note that most entities should have names, so they'd never even get here)
+    ## NOTE: SO THE IP THAT DNS TRIES TO COMMYUNICATE WITH WILL RETURN FALSE (b/c it is the IP address of a ethernet interface)
     if addr_bytes[0] == '127' and addr_bytes[1] == '0' and addr_bytes[2] == '0' and addr_bytes[3] == '1':
         return True # loopback is definitely private
     elif addr_bytes[0] == ip_gatway[0] and addr_bytes[1] == ip_gatway[1] and addr_bytes[2] == ip_gatway[2] and \

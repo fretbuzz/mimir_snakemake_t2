@@ -185,7 +185,7 @@ def update_mapping(container_to_ip, cluster_creation_log, time_gran, time_counte
             for cur_pod,curIP_PlusMinus in cluster_creation_log[i].iteritems():
                 cur_ip = curIP_PlusMinus[0].rstrip().lstrip()
                 cur_pod = cur_pod.rstrip().lstrip()
-                plus_minus = curIP_PlusMinus[1]
+                plus_minus = curIP_PlusMinus[1] # doesn't do much anymore, but exists so I can use my legacy datasets
                 namespace = curIP_PlusMinus[2]
                 entity = curIP_PlusMinus[3]
                 try:
