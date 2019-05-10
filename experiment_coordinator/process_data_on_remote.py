@@ -5,6 +5,7 @@ to process data is just too slow)
 
 import pwnlib.tubes.ssh
 from pwn import *
+import json
 
 def install_dependencies():
     pass
@@ -20,6 +21,21 @@ def sendline_and_wait_responses(sh, cmd_str, timeout=5):
 
 def modify_file_path():
     pass # how to do this??? can I see sed???
+
+
+
+def is_model_already_trained(config_file_pth):
+    with open(config_file_pth, 'r') as f:
+        config_file = json.loads(f.read(), object_pairs_hook=OrderedDict)
+    # (b) make appropriate modifications to the file
+
+    if config_file["get_endresult_from_memory"]:
+        return True
+    #else:
+    #    if (not config_file["make_edgefiles"]) and (config_file["skip_graph_injection"]) and (not config_file["calc_vals"]):
+    #        # note: calculating z_scores is fast, so don't worry about it...
+    #        return True
+    return False
 
 ## TODO: mimir_num to re-use directoryies... do i really want that though?? well, some kinda state needs to be maintained...
 ## so that I don't keep re-uploading the same training data over and over...
@@ -102,7 +118,16 @@ def process_on_remote(remote_server_ip, remote_server_key, user, eval_dir_with_d
     line_rec = sh.recvline(timeout=5)
     print "line_rec", line_rec
 
-    ## TODO: parse line_rec here... (i'll just put some super simple code here now for workflow purposes)
+
+    ## check if processing is really necessary...
+    # okay, if this is for training the model...
+    if eval_dir_with_data == model_dir and eval_analysis_config_file == model_analysis_config_file:
+        # then if it is already processed,
+        if is_model_already_trained(model_analysis_config_file):
+            # we can just return :)
+            return None
+
+    ## parse line_rec here... (i'll just put some super simple code here now for workflow purposes)
     print "mimir_num",mimir_num
     if mimir_num is not None and mimir_num is not False:
         current_mimir_dir = mimir_num
@@ -159,8 +184,8 @@ def process_on_remote(remote_server_ip, remote_server_key, user, eval_dir_with_d
         line_rec = sh.recvline(timeout=5)
         print "line_rec", line_rec
         print "cmd_to_make_cur_mimir_dir",cur_mimir_dir_name
-        sh.sendline("mkdir " +  cur_mimir_dir_name)
-        sh.sendline("mkdir " +  cur_mimir_dir_name + eval_dir_with_data_name)
+        sh.sendline("mkdir " +  "/mydata/" + cur_mimir_dir_name)
+        sh.sendline("mkdir " +  "/mydata/" + cur_mimir_dir_name + eval_dir_with_data_name)
         print "mkdir rec_line",sh.recvline(timeout=5)
         # (1) the EVAL dir with all the data
         print "eval_exp_config_file", eval_exp_config_file
@@ -186,7 +211,7 @@ def process_on_remote(remote_server_ip, remote_server_key, user, eval_dir_with_d
         # (3) now repeat with the MODEL dir
         if eval_dir_with_data != model_dir or eval_analysis_config_file != model_analysis_config_file:
             print "try_making_this_dir:", cur_mimir_dir_name + model_dir_with_data_name
-            sh.sendline("mkdir " +  cur_mimir_dir_name + model_dir_with_data_name)
+            sh.sendline("mkdir " + "/mydata/" + cur_mimir_dir_name + model_dir_with_data_name)
             sendline_and_wait_responses(sh, "sudo chown -R jsev:dna-PG0 " + cur_mimir_dir_name + model_dir_with_data_name, timeout=5)
             print "local_model_dir", model_dir
             print "model_exp_config_file", model_exp_config_file
@@ -221,8 +246,8 @@ def process_on_remote(remote_server_ip, remote_server_key, user, eval_dir_with_d
     eval_sed_mod_paths_cmd = "sed -i 's;" + eval_dir_with_data + ';' + eval_config_dir + ';\'' + ' ' + eval_config_json
     train_sed_mod_paths_cmd = "sed -i 's;" + model_dir + ';' + training_config_dir +';\'' + ' ' + training_config_json
 
-    #print "eval_sed_mod_paths_cmd:::::", eval_sed_mod_paths_cmd
-    #print "train_sed_mod_paths_cmd:::::", train_sed_mod_paths_cmd
+    print "eval_sed_mod_paths_cmd:::::", eval_sed_mod_paths_cmd
+    print "train_sed_mod_paths_cmd:::::", train_sed_mod_paths_cmd
 
     sendline_and_wait_responses(sh, eval_sed_mod_paths_cmd, timeout=15)
     sendline_and_wait_responses(sh, train_sed_mod_paths_cmd, timeout=15)
@@ -250,9 +275,9 @@ def process_on_remote(remote_server_ip, remote_server_key, user, eval_dir_with_d
     print "eval_config_dir",eval_config_dir, "eval_dir_with_data", eval_dir_with_data
     print "training_config_dir",training_config_dir, "model_dir",model_dir
     if not dont_retreive_eval:
-        s.download(file_or_directory=eval_config_dir, local=eval_dir_with_data)
+        s.download(file_or_directory=eval_config_dir, local=eval_dir_with_data + '../') # TODO: DOES THIS WORK???
     if not dont_retreive_train:
-        s.download(file_or_directory=training_config_dir, local=model_dir)
+        s.download(file_or_directory=training_config_dir, local=model_dir + '../') # TODO: DOES THIS WORK???
 
     # step (8) return some kinda relevant information (-- this'll be the eval cm's that are needed by the looper)
     ### the biggest question is how to get them -- simple. they must be saved by mimir in a text file, that we can then

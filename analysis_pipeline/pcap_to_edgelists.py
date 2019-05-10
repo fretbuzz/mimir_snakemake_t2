@@ -272,7 +272,8 @@ def update_mapping(container_to_ip, cluster_creation_log, time_gran, time_counte
                     # crashloopbackoff, it stills reverses the IP address)
                     if plus_minus == '-' and (status == None or status == 'Terminating'): # not sure if I want/need this but might be useful for bug checking
                         if cur_ip in container_to_ip:
-                            del container_to_ip[cur_ip]
+                            #del container_to_ip[cur_ip]
+                            pass # dont' think that I want to do this anymore actually
                         # note: no point in deleting theme b/c I am indexing by names--- which
                         # obviously will never be re-used by a non-infra component.
                         #if cur_pod in infra_instances and namespace == 'kube-system':
@@ -280,7 +281,8 @@ def update_mapping(container_to_ip, cluster_creation_log, time_gran, time_counte
                     elif status == 'Terminating':
                         if cur_ip in container_to_ip:
                             try:
-                                del container_to_ip[cur_ip]
+                                #del container_to_ip[cur_ip]
+                                pass # don't think that I want to do this anymore actually
                             except:
                                 pass # b/c can appear in log multiple times (b/c prints everything into log occassionally)
 

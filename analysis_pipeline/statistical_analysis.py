@@ -409,7 +409,7 @@ class single_model_stats_pipeline():
                                                                     self.exfil_paths_train, self.exfil_weights_train)
 
             return self.method_to_cm_df_test #[self.method_name]
-        return None
+        return self.method_to_cm_df_train  # [self.method_name]
 
 
 class single_rate_stats_pipeline():

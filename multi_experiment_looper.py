@@ -37,10 +37,12 @@ def track_multiple_remotes(remote_ips, eval_experiment_names, training_experimen
     can_run_additional_exps = True
     while 0 in experiment_name_to_status.values() or 1 in experiment_name_to_status.values():
         for ip,status in remote_instances_to_status.iteritems():
+            print "current_status_of_server", ip, status, remote_instances_to_status
             update_config = True
             use_remote = True
             remote_server_ip = ip
             if status < exps_per_server and can_run_additional_exps:
+                print "going_to_start_new_exp", status, exps_per_server, status < exps_per_server
                 # if the training model isn't created yet, must do that before ANY other experiments...
                 if experiment_name_to_status[training_experiment_name] != 2:
                     model_config_file = name_to_config[training_experiment_name]
@@ -48,6 +50,7 @@ def track_multiple_remotes(remote_ips, eval_experiment_names, training_experimen
                     cur_args = [model_config_file, list_of_eval_configs, update_config, use_remote, remote_server_ip,
                                 remote_server_key, user, dont_retrieve_from_remote] #, skip_install, skip_upload] #??
                     kwargs = {"skip_install":skip_install, "skip_upload": skip_upload, "mimir_num":mimir_num}
+                    time.sleep(5) # prevent race conditions by making one clearly first
                     service = multiprocessing.Process(name=training_experiment_name, target=get_eval_results,
                                                       args=cur_args, kwargs=kwargs)
                     service.start()
@@ -55,6 +58,7 @@ def track_multiple_remotes(remote_ips, eval_experiment_names, training_experimen
 
                     experiment_name_to_status[training_experiment_name] = 1
                     remote_instances_to_status[ip] += 1
+                    status += 1 # b/c looping won't refresh
                     experiment_name_to_assigned_ip[training_experiment_name] = ip
                     can_run_additional_exps = False
                 else:
@@ -73,13 +77,17 @@ def track_multiple_remotes(remote_ips, eval_experiment_names, training_experimen
 
                             experiment_name_to_status[exp_name] = 1
                             remote_instances_to_status[ip] += 1
+                            status += 1  # b/c looping won't refresh
                             experiment_name_to_assigned_ip[exp_name] = ip
+                            break
 
         # step 3: check if any current jobs are done. if they are, then modify the state appropriately.
         while (len(jobs) > 0):
             jobs_to_remove = []
             for job in jobs:
                 if not job.is_alive():
+                    print "removing job...", job, job.is_alive()
+                    time.sleep(10)
                     jobs_to_remove.append(job)
                     finished_exp_name = job.name
                     finished_ip = experiment_name_to_assigned_ip[finished_exp_name]
@@ -361,6 +369,8 @@ def run_looper(config_file_pth, update_config, use_remote):
     #exit(233)
 
     # DON'T FORGET ABOUT use_cached (it's very useful -- especially when iterating on graphs!!)
+    ### TODO :: ADD FUNCTIONALITY + OPTION TO *JUST* RETRIEVE THE CM!!
+    ### TODO :: debug the creation of the cm in the composer... it might be broken...
     use_cached = use_cached
     update_config = update_config
     use_remote = use_remote
@@ -368,7 +378,7 @@ def run_looper(config_file_pth, update_config, use_remote):
     if use_remote:
         eval_experiment_names = eval_configs_to_xvals.keys()
         training_experiment_name = model_config_file
-        exps_per_server = 4
+        exps_per_server = 1
 
         name_to_config = {}
         for eval_config in eval_configs_to_xvals.keys():

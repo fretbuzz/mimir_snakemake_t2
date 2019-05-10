@@ -183,8 +183,8 @@ class multi_experiment_pipeline(object):
 
                 ## let's generate both reports... we can then use a param to pick between them...
                 min_rate_statspipelines_agg = self.train_multi_exfilrate_model()
-                with open(self.where_to_save_minrate_statspipelines + 'multi', 'w') as f:
-                    pickle.dump(min_rate_statspipelines, f)
+                with open(self.where_to_save_minrate_statspipelines + 'multi', 'w') as z:
+                    pickle.dump(min_rate_statspipelines, z)
 
                 if self.use_ts_lower:
                     min_rate_statspipelines = min_rate_statspipelines_ts
