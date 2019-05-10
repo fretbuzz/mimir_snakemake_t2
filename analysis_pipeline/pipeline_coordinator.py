@@ -178,23 +178,28 @@ class multi_experiment_pipeline(object):
 
             if not self.pretrained_min_pipeline:
                 min_rate_statspipelines_ts = self.decrease_exfil_of_model()
+                with open(self.where_to_save_minrate_statspipelines, 'w') as f:
+                    pickle.dump(min_rate_statspipelines, f)
 
                 ## let's generate both reports... we can then use a param to pick between them...
                 min_rate_statspipelines_agg = self.train_multi_exfilrate_model()
+                with open(self.where_to_save_minrate_statspipelines + 'multi', 'w') as f:
+                    pickle.dump(min_rate_statspipelines, f)
 
                 if self.use_ts_lower:
                     min_rate_statspipelines = min_rate_statspipelines_ts
                 else:
                     min_rate_statspipelines = min_rate_statspipelines_agg
 
-                with open(self.where_to_save_minrate_statspipelines, 'w') as f:
-                    pickle.dump(min_rate_statspipelines, f)
-
             if not self.no_labeled_data:
                 self.generate_aggregate_report()
         else:
-            with open(self.where_to_save_minrate_statspipelines, 'r') as f:
-                min_rate_statspipelines = pickle.load(f)
+            if self.use_ts_lower:
+                with open(self.where_to_save_minrate_statspipelines, 'r') as f:
+                    min_rate_statspipelines = pickle.load(f)
+            else:
+                with open(self.where_to_save_minrate_statspipelines  + 'multi', 'r') as f:
+                    min_rate_statspipelines = pickle.load(f)
             #min_rate_statspipelines.create_the_report(self.auto_open_pdfs)
 
         ## TODO: should return performance table for second val instead of None...
@@ -340,13 +345,13 @@ class multi_experiment_pipeline(object):
                 if timegran not in time_gran_to_new_df:
                     time_gran_to_new_df[timegran] = copy.deepcopy(stats_pipeline.aggregate_mod_score_df)
                     continue
-                # TODO: append relevant part to the time_gran_to_new_df and flip is_test (b/c don't need is_test anymore)
+                # append relevant part to the time_gran_to_new_df and flip is_test (b/c don't need is_test anymore)
                 cur_df = stats_pipeline.aggregate_mod_score_df
-                ## TODO: (a) :: get only those with injected
+                ## (a) :: get only those with injected
                 attack_portions = cur_df.loc[cur_df['labels'] == 1]
-                ## TODO: (b) :: append onto dataframe
+                ## (b) :: append onto dataframe
                 time_gran_to_new_df[timegran] = time_gran_to_new_df[timegran].append(attack_portions, ignore_index=True)
-                ## TODO: (c) :: switch is_test to all zeros (REMOVE IF I MAKE THE SWITCH PERMENANT)
+                ## (c) :: switch is_test to all zeros (REMOVE IF I MAKE THE SWITCH PERMENANT)
                 time_gran_to_new_df[timegran]['is_test'] = 0 ## acctually going to keep this... so both models can be useful....
 
         cur_base_output_name = self.base_output_name + 'multi_rate_exfil_report'

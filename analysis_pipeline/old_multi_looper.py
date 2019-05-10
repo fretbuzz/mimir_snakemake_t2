@@ -493,7 +493,7 @@ def run_looper(config_file_pth, update_config, use_remote, only_finished_p):
     #exit(233)
 
     # DON'T FORGET ABOUT use_cached (it's very useful -- especially when iterating on graphs!!)
-    use_cached = True #use_cached
+    use_cached = False #use_cached
     update_config = update_config
     use_remote = use_remote
     only_finished_p = False #only_finished_p ## VERY USEFUL
@@ -539,9 +539,9 @@ if __name__=="__main__":
         #config_file_pth = "./multi_experiment_configs/wordpress_scale.json"
         #config_file_pth = "./analysis_pipeline/multi_experiment_configs/old_sockshop_angle_remote2.json"
         #config_file_pth = "./multi_experiment_configs/old_sockshop_scale.json"
-        config_file_pth = "./multi_experiment_configs/old_sockshop_angle.json"
+        ####config_file_pth = "./multi_experiment_configs/old_sockshop_angle.json"
         #config_file_pth = "./analysis_pipeline/multi_experiment_configs/sockshop_test_remote.json"
-        #config_file_pth = "./multi_experiment_configs/new_sockshop_scale.json"
+        config_file_pth = "./multi_experiment_configs/new_sockshop_scale.json"
     else:
         config_file_pth = args.config_json
 

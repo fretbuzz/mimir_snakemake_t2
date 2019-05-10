@@ -189,6 +189,7 @@ def process_on_remote(remote_server_ip, remote_server_key, user, eval_dir_with_d
             sh.sendline("mkdir " +  cur_mimir_dir_name + model_dir_with_data_name)
             sendline_and_wait_responses(sh, "sudo chown -R jsev:dna-PG0 " + cur_mimir_dir_name + model_dir_with_data_name, timeout=5)
             print "local_model_dir", model_dir
+            print "model_exp_config_file", model_exp_config_file
             s.upload(model_dir, remote= "/mydata/" + model_exp_config_file)
             try:
                 s.upload(model_analysis_config_file, remote= "/mydata/" + cur_mimir_dir_name)
