@@ -31,6 +31,7 @@ def generate_pcap_slice(time_length, pcap_location, split_pcap_dir, make_edgefil
         for f in files:
             os.remove(f)
 
+        time.sleep(3)
         inital_files_in_split_dir = set([name for name in os.listdir(split_pcap_dir) if os.path.isfile(os.path.join(split_pcap_dir, name))])
         print "inital_files_in_split_dir", inital_files_in_split_dir
         print "splitting with editcap now..."
@@ -194,7 +195,7 @@ def cilium_component(time_length, pcap_location, cilium_component_dir, make_edge
 
         # then get communication statistics using tshark
         tshark_stats_path, tshark_stats_file = process_pcap_via_tshark(pcap_slice_path, pcap_slice_name,
-                                                                       cilium_component_dir , make_edgefiles_p)
+                                                                       cilium_component_dir + '/', make_edgefiles_p)
 
         # step (3) generate edgefile (hostnames rather than ip addresses) using mapping from IPs->components
         edgefile_name = cilium_component_dir + '/edgefile_first_' + str(time_length) + '_sec.txt'
