@@ -9,14 +9,11 @@
   "calculate_z_scores": true,
   "get_endresult_from_memory": false,
 
-  "perform_cilium_component": false,
+  "perform_cilium_component": true,
+  "calc_ide": false,
 
   "drop_pairwise_features": false,
   "drop_infra_from_graph": true,
-
-  "include_ide": false,
-  "calc_ide": false,
-  "only_ide": false,
 
   "time_of_synethic_exfil": 60,
   "time_interval_lengths": [10, 60],
@@ -25,7 +22,7 @@
 
   "goal_attack_NoAttack_split_training": 0.50,
   "goal_train_test_split_training": 0.50,
-  "goal_attack_NoAttack_split_testing": 0.2,
+  "goal_attack_NoAttack_split_testing": 0.50,
 
    "skip_heatmap_p" : true,
    "auto_open_pdfs": true

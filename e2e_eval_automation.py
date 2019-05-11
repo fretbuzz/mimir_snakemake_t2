@@ -283,7 +283,8 @@ def perform_eval_work(cloudlab_exps_file, cloudlab_exps_dir, analysis_exp_file, 
 
     if run_analysis:
         print "calling run_looper with this config file...", multi_experiment_config_file_path
-        run_looper(multi_experiment_config_file_path, True)
+        ## TODO: if you want to wire it in, then wire it in. Else, don't.
+        #run_looper(multi_experiment_config_file_path, True)
 
     #### (2) start LOCAL experiments... perhaps I can abstract the existing logic into a function???
         ## cause it'll be essentially equivalent for the multiprocessing part... however
@@ -300,5 +301,5 @@ if __name__=="__main__":
     analysis_exp_file = 'analysis_exps.json'
     cloudlab_exps_dir = './e2e_eval_configs/'
     skip_app_setup = False
-    run_analysis= True
+    run_analysis= False
     perform_eval_work(cloudlab_exps_file, cloudlab_exps_dir, analysis_exp_file, skip_app_setup, run_analysis)

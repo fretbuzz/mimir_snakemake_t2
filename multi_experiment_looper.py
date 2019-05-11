@@ -7,6 +7,28 @@ from collections import OrderedDict
 from experiment_coordinator.process_data_on_remote import process_on_remote
 import multiprocessing
 import time
+import logging
+import pwnlib.tubes.ssh
+from pwn import *
+
+def clear_temp(remote_server_ip, remote_server_key, user):
+    s = None
+    while s == None:
+        try:
+            s = pwnlib.tubes.ssh.ssh(host=remote_server_ip,
+                keyfile=remote_server_key,
+                user=user)
+        except:
+            time.sleep(60)
+    sh = s.run('sh')
+    print "sh_created..."
+    sh.sendline("sudo sh")
+    line_rec = sh.recvline(timeout=5)
+    print "line_rec", line_rec
+    print "clearing /tmp/ on ", str(remote_server_ip), "now..."
+    sh.sendline("sudo rm -rf  /tmp/*")
+    line_rec = sh.recvline(timeout=5)
+    print "line_rec_rm_tmp", line_rec
 
 def track_multiple_remotes(remote_ips, eval_experiment_names, training_experiment_name, exps_per_server,
                            name_to_config, remote_server_key, user, dont_retrieve_from_remote,
@@ -19,6 +41,7 @@ def track_multiple_remotes(remote_ips, eval_experiment_names, training_experimen
     can still have multiple processes (maybe like 7 or so), so there's still some complexity here.
     '''
     evalconfigs_to_cm = {}
+    logging.basicConfig(filename= mimir_num + '.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s')
 
     # step (1): setup structures to track status of servers and experiments
     remote_instances_to_status = {}
@@ -31,59 +54,75 @@ def track_multiple_remotes(remote_ips, eval_experiment_names, training_experimen
     experiment_name_to_status[training_experiment_name] = 0
     # 0 = not running ; 1 = currrently running ; 2 = finished running
 
+    remote_ip_to_skip_install = {}
+    for remote_ip in remote_ips:
+        remote_ip_to_skip_install[remote_ip] = skip_install
+
+    remote_ip_to_uploaded_dirs = {}
+    for remote_ip in remote_ips:
+        remote_ip_to_uploaded_dirs[remote_ip] = []
+
     # step (2): if existing servers have extra capacity, use it for processing
     experiment_name_to_assigned_ip = {}
     jobs = []
     can_run_additional_exps = True
     while 0 in experiment_name_to_status.values() or 1 in experiment_name_to_status.values():
-        for ip,status in remote_instances_to_status.iteritems():
-            print "current_status_of_server", ip, status, remote_instances_to_status
-            update_config = True
-            use_remote = True
-            remote_server_ip = ip
-            if status < exps_per_server and can_run_additional_exps:
-                print "going_to_start_new_exp", status, exps_per_server, status < exps_per_server
-                # if the training model isn't created yet, must do that before ANY other experiments...
-                if experiment_name_to_status[training_experiment_name] != 2:
-                    model_config_file = name_to_config[training_experiment_name]
-                    list_of_eval_configs = [name_to_config[training_experiment_name]]
-                    cur_args = [model_config_file, list_of_eval_configs, update_config, use_remote, remote_server_ip,
-                                remote_server_key, user, dont_retrieve_from_remote] #, skip_install, skip_upload] #??
-                    kwargs = {"skip_install":skip_install, "skip_upload": skip_upload, "mimir_num":mimir_num}
-                    time.sleep(5) # prevent race conditions by making one clearly first
-                    service = multiprocessing.Process(name=training_experiment_name, target=get_eval_results,
-                                                      args=cur_args, kwargs=kwargs)
-                    service.start()
-                    jobs.append(service)
+        # loop while: can_run_additional_exps AND more experiments to run (0s in status) AND more free servers
+        while (can_run_additional_exps and 0 in experiment_name_to_status.values() and
+                       (len([i for i in remote_instances_to_status.values() if i < exps_per_server]) > 0)):
+            for ip,status in remote_instances_to_status.iteritems():
+                print "current_status_of_server", ip, status, remote_instances_to_status
+                update_config = True
+                use_remote = True
+                remote_server_ip = ip
+                if status < exps_per_server and can_run_additional_exps:
+                    print "going_to_start_new_exp", status, exps_per_server, status < exps_per_server
+                    # if the training model isn't created yet, must do that before ANY other experiments...
+                    if experiment_name_to_status[training_experiment_name] != 2:
+                        model_config_file = name_to_config[training_experiment_name]
+                        list_of_eval_configs = [name_to_config[training_experiment_name]]
+                        skip_current_install = remote_ip_to_skip_install[ip]
 
-                    experiment_name_to_status[training_experiment_name] = 1
-                    remote_instances_to_status[ip] += 1
-                    status += 1 # b/c looping won't refresh
-                    experiment_name_to_assigned_ip[training_experiment_name] = ip
-                    can_run_additional_exps = False
-                else:
-                    for exp_name in experiment_name_to_status.keys():
-                        if experiment_name_to_status[exp_name] == 0:
-                            # if we are here, then there is extra compute available + data that needs processing
-                            model_config_file = name_to_config[training_experiment_name]
-                            list_of_eval_configs = [name_to_config[exp_name]]
-                            cur_args = [model_config_file, list_of_eval_configs, update_config, use_remote, remote_server_ip,
-                                        remote_server_key, user, dont_retrieve_from_remote] #, skip_install, skip_upload] #??
-                            kwargs = {"skip_install": skip_install, "skip_upload": skip_upload, "mimir_num":mimir_num}
-                            service = multiprocessing.Process(name=exp_name, target=get_eval_results,
-                                                              args=cur_args, kwargs=kwargs)
-                            service.start()
-                            jobs.append(service)
+                        cur_args = [model_config_file, list_of_eval_configs, update_config, use_remote, remote_server_ip,
+                                    remote_server_key, user, dont_retrieve_from_remote] #, skip_install, skip_upload] #??
+                        kwargs = {"skip_install":skip_current_install, "skip_upload": skip_upload, "mimir_num":mimir_num,
+                                          "uploaded_dirs": remote_ip_to_uploaded_dirs[ip], "logging": logging}
+                        time.sleep(5) # prevent race conditions by making one clearly first
+                        service = multiprocessing.Process(name=training_experiment_name, target=get_eval_results,
+                                                          args=cur_args, kwargs=kwargs)
+                        service.start()
+                        jobs.append(service)
 
-                            experiment_name_to_status[exp_name] = 1
-                            remote_instances_to_status[ip] += 1
-                            status += 1  # b/c looping won't refresh
-                            experiment_name_to_assigned_ip[exp_name] = ip
-                            break
+                        experiment_name_to_status[training_experiment_name] = 1
+                        remote_instances_to_status[ip] += 1
+                        status += 1 # b/c looping won't refresh
+                        experiment_name_to_assigned_ip[training_experiment_name] = ip
+                        can_run_additional_exps = False
+                    else:
+                        for exp_name in experiment_name_to_status.keys():
+                            if experiment_name_to_status[exp_name] == 0:
+                                # if we are here, then there is extra compute available + data that needs processing
+                                model_config_file = name_to_config[training_experiment_name]
+                                list_of_eval_configs = [name_to_config[exp_name]]
+                                cur_args = [model_config_file, list_of_eval_configs, update_config, use_remote, remote_server_ip,
+                                            remote_server_key, user, dont_retrieve_from_remote] #, skip_install, skip_upload] #??
+                                kwargs = {"skip_install": skip_install, "skip_upload": skip_upload, "mimir_num":mimir_num,
+                                          "uploaded_dirs": remote_ip_to_uploaded_dirs[ip], "logging": logging}
+                                service = multiprocessing.Process(name=exp_name, target=get_eval_results,
+                                                                  args=cur_args, kwargs=kwargs)
+                                service.start()
+                                jobs.append(service)
+
+                                experiment_name_to_status[exp_name] = 1
+                                remote_instances_to_status[ip] += 1
+                                status += 1  # b/c looping won't refresh
+                                experiment_name_to_assigned_ip[exp_name] = ip
+                                break
 
         # step 3: check if any current jobs are done. if they are, then modify the state appropriately.
-        while (len(jobs) > 0):
+        while (len(jobs) >= 0):
             jobs_to_remove = []
+            finished_ips = []
             for job in jobs:
                 if not job.is_alive():
                     print "removing job...", job, job.is_alive()
@@ -91,8 +130,13 @@ def track_multiple_remotes(remote_ips, eval_experiment_names, training_experimen
                     jobs_to_remove.append(job)
                     finished_exp_name = job.name
                     finished_ip = experiment_name_to_assigned_ip[finished_exp_name]
+                    finished_ips.append(finished_ip)
+                    remote_ip_to_skip_install[finished_ip] = 1 # job is finished, so no ned to re-install...
                     remote_instances_to_status[finished_ip] -= 1
                     experiment_name_to_status[finished_exp_name] = 2
+
+                    remote_ip_to_uploaded_dirs[finished_ip].append(name_to_config[training_experiment_name])
+                    ## ^^^ this is the dir that really needs to be tracked like this...
 
                     can_run_additional_exps = True # training experiment is done first... so if any is done, then it must be done
 
@@ -103,13 +147,28 @@ def track_multiple_remotes(remote_ips, eval_experiment_names, training_experimen
             else:
                 for job_to_remove in jobs_to_remove:
                     jobs.remove(job_to_remove)
-                break
+                # wait until all experiments on a server are complete so that I can clear /tmp/ before assigning new ones
+                empty_server_p = False
+                for finished_ip in finished_ips:
+                    if remote_instances_to_status[finished_ip] == 0:
+                        ## clear /tmp/ + break
+                        clear_temp(finished_ip, remote_server_key, user)
+                        empty_server_p = True
+                if empty_server_p:
+                    break
+
+                ## wait until all jobs on a particular sever are complete (note: as an result, we won't start
+                ## a new job on a server until all the old jobs are complete -- unfortunate, but I can live
+                ## with it...)
+
+
 
     # step 4: ???
     # once we get here, all the experiments must have finished running... so what's next
     # okay, well if everything ran, then once we get to here, we just want to returnt the correct stuff
     # evalconfigs_to_cm
     ### OR could i use: create_eval_graph ???? would it be possible???
+    return evalconfigs_to_cm
 
 def update_config_file(config_file_pth, if_trained_model):
     with open(config_file_pth, 'r') as f:
@@ -130,7 +189,7 @@ def update_config_file(config_file_pth, if_trained_model):
 
 def get_eval_results(model_config_file, list_of_eval_configs, update_config, use_remote=False, remote_server_ip=None,
                      remote_server_key=None, user=None, dont_retrieve_from_remote=None, skip_install=False,
-                     skip_upload=False, mimir_num = None):
+                     skip_upload=False, mimir_num = None, uploaded_dirs = None, logging=None):
     eval_config_to_cm = {}
     for eval_config in list_of_eval_configs:
         if not use_remote:
@@ -172,7 +231,7 @@ def get_eval_results(model_config_file, list_of_eval_configs, update_config, use
             eval_cm = process_on_remote(remote_server_ip, remote_server_key, user, eval_dir_with_data, eval_analysis_config_file,
                               model_dir, model_analysis_config_file, skip_install=skip_install, skip_upload=skip_upload,
                                     dont_retreive_eval=dont_retreive_eval, dont_retreive_train=dont_retreive_train,
-                                    mimir_num=mimir_num)
+                                    mimir_num=mimir_num, uploaded_dirs=uploaded_dirs, logging=logging)
 
         eval_config_to_cm[eval_config] = eval_cm
         ## modify the config file so that you don't redo previously done experiments...
@@ -347,8 +406,8 @@ def parse_config(config_file_pth):
         else:
             skip_upload = False
 
-        if 'mimir_num' in config_file:
-            mimir_num = config_file['mimir_num']
+        if 'name_of_exp_set' in config_file:
+            mimir_num = config_file['name_of_exp_set']
         else:
             mimir_num = False
 
@@ -370,7 +429,15 @@ def run_looper(config_file_pth, update_config, use_remote):
 
     # DON'T FORGET ABOUT use_cached (it's very useful -- especially when iterating on graphs!!)
     ### TODO :: ADD FUNCTIONALITY + OPTION TO *JUST* RETRIEVE THE CM!!
-    ### TODO :: debug the creation of the cm in the composer... it might be broken...
+    ### TODO :: debug the creation of the cm in the composer... it might be broken... [okay, kinda...]
+    ### TODO :: NEED TO FIX REMOTE IDE (-- related to sbcl) [<-- THIS]
+    ### TODO: add check if directory already exists... (no point in re-uploading files that already exist) [<-- THIS]
+        ## OKAY ^^^ I am working on this now...
+    ### TODO: add a switch to flip insntall after first time.., it's a waste [[okay, kinda]]
+    ### TODO: add logging [[okay, kinda]]
+    ### TODO: add the DLP pipeline even if I cannot beat it...
+    #### TODO: integrate the remote-aware part of this file with the graph-generation capabilities of the old_multi_looper
+    #### TODO: add flag to calculate the
     use_cached = use_cached
     update_config = update_config
     use_remote = use_remote
@@ -378,7 +445,7 @@ def run_looper(config_file_pth, update_config, use_remote):
     if use_remote:
         eval_experiment_names = eval_configs_to_xvals.keys()
         training_experiment_name = model_config_file
-        exps_per_server = 1
+        exps_per_server = 4
 
         name_to_config = {}
         for eval_config in eval_configs_to_xvals.keys():
@@ -413,6 +480,7 @@ if __name__=="__main__":
         #config_file_pth = "./analysis_pipeline/multi_experiment_configs/old_sockshop_angle_remote2.json"
         #config_file_pth = "./analysis_pipeline/multi_experiment_configs/old_sockshop_scale.json"
         config_file_pth = "./analysis_pipeline/multi_experiment_configs/sockshop_test_remote.json"
+        #######config_file_pth = "./analysis_pipeline/multi_experiment_configs/new_sockshop_scale_remote.json"
         #config_file_pth = "./analysis_pipeline/multi_experiment_configs/new_sockshop_scale.json"
         #config_file_pth = "./analysis_pipeline/multi_experiment_configs/old_sockshop_angle_remote2.json"
     else:

@@ -30,7 +30,7 @@
   },
 
   "minikube_ips_to_lifetime": {
-    "c220g2-011320.wisc.cloudlab.us": "",
-    "c220g1-030814.wisc.cloudlab.us": ""
+    "c240g5-110203.wisc.cloudlab.us": "",
+    "c240g5-110217.wisc.cloudlab.us": ""
   }
 }

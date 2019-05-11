@@ -228,6 +228,7 @@ def run_experiment(app_name, local_path_to_exp_config, exp_name, skip_setup_p, u
             sh.sendline("exit")  # need to be a normal user when using selenium
             sh.sendline("cd /mydata/mimir_v2/experiment_coordinator/experimental_configs")
 
+            ## NOTE: to go multiple times, might need to use sudo chown -R jsev:dna-PG0 geckodriver.log
             setup_str = 'python /mydata/mimir_v2/experiment_coordinator/wordpress_setup/setup_wordpress.py ' + str(ip) + ' ' + \
                 str(port) + ' \"hi\"'
             try:

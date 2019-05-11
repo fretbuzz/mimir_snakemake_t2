@@ -197,7 +197,6 @@ def admin_login(admin_pwd, driver_val):
 
 
 def main(ip_of_wp, port_of_wp, admin_pwd):
-    ## TODO MOVE THINGS BACK... THIS ATTEMPT AT REFACTORING WAS A FAILURE!
     #os.setuid(pwd.getpwnam(username).pw_uid) # ncessary b/c cannot run selenium as root
 
     global driver
@@ -231,6 +230,7 @@ def main(ip_of_wp, port_of_wp, admin_pwd):
     fp.set_preference("browser.download.dir", os.getcwd() + '/wp_csv_loc/')
     fp.set_preference("browser.helperApps.neverAsk.saveToDisk", "application/octet-stream")
     fp.set_preference("browser.helperApps.neverAsk.saveToDisk", "text/csv")
+    fp.accept_untrusted_certs = True
 
     driver = webdriver.Firefox(fp, options=options)
     driver_two = webdriver.Firefox(fp, options=options)
