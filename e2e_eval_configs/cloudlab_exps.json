@@ -9,12 +9,6 @@
     "wordpress_4_4_2" : {
       "prob_distro" : { "visitor": 0.4, "user_post": 0.4, "user_update": 0.2 }
     },
-    "wordpress_10_0_0" : {
-      "prob_distro" : { "visitor": 1.0, "user_post": 0.0, "user_update": 0.0 }
-    },
-    "wordpress_0_10_0" : {
-      "prob_distro" : { "visitor": 0.0, "user_post": 1.0, "user_update": 0.0 }
-    },
     "wordpress_0_0_10" : {
       "prob_distro" : { "visitor": 0.0, "user_post": 0.0, "user_update": 1.0 }
     },
@@ -30,7 +24,8 @@
   },
 
   "minikube_ips_to_lifetime": {
-    "c240g5-110117.wisc.cloudlab.us": "",
-    "c240g5-110231.wisc.cloudlab.us": ""
-  }
+    "c240g5-110203.wisc.cloudlab.us": "",
+    "c240g5-110217.wisc.cloudlab.us": ""
+  },
+  "clear_after_every_run" : true
 }

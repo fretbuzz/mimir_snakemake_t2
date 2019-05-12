@@ -122,6 +122,11 @@ def perform_eval_work(cloudlab_exps_file, cloudlab_exps_dir, analysis_exp_file, 
     cloudlab_ips = cloudlab_config["minikube_ips_to_lifetime"].keys()
     experiments_running = True
 
+    if 'clear_after_every_run' in cloudlab_config:
+        clear_after_every_run = cloudlab_config['clear_after_every_run']
+    else:
+        clear_after_every_run = False
+
     exp_name_to_localdir = {}
     experiment_name_to_status = {}
     for exp_name in cloudlab_config["name_to_diff_params"].keys():
@@ -176,7 +181,8 @@ def perform_eval_work(cloudlab_exps_file, cloudlab_exps_dir, analysis_exp_file, 
                 # and now change the statuses of everything appropriately...
                 experiment_name_to_status[exp_name] = 1
                 cloudlab_instances_to_status[ip] = 1
-                cloudlab_instance_to_setup_status[ip] = template_copy['application_name']
+                if not clear_after_every_run:
+                    cloudlab_instance_to_setup_status[ip] = template_copy['application_name']
                 exp_name_to_localdir[exp_name] = local_dir
 
         # okay, if we made it out here then all the cloudlab instances must have assigned work.
