@@ -479,8 +479,8 @@ if __name__=="__main__":
         #config_file_pth = "./multi_experiment_configs/wordpress_scale.json"
         #config_file_pth = "./analysis_pipeline/multi_experiment_configs/old_sockshop_angle_remote2.json"
         #config_file_pth = "./analysis_pipeline/multi_experiment_configs/old_sockshop_scale.json"
-        config_file_pth = "./analysis_pipeline/multi_experiment_configs/sockshop_test_remote.json"
-        #######config_file_pth = "./analysis_pipeline/multi_experiment_configs/new_sockshop_scale_remote.json"
+        #######config_file_pth = "./analysis_pipeline/multi_experiment_configs/sockshop_test_remote.json"
+        config_file_pth = "./analysis_pipeline/multi_experiment_configs/new_sockshop_scale_remote.json"
         #config_file_pth = "./analysis_pipeline/multi_experiment_configs/new_sockshop_scale.json"
         #config_file_pth = "./analysis_pipeline/multi_experiment_configs/old_sockshop_angle_remote2.json"
     else:

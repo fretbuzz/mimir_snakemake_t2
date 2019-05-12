@@ -104,11 +104,6 @@ def parse_experimental_config(experimental_config_file, live=False, is_eval=Fals
         else:
             time_interval_lengths = [10, 60]
 
-        if 'ide_window_size' in config_file:
-            ide_window_size = config_file['ide_window_size']
-        else:
-            ide_window_size = 12
-
         if 'avg_exfil_per_min' in config_file:
             avg_exfil_per_min = config_file['avg_exfil_per_min']
         else:

@@ -129,6 +129,8 @@ def get_eval_results(model_config_file, list_of_eval_configs, update_config, use
                     continue  # don't want to wait ---> so just pass over this one.
                 pass
             else:
+                ## TODO: probably wanna wrap in a call to multiprocess, to prevent problems with
+                ## memory size and using swap space...
                 eval_cm = run_analysis(model_config_file, eval_config=eval_config)
         else:
             # need to go into the config file and look @ exp_config_file and take the containing directory
@@ -268,6 +270,7 @@ def generate_graphs(eval_configs_to_xvals, exfil_rates, evalconfigs_to_cm, timeg
                     cur_cm = evalconfigs_to_cm[evalconfig]
 
                 optimal_f1 = cm_to_f1(cur_cm, exfil_rate, timegran, method=method)
+                optimal_f1 = cm_to_f1(cur_cm, exfil_rate, timegran, method=method)
                 y_vals_list.append( optimal_f1 )
 
                 if method not in method_to_eval_to_f1:
@@ -291,7 +294,7 @@ def generate_graphs(eval_configs_to_xvals, exfil_rates, evalconfigs_to_cm, timeg
         print "type_of_graph",type_of_graph
         if type_of_graph == 'angle':
             print "---angle--"
-            ## TODO: okay, we want to make the desired graph...
+            ## okay, we want to make the desired graph...
             ## x-axis will be euclidean distance...
             ## y-axis will be the F1 score...
             # step (1) : need to find the prob distro of the trained model

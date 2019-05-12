@@ -179,12 +179,12 @@ class multi_experiment_pipeline(object):
             if not self.pretrained_min_pipeline:
                 min_rate_statspipelines_ts = self.decrease_exfil_of_model()
                 with open(self.where_to_save_minrate_statspipelines, 'w') as f:
-                    pickle.dump(min_rate_statspipelines, f)
+                    pickle.dump(min_rate_statspipelines_ts, f)
 
                 ## let's generate both reports... we can then use a param to pick between them...
                 min_rate_statspipelines_agg = self.train_multi_exfilrate_model()
                 with open(self.where_to_save_minrate_statspipelines + 'multi', 'w') as z:
-                    pickle.dump(min_rate_statspipelines, z)
+                    pickle.dump(min_rate_statspipelines_agg, z)
 
                 if self.use_ts_lower:
                     min_rate_statspipelines = min_rate_statspipelines_ts
@@ -195,6 +195,7 @@ class multi_experiment_pipeline(object):
                 self.generate_aggregate_report()
         else:
             if self.use_ts_lower:
+                #print "self.where_to_save_minrate_statspipelines", self.where_to_save_minrate_statspipelines
                 with open(self.where_to_save_minrate_statspipelines, 'r') as f:
                     min_rate_statspipelines = pickle.load(f)
             else:
