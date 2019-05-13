@@ -433,20 +433,21 @@ class data_anylsis_pipline(object):
         return time_gran_to_mod_zscore_df, None, self.time_gran_to_feature_dataframe,\
                self.time_gran_to_synthetic_exfil_paths_series, self.end_of_training #, timegran_to_transformer
 
-    def run_cilium_component(self, time_length, results_dir):
+    def run_cilium_component(self, time_length, results_dir, interval_to_filename):
         #if self.cilium_component_time_lengthL
         #    time_length = self.cilium_component_time_length
         #else:
-        self.cilium_component_time_length = time_length
+        ####self.cilium_component_time_length = time_length
 
         print "calling_cilium_component_now..."
         self.cilium_allowed_svc_comm = cilium_config_generator.cilium_component(time_length, self.pcap_path + self.pcap_file,
                                                                                 self.cilium_component_dir,
                                                                                 self.make_edgefiles_p, self.ms_s, self.mapping,
                                                                                 self.cluster_creation_log,
-                                                                                results_dir)
+                                                                                results_dir, interval_to_filename)
+        return self.cilium_allowed_svc_comm
 
-    def calc_cilium_performance(self, avg_exfil_per_min, exfil_var_per_min, avg_pkt_size, avg_pkt_var):
+    def calc_cilium_performance(self, avg_exfil_per_min, exfil_var_per_min, avg_pkt_size, avg_pkt_var, cilium_allowed_svc_comm):
         time_gran_to_cil_alerts = {}
         for time_gran in self.time_interval_lengths:
             #prefix_for_inject_params = 'avg_exfil_' + str(avg_exfil_per_min) + ':' + str(
@@ -461,7 +462,7 @@ class data_anylsis_pipline(object):
                 current_set_of_graphs_loc_contents = f.read()
                 current_set_of_graphs = pickle.loads(current_set_of_graphs_loc_contents)
 
-            cilium_alerts = current_set_of_graphs.calculate_cilium_performance(self.cilium_allowed_svc_comm)
+            cilium_alerts = current_set_of_graphs.calculate_cilium_performance(cilium_allowed_svc_comm)
             time_gran_to_cil_alerts[time_gran] = cilium_alerts
         return time_gran_to_cil_alerts
 

@@ -153,7 +153,7 @@ def generate_cilium_policy(communicating_svc, basefilename):
 # this function coordinates the overall functionality of the cilium component of MIMIR
 # for more information, please see comment at top of page
 def cilium_component(time_length, pcap_location, cilium_component_dir, make_edgefiles_p, svcs,
-                     mapping, pod_creation_log, results_dir):
+                     mapping, pod_creation_log, results_dir, interval_to_filename):
     make_edgefiles_p = True ##  might want to remove at some point... idk for sure though...
     #vip_debugging = False # this function exists for debugging purposes. It makese the cur_cilium_comms
     #                     # also print the relevant VIPS and then quit right after. This is useful for
@@ -179,13 +179,17 @@ def cilium_component(time_length, pcap_location, cilium_component_dir, make_edge
 
     # step (1) generate relevant slice of pcap
     #print "calling generate_pcap_slice now..."
+    ''''
     pcap_slice_locations = generate_pcap_slice(time_length, pcap_location, cilium_component_dir, make_edgefiles_p)
-
+    '''
     infra_instances = {}
     communicatng_svcs = []
     communicating_svcc_with_vips = []
     # step (2) generate corresponding tshark stats file
-    for pcap_slice_location in pcap_slice_locations:
+    #for pcap_slice_location in pcap_slice_locations:
+    smallest_interval = min(interval_to_filename.keys())
+    for counter, edgefile in enumerate(interval_to_filename[smallest_interval]):
+        '''
         # find where the sliced pcap is
         pcap_slice_location_components = pcap_slice_location.split('/')
         pcap_slice_path = '/'.join(pcap_slice_location_components[:-1]) + '/'
@@ -203,9 +207,13 @@ def cilium_component(time_length, pcap_location, cilium_component_dir, make_edge
 
         edgefile =  convert_tshark_stats_to_edgefile('', edgefile_name, tshark_stats_path, tshark_stats_file,
                                          make_edgefiles_p, mapping)
+        '''
+        print "cilium_current_edgefile", edgefile
+        #print "smallest_interval", smallest_interval, type(smallest_interval)
+        mapping,infra_instances = update_mapping(mapping, pod_creation_log, int(smallest_interval), counter, infra_instances)
 
         #print "edgefile", edgefile
-        #print 'remainder of cilium component is... TODO'
+        #print 'remainder of cilium component is... '
 
         # step (4) we want to remove infrastructure from this graph, as well, since it is not processed by the rest of
         # the system. By infrastructure, I am referring to components of the system deployed by the orchestrator. For

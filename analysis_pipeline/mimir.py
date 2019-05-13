@@ -223,11 +223,6 @@ def parse_experimental_config(experimental_config_file, live=False, is_eval=Fals
         else:
             skip_heatmap_p = True
 
-        if 'svcpair_sec_component_time' in config_file:
-            svcpair_sec_component_time = config_file['svcpair_sec_component_time']
-        else:
-            svcpair_sec_component_time = 100
-
         no_labeled_data = False
 
     if live:
@@ -249,14 +244,14 @@ def parse_experimental_config(experimental_config_file, live=False, is_eval=Fals
                                   drop_pairwise_features=drop_pairwise_features,
                                   drop_infra_from_graph=drop_infra_from_graph, ide_window_size=ide_window_size,
                                   auto_open_pdfs=auto_open_pdfs, skip_heatmap_p=skip_heatmap_p,
-                                  no_labeled_data=no_labeled_data, svcpair_sec_component_time=svcpair_sec_component_time)
+                                  no_labeled_data=no_labeled_data)
 
 
     return multi_experiment_object
 
 def run_analysis(training_config, eval_config=None, live=False, no_tsl=False):
     training_experimente_object = parse_experimental_config(training_config, is_eval=False)
-    min_rate_training_statspipelines, training_results = training_experimente_object.run_pipelines(no_tsl=no_tsl)
+    min_rate_training_statspipelines, training_results, svcpair_model = training_experimente_object.run_pipelines(no_tsl=no_tsl)
 
     print "training_results", training_results
     eval_results = None
@@ -264,7 +259,8 @@ def run_analysis(training_config, eval_config=None, live=False, no_tsl=False):
 
     if eval_config:
         eval_experimente_object = parse_experimental_config(eval_config, live=live, is_eval=True)
-        _, eval_results = eval_experimente_object.run_pipelines(pretrained_model_object=min_rate_training_statspipelines)
+        _, eval_results,_ = eval_experimente_object.run_pipelines(pretrained_model_object=min_rate_training_statspipelines,
+                                                                  no_tsl=no_tsl, svcpair_model=svcpair_model)
 
         print "----------------------------"
         print "eval_results:"

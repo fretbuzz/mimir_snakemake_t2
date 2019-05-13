@@ -71,7 +71,7 @@ class multi_experiment_pipeline(object):
                  skip_model_part, calculate_z_scores_p=True, avg_exfil_per_min=None, exfil_per_min_variance=None,
                  avg_pkt_size=None, pkt_size_variance=None, skip_graph_injection=False, get_endresult_from_memory=False,
                  goal_attack_NoAttack_split_testing=0.0, calc_ide=False,
-                 perform_svcpair_sec_component=True, only_perform_cilium_component=True, svcpair_sec_component_time=100,
+                 perform_svcpair_sec_component=True, only_perform_cilium_component=True,
                  drop_pairwise_features=False, max_path_length=15, max_dns_porportion=1.0, drop_infra_from_graph=False,
                  ide_window_size=10, debug_basename=None, pretrained_sav2=None, auto_open_pdfs=True,
                  skip_heatmap_p=True, no_labeled_data=False, time_fraction_fp_increase=0.05,
@@ -94,7 +94,7 @@ class multi_experiment_pipeline(object):
         #self.only_ide = only_ide
         self.perform_svcpair_sec_component = perform_svcpair_sec_component
         #self.only_perform_cilium_component = only_perform_cilium_component  # never does anything anymore...
-        self.cilium_component_time = svcpair_sec_component_time
+        #self.cilium_component_time = svcpair_sec_component_time
         self.drop_pairwise_features = drop_pairwise_features
         self.drop_infra_from_graph = drop_infra_from_graph
         self.ide_window_size = ide_window_size
@@ -141,6 +141,8 @@ class multi_experiment_pipeline(object):
         self.time_fraction_fp = time_fraction_fp_increase
         self.use_logistic = use_logistic
         self.rate_to_tg_to_cm = {}
+        self.cilium_allowed_svc_comm = None
+        self.where_to_save_cilium_model = base_output_name + '_cilium_model'
 
     # note: this going to be used to load the pipeline object prior to doing all of this work...
     def loader(self, filename):
@@ -162,11 +164,12 @@ class multi_experiment_pipeline(object):
                                                                     self.goal_attack_NoAttack_split_testing,
                                                                     self.max_path_length, self.max_dns_porportion)
 
-    def run_pipelines(self, pretrained_model_object = None, no_tsl=False):
+    def run_pipelines(self, pretrained_model_object = None, no_tsl=False, svcpair_model=None):
         if no_tsl:
             self.use_ts_lower = False
         else:
             self.use_ts_lower = True
+        self.cilium_allowed_svc_comm = svcpair_model
 
         self.pretrained_min_pipeline = pretrained_model_object
         print "self.get_endresult_from_memory", self.get_endresult_from_memory
@@ -175,13 +178,16 @@ class multi_experiment_pipeline(object):
 
             self.generate_and_assign_exfil_paths()
             #if not self.only_ide:
+            ###initial_cilium_is_none_p = self.cilium_allowed_svc_comm is None
             for rate_counter in range(0, len(self.avg_exfil_per_min)):
                 # (i), (ii) <--- I think that they both belong here...
                 self.run_single_pipeline(rate_counter, self.calc_vals, self.skip_graph_injection,
                                          calc_ide=self.calc_ide,
-                                         no_labeled_data=self.no_labeled_data)
+                                         no_labeled_data=self.no_labeled_data,
+                                         pretrained_cilium_model=self.cilium_allowed_svc_comm)
 
             if not self.pretrained_min_pipeline:
+
                 min_rate_statspipelines_ts = self.decrease_exfil_of_model()
                 with open(self.where_to_save_minrate_statspipelines, 'w') as f:
                     pickle.dump(min_rate_statspipelines_ts, f)
@@ -196,7 +202,9 @@ class multi_experiment_pipeline(object):
                 else:
                     min_rate_statspipelines = min_rate_statspipelines_agg
 
-
+                ## save the cilium model, if the model is being trained...
+                with open(self.where_to_save_cilium_model, 'w') as g:
+                    pickle.dump(self.cilium_allowed_svc_comm, g)
 
             if not self.no_labeled_data:
                 self.generate_aggregate_report()
@@ -208,6 +216,12 @@ class multi_experiment_pipeline(object):
             else:
                 with open(self.where_to_save_minrate_statspipelines  + 'multi', 'r') as f:
                     min_rate_statspipelines = pickle.load(f)
+
+            try:
+                with open(self.where_to_save_cilium_model, 'r') as f:
+                    self.cilium_allowed_svc_comm = pickle.load(f)
+            except:
+                self.cilium_allowed_svc_comm = None
             #min_rate_statspipelines.create_the_report(self.auto_open_pdfs)
 
         ## should return performance table for second val instead of None...
@@ -215,7 +229,7 @@ class multi_experiment_pipeline(object):
         # for eval, this should simply be over eval (whether physical or strictly injected) (marked ii)
 
         if self.no_labeled_data and self.skip_model_part:
-            return min_rate_statspipelines, self.rate_to_time_gran_to_predicted_test[min(self.avg_exfil_per_min)]
+            return min_rate_statspipelines, self.rate_to_time_gran_to_predicted_test[min(self.avg_exfil_per_min)], None
 
         self.rate_to_tg_to_cm = {}
         for rate,single_rate_statsp in self.single_rate_stats_pipelines.iteritems():
@@ -225,7 +239,7 @@ class multi_experiment_pipeline(object):
         with open(self.base_output_name + '_rate_to_tg_to_cm.pickle', 'w') as f:
             f.write(pickle.dumps(self.rate_to_tg_to_cm))
 
-        return min_rate_statspipelines, self.rate_to_tg_to_cm
+        return min_rate_statspipelines, self.rate_to_tg_to_cm, self.cilium_allowed_svc_comm
 
 
     def generate_aggregate_report(self):
@@ -236,7 +250,7 @@ class multi_experiment_pipeline(object):
 
     ## NOTE: I'm going to try to do this WITHOUT the call to multi-process here!!ee
     def run_single_pipeline(self, rate_counter, calc_vals, skip_graph_injection, calc_ide=False,
-                            no_labeled_data=False):
+                            no_labeled_data=False, pretrained_cilium_model=None):
         prefix_for_inject_params = 'avg_exfil_' + str(self.avg_exfil_per_min[rate_counter]) + ':' + str(
             self.exfil_per_min_variance[rate_counter]) + '_' #+  '_avg_pkt_' + str(self.avg_pkt_size[rate_counter]) + ':' + str(
             #self.pkt_size_variance[rate_counter]) + '_'
@@ -256,8 +270,9 @@ class multi_experiment_pipeline(object):
                 self.testing_exfil_paths, self.skip_model_part, out_q,
                 self.ROC_curve_p, self.avg_exfil_per_min, self.exfil_per_min_variance, self.avg_pkt_size,
                 self.pkt_size_variance, skip_graph_injection, calc_ide,
-                self.drop_pairwise_features, self.perform_svcpair_sec_component, self.cilium_component_time,
-                self.ide_window_size, self.drop_infra_from_graph, prefix_for_inject_params, pretrained_min_pipeline]
+                self.drop_pairwise_features, self.perform_svcpair_sec_component, None,
+                self.ide_window_size, self.drop_infra_from_graph, prefix_for_inject_params, pretrained_min_pipeline,
+                pretrained_cilium_model]
         p = multiprocessing.Process(
             target=pipeline_one_exfil_rate,
             args=args)
@@ -269,7 +284,12 @@ class multi_experiment_pipeline(object):
         list_time_gran_to_mod_zscore_df_training = out_q.get()
         list_time_gran_to_mod_zscore_df_testing = out_q.get()
         starts_of_testing = out_q.get()
+        cilium_allowed_svc_comm = out_q.get()
         p.join()
+
+        if cilium_allowed_svc_comm is not None:
+            self.cilium_allowed_svc_comm = cilium_allowed_svc_comm
+            self.perform_svcpair_sec_component = False
 
         # step (2) :  store aggregated DFs for reference purposes
         print "about_to_do_list_time_gran_to_mod_zscore_df"
@@ -463,8 +483,8 @@ def pipeline_one_exfil_rate(rate_counter, base_output_name, function_list, exps_
                             testing_exfil_paths, skip_model_part, out_q, ROC_curve_p, avg_exfil_per_min,
                             exfil_per_min_variance, avg_pkt_size, pkt_size_variance, skip_graph_injection, calc_ide,
                             drop_pairwise_features, perform_svcpair_component,
-                            cilium_component_time, ide_window_size, drop_infra_from_graph, prefix_for_inject_params,
-                            pretrained_min_pipeline=None):
+                            cilium_component_time_not_used, ide_window_size, drop_infra_from_graph, prefix_for_inject_params,
+                            pretrained_min_pipeline=None, pretrained_svcpair_model=None):
     ## step (1) : iterate through individual experiments...
     ##  # 1a. list of inputs [done]
     ##  # 1b. acculate DFs
@@ -475,6 +495,7 @@ def pipeline_one_exfil_rate(rate_counter, base_output_name, function_list, exps_
     list_time_gran_to_feature_dataframe = []
     starts_of_testing = []
 
+    cilium_allowed_svc_comm = None
     for counter,experiment_object in enumerate(function_list):
         print "exps_exfil_paths[counter]_to_func",exps_exfil_paths[counter], exps_initiator_info
 
@@ -503,11 +524,16 @@ def pipeline_one_exfil_rate(rate_counter, base_output_name, function_list, exps_
                                            ide_window_size=ide_window_size,
                                            drop_infra_from_graph=drop_infra_from_graph,
                                            pretrained_min_pipeline=pretrained_min_pipeline)
-        if perform_svcpair_component: #
-            experiment_object.run_cilium_component(cilium_component_time, base_output_name)
 
+        if perform_svcpair_component and pretrained_svcpair_model is None: #
+            cilium_allowed_svc_comm = experiment_object.run_cilium_component(start_of_testing, base_output_name,
+                                                                             experiment_object.interval_to_filenames)
+            perform_svcpair_component = False
+
+        if perform_svcpair_component:
             time_gran_to_cilium_alerts = experiment_object.calc_cilium_performance(avg_exfil_per_min[rate_counter],
-                    exfil_per_min_variance[rate_counter], avg_pkt_size[rate_counter], pkt_size_variance[rate_counter])
+                    exfil_per_min_variance[rate_counter], avg_pkt_size[rate_counter], pkt_size_variance[rate_counter],
+                    pretrained_svcpair_model)
             # okay, so now I probably need to do something with these alerts...
             # and then actually do something with all of this stuff...
             print 'at rate', avg_exfil_per_min[rate_counter], "cilium_performance", time_gran_to_cilium_alerts
@@ -516,7 +542,7 @@ def pipeline_one_exfil_rate(rate_counter, base_output_name, function_list, exps_
                 length_alerts = len(time_gran_to_mod_zscore_df[time_gran].index.values)
                 cilium_alerts = cilium_alerts[:length_alerts]
                 print len(time_gran_to_mod_zscore_df[time_gran].index.values), len(cilium_alerts), length_alerts
-                time_gran_to_mod_zscore_df[time_gran]['cilium_for_first_sec_' + str(cilium_component_time)] = cilium_alerts
+                time_gran_to_mod_zscore_df[time_gran]['cilium_for_first_sec_' + str(start_of_testing)] = cilium_alerts
 
 
         print "exps_exfil_pathas[time_gran_to_mod_zscore_df]", time_gran_to_mod_zscore_df
@@ -535,6 +561,7 @@ def pipeline_one_exfil_rate(rate_counter, base_output_name, function_list, exps_
     out_q.put(list_time_gran_to_mod_zscore_df_training)
     out_q.put(list_time_gran_to_mod_zscore_df_testing)
     out_q.put(starts_of_testing)
+    out_q.put(cilium_allowed_svc_comm)
 
 def determine_and_assign_exfil_paths(calc_vals, skip_model_part, function_list, goal_train_test_split,
                                      goal_attack_NoAttack_split_training, time_each_synthetic_exfil,

@@ -222,7 +222,7 @@ def process_on_remote(remote_server_ip, remote_server_key, user, eval_dir_with_d
         print "not uploading model because should be already there..."
 
     # (3) now repeat with the MODEL dir
-    if not skip_upload and eval_dir_with_data != model_dir or eval_analysis_config_file != model_analysis_config_file \
+    if not skip_upload and (eval_dir_with_data != model_dir or eval_analysis_config_file != model_analysis_config_file) \
             and model_analysis_config_file not in uploaded_dirs:
         print "try_making_this_dir:", cur_mimir_dir_name + model_dir_with_data_name
         sh.sendline("mkdir " + "/mydata/" + cur_mimir_dir_name + model_dir_with_data_name)
