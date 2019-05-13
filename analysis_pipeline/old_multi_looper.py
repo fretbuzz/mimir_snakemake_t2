@@ -386,7 +386,7 @@ def parse_config(config_file_pth):
         if 'no_tsl' in config_file:
             no_tsl = config_file['no_tsl']
         else:
-            no_tsl = False
+            no_tsl = True
 
 
     return model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran, type_of_graph, \

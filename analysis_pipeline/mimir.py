@@ -249,7 +249,7 @@ def parse_experimental_config(experimental_config_file, live=False, is_eval=Fals
 
     return multi_experiment_object
 
-def run_analysis(training_config, eval_config=None, live=False, no_tsl=False):
+def run_analysis(training_config, eval_config=None, live=False, no_tsl=True):
     training_experimente_object = parse_experimental_config(training_config, is_eval=False)
     min_rate_training_statspipelines, training_results, svcpair_model = training_experimente_object.run_pipelines(no_tsl=no_tsl)
 
