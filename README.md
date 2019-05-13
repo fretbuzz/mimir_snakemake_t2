@@ -13,7 +13,22 @@ This demo will walk through installing the necessary dependencies, acquiring exa
 ### Step 1: Prerequisites
 First, install non-python-related dependencies. 
 * [Docker](https://docs.docker.com/install/) is needed because the system uses the MulVal container. 
-* [SBCL](http://www.sbcl.org/getting.html) is needed if you want to compare to [directional eigenvector method](http://ide-research.net/papers/2004_KDD_Ide_p140.pdf). 
+* [SBCL](http://www.sbcl.org/getting.html) is needed if you want to compare to [directional eigenvector method](http://ide-research.net/papers/2004_KDD_Ide_p140.pdf). It is necessary to install [quicklist](https://www.quicklisp.org/beta/) as the package manager, and then install the [Common Lisp Machine Learning Library](http://quickdocs.org/clml/). After SBCL is installed, the rest can be setup using this set of instructions:
+```
+curl -O https://beta.quicklisp.org/quicklisp.lisp
+curl -O https://beta.quicklisp.org/quicklisp.lisp.asc
+sbcl --load quicklisp.lisp
+(quicklisp-quickstart:install)
+(exit)
+
+git clone https://github.com/mmaul/clml.git
+mv ./clml ~/quicklisp/local-projects/
+sbcl --dynamic-space-size 2560 --load quicklisp.lisp
+(quicklisp-quickstart:install)
+0
+(ql:quickload :clml :verbose t)
+(exit)
+```
 * [Tshark \& editcap](https://www.wireshark.org/docs/wsug_html_chunked/ChapterBuildInstall.html) are used to parse the pcap. 
 * [Pdfkit](https://github.com/pdfkit/pdfkit/wiki/Installing-WKHTMLTOPDF) is used to generate reports, which at the current stage is the best way to view the system's performance. Note: the system assumes that wkhtmltopdf is located at /usr/local/bin/wkhtmltopdf. You might have to move it there, e.g. with
 ```
