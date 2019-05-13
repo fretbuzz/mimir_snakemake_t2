@@ -196,6 +196,8 @@ class multi_experiment_pipeline(object):
                 else:
                     min_rate_statspipelines = min_rate_statspipelines_agg
 
+
+
             if not self.no_labeled_data:
                 self.generate_aggregate_report()
         else:
@@ -503,6 +505,7 @@ def pipeline_one_exfil_rate(rate_counter, base_output_name, function_list, exps_
                                            pretrained_min_pipeline=pretrained_min_pipeline)
         if perform_svcpair_component: #
             experiment_object.run_cilium_component(cilium_component_time, base_output_name)
+
             time_gran_to_cilium_alerts = experiment_object.calc_cilium_performance(avg_exfil_per_min[rate_counter],
                     exfil_per_min_variance[rate_counter], avg_pkt_size[rate_counter], pkt_size_variance[rate_counter])
             # okay, so now I probably need to do something with these alerts...
