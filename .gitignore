@@ -1,5 +1,6 @@
 *.pyc
 experimental_data/*
+analysis_pipeline/analysis_json/*
 analysis_pipeline/new_analysis_json/*
 e2e_eval_configs/*
 analysis_pipeline/multilooper_outs/*
