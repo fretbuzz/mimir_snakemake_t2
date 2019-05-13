@@ -15,7 +15,7 @@ First, install non-python-related dependencies.
 * [Docker](https://docs.docker.com/install/) is needed because the system uses the MulVal container. 
 * [SBCL](http://www.sbcl.org/getting.html) is needed if you want to compare to [directional eigenvector method](http://ide-research.net/papers/2004_KDD_Ide_p140.pdf). It is necessary to install [quicklist](https://www.quicklisp.org/beta/) as the package manager, and then install the [Common Lisp Machine Learning Library](http://quickdocs.org/clml/). After SBCL is installed, the rest can be setup using this set of instructions:
 ```
- curl -O https://beta.quicklisp.org/quicklisp.lisp
+curl -O https://beta.quicklisp.org/quicklisp.lisp
 curl -O https://beta.quicklisp.org/quicklisp.lisp.asc
 sbcl --load quicklisp.lisp
 (quicklisp-quickstart:install)
