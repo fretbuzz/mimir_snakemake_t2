@@ -211,8 +211,13 @@ class injected_graph():
 
         # normal weight instead of inverse weight b/c which path taken is proportional to the weight... which is what we want.
         #try:
-        cfbc_nodes = nx.current_flow_betweenness_centrality(undirected_class_G, weight='weight')
-        #except:
+        for (u,v,d) in undirected_class_G.edges(data=True):
+            print "undir_class_G_edge:", u,v,d
+
+        try:
+            cfbc_nodes = nx.current_flow_betweenness_centrality(undirected_class_G, weight='weight')
+        except:
+            cfbc_nodes = None
         for service in svc_to_pod_with_outside.keys():
             try:
                 self.graph_feature_dict['class_current_flow_bc_' + service] = cfbc_nodes[service]

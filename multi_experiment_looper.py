@@ -143,6 +143,7 @@ def track_multiple_remotes(remote_ips, eval_experiment_names, training_experimen
                     if finished_exp_name in eval_experiment_names:
                         evalconfigs_to_cm[finished_exp_name] = None ## TODO: should this be something????
             if jobs_to_remove == []:
+                #print "sleeping_for_60..."
                 time.sleep(60) # wait a min and check again
             else:
                 for job_to_remove in jobs_to_remove:
@@ -445,7 +446,7 @@ def run_looper(config_file_pth, update_config, use_remote):
     if use_remote:
         eval_experiment_names = eval_configs_to_xvals.keys()
         training_experiment_name = model_config_file
-        exps_per_server = 4
+        exps_per_server = 3
 
         name_to_config = {}
         for eval_config in eval_configs_to_xvals.keys():
@@ -458,6 +459,8 @@ def run_looper(config_file_pth, update_config, use_remote):
     else:
         evalconfigs_to_cm = create_eval_graph(model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran,
                                             type_of_graph, graph_name, update_config)
+
+
 
     generate_graphs(eval_configs_to_xvals, exfil_rate, evalconfigs_to_cm, timegran, type_of_graph, graph_name, xlabel)
 

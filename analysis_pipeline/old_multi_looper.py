@@ -9,96 +9,7 @@ import multiprocessing
 import time
 from tabulate import tabulate
 import numpy as np
-
-def track_multiple_remotes(remote_ips, eval_experiment_names, training_experiment_name, exps_per_server,
-                           name_to_config, remote_server_key, user, dont_retrieve_from_remote):
-    '''
-    This function will handle assigning the processing to the various remote servers
-    and monitor / aggregate the results.
-
-    Note: for now, we'll assume that there's only a single remote server. However, this server
-    can still have multiple processes (maybe like 7 or so), so there's still some complexity here.
-    '''
-    evalconfigs_to_cm = {}
-
-    # step (1): setup structures to track status of servers and experiments
-    remote_instances_to_status = {}
-    for remote_ip in remote_ips:
-        remote_instances_to_status[remote_ip] = 0 # 0 indicates NO running experiments...
-
-    experiment_name_to_status = {}
-    for exp_name in eval_experiment_names:
-        experiment_name_to_status[exp_name] = 0 # 0 indicates that this experiment has NOT been run yet.
-    experiment_name_to_status[training_experiment_name] = 0
-    # 0 = not running ; 1 = currrently running ; 2 = finished running
-
-    # step (2): if existing servers have extra capacity, use it for processing
-    experiment_name_to_assigned_ip = {}
-    jobs = []
-    can_run_additional_exps = True
-    while 0 in experiment_name_to_status.values() or 1 in experiment_name_to_status.values():
-        for ip,status in remote_instances_to_status.iteritems():
-            update_config = True
-            use_remote = True
-            remote_server_ip = ip
-            if status < exps_per_server and can_run_additional_exps:
-                # if the training model isn't created yet, must do that before ANY other experiments...
-                if experiment_name_to_status[training_experiment_name] != 2:
-                    model_config_file = name_to_config[training_experiment_name]
-                    list_of_eval_configs = [name_to_config[training_experiment_name]]
-                    cur_args = [model_config_file, list_of_eval_configs, update_config, use_remote, remote_server_ip,
-                                remote_server_key, user, dont_retrieve_from_remote]
-                    service = multiprocessing.Process(name=training_experiment_name, target=get_eval_results, args=cur_args)
-                    service.start()
-                    jobs.append(service)
-
-                    experiment_name_to_status[training_experiment_name] = 1
-                    remote_instances_to_status[ip] += 1
-                    experiment_name_to_assigned_ip[training_experiment_name] = ip
-                    can_run_additional_exps = False
-                else:
-                    for exp_name in experiment_name_to_status.keys():
-                        if experiment_name_to_status[exp_name] == 0:
-                            # if we are here, then there is extra compute available + data that needs processing
-                            model_config_file = name_to_config[training_experiment_name]
-                            list_of_eval_configs = [name_to_config[exp_name]]
-                            cur_args = [model_config_file, list_of_eval_configs, update_config, use_remote, remote_server_ip,
-                                        remote_server_key, user, dont_retrieve_from_remote]
-                            service = multiprocessing.Process(name=exp_name, target=get_eval_results, args=cur_args)
-                            service.start()
-                            jobs.append(service)
-
-                            experiment_name_to_status[exp_name] = 1
-                            remote_instances_to_status[ip] += 1
-                            experiment_name_to_assigned_ip[exp_name] = ip
-
-        # step 3: check if any current jobs are done. if they are, then modify the state appropriately.
-        while (len(jobs) > 0):
-            jobs_to_remove = []
-            for job in jobs:
-                if not job.is_alive():
-                    jobs_to_remove.append(job)
-                    finished_exp_name = job.name
-                    finished_ip = experiment_name_to_assigned_ip[finished_exp_name]
-                    remote_instances_to_status[finished_ip] -= 1
-                    experiment_name_to_status[finished_exp_name] = 2
-
-                    can_run_additional_exps = True # training experiment is done first... so if any is done, then it must be done
-
-                    if finished_exp_name in eval_experiment_names:
-                        evalconfigs_to_cm[finished_exp_name] = None ## TODO: should this be something????
-            if jobs_to_remove == []:
-                time.sleep(60) # wait a min and check again
-            else:
-                for job_to_remove in jobs_to_remove:
-                    jobs.remove(job_to_remove)
-                break
-
-    # step 4: ???
-    # once we get here, all the experiments must have finished running... so what's next
-    # okay, well if everything ran, then once we get to here, we just want to returnt the correct stuff
-    # evalconfigs_to_cm
-    ### OR could i use: create_eval_graph ???? would it be possible???
+import ast
 
 def update_config_file(config_file_pth, if_trained_model):
     with open(config_file_pth, 'r') as f:
@@ -118,48 +29,22 @@ def update_config_file(config_file_pth, if_trained_model):
         json.dump(config_file, f, indent=2)
 
 def get_eval_results(model_config_file, list_of_eval_configs, update_config, use_remote=False, remote_server_ip=None,
-                     remote_server_key=None, user=None, dont_retrieve_from_remote=None, only_finished_p=False):
+                     remote_server_key=None, user=None, dont_retrieve_from_remote=None, only_finished_p=False, no_tsl=False):
     eval_config_to_cm = {}
     for eval_config in list_of_eval_configs:
         if not use_remote:
             if only_finished_p:
                 if has_experiment_already_been_run(eval_config):
-                    eval_cm = run_analysis(model_config_file, eval_config=eval_config)
+                    eval_cm = run_analysis(model_config_file, eval_config=eval_config, no_tsl=no_tsl)
                 else:
                     continue  # don't want to wait ---> so just pass over this one.
                 pass
             else:
                 ## TODO: probably wanna wrap in a call to multiprocess, to prevent problems with
                 ## memory size and using swap space...
-                eval_cm = run_analysis(model_config_file, eval_config=eval_config)
+                eval_cm = run_analysis(model_config_file, eval_config=eval_config, no_tsl=no_tsl)
         else:
-            # need to go into the config file and look @ exp_config_file and take the containing directory
-            eval_analysis_config_file = eval_config
-            with open(eval_analysis_config_file, 'r') as g:
-                eval_conf = json.loads(g.read())
-
-            print "multi_eval_analysis_config_file",eval_analysis_config_file
-            #eval_conf_file = eval_conf["eval_conf"]
-            eval_dir_with_data = "/".join(eval_analysis_config_file.split("/")[:-1])
-            print "multi_eval_analysis_config_file_after_split",eval_dir_with_data
-
-            model_analysis_config_file = model_config_file
-            with open(model_analysis_config_file, 'r') as g:
-                model_conf = json.loads(g.read())
-            #model_conf_dir = model_conf["eval_conf"]
-            model_dir = "/".join(model_analysis_config_file.split("/")[-1])
-
-            dont_retreive_train = False
-            dont_retreive_eval = False
-            if dont_retrieve_from_remote is not None:
-                if model_analysis_config_file in dont_retrieve_from_remote:
-                    dont_retreive_train = True
-                if eval_analysis_config_file not in dont_retrieve_from_remote:
-                    dont_retreive_eval = True
-
-            #eval_cm = process_on_remote(remote_server_ip, remote_server_key, user, eval_dir_with_data, eval_analysis_config_file,
-            #                  model_dir, model_analysis_config_file, skip_install=False, skip_upload=False,
-            #                        dont_retreive_eval=dont_retreive_eval, dont_retreive_train=dont_retreive_train)
+            exit(322) # how would it even get here??
 
         eval_config_to_cm[eval_config] = eval_cm
         ## modify the config file so that you don't redo previously done experiments...
@@ -200,7 +85,8 @@ def cm_to_f1(cm, exfil_rate, timegran,method=None):
 
 def create_eval_graph(model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rates, timegran,
                       type_of_graph, graph_name, update_config_p, only_finished_p, use_remote=False,
-                      remote_server_ip=None, remote_server_key=None,user=None, dont_retrieve_from_remote=None):
+                      remote_server_ip=None, remote_server_key=None,user=None, dont_retrieve_from_remote=None,
+                      no_tsl = False):
     if use_cached:
         with open('./temp_outputs/' + graph_name + '_cached_looper.pickle', 'r') as f:
             evalconfigs_to_cm = pickle.loads(f.read())
@@ -208,7 +94,7 @@ def create_eval_graph(model_config_file, eval_configs_to_xvals, xlabel, use_cach
         evalconfigs_to_cm = get_eval_results(model_config_file, eval_configs_to_xvals.keys(), update_config_p, use_remote,
                                              remote_server_ip=remote_server_ip, remote_server_key=remote_server_key,
                                              user=user, dont_retrieve_from_remote=dont_retrieve_from_remote,
-                                             only_finished_p=only_finished_p)
+                                             only_finished_p=only_finished_p, no_tsl=no_tsl)
         with open('./temp_outputs/' + graph_name + '_cached_looper.pickle', 'w') as f:
             f.write(pickle.dumps(evalconfigs_to_cm))
 
@@ -245,13 +131,25 @@ def convert_prob_distro_dict_to_array(prob_distro_dict, prob_distro_keys):
     return prob_distro_vector
 
 def generate_graphs(eval_configs_to_xvals, exfil_rates, evalconfigs_to_cm, timegran, type_of_graph, graph_name,
-                    xlabel, model_config_file):
+                    xlabel, model_config_file, no_tsl=False):
     method_to_rate_to_xlist_ylist = {}
     methods = evalconfigs_to_cm[eval_configs_to_xvals.keys()[0]][exfil_rates[0]][timegran].keys()
     angles_method_to_rate_to_xlist_ylist = {}
 
+    if not no_tsl:
+        mutli_load_graph = './multilooper_outs/aggreg_' + str(timegran) + '_' + graph_name + '.png'
+        multi_angle_graph = './multilooper_outs/euclidean_distance_' + str(timegran) + '_' + graph_name + '.png'
+    else:
+        mutli_load_graph = './multilooper_outs/aggreg_' + str(timegran) + '_' + graph_name + '_no_tsl' + '.png'
+        multi_angle_graph = './multilooper_outs/euclidean_distance_' + str(timegran) + '_' + graph_name + '_no_tsl' + '.png'
+
     method_to_eval_to_f1 = {}
     for exfil_rate in exfil_rates:
+        if not no_tsl:
+            single_scale_load = './multilooper_outs/' + str(timegran) + '_' + graph_name + '_' + str(exfil_rate) + '.png'
+        else:
+            single_scale_load = './multilooper_outs/' + str(timegran) + '_' + graph_name + '_' + str(exfil_rate) + '_no_tsl' + '.png'
+
         method_to_x_vals_list = {}
         method_to_y_vals_list = {}
         for method in methods:
@@ -339,7 +237,7 @@ def generate_graphs(eval_configs_to_xvals, exfil_rates, evalconfigs_to_cm, timeg
             method_to_rate_to_xlist_ylist[method][exfil_rate] = (x_vals_list, y_vals_list)
         plt.legend()
         plt.show()
-        plt.savefig('./multilooper_outs/' + graph_name + '_' + str(exfil_rate) + '.png')
+        plt.savefig(single_scale_load)
 
     # [continuing on work for angle graphs] step (4) : finally create the graph (probably a scatterplot)
     if type_of_graph == 'angle':
@@ -359,7 +257,7 @@ def generate_graphs(eval_configs_to_xvals, exfil_rates, evalconfigs_to_cm, timeg
                 axes[counter].set_title(str(rate / BytesPerMegabyte) + ' MB/min Exfil')
                 axes[counter].legend()
         fig.align_ylabels(axes)
-        fig.savefig('./multilooper_outs/euclidean_distance_' + graph_name + '.png')
+        fig.savefig(multi_angle_graph)
 
     ##  put them all on the same grid + y-axis scale... (I'm just going to do it manually b/c hurry...)
     plt.clf()
@@ -376,7 +274,7 @@ def generate_graphs(eval_configs_to_xvals, exfil_rates, evalconfigs_to_cm, timeg
             axes[counter].set_title(str(rate / BytesPerMegabyte) + ' MB/min Exfil')
             axes[counter].legend()
     fig.align_ylabels(axes)
-    fig.savefig('./multilooper_outs/aggreg_' + graph_name + '.png')
+    fig.savefig(mutli_load_graph)
 
     # okay, we can leave the first two out... since I can just type it in with my HANDS.
     ## new plan: paper draft. use what we do have: old sock + wordpress. if we can fix hipsterstore, then we can use that.
@@ -442,6 +340,11 @@ def parse_config(config_file_pth):
 
         if 'timegran' in config_file:
             timegran = config_file['timegran']
+
+            print "timegran", timegran, type(timegran), type(timegran) != int
+            if type(timegran) != int:
+                print "timegran_is_a_str... literal_eval..."
+                timegran = ast.literal_eval(timegran)
         else:
             timegran = False
 
@@ -480,14 +383,19 @@ def parse_config(config_file_pth):
         else:
             dont_retrieve_from_remote = None
 
+        if 'no_tsl' in config_file:
+            no_tsl = config_file['no_tsl']
+        else:
+            no_tsl = False
+
 
     return model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran, type_of_graph, \
-           graph_name, use_remote, remote_server_ips, remote_server_key, user, dont_retrieve_from_remote
+           graph_name, use_remote, remote_server_ips, remote_server_key, user, dont_retrieve_from_remote, no_tsl
 
 def run_looper(config_file_pth, update_config, use_remote, only_finished_p):
 
     model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran, type_of_graph, graph_name, \
-    use_remote_from_config, remote_ips, remote_server_key, user, dont_retrieve_from_remote = parse_config(config_file_pth)
+    use_remote_from_config, remote_ips, remote_server_key, user, dont_retrieve_from_remote, no_tsl = parse_config(config_file_pth)
 
     if use_remote_from_config is not None:
         use_remote = use_remote_from_config or use_remote
@@ -496,30 +404,16 @@ def run_looper(config_file_pth, update_config, use_remote, only_finished_p):
     #exit(233)
 
     # DON'T FORGET ABOUT use_cached (it's very useful -- especially when iterating on graphs!!)
-    use_cached = False #use_cached
+    use_cached = False #use_cached # TODO
     update_config = update_config
-    use_remote = use_remote
+    ##use_remote = use_remote
     only_finished_p = False #only_finished_p ## VERY USEFUL
 
-    if use_remote:
-        eval_experiment_names = eval_configs_to_xvals.keys()
-        training_experiment_name = model_config_file
-        exps_per_server = 6
-
-        name_to_config = {}
-        for eval_config in eval_configs_to_xvals.keys():
-            name_to_config[eval_config] = eval_config
-        name_to_config[training_experiment_name] = training_experiment_name
-
-        evalconfigs_to_cm = track_multiple_remotes(remote_ips, eval_experiment_names, training_experiment_name,
-                                                   exps_per_server, name_to_config, remote_server_key, user,
-                                                   dont_retrieve_from_remote)
-    else:
-        evalconfigs_to_cm = create_eval_graph(model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran,
-                                            type_of_graph, graph_name, update_config, only_finished_p)
+    evalconfigs_to_cm = create_eval_graph(model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran,
+                                        type_of_graph, graph_name, update_config, only_finished_p, no_tsl=no_tsl)
 
     generate_graphs(eval_configs_to_xvals, exfil_rate, evalconfigs_to_cm, timegran, type_of_graph, graph_name, xlabel,
-                    model_config_file)
+                    model_config_file, no_tsl)
 
 if __name__=="__main__":
     print "RUNNING"
@@ -539,12 +433,12 @@ if __name__=="__main__":
     args = parser.parse_args()
 
     if not args.config_json:
-        config_file_pth = "./multi_experiment_configs/wordpress_scale.json"
+        #########config_file_pth = "./multi_experiment_configs/wordpress_scale.json"
         #config_file_pth = "./analysis_pipeline/multi_experiment_configs/old_sockshop_angle_remote2.json"
         #config_file_pth = "./multi_experiment_configs/old_sockshop_scale.json"
         ####config_file_pth = "./multi_experiment_configs/old_sockshop_angle.json"
         #config_file_pth = "./analysis_pipeline/multi_experiment_configs/sockshop_test_remote.json"
-        #####config_file_pth = "./multi_experiment_configs/new_sockshop_scale.json"
+        config_file_pth = "./multi_experiment_configs/new_sockshop_scale.json"
     else:
         config_file_pth = args.config_json
 

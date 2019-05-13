@@ -87,6 +87,10 @@ def run_experiment(app_name, local_path_to_exp_config, exp_name, skip_setup_p, u
         sendline_and_wait_responses(sh, 'minikube delete', timeout=5)
         print("--end minikube delete ---")
 
+        # useful when cycling wordpress deployments...
+        sendline_and_wait_responses(sh, 'helm del --purge my-release', timeout=5)
+        sendline_and_wait_responses(sh, 'helm del --purge wwwppp', timeout=5)
+
         clone_mimir_str = "cd /mydata/; git clone https://github.com/fretbuzz/mimir_v2"
         sendline_and_wait_responses(sh, clone_mimir_str, timeout=5)
 

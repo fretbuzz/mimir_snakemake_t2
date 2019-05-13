@@ -496,12 +496,18 @@ class single_rate_stats_pipeline():
         if len(self.time_gran_to_aggregate_mod_score_dfs.keys()) > 1:
             self._train_multi_time_model( drop_pairwise_features, pretrained_statistical_analysis_v2, skip_heatmap_p )
 
-    def create_the_report(self, auto_open_p):
+    def create_the_report(self, auto_open_p, use_ts_lower=True):
             ## handle it like this... self.timegran_to_statistical_pipeline[tuple(self.timegran_to_statistical_pipeline.keys())]
             for timegran,stats_pipeline in self.timegran_to_statistical_pipeline.iteritems():
                 self.report_sections[timegran] = stats_pipeline.generate_report_section()
 
-            generate_report.join_report_sections(self.recipes_used, self.base_output_name, self.avg_exfil_per_min,
+            if use_ts_lower:
+                output_location = self.base_output_name
+            else:
+                output_location = self.base_output_name + '_no_tsl'
+
+            # use_ts_lower
+            generate_report.join_report_sections(self.recipes_used, output_location, self.avg_exfil_per_min,
                                                  self.avg_pkt_size, self.exfil_per_min_variance, self.pkt_size_variance,
                                                  self.report_sections, auto_open_p)
 

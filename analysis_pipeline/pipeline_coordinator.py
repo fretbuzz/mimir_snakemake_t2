@@ -162,7 +162,12 @@ class multi_experiment_pipeline(object):
                                                                     self.goal_attack_NoAttack_split_testing,
                                                                     self.max_path_length, self.max_dns_porportion)
 
-    def run_pipelines(self, pretrained_model_object = None):
+    def run_pipelines(self, pretrained_model_object = None, no_tsl=False):
+        if no_tsl:
+            self.use_ts_lower = False
+        else:
+            self.use_ts_lower = True
+
         self.pretrained_min_pipeline = pretrained_model_object
         print "self.get_endresult_from_memory", self.get_endresult_from_memory
         if not self.get_endresult_from_memory:
@@ -203,7 +208,7 @@ class multi_experiment_pipeline(object):
                     min_rate_statspipelines = pickle.load(f)
             #min_rate_statspipelines.create_the_report(self.auto_open_pdfs)
 
-        ## TODO: should return performance table for second val instead of None...
+        ## should return performance table for second val instead of None...
         ## okay, so for non-eval this should be @ same injection rate for train and test (marked i)
         # for eval, this should simply be over eval (whether physical or strictly injected) (marked ii)
 
@@ -296,7 +301,7 @@ class multi_experiment_pipeline(object):
                                                  skip_heatmap_p = self.skip_heatmap_p, logistic_p=self.use_logistic)
 
         if not self.no_labeled_data:
-            stats_pipelines.create_the_report(self.auto_open_pdfs)
+            stats_pipelines.create_the_report(self.auto_open_pdfs, use_ts_lower=self.use_ts_lower)
 
         self.single_rate_stats_pipelines[self.avg_exfil_per_min[rate_counter]] = stats_pipelines
 

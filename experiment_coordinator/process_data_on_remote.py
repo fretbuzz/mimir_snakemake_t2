@@ -120,8 +120,6 @@ def process_on_remote(remote_server_ip, remote_server_key, user, eval_dir_with_d
         (exit)
         '''
 
-
-
         print "installing pygraphviz"
         sendline_and_wait_responses(sh, "apt-get install -y graphviz libgraphviz-dev pkg-config", timeout=30)
         sendline_and_wait_responses(sh, "pip install pygraphviz --install-option=\"--include-path=/usr/include/graphviz\" "
@@ -132,6 +130,8 @@ def process_on_remote(remote_server_ip, remote_server_key, user, eval_dir_with_d
         print "pip install python depend encies rec:"
         sendline_and_wait_responses(sh, "pip install docker networkx matplotlib jinja2 pdfkit numpy pandas seaborn Cython \
                                     pyyaml multiprocessing scipy pdfkit tabulate --user", timeout=30)
+
+        sendline_and_wait_responses(sh, "sudo docker pull risksense/mulval:latest", timeout=60)
 
     ####################
 
@@ -146,15 +146,6 @@ def process_on_remote(remote_server_ip, remote_server_key, user, eval_dir_with_d
     #'''
     line_rec = sh.recvline(timeout=5)
     print "line_rec", line_rec
-
-
-    ## check if processing is really necessary...
-    # okay, if this is for training the model...
-    if eval_dir_with_data == model_dir and eval_analysis_config_file == model_analysis_config_file:
-        # then if it is already processed,
-        if is_model_already_trained(model_analysis_config_file):
-            # we can just return :)
-            return None
 
     ## parse line_rec here... (i'll just put some super simple code here now for workflow purposes)
     print "mimir_num",mimir_num
@@ -217,6 +208,18 @@ def process_on_remote(remote_server_ip, remote_server_key, user, eval_dir_with_d
             print "eval_analysis_config_file probably already exists..."
         ## clear /tmp after uploading is complete... otherwise all the space will fill up... (note: doing it in looper now)
         #sendline_and_wait_responses(sh, "sudo rm -rf  /tmp/*", timeout=5)
+
+    ## check if processing is really necessary...
+    # okay, if this is for training the model...
+    ## NOTE: moving this !AFTER! uploading the model dir so that I don't duplicate uploads among simulataneous experiments...
+    if eval_dir_with_data == model_dir and eval_analysis_config_file == model_analysis_config_file:
+        # then if it is already processed,
+        if is_model_already_trained(model_analysis_config_file):
+            # we can just return :)
+            return None
+
+    if  model_analysis_config_file in uploaded_dirs:
+        print "not uploading model because should be already there..."
 
     # (3) now repeat with the MODEL dir
     if not skip_upload and eval_dir_with_data != model_dir or eval_analysis_config_file != model_analysis_config_file \
