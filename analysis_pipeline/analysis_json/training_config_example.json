@@ -11,7 +11,7 @@
 
   "auto_open_pdfs": false,
   "perform_svcpair_sec_component": false,
-  "calc_ide": false
+  "calc_ide": false,
 
   "time_of_synethic_exfil": 60,
   "time_interval_lengths": [10, 60],
