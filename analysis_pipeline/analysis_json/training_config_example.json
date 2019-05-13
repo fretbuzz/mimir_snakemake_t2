@@ -1,15 +1,15 @@
 {
-  "cur_experiment_name": "sockshop_one_auto_mk12",
+  "cur_experiment_name": "wordpress_training",
   "exp_config_file": "/Volumes/exM/experimental_data/sockshop_info/sockshop_one_auto_mk13/sockshop_one_auto_mk13_analysis.json",
-  "netsec_policy": "../experiment_coordinator/netsec_policies/sockshop_netsec_seg.txt",
+  "netsec_policy": "None",
 
   "make_edgefiles": true,
   "skip_graph_injection": false,
   "calc_vals": true,
   "calculate_z_scores": true,
   "get_endresult_from_memory": false,
-  "auto_open_pdfs": false,
 
+  "auto_open_pdfs": false,
   "perform_svcpair_sec_component": false,
   "calc_ide": false
 
