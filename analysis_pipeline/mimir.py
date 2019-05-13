@@ -257,7 +257,7 @@ def run_analysis(training_config, eval_config=None, live=False, no_tsl=False):
     print "training_results", training_results
     eval_results = None
     #time.sleep(35)
-    exit(233)
+    ##exit(233)
 
     if eval_config:
         eval_experimente_object = parse_experimental_config(eval_config, live=live, is_eval=True)
