@@ -104,22 +104,6 @@ def process_on_remote(remote_server_ip, remote_server_key, user, eval_dir_with_d
         sendline_and_wait_responses(sh, "(ql:quickload :clml :verbose t)", timeout=15)
         sendline_and_wait_responses(sh, "(exit)", timeout=15)
 
-        '''
-        curl -O https://beta.quicklisp.org/quicklisp.lisp
-        curl -O https://beta.quicklisp.org/quicklisp.lisp.asc
-        sbcl --load quicklisp.lisp
-        (quicklisp-quickstart:install)
-        (exit)
-        
-        git clone https://github.com/mmaul/clml.git
-        mv ./clml ~/quicklisp/local-projects/
-        sbcl --dynamic-space-size 2560 --load quicklisp.lisp
-        (quicklisp-quickstart:install)
-        0
-        (ql:quickload :clml :verbose t)
-        (exit)
-        '''
-
         print "installing pygraphviz"
         sendline_and_wait_responses(sh, "apt-get install -y graphviz libgraphviz-dev pkg-config", timeout=30)
         sendline_and_wait_responses(sh, "pip install pygraphviz --install-option=\"--include-path=/usr/include/graphviz\" "

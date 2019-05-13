@@ -253,9 +253,11 @@ def run_analysis(training_config, eval_config=None, live=False, no_tsl=False):
     training_experimente_object = parse_experimental_config(training_config, is_eval=False)
     min_rate_training_statspipelines, training_results, svcpair_model = training_experimente_object.run_pipelines(no_tsl=no_tsl)
 
+    print "min_rate_training_statspipelines",min_rate_training_statspipelines
     print "training_results", training_results
     eval_results = None
     #time.sleep(35)
+    exit(233)
 
     if eval_config:
         eval_experimente_object = parse_experimental_config(eval_config, live=live, is_eval=True)

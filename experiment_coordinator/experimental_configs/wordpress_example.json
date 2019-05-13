@@ -2,7 +2,7 @@
     "application_name": "wordpress",
     "experiment_name": "wordpress_mk10",
     "path_to_docker_machine_tls_certs":"/mydata/.minikube/certs",
-    "experiment_length_sec": 10800,
+    "experiment_length_sec": 3600,
 
     "network_plugin": "none",
     "setup" : {},
