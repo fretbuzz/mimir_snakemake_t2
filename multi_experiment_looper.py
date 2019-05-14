@@ -104,9 +104,11 @@ def track_multiple_remotes(remote_ips, eval_experiment_names, training_experimen
                                 # if we are here, then there is extra compute available + data that needs processing
                                 model_config_file = name_to_config[training_experiment_name]
                                 list_of_eval_configs = [name_to_config[exp_name]]
+                                skip_current_install = remote_ip_to_skip_install[ip]
+
                                 cur_args = [model_config_file, list_of_eval_configs, update_config, use_remote, remote_server_ip,
                                             remote_server_key, user, dont_retrieve_from_remote] #, skip_install, skip_upload] #??
-                                kwargs = {"skip_install": skip_install, "skip_upload": skip_upload, "mimir_num":mimir_num,
+                                kwargs = {"skip_install": skip_current_install, "skip_upload": skip_upload, "mimir_num":mimir_num,
                                           "uploaded_dirs": remote_ip_to_uploaded_dirs[ip], "logging": logging}
                                 service = multiprocessing.Process(name=exp_name, target=get_eval_results,
                                                                   args=cur_args, kwargs=kwargs)

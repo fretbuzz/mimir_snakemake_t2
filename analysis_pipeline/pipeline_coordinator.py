@@ -272,7 +272,7 @@ class multi_experiment_pipeline(object):
                 self.pkt_size_variance, skip_graph_injection, calc_ide,
                 self.drop_pairwise_features, self.perform_svcpair_sec_component, None,
                 self.ide_window_size, self.drop_infra_from_graph, prefix_for_inject_params, pretrained_min_pipeline,
-                pretrained_cilium_model]
+                pretrained_cilium_model, no_labeled_data]
         p = multiprocessing.Process(
             target=pipeline_one_exfil_rate,
             args=args)
@@ -484,7 +484,7 @@ def pipeline_one_exfil_rate(rate_counter, base_output_name, function_list, exps_
                             exfil_per_min_variance, avg_pkt_size, pkt_size_variance, skip_graph_injection, calc_ide,
                             drop_pairwise_features, perform_svcpair_component,
                             cilium_component_time_not_used, ide_window_size, drop_infra_from_graph, prefix_for_inject_params,
-                            pretrained_min_pipeline=None, pretrained_svcpair_model=None):
+                            pretrained_min_pipeline=None, pretrained_svcpair_model=None, no_labeled_data=False):
     ## step (1) : iterate through individual experiments...
     ##  # 1a. list of inputs [done]
     ##  # 1b. acculate DFs
@@ -523,7 +523,7 @@ def pipeline_one_exfil_rate(rate_counter, base_output_name, function_list, exps_
                                            calc_ide=calc_ide,
                                            ide_window_size=ide_window_size,
                                            drop_infra_from_graph=drop_infra_from_graph,
-                                           pretrained_min_pipeline=pretrained_min_pipeline)
+                                           pretrained_min_pipeline=pretrained_min_pipeline, no_labeled_data=no_labeled_data)
 
         if perform_svcpair_component and pretrained_svcpair_model is None: #
             cilium_allowed_svc_comm = experiment_object.run_cilium_component(start_of_testing, base_output_name,

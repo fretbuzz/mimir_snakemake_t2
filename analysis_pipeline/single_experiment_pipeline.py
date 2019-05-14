@@ -189,7 +189,7 @@ class data_anylsis_pipline(object):
     def calculate_values(self,end_of_training, synthetic_exfil_paths_train, synthetic_exfil_paths_test,
                          avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
                          calc_ide, ide_window_size, drop_infra_from_graph,
-                         pretrained_min_pipeline=None):
+                         pretrained_min_pipeline=None, no_labeled_data=False):
         self.end_of_training = end_of_training
         if self.calc_vals or calc_ide:
             exp_length = len(self.interval_to_filenames[str(self.smallest_time_gran)]) * self.smallest_time_gran
@@ -244,15 +244,13 @@ class data_anylsis_pipline(object):
             time_gran_to_new_neighbors_outside, time_gran_to_new_neighbors_dns, time_gran_to_new_neighbors_all, \
             time_gran_to_list_of_amt_of_out_traffic_bytes, time_gran_to_list_of_amt_of_out_traffic_pkts, time_gran_to_exfil_paths_series = \
                 calculate_raw_graph_metrics(self.time_interval_lengths, self.interval_to_filenames, self.ms_s, self.basegraph_name,
-                                            self.calc_vals,
-                                            ide_window_size, self.mapping, self.make_net_graphs_p,
-                                            self.infra_instances,
-                                            synthetic_exfil_paths, self.initiator_info_for_paths, time_gran_to_attack_ranges,
-                                            avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
-                                            self.skip_graph_injection, self.end_of_training,
-                                            self.cluster_creation_log, calc_ide,
+                                            self.calc_vals, ide_window_size, self.mapping, self.make_net_graphs_p,
+                                            self.infra_instances, synthetic_exfil_paths, self.initiator_info_for_paths,
+                                            time_gran_to_attack_ranges, avg_exfil_per_min, exfil_per_min_variance,
+                                            avg_pkt_size, pkt_size_variance, self.skip_graph_injection,
+                                            self.end_of_training, self.cluster_creation_log, calc_ide,
                                             self.basefile_name, drop_infra_from_graph, self.exp_name,
-                                            self.sensitive_ms, time_gran_to_exfil_paths_series)
+                                            self.sensitive_ms, time_gran_to_exfil_paths_series, no_labeled_data)
 
             ## time_gran_to_attack_labels needs to be corrected using time_gran_to_list_of_concrete_exfil_paths
             ## because just because it was assigned, doesn't mean that it is necessarily going to be injected (might
@@ -262,6 +260,10 @@ class data_anylsis_pipline(object):
 
             time_gran_to_feature_dataframe = process_graph_metrics.generate_feature_dfs(total_calculated_vals,
                                                                                         self.time_interval_lengths)
+
+            for time_gran,feature_dataframe in time_gran_to_feature_dataframe.iteritems():
+                if 'attack_labels' in feature_dataframe:
+                    time_gran_to_attack_labels[time_gran] = feature_dataframe['attack_labels']
 
             process_graph_metrics.save_feature_datafames(time_gran_to_feature_dataframe, self.alert_file + self.sub_path,
                                                          time_gran_to_attack_labels,
@@ -274,7 +276,7 @@ class data_anylsis_pipline(object):
                                                          time_gran_to_list_of_amt_of_out_traffic_pkts)
 
         #else:
-        #if True: # due to the behavior of some later components, why actually wanna read the values from memory everytime
+        #if True: # due to the behavior of some later components, we actually wanna read the values from memory everytime
                  # (even if we literally have those values in memory) b/c writing/loading changes some values (in particular
                  # types) in a way that makes the latter part actually work (other option is extensive debugging, which I do
                  # not have time to do at the moment)
@@ -473,7 +475,7 @@ def process_one_set_of_graphs(time_interval_length, ide_window_size,
                               avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
                               skip_graph_injection, end_of_training, pod_creation_log, calc_ide,
                               processed_graph_loc, drop_infra_from_graph, sensitive_ms,
-                              exfil_paths_series):
+                              exfil_paths_series, no_labeled_data):
     print "process_one_set_of_graphs"
     #time.sleep(30)
     if calc_vals:
@@ -493,7 +495,7 @@ def process_one_set_of_graphs(time_interval_length, ide_window_size,
             current_set_of_graphs.save() # I think this is valid...
 
         current_set_of_graphs.calcuated_single_step_metrics(sensitive_ms)
-        current_set_of_graphs.calc_serialize_metrics()
+        current_set_of_graphs.calc_serialize_metrics(no_labeled_data=no_labeled_data)
 
         # these relate to ide
         #''
@@ -534,7 +536,7 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
                                 exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
                                 skip_graph_injection, end_of_training, pod_creation_log, calc_ide,
                                 edgefile_path, drop_infra_from_graph, exp_name, sensitive_ms,
-                                time_gran_to_exfil_paths_series):
+                                time_gran_to_exfil_paths_series, no_labeled_data):
     total_calculated_vals = {}
     time_gran_to_list_of_concrete_exfil_paths = {}
     time_gran_to_list_of_exfil_amts = {}
@@ -571,7 +573,8 @@ def calculate_raw_graph_metrics(time_interval_lengths, interval_to_filenames, ms
                 time_gran_to_attacks_to_times[time_interval_length], collected_metrics_location, current_set_of_graphs_loc,
                 calc_vals, out_q, avg_exfil_per_min, exfil_per_min_variance, avg_pkt_size, pkt_size_variance,
                 skip_graph_injection, end_of_training, pod_creation_log, calc_ide,
-                processed_graph_loc, drop_infra_from_graph, sensitive_ms, time_gran_to_exfil_paths_series[time_interval_length]]
+                processed_graph_loc, drop_infra_from_graph, sensitive_ms,
+                time_gran_to_exfil_paths_series[time_interval_length], no_labeled_data]
         p = multiprocessing.Process(
             target=process_one_set_of_graphs,
             args=args)

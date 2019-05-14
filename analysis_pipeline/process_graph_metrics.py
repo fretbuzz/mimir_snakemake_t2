@@ -101,8 +101,10 @@ def generate_feature_dfs(calculated_vals, time_interval_lengths):
         #print feature_array
         #print list_of_metric_names
         for counter, feature_vector in enumerate(metric_val_lists):
-            print metric_names[counter], feature_vector, len(feature_vector)
+            #print metric_names[counter], feature_vector, len(feature_vector)
+            print metric_names[counter], len(feature_vector)
 
+        ####print "feature_array", feature_array.shape, feature_array['attack_labels']
         times = [i * time_gran for i in range(0,len(feature_array[:,0]))]
         print feature_array
         feature_dataframe = pandas.DataFrame(data=feature_array, columns=metric_names, index=times)

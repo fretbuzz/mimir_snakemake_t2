@@ -70,6 +70,8 @@ class injected_graph():
         self.cur_1si_G_non_injected = None
         self.attack_happened_p = attack_happened_p
 
+        # past_end_of_training, attack_happened_p
+
     def save(self):
         with open(self.where_to_save_this_obj, 'wb') as output:  # Overwrites any existing file.
             pickle.dump(self, output, pickle.HIGHEST_PROTOCOL)
@@ -499,7 +501,7 @@ class set_of_injected_graphs():
         return calc_ide_angles(self.aggregate_csv_edgefile_loc, self.joint_col_list, ide_window_size, self.raw_edgefile_names,
                                None, calc_ide)
 
-    def calc_serialize_metrics(self):
+    def calc_serialize_metrics(self, no_labeled_data=False):
         adjacency_matrixes = []
         dns_in_metric_dicts = []
 
@@ -517,6 +519,15 @@ class set_of_injected_graphs():
             print("current_graph_feature_dict.keys()", current_graph_feature_dict.keys())
             adjacency_matrixes.append( current_graph_feature_dict['adjacency_matrix'] )
             dns_in_metric_dicts.append( current_graph_feature_dict['weight_into_dns_dict'] )
+
+            # ZXZX
+            #'''
+            if not no_labeled_data:
+                # past_end_of_training, attack_happened_p
+                if 'attack_labels' not in self.calculated_values.keys():
+                    self.calculated_values['attack_labels'] = []
+                self.calculated_values['attack_labels'].append(injected_graph.attack_happened_p)
+            #'''
 
             #for value_name, value_value in current_graph_feature_dict.iteritems():
             for value_name in self.feature_graph_keys:
