@@ -460,7 +460,8 @@ class single_rate_stats_pipeline():
 
                 #cur_base_output_name + 'logistic_l1_mod_z_lass_feat_sel_'
             else:
-                clf = LassoCV(cv=3, max_iter=80000) ## putting positive here makes it works.
+                #clf = LassoCV(cv=3, max_iter=80000) ## putting positive here makes it works.
+                clf = LassoCV(cv=5, max_iter=80000) ## putting positive here makes it works.
 
             if 'lass_feat_sel' in self.base_output_name or logistic_p:
                 lasso_feature_selection_p = True
@@ -640,7 +641,8 @@ def drop_useless_columns_aggreg_DF(aggregate_mod_score_dfs):
             'cilium' not in column and '_ide' not in column and \
             'class_harmonic_centrality_' not in column and \
             'pods_cfbc_sub_coef_of_var_' not in column or\
-            'class_current_flow_bc_sub_' in column:
+            'class_current_flow_bc_sub_' in column or\
+            'attack_labels_' == column:
 
             aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(columns=column)
         ##### ### # ### #####

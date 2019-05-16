@@ -230,10 +230,10 @@ def parse_experimental_config(experimental_config_file, live=False, is_eval=Fals
         no_labeled_data = True
         avg_exfil_per_min = [0.0]
 
-    if calc_ide and (not calc_vals):
-        print "if calculating ide scores, must also calculate values for the graphs"
-        print "i.e. if calc_ide true, then calc_vals must be true"
-        exit(233)
+    #if calc_ide and (not calc_vals):
+    #    print "if calculating ide scores, must also calculate values for the graphs"
+    #    print "i.e. if calc_ide true, then calc_vals must be true"
+    #    exit(233)
 
     multi_experiment_object = \
         multi_experiment_pipeline(experiment_classes, base_output_location, True, time_of_synethic_exfil,

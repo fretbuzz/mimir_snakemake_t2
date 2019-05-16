@@ -83,6 +83,48 @@ def cm_to_f1(cm, exfil_rate, timegran,method=None):
     f1_score = (2.0 * tp) / (2.0 * tp + fp + fn)
     return f1_score
 
+
+
+def cm_to_exfil_rate_vs_f1(cm, evalconfig):
+    timegran_to_method_to_rate_to_f1 = {}
+    for rate, timegran_method_cm in cm.iteritems():
+        for timegran, method_cm in timegran_method_cm.iteritems():
+            methods = method_cm.keys()
+            for method, confusion_matrix in method_cm.iteritems():
+                tn, fp, fn, tp = aggregate_cm_vals_over_paths(confusion_matrix)
+                f1_score = (2.0 * tp) / (2.0 * tp + fp + fn)
+
+                if timegran not in timegran_to_method_to_rate_to_f1:
+                    timegran_to_method_to_rate_to_f1[timegran] = {}
+                if method not in timegran_to_method_to_rate_to_f1[timegran]:
+                    timegran_to_method_to_rate_to_f1[timegran][method] = {}
+                timegran_to_method_to_rate_to_f1[timegran][method][rate] = f1_score
+
+    for timegan,method_to_rate_to_f1 in timegran_to_method_to_rate_to_f1.iteritems():
+        plt.clf()
+        plt.figure(figsize=(15, 20))
+        fig, ax = plt.subplots()
+        for method in methods:
+            rate_to_f1 = method_to_rate_to_f1[method]
+            rates = rate_to_f1.keys()
+            f1s = rate_to_f1.values()
+            rates, f1s = zip(*sorted(zip(rates, f1s)))
+
+            # so rates would be x-axis and f1s would be the y-axis
+
+            ax.plot(rates, f1s, label=str(method), marker='*', alpha=0.5, linewidth=3.0)
+            ax.set_title('exfil_rate vs f1', fontsize=15)
+            ax.set_ylabel('f1 scores', fontsize=25)
+            ax.set_xscale('log')
+            ax.set_xlabel('log exfil rate (MB/min)', fontsize=25)
+            ax.legend()
+
+        evalconfig_name = evalconfig.split('/')[-1]
+        f1_vs_exfil_rate_filname = "./multilooper_outs/" + evalconfig_name + '_' + str(timegan) + "_f1_vs_exfil_rate.png"
+        print "f1_vs_exfil_rate_filname",f1_vs_exfil_rate_filname
+        fig.savefig(f1_vs_exfil_rate_filname)
+
+
 def create_eval_graph(model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rates, timegran,
                       type_of_graph, graph_name, update_config_p, only_finished_p, use_remote=False,
                       remote_server_ip=None, remote_server_key=None,user=None, dont_retrieve_from_remote=None,
@@ -168,7 +210,6 @@ def generate_graphs(eval_configs_to_xvals, exfil_rates, evalconfigs_to_cm, timeg
                     cur_cm = evalconfigs_to_cm[evalconfig]
 
                 optimal_f1 = cm_to_f1(cur_cm, exfil_rate, timegran, method=method)
-                optimal_f1 = cm_to_f1(cur_cm, exfil_rate, timegran, method=method)
                 y_vals_list.append( optimal_f1 )
 
                 if method not in method_to_eval_to_f1:
@@ -180,6 +221,9 @@ def generate_graphs(eval_configs_to_xvals, exfil_rates, evalconfigs_to_cm, timeg
                     prob_distro = get_prob_distr(evalconfig)
                     eval_to_prob_dist[evalconfig] = prob_distro
                 print "eval_to_prob_dist",eval_to_prob_dist
+
+                ## TODO: GENERATE THE NEW GRAPHS
+                cm_to_exfil_rate_vs_f1(cur_cm, evalconfig)
 
                 ## (step1) cache the results from get_eval_results (b/c gotta iterate on steps2&3) [[[done]]]
                 ## (step2) put process cms (to get F1 scores)
@@ -404,7 +448,7 @@ def run_looper(config_file_pth, update_config, use_remote, only_finished_p):
     #exit(233)
 
     # DON'T FORGET ABOUT use_cached (it's very useful -- especially when iterating on graphs!!)
-    use_cached = False #use_cached # TODO
+    use_cached = use_cached
     update_config = update_config
     ##use_remote = use_remote
     only_finished_p = False #only_finished_p ## VERY USEFUL
@@ -433,12 +477,12 @@ if __name__=="__main__":
     args = parser.parse_args()
 
     if not args.config_json:
-        config_file_pth = "./multi_experiment_configs/wordpress_scale.json"
+        ########config_file_pth = "./multi_experiment_configs/wordpress_scale.json"
         #config_file_pth = "./analysis_pipeline/multi_experiment_configs/old_sockshop_angle_remote2.json"
         #config_file_pth = "./multi_experiment_configs/old_sockshop_scale.json"
-        ####config_file_pth = "./multi_experiment_configs/old_sockshop_angle.json"
+        #########config_file_pth = "./multi_experiment_configs/old_sockshop_angle.json"
         #config_file_pth = "./analysis_pipeline/multi_experiment_configs/sockshop_test_remote.json"
-        #########config_file_pth = "./multi_experiment_configs/new_sockshop_scale.json"
+        config_file_pth = "./multi_experiment_configs/new_sockshop_scale.json"
     else:
         config_file_pth = args.config_json
 

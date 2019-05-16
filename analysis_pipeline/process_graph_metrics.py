@@ -191,6 +191,10 @@ def normalize_data_v2(time_gran_to_feature_dataframe, time_gran_to_attack_labels
         training_values = feature_dataframe.iloc[:last_label_in_training]
         training_noAttack_values = training_values.loc[training_values['attack_labels'] == 0]
 
+        if 'attack_labels' not in training_values:
+            print "attack_labels non in training_values"
+            exit(3)
+
         #transformer = RobustScaler().fit(training_noAttack_values)
 
         # min_stats_pipeline will be None when this isn't an eval portion...

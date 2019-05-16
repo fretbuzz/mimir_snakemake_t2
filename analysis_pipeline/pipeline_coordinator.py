@@ -157,7 +157,7 @@ class multi_experiment_pipeline(object):
 
     def generate_and_assign_exfil_paths(self):
         self.exps_exfil_paths, self.end_of_train_portions, self.training_exfil_paths, self.testing_exfil_paths, \
-        self.exps_initiator_info = determine_and_assign_exfil_paths(self.calc_vals, self.skip_model_part,
+        self.exps_initiator_info = determine_and_assign_exfil_paths(self.calc_vals or self.calc_ide, self.skip_model_part,
                                                                     self.function_list, self.goal_train_test_split,
                                                                     self.goal_attack_NoAttack_split_training,
                                                                     self.time_each_synthetic_exfil,
@@ -366,7 +366,11 @@ class multi_experiment_pipeline(object):
                                          'varies', False)
         '''
         time_gran_to_new_df = {}
+        #counter = 0
         for rate,timegran_to_statistical_pipeline in self.rate_to_timegran_to_statistical_pipeline.iteritems():
+            #counter += 1
+            #if counter ==4:
+            #    break
             for timegran, stats_pipeline in timegran_to_statistical_pipeline.iteritems():
                 if type(timegran) == tuple:
                     continue
@@ -378,9 +382,14 @@ class multi_experiment_pipeline(object):
                 ## (a) :: get only those with injected
                 attack_portions = cur_df.loc[cur_df['labels'] == 1]
                 ## (b) :: append onto dataframe
+                ## TODO: probably want to put it back in vvvv (removed for debugging purposes...)
                 time_gran_to_new_df[timegran] = time_gran_to_new_df[timegran].append(attack_portions, ignore_index=True)
                 ## (c) :: switch is_test to all zeros (REMOVE IF I MAKE THE SWITCH PERMENANT)
                 time_gran_to_new_df[timegran]['is_test'] = 0 ## acctually going to keep this... so both models can be useful....
+
+                #### write to file
+        for timegran in time_gran_to_new_df.keys():
+            time_gran_to_new_df[timegran].to_csv(path_or_buf=self.base_output_name + str(timegran) + '_multi_exfilrate_vals.csv')
 
         cur_base_output_name = self.base_output_name + 'multi_rate_exfil_report'
         new_sav2_object = single_rate_stats_pipeline(time_gran_to_new_df, self.ROC_curve_p, cur_base_output_name,
