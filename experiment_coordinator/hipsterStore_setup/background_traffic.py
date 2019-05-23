@@ -19,6 +19,7 @@
 import random
 from locust import HttpLocust, TaskSet
 import pickle
+import os
 
 if os.path.isfile('prob_distro_hs.pickle'):
     with open('prob_distro_hs.pickle', 'r') as f:

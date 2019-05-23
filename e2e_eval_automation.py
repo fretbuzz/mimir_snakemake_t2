@@ -153,7 +153,7 @@ def perform_eval_work(cloudlab_exps_file, cloudlab_exps_dir, analysis_exp_file, 
                     template = json.loads(f.read())
                 # now choose the next experiment
                 exp_name = None
-                template_changes = None
+                template_changes = {}
                 for exp_name in cloudlab_config["name_to_diff_params"].keys():
                     if experiment_name_to_status[exp_name] == 0:
                         # this is the experiment that we shall run now.
@@ -270,7 +270,10 @@ def perform_eval_work(cloudlab_exps_file, cloudlab_exps_dir, analysis_exp_file, 
     ## NOTE: MIGHT WANT TO TAKE THESE FROM A CONFIG FILE TOO... especially if I want to
     ## use a remote server... (such as for running the whole thing during the night...)
     multi_exp_looper_config = {}
-    multi_exp_looper_config['model_config_file'] = exp_name_to_mimir_config[train_exp]
+    try:
+        multi_exp_looper_config['model_config_file'] = exp_name_to_mimir_config[train_exp]
+    except:
+        multi_exp_looper_config['model_config_file'] = 'TODO: INSERT HERE'
     multi_exp_looper_config['xlabel'] = "load (# instances of load generation)"
     multi_exp_looper_config['use_cached'] = False
     multi_exp_looper_config['exfil_rate'] = [10000000.0, 1000000.0, 100000.0, 10000.0],
@@ -303,7 +306,8 @@ def perform_eval_work(cloudlab_exps_file, cloudlab_exps_dir, analysis_exp_file, 
     ## create graphs
 
 if __name__=="__main__":
-    cloudlab_exps_file = 'cloudlab_exps.json'
+    ##cloudlab_exps_file = 'cloudlab_exps.json'
+    cloudlab_exps_file = 'cloudlab_exps_hipster.json'
     analysis_exp_file = 'analysis_exps.json'
     cloudlab_exps_dir = './e2e_eval_configs/'
     skip_app_setup = False

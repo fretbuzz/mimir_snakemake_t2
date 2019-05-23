@@ -10,9 +10,7 @@
   "get_endresult_from_memory": false,
 
   "perform_cilium_component": true,
-  "include_ide": false,
   "calc_ide": true,
-  "only_ide": false,
 
   "drop_pairwise_features": false,
   "drop_infra_from_graph": true,

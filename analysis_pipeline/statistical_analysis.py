@@ -556,15 +556,19 @@ class single_rate_stats_pipeline():
 
         print "timegran_to_predictions", timegran_to_predictions
         for time_gran, predictions in timegran_to_predictions.iteritems():
-            # final_trainpredictions[time_gran] = [0 for i in range(0, len(timegran_to_trainpredictions[max_timegran]))]
+            #  final_trainpredictions[time_gran] = [0 for i in range(0, len(timegran_to_trainpredictions[max_timegran]))]
             # final_testpredictions[time_gran] = [0 for i in range(0, len(timegran_to_testpredictions[max_timegran]))]
             final_predictions[str(time_gran)] = [0 for i in range(0, len(timegran_to_predictions[max_timegran]))]
+            #final_predictions['combined'] = [0 for i in range(0, len(timegran_to_predictions[max_timegran]))]
+            ## ^^ AND WILL WANT TO TAKE THIS OUT!!
             conversion_to_max = int(max_timegran / time_gran)  # note: going to assume they all fit in easily
             # for i in range(conversion_to_max,len(testpredictions), conversion_to_max):
             for i in range(0, len(timegran_to_predictions[max_timegran]), 1):
-                cur_prediction = sum(predictions[i * conversion_to_max: (i + 1) * conversion_to_max]) / float(
-                    conversion_to_max)
+                cur_prediction = sum(predictions[i * conversion_to_max: (i + 1) * conversion_to_max]) / float( conversion_to_max)
                 final_predictions[str(time_gran)][i] = final_predictions[str(time_gran)][i] + cur_prediction
+                #cur_prediction = sum(predictions[i * conversion_to_max: (i + 1) * conversion_to_max]) / float( conversion_to_max)
+                #final_predictions['combined'][i] = final_predictions['combined'][i] + cur_prediction
+                ## AND probably will want to take this out.... ^^^
 
         final_predictions = pd.DataFrame(final_predictions, columns=final_predictions.keys())
 

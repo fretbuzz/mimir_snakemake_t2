@@ -10,6 +10,12 @@ import time
 from tabulate import tabulate
 import numpy as np
 import ast
+plt.style.use('seaborn-paper')
+
+method_to_legend = {'ensemble': 'Our Method',
+                    'cilium': 'Communicating Services',
+                    'ide': 'Eigenspace'}
+B_in_KB = 1000.0
 
 def update_config_file(config_file_pth, if_trained_model):
     with open(config_file_pth, 'r') as f:
@@ -104,43 +110,84 @@ def cm_to_exfil_rate_vs_f1(cm, evalconfig):
         plt.clf()
         plt.figure(figsize=(15, 20))
         fig, ax = plt.subplots()
+        ax.set_ylim(top=1.1, bottom=-0.1)  # we can do it manually...
         for method in methods:
             rate_to_f1 = method_to_rate_to_f1[method]
-            rates = rate_to_f1.keys()
+            rates = [i / B_in_KB for i in rate_to_f1.keys()]
             f1s = rate_to_f1.values()
             rates, f1s = zip(*sorted(zip(rates, f1s)))
 
             # so rates would be x-axis and f1s would be the y-axis
 
-            ax.plot(rates, f1s, label=str(method), marker='*', alpha=0.5, linewidth=3.0)
-            ax.set_title('exfil_rate vs f1', fontsize=15)
-            ax.set_ylabel('f1 scores', fontsize=25)
+            ax.plot(rates, f1s, label=str(method_to_legend[method]), linewidth=3.0, marker='.', markersize=22,)
+            ax.set_title('F1 Score vs Exfiltration Rate', fontsize=18)
+            ax.set_ylabel('F1 Scores', fontsize=15)
             ax.set_xscale('log')
-            ax.set_xlabel('log exfil rate (MB/min)', fontsize=25)
+            ax.set_xlabel('Log of Exfiltration Rate (log KB/min)', fontsize=15)
             ax.legend()
 
         evalconfig_name = evalconfig.split('/')[-1]
         f1_vs_exfil_rate_filname = "./multilooper_outs/" + evalconfig_name + '_' + str(timegan) + "_f1_vs_exfil_rate.png"
         print "f1_vs_exfil_rate_filname",f1_vs_exfil_rate_filname
+        plt.tight_layout()
         fig.savefig(f1_vs_exfil_rate_filname)
+
+    return timegran_to_method_to_rate_to_f1
+
 
 
 def create_eval_graph(model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rates, timegran,
                       type_of_graph, graph_name, update_config_p, only_finished_p, use_remote=False,
                       remote_server_ip=None, remote_server_key=None,user=None, dont_retrieve_from_remote=None,
                       no_tsl = False):
+    cache_name = './temp_outputs/' + graph_name + '_cached_looper.pickle' # + 'ret' # if it doesn't help, remove the second part...
     if use_cached:
-        with open('./temp_outputs/' + graph_name + '_cached_looper.pickle', 'r') as f:
+        with open(cache_name, 'r') as f:
             evalconfigs_to_cm = pickle.loads(f.read())
     else:
         evalconfigs_to_cm = get_eval_results(model_config_file, eval_configs_to_xvals.keys(), update_config_p, use_remote,
                                              remote_server_ip=remote_server_ip, remote_server_key=remote_server_key,
                                              user=user, dont_retrieve_from_remote=dont_retrieve_from_remote,
                                              only_finished_p=only_finished_p, no_tsl=no_tsl)
-        with open('./temp_outputs/' + graph_name + '_cached_looper.pickle', 'w') as f:
+        with open(cache_name, 'w') as f:
             f.write(pickle.dumps(evalconfigs_to_cm))
 
     return evalconfigs_to_cm
+
+def exfil_rate_vs_f1_at_various_timegran(timegran_to_method_to_rate_to_f1, evalconfig, method='ensemble'):
+    plt.clf()
+    plt.figure(figsize=(15, 20))
+    fig, ax = plt.subplots()
+
+    #### TODO TODO TODO: WORKING ON THIS NOW!!!!!!
+    for timegran,method_to_rate_to_f1 in timegran_to_method_to_rate_to_f1.iteritems():
+        rate_to_f1 = method_to_rate_to_f1[method]
+        #rates = rate_to_f1.keys()
+        rates = [i / B_in_KB for i in rate_to_f1.keys()]
+        f1s = rate_to_f1.values()
+        rates, f1s = zip(*sorted(zip(rates, f1s)))
+
+        # so rates would be x-axis and f1s would be the y-axis
+        print "exfil_rate_vs_f1_at_various_timegran", timegran, rates, f1s
+
+        if type(timegran) == tuple:
+            timegran = 'multi-time'
+        else:
+            timegran = str(timegran) + ' sec'
+
+        ax.plot(rates, f1s, label=str(timegran), marker='.', linewidth=3.0, markersize=15, alpha=0.8)
+        ax.set_title('F1 Score vs Exfiltration Rate at Different Time Granularities', fontsize=12)
+        ax.set_ylabel('F1 Scores', fontsize=11)
+        ax.set_xscale('log')
+        ax.set_xlabel('Log of Exfiltration Rate (log KB/min)', fontsize=11)
+        ax.legend()
+
+    evalconfig_name = evalconfig.split('/')[-1]
+    ax.set_ylim(top=1.1, bottom=-0.1)  # we can do it manually...
+    plt.tight_layout()
+    f1_vs_exfil_rate_filname = "./multilooper_outs/diffTimeGran_" + evalconfig_name + "_f1_vs_exfil_rate.png"
+    print "f1_vs_exfil_rate_filname",f1_vs_exfil_rate_filname
+    fig.savefig(f1_vs_exfil_rate_filname)
 
 def has_experiment_already_been_run(config_file_pth):
     with open(config_file_pth, 'r') as f:
@@ -173,7 +220,7 @@ def convert_prob_distro_dict_to_array(prob_distro_dict, prob_distro_keys):
     return prob_distro_vector
 
 def generate_graphs(eval_configs_to_xvals, exfil_rates, evalconfigs_to_cm, timegran, type_of_graph, graph_name,
-                    xlabel, model_config_file, no_tsl=False):
+                    xlabel, model_config_file, no_tsl=False, model_xval=100):
     method_to_rate_to_xlist_ylist = {}
     methods = evalconfigs_to_cm[eval_configs_to_xvals.keys()[0]][exfil_rates[0]][timegran].keys()
     angles_method_to_rate_to_xlist_ylist = {}
@@ -216,14 +263,13 @@ def generate_graphs(eval_configs_to_xvals, exfil_rates, evalconfigs_to_cm, timeg
                     method_to_eval_to_f1[method] = {}
                 method_to_eval_to_f1[method][evalconfig] = optimal_f1
 
-
                 if type_of_graph == 'angle':
                     prob_distro = get_prob_distr(evalconfig)
                     eval_to_prob_dist[evalconfig] = prob_distro
                 print "eval_to_prob_dist",eval_to_prob_dist
 
-                ## TODO: GENERATE THE NEW GRAPHS
-                cm_to_exfil_rate_vs_f1(cur_cm, evalconfig)
+                timegran_to_method_to_rate_to_f1 = cm_to_exfil_rate_vs_f1(cur_cm, evalconfig)
+                exfil_rate_vs_f1_at_various_timegran(timegran_to_method_to_rate_to_f1, evalconfig)
 
                 ## (step1) cache the results from get_eval_results (b/c gotta iterate on steps2&3) [[[done]]]
                 ## (step2) put process cms (to get F1 scores)
@@ -266,34 +312,44 @@ def generate_graphs(eval_configs_to_xvals, exfil_rates, evalconfigs_to_cm, timeg
                     angles_method_to_rate_to_xlist_ylist[method][exfil_rate] = (angles_x_vals_list, angles_y_vals_list)
 
         plt.clf()
+        fig, ax = plt.subplots()
+        ########
         for method in methods:
             x_vals_list = method_to_x_vals_list[method]
+            x_vals_list = [i/float(model_xval) for i in x_vals_list]
+
             y_vals_list = method_to_y_vals_list[method]
             print "x_vals_list", x_vals_list
             print "y_vals_list", y_vals_list
             x_vals_list, y_vals_list = zip(*sorted(zip(x_vals_list, y_vals_list)))
 
-            plt.plot(x_vals_list, y_vals_list, marker='.', markersize=22, label=method)
-            plt.xlabel(xlabel)
-            plt.ylabel('f1 score')
+            plt.plot(x_vals_list, y_vals_list, marker='.', markersize=22, label=method_to_legend[method])
+            #plt.xlabel(xlabel)
+            plt.xlabel('Ratio of Test Load to Train Load', fontsize=15)
+            plt.ylabel('F1 Score', fontsize=15)
+            plt.title('F1 Score vs Load')
             if method not in method_to_rate_to_xlist_ylist:
                 method_to_rate_to_xlist_ylist[method] = {}
             method_to_rate_to_xlist_ylist[method][exfil_rate] = (x_vals_list, y_vals_list)
+        ax.set_ylim(top=1.1,bottom=-0.1) #  we can do it manually...
         plt.legend()
         plt.show()
         plt.savefig(single_scale_load)
+        ###################
 
     # [continuing on work for angle graphs] step (4) : finally create the graph (probably a scatterplot)
     if type_of_graph == 'angle':
         plt.clf()
-        fig, axes = plt.subplots(nrows=1, ncols=len(exfil_rates), figsize=(50, 10))
-        fig.suptitle(str(graph_name) + ' f1 vs euclidean distance at various exfil rates')
+        fig, axes = plt.subplots(nrows=1, ncols=len(exfil_rates), figsize=(20, 3.5))
+        #fig.suptitle(str(graph_name) + ' f1 vs euclidean distance at various exfil rates')
         for counter, rate in enumerate(exfil_rates):
             for method, angles_rate_to_xlist_ylist in angles_method_to_rate_to_xlist_ylist.iteritems():
+                if method != 'ensemble':
+                    continue
                 x_vals, y_vals = angles_rate_to_xlist_ylist[rate]
                 #print "x_vals",x_vals
                 #print "y_vals",y_vals
-                axes[counter].scatter(x_vals, y_vals, marker='*', label=method, s=700)
+                axes[counter].scatter(x_vals, y_vals, marker='.', label=method_to_legend[method], s=275)
                 axes[counter].set_ylim(top=1.1, bottom=-0.1)  # we can do it manually...
                 axes[counter].set_ylabel("f1 score")
                 axes[counter].set_xlabel("euclidean distance")
@@ -301,6 +357,7 @@ def generate_graphs(eval_configs_to_xvals, exfil_rates, evalconfigs_to_cm, timeg
                 axes[counter].set_title(str(rate / BytesPerMegabyte) + ' MB/min Exfil')
                 axes[counter].legend()
         fig.align_ylabels(axes)
+        plt.tight_layout()
         fig.savefig(multi_angle_graph)
 
     ##  put them all on the same grid + y-axis scale... (I'm just going to do it manually b/c hurry...)
@@ -432,14 +489,21 @@ def parse_config(config_file_pth):
         else:
             no_tsl = True
 
+        if 'model_xval' in config_file:
+            model_xval = config_file['model_xval']
+        else:
+            model_xval = 100
+
 
     return model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran, type_of_graph, \
-           graph_name, use_remote, remote_server_ips, remote_server_key, user, dont_retrieve_from_remote, no_tsl
+           graph_name, use_remote, remote_server_ips, remote_server_key, user, dont_retrieve_from_remote, no_tsl,\
+            model_xval
 
 def run_looper(config_file_pth, update_config, use_remote, only_finished_p):
 
     model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran, type_of_graph, graph_name, \
-    use_remote_from_config, remote_ips, remote_server_key, user, dont_retrieve_from_remote, no_tsl = parse_config(config_file_pth)
+    use_remote_from_config, remote_ips, remote_server_key, user, dont_retrieve_from_remote, no_tsl, model_xval = \
+        parse_config(config_file_pth)
 
     if use_remote_from_config is not None:
         use_remote = use_remote_from_config or use_remote
@@ -457,7 +521,7 @@ def run_looper(config_file_pth, update_config, use_remote, only_finished_p):
                                         type_of_graph, graph_name, update_config, only_finished_p, no_tsl=no_tsl)
 
     generate_graphs(eval_configs_to_xvals, exfil_rate, evalconfigs_to_cm, timegran, type_of_graph, graph_name, xlabel,
-                    model_config_file, no_tsl)
+                    model_config_file, no_tsl, model_xval)
 
 if __name__=="__main__":
     print "RUNNING"
@@ -477,12 +541,12 @@ if __name__=="__main__":
     args = parser.parse_args()
 
     if not args.config_json:
-        ########config_file_pth = "./multi_experiment_configs/wordpress_scale.json"
+        #############config_file_pth = "./multi_experiment_configs/wordpress_scale.json"
         #config_file_pth = "./analysis_pipeline/multi_experiment_configs/old_sockshop_angle_remote2.json"
         #config_file_pth = "./multi_experiment_configs/old_sockshop_scale.json"
-        #########config_file_pth = "./multi_experiment_configs/old_sockshop_angle.json"
+        config_file_pth = "./multi_experiment_configs/old_sockshop_angle.json"
         #config_file_pth = "./analysis_pipeline/multi_experiment_configs/sockshop_test_remote.json"
-        config_file_pth = "./multi_experiment_configs/new_sockshop_scale.json"
+        ##########config_file_pth = "./multi_experiment_configs/new_sockshop_scale.json"
     else:
         config_file_pth = args.config_json
 

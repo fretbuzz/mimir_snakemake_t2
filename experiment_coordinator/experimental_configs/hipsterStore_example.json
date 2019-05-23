@@ -18,6 +18,11 @@
       "viewCart": 0.15,
       "checkout": 0.05
     },
+    "exfiltration_info" : {
+      "sensitive_ms": [
+        "checkoutservice"
+      ]
+    }
 
     "Deployment" : {
       "comment": "deployment_scaling is not supported for hipsterStore applications at the moment (i.e. autoscaling min/max are hardcoded)",
