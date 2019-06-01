@@ -564,7 +564,9 @@ class single_rate_stats_pipeline():
             conversion_to_max = int(max_timegran / time_gran)  # note: going to assume they all fit in easily
             # for i in range(conversion_to_max,len(testpredictions), conversion_to_max):
             for i in range(0, len(timegran_to_predictions[max_timegran]), 1):
-                cur_prediction = sum(predictions[i * conversion_to_max: (i + 1) * conversion_to_max]) / float( conversion_to_max)
+                ## NOTE: CHANGING FROM SUM TO MAX!!! update paper if this helps!!
+                #cur_prediction = sum(predictions[i * conversion_to_max: (i + 1) * conversion_to_max]) / float( conversion_to_max)
+                cur_prediction = max(predictions[i * conversion_to_max: (i + 1) * conversion_to_max])
                 final_predictions[str(time_gran)][i] = final_predictions[str(time_gran)][i] + cur_prediction
                 #cur_prediction = sum(predictions[i * conversion_to_max: (i + 1) * conversion_to_max]) / float( conversion_to_max)
                 #final_predictions['combined'][i] = final_predictions['combined'][i] + cur_prediction

@@ -159,7 +159,6 @@ def exfil_rate_vs_f1_at_various_timegran(timegran_to_method_to_rate_to_f1, evalc
     plt.figure(figsize=(15, 20))
     fig, ax = plt.subplots()
 
-    #### TODO TODO TODO: WORKING ON THIS NOW!!!!!!
     for timegran,method_to_rate_to_f1 in timegran_to_method_to_rate_to_f1.iteritems():
         rate_to_f1 = method_to_rate_to_f1[method]
         #rates = rate_to_f1.keys()
@@ -203,12 +202,13 @@ def has_experiment_already_been_run(config_file_pth):
     return False
 
 def get_prob_distr(processing_config):
+    print "processing_config", processing_config
     with open(processing_config, 'r') as g:
         config_stuff = json.loads(g.read())
         print "file_made_by_experimental_apparatus", config_stuff['exp_config_file']
         with open(config_stuff['exp_config_file'], 'r') as z:
             z_cont = z.read()
-            print "g_cont", z_cont, len(z_cont)
+            #print "g_cont", z_cont, len(z_cont)
             exp_config = json.loads(z_cont)
     return exp_config['prob_distro']
 
@@ -544,9 +544,11 @@ if __name__=="__main__":
         #############config_file_pth = "./multi_experiment_configs/wordpress_scale.json"
         #config_file_pth = "./analysis_pipeline/multi_experiment_configs/old_sockshop_angle_remote2.json"
         #config_file_pth = "./multi_experiment_configs/old_sockshop_scale.json"
-        config_file_pth = "./multi_experiment_configs/old_sockshop_angle.json"
+        #############config_file_pth = "./multi_experiment_configs/old_sockshop_angle.json"
+        #############config_file_pth = "./multi_experiment_configs/new_sockshop_angle.json"
         #config_file_pth = "./analysis_pipeline/multi_experiment_configs/sockshop_test_remote.json"
-        ##########config_file_pth = "./multi_experiment_configs/new_sockshop_scale.json"
+        ################config_file_pth = "./multi_experiment_configs/new_sockshop_scale.json"
+        config_file_pth = "./multi_experiment_configs/hipsterStore_scale.json"
     else:
         config_file_pth = args.config_json
 
