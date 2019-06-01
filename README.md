@@ -10,9 +10,11 @@ This analysis pipeline been tested on MacOS 10.14.4 and Ubuntu 16.04. It will no
 
 This demo will walk through installing the necessary dependencies, acquiring example data (including a pretrained model and a short pcap file), running the pipeline, and examining the output. For a full description of system components and functionality, please see the Wiki.
 
-### Step 1: Prerequisites
-
+Here's an asciicast of setting up and running the demo on a new Ubuntu 16.04 VM.
 [![Asciicast of setting up and running the demo](https://asciinema.org/a/249574.svg)](https://asciinema.org/a/249574)
+
+
+### Step 1: Prerequisites
 
 These specific commands are for installing the system dependencies onto Ubuntu 16.04.
 
