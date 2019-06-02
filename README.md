@@ -10,7 +10,7 @@ This analysis pipeline been tested on MacOS 10.14.4 and Ubuntu 16.04. It will no
 
 This demo will walk through installing the necessary dependencies, acquiring example data (including a pretrained model and a short pcap file), running the pipeline, and examining the output. For a full description of system components and functionality, please see the Wiki.
 
-Here's an asciicast of setting up and running the demo on a new Ubuntu 16.04 VM.
+Here's an asciicast of setting up and running the demo on a new Ubuntu 16.04 VM:
 [![Asciicast of setting up and running the demo](https://asciinema.org/a/249574.svg)](https://asciinema.org/a/249574)
 
 
@@ -162,9 +162,9 @@ TODO: explain how to reproduce the results from the paper...
 
 I have a significantly-over-full-time job that is completely unrelated to this.
 
-### Is this project complete?
+[//]: # (### Is this project complete?)
 
-No, there are three big problems:
-* It only works on single-node Kubernetes clusters. The smallest Kubernetes cluster that should be used for anything is 3 node.
-* It does not properly account for workload varying over time. This causes the assumptions behind the linear model to become invalid over time, decreasing performance. It is unclear how to fix this.
-* Requires running tcpdump on the 'any' interface of the 'default' namespace on each node. This is high overhead.
+[//]: # (No, there are three big problems:)
+[//]: # (* It only works on single-node Kubernetes clusters. The smallest Kubernetes cluster that should be used for anything is 3 node.)
+[//]: # (* It does not properly account for workload varying over time. This causes the assumptions behind the linear model to become invalid over time, decreasing performance. It is unclear how to fix this.)
+[//]: # (* Requires running tcpdump on the 'any' interface of the 'default' namespace on each node. This is high overhead.)
