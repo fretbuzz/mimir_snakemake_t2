@@ -151,8 +151,11 @@ TODO: explain how to do all of the components...
 
 TODO: add asciicinema video
 
-Note that in a production setup, using a single-node Kubernetes cluster is unlikely to be desired and running tcpdump is
-a bad use of system resources. These two assumptions exist in the system currently due to time constraints.
+This whole processes can be done on Ubuntu 16.04 using the experimental_coordinator component of the system, as shown in the this asciicast (script can be found [here](https://github.com/fretbuzz/mimir_v2/wiki/Script-from-Data-Collection-Video)):
+
+[![Asciicast of collecting data]](https://asciinema.org/a/2527NJhza4QfYQUF86qeKJHSA.svg)](https://asciinema.org/a/2527NJhza4QfYQUF86qeKJHSA)
+
+Note that in a production setup, using a single-node Kubernetes cluster is unlikely to be desired and running tcpdump is a bad use of system resources. These two assumptions exist in the system currently due to time constraints.
 
 ### How to verify the results
 
