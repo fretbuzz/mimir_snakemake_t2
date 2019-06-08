@@ -13,9 +13,7 @@ This analysis pipeline been tested on MacOS 10.14.4 and Ubuntu 16.04. It will no
 
 This demo will walk through installing the necessary dependencies, acquiring example data (including a pretrained model and a short pcap file), running the pipeline, and examining the output. For a full description of system components and functionality, please see the Wiki.
 
-Here's an asciicast of setting up and running the demo on a new Ubuntu 16.04 VM (script can be found [here](https://github.com/fretbuzz/mimir_v2/wiki/Script-from-video-of-Setting-up-and-Running-the-Demo)):
-[![Asciicast of setting up and running the demo](https://asciinema.org/a/249574.svg)](https://asciinema.org/a/249574)
-
+At the end of this section, there is a video of setting up and running the demo on a new Ubuntu 16.04 VM.
 
 ### Step 1: Prerequisites
 
@@ -119,6 +117,11 @@ Of course, A new model can be also be generated based off of training data. Plea
 
 ### Step 5: Examining the Output
 Go the mimir_example_data/results directory. There will be a LOT of generated files there, but please focus your attention on the PDF files. These contain reports describing system perform, including ROC curves, per-path confusion matrices, and descriptions of the model coefficients. The CSV files can also be useful for debugging purposes (or if you want to run your own statistical analysis, e.g. in R)'.
+
+### Video
+
+This is a video of setting up and running the demo on a new Ubuntu 16.04 VM (script can be found [here](https://github.com/fretbuzz/mimir_v2/wiki/Script-from-video-of-Setting-up-and-Running-the-Demo)):
+[![Asciicast of setting up and running the demo](https://asciinema.org/a/249574.svg)](https://asciinema.org/a/249574)
 
 ### FAQ
 
