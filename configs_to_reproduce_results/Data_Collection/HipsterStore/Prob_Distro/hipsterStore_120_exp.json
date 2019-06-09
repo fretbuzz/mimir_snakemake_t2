@@ -1,0 +1,33 @@
+{
+  "experiment_length_sec": 10800, 
+  "exfiltration_info": {
+    "physical_attacks": false, 
+    "sensitive_ms": [
+      "checkoutservice"
+    ]
+  }, 
+  "path_to_docker_machine_tls_certs": "/mydata/.minikube/certs", 
+  "experiment_name": "hipsterStore_120", 
+  "experiment": {
+    "traffic_type": "normal", 
+    "background_locust_spawn_rate": 25, 
+    "number_background_locusts": 120
+  }, 
+  "VM_interfaces": [
+    "vboxnet0"
+  ], 
+  "network_plugin": "none", 
+  "Deployment": {
+    "comment": "deployment_scaling is not supported for hipsterStore applications at the moment (i.e. autoscaling min/max are hardcoded)", 
+    "autoscale_p": true
+  }, 
+  "application_name": "hipsterStore", 
+  "prob_distro": {
+    "index": 0.05, 
+    "browseProduct": 0.55, 
+    "setCurrency": 0.1, 
+    "viewCart": 0.15, 
+    "checkout": 0.05, 
+    "addToCart": 0.1
+  }
+}

@@ -7,11 +7,16 @@ full explanation of how to run the analysis_pipeline. The explanation below is h
 pretrained model, but it's likely you'd want to generate your own model.
 
 ## Running Analysis Pipeline Demo
-The analysis pipeline takes a pcap file and a log of entities that exist on the cluster (such as pods and services) and uses them to generate a graph-based statistical model of network traffic on the application. This model can then be applied to new pcaps to determine if there is anomalous traffic.
+The analysis pipeline takes a pcap file and a log of entities that exist on the cluster (such as pods and services) 
+and uses them to generate a graph-based statistical model of network traffic on the application. This model can then be
+ applied to new pcaps to determine if there is anomalous traffic.
 
 This analysis pipeline been tested on Ubuntu 16.04. It will not work on Windows.
 
-This demo will walk through installing the necessary dependencies, acquiring example data (including a pretrained model and a short pcap file), running the pipeline, and examining the output. For a full description of system components and functionality, please see the Wiki.
+This demo will walk through installing the necessary dependencies, acquiring example data (including a pretrained model 
+and a short pcap file), running the pipeline, and examining the output. 
+This demo was designed to be run on Ubuntu 16.04.
+For a full description of system components and functionality, please see the Wiki. 
 
 At the end of this section, there is a video of setting up and running the demo on a new Ubuntu 16.04 VM.
 

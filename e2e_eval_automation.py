@@ -58,12 +58,6 @@ def run_new_experiment(template, template_changes, cloudlab_ip, flags, user, pri
         json.dump(template, f, indent=2)
         #f.write(json.dumps(template))
 
-    # NOTE: I KNOW WHERE THE FILE IS LOCALLY, SO JUST LET the other function do it now!!!!
-    # TODO ZXXZZ: note: I just made some changes to run_exp_on_cloudlab.py, so that people using only that component will not
-    # have to push their configs to the github repo. However, I am going to leave the
-    #remote = remote_experimental_config_folder + filename ## destination on remote
-    #s.put(file_or_directory=modified_template_filename, remote=remote)
-
     ## (3) call the relevant components of run_exp_on_cloudlab.py
     ### what the heck does this mean? I guess it means that the params are all okay and all
     ### the data is still in the same place....
@@ -83,8 +77,6 @@ def run_new_experiment(template, template_changes, cloudlab_ip, flags, user, pri
         if 'skip_app_setup' in flags and flags['skip_app_setup']:
             skip_app_setup = True
 
-
-    ## TODO ZXXZZ: config_file_name should be the local name
     s = run_experiment(app_name, modified_template_filename, exp_name, skip_setup_p=False, use_cilium=False,
                        physical_attacks_p=physical_attacks_p, skip_app_setup=skip_app_setup, pull_from_github=False,
                        exp_length = exp_length, user = user, cloudlab_private_key=private_key,
