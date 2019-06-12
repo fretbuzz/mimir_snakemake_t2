@@ -18,6 +18,7 @@ wget -q https://www.virtualbox.org/download/oracle_vbox.asc -O- | sudo apt-key a
 sudo sh -c 'echo "deb http://download.virtualbox.org/virtualbox/debian $(lsb_release -sc) contrib" >> /etc/apt/sources.list.d/virtualbox.list'
 sudo apt update
 sudo apt-get install virtualbox-6.0 -y
+vboxmanage setproperty machinefolder /mydata/
 
 # okay, onto the next step
 # First, we'll install and start Minikube
@@ -48,4 +49,4 @@ base=https://github.com/docker/machine/releases/download/v0.16.0 &&
 
 # Fourth let's use the experimental coordinator to deploy the Sockshop application and start an experiment.
 git clone https://github.com/fretbuzz/mimir_v2.git
-cd ./mimir_v2/experiment_coordinator/
+cd ../

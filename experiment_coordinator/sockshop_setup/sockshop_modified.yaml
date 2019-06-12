@@ -76,11 +76,11 @@ spec:
            value: -Xms64m -Xmx128m -XX:PermSize=32m -XX:MaxPermSize=64m -XX:+UseG1GC -Djava.security.egd=file:/dev/urandom
         resources:
           limits:
-            cpu: 1000m
-            memory: 2500Mi
+            cpu: 1800m
+            memory: 4000Mi
           requests:
-            cpu: 1000m
-            memory: 2500Mi
+            cpu: 1400m
+            memory: 3000Mi
         ports:
          - containerPort: 80
         securityContext:
@@ -383,11 +383,11 @@ spec:
            value: -Xms64m -Xmx128m -XX:PermSize=32m -XX:MaxPermSize=64m -XX:+UseG1GC -Djava.security.egd=file:/dev/urandom
         resources:
           limits:
-            cpu: 1000m
-            memory: 1000Mi
+            cpu: 1200m
+            memory: 2500Mi
           requests:
-            cpu: 400m
-            memory: 1000Mi
+            cpu: 600m
+            memory: 2000Mi
         ports:
         - containerPort: 80
         securityContext:
@@ -521,10 +521,10 @@ spec:
         resources:
           limits: # I'm increasing the below values compared to default b/c it queue-master always gets overwhelmed.
             cpu: 600m
-            memory: 900Mi
+            memory: 1400Mi
           requests:
             cpu: 300m
-            memory: 500Mi
+            memory: 900Mi
         ports:
         - containerPort: 80
         livenessProbe:
@@ -693,11 +693,11 @@ spec:
            value: -Xms64m -Xmx128m -XX:PermSize=32m -XX:MaxPermSize=64m -XX:+UseG1GC -Djava.security.egd=file:/dev/urandom
         resources:
           limits:
-            cpu: 800m
-            memory: 2000Mi
+            cpu: 1500m
+            memory: 3000Mi
           requests:
-            cpu: 800m
-            memory: 2000Mi
+            cpu: 1000m
+            memory: 2500Mi
         ports:
         - containerPort: 80
         securityContext:
