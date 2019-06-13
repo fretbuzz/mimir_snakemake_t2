@@ -18,7 +18,7 @@ wget -q https://www.virtualbox.org/download/oracle_vbox.asc -O- | sudo apt-key a
 sudo sh -c 'echo "deb http://download.virtualbox.org/virtualbox/debian $(lsb_release -sc) contrib" >> /etc/apt/sources.list.d/virtualbox.list'
 sudo apt update
 sudo apt-get install virtualbox-6.0 -y
-vboxmanage setproperty machinefolder /mydata/
+#### vboxmanage setproperty machinefolder /mydata/
 
 # okay, onto the next step
 # First, we'll install and start Minikube
@@ -26,6 +26,11 @@ curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/miniku
 sudo cp minikube /usr/local/bin && rm minikube
 
 sudo minikube start --vm-driver=virtualbox --cpus=12 --memory=32000 --disk-size 65g
+
+# and make sure to enable certain addons
+## TODO THESE AREN'T IN THE VIDEO!!!
+sudo minikube addons enable heapster
+sudo minikube addons enable metrics-server
 
 # Second, we'll install the experimental coordinator's dependencies.
 
