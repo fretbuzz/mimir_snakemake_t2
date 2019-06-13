@@ -31,12 +31,18 @@ sudo minikube start --vm-driver=virtualbox --cpus=12 --memory=32000 --disk-size 
 ## TODO THESE AREN'T IN THE VIDEO!!!
 sudo minikube addons enable heapster
 sudo minikube addons enable metrics-server
+# END
 
 # Second, we'll install the experimental coordinator's dependencies.
 
 ### setup docker
 curl -fsSL https://get.docker.com -o get-docker.sh
 sudo sh get-docker.sh
+
+# TODO: these aren't in the video!!
+eval $(sudo minikube docker-env)
+sudo docker pull nicolaka/netshoot
+# END
 
 ### then pip to handle the python dependencies
 curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
@@ -45,6 +51,9 @@ sudo python get-pip.py
 ### then use pip to handle the python dependencies
 sudo pip install requests pyasn1 ipaddress urllib3 --upgrade
 sudo pip install docker pexpect netifaces selenium kubernetes requests
+
+# TODO: not in the video!
+sudo pip install locustio
 
 # docker-machine can be useful for certificate management, so installing that is a good idea
 ### following the official instructions: https://docs.docker.com/machine/install-machine/
