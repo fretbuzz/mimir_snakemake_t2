@@ -1,6 +1,5 @@
 ## WORK IN PROGRESS ##
 #!/usr/bin/env bash
-bash install_scripts/install_selenium_dependencies.sh
 docker pull nicolaka/netshoot
 wget https://get.helm.sh/helm-v2.14.1-linux-amd64.tar.gz
 tar -zxvf helm-v2.14.1-linux-amd64.tar.gz
