@@ -1,7 +1,9 @@
 {
   "cur_experiment_name": "sockshop_four_40", 
   "exp_config_file": "/Volumes/exM/experimental_data/sockshop_info/sockshop_four_40/sockshop_four_40/sockshop_four_40_analysis.json", 
-  "netsec_policy": "../experiment_coordinator/netsec_policies/sockshop_netsec_seg.txt", 
+  "exp_config_file": "../experiment_coordinator/experimental_data/sockshop_two_mk1/sockshop_two_mk1_bridge_any.pcap"
+
+  "netsec_policy": "../experiment_coordinator/netsec_policies/sockshop_netsec_seg.txt",
   "make_edgefiles": false, 
   "skip_graph_injection": true, 
   "calc_vals": false, 
