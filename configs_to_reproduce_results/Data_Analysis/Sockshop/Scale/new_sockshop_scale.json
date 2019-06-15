@@ -1,0 +1,19 @@
+{
+  "model_config_file": "../configs_to_reproduce_results/Data_Analysis/Sockshop/Scale/sockshop_four_100_mk2.json",
+  "model_xval": 100,
+  "eval_configs_to_xvals": {   "../configs_to_reproduce_results/Data_Analysis/Sockshop/Scale/sockshop_four_100.json": 100,
+                               "../configs_to_reproduce_results/Data_Analysis/Sockshop/Scale/sockshop_four_120.json": 120,
+                               "../configs_to_reproduce_results/Data_Analysis/Sockshop/Scale/sockshop_four_140.json": 140,
+                               "../configs_to_reproduce_results/Data_Analysis/Sockshop/Scale/sockshop_four_160.json": 160,
+                               "../configs_to_reproduce_results/Data_Analysis/Sockshop/Scale/sockshop_four_40.json": 40,
+                               "../configs_to_reproduce_results/Data_Analysis/Sockshop/Scale/sockshop_four_60.json": 60,
+                               "../configs_to_reproduce_results/Data_Analysis/Sockshop/Scale/sockshop_four_80.json": 80},
+  "xlabel" : "load (# instances of load generation)",
+  "use_cached": false,
+  "exfil_rate": [1000000.0, 100000.0, 10000.0],
+  "timegran": "(10,60)",
+  "type_of_graph": "load",
+  "graph_name": "new_sockshop_scale",
+  "no_tsl": true
+}
+
