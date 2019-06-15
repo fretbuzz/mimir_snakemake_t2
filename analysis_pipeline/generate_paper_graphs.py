@@ -529,6 +529,7 @@ if __name__=="__main__":
     parser = argparse.ArgumentParser(description='This can run multiple experiments in a row on MIMIR. Also makes graphs')
     parser.add_argument('--config_json', dest='config_json', default=None,
                         help='this is the configuration file used to run to loop through several experiments')
+
     parser.add_argument('--dont_update_config', dest='dont_update_config',
                         default=False, action='store_true')
 
