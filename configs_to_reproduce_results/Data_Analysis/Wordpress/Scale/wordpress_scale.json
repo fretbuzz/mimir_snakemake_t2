@@ -1,0 +1,15 @@
+{
+  "model_config_file": "../configs_to_reproduce_results/Data_Analysis/Wordpress/Scale/wordpress_one_3_auto_mk5.json",
+  "model_xval": 85,
+  "eval_configs_to_xvals": {"../configs_to_reproduce_results/Data_Analysis/Wordpress/Scale/wordpress_105.json" : 105,
+                            "../configs_to_reproduce_results/Data_Analysis/Wordpress/Scale/wordpress_mk10.json" : 45,
+                            "../configs_to_reproduce_results/Data_Analysis/Wordpress/Scale/wordpress_mk22.json" : 65,
+                            "../configs_to_reproduce_results/Data_Analysis/Wordpress/Scale/wordpress_mk24.json" : 85},
+  "xlabel" : "load (# instances of load generation)",
+  "use_cached": false,
+  "exfil_rate": [10000000.0 ,1000000.0, 100000.0, 10000.0],
+  "timegran": "(10,60)",
+  "type_of_graph": "load",
+  "graph_name": "wordpress_scale",
+  "no_tsl": true
+}
