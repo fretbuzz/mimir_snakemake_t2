@@ -1194,9 +1194,12 @@ def abstract_to_concrete_mapping(abstract_node, graph, excluded_list, container_
 
 def add_edge_weight_graph(graph, concrete_node_src, concrete_node_dst, fraction_of_weight_median,
                           fraction_of_pkt_median):
-    if concrete_node_src == None or concrete_node_dst == None:
-        print "either concrete_node_src or concrete_node_dst is None"
+    if concrete_node_src == None:
+        print "Error: concrete_node_src is None"
         exit(455)
+    if concrete_node_dst == None:
+        print "Error: concrete_node_dst is None"
+        exit(344)
 
     ack_packet_size = 40  # bytes
     if concrete_node_src in graph and concrete_node_dst in graph:

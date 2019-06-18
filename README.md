@@ -186,6 +186,8 @@ experimental_apparatus component, though it should be eventually.
 
 TODO: explain how to reproduce the results from the paper...
 
+Hardware used in eval setup: [TODO]
+
 ### Why is this FAQ being updated so slowly?
 
 I have a significantly-over-full-time job that is completely unrelated to this.

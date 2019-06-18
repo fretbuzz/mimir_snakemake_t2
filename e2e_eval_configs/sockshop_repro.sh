@@ -31,7 +31,7 @@ cd ../analysis_pipeline/
 ## then install the analysis pipeline depdencies
 . ../configs_to_reproduce_results/install_mimir_depend_scripts.sh
 
-python generate_paper_graphs.py --dont_update_config --config_json ../configs_to_reproduce_results/Data_Analysis/Sockshop/Scale/new_sockshop_scale.json
+sudo python generate_paper_graphs.py --dont_update_config --config_json ../configs_to_reproduce_results/Data_Analysis/Sockshop/Scale/new_sockshop_scale.json
 
 ls
 ####
