@@ -18,7 +18,11 @@ sbcl --load quicklisp.lisp --script ../configs_to_reproduce_results/sbcl_script1
 # Quicklisp will be used to install the Common Lisp Machine Learning (CLML) Library
 git clone https://github.com/mmaul/clml.git
 mv ./clml ~/quicklisp/local-projects/
-sbcl --dynamic-space-size 2560 --load quicklisp.lisp
+sbcl --dynamic-space-size 2560 --load quicklisp.lisp --script ../configs_to_reproduce_results/sbcl_script2.lisp
+#(quicklisp-quickstart:install)
+#0
+#(ql:quickload :clml :verbose t)
+#(exit)
 
 # Third, tshark and editcap are needed to process the collected PCAP file.
 sudo aptitude install wireshark-common -y
