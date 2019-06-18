@@ -1,0 +1,2 @@
+(quicklisp-quickstart:install)
+(exit)

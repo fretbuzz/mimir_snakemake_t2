@@ -6,21 +6,19 @@ sudo sh get-docker.sh
 sudo aptitude update
 sudo aptitude install sbcl -y
 
+## TODO: there's a problem here... we need it to work via script but the sbcl
+## stuff requires typing on a terminal...
 # Then the Quicklisp LISP package manager is needed
 curl -O https://beta.quicklisp.org/quicklisp.lisp
 curl -O https://beta.quicklisp.org/quicklisp.lisp.asc
-sbcl --load quicklisp.lisp
-(quicklisp-quickstart:install)
-(exit)
+sbcl --load quicklisp.lisp --script ../configs_to_reproduce_results/sbcl_script1.lisp
+#(quicklisp-quickstart:install)
+#(exit)
 
 # Quicklisp will be used to install the Common Lisp Machine Learning (CLML) Library
 git clone https://github.com/mmaul/clml.git
 mv ./clml ~/quicklisp/local-projects/
 sbcl --dynamic-space-size 2560 --load quicklisp.lisp
-(quicklisp-quickstart:install)
-0
-(ql:quickload :clml :verbose t)
-(exit)
 
 # Third, tshark and editcap are needed to process the collected PCAP file.
 sudo aptitude install wireshark-common -y
