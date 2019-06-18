@@ -1063,6 +1063,7 @@ def inject_synthetic_attacks(graph, synthetic_exfil_paths, attacks_to_times, gra
         attack_number_to_mapping[attack_occuring] = current_mapping
 
     concrete_node_path = determine_concrete_node_path(synthetic_exfil_paths[attack_occuring], attack_number_to_mapping[attack_occuring])
+    print "abstract node exfil path", synthetic_exfil_paths[attack_occuring]
     print "concrete_node_exfil_path", concrete_node_path
 
     fraction_of_weight_min, fraction_of_pkt_min = determine_exfiltration_amt(avg_exfil_per_min, exfil_per_min_variance,
