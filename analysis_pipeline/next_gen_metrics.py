@@ -301,8 +301,9 @@ def find_unit_vector(vector):
 
 def find_dns_node_name(G):
     for node in G.nodes():
-        if 'kube-dns' in node and 'VIP' not in node:
+        if ('kube-dns' in node or 'coredns' in node) and 'VIP' not in node:
             return node
+
     return None # doesn't matter because it is not present anyway
 
 
