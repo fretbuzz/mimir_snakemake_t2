@@ -50,7 +50,7 @@ def determine_categorical_labels(y_test, optimal_predictions, exfil_paths, exfil
     number_of_existing_times = len(y_test)
     if number_of_found_exfils == number_of_existing_times:
         print "number_of_found_exfils == number_of_existing_times", number_of_found_exfils, number_of_existing_times
-        traceback.print_exc(file=sys.stdout)
+        #traceback.print_exc(file=sys.stdout)
         exit(312)
     print "optimal_predictions", len(optimal_predictions)
     print "attack_type_to_index",attack_type_to_index
