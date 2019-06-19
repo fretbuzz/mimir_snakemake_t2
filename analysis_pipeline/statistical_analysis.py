@@ -125,6 +125,7 @@ class single_model_stats_pipeline():
         list_of_y_vals = []
         line_titles = []
         if self.no_testing:
+            print "self.method_to_train_predictions", self.method_to_train_predictions
             method_to_predictions = self.method_to_train_predictions
             correct_labels = self.y_train
         else:
@@ -349,6 +350,7 @@ class single_model_stats_pipeline():
                         self.feature_select_transformer = model
 
                     self.clf.fit(self.X_train, self.y_train)
+                    print "train_predictions", self.clf.predict(X=self.X_train)
                     self.train_predictions = self.clf.predict(X=self.X_train)
                     self.test_predictions = np.array([])
                     self.no_testing = True  # no wait, here's the plan... just treat training like testing for purposes of the report...)
