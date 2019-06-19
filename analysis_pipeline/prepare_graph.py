@@ -336,6 +336,7 @@ def prepare_graph(G, svcs, level_of_processing, is_swarm, counter, file_path, ms
                   infra_instances, drop_infra_p):
     G = copy.deepcopy(G)
     G = aggregate_outside_nodes(G)
+    print "zg_container_to_ip_gz", container_to_ip
     containers_to_ms = map_nodes_to_svcs(G, None, container_to_ip)
     if level_of_processing == 'app_only':
         nx.set_node_attributes(G, containers_to_ms, 'svc')
