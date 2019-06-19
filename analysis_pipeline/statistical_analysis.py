@@ -11,6 +11,7 @@ import generate_heatmap, process_roc, generate_report
 from jinja2 import FileSystemLoader, Environment
 from sklearn.svm import LinearSVC
 from sklearn.feature_selection import SelectFromModel
+import sys, traceback
 
 class single_model_stats_pipeline():
     def __init__(self, aggregate_mod_score_df, base_output_name, skip_model_part, clf, drop_pairwise_features, timegran,

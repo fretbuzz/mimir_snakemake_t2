@@ -6,6 +6,7 @@
 import sklearn
 import pandas as pd
 import ast
+import sys, traceback
 
 def determine_optimal_threshold(y_true, test_predictions, thresholds):
     list_of_f1_scores = []
@@ -49,7 +50,8 @@ def determine_categorical_labels(y_test, optimal_predictions, exfil_paths, exfil
     number_of_existing_times = len(y_test)
     if number_of_found_exfils == number_of_existing_times:
         print "number_of_found_exfils == number_of_existing_times", number_of_found_exfils, number_of_existing_times
-        exit(312)
+        traceback.print_exc(file=sys.stdout)
+        #exit(312)
     print "optimal_predictions", len(optimal_predictions)
     print "attack_type_to_index",attack_type_to_index
     #print "y_test", y_test['labels'], type(y_test['labels'])
