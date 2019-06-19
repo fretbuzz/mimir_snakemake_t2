@@ -108,7 +108,7 @@ def map_nodes_to_svcs(G, svcs, ip_to_entity):
                 if match_name_to_pod(svc, u) or match_name_to_pod(svc + '_VIP', u):
                     containers_to_ms[u] = svc
                     break
-    return containers_to_ms
+    return containers_to_ms, svcs
 
 def is_ip(node_str):
     if not node_str:
@@ -221,7 +221,7 @@ def consolidate_nodes(H, nodes_to_consolidate):
 
 # aggregate all nodes of the same class into a single node
 # let's use a multigraph, so we can keep all the edges as intact...
-def aggregate_graph(G, containers_to_ms):
+def aggregate_graph(G, containers_to_ms, svcs):
     containers_to_ms['outside'] = 'outside'
     # step 1: convert containers_to_ms to ms_to_container
     '''
@@ -262,8 +262,28 @@ def aggregate_graph(G, containers_to_ms):
         #if v in containers_to_ms:
         #    v = containers_to_ms[v]
 
-        u = containers_to_ms[u]
-        v = containers_to_ms[v]
+        if u in containers_to_ms:
+            u = containers_to_ms[u]
+        else:
+            matching_svc = None
+            for svc in svcs:
+                if match_name_to_pod(svc, u):
+                    matching_svc = svc
+                    break
+            if matching_svc is None:
+                print "u (", u, ") has no identifying information"
+        ###
+        if v in containers_to_ms:
+            v = containers_to_ms[v]
+        else:
+            matching_svc = None
+            for svc in svcs:
+                if match_name_to_pod(svc, v):
+                    matching_svc = svc
+                    break
+            if matching_svc is None:
+                print "v (", v, ") has no identifying information"
+
         H.add_edge(u, v, weight=data['weight'], frames=data['frames'])
 
     try:
@@ -337,7 +357,7 @@ def prepare_graph(G, svcs, level_of_processing, is_swarm, counter, file_path, ms
     G = copy.deepcopy(G)
     G = aggregate_outside_nodes(G)
     print "zg_container_to_ip_gz", container_to_ip
-    containers_to_ms = map_nodes_to_svcs(G, None, container_to_ip)
+    containers_to_ms, svcs = map_nodes_to_svcs(G, None, container_to_ip)
     if level_of_processing == 'app_only':
         nx.set_node_attributes(G, containers_to_ms, 'svc')
         if drop_infra_p:
@@ -353,7 +373,7 @@ def prepare_graph(G, svcs, level_of_processing, is_swarm, counter, file_path, ms
         return induced_graph
     elif level_of_processing == 'class':
         #print "containers_to_ms",containers_to_ms
-        aggreg_multi_G, aggreg_simple_G = aggregate_graph(G, containers_to_ms)# + infra_service)
+        aggreg_multi_G, aggreg_simple_G = aggregate_graph(G, containers_to_ms, svcs)# + infra_service)
         if counter < 85:
             filename = file_path.replace('.txt', '') + '_network_graph_class.png'
             make_network_graph(aggreg_simple_G, edge_label_p=True, filename=filename, figsize=(16, 10),
