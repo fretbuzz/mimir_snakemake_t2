@@ -263,6 +263,7 @@ def aggregate_graph(G, containers_to_ms, svcs):
         #    v = containers_to_ms[v]
 
         if u in containers_to_ms:
+            print "u wasn't in containers_to_mus"
             u = containers_to_ms[u]
         else:
             matching_svc = None
@@ -273,8 +274,10 @@ def aggregate_graph(G, containers_to_ms, svcs):
             if matching_svc is None:
                 print "u (", u, ") has no identifying information"
                 exit(233)
+            u = matching_svc
         ###
         if v in containers_to_ms:
+            print "v wasn't in containers_to_mus"
             v = containers_to_ms[v]
         else:
             matching_svc = None
@@ -285,6 +288,7 @@ def aggregate_graph(G, containers_to_ms, svcs):
             if matching_svc is None:
                 print "v (", v, ") has no identifying information"
                 exit(233)
+            v = matching_svc
 
         H.add_edge(u, v, weight=data['weight'], frames=data['frames'])
 
