@@ -831,6 +831,8 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
         ##### I need this now b/c it is useful to have infra_instances #####
         container_to_ip, infra_instances = update_mapping(container_to_ip, pod_creation_log, time_interval, counter, infra_instances)
 
+        print "cur_time", cur_time, "container_to_ip_zz", container_to_ip
+
         cur_1si_G = prepare_graph(G, None, 'app_only', is_swarm, counter, file_path, ms_s,
                                   container_to_ip, infra_instances, drop_infra_p=drop_infra_from_graph)
 
