@@ -262,6 +262,8 @@ def aggregate_graph(G, containers_to_ms, svcs):
         #if v in containers_to_ms:
         #    v = containers_to_ms[v]
 
+        ######### TODO: this part should not exist; the fact that it exists clearly indicates
+        ######### something is wrong!!
         if u in containers_to_ms:
             print "u wasn't in containers_to_mus"
             u = containers_to_ms[u]
@@ -289,6 +291,8 @@ def aggregate_graph(G, containers_to_ms, svcs):
                 print "v (", v, ") has no identifying information"
                 exit(233)
             v = matching_svc
+        ###############
+        ###############
 
         H.add_edge(u, v, weight=data['weight'], frames=data['frames'])
 
