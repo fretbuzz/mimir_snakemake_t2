@@ -444,7 +444,7 @@ def match_name_to_pod(abstract_node_name, concrete_pod_name, svc=None):
         return abstract_node_name in concrete_pod_name
     else:
         valid = re.compile('.*' + abstract_node_name + '-[a-z0-9][a-z0-9][a-z0-9][a-z0-9][a-z0-9][a-z0-9][a-z0-9][a-z0-9][a-z0-9].*')
-        print "valid_match_result?", valid
+        print "valid_match_result?", valid, abstract_node_name
         match_status = valid.match(concrete_pod_name)
         valid_two = re.compile('.*' + abstract_node_name + '-[0-9].*')
         match_status_two = valid_two.match(concrete_pod_name)
