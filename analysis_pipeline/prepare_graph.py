@@ -265,9 +265,9 @@ def aggregate_graph(G, containers_to_ms, svcs):
         ######### TODO: this part should not exist; the fact that it exists clearly indicates
         ######### something is wrong!!
         if u in containers_to_ms:
-            print "WARNINGL u wasn't in containers_to_ms"
             u = containers_to_ms[u]
         else:
+            print "WARNINGL u wasn't in containers_to_ms"
             matching_svc = None
             for svc in svcs:
                 if match_name_to_pod(svc, u):
@@ -279,9 +279,9 @@ def aggregate_graph(G, containers_to_ms, svcs):
             u = matching_svc
         ###
         if v in containers_to_ms:
-            print "WARNING: v wasn't in containers_to_ms"
             v = containers_to_ms[v]
         else:
+            print "WARNING: v wasn't in containers_to_ms"
             matching_svc = None
             for svc in svcs:
                 if match_name_to_pod(svc, v):

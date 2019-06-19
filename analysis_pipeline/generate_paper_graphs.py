@@ -549,7 +549,9 @@ if __name__=="__main__":
         #############config_file_pth = "./multi_experiment_configs/new_sockshop_angle.json"
         #config_file_pth = "./analysis_pipeline/multi_experiment_configs/sockshop_test_remote.json"
         ################config_file_pth = "./multi_experiment_configs/new_sockshop_scale.json"
-        config_file_pth = "./multi_experiment_configs/hipsterStore_scale.json"
+        #config_file_pth = "./multi_experiment_configs/hipsterStore_scale.json"
+        config_file_pth = "/Volumes/exM/tsting_e2e_repo/configs/new_sockshop_scale.json"
+        ###config_file_pth = "../configs_to_reproduce_results/Data_Analysis/Sockshop/Scale/new_sockshop_scale.json"
     else:
         config_file_pth = args.config_json
 
