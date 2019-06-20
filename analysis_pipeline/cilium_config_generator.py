@@ -225,7 +225,7 @@ def cilium_component(time_length, pcap_location, cilium_component_dir, make_edge
         nx.parse_edgelist(lines, delimiter=' ', create_using=G)
         G = aggregate_outside_nodes(G)
         # step 4b: map nodes->svc's
-        containers_to_ms = map_nodes_to_svcs(G, None, mapping)
+        containers_to_ms,_ = map_nodes_to_svcs(G, None, mapping)
         containers_to_ms['outside'] = 'outside'
         #_, service_G = aggregate_graph(G, containers_to_ms)
         nx.set_node_attributes(G, containers_to_ms, 'svc')
