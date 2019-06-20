@@ -72,10 +72,12 @@ def map_nodes_to_svcs(G, svcs, ip_to_entity):
     svcs = svc_to_label.keys()
 
     for u in G.nodes():
+        if 'front-end-6cc46765f9-7jlkp' in u:
+            pass
         # if the labels identify the service, then we can just use that...
+        found_matching_svc = False
         if u in name2ip:
             node_attribs = name2ip[u]
-            found_matching_svc = False
             #print "node_attribs", node_attribs
             if len(node_attribs) >= 5:
                 if node_attribs[4] != None:
@@ -100,14 +102,14 @@ def map_nodes_to_svcs(G, svcs, ip_to_entity):
                                 print("there's a label not a associated with a service! that's weird! .... exiting now...")
                                 exit(222)
                             '''
-            if found_matching_svc:
-                continue
-            for svc in svcs:
-                if u == "wwwppp-wordpress_VIP" : # this is for debugging... I can  take it out eventually...
-                    pass
-                if match_name_to_pod(svc, u) or match_name_to_pod(svc + '_VIP', u):
-                    containers_to_ms[u] = svc
-                    break
+        if found_matching_svc:
+            continue
+        for svc in svcs:
+            if u == "wwwppp-wordpress_VIP" : # this is for debugging... I can  take it out eventually...
+                pass
+            if match_name_to_pod(svc, u) or match_name_to_pod(svc + '_VIP', u):
+                containers_to_ms[u] = svc
+                break
     return containers_to_ms, svcs
 
 def is_ip(node_str):
@@ -267,7 +269,7 @@ def aggregate_graph(G, containers_to_ms, svcs):
         if u in containers_to_ms:
             u = containers_to_ms[u]
         else:
-            print "WARNINGL u wasn't in containers_to_ms"
+            print "WARNING: u wasn't in containers_to_ms"
             matching_svc = None
             for svc in svcs:
                 if match_name_to_pod(svc, u):
@@ -467,6 +469,8 @@ def generate_network_graph_colormap(color_map, ms_s, G):
 
 
 def match_name_to_pod(abstract_node_name, concrete_pod_name, svc=None):
+    ## ned to handle the coredns case...
+    concrete_pod_name = concrete_pod_name.replace('coredns', 'kube-dns')
 
     if svc and svc == abstract_node_name and '_VIP' not in concrete_pod_name:
         return True

@@ -899,7 +899,7 @@ def process_and_inject_single_graph(counter_starting, file_paths, svcs, is_swarm
             attack_occuring_list.append(0)
 
         # new nodes exist now... so need to do a limited amt of re-processing...
-        containers_to_ms = map_nodes_to_svcs(cur_1si_G, svcs, container_to_ip)
+        containers_to_ms,svcs = map_nodes_to_svcs(cur_1si_G, svcs, container_to_ip)
         nx.set_node_attributes(cur_1si_G, containers_to_ms, 'svc')
         if drop_infra_from_graph:
             infra_nodes = find_infra_components_in_graph(cur_1si_G, infra_instances)
