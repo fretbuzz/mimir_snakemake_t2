@@ -16,7 +16,7 @@ host=$(sudo minikube service wwwppp-wordpress --url | tail -n 1)
 WORDPRESS_PORT="$(echo $host | sed -e 's,^.*:,:,g' -e 's,.*:\([0-9]*\).*,\1,g' -e 's,[^0-9],,g')"
 cd ./wordpress_setup/
 
-sleep 120
+sleep 300
 
 python setup_wordpress.py $MINIKUBE_IP $WORDPRESS_PORT "hi"
 cd ..
