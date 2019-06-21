@@ -341,7 +341,7 @@ def calc_VIP_metric(G, abs_val_p):
             if (node1, service2) in pod_to_containers_in_other_svc.keys():
                 pod_to_containers_in_other_svc[node1, service2] += data
             else:
-                print "node1", node1, "service2", service2
+                #print "node1", node1, "service2", service2
                 pod_to_containers_in_other_svc[node1, service2] = data
 
             if (service1, node2) in pod_to_containers_in_other_svc.keys():

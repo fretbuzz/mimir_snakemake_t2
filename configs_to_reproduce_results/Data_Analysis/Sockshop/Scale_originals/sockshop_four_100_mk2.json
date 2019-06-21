@@ -1,8 +1,8 @@
 {
-  "cur_experiment_name": "wordpress_one_3_auto_mk5",
+  "cur_experiment_name": "sockshop_four_100_mk2", 
 
-  "exp_config_file": "../experiment_coordinator/experimental_data/wordpress_one_3_auto_mk5/wordpress_one_3_auto_mk5.json",
-  "netsec_policy": "../experiment_coordinator/netsec_policies/sockshop_netsec_seg.txt",
+  "exp_config_file": "../experiment_coordinator/experimental_data/sockshop_four_100_mk2/sockshop_four_100_mk2_analysis.json",
+  "netsec_policy": "../experiment_coordinator/netsec_policies/sockshop_netsec_seg.txt", 
 
   "make_edgefiles": true,
   "skip_graph_injection": false,
@@ -10,16 +10,16 @@
   "calculate_z_scores": true,
   "get_endresult_from_memory": false,
 
-  "perform_cilium_component": true,
+  "perform_cilium_component": true, 
   "calc_ide": false,
   "drop_pairwise_features": false,
   "drop_infra_from_graph": true,
 
-  "time_of_synethic_exfil": 60,
+  "time_of_synethic_exfil": 60, 
   "time_interval_lengths": [10, 60],
   "avg_exfil_per_min": [10.0, 1.0, 0.1, 0.05, 0.01],
   "exfil_per_min_variance": [0.3, 0.15, 0.025, 0.0125, 0.00125],
-  "goal_attack_NoAttack_split_training": 0.5,
+  "goal_attack_NoAttack_split_training": 0.5, 
   "goal_train_test_split_training": 0.5,
   "goal_attack_NoAttack_split_testing": 0.5,
 
