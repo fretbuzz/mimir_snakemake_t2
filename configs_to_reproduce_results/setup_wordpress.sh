@@ -15,6 +15,9 @@ MINIKUBE_IP=$(sudo minikube ip) # this theoretically ends whatever script is bei
 host=$(sudo minikube service wwwppp-wordpress --url | tail -n 1)
 WORDPRESS_PORT="$(echo $host | sed -e 's,^.*:,:,g' -e 's,.*:\([0-9]*\).*,\1,g' -e 's,[^0-9],,g')"
 cd ./wordpress_setup/
+
+sleep 120
+
 python setup_wordpress.py $MINIKUBE_IP $WORDPRESS_PORT "hi"
 cd ..
 
