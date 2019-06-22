@@ -671,7 +671,7 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
 
         if proc:
             #print proc.poll
-            os.killpg(os.getpgid(proc.pid), signal.SIGTERM) # should kill it
+            print "killing locust", os.killpg(os.getpgid(proc.pid), signal.SIGTERM) # should kill it
             #print "proc hopefully killed", proc.poll
 
         #subprocess.call([locust_info_file + '_requests.csv', '>>', locust_info_file])

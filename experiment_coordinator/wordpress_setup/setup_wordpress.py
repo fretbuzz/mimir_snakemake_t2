@@ -269,7 +269,7 @@ def main(ip_of_wp, port_of_wp, admin_pwd):
     # ''' # this is good.
     user_page = 'https://' + ip_of_wp + ':' + port_of_wp + '/wp-admin/admin.php?page=fakerpress&view=users'
     driver.get(user_page)
-    print(driver.page_source)
+    #print(driver.page_source)
     user_page_code()
     time.sleep(170)
     '''
