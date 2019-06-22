@@ -666,13 +666,18 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
         print("Time: " + str(i) +  ". Now running with " + client_count + " simultaneous clients")
 
         #Run some number of background clients for 1/24th of the total test time
-        time.sleep(timestep)
+        time.sleep(timestep - 0.5)
         # this stops the background traffic process
 
         if proc:
             #print proc.poll
             print "killing locust", os.killpg(os.getpgid(proc.pid), signal.SIGTERM) # should kill it
             #print "proc hopefully killed", proc.poll
+            time.sleep(0.5)
+            try:
+                print "killing locust w/ signal 9", os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+            except:
+                pass
 
         #subprocess.call([locust_info_file + '_requests.csv', '>>', locust_info_file])
         #try:
