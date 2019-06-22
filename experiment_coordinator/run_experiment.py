@@ -628,7 +628,7 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
                 locust_cmds = ["locust", "-f", "./sockshop_setup/background_traffic.py",
                                          "--host=http://"+ip+ ":" +str(port), "--no-web", "-c",
                                         client_count, "-r", str(spawn_rate), '--csv=' + locust_info_file,
-                               "-t", str(int(timestep) - 1)]
+                               "-t", str(int(timestep) - 1) + 's']
                 print "locust_cmds", locust_cmds
                 proc = subprocess.Popen(locust_cmds, preexec_fn=os.setsid, stdout=devnull, stderr=devnull)
                 #print proc.stdout
@@ -645,7 +645,7 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
             elif app_name == "wordpress":
                 wordpress_cmds = ["locust", "-f", "./wordpress_setup/wordpress_background.py", "--host=https://"+ip+ ":" +str(port),
                                   "--no-web", "-c", str(client_count), "-r", str(spawn_rate),
-                                  "--csv=" + locust_info_file, "-t", str(int(timestep) - 1)]
+                                  "--csv=" + locust_info_file, "-t", str(int(timestep) - 1) + 's']
                 print "wordpress_cmds", wordpress_cmds
                 proc = subprocess.Popen(wordpress_cmds, preexec_fn=os.setsid, stdout=devnull, stderr=devnull)
             elif app_name == "hipsterStore":
@@ -654,7 +654,7 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
                 hipsterStore_cmds = ["locust", "-f", "./hipsterStore_setup/background_traffic.py",
                                      "--host=http://" + ip + ":" + str(port),
                                      "--no-web", "-c", str(client_count), "-r", str(spawn_rate),
-                                     "--csv=" + locust_info_file, "-t", str(int(timestep) - 1)]
+                                     "--csv=" + locust_info_file, "-t", str(int(timestep) - 1) + 's']
                 print "hipsterStore_cmds", hipsterStore_cmds
                 proc = subprocess.Popen(hipsterStore_cmds, preexec_fn=os.setsid, stdout=devnull, stderr=devnull)
             else:
