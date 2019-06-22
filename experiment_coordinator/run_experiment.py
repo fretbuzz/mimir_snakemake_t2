@@ -628,7 +628,7 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
                 locust_cmds = ["locust", "-f", "./sockshop_setup/background_traffic.py",
                                          "--host=http://"+ip+ ":" +str(port), "--no-web", "-c",
                                         client_count, "-r", str(spawn_rate), '--csv=' + locust_info_file,
-                               "-t", str(timestep)]  # TODO: if not work, add -1
+                               "-t", str(timestep - 1)]
                 print "locust_cmds", locust_cmds
                 proc = subprocess.Popen(locust_cmds, preexec_fn=os.setsid, stdout=devnull, stderr=devnull)
                 #print proc.stdout
@@ -645,7 +645,7 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
             elif app_name == "wordpress":
                 wordpress_cmds = ["locust", "-f", "./wordpress_setup/wordpress_background.py", "--host=https://"+ip+ ":" +str(port),
                                   "--no-web", "-c", str(client_count), "-r", str(spawn_rate),
-                                  "--csv=" + locust_info_file, "-t", str(timestep)] # TODO: if not work, add -1
+                                  "--csv=" + locust_info_file, "-t", str(timestep - 1)]
                 print "wordpress_cmds", wordpress_cmds
                 proc = subprocess.Popen(wordpress_cmds, preexec_fn=os.setsid, stdout=devnull, stderr=devnull)
             elif app_name == "hipsterStore":
@@ -654,7 +654,7 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
                 hipsterStore_cmds = ["locust", "-f", "./hipsterStore_setup/background_traffic.py",
                                      "--host=http://" + ip + ":" + str(port),
                                      "--no-web", "-c", str(client_count), "-r", str(spawn_rate),
-                                     "--csv=" + locust_info_file, "-t", str(timestep)] # TODO: if not work, add -1
+                                     "--csv=" + locust_info_file, "-t", str(timestep - 1)]
                 print "hipsterStore_cmds", hipsterStore_cmds
                 proc = subprocess.Popen(hipsterStore_cmds, preexec_fn=os.setsid, stdout=devnull, stderr=devnull)
             else:
@@ -668,7 +668,7 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
         print("Time: " + str(i) +  ". Now running with " + client_count + " simultaneous clients")
 
         #Run some number of background clients for 1/24th of the total test time
-        time.sleep(timestep - 0.5)
+        time.sleep(timestep)
         # this stops the background traffic process
 
         if proc:
@@ -676,11 +676,11 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
             print "killing locust", os.killpg(os.getpgid(proc.pid), signal.SIGTERM) # should kill it
             #print "proc hopefully killed", proc.poll
             #'''
-            time.sleep(0.5)
-            try:
-                print "killing locust w/ signal 9", os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
-            except:
-                pass
+            #time.sleep(0.5)
+            #try:
+            #    print "killing locust w/ signal 9", os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+            #except:
+            #    pass
             #'''
         #subprocess.call([locust_info_file + '_requests.csv', '>>', locust_info_file])
         #try:
