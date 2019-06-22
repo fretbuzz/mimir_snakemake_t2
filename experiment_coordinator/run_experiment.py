@@ -627,7 +627,8 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
                 print "sockshop!"
                 locust_cmds = ["locust", "-f", "./sockshop_setup/background_traffic.py",
                                          "--host=http://"+ip+ ":" +str(port), "--no-web", "-c",
-                                        client_count, "-r", str(spawn_rate), '--csv=' + locust_info_file]
+                                        client_count, "-r", str(spawn_rate), '--csv=' + locust_info_file,
+                               "-t", str(timestep)]  # TODO: if not work, add -1
                 print "locust_cmds", locust_cmds
                 proc = subprocess.Popen(locust_cmds, preexec_fn=os.setsid, stdout=devnull, stderr=devnull)
                 #print proc.stdout

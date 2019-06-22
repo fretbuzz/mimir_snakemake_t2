@@ -10,6 +10,7 @@ import time
 from tabulate import tabulate
 import numpy as np
 import ast
+import os, errno
 plt.style.use('seaborn-paper')
 
 method_to_legend = {'ensemble': 'Our Method',
@@ -224,6 +225,12 @@ def generate_graphs(eval_configs_to_xvals, exfil_rates, evalconfigs_to_cm, timeg
     method_to_rate_to_xlist_ylist = {}
     methods = evalconfigs_to_cm[eval_configs_to_xvals.keys()[0]][exfil_rates[0]][timegran].keys()
     angles_method_to_rate_to_xlist_ylist = {}
+
+    try:
+        os.makedirs('./multilooper_outs/')
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise
 
     if not no_tsl:
         mutli_load_graph = './multilooper_outs/aggreg_' + str(timegran) + '_' + graph_name + '.png'
