@@ -643,7 +643,8 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
             #                        stdout=devnull, stderr=devnull, preexec_fn=os.setsid)
             elif app_name == "wordpress":
                 wordpress_cmds = ["locust", "-f", "./wordpress_setup/wordpress_background.py", "--host=https://"+ip+ ":" +str(port),
-                                  "--no-web", "-c", str(client_count), "-r", str(spawn_rate), "--csv=" + locust_info_file]
+                                  "--no-web", "-c", str(client_count), "-r", str(spawn_rate),
+                                  "--csv=" + locust_info_file, "-t", str(timestep)] # TODO: if not work, add -1
                 print "wordpress_cmds", wordpress_cmds
                 proc = subprocess.Popen(wordpress_cmds, preexec_fn=os.setsid, stdout=devnull, stderr=devnull)
             elif app_name == "hipsterStore":
@@ -652,7 +653,7 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
                 hipsterStore_cmds = ["locust", "-f", "./hipsterStore_setup/background_traffic.py",
                                      "--host=http://" + ip + ":" + str(port),
                                      "--no-web", "-c", str(client_count), "-r", str(spawn_rate),
-                                     "--csv=" + locust_info_file]
+                                     "--csv=" + locust_info_file, "-t", str(timestep)] # TODO: if not work, add -1
                 print "hipsterStore_cmds", hipsterStore_cmds
                 proc = subprocess.Popen(hipsterStore_cmds, preexec_fn=os.setsid, stdout=devnull, stderr=devnull)
             else:
@@ -673,12 +674,13 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
             #print proc.poll
             print "killing locust", os.killpg(os.getpgid(proc.pid), signal.SIGTERM) # should kill it
             #print "proc hopefully killed", proc.poll
+            #'''
             time.sleep(0.5)
             try:
                 print "killing locust w/ signal 9", os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
             except:
                 pass
-
+            #'''
         #subprocess.call([locust_info_file + '_requests.csv', '>>', locust_info_file])
         #try:
         aggregate_locust_file(locust_info_file +'_requests.csv', locust_info_file + '_AGGREGATED')
