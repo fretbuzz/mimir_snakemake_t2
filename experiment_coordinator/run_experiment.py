@@ -668,12 +668,21 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
         print("Time: " + str(i) +  ". Now running with " + client_count + " simultaneous clients")
 
         #Run some number of background clients for 1/24th of the total test time
-        time.sleep(timestep)
+        time.sleep(timestep-0.5)
         # this stops the background traffic process
 
         if proc:
             #print proc.poll
             print "killing locust", os.killpg(os.getpgid(proc.pid), signal.SIGTERM) # should kill it
+
+            time.sleep(0.5)
+
+            try:
+                os.kill(os.getpgid(proc.pid), 0)
+                os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+            except:
+                pass # process does not exist ---> do not do anything...
+
             #print "proc hopefully killed", proc.poll
             #'''
             #time.sleep(0.5)
@@ -690,7 +699,7 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
         try:
             os.remove(locust_info_file +'_requests.csv')
         except OSError:
-            pass
+            print "couldn't remove the locust file:", locust_info_file +'_requests.csv'
 
         #except Exception as e:
         #    raise("exception_in_prepare_apps: " + e.output)
