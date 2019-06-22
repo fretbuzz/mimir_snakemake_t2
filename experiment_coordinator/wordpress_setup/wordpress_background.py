@@ -121,11 +121,14 @@ class BackgroundTraffic(TaskSet):
                 'format': 'standard'
                 }
 
-        r = self.client.post('/wp-json/wp/v2' + '/posts', headers=headers, data=post, verify=False)
-        print('Your post is published on ' + json.loads(r.content)['link'])
-        postid = json.loads(r.content)['id']
+        try:
+            r = self.client.post('/wp-json/wp/v2' + '/posts', headers=headers, data=post, verify=False)
+            print('Your post is published on ' + json.loads(r.content)['link'])
+            postid = json.loads(r.content)['id']
+            print r
+        except:
+            print "post could not be published succesfully"
 
-        print r
         time.sleep(randint(min_wait, max_wait) / 1000.0)  # going to wait a bit between events
 
         # note: user will also browse a little too (b/c more realistic that way)
