@@ -1,68 +1,74 @@
 {
+  "path_to_docker_machine_tls_certs": "/mydata/.minikube/certs",
+  "experiment_name": "sockshop_four_5_0_5",
+  "application_name": "sockshop",
+  "experiment_length_sec": 10800,
+  "network_plugin": "none",
+
+  "prob_distro": {
+    "browse": 0.5,
+    "buy": 0.0,
+    "register": 0.5
+  },
+
+  "experiment": {
+    "traffic_type": "normal",
+    "background_locust_spawn_rate": 30,
+    "number_background_locusts": 100
+  },
+
   "setup": {
-    "number_customer_records": 10000, 
-    "background_locust_spawn_rate": 10, 
+    "number_customer_records": 10000,
+    "background_locust_spawn_rate": 10,
     "number_background_locusts": 80
-  }, 
-  "experiment_length_sec": 10800, 
+  },
+
   "exfiltration_info": {
-    "physical_attacks": false, 
+    "physical_attacks": false,
     "sensitive_ms": [
       "user-db"
     ]
-  }, 
-  "path_to_docker_machine_tls_certs": "/mydata/.minikube/certs", 
-  "experiment_name": "sockshop_four_5_0_5", 
-  "experiment": {
-    "traffic_type": "normal", 
-    "background_locust_spawn_rate": 30, 
-    "number_background_locusts": 100
-  }, 
+  },
+
   "VM_interfaces": [
     "vboxnet0"
-  ], 
-  "network_plugin": "none", 
+  ],
+
   "Deployment": {
-    "autoscale_p": true, 
+    "autoscale_p": true,
     "deployment_scaling": {
       "front-end": {
-        "max": 6, 
+        "max": 6,
         "min": 6
-      }, 
+      },
       "queue-master": {
-        "max": 3, 
+        "max": 3,
         "min": 3
-      }, 
+      },
       "shipping": {
-        "max": 3, 
+        "max": 3,
         "min": 3
-      }, 
+      },
       "orders": {
-        "max": 3, 
+        "max": 3,
         "min": 3
-      }, 
+      },
       "catalogue": {
-        "max": 6, 
+        "max": 6,
         "min": 6
-      }, 
+      },
       "cart": {
         "max": 2,
         "min": 2
-      }, 
+      },
       "payment": {
-        "max": 6, 
+        "max": 6,
         "min": 6
-      }, 
+      },
       "user": {
-        "max": 6, 
+        "max": 6,
         "min": 6
       }
     }
-  }, 
-  "application_name": "sockshop", 
-  "prob_distro": {
-    "browse": 0.0, 
-    "buy": 0.5, 
-    "register": 0.5
   }
 }

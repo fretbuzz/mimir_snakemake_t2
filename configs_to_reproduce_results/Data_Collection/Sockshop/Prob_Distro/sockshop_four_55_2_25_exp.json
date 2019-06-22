@@ -1,14 +1,14 @@
 {
   "path_to_docker_machine_tls_certs": "/mydata/.minikube/certs",
-  "experiment_name": "sockshop_four_1_0_0",
+  "experiment_name": "sockshop_four_55_2_25",
   "application_name": "sockshop",
   "experiment_length_sec": 10800,
   "network_plugin": "none",
 
   "prob_distro": {
-    "browse": 1.0,
-    "buy": 0.0,
-    "register": 0.0
+    "browse": 0.55,
+    "buy": 0.2,
+    "register": 0.25
   },
 
   "experiment": {

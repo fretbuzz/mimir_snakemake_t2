@@ -1,0 +1,28 @@
+{
+  "model_config_file": "../configs_to_reproduce_results/Data_Analysis/Sockshop/Prob_Distro/sockshop_four_5_3_2_mk2_exp_proc.json",
+  "model_xval": 100,
+  "eval_configs_to_xvals": {
+
+    "../configs_to_reproduce_results/Data_Analysis/Sockshop/Prob_Distro/sockshop_four_0_0_1_exp_proc.json": 100,
+    "../configs_to_reproduce_results/Data_Analysis/Sockshop/Prob_Distro/sockshop_four_0_1_0_exp_proc.json": 100,
+    "../configs_to_reproduce_results/Data_Analysis/Sockshop/Prob_Distro/sockshop_four_0_5_5_exp_proc.json": 100,
+    "../configs_to_reproduce_results/Data_Analysis/Sockshop/Prob_Distro/sockshop_four_1_0_0_exp_proc.json": 100,
+
+    "../configs_to_reproduce_results/Data_Analysis/Sockshop/Prob_Distro/sockshop_four_4_35_25_exp_proc.json": 100,
+    "../configs_to_reproduce_results/Data_Analysis/Sockshop/Prob_Distro/sockshop_four_5_0_5_exp_proc.json": 100,
+    "../configs_to_reproduce_results/Data_Analysis/Sockshop/Prob_Distro/sockshop_four_5_3_2_exp_proc.json": 100,
+    "../configs_to_reproduce_results/Data_Analysis/Sockshop/Prob_Distro/sockshop_four_55_2_25_exp_proc.json": 100,
+
+    "../configs_to_reproduce_results/Data_Analysis/Sockshop/Prob_Distro/sockshop_four_55_35_1_exp_proc.json": 100,
+  },
+
+  "xlabel" : "load (# instances of load generation)",
+  "use_cached": true,
+  "exfil_rate": [1000000.0, 100000.0, 10000.0],
+
+  "timegran": "(10,60)",
+  "type_of_graph": "angle",
+  "graph_name": "new_sockshop_angle",
+  "no_tsl": true
+}
+
