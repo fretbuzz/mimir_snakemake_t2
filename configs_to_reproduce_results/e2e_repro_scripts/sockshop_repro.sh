@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 ### SOCKOSHOP REPRODUCABILITY -- SCALE ###
 ## THIS SHOULD be all that I need to do to get the Sockshop reproducibility thing going ##
+## TODO: update for the new directory
 
 # this should be applicable to everyone...
-git clone https://github.com/fretbuzz/mimir_v2.git
-cd ./mimir_v2/experiment_coordinator/
 bash ../configs_to_reproduce_results/kubernetes_setup_script.sh
 
 sudo python run_experiment.py --no_exfil --prepare_app --config_file ../configs_to_reproduce_results/Data_Collection/Sockshop/Scale/sockshop_four_100_exp.json ;\

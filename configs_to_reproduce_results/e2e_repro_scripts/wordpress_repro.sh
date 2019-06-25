@@ -2,8 +2,6 @@
 ## THIS SHOULD be all that I need to do to get the wordpress reproducibility thing going ##
 
 # should be applicable to everyone
-git clone https://github.com/fretbuzz/mimir_v2.git
-cd ./mimir_v2/experiment_coordinator/
 bash ../configs_to_reproduce_results/kubernetes_setup_script.sh
 
 # then do wordpress-specific setup
