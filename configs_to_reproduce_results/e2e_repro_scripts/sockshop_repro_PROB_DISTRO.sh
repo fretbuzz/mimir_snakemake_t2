@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-## TODO: update for the new directory
-
 # this should be applicable to everyone...
 bash ../configs_to_reproduce_results/kubernetes_setup_script.sh
 
@@ -13,7 +11,11 @@ sudo python run_experiment.py --no_exfil --config_file ../configs_to_reproduce_r
 
 sleep 60
 
-sudo python run_experiment.py --no_exfil --config_file ../configs_to_reproduce_results/Data_Collection/Sockshop/Prob_Distro/sockshop_four_0_1_0_exp.json
+bash ../configs_to_reproduce_results/cycle_minikube.sh
+
+sleep 120
+
+sudo python run_experiment.py --no_exfil --prepare_app --config_file ../configs_to_reproduce_results/Data_Collection/Sockshop/Prob_Distro/sockshop_four_0_1_0_exp.json
 
 sleep 60
 
@@ -33,7 +35,11 @@ sudo python run_experiment.py --no_exfil --config_file ../configs_to_reproduce_r
 
 sleep 60
 
-sudo python run_experiment.py --no_exfil --config_file ../configs_to_reproduce_results/Data_Collection/Sockshop/Prob_Distro/sockshop_four_5_0_5_exp.json
+bash ../configs_to_reproduce_results/cycle_minikube.sh
+
+sleep 120
+
+sudo python run_experiment.py --no_exfil --prepare_app --config_file ../configs_to_reproduce_results/Data_Collection/Sockshop/Prob_Distro/sockshop_four_5_0_5_exp.json
 
 sleep 60
 
