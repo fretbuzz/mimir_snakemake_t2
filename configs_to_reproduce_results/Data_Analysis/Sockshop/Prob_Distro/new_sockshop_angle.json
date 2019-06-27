@@ -17,7 +17,7 @@
   },
 
   "xlabel" : "load (# instances of load generation)",
-  "use_cached": true,
+  "use_cached": false,
   "exfil_rate": [1000000.0, 100000.0, 10000.0],
 
   "timegran": "(10,60)",
