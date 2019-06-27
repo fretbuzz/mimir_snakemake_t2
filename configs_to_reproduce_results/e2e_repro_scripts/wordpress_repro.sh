@@ -75,7 +75,7 @@ sleep 120
 
 cd ../analysis_pipeline/
 
-. ../../configs_to_reproduce_results/install_mimir_depend_scripts.sh
+. ../configs_to_reproduce_results/install_mimir_depend_scripts.sh
 python generate_paper_graphs.py --config_json ../configs_to_reproduce_results/Data_Analysis/Wordpress/Scale/wordpress_scale.json
 
 ls

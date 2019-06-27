@@ -62,7 +62,7 @@ sleep 60
 cd ../analysis_pipeline/
 
 ## then install the analysis pipeline depdencies
-. ../../configs_to_reproduce_results/install_mimir_depend_scripts.sh
+. ../configs_to_reproduce_results/install_mimir_depend_scripts.sh
 
 sudo python generate_paper_graphs.py --config_json ../configs_to_reproduce_results/Data_Analysis/Sockshop/Prob_Distro/new_sockshop_angle.json
 # --dont_update_config
