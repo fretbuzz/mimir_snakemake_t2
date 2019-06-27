@@ -27,6 +27,12 @@ sbcl --dynamic-space-size 2560 --load quicklisp.lisp --script ../configs_to_repr
 #(exit)
 
 # Third, tshark and editcap are needed to process the collected PCAP file.
+# using the code from here to handle the wireshark-common install case: https://unix.stackexchange.com/questions/367866/how-to-choose-a-response-for-interactive-prompt-during-installation-from-a-shell
+# TODO: test this!!
+sudo DEBIAN_FRONTEND=noninteractive apt-get -y install wireshark
+echo "wireshark-common wireshark-common/install-setuid boolean false" | sudo debconf-set-selections
+sudo DEBIAN_FRONTEND=noninteractive dpkg-reconfigure wireshark-common
+
 sudo aptitude install wireshark-common -y
 sudo aptitude install tshark -y
 
