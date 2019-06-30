@@ -26,6 +26,13 @@ network activity data and [Training New Model](#train_new_model) for how to trai
 ### Prerequisites
 This section will install the dependencies needed for running on the analysis pipeline on Ubuntu 16.04.
 
+###### Step 0: Clone the repo and move to the analysis_pipeline directory
+The following steps assume that you have cloned the repo and moved to the mimir_v2/analysis_pipeline/ directory.
+```angular2html
+git clone https://github.com/fretbuzz/mimir_v2.git
+cd mimir_v2/analysis_pipeline
+```
+
 ###### Step 1: Install Docker
 [Docker](https://docs.docker.com/install/) is needed because the system uses the MulVal container.
 Using the Docker convience installation script, Docker can be installed by:
@@ -54,45 +61,86 @@ sbcl --load quicklisp.lisp --script ../configs_to_reproduce_results/sbcl_script1
 ```
 
 ###### Step 2b: Install Common Lisp Machine Learning Library
-
 ```
 git clone https://github.com/mmaul/clml.git
 mv ./clml ~/quicklisp/local-projects/
 sbcl --dynamic-space-size 2560 --load quicklisp.lisp --script ../configs_to_reproduce_results/sbcl_script2.lisp
 ```
 
-###### Step 3: Install Docker
-
-
-###### Step 4: Install Docker
-
-
-###### Step 5: Install Docker
-
-
--------
-
+###### Step 3: Install tshark and editcap
+[Tshark \& editcap](https://www.wireshark.org/docs/wsug_html_chunked/ChapterBuildInstall.html) are used to parse 
+the relevant pcap files. The first set of commands exist to avoid the interactive screen where you decide if 
+non-superusers should be able to capture packets (is set to false below).
 ```
-Give examples
+sudo DEBIAN_FRONTEND=noninteractive apt-get -y install wireshark
+echo "wireshark-common wireshark-common/install-setuid boolean false" | sudo debconf-set-selections
+sudo DEBIAN_FRONTEND=noninteractive dpkg-reconfigure wireshark-common
+
+sudo aptitude install wireshark-common -y
+sudo aptitude install tshark -y
 ```
 
-### Installing
-
-A step by step series of examples that tell you how to get a development env running.
-
-Say what the step will be
-
+###### Step 4: Install pdfkit
+[Pdfkit](https://github.com/pdfkit/pdfkit/wiki/Installing-WKHTMLTOPDF) is used to generate reports, which at the current
+ stage is the best way to view the system's performance. Note: the system assumes that wkhtmltopdf is located at 
+ /usr/local/bin/wkhtmltopdf. You might have to move it there on some systems, such as Ubuntu 16.04.
 ```
-Give the example
-```
+sudo aptitude install wkhtmltopdf -y
 
-And repeat
-
-```
-until finished
+# only needed if it is not automatically located at /usr/local/bin/wkhtmltopdf
+# (must do on Ubuntu 16.04)
+sudo cp  /usr/bin/wkhtmltopdf  /usr/local/bin/wkhtmltopdf
 ```
 
-End with an example of getting some data out of the system or using it for a little demo.
+###### Step 5: Install Python
+Make sure [Python 2.7](https://www.python.org/downloads/) and [Pip](https://pip.pypa.io/en/stable/installing/) are installed.
+```
+sudo aptitude install python2.7 -y
+sudo apt-get install python-dev -y
+wget https://bootstrap.pypa.io/get-pip.py
+sudo python2 get-pip.py
+```
+
+###### Step 6: Install Python-related dependencies
+Many python packages must be installed
+
+```
+# make sure pip is up to date
+sudo pip install pip --user
+
+# then install most of the python dependencies
+sudo pip install docker networkx matplotlib jinja2 pdfkit numpy pandas seaborn Cython pyyaml multiprocessing scipy pdfkit tabulate sklearn --user
+
+# on Ubuntu 16.04, pygraphviz needs to be installed in a specific way.
+sudo apt-get install -y graphviz libgraphviz-dev pkg-config
+sudo pip install pygraphviz --install-option="--include-path=/usr/include/graphviz" --install-option="--library-path=/usr/lib/graphviz/"
+
+```
+
+###### Step 6: Run the demo
+To verify that everything is working, the demo can be run. The demo
+consists of a pre-trained model plus some provided network activity data.
+
+```angular2html
+# make sure you are still in the mimir_v2/analysis_pipeline directory
+
+# then get the example demo
+git clone https://github.com/fretbuzz/mimir_example_data.git
+
+# then unzip the provided network activity data
+cd ./mimir_example_data/
+gzip -d wordpress_example_final.pcap.gz
+cd ..
+
+# finally run the demo
+sudo python mimir.py --training_config_json mimir_example_data/wordpress_model/example_wordpress_exp_config.json --eval_config_json mimir_example_data/wordpress_example_experiment.json
+```
+
+###### Step 7: Examine the Output
+Go the mimir_example_data/results directory. There will be a LOT of generated files there, but please focus your 
+attention on the PDF files. These contain reports describing system perform, including ROC curves, per-path confusion 
+matrices, and descriptions of the model coefficients. The CSV files can also be useful for debugging purposes 
+(or if you want to run your own statistical analysis, e.g. in R)'.
 
 ## Usage <a name = "usage"></a>
 
