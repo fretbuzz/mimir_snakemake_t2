@@ -1,12 +1,12 @@
 # MIMIR: Graph-based Data Exfiltration Detection for Microservices
 
+(todo: add sub-links to the usage part of the TOC)
 ## Table of Contents
 + [About](#about)
 + [Getting Started](#getting_started)
 + [Usage](#usage)
-+ [Contributing](../CONTRIBUTING.md)
-+ [Reproducing Graphs from Paper](#repro)
 + [FAQ](#FAQ)
++ [Reproducing Graphs from Paper](#repro)
 
 ## About <a name = "about"></a>
 This repository contains a prototype implementation of a graphical method for detecting data exfiltration in 
@@ -143,28 +143,50 @@ matrices, and descriptions of the model coefficients. The CSV files can also be 
 (or if you want to run your own statistical analysis, e.g. in R)'.
 
 ## Usage <a name = "usage"></a>
+(TODO: add hyperlinks in this first paragraph)
 
-The general system workflow involves first training a model and then applying this model to some network activity data.
-For instructions on how to collect data from a single-node Kubernetes deployment in such a way that it can be 
-used by this system, please see [Collecting New Data](#collecting data).
+The general system workflow for this research prototype involves first collecting some microservice network activity data, 
+then training a model on part of this data, and finally applying this model to some other network activity data.
+
+### Collecting New Data <a name = "collecting data"></a>
+Collecting new data involves deploying a single-node Kubernetes cluster, deploying a microservice application on top of it,
+and then collecting network activity data while simulating user traffic. The network activity data is collected by running
+tcpdump on the 'any' interface of the 'default' namespace of the node, while recording which cluster entities correspond 
+to which IP addresses (since there is no time to resolve hostnames while running tcpdump). In other words, the two pieces 
+of necessary information to be collected are (1) the network PCAP (w/o resolving hostnames) and (2) the log mapping 
+IP addresses to cluster entities.
+
+The experimental_apparatus will handle collecting those two pieces of information. It also helps with deploying/scaling
+the microservice application and simulating user traffic. Before using the experimental_apparatus component, it is necessary to install/start the Minikube single-node Kubernetes 
+cluster, install the system dependencies, and setup the configuration files correctly.
+
+The following video goes through this process on a new Ubuntu 16.04 VM (script can be found \[TODO: update script and insert it here\]):
+
+\[TODO: update video and insert it here\]
+
+Note that in a production setup, using a single-node Kubernetes cluster is unlikely to be desired and running tcpdump 
+is a bad use of system resources. These two assumptions exist in the system currently due to time constraints. At the first
+available opportunity, the system will be modified to work with a multi-node Kubernetes cluster, because this will
+require modifications to the graph-based representation of network communicationn.
 
 ### Training New Model <a name = "train_new_model"></a>
 \[TODO: add instructions for training new model \] 
-(assume)
+(assume (1) that they already have acquired the data by this stage (b/c that's in the previous step), 
+        (2) assume they can read the Wiki for the full instructions (so reference an example config file and explain
+         how to verify))
 
 ### Run Model on New Data <a name = "run_on_new_data"></a>
 \[TODO: add instructions for applying model to new data\] 
+(make the same assumptions as the previous step)
 
 ## FAQ <a name = "FAQ"></a>
-\[TODO\]
+\[TODO: fill out the parts below (no FAQ-section-summary is needed )\]
 
 #### How to Configure System Environment for Running the Program
 
 #### How to setup systems to run
 
 #### How to generate benign/attack data
-
-#### Collecting New Data <a name = "collecting data"></a>
 
 #### Reproducing Graphs from Paper <a name = "repro"></a>
 \[TODO -- just say how to use the scripts + give hardware specs\]
