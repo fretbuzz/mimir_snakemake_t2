@@ -24,10 +24,53 @@ graphs from the paper draft. See [Collecting New Data](#collecting data) for how
 network activity data and [Training New Model](#train_new_model) for how to train a new model.
 
 ### Prerequisites
+This section will install the dependencies needed for running on the analysis pipeline on Ubuntu 16.04.
+
+###### Step 1: Install Docker
+[Docker](https://docs.docker.com/install/) is needed because the system uses the MulVal container.
+Using the Docker convience installation script, Docker can be installed by:
+
+```
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+```
+
+###### Step 2: Install SBCL (Steel Bank Common Lisp)
+[SBCL](http://www.sbcl.org/getting.html) is needed if you want to compare to the
+[directional eigenvector method](http://ide-research.net/papers/2004_KDD_Ide_p140.pdf), though we just compare the 
+angle to a fixed threshold. SBCL can be installed via
+```
+sudo aptitude update
+sudo aptitude install sbcl -y
+```
+
+###### Step 2a: Install Quicklisp (Lisp package manager)
+
+```angular2html
+# need to move to the mimir_v2/analysis_pipeline/ directory and then run:
+curl -O https://beta.quicklisp.org/quicklisp.lisp
+curl -O https://beta.quicklisp.org/quicklisp.lisp.asc
+sbcl --load quicklisp.lisp --script ../configs_to_reproduce_results/sbcl_script1.lisp
+```
+
+###### Step 2b: Install Common Lisp Machine Learning Library
+
+```
+git clone https://github.com/mmaul/clml.git
+mv ./clml ~/quicklisp/local-projects/
+sbcl --dynamic-space-size 2560 --load quicklisp.lisp --script ../configs_to_reproduce_results/sbcl_script2.lisp
+```
+
+###### Step 3: Install Docker
 
 
+###### Step 4: Install Docker
 
-What things you need to install the software and how to install them...
+
+###### Step 5: Install Docker
+
+
+-------
 
 ```
 Give examples
