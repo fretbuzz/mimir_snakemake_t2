@@ -160,7 +160,7 @@ The experimental_apparatus will handle collecting those two pieces of informatio
 the microservice application and simulating user traffic. Before using the experimental_apparatus component, it is necessary to install/start the Minikube single-node Kubernetes 
 cluster, install the system dependencies, and setup the configuration files correctly.
 
-##### Setting up System to Collect data
+##### Setting up and Running the System to Collect data
 
 The following video goes through this process on a new Ubuntu 16.04 VM (script can be found \[TODO: update script and insert it here\]):
 
@@ -178,16 +178,22 @@ on how to change the various parameters (e.g., application, time, load, etc.). P
 for examples of how to set the config files. Please note that some applications require additional
 steps before starting data collection, which is explained in the aforementioned wiki page.
 
-
 ### Training New Model <a name = "train_new_model"></a>
 \[TODO: add instructions for training new model \] 
-(assume (1) that they already have acquired the data by this stage (b/c that's in the previous step), 
+(assume (0) they did the prerequisites and have a working demo
+        (1) that they already have acquired the data by this stage (b/c that's in the previous step), 
         (2) assume they can read the Wiki for the full instructions (so reference an example config file and explain
          how to verify))
+
+(use [this](https://github.com/fretbuzz/mimir_v2/blob/master/analysis_pipeline/analysis_json/training_config_example.json
+) as the example training config file -- people only need to modify that one pat field)
 
 ### Run Model on New Data <a name = "run_on_new_data"></a>
 \[TODO: add instructions for applying model to new data\] 
 (make the same assumptions as the previous step)
+
+(use [this](mimir_v2/analysis_pipeline/analysis_json/testing_config_example.json
+) as the example testing config file  -- people only need to modify that one pat field)
 
 ## FAQ <a name = "FAQ"></a>
 \[TODO: fill out the parts below (no FAQ-section-summary is needed )\]
