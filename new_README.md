@@ -160,6 +160,8 @@ The experimental_apparatus will handle collecting those two pieces of informatio
 the microservice application and simulating user traffic. Before using the experimental_apparatus component, it is necessary to install/start the Minikube single-node Kubernetes 
 cluster, install the system dependencies, and setup the configuration files correctly.
 
+##### Setting up System to Collect data
+
 The following video goes through this process on a new Ubuntu 16.04 VM (script can be found \[TODO: update script and insert it here\]):
 
 \[TODO: update video and insert it here\]
@@ -168,6 +170,14 @@ Note that in a production setup, using a single-node Kubernetes cluster is unlik
 is a bad use of system resources. These two assumptions exist in the system currently due to time constraints. At the first
 available opportunity, the system will be modified to work with a multi-node Kubernetes cluster, because this will
 require modifications to the graph-based representation of network communicationn.
+
+##### Modifying Experiment Parameters
+Please see the [corresponding wiki page](https://github.com/fretbuzz/mimir_v2/wiki/Performing-Experiment) for a description
+on how to change the various parameters (e.g., application, time, load, etc.). Please see the 
+[data collection config files for the data used in the paper](https://github.com/fretbuzz/mimir_v2/tree/master/configs_to_reproduce_results/Data_Collection)
+for examples of how to set the config files. Please note that some applications require additional
+steps before starting data collection, which is explained in the aforementioned wiki page.
+
 
 ### Training New Model <a name = "train_new_model"></a>
 \[TODO: add instructions for training new model \] 
