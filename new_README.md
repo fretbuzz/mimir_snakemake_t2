@@ -144,16 +144,31 @@ matrices, and descriptions of the model coefficients. The CSV files can also be 
 
 ## Usage <a name = "usage"></a>
 
-Add notes about how to use the system.
+The general system workflow involves first training a model and then applying this model to some network activity data.
+For instructions on how to collect data from a single-node Kubernetes deployment in such a way that it can be 
+used by this system, please see [Collecting New Data](#collecting data).
 
 ### Training New Model <a name = "train_new_model"></a>
+\[TODO: add instructions for training new model \] 
+(assume)
 
 ### Run Model on New Data <a name = "run_on_new_data"></a>
-
-## Reproducing Graphs from Paper <a name = "repro"></a>
-\[TODO\]
+\[TODO: add instructions for applying model to new data\] 
 
 ## FAQ <a name = "FAQ"></a>
 \[TODO\]
 
-### Collecting New Data <a name = "collecting data"></a>
+#### How to Configure System Environment for Running the Program
+
+#### How to setup systems to run
+
+#### How to generate benign/attack data
+
+#### Collecting New Data <a name = "collecting data"></a>
+
+#### Reproducing Graphs from Paper <a name = "repro"></a>
+\[TODO -- just say how to use the scripts + give hardware specs\]
+
+#### Why is this README being updated so slowly?
+
+I have a significantly-over-full-time job that is completely unrelated to this.
