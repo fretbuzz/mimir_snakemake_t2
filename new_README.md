@@ -179,18 +179,22 @@ for examples of how to set the config files. Please note that some applications 
 steps before starting data collection, which is explained in the aforementioned wiki page.
 
 ### Training New Model <a name = "train_new_model"></a>
+Once network activity data has been collected, a new model can be trained. To do this, a corresponding configuration file 
+must be created. This can be done by modifying the corresponding 
+[example config file](https://github.com/fretbuzz/mimir_v2/blob/master/analysis_pipeline/analysis_json/training_config_example.json).
+Simply change the "exp_config_file" field to point to the *_analysis.json file created in the previous step.
+This will be in the directory that was created during data collection. For a full explanation of all the fields, please
+see the corresponding [wiki page](https://github.com/fretbuzz/mimir_v2/wiki/Run-Analysis-Pipeline).
+
+### Run Model on New Data <a name = "run_on_new_data"></a>
+\[TODO: add instructions for applying model to new data\] 
+(make the same assumptions as the previous step)
+
 \[TODO: add instructions for training new model \] 
 (assume (0) they did the prerequisites and have a working demo
         (1) that they already have acquired the data by this stage (b/c that's in the previous step), 
         (2) assume they can read the Wiki for the full instructions (so reference an example config file and explain
          how to verify))
-
-(use [this](https://github.com/fretbuzz/mimir_v2/blob/master/analysis_pipeline/analysis_json/training_config_example.json
-) as the example training config file -- people only need to modify that one pat field)
-
-### Run Model on New Data <a name = "run_on_new_data"></a>
-\[TODO: add instructions for applying model to new data\] 
-(make the same assumptions as the previous step)
 
 (use [this](mimir_v2/analysis_pipeline/analysis_json/testing_config_example.json
 ) as the example testing config file  -- people only need to modify that one pat field)
