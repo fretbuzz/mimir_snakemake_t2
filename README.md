@@ -183,8 +183,7 @@ Running physical exfiltration events on the deployed application is currently *n
 experimental_apparatus component, though it should be eventually.
 
 ### How to verify the results
-
-TODO: explain how to reproduce the results from the paper...
+[TODO: explain how to reproduce the results from the paper...]
 
 Hardware used in eval setup: [TODO]
 
