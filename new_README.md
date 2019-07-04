@@ -26,9 +26,9 @@ This analysis pipeline been tested on Ubuntu 16.04.
 These instructions will walk you through setting up the analysis pipeline and running the demo. The demo consists of a
 pre-trained model and some provided network activity data. 
 
-See [Reproducing Graphs from Paper](#repro) for how to reproduce the 
-graphs from the paper draft. See [Collecting New Data](#collecting_data) for how to collect additional
-network activity data and [Training New Model](#train_new_model) for how to train a new model.
+See [Collecting New Data](#collecting_data) for how to collect additional
+network activity data and [Training New Model](#train_new_model) for how to train a new model. See [Reproducing Graphs from Paper](#repro) for how to reproduce the 
+graphs from the paper draft. 
 
 ### Prerequisites (text) <a name="pre_req_text"></a>
 This section will install the dependencies needed for running on the analysis pipeline on Ubuntu 16.04.
