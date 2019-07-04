@@ -1,12 +1,19 @@
 # MIMIR: Graph-based Data Exfiltration Detection for Microservices
 
-(todo: add sub-links to the usage part of the TOC)
 ## Table of Contents
 + [About](#about)
 + [Getting Started](#getting_started)
+    + [Prerequisites (text)](#pre_req_text)
+    + [Prerequisites (video)](#pre_req_video)
 + [Usage](#usage)
+    + [Collecting New Data](#collecting_data)
+    + [Training New Model](#train_new_model)
+    + [Run Model on New Data](#run_on_new_data")
 + [FAQ](#FAQ)
-+ [Reproducing Graphs from Paper](#repro)
+    + [How to Configure System Environment for Running the Program](#config_sys)
+    + [How to setup systems to run](#sys_setup)
+    + [How to generate benign/attack data](#gen_data)
+    + [Reproducing Graphs from Paper](#repro)
 
 ## About <a name = "about"></a>
 This repository contains a prototype implementation of a graphical method for detecting data exfiltration in 
@@ -23,7 +30,7 @@ See [Reproducing Graphs from Paper](#repro) for how to reproduce the
 graphs from the paper draft. See [Collecting New Data](#collecting_data) for how to collect additional
 network activity data and [Training New Model](#train_new_model) for how to train a new model.
 
-### Prerequisites
+### Prerequisites (text) <a name="pre_req_text"></a>
 This section will install the dependencies needed for running on the analysis pipeline on Ubuntu 16.04.
 
 ###### Step 0: Clone the repo and move to the analysis_pipeline directory
@@ -142,11 +149,22 @@ attention on the PDF files. These contain reports describing system perform, inc
 matrices, and descriptions of the model coefficients. The CSV files can also be useful for debugging purposes 
 (or if you want to run your own statistical analysis, e.g. in R)'.
 
-## Usage <a name = "usage"></a>
-(TODO: add hyperlinks in this first paragraph)
+### Prerequisites (video) <a name="pre_req_video"></a>
+This section **repeats the above setup process** in video form. This video takes place on a brand-new Ubuntu 16.04 VM. This 
+video's script can be found \[TODO: update script and insert it here\].
+  
+\[TODO: update video and insert it here\]
 
-The general system workflow for this research prototype involves first collecting some microservice network activity data, 
-then training a model on part of this data, and finally applying this model to some other network activity data.
+This video's script has been turned into a runnable bash script that can install all system depenedencies, though it has 
+only been tested on a brand-new Ubuntu 16.04 VM, so complications could arise if the script is used on a system with some 
+software already installed. This bash script is available [here](https://github.com/fretbuzz/mimir_v2/blob/master/configs_to_reproduce_results/install_mimir_depend_scripts.sh)
+
+
+## Usage <a name = "usage"></a>
+The general system workflow for this research prototype involves first 
+[collecting some microservice network activity data](#collecting_data), 
+then [training a model on part of this data](#train_new_model), and finally 
+[applying this model to some other network activity data](#run_on_new_data).
 
 ### Collecting New Data <a name = "collecting_data"></a>
 Collecting new data involves deploying a single-node Kubernetes cluster, deploying a microservice application on top of it,
@@ -234,7 +252,7 @@ see the corresponding [wiki page](https://github.com/fretbuzz/mimir_v2/wiki/Run-
 
 ## FAQ <a name = "FAQ"></a>
 
-### How to Configure System Environment for Running the Program
+### How to Configure System Environment for Running the Program <a name = "config_sys"></a>
 [Getting Started](#getting_started) walks through how to install the system dependencies on Ubuntu 16.04, but here's 
 some additional information on the specific software versions required:
 
@@ -252,10 +270,10 @@ some additional information on the specific software versions required:
 
 * wkhtmltopdf Version: 0.12.2.4
 
-### How to setup systems to run
+### How to setup systems to run  <a name = "sys_setup"></a>
 Please refer to [Getting Started](#getting_started).
 
-### How to generate benign/attack data
+### How to generate benign/attack data  <a name = "gen_data"></a>
 **How to generate benign data:**
 Please see [Collecting New Data](#collecting_data) for an explanation of how to collect data. The system does not *currently*
 support performing live exfiltration on the deployed cluster, so all collected data will be benign data.
