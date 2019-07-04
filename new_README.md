@@ -232,6 +232,7 @@ This is because, when analyzing one piece of collected data, each analysis is ca
 If you attempt to perform two analyses on the same piece of collected data using the same "cur_experiment_name", then 
 the former analysis will be overwritten by the latter.
 
+A model can be applied to new data by running
 ```
 python mimir.py --training_config_json [path_to_training_config_file] --eval_config_json [path_to_testing_config_file]
 ```
