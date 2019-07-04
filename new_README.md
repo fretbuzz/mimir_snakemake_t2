@@ -267,7 +267,6 @@ Running physical exfiltration events on the deployed application is currently *n
 experimental_apparatus component, though it should be eventually.
 
 #### Reproducing Graphs from Paper <a name = "repro"></a>
-[TODO: explain how to reproduce the results from the paper  just say how to use the scripts + where to find graphs + give hardware specs\]
 
 Reproducing the paper's results consists of two parts:
 
@@ -308,14 +307,17 @@ Hardware of server used in eval setup:
 * Disk: 500 GB SSD
 
 Where to find the paper graphs: After the scripts are done executing, the graphs from the paper can be found
-in the mimir_v2/analysis_pipeline/multilooper_outs/ directory. The four figures (2 graphs each) from the paper have the following names:
+in the mimir_v2/analysis_pipeline/multilooper_outs/ directory. Each of the four figures in the paper consist of 
+two graphs; the graphs in these figures have the following names (the following list is subdivided by figure):
+
 * F1 vs Exfil Rate: 
     * "sockshop_four_100.json_(10, 60)_f1_vs_exfil_rate.png"
     * "wordpress_mk24.json_(10, 60)_f1_vs_exfil_rate.png"
-* Name2 [TODO] 
-* Name3 [TODO]
-* Name4 [TODO] (diffTime ??)
-
-#### Why is this README being updated so slowly?
-
-I have a significantly-over-full-time job that is completely unrelated to this.
+* F1 vs Load Ratio at given Exfil Rate:
+    * "(10, 60)_new_sockshop_scale_100000.0_no_tsl.png"
+    * "(10, 60)_wordpress_scale_100000.0_no_tsl.png"
+* F1 vs Euclidean Distance of Probability Distribution at given Exfil Rate:
+    * "euclidean_distance_(10, 60)_new_sockshop_angle_no_tsl.png"
+* F1 vs Exfil Rate at Different Time Granularities:
+    * "diffTimeGran_sockshop_four_100.json_f1_vs_exfil_rate.png"
+    * "diffTimeGran_wordpress_mk24.json_f1_vs_exfil_rate.png"
