@@ -180,9 +180,9 @@ cluster, install the system dependencies, and setup the configuration files corr
 
 ##### Setting up and Running the System to Collect data
 
-The following video goes through this process on a new Ubuntu 16.04 VM (script can be found \[TODO: update script and insert it here\]):
+The following video goes through this process on a new Ubuntu 16.04 VM (script can be found [here](https://github.com/fretbuzz/mimir_v2/wiki/Script-from-Data-Collection-Video)):
 
-\[TODO: update video and insert it here\]
+[![asciicast](https://asciinema.org/a/64kiUX0JJ7dAkKRTeF114KqcI.svg)](https://asciinema.org/a/64kiUX0JJ7dAkKRTeF114KqcI)
 
 Note that in a production setup, using a single-node Kubernetes cluster is unlikely to be desired and running tcpdump 
 is a bad use of system resources. These two assumptions exist in the system currently due to time constraints. At the first
