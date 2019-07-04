@@ -126,7 +126,8 @@ Go the mimir_example_data/results directory. There will be a LOT of generated fi
 ### Video
 
 This is a video of setting up and running the demo on a new Ubuntu 16.04 VM (script can be found [here](https://github.com/fretbuzz/mimir_v2/wiki/Script-from-video-of-Setting-up-and-Running-the-Demo)):
-[![Asciicast of setting up and running the demo](https://asciinema.org/a/249574.svg)](https://asciinema.org/a/249574)
+
+[![asciicast](https://asciinema.org/a/ZGFMTYHh5LXCMeqSqoB83nOsm.svg)](https://asciinema.org/a/ZGFMTYHh5LXCMeqSqoB83nOsm)
 
 ### FAQ
 
