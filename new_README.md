@@ -151,9 +151,9 @@ matrices, and descriptions of the model coefficients. The CSV files can also be 
 
 ### Prerequisites (video) <a name="pre_req_video"></a>
 This section **repeats the above setup process** in video form. This video takes place on a brand-new Ubuntu 16.04 VM. This 
-video's script can be found \[TODO: update script and insert it here\].
+video's script can be found [here](https://github.com/fretbuzz/mimir_v2/wiki/Script-from-video-of-Setting-up-and-Running-the-Demo).
   
-\[TODO: update video and insert it here\]
+[![asciicast](https://asciinema.org/a/ZGFMTYHh5LXCMeqSqoB83nOsm.svg)](https://asciinema.org/a/ZGFMTYHh5LXCMeqSqoB83nOsm)
 
 This video's script has been turned into a runnable bash script that can install all system depenedencies, though it has 
 only been tested on a brand-new Ubuntu 16.04 VM, so complications could arise if the script is used on a system with some 

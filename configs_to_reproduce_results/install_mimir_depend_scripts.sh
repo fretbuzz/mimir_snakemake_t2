@@ -6,8 +6,7 @@ sudo sh get-docker.sh
 sudo aptitude update
 sudo aptitude install sbcl -y
 
-## TODO: there's a problem here... we need it to work via script but the sbcl
-## stuff requires typing on a terminal...
+## TODO: i think there might still be a problem with setting up the SBCL code...
 # Then the Quicklisp LISP package manager is needed
 curl -O https://beta.quicklisp.org/quicklisp.lisp
 curl -O https://beta.quicklisp.org/quicklisp.lisp.asc
