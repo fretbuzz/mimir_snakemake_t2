@@ -276,24 +276,45 @@ must be acquired. However, the three main results require ~100GB of data each. T
 distribute, so this data must be re-collected from a local Kubernetes cluster (see [Collecting New Data](#collectingdata)
 for more information). The config files used to generate the data used in the paper are provided in the 
 mimir_v2/configs_to_reproduce_results/Data_Collection directory. A convenience script to collect this data
-is provided and described below.
+is provided and is described below.
 
-* Second, this data must be processed in the same way that the data in the paper is processed. [TODO: keep explaining this part]
-[todo: please be advised that each of these thigns takes 3-4 days on a server w/ the hardware
- specs described below]
+* Second, this data must be processed in the same way that the data in the paper is processed. The config files
+necessary to do this are provided in the mimir_v2/configs_to_reproduce_results/Data_Analysis directory. The previously
+mentioned convenience script includes the commands to run this analysis.
+
+**Convenience Script:** There's a convenience script provided that performs the complete end-to-end workflow of 
+collecting data, analyzing it, and forming the graphs in the paper. It will install all necessary
+dependencies, setup Minikube, deploy the application, simulate user traffic and record network activity
+(several times), and then it will analyze all of the collected data. Modifying part of this 
+workflow is possible by modifying the corresponding bash script. The commands necessary to run these
+scripts are given below. Please note that running _each_ of these scripts takes approximately 60 GB of RAM, about 100GB of 
+disk space, and probably 4-5 days of processing time. The hardware specs of the machine used
+for the evaluation are given below. Please note that these scripts are designed to run on a brand-new
+Ubuntu 16.04 VM, and they install and modify lots of things (under the assumption
+that the VM will be deleted after the script is finished).
 
 ```
-## [TODO: Finish/explain this part]
-# maybe git clone here
-cd ./mimir_v2/experiment_coordinator/ # need to be in the experiment_coordinator directory
-# second, run ONE of these:
+# clone this repo and then move to the mimir_v2/experiment_coordinator/ directory
+
+# each of these scripts create one of the graphs from the paper. Each of these will take 4-6 days to run probably.
 . ../configs_to_reproduce_results/e2e_repro_scripts/sockshop_repro.sh
 . ../configs_to_reproduce_results/e2e_repro_scripts/sockshop_repro_PROB_DISTRO.sh
 . ../configs_to_reproduce_results/e2e_repro_scripts/wordpress_repro.sh
 ```
 
+Hardware of server used in eval setup:
+* CPU: 2x Intel Xeon Processor E5-2660 v3
+* Memory: 160GB 2133 MHz ECC RAM
+* Disk: 500 GB SSD
 
-Hardware used in eval setup: [TODO]
+Where to find the paper graphs: After the scripts are done executing, the graphs from the paper can be found
+in the mimir_v2/analysis_pipeline/multilooper_outs/ directory. The four figures (2 graphs each) from the paper have the following names:
+* F1 vs Exfil Rate: 
+    * "sockshop_four_100.json_(10, 60)_f1_vs_exfil_rate.png"
+    * "wordpress_mk24.json_(10, 60)_f1_vs_exfil_rate.png"
+* Name2 [TODO] 
+* Name3 [TODO]
+* Name4 [TODO] (diffTime ??)
 
 #### Why is this README being updated so slowly?
 
