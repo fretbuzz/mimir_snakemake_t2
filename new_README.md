@@ -235,7 +235,7 @@ see the corresponding [wiki page](https://github.com/fretbuzz/mimir_v2/wiki/Run-
 ## FAQ <a name = "FAQ"></a>
 \[TODO: fill out the parts below (no FAQ-section-summary is needed )\]
 
-#### How to Configure System Environment for Running the Program
+### How to Configure System Environment for Running the Program
 [Getting Started](#getting_started) walks through how to install the system dependencies on Ubuntu 16.04, but here's 
 some additional information on the specific software versions required:
 
@@ -253,10 +253,10 @@ some additional information on the specific software versions required:
 
 * wkhtmltopdf Version: 0.12.2.4
 
-#### How to setup systems to run
+### How to setup systems to run
 Please refer to [Getting Started](#getting_started).
 
-#### How to generate benign/attack data
+### How to generate benign/attack data
 **How to generate benign data:**
 Please see [Collecting New Data](#collecting_data) for an explanation of how to collect data. The system does not *currently*
 support performing live exfiltration on the deployed cluster, so all collected data will be benign data.
@@ -266,7 +266,7 @@ So just running the system as normal will generate the synthetic attack data as 
 Running physical exfiltration events on the deployed application is currently *not* (fully) supported by the 
 experimental_apparatus component, though it should be eventually.
 
-#### Reproducing Graphs from Paper <a name = "repro"></a>
+### Reproducing Graphs from Paper <a name = "repro"></a>
 
 Reproducing the paper's results consists of two parts:
 
