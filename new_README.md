@@ -228,8 +228,9 @@ This will be in the directory that was created during data collection. For a ful
 see the corresponding [wiki page](https://github.com/fretbuzz/mimir_v2/wiki/Run-Analysis-Pipeline). 
 
 Please note that you probably should (but do not need to) change the "cur_experiment_name" field too. 
-This is because, when analyzing the collected data, each analysis is cached using the "cur_experiment_name" in the config file.
-If you attempt to perform two analyses using the same "cur_experiment_name", then the former analysis will be overwritten by the latter.
+This is because, when analyzing one piece of collected data, each analysis is cached using the "cur_experiment_name" in the config file.
+If you attempt to perform two analyses on the same piece of collected data using the same "cur_experiment_name", then 
+the former analysis will be overwritten by the latter.
 
 ```
 python mimir.py --training_config_json [path_to_training_config_file] --eval_config_json [path_to_testing_config_file]
