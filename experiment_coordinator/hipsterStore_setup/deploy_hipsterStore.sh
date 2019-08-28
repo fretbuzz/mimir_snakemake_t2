@@ -17,4 +17,4 @@ cd ./microservices-demo
 # they fixed the pre-built images, so those should be used instead....
 sudo kubectl apply -f ./release/kubernetes-manifests.yaml
 
-kubectl delete deploy loadgenerator
+#kubectl delete deploy loadgenerator
