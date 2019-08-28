@@ -544,7 +544,7 @@ def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_co
         print "metrics_server_str_response ", out
 
         wordpress_setup.kubernetes_setup_functions.wait_until_pods_done("kube-system")
-        out = subprocess.check_output(['bash', 'hipsterStore_setup/autoscale_hipsterStore.sh'])
+        out = subprocess.check_output(['bash', 'hipsterStore_setup/deploy_hipsterStore.sh'])
         try:
             out = subprocess.check_output(['bash', 'hipsterStore_setup/deploy_hipsterStore.sh'])
             print "autoscale_hipsterStore_out...", out
