@@ -9,6 +9,7 @@ sudo mv skaffold /usr/local/bin
 # second clone relevant directory + switch into it
 
 git clone https://github.com/GoogleCloudPlatform/microservices-demo.git || true
+echo "still going"
 cd ./microservices-demo
 
 # third, deploy using skaffold
