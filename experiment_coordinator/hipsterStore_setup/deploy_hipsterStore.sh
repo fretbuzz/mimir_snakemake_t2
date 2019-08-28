@@ -13,8 +13,8 @@ echo "still going"
 cd ./microservices-demo
 
 # third, deploy using skaffold
-skaffold run
-# vv is kinda outdated and has some problems (such as the cc # in load generator being EXPIRED)
-#kubectl apply -f ./release/kubernetes-manifests.yaml
+## skaffold run
+# they fixed the pre-built images, so those should be used instead....
+sudo kubectl apply -f ./release/kubernetes-manifests.yaml
 
 kubectl delete deploy loadgenerator
