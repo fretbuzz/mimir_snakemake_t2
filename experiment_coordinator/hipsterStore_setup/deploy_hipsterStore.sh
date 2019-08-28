@@ -7,7 +7,8 @@ chmod +x skaffold
 sudo mv skaffold /usr/local/bin
 
 # second clone relevant directory + switch into it
-git clone https://github.com/GoogleCloudPlatform/microservices-demo.git
+
+git clone https://github.com/GoogleCloudPlatform/microservices-demo.git || true
 cd ./microservices-demo
 
 # third, deploy using skaffold
@@ -16,6 +17,3 @@ skaffold run
 #kubectl apply -f ./release/kubernetes-manifests.yaml
 
 kubectl delete deploy loadgenerator
-
-# fourth, scale (either set or with auto)
-## TODO
