@@ -1,0 +1,88 @@
+{
+  "path_to_docker_machine_tls_certs": "/mydata/.minikube/certs",
+  "experiment_name": "sockshop_four_100_physical",
+  "application_name": "sockshop",
+  "experiment_length_sec": 240,
+  "network_plugin": "none",
+
+  "prob_distro": {
+    "browse": 0.5,
+    "buy": 0.3,
+    "register": 0.2
+  },
+
+  "experiment": {
+    "traffic_type": "normal",
+    "background_locust_spawn_rate": 30,
+    "number_background_locusts": 100
+  },
+
+  "setup": {
+    "number_customer_records": 10000,
+    "background_locust_spawn_rate": 10,
+    "number_background_locusts": 80
+  },
+
+  "exfiltration_info": {
+    "physical_attacks": true,
+    "sensitive_ms": [
+      "user-db"
+    ],
+
+    "exfiltration_path_class_which_installer": { "user-db":"apt", "front-end": "apk", "user":"apk"},
+    "folder_to_exfil": "/data/db-users/",
+    "regex_of_file_to_exfil": "\"index-0*\"",
+    "exfil_methods": ["DET", "DET", "DET"],
+    "exfil_protocols": ["tcp", "tcp", "tcp"],
+    "exfil_StartEnd_times": [[120,140], [160, 180], [200,220]],
+    "COMMENT": "ADJUST TIMES LATER ON-- JUST PLACEHOLDERS FOR NOW!",
+
+    "exfil_paths": [["front-end", "user", "user-db"], ["front-end", "user-db"], ["user-db"]],
+    "DET_min_exfil_data_per_packet_bytes": [300, 300, 300],
+    "DET_max_exfil_data_per_packet_bytes": [400, 400, 400],
+    "DET_avg_exfiltration_rate_KB_per_sec": [1000.0, 1000.0, 1000.0],
+    "sec_between_exfil_pkts":["None", "None", "None"]
+  },
+
+  "VM_interfaces": [
+    "vboxnet0"
+  ],
+
+  "Deployment": {
+    "autoscale_p": true,
+    "deployment_scaling": {
+      "front-end": {
+        "max": 6,
+        "min": 6
+      },
+      "queue-master": {
+        "max": 3,
+        "min": 3
+      },
+      "shipping": {
+        "max": 3,
+        "min": 3
+      },
+      "orders": {
+        "max": 3,
+        "min": 3
+      },
+      "catalogue": {
+        "max": 6,
+        "min": 6
+      },
+      "cart": {
+        "max": 2,
+        "min": 2
+      },
+      "payment": {
+        "max": 6, 
+        "min": 6
+      }, 
+      "user": {
+        "max": 6, 
+        "min": 6
+      }
+    }
+  }
+}

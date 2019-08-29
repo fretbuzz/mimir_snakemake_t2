@@ -4,7 +4,11 @@
 # this should be applicable to everyone...
 bash ../configs_to_reproduce_results/kubernetes_setup_script.sh
 
-sudo python run_experiment.py --prepare_app --config_file ../configs_to_reproduce_results/Data_Collection/Sockshop/Scale/sockshop_four_100_exp.json ;\
+sudo python run_experiment.py --prepare_app --config_file ../configs_to_reproduce_results/Data_Collection/Sockshop/Scale_Physical/sockshop_four_100_exp.json ;\
+
+exit 1
+echo "add in the rest of this later-- depending on how we want to do it..."
+
 sudo python run_experiment.py --config_file ../configs_to_reproduce_results/Data_Collection/Sockshop/Scale/sockshop_four_100_mk2_exp.json ;\
 sudo python run_experiment.py --config_file ../configs_to_reproduce_results/Data_Collection/Sockshop/Scale/sockshop_four_120_exp.json;\
 sudo python run_experiment.py --config_file ../configs_to_reproduce_results/Data_Collection/Sockshop/Scale/sockshop_four_140_exp.json
