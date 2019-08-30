@@ -48,21 +48,24 @@ def run_decanter(training_log, testing_log):
     out = subprocess.check_output(['python', 'dlp_stuff/decanter/main.py', '-t', training_log, '-T', testing_log])
     print out
 
-def run_bro():
+def run_bro(path_to_exp_dir, exp_name, gen_log_p):
+
+    ############################################ OLD
+    # (I don't think that we use the code in this block anymore...)
+    # (I first tried for a docker-based approach, but eventually decided against that...)
+    '''
     client = docker.from_env()
     client.containers.list()
     cwd = os.getcwd()
     print "cwd", cwd
-    exp_name = 'sockshop_one_auto_mk11long'
 
-    ############################################ OLD
     ##### TODO: might wanna parametrize this
     volume_binding = {'/Volumes/exM/experimental_data/sockshop_info/sockshop_one_auto_mk11long/': {'bind': '/pcap', 'mode': 'rw'},
      '/Users/jseverin/Documents/Microservices/munnin_snakemake_t2/mimir_v2/analysis_pipeline/dlp_stuff/decanter/decanter_dump_input.bro':
          {'bind': '/usr/local/share/bro/site/decanter_dump_input.bro', 'mode': 'rw'}}
 
     commands = [ ["-r", "sockshop_one_auto_mk11long_bridge_any.pcap", "decanter_dump_input"] ]
-
+    '''
     #for command in commands:
     #    out = client.containers.run('blacktop/bro', command,  volumes=volume_binding, detach=False, auto_remove=True)
     #    print "out", out #out.output, out
@@ -84,17 +87,20 @@ def run_bro():
 
     os.chdir('./' + exp_name)
 
-    out = subprocess.check_output(['bro', '-r',
-                                   '/Volumes/exM/experimental_data/sockshop_info/sockshop_one_auto_mk11long/sockshop_one_auto_mk11long_bridge_any.pcap',
-                                   '../decanter/decanter_dump_input.bro', '-C'])
+    decanter_output_log = '../decanter/decanter_dump_input_' + exp_name + '.bro'
 
-    print "out",out
+    if gen_log_p:
+        out = subprocess.check_output(['bro', '-r',
+                                       path_to_exp_dir + exp_name + '_bridge_any.pcap',
+                                       decanter_output_log, '-C'])
+        print "out",out
     os.chdir('..')
     os.chdir('..')
 
     #print container.stop()
     #print container.remove()
     #print client.containers.prune(filters={'id': container.id})
+    return decanter_output_log
 
 def find_svc_behavior(path_to_log):
     bp = bro_parser.BroParser()
@@ -136,7 +142,6 @@ def process_log_dict(log_dict):
                 cur_val = ''
             svcpair_to_normal_behavior[ip_pair][include_vals[0]][header_val].add( cur_val )
 
-
         ''' possible vals...
         ['header_values', <- YES (all of the subtypes)
         'uid',          <- no
@@ -156,9 +161,45 @@ def process_log_dict(log_dict):
         '''
     return svcpair_to_normal_behavior
 
+def run_decanter_module():
+    pass
+    '''
+    1.) Dump fingerprints in csv files.
+        python2 main.py --training test-data/user/log/riccardo_linux_training_16-01.log --testing test-data/user/log/riccardo_linux_testing_18-01.log -o 1
+    2.) Analyze the fingerprints.
+        python2 main.py --csv ./
+    '''
+
+def main(train_path_to_exp_dir, train_exp_name, train_gen_bro_log, test_path_to_exp_dir, test_exp_name, test_gen_bro_log):
+    decanter_output_log_train = run_bro(train_path_to_exp_dir, train_exp_name, train_gen_bro_log)
+    decanter_output_log_test = run_bro(test_path_to_exp_dir, test_exp_name, test_gen_bro_log)
+
+    out = subprocess.check_output(['python', './dlp_stuff/dlp_stuff/main.py', '--training', decanter_output_log_train,
+       '--testing', decanter_output_log_test, '-o', 1])
+    print "decanter out:", out
+
 if __name__=="__main__":
     print "DLP_PIPELINE RUNNING..."
 
-    #run_bro()
+    train_gen_bro_log = False
+    train_exp_name = 'sockshop_one_auto_mk11long'
+    train_path_to_exp_dir = '/Volumes/exM/experimental_data/sockshop_info/sockshop_one_auto_mk11long/'
+    test_gen_bro_log = False
+    test_exp_name = None # TODO
+    test_path_to_exp_dir = None # TODO
 
-    find_svc_behavior('dlp_stuff/sockshop_one_auto_mk11long/decanter.log')
+    '''  # TODO: test this and maybe make a CLI or something...
+    '''
+    main(train_path_to_exp_dir, train_exp_name, train_gen_bro_log, test_path_to_exp_dir, test_exp_name,
+         test_gen_bro_log)
+
+
+    #find_svc_behavior('dlp_stuff/' + exp_name + '/decanter.log')
+    # honestly ^^ not sure why this code exists....
+
+    # TODO: I don't think that DECANTER is ever actually called here... that needs to be fixed!!!!
+    # not exactly sure what the problem is... can't I just call the main decanter cmd-line call on
+    # (it just needs train and test bro logs...) this should be easy enough... probably not worth
+    # fully integrating this into the MIMIR pipeline... just find the relevant parts and do it...
+    # PLAN: get some PCAPs and then this should be straight-foward to test (actually I already got them...)
+    # once it is working locally, can then make script to add dependencies and add it to the

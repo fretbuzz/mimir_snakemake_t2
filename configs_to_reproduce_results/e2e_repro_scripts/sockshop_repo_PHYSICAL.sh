@@ -5,7 +5,7 @@
 bash ../configs_to_reproduce_results/kubernetes_setup_script.sh
 
 # need to install DET locally as part of physical exfil component
-sudo git clone https://github.com/PaulSec/DET.git /DET/
+sudo git clone https://github.com/fretbuzz/DET.git /DET/
 
 sudo python run_experiment.py --prepare_app --config_file ../configs_to_reproduce_results/Data_Collection/Sockshop/Scale_Physical/sockshop_four_100_exp.json ;\
 

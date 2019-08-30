@@ -255,7 +255,7 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
             if start_time + next_exfil_start_time - time.time() - 20.0 > 0.0:
                 time.sleep(start_time + next_exfil_start_time - time.time() - 20.0)
 
-            selected_container,local_det = setup_and_start_det_exfil_path(exfil_paths, exfil_counter, cur_exfil_protocol, localhostip,
+            selected_container,local_det = start_det_exfil_path(exfil_paths, exfil_counter, cur_exfil_protocol, localhostip,
                                                                 maxsleep, DET_max_exfil_bytes_in_packet, DET_min_exfil_bytes_in_packet,
                                                                 experiment_name, start_time, network_plugin, next_exfil_start_time,
                                                                 originator_class, cur_exfil_method, exfil_protocols, True)
@@ -283,11 +283,11 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
                         exfil_element, container = stopped_container[0], stopped_container[1]
                         del selected_container[exfil_element]
                     selected_container, local_det = \
-                        setup_and_start_det_exfil_path(exfil_paths, exfil_counter, cur_exfil_protocol, localhostip,
-                                                       maxsleep, DET_max_exfil_bytes_in_packet,
-                                                       DET_min_exfil_bytes_in_packet, experiment_name, start_time,
-                                                       network_plugin, next_exfil_start_time, originator_class,
-                                                       cur_exfil_method, exfil_protocols, False)
+                        start_det_exfil_path(exfil_paths, exfil_counter, cur_exfil_protocol, localhostip,
+                                             maxsleep, DET_max_exfil_bytes_in_packet,
+                                             DET_min_exfil_bytes_in_packet, experiment_name, start_time,
+                                             network_plugin, next_exfil_start_time, originator_class,
+                                             cur_exfil_method, exfil_protocols, False)
 
             stop_det_instances(selected_container, cur_exfil_method)
 
@@ -370,10 +370,12 @@ def containers_still_alive_p(selected_containers):
     return all_alive, stopped_containers
 
 
-def setup_and_start_det_exfil_path(exfil_paths, exfil_counter, cur_exfil_protocol, localhostip, maxsleep,
-                                   DET_max_exfil_bytes_in_packet, DET_min_exfil_bytes_in_packet, experiment_name,
-                                   start_time, network_plugin, next_exfil_start_time, originator_class,
-                                   cur_exfil_method, exfil_protocols, wait_p):
+# exfil dependencies are already in the docker image! this function just picks the relevant concrete instances
+# and starts DET
+def start_det_exfil_path(exfil_paths, exfil_counter, cur_exfil_protocol, localhostip, maxsleep,
+                         DET_max_exfil_bytes_in_packet, DET_min_exfil_bytes_in_packet, experiment_name,
+                         start_time, network_plugin, next_exfil_start_time, originator_class,
+                         cur_exfil_method, exfil_protocols, wait_p):
     # setup config files for proxy DET instances and start them
     # note: this is only going to work for a single exp_support_scripts and a single dst, ATM
     selected_containers, class_to_networks = find_exfil_path(exfil_paths, exfil_counter)
