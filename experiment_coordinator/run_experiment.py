@@ -387,6 +387,8 @@ def start_det_exfil_path(exfil_paths, exfil_counter, cur_exfil_protocol, localho
                       cur_exfil_protocol, localhostip, class_to_networks, maxsleep,
                       DET_max_exfil_bytes_in_packet, DET_min_exfil_bytes_in_packet)
 
+    print "preparing to start local_det_server...."
+
     # this does NOT need to be modified (somewhat surprisingly)
     local_det = start_det_server_local(cur_exfil_protocol, ip, maxsleep[exfil_counter],
                                        DET_max_exfil_bytes_in_packet[exfil_counter],
