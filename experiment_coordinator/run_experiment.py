@@ -149,7 +149,8 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
     # step (3b) get docker configs for docker containers (assuming # is constant for the whole experiment)
     container_id_file = experiment_name + '_docker' + '_'  + '_networks.txt'
     container_config_file = experiment_name + '_docker' '_' +  '_network_configs.txt'
-    det_log_file = experiment_name + 'det_logs.log'
+    det_log_file = './' + experiment_name + 'det_logs.log'
+    print "det_log_file: ", det_log_file
 
     try:
         os.remove(container_id_file)
