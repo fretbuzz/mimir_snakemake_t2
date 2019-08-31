@@ -1396,10 +1396,12 @@ def start_det_client(file, protocol, container, det_log_file):
     #out = container.exec_run(cmds, user="root", workdir='/DET', stdout=False)
     print "start det client output", out
 
+    #'''
     with open(det_log_file, 'a') as g:
         fcntl.flock(g, fcntl.LOCK_EX)
         g.write(out + '\n')
         fcntl.flock(g, fcntl.LOCK_UN)
+    #'''
 
 def stop_det_client(container):
     ## let's just kill all python processes, that'll be easier than trying to record PIDs, or anything else
