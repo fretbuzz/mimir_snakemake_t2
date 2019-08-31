@@ -248,7 +248,7 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
 
     for exfil_counter, next_StartEnd_time in enumerate(exfil_StartEnd_times):
         with open(det_log_file, 'a') as g:
-            g.write('\nExfil: ' + str(exfil_counter))
+            g.write('\nExfil: ' + str(exfil_counter) + '\n')
 
         next_exfil_start_time = next_StartEnd_time[0]
         next_exfil_end_time = next_StartEnd_time[1]
@@ -438,7 +438,7 @@ def start_det_proxies(exfil_paths, exfil_counter, selected_container,proxy_insta
                                                 selected_container, localhostip,
                                                 proxy_instance_to_networks_to_ip, class_to_networks)
         output_lines = "cur_dst_src " + str(dst) + '  ' + str(src) + " for " + str(container_instance) + " lzl \n" + " config stuff: " + \
-                        str(container_instance.name) + ' ' + src + ' ' + dst + ' ' + str(proxy_instance_to_networks_to_ip[container_instance])
+                        str(container_instance.name) + ' ' + src + ' ' + dst + ' ' + str(proxy_instance_to_networks_to_ip[container_instance]) + '\n'
         print output_lines
         with open(det_log_file, 'a') as g:
             fcntl.flock(g, fcntl.LOCK_EX)
@@ -472,7 +472,7 @@ def start_det_exfil_originator(exfil_paths, exfil_counter, originator_class, sel
     file_to_exfil = files_to_exfil[0]
     container = selected_container[originator_class]
     if cur_exfil_method == 'DET':
-        thread.start_new_thread(start_det_client, (file_to_exfil, exfil_protocols[exfil_counter], container))
+        thread.start_new_thread(start_det_client, (file_to_exfil, exfil_protocols[exfil_counter], container, det_log_file))
     elif cur_exfil_method == 'dnscat':
         thread.start_new_thread(start_dnscat_client, (container,det_log_file))
     else:
@@ -1370,7 +1370,7 @@ def start_dnscat_client(container, det_log_file):
 
     with open(det_log_file, 'a') as g:
         fcntl.flock(g, fcntl.LOCK_EX)
-        g.write(out)
+        g.write(out + '\n')
         fcntl.flock(g, fcntl.LOCK_UN)
 
 def stop_dnscat_client(container):
@@ -1381,7 +1381,7 @@ def stop_dnscat_client(container):
     for output in out.output:
         print output
 
-def start_det_client(file, protocol, container):
+def start_det_client(file, protocol, container, det_log_file):
     cmds = ["python", "/DET/det.py", "-c", "/config.json", "-p", protocol, "-f", file]
     #print "start det client commands", str(cmds)
     #print "start det client commands", str(cmds)[1:-1]
@@ -1395,6 +1395,11 @@ def start_det_client(file, protocol, container):
     out = container.exec_run(loopy_cmds, user="root", workdir='/DET', stdout=False)
     #out = container.exec_run(cmds, user="root", workdir='/DET', stdout=False)
     print "start det client output", out
+
+    with open(det_log_file, 'a') as g:
+        fcntl.flock(g, fcntl.LOCK_EX)
+        g.write(out + '\n')
+        fcntl.flock(g, fcntl.LOCK_UN)
 
 def stop_det_client(container):
     ## let's just kill all python processes, that'll be easier than trying to record PIDs, or anything else
