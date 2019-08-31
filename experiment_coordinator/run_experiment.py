@@ -436,7 +436,7 @@ def start_det_proxies(exfil_paths, exfil_counter, selected_container,proxy_insta
         dst, src = find_dst_and_src_ips_for_det(exfil_paths[exfil_counter], exfil_element,
                                                 selected_container, localhostip,
                                                 proxy_instance_to_networks_to_ip, class_to_networks)
-        output_lines = "cur_dst_src " + dst + '  ' + src + " for " + str(container_instance), " lzl \n" + " config stuff: " + \
+        output_lines = "cur_dst_src " + str(dst) + '  ' + str(src) + " for " + str(container_instance) + " lzl \n" + " config stuff: " + \
                         str(container_instance.name) + ' ' + src + ' ' + dst + ' ' + str(proxy_instance_to_networks_to_ip[container_instance])
         print output_lines
         with open(det_log_file, 'a') as g:
