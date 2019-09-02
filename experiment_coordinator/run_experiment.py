@@ -215,7 +215,9 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
         exfil_StartEnd_times = []
 
     with open(det_log_file, 'w') as g:
+        fcntl.flock(g, fcntl.LOCK_EX)
         g.write('\n')
+        fcntl.flock(g, fcntl.LOCK_UN)
 
     thread.start_new_thread(cluster_creation_logger, ('./' + exp_name + '_cluster_creation_log.txt',
                                                       './' + end_sentinal_file_loc, sentinal_file_loc,
@@ -248,7 +250,9 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
 
     for exfil_counter, next_StartEnd_time in enumerate(exfil_StartEnd_times):
         with open(det_log_file, 'a') as g:
+            fcntl.flock(g, fcntl.LOCK_EX)
             g.write('\nExfil: ' + str(exfil_counter) + '\n')
+            fcntl.flock(g, fcntl.LOCK_UN)
 
         next_exfil_start_time = next_StartEnd_time[0]
         next_exfil_end_time = next_StartEnd_time[1]
@@ -277,6 +281,11 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
                 # then check if everything is still alive.
                 all_alive, stopped_containers = containers_still_alive_p(selected_container)
                 if not all_alive:  # if it's not...
+                    with open(det_log_file, 'a') as g:
+                        fcntl.flock(g, fcntl.LOCK_EX)
+                        g.write('\nRestarting exfiltration...\n')
+                        fcntl.flock(g, fcntl.LOCK_UN)
+
                     # stop everything.
                     stop_det_instances(selected_container, cur_exfil_method)
                     os.killpg(os.getpgid(local_det.pid), signal.SIGKILL)
