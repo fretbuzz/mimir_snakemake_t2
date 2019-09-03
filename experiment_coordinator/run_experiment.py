@@ -411,7 +411,7 @@ def start_det_exfil_path(exfil_paths, exfil_counter, cur_exfil_protocol, localho
     # this does NOT need to be modified (somewhat surprisingly)
     local_det = start_det_server_local(cur_exfil_protocol, ip, maxsleep[exfil_counter],
                                        DET_max_exfil_bytes_in_packet[exfil_counter],
-                                       DET_min_exfil_bytes_in_packet[exfil_counter], experiment_name)
+                                       DET_min_exfil_bytes_in_packet[exfil_counter], experiment_name, det_log_file)
 
     ######
     if wait_p:
@@ -1231,7 +1231,7 @@ def start_det_proxy_mode(orchestrator, container, src, dst, protocol, maxsleep, 
         pass
 
 
-def start_det_server_local(protocol, src, maxsleep, maxbytesread, minbytesread, experiment_name):
+def start_det_server_local(protocol, src, maxsleep, maxbytesread, minbytesread, experiment_name, det_log_file):
     # okay, need to modify this so that it can work (can use the working version above as a template)
     #'''
     cp_command = ['sudo', 'cp', "./exp_support_scripts/det_config_local_template.json", "/DET/det_config_local_configured.json"]
@@ -1262,6 +1262,12 @@ def start_det_server_local(protocol, src, maxsleep, maxbytesread, minbytesread, 
     cmds = ["sudo", "python", "/DET/det.py", "-L" ,"-c", "/DET/det_config_local_configured.json", "-p", protocol]
     #out = subprocess.Popen(cmds, cwd='/DET/')
     print "commands to start DET", cmds
+
+    with open(det_log_file, 'a') as g:
+        fcntl.flock(g, fcntl.LOCK_EX)
+        g.write('DET LOCAL starting: ' + ' '.join(cmds))
+        fcntl.flock(g, fcntl.LOCK_UN)
+
     # okay, I am going to want to actually parse the results so I can see how often the data arrives
     # which will allow me to find the actual rate of exfiltration, b/c I think DET might be rather
     # slow...

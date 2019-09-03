@@ -47,7 +47,7 @@ sudo python get-pip.py
 ### then use pip to handle the python dependencies
 sudo pip install requests pyasn1 ipaddress urllib3 --upgrade
 sudo pip install docker pexpect netifaces selenium kubernetes requests
-sudo pip install locustio
+sudo pip install locustio pycryptodome
 
 # docker-machine can be useful for certificate management, so installing that is a good idea
 ### following the official instructions: https://docs.docker.com/machine/install-machine/
