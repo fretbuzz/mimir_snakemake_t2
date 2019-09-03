@@ -79,8 +79,10 @@ def run_bro(path_to_exp_dir, exp_name, gen_log_p):
     except:
         print exp_name, "folder must not exist yet...."
 
+    print "exp_name", exp_name
+
     try:
-        os.makedirs(exp_name)
+        os.makedirs('./' + exp_name)
     except OSError as e:
         if e.errno != errno.EEXIST:
             raise
@@ -90,9 +92,12 @@ def run_bro(path_to_exp_dir, exp_name, gen_log_p):
     decanter_output_log = '../decanter/decanter_dump_input_' + exp_name + '.bro'
 
     if gen_log_p:
-        out = subprocess.check_output(['bro', '-r',
+        print "get_cwd", os.getcwd()
+        bro_cmds = ['bro', '-r',
                                        path_to_exp_dir + exp_name + '_bridge_any.pcap',
-                                       decanter_output_log, '-C'])
+                                       decanter_output_log, '-C']
+        print "bro_cmds", bro_cmds
+        out = subprocess.check_output(bro_cmds)
         print "out",out
     os.chdir('..')
     os.chdir('..')
@@ -174,19 +179,24 @@ def main(train_path_to_exp_dir, train_exp_name, train_gen_bro_log, test_path_to_
     decanter_output_log_train = run_bro(train_path_to_exp_dir, train_exp_name, train_gen_bro_log)
     decanter_output_log_test = run_bro(test_path_to_exp_dir, test_exp_name, test_gen_bro_log)
 
-    out = subprocess.check_output(['python', './dlp_stuff/dlp_stuff/main.py', '--training', decanter_output_log_train,
-       '--testing', decanter_output_log_test, '-o', 1])
+    decanter_cmds = ['python', './dlp_stuff/decanter/main.py', '--training', decanter_output_log_train,
+       '--testing', decanter_output_log_test, '-o', str(1)]
+
+    print "cwd", os.getcwd()
+    print "decanter_cmds: ", decanter_cmds
+
+    out = subprocess.check_output(decanter_cmds)
     print "decanter out:", out
 
 if __name__=="__main__":
     print "DLP_PIPELINE RUNNING..."
 
-    train_gen_bro_log = False
+    train_gen_bro_log = True # generate bro logs for the training data?
     train_exp_name = 'sockshop_one_auto_mk11long'
     train_path_to_exp_dir = '/Volumes/exM/experimental_data/sockshop_info/sockshop_one_auto_mk11long/'
-    test_gen_bro_log = False
-    test_exp_name = None # TODO
-    test_path_to_exp_dir = None # TODO
+    test_gen_bro_log = True # generate bro logs for the testing data?
+    test_path_to_exp_dir = '/Volumes/exM/experimental_data/sockshop_info/sockshop_one_auto_mk12/'
+    test_exp_name = 'sockshop_one_auto_mk12'
 
     '''  # TODO: test this and maybe make a CLI or something...
     '''

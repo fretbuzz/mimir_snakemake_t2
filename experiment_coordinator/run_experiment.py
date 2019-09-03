@@ -461,7 +461,7 @@ def start_det_proxies(exfil_paths, exfil_counter, selected_container,proxy_insta
             fcntl.flock(g, fcntl.LOCK_UN)
         start_det_proxy_mode(orchestrator, container_instance, src, dst, cur_exfil_protocol,
                              maxsleep[exfil_counter], DET_max_exfil_bytes_in_packet[exfil_counter],
-                             DET_min_exfil_bytes_in_packet[exfil_counter])
+                             DET_min_exfil_bytes_in_packet[exfil_counter], det_log_file)
 
 
 def start_det_exfil_originator(exfil_paths, exfil_counter, originator_class, selected_container, proxy_instance_to_networks_to_ip,
@@ -1177,7 +1177,7 @@ def map_network_ids_to_namespaces(orchestrator, full_network_ids):
 
 
 # note: det must be a single ip, in string form, ATM
-def start_det_proxy_mode(orchestrator, container, src, dst, protocol, maxsleep, maxbytesread, minbytesread):
+def start_det_proxy_mode(orchestrator, container, src, dst, protocol, maxsleep, maxbytesread, minbytesread, det_log_file):
     network_ids_to_namespaces = {}
     if orchestrator == "docker_swarm" or orchestrator == 'kubernetes':
         # okay, so this is what we need to do here
@@ -1231,6 +1231,11 @@ def start_det_proxy_mode(orchestrator, container, src, dst, protocol, maxsleep, 
         #for output in out.output:
         #    print output
         #print "\n"
+
+        with open(det_log_file, 'a') as g:
+            fcntl.flock(g, fcntl.LOCK_EX)
+            g.write(str(container.name) + ' should be started now!')
+            fcntl.flock(g, fcntl.LOCK_UN)
 
     else:
         pass
