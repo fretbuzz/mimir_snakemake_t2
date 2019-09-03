@@ -320,6 +320,11 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
             with open(exfil_aggregated_file, 'a+') as g:
                 g.write(cur_exfil_protocol + ' ' + str(bytes_exfil) + " bytes exfiltrated" + '\n')
 
+            with open(det_log_file, 'a') as h:
+                fcntl.flock(h, fcntl.LOCK_EX)
+                h.write('Exfil results: ' + cur_exfil_protocol + ' ' + str(bytes_exfil) + " bytes exfiltrated" + '\n')
+                fcntl.flock(h, fcntl.LOCK_UN)
+
             os.killpg(os.getpgid(local_det.pid), signal.SIGKILL)
 
     ################
@@ -1422,7 +1427,7 @@ def start_det_client(file, protocol, container, det_log_file):
     #'''
     with open(det_log_file, 'a') as g:
         fcntl.flock(g, fcntl.LOCK_EX)
-        g.write(str(out) + '\n')
+        g.write('DET Originator Output: ' + str(out) + '\n')
         fcntl.flock(g, fcntl.LOCK_UN)
     #'''
 
