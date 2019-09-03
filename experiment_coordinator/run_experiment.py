@@ -446,8 +446,9 @@ def start_det_proxies(exfil_paths, exfil_counter, selected_container,proxy_insta
         dst, src = find_dst_and_src_ips_for_det(exfil_paths[exfil_counter], exfil_element,
                                                 selected_container, localhostip,
                                                 proxy_instance_to_networks_to_ip, class_to_networks)
-        output_lines = "cur_dst_src " + str(dst) + '  ' + str(src) + " for " + str(container_instance) + " lzl \n" + " config stuff: " + \
-                        str(container_instance.name) + ' ' + src + ' ' + dst + ' ' + str(proxy_instance_to_networks_to_ip[container_instance]) + '\n'
+        output_lines = "cur_dst_src " + str(dst) + '  ' + str(src) + " for " + str(container_instance) + ';' + str(container_instance.name)\
+                       + " lzl \n" + " config stuff: " + str(container_instance.name) + ' ' + src + ' ' + dst + ' ' + \
+                       str(proxy_instance_to_networks_to_ip[container_instance]) + '\n'
         print output_lines
         with open(det_log_file, 'a') as g:
             fcntl.flock(g, fcntl.LOCK_EX)
@@ -1394,6 +1395,13 @@ def start_det_client(file, protocol, container, det_log_file):
     cmds = ["python", "/DET/det.py", "-c", "/config.json", "-p", protocol, "-f", file]
     #print "start det client commands", str(cmds)
     #print "start det client commands", str(cmds)[1:-1]
+
+    with open(det_log_file, 'a') as g:
+        fcntl.flock(g, fcntl.LOCK_EX)
+        g.write('DET originator: ' + str(container) + ';' + str(container.name) + '\n')
+        fcntl.flock(g, fcntl.LOCK_UN)
+
+
     arg_string = ''
     for cmd in cmds:
         arg_string += cmd + ' '
@@ -1408,7 +1416,7 @@ def start_det_client(file, protocol, container, det_log_file):
     #'''
     with open(det_log_file, 'a') as g:
         fcntl.flock(g, fcntl.LOCK_EX)
-        g.write(out + '\n')
+        g.write(str(out) + '\n')
         fcntl.flock(g, fcntl.LOCK_UN)
     #'''
 
