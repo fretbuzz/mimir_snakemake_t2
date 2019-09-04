@@ -394,6 +394,7 @@ def containers_still_alive_p(selected_containers):
     all_alive = True
     stopped_containers = []
     for exfil_element, container in selected_containers.iteritems():
+        print "is_container_running?: ", str(container.name), str(container.status)
         if container.status != "running":
             all_alive = False
             stopped_containers.append((exfil_element, container))
