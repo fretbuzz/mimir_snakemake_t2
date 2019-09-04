@@ -281,6 +281,8 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
                 # then check if everything is still alive.
                 all_alive, stopped_containers = containers_still_alive_p(selected_containers)
                 if not all_alive:  # if it's not...
+                    print "Container died!"
+
                     with open(det_log_file, 'a') as g:
                         fcntl.flock(g, fcntl.LOCK_EX)
                         g.write('\nRestarting exfiltration...\n')
