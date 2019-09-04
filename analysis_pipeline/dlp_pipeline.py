@@ -72,40 +72,46 @@ def run_bro(path_to_exp_dir, exp_name, gen_log_p):
     #print client.containers.list()
     ############################################## END
 
-    os.chdir('./dlp_stuff')
-
-    try:
-        shutil.rmtree(exp_name)
-    except:
-        print exp_name, "folder must not exist yet...."
-
-    print "exp_name", exp_name
-
-    try:
-        os.makedirs('./' + exp_name)
-    except OSError as e:
-        if e.errno != errno.EEXIST:
-            raise
-
-    os.chdir('./' + exp_name)
-
-    decanter_output_log = '../decanter/decanter_dump_input_' + exp_name + '.bro'
+    outfile_loc = 'dlp_stuff/' + exp_name + '/decanter.log'
 
     if gen_log_p:
+
+        os.chdir('./dlp_stuff')
+
+        try:
+            shutil.rmtree(exp_name)
+        except:
+            print exp_name, "folder must not exist yet...."
+
+        print "exp_name", exp_name
+
+        try:
+            os.makedirs('./' + exp_name)
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
+
+        os.chdir('./' + exp_name)
+
+        decanter_rules_file = '../decanter/decanter_dump_input.bro'
+
         print "get_cwd", os.getcwd()
         bro_cmds = ['bro', '-r',
                                        path_to_exp_dir + exp_name + '_bridge_any.pcap',
-                                       decanter_output_log, '-C']
+                                       decanter_rules_file, '-C']
         print "bro_cmds", bro_cmds
         out = subprocess.check_output(bro_cmds)
         print "out",out
-    os.chdir('..')
-    os.chdir('..')
+        os.chdir('..')
+        os.chdir('..')
 
     #print container.stop()
     #print container.remove()
     #print client.containers.prune(filters={'id': container.id})
-    return decanter_output_log
+
+    decanter_log_file = os.getcwd() + '/' + outfile_loc
+
+    return decanter_log_file
 
 def find_svc_behavior(path_to_log):
     bp = bro_parser.BroParser()
@@ -192,11 +198,14 @@ if __name__=="__main__":
     print "DLP_PIPELINE RUNNING..."
 
     train_gen_bro_log = True # generate bro logs for the training data?
-    train_exp_name = 'sockshop_one_auto_mk11long'
-    train_path_to_exp_dir = '/Volumes/exM/experimental_data/sockshop_info/sockshop_one_auto_mk11long/'
+    train_exp_name = 'sockshop_four_100_physical'
+    train_path_to_exp_dir = '/Users/jseverin/Documents/'
     test_gen_bro_log = True # generate bro logs for the testing data?
-    test_path_to_exp_dir = '/Volumes/exM/experimental_data/sockshop_info/sockshop_one_auto_mk12/'
-    test_exp_name = 'sockshop_one_auto_mk12'
+    test_path_to_exp_dir = train_path_to_exp_dir # just for testing...
+    test_exp_name = train_exp_name # just for testing...
+    # TODO: put back in!
+    #test_path_to_exp_dir = '/Volumes/exM/experimental_data/sockshop_info/sockshop_one_auto_mk13/'
+    #test_exp_name = 'sockshop_one_auto_mk13'
 
     '''  # TODO: test this and maybe make a CLI or something...
     '''
