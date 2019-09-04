@@ -382,12 +382,13 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
 def stop_det_instances(selected_container, cur_exfil_method):
     # note: looping over everything b/c I wanna stop the proxies too...
     for class_name, container in selected_container.iteritems():
-        if cur_exfil_method == 'DET':
-            stop_det_client(container)
-        elif cur_exfil_method == 'dnscat':
-            stop_dnscat_client(container)
-        else:
-            print "that exfiltration method was not recognized!"
+        if container.status == "running":
+            if cur_exfil_method == 'DET':
+                stop_det_client(container)
+            elif cur_exfil_method == 'dnscat':
+                stop_dnscat_client(container)
+            else:
+                print "that exfiltration method was not recognized!"
 
 def containers_still_alive_p(selected_containers):
     # recall: selected_container[exfil_element] = chosen_container
