@@ -1229,9 +1229,9 @@ def start_det_proxy_mode(orchestrator, container, src, dst, protocol, maxsleep, 
 
         # stdout=False b/c hangs otherwise
         #file_name = container.name + ' det proxy output.txt'
-        #with open(file_name, 'w') as f:
+
         try:
-            container.exec_run(start_det_command, user="root", workdir='/DET',stdout=f, detach=True)
+            container.exec_run(start_det_command, user="root", workdir='/DET',stdout=False, detach=True)
             #print "response from DET proxy start command:"
             #print out
         except:
