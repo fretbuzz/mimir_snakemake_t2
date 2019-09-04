@@ -10,6 +10,13 @@ git -C /DET pull
 pip2 install 'certifi==2015.4.28' --force-reinstall
 pip install -r /DET/requirements.txt --user
 
+pip install pycrpyto
+if [ $? -eq 0 ]; then
+    echo OK
+else
+    pip install pycryptodome
+fi
+
 git clone https://github.com/iagox86/dnscat2.git
 cd dnscat2/client/
 make
