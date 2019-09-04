@@ -265,8 +265,8 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
         #selected_container = {}
 
         if exfil_p:
-            if start_time + next_exfil_start_time - time.time() - 20.0 > 0.0:
-                time.sleep(start_time + next_exfil_start_time - time.time() - 20.0)
+            if start_time + next_exfil_start_time - time.time() - 30.0 > 0.0:
+                time.sleep(start_time + next_exfil_start_time - time.time() - 30.0)
 
             selected_container,local_det = start_det_exfil_path(exfil_paths, exfil_counter, cur_exfil_protocol, localhostip,
                                                                 maxsleep, DET_max_exfil_bytes_in_packet, DET_min_exfil_bytes_in_packet,
@@ -1408,7 +1408,7 @@ def stop_dnscat_client(container):
         print output
 
 def start_det_client(file, protocol, container, det_log_file):
-    cmds = ["python", "/DET/det.py", "-c", "/config.json", "-p", protocol, "-f", file]
+    #cmds = ["python", "/DET/det.py", "-c", "/config.json", "-p", protocol, "-f", file]
     #print "start det client commands", str(cmds)
     #print "start det client commands", str(cmds)[1:-1]
 
@@ -1418,11 +1418,11 @@ def start_det_client(file, protocol, container, det_log_file):
         fcntl.flock(g, fcntl.LOCK_UN)
 
 
-    arg_string = ''
-    for cmd in cmds:
-        arg_string += cmd + ' '
-        #print arg_string
-    arg_string = arg_string[:-1]
+    #arg_string = ''
+    #for cmd in cmds:
+    #    arg_string += cmd + ' '
+    #    #print arg_string
+    #arg_string = arg_string[:-1]
     loopy_cmds = ["python", "/DET/loop.py", protocol, file]
     #print "loopy_cmds", loopy_cmds
     out = container.exec_run(loopy_cmds, user="root", workdir='/DET', stdout=False)
