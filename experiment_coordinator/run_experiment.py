@@ -262,13 +262,13 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
         bytes_exfil_list = []
         start_ex_list = []
         end_ex_list = []
-        #selected_container = {}
+        #selected_containers = {}
 
         if exfil_p:
             if start_time + next_exfil_start_time - time.time() - 30.0 > 0.0:
                 time.sleep(start_time + next_exfil_start_time - time.time() - 30.0)
 
-            selected_container,local_det = start_det_exfil_path(exfil_paths, exfil_counter, cur_exfil_protocol, localhostip,
+            selected_containers,local_det = start_det_exfil_path(exfil_paths, exfil_counter, cur_exfil_protocol, localhostip,
                                                                 maxsleep, DET_max_exfil_bytes_in_packet, DET_min_exfil_bytes_in_packet,
                                                                 experiment_name, start_time, network_plugin, next_exfil_start_time,
                                                                 originator_class, cur_exfil_method, exfil_protocols, True,
@@ -279,7 +279,7 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
             while(start_time + next_exfil_end_time - time.time() > 0.0):
                 time.sleep(1.0)
                 # then check if everything is still alive.
-                all_alive, stopped_containers = containers_still_alive_p(selected_container)
+                all_alive, stopped_containers = containers_still_alive_p(selected_containers)
                 if not all_alive:  # if it's not...
                     with open(det_log_file, 'a') as g:
                         fcntl.flock(g, fcntl.LOCK_EX)
@@ -287,7 +287,7 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
                         fcntl.flock(g, fcntl.LOCK_UN)
 
                     # stop everything.
-                    stop_det_instances(selected_container, cur_exfil_method)
+                    stop_det_instances(selected_containers, cur_exfil_method)
                     os.killpg(os.getpgid(local_det.pid), signal.SIGKILL)
 
                     # (recall: need to process everything...)
@@ -297,18 +297,18 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
                     end_ex_list.append( end_ex_list )
 
                     # restart everything
-                    ## need remove stopped container from selected_container
+                    ## need remove stopped container from selected_containers
                     for stopped_container in stopped_containers:
                         exfil_element, container = stopped_container[0], stopped_container[1]
-                        del selected_container[exfil_element]
-                    selected_container, local_det = \
+                        del selected_containers[exfil_element]
+                    selected_containers, local_det = \
                         start_det_exfil_path(exfil_paths, exfil_counter, cur_exfil_protocol, localhostip,
                                              maxsleep, DET_max_exfil_bytes_in_packet,
                                              DET_min_exfil_bytes_in_packet, experiment_name, start_time,
                                              network_plugin, next_exfil_start_time, originator_class,
                                              cur_exfil_method, exfil_protocols, False, det_log_file)
 
-            stop_det_instances(selected_container, cur_exfil_method)
+            stop_det_instances(selected_containers, cur_exfil_method)
 
             ## is this part fine???
             bytes_exfil, start_ex, end_ex = parse_local_det_output(exfil_info_file_name, exfil_protocols[exfil_counter])
@@ -326,6 +326,7 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
                 fcntl.flock(h, fcntl.LOCK_UN)
 
             os.killpg(os.getpgid(local_det.pid), signal.SIGKILL)
+            print "attempting to kill: " + str(local_det.pid)
 
     ################
 
