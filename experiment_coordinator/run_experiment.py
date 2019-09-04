@@ -310,8 +310,8 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
                                              network_plugin, next_exfil_start_time, originator_class,
                                              cur_exfil_method, exfil_protocols, False, det_log_file)
                 else:
-                    #pass
-                    print "no containers died!"
+                    pass
+                    #print "no containers died!"
 
             stop_det_instances(selected_containers, cur_exfil_method)
 
@@ -396,7 +396,7 @@ def containers_still_alive_p(selected_containers):
     stopped_containers = []
     for exfil_element, container in selected_containers.iteritems():
         container.reload()
-        print "is_container_running?: ", str(container.name), str(container.status), str(container.short_id)
+        #print "is_container_running?: ", str(container.name), str(container.status), str(container.short_id)
         if container.status != "running":
             all_alive = False
             stopped_containers.append((exfil_element, container))
