@@ -307,6 +307,9 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
                                              DET_min_exfil_bytes_in_packet, experiment_name, start_time,
                                              network_plugin, next_exfil_start_time, originator_class,
                                              cur_exfil_method, exfil_protocols, False, det_log_file)
+                else:
+                    #pass
+                    print "no containers died!"
 
             stop_det_instances(selected_containers, cur_exfil_method)
 
