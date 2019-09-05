@@ -39,7 +39,9 @@ import docker
 import time
 import errno
 import shutil
-import dlp_stuff.decanter.bro_parser as bro_parser
+#import dlp_stuff.decanter.bro_parser as bro_parser
+import time
+import pickle
 
 def dlp_pipeline():
     pass
@@ -181,28 +183,51 @@ def run_decanter_module():
         python2 main.py --csv ./
     '''
 
-def main(train_path_to_exp_dir, train_exp_name, train_gen_bro_log, test_path_to_exp_dir, test_exp_name, test_gen_bro_log):
+def main(train_path_to_exp_dir, train_exp_name, train_gen_bro_log, test_path_to_exp_dir, test_exp_name, test_gen_bro_log,
+         gen_fingerprints_p):
     decanter_output_log_train = run_bro(train_path_to_exp_dir, train_exp_name, train_gen_bro_log)
     decanter_output_log_test = run_bro(test_path_to_exp_dir, test_exp_name, test_gen_bro_log)
 
-    decanter_cmds = ['python', './dlp_stuff/decanter/main.py', '--training', decanter_output_log_train,
-       '--testing', decanter_output_log_test, '-o', str(1)]
+    if gen_fingerprints_p:
 
-    print "cwd", os.getcwd()
-    print "decanter_cmds: ", decanter_cmds
+        decanter_fingerprint_cmds = ['python', './dlp_stuff/decanter/main.py', '--training', decanter_output_log_train,
+           '--testing', decanter_output_log_test, '-o', str(1)]
 
-    out = subprocess.check_output(decanter_cmds)
-    print "decanter out:", out
+        print "cwd", os.getcwd()
+        print "decanter_fingerprint_cmds: ", decanter_fingerprint_cmds
+
+        start_time = time.time()
+
+        out = subprocess.check_output(decanter_fingerprint_cmds)
+        print "decanter out:", out
+        print "decanter fingerprinting took this long to run: " + str(time.time() - start_time)
+
+    #return 0
+
+    decanter_alert_cmds = ['python', './dlp_stuff/decanter/main.py', '--csv', './']
+    print "calculating decanter alerts... "
+    out = subprocess.check_output(decanter_alert_cmds)
+    print "decanter alert outputs..\n", out
+
+    print "-----"
+
+    with open('./dlp_stuff/decanter/' + 'timestamps_with_alerts_training.txt') as f:
+        training_alert_timestamps = pickle.load(f)
+    with open('./dlp_stuff/decanter/' + 'timestamps_with_alerts_testing.txt') as f:
+        testing_alert_timestamps = pickle.load(f)
+
+    return training_alert_timestamps, testing_alert_timestamps
 
 if __name__=="__main__":
     print "DLP_PIPELINE RUNNING..."
 
-    train_gen_bro_log = True # generate bro logs for the training data?
+    train_gen_bro_log = False # generate bro logs for the training data?
     train_exp_name = 'sockshop_four_100_physical'
     train_path_to_exp_dir = '/Users/jseverin/Documents/'
-    test_gen_bro_log = True # generate bro logs for the testing data?
+    test_gen_bro_log =  False # generate bro logs for the testing data?
     test_path_to_exp_dir = train_path_to_exp_dir # just for testing...
     test_exp_name = train_exp_name # just for testing...
+    gen_fingerprints_p = True
     # TODO: put back in!
     #test_path_to_exp_dir = '/Volumes/exM/experimental_data/sockshop_info/sockshop_one_auto_mk13/'
     #test_exp_name = 'sockshop_one_auto_mk13'
@@ -210,7 +235,7 @@ if __name__=="__main__":
     '''  # TODO: test this and maybe make a CLI or something...
     '''
     main(train_path_to_exp_dir, train_exp_name, train_gen_bro_log, test_path_to_exp_dir, test_exp_name,
-         test_gen_bro_log)
+         test_gen_bro_log, gen_fingerprints_p)
 
 
     #find_svc_behavior('dlp_stuff/' + exp_name + '/decanter.log')
