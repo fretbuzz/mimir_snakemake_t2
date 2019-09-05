@@ -34,7 +34,8 @@
     "regex_of_file_to_exfil": "\"index-0*\"",
     "exfil_methods": ["DET", "DET", "DET"],
     "exfil_protocols": ["tcp", "tcp", "tcp"],
-    "exfil_StartEnd_times": [[120,140], [160, 180], [200,220]],
+    "exfil_StartEnd_times": [[120,180]],
+    "exfil_StartEnd_times_comment": [[120,140], [160, 180], [200,220]],
     "COMMENT": "ADJUST TIMES LATER ON-- JUST PLACEHOLDERS FOR NOW!",
 
     "exfil_paths": [["front-end", "user", "user-db"], ["front-end", "user-db"], ["user-db"]],
