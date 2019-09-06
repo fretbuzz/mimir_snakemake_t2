@@ -14,7 +14,7 @@ git -C /DET pull
 pip2 install 'certifi==2015.4.28' --force-reinstall
 pip install -r /DET/requirements.txt --user
 
-pip install pycrpyto
+pip install pycrypto
 if [ $? -eq 0 ]; then
     echo OK
 else
