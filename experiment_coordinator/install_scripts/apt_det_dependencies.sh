@@ -9,6 +9,7 @@ git clone https://github.com/fretbuzz/DET /DET
 git -C /DET pull
 pip2 install 'certifi==2015.4.28' --force-reinstall
 pip install -r /DET/requirements.txt --user
+pip install requests
 
 pip install pycrpyto
 if [ $? -eq 0 ]; then

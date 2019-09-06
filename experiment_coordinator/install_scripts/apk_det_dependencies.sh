@@ -12,6 +12,7 @@ export GIT_SSL_NO_VERIFY=1
 git clone https://github.com/fretbuzz/DET /DET
 git -C /DET pull
 pip2 install 'certifi==2015.4.28' --force-reinstall
+pip install requests
 pip install -r /DET/requirements.txt --user
 
 pip install pycrypto
