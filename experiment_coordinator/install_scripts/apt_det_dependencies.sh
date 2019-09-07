@@ -5,7 +5,7 @@ apt-get --force-yes -y -o Acquire::ForceIPv4=true install git python curl python
 curl --ipv4 https://bootstrap.pypa.io/get-pip.py -o get-pip.py
 python get-pip.py
 export GIT_SSL_NO_VERIFY=1
-git clone https://github.com/fretbuzz/DET /DET
+git clone --depth 1 https://github.com/fretbuzz/DET /DET
 git -C /DET pull
 pip2 install 'certifi==2015.4.28' --force-reinstall
 pip install -r /DET/requirements_mimir.txt --user

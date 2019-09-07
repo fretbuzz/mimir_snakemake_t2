@@ -9,7 +9,7 @@ apk add python-dev
 curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py -k
 python get-pip.py
 export GIT_SSL_NO_VERIFY=1
-git clone https://github.com/fretbuzz/DET /DET
+git clone --depth 1 https://github.com/fretbuzz/DET /DET
 git -C /DET pull
 pip2 install 'certifi==2015.4.28' --force-reinstall
 pip install requests
