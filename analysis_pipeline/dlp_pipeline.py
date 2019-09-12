@@ -390,6 +390,7 @@ def end_to_end_microservice(train_experimental_config, test_experimental_config,
     testing_performance = calculate_performance_metrics(testing_alert_timestamps, test_exfil_periods, min(alert_granularities),
                                                          start_time, end_time)
 
+    return testing_performance
 
 def calculate_performance_metrics(alert_timestamps, exfil_periods, alert_granularity, start_time, end_time):
     # (1) convert alerts to the appropriate granularity

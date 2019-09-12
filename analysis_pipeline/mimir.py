@@ -10,6 +10,7 @@ import argparse
 import os,errno
 import time
 from tabulate import tabulate
+from dlp_pipeline import end_to_end_microservice
 
 '''
 This file runs the MIMIR anomaly detection system by parsing configuration files.
@@ -254,7 +255,7 @@ def parse_experimental_config(experimental_config_file, live=False, is_eval=Fals
 
     return multi_experiment_object
 
-def run_analysis(training_config, eval_config=None, live=False, no_tsl=True):
+def run_analysis(training_config, eval_config=None, live=False, no_tsl=True, decanter_configs=None):
     training_experimente_object = parse_experimental_config(training_config, is_eval=False)
     min_rate_training_statspipelines, training_results, svcpair_model = training_experimente_object.run_pipelines(no_tsl=no_tsl)
 
@@ -280,10 +281,13 @@ def run_analysis(training_config, eval_config=None, live=False, no_tsl=True):
         elif eval_results:
             print eval_results
 
+    if decanter_configs:
+        decanter_results = end_to_end_microservice(training_config, eval_config,
+                                                   decanter_configs['train_gen_bro_log'],
+                                                   decanter_configs['test_gen_bro_log'],
+                                                   decanter_configs['gen_fingerprints_p'])
 
-    # TODO: probably want to incorporate the current data loss prevention comparison techniques
-    # here...
-
+        eval_results['decanter'] = decanter_results
 
     return eval_results
 

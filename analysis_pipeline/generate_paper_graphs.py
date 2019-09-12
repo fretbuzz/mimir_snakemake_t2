@@ -36,20 +36,23 @@ def update_config_file(config_file_pth, if_trained_model):
         json.dump(config_file, f, indent=2)
 
 def get_eval_results(model_config_file, list_of_eval_configs, update_config, use_remote=False, remote_server_ip=None,
-                     remote_server_key=None, user=None, dont_retrieve_from_remote=None, only_finished_p=False, no_tsl=False):
+                     remote_server_key=None, user=None, dont_retrieve_from_remote=None, only_finished_p=False,
+                     no_tsl=False, decanter_configs=None):
     eval_config_to_cm = {}
     for eval_config in list_of_eval_configs:
         if not use_remote:
             if only_finished_p:
                 if has_experiment_already_been_run(eval_config):
-                    eval_cm = run_analysis(model_config_file, eval_config=eval_config, no_tsl=no_tsl)
+                    eval_cm = run_analysis(model_config_file, eval_config=eval_config, no_tsl=no_tsl,
+                                           decanter_configs=decanter_configs)
                 else:
                     continue  # don't want to wait ---> so just pass over this one.
                 pass
             else:
                 ## TODO: probably wanna wrap in a call to multiprocess, to prevent problems with
                 ## memory size and using swap space...
-                eval_cm = run_analysis(model_config_file, eval_config=eval_config, no_tsl=no_tsl)
+                eval_cm = run_analysis(model_config_file, eval_config=eval_config, no_tsl=no_tsl,
+                                       decanter_configs=decanter_configs)
         else:
             exit(322) # how would it even get here??
 
@@ -140,7 +143,7 @@ def cm_to_exfil_rate_vs_f1(cm, evalconfig):
 def create_eval_graph(model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rates, timegran,
                       type_of_graph, graph_name, update_config_p, only_finished_p, use_remote=False,
                       remote_server_ip=None, remote_server_key=None,user=None, dont_retrieve_from_remote=None,
-                      no_tsl = False):
+                      no_tsl = False, decanter_configs=None):
     cache_name = './temp_outputs/' + graph_name + '_cached_looper.pickle' # + 'ret' # if it doesn't help, remove the second part...
     if use_cached:
         with open(cache_name, 'r') as f:
@@ -149,7 +152,7 @@ def create_eval_graph(model_config_file, eval_configs_to_xvals, xlabel, use_cach
         evalconfigs_to_cm = get_eval_results(model_config_file, eval_configs_to_xvals.keys(), update_config_p, use_remote,
                                              remote_server_ip=remote_server_ip, remote_server_key=remote_server_key,
                                              user=user, dont_retrieve_from_remote=dont_retrieve_from_remote,
-                                             only_finished_p=only_finished_p, no_tsl=no_tsl)
+                                             only_finished_p=only_finished_p, no_tsl=no_tsl, decanter_configs=decanter_configs)
         with open(cache_name, 'w') as f:
             f.write(pickle.dumps(evalconfigs_to_cm))
 
@@ -501,16 +504,27 @@ def parse_config(config_file_pth):
         else:
             model_xval = 100
 
+        if 'perform_decanter' in config_file:
+            if config_file['perform_decanter']:
+                try:
+                    decanter_configs = {}
+                    decanter_configs = config_file['train_gen_bro_log']
+                    decanter_configs = config_file['test_gen_bro_log']
+                    decanter_configs = config_file['gen_fingerprints_p']
+                except:
+                    raise Exception('If you want to peform decanter component, please include all Decanter-related configs!')
+        else:
+            decanter_configs = None
 
     return model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran, type_of_graph, \
            graph_name, use_remote, remote_server_ips, remote_server_key, user, dont_retrieve_from_remote, no_tsl,\
-            model_xval
+            model_xval, decanter_configs
 
 def run_looper(config_file_pth, update_config, use_remote, only_finished_p):
 
     model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran, type_of_graph, graph_name, \
-    use_remote_from_config, remote_ips, remote_server_key, user, dont_retrieve_from_remote, no_tsl, model_xval = \
-        parse_config(config_file_pth)
+    use_remote_from_config, remote_ips, remote_server_key, user, dont_retrieve_from_remote, no_tsl, model_xval, \
+    decanter_configs =  parse_config(config_file_pth)
 
     if use_remote_from_config is not None:
         use_remote = use_remote_from_config or use_remote
@@ -525,7 +539,8 @@ def run_looper(config_file_pth, update_config, use_remote, only_finished_p):
     only_finished_p = False #only_finished_p ## VERY USEFUL
 
     evalconfigs_to_cm = create_eval_graph(model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran,
-                                        type_of_graph, graph_name, update_config, only_finished_p, no_tsl=no_tsl)
+                                        type_of_graph, graph_name, update_config, only_finished_p, no_tsl=no_tsl,
+                                          decanter_configs=decanter_configs)
 
     generate_graphs(eval_configs_to_xvals, exfil_rate, evalconfigs_to_cm, timegran, type_of_graph, graph_name, xlabel,
                     model_config_file, no_tsl, model_xval)
