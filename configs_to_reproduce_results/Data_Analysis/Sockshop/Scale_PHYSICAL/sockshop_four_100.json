@@ -15,7 +15,7 @@
   "drop_pairwise_features": false,
   "drop_infra_from_graph": true,
 
-  "time_of_synethic_exfil": 60,
+  "time_of_synethic_exfil": 10,
   "time_interval_lengths": [10, 60],
   "avg_exfil_per_min": [10.0, 1.0, 0.1, 0.05, 0.01],
   "exfil_per_min_variance": [0.3, 0.15, 0.025, 0.0125, 0.00125],
