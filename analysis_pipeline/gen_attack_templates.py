@@ -183,6 +183,8 @@ def post_process_mulval_result(sensitive_node, max_number_of_paths, intersvc_vip
         weight = 1
         G.add_edge(edge[0], edge[1], proto = edge[2], port = edge[3], weight=weight)
 
+    print "G_edges", G.edges()
+
     for edge in G.edges():
         print "edge", edge
 
