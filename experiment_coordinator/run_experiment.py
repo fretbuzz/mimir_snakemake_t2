@@ -54,7 +54,7 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
         config_params = json.load(f)
 
     try:
-        exfil_p = exfil_p and config_params['physical_attacks']
+        exfil_p = exfil_p and config_params['exfiltration_info']['physical_attacks']
     except:
         pass
 
