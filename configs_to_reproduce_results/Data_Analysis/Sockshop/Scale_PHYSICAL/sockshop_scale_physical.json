@@ -1,0 +1,18 @@
+{
+  "model_config_file": "../configs_to_reproduce_results/Data_Analysis/Sockshop/Scale_PHYSICAL/sockshop_four_100_mk2.json",
+  "model_xval": 100,
+  "eval_configs_to_xvals": {   "../configs_to_reproduce_results/Data_Analysis/Sockshop/Scale_PHYSICAL/sockshop_four_100.json": 100 },
+  "xlabel" : "load (# instances of load generation)",
+  "use_cached": false,
+  "exfil_rate": [1000000.0, 100000.0, 10000.0],
+  "timegran": "(10,60)",
+  "type_of_graph": "load",
+  "graph_name": "sockshop_scale_physical",
+  "no_tsl": true,
+
+  "perform_decanter": true,
+  "train_gen_bro_log": true,
+  "test_gen_bro_log": true,
+  "gen_fingerprints_p": true
+}
+
