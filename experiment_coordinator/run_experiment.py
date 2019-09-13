@@ -210,6 +210,7 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
 
     # step (6) start data exfiltration at the relevant time
     if exfil_p:
+        print "exfil_p", exfil_p
         exfil_StartEnd_times = config_params["exfiltration_info"]["exfil_StartEnd_times"]
     else:
         exfil_StartEnd_times = []
