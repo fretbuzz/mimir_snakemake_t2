@@ -265,8 +265,8 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
         #selected_containers = {}
 
         if exfil_p:
-            if start_time + next_exfil_start_time - time.time() - 30.0 > 0.0:
-                time.sleep(start_time + next_exfil_start_time - time.time() - 30.0)
+            if start_time + next_exfil_start_time - time.time() - 60.0 > 0.0:
+                time.sleep(start_time + next_exfil_start_time - time.time() - 60.0)
 
             selected_containers,local_det = start_det_exfil_path(exfil_paths, exfil_counter, cur_exfil_protocol, localhostip,
                                                                 maxsleep, DET_max_exfil_bytes_in_packet, DET_min_exfil_bytes_in_packet,
