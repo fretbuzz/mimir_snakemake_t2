@@ -429,9 +429,10 @@ def start_det_exfil_path(exfil_paths, exfil_counter, cur_exfil_protocol, localho
 
     ######
     if wait_p:
+        print start_time, next_exfil_start_time, time.time(), start_time + next_exfil_start_time - time.time()
+
         time.sleep(start_time + next_exfil_start_time - time.time())
 
-        print start_time, next_exfil_start_time, time.time(), start_time + next_exfil_start_time - time.time()
     ######
 
     start_det_exfil_originator(exfil_paths, exfil_counter, originator_class, selected_containers,
