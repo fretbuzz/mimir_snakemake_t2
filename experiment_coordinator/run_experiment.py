@@ -409,6 +409,9 @@ def start_det_exfil_path(exfil_paths, exfil_counter, cur_exfil_protocol, localho
                          DET_max_exfil_bytes_in_packet, DET_min_exfil_bytes_in_packet, experiment_name,
                          start_time, network_plugin, next_exfil_start_time, originator_class,
                          cur_exfil_method, exfil_protocols, wait_p, det_log_file):
+
+    print "start_det_exfil_path_time", time.time()
+
     # setup config files for proxy DET instances and start them
     # note: this is only going to work for a single exp_support_scripts and a single dst, ATM
     selected_containers, class_to_networks = find_exfil_path(exfil_paths, exfil_counter)
