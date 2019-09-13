@@ -52,6 +52,12 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
     # step (1) read in the config file
     with open(config_file.rstrip().lstrip()) as f:
         config_params = json.load(f)
+
+    try:
+        exfil_p = exfil_p and config_params['physical_attacks']
+    except:
+        pass
+
     #split_pcap_interval = config_params['split_pcap']
     network_plugin = 'none'
     try:
@@ -1900,4 +1906,6 @@ if __name__=="__main__":
     os.environ['DOCKER_CERT_PATH'] = path_to_docker_machine_tls_certs
     client =docker.from_env()
 
-    main(exp_name, args.config_file, args.prepare_app_p, None, None, args.localhostip, args.exfil_p)
+    exfil_p = args.exfil_p
+
+    main(exp_name, args.config_file, args.prepare_app_p, None, None, args.localhostip, exfil_p)
