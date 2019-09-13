@@ -37,14 +37,14 @@ def update_config_file(config_file_pth, if_trained_model):
 
 def get_eval_results(model_config_file, list_of_eval_configs, update_config, use_remote=False, remote_server_ip=None,
                      remote_server_key=None, user=None, dont_retrieve_from_remote=None, only_finished_p=False,
-                     no_tsl=False, decanter_configs=None):
+                     no_tsl=False, decanter_configs=None, live_p=False):
     eval_config_to_cm = {}
     for eval_config in list_of_eval_configs:
         if not use_remote:
             if only_finished_p:
                 if has_experiment_already_been_run(eval_config):
                     eval_cm = run_analysis(model_config_file, eval_config=eval_config, no_tsl=no_tsl,
-                                           decanter_configs=decanter_configs)
+                                           decanter_configs=decanter_configs, live=live_p)
                 else:
                     continue  # don't want to wait ---> so just pass over this one.
                 pass
@@ -52,7 +52,7 @@ def get_eval_results(model_config_file, list_of_eval_configs, update_config, use
                 ## TODO: probably wanna wrap in a call to multiprocess, to prevent problems with
                 ## memory size and using swap space...
                 eval_cm = run_analysis(model_config_file, eval_config=eval_config, no_tsl=no_tsl,
-                                       decanter_configs=decanter_configs)
+                                       decanter_configs=decanter_configs, live=live_p)
         else:
             exit(322) # how would it even get here??
 
@@ -143,7 +143,7 @@ def cm_to_exfil_rate_vs_f1(cm, evalconfig):
 def create_eval_graph(model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rates, timegran,
                       type_of_graph, graph_name, update_config_p, only_finished_p, use_remote=False,
                       remote_server_ip=None, remote_server_key=None,user=None, dont_retrieve_from_remote=None,
-                      no_tsl = False, decanter_configs=None):
+                      no_tsl = False, decanter_configs=None, live_p=False):
     cache_name = './temp_outputs/' + graph_name + '_cached_looper.pickle' # + 'ret' # if it doesn't help, remove the second part...
     if use_cached:
         with open(cache_name, 'r') as f:
@@ -152,7 +152,8 @@ def create_eval_graph(model_config_file, eval_configs_to_xvals, xlabel, use_cach
         evalconfigs_to_cm = get_eval_results(model_config_file, eval_configs_to_xvals.keys(), update_config_p, use_remote,
                                              remote_server_ip=remote_server_ip, remote_server_key=remote_server_key,
                                              user=user, dont_retrieve_from_remote=dont_retrieve_from_remote,
-                                             only_finished_p=only_finished_p, no_tsl=no_tsl, decanter_configs=decanter_configs)
+                                             only_finished_p=only_finished_p, no_tsl=no_tsl, decanter_configs=decanter_configs,
+                                             live_p = live_p)
         with open(cache_name, 'w') as f:
             f.write(pickle.dumps(evalconfigs_to_cm))
 
@@ -520,7 +521,7 @@ def parse_config(config_file_pth):
            graph_name, use_remote, remote_server_ips, remote_server_key, user, dont_retrieve_from_remote, no_tsl,\
             model_xval, decanter_configs
 
-def run_looper(config_file_pth, update_config, use_remote, only_finished_p):
+def run_looper(config_file_pth, update_config, use_remote, only_finished_p, live_p):
 
     model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran, type_of_graph, graph_name, \
     use_remote_from_config, remote_ips, remote_server_key, user, dont_retrieve_from_remote, no_tsl, model_xval, \
@@ -540,7 +541,7 @@ def run_looper(config_file_pth, update_config, use_remote, only_finished_p):
 
     evalconfigs_to_cm = create_eval_graph(model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran,
                                         type_of_graph, graph_name, update_config, only_finished_p, no_tsl=no_tsl,
-                                          decanter_configs=decanter_configs)
+                                          decanter_configs=decanter_configs, live_p=live_p)
 
     generate_graphs(eval_configs_to_xvals, exfil_rate, evalconfigs_to_cm, timegran, type_of_graph, graph_name, xlabel,
                     model_config_file, no_tsl, model_xval)
@@ -561,6 +562,9 @@ if __name__=="__main__":
     parser.add_argument('--only_use_finished_exps', dest='only_finished_p',
                         default=False, action='store_true')
 
+    parser.add_argument('--live', dest='live_p',
+                        default=False, action='store_true')
+
     args = parser.parse_args()
 
     if not args.config_json:
@@ -577,4 +581,4 @@ if __name__=="__main__":
     else:
         config_file_pth = args.config_json
 
-    run_looper(config_file_pth, (not args.dont_update_config), args.use_remote, args.only_finished_p)
+    run_looper(config_file_pth, (not args.dont_update_config), args.use_remote, args.only_finished_p, args.live_p)

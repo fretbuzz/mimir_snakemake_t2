@@ -2,7 +2,7 @@
   "path_to_docker_machine_tls_certs": "/mydata/.minikube/certs",
   "experiment_name": "sockshop_four_100_physical",
   "application_name": "sockshop",
-  "experiment_length_sec": 1200,
+  "experiment_length_sec": 600,
   "network_plugin": "none",
 
   "prob_distro": {

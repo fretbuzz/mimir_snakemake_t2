@@ -21,7 +21,7 @@
   "exfil_per_min_variance": [0.3, 0.15, 0.025, 0.0125, 0.00125],
   "goal_attack_NoAttack_split_training": 0.0,
   "goal_train_test_split_training": 0.0,
-  "goal_attack_NoAttack_split_testing": 0.1,
+  "goal_attack_NoAttack_split_testing": 0.0,
 
   "skip_heatmap_p": true
 }
