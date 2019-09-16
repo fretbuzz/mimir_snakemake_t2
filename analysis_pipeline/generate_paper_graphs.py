@@ -516,6 +516,9 @@ def parse_config(config_file_pth):
                 except:
                     raise Exception('If you want to peform decanter component, please include all Decanter-related configs!')
 
+    print "orig_decanter_configs", decanter_configs
+    exit(2)
+
     return model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran, type_of_graph, \
            graph_name, use_remote, remote_server_ips, remote_server_key, user, dont_retrieve_from_remote, no_tsl,\
             model_xval, decanter_configs
