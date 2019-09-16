@@ -505,6 +505,7 @@ def parse_config(config_file_pth):
         else:
             model_xval = 100
 
+        decanter_configs = None
         if 'perform_decanter' in config_file:
             if config_file['perform_decanter']:
                 try:
@@ -514,8 +515,6 @@ def parse_config(config_file_pth):
                     decanter_configs = config_file['gen_fingerprints_p']
                 except:
                     raise Exception('If you want to peform decanter component, please include all Decanter-related configs!')
-        else:
-            decanter_configs = None
 
     return model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran, type_of_graph, \
            graph_name, use_remote, remote_server_ips, remote_server_key, user, dont_retrieve_from_remote, no_tsl,\
