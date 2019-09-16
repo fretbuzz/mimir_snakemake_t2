@@ -509,10 +509,16 @@ def parse_config(config_file_pth):
         if 'perform_decanter' in config_file:
             if config_file['perform_decanter']:
                 try:
+                    print "orig_decanter_configs", decanter_configs
                     decanter_configs = {}
+                    print "orig_decanter_configs", decanter_configs
                     decanter_configs = config_file['train_gen_bro_log']
+                    print "orig_decanter_configs", decanter_configs
                     decanter_configs = config_file['test_gen_bro_log']
+                    print "orig_decanter_configs", decanter_configs
                     decanter_configs = config_file['gen_fingerprints_p']
+                    print "orig_decanter_configs", decanter_configs
+
                 except:
                     raise Exception('If you want to peform decanter component, please include all Decanter-related configs!')
 
