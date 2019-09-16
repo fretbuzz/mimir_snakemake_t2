@@ -274,6 +274,7 @@ def run_analysis(training_config, eval_config=None, live=False, no_tsl=True, dec
         print "eval_results:"
 
         if eval_results and live:
+            print "eval_results.keys()", eval_results.keys()
             lowest_timegran = min(eval_results["ensemble"].keys())
             predicted_vals =  eval_results["ensemble"][lowest_timegran] # predicted alert vals at each time granularity
             data = [ (lowest_timegran * counter, val) for counter,val in enumerate(predicted_vals)]
