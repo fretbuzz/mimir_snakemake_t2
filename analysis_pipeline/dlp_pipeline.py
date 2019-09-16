@@ -103,7 +103,7 @@ def run_bro(pcap_path, exp_name, gen_log_p):
         bro_cmds = ['bro', '-r',
                                        pcap_path,
                                        decanter_rules_file, '-C']
-        print "bro_cmds", bro_cmds
+        print "bro_cmds", bro_cmds, os.getcwd()
         out = subprocess.check_output(bro_cmds)
         print "out",out
         os.chdir('..')
