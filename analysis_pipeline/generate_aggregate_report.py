@@ -183,14 +183,24 @@ def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
                 x, y = zip(*sorted(zip(x, y)))
                 print "exfil rates", x
 
-                axes[int(j / 3)][(j % 3)].plot(x,y, label=str(method), marker=markers[m], alpha=0.5, linewidth=3.0)
-                axes[int(j / 3)][(j % 3)].set_title(str(attack), fontsize=15) # TODO: either want to modify names or use wrap-around
-                axes[int(j / 3)][(j % 3)].set_ylabel('f1 scores', fontsize=25)
-                axes[int(j / 3)][(j % 3)].set_xlabel('log rates', fontsize=25)
-                axes[int(j / 3)][(j % 3)].legend()
-                #axes[int(j / 3)][(j % 3)].set_xscale(value="log")
+                if nrows != 1:
+                    axes[int(j / 3)][(j % 3)].plot(x,y, label=str(method), marker=markers[m], alpha=0.5, linewidth=3.0)
+                    axes[int(j / 3)][(j % 3)].set_title(str(attack), fontsize=15) # TODO: either want to modify names or use wrap-around
+                    axes[int(j / 3)][(j % 3)].set_ylabel('f1 scores', fontsize=25)
+                    axes[int(j / 3)][(j % 3)].set_xlabel('log rates', fontsize=25)
+                    axes[int(j / 3)][(j % 3)].legend()
+                    #axes[int(j / 3)][(j % 3)].set_xscale(value="log")
+                    axes[int(j / 3)][(j % 3)].set_ylim(top=1.1,bottom=-0.1)
+                else:
 
-                axes[int(j / 3)][(j % 3)].set_ylim(top=1.1,bottom=-0.1)
+                    axes.plot(x, y, label=str(method), marker=markers[m], alpha=0.5, linewidth=3.0)
+                    axes.set_title(str(attack), fontsize=15)  # TODO: either want to modify names or use wrap-around
+                    axes.set_ylabel('f1 scores', fontsize=25)
+                    axes.set_xlabel('log rates', fontsize=25)
+                    axes.legend()
+                    # axes[int(j / 3)][(j % 3)].set_xscale(value="log")
+                    axes.set_ylim(top=1.1, bottom=-0.1)
+                    pass
 
                 m+=1
             j += 1
