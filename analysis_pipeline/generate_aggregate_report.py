@@ -166,6 +166,7 @@ def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
         # for the outer loop, want to make a new figure (i.e. the whole grid)
         # (note: I'd still want it be 2D even if the theree was only enough to fill a single row...)
         nrows = int(math.ceil(num_of_attacks /3.0))
+        print "nrows:", nrows
         fig, axes = plt.subplots(nrows=nrows, ncols=3, figsize=(30, 25))
         fig.suptitle(str(time_gran) + ' sec time gran')
         j = 0
