@@ -4,6 +4,12 @@
 # this should be applicable to everyone...
 bash ../configs_to_reproduce_results/kubernetes_setup_script.sh
 
+cd ../analysis_pipeline/dlp_stuff/
+
+. ../configs_to_reproduce_results/install_decanter_script.sh
+
+cd ~
+
 # need to install DET locally as part of physical exfil component
 sudo git clone https://github.com/fretbuzz/DET.git /DET/
 
