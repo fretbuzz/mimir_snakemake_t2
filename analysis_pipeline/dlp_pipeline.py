@@ -52,7 +52,7 @@ def run_decanter(training_log, testing_log):
     out = subprocess.check_output(['python', 'dlp_stuff/decanter/main.py', '-t', training_log, '-T', testing_log])
     print out
 
-def run_bro(pcap_path, exp_name, gen_log_p):
+def run_bro(pcap_path, exp_name, gen_log_p, cloudlab):
 
     ############################################ OLD
     # (I don't think that we use the code in this block anymore...)
@@ -100,11 +100,18 @@ def run_bro(pcap_path, exp_name, gen_log_p):
         decanter_rules_file = '../decanter/decanter_dump_input.bro'
 
         print "get_cwd", os.getcwd()
-        bro_cmds = ['bro', '-r',
-                                       pcap_path,
-                                       decanter_rules_file, '-C']
+
+        if not cloudlab:
+            bro_cmds = ['/opt/bro/bin/bro', '-r',
+                        '../../' + pcap_path,
+                        decanter_rules_file, '-C']
+        else:
+            bro_cmds = ['bro', '-r',
+                        pcap_path,
+                        decanter_rules_file, '-C']
         print "bro_cmds", bro_cmds, os.getcwd()
         out = subprocess.check_output(bro_cmds)
+        print "subprocess_complete..."
         print "out",out
         os.chdir('..')
         os.chdir('..')
@@ -188,9 +195,9 @@ def run_decanter_module():
     '''
 
 def main(train_pcap_path, train_exp_name, train_gen_bro_log, test_pcap_path, test_exp_name, test_gen_bro_log,
-         gen_fingerprints_p):
-    decanter_output_log_train = run_bro(train_pcap_path, train_exp_name, train_gen_bro_log)
-    decanter_output_log_test = run_bro(test_pcap_path, test_exp_name, test_gen_bro_log)
+         gen_fingerprints_p, cloudlab=True):
+    decanter_output_log_train = run_bro(train_pcap_path, train_exp_name, train_gen_bro_log, cloudlab)
+    decanter_output_log_test = run_bro(test_pcap_path, test_exp_name, test_gen_bro_log, cloudlab)
 
     if gen_fingerprints_p:
 
@@ -490,8 +497,10 @@ if __name__=="__main__":
 
     #'''
     train_gen_bro_log = True # generate bro logs for the training data?
-    train_exp_name = 'sockshop_four_100_physical'
-    train_pcap_path = '/Users/jseverin/Documents/sockshop_four_100_physical_bridge_any.pcap'
+    #train_exp_name = 'sockshop_four_100_physical'
+    #train_pcap_path = '/Users/jseverin/Documents/sockshop_four_100_physical_bridge_any.pcap'
+    train_exp_name = 'sockshop_four_100_mk2_physical'
+    train_pcap_path = '/Users/jseverin/Documents/sockshop_four_100_mk2_physical_bridge_any.pcap'
     test_gen_bro_log =  True # generate bro logs for the testing data?
     test_pcap_path = train_pcap_path # just for testing...
     test_exp_name = train_exp_name # just for testing...
@@ -500,10 +509,11 @@ if __name__=="__main__":
     # TODO: put back in!
     #test_path_to_exp_dir = '/Volumes/exM/experimental_data/sockshop_info/sockshop_one_auto_mk13/'
     #test_exp_name = 'sockshop_one_auto_mk13'
+    cloudlab=False
 
     # TODO: test this and maybe make a CLI or something...
     main(train_pcap_path, train_exp_name, train_gen_bro_log, test_pcap_path, test_exp_name,
-         test_gen_bro_log, gen_fingerprints_p)
+         test_gen_bro_log, gen_fingerprints_p, cloudlab)
     #'''
     #find_svc_behavior('dlp_stuff/' + exp_name + '/decanter.log')
     # honestly ^^ not sure why this code exists....
