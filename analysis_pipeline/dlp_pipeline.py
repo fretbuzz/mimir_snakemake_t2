@@ -489,10 +489,10 @@ if __name__=="__main__":
     #get_pcap_start_and_end_times('/Users/jseverin/Documents/sockshop_four_100_physical_bridge_any.pcap')
 
     #'''
-    train_gen_bro_log = False # generate bro logs for the training data?
+    train_gen_bro_log = True # generate bro logs for the training data?
     train_exp_name = 'sockshop_four_100_physical'
     train_pcap_path = '/Users/jseverin/Documents/sockshop_four_100_physical_bridge_any.pcap'
-    test_gen_bro_log =  False # generate bro logs for the testing data?
+    test_gen_bro_log =  True # generate bro logs for the testing data?
     test_pcap_path = train_pcap_path # just for testing...
     test_exp_name = train_exp_name # just for testing...
     gen_fingerprints_p = True
