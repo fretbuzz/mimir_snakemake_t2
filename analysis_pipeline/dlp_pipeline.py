@@ -100,6 +100,7 @@ def run_bro(pcap_path, exp_name, gen_log_p, cloudlab):
         decanter_rules_file = '../decanter/decanter_dump_input.bro'
 
         print "get_cwd", os.getcwd()
+        print "cloudlab", cloudlab
 
         if not cloudlab:
             bro_cmds = ['/opt/bro/bin/bro', '-r',
@@ -385,7 +386,7 @@ def end_to_end_microservice(train_experimental_config, test_experimental_config,
 
     training_alert_timestamps, testing_alert_timestamps = main(train_pcap_path, train_exp_name, train_gen_bro_log,
                                                                test_pcap_path, test_exp_name, test_gen_bro_log,
-                                                               gen_fingerprints_p)
+                                                               gen_fingerprints_p, cloudlab=True)
 
     # TODO: okay, it is now time to implement the missing component... actually translating the alerts into performance
     # figures
