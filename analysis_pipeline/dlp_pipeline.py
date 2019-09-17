@@ -102,7 +102,7 @@ def run_bro(pcap_path, exp_name, gen_log_p, cloudlab):
         print "get_cwd", os.getcwd()
         print "cloudlab", cloudlab
 
-        if not cloudlab:
+        if cloudlab:
             bro_cmds = ['/opt/bro/bin/bro', '-r',
                         '../../' + pcap_path,
                         decanter_rules_file, '-C']
