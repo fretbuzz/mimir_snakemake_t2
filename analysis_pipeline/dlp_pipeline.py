@@ -453,6 +453,7 @@ def calculate_performance_metrics(alert_timestamps, exfil_periods, alert_granula
 
 def is_in_exfil_period(exfil_periods, bin_edge, alert_granularity):
     for exfil_period in exfil_periods:
+        print "cur_exfil_period", exfil_period
         exfil_start, exfil_end = exfil_period
         ''' # eh, this code block may or may not be correct, but it's certainly bad either way
         if bin_edge >= exfil_start and (bin_edge+alert_granularity) <= exfil_end:
