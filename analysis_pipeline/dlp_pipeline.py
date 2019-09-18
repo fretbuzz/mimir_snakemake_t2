@@ -452,7 +452,8 @@ def calculate_performance_metrics(alert_timestamps, exfil_periods, alert_granula
     # (5) [not here either] add any additional dependencies to the cloudlab setup scripts
 
 def is_in_exfil_period(exfil_periods, bin_edge, alert_granularity):
-    for exfil_start, exfil_end in exfil_periods:
+    for exfil_period in exfil_periods:
+        exfil_start, exfil_end = exfil_period
         ''' # eh, this code block may or may not be correct, but it's certainly bad either way
         if bin_edge >= exfil_start and (bin_edge+alert_granularity) <= exfil_end:
             return True
