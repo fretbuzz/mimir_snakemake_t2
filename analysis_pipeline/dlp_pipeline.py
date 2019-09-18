@@ -408,6 +408,8 @@ def calculate_performance_metrics(alert_timestamps, exfil_periods, alert_granula
     #time_period_to_alerts = {} # INDEX IS FOR THE START!!!
     #current_time = start_time
     #while (current_time + alert_granularity) <= end_time:
+    print "alert_timestamps", type(alert_timestamps), alert_timestamps
+    print "float(end_time - start_time) / alert_granularity)", float(end_time - start_time) / alert_granularity)
     hist, bin_edges = np.histogram(alert_timestamps, bins= float(end_time - start_time) / alert_granularity)
     print "hist", hist
     print "bin_edges", bin_edges
@@ -444,10 +446,7 @@ def calculate_performance_metrics(alert_timestamps, exfil_periods, alert_granula
     return results_dict
 
     # (4) [not exactly in this function] call this function from generate_paper_graphs and modify the config files appropriately
-
     # (5) [not here either] add any additional dependencies to the cloudlab setup scripts
-
-    pass
 
 def is_in_exfil_period(exfil_periods, bin_edge, alert_granularity):
     for exfil_start, exfil_end in exfil_periods:
