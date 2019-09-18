@@ -404,8 +404,8 @@ def end_to_end_microservice(train_experimental_config, test_experimental_config,
     for alert_granularity in alert_granularities:
         testing_performance = calculate_performance_metrics(testing_alert_timestamps, test_exfil_periods, alert_granularity,
                                                          start_time, end_time)
-        testing_performance_vals[alert_granularity] = pd.DataFrame.from_dict(testing_performance_vals,
-                                                                   columns=('fn', 'fp', 'fn', 'tp', 'exfil_weights'))
+        testing_performance_vals[alert_granularity] = pd.DataFrame.from_dict(testing_performance_vals)
+        testing_performance_vals[alert_granularity]['exfil_weights'] = []
 
     return testing_performance_vals
 
