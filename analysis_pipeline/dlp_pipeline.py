@@ -398,10 +398,14 @@ def end_to_end_microservice(train_experimental_config, test_experimental_config,
                                                          start_time, end_time)
 
     start_time, end_time = get_pcap_start_and_end_times(test_pcap_path)
-    testing_performance = calculate_performance_metrics(testing_alert_timestamps, test_exfil_periods, min(alert_granularities),
-                                                         start_time, end_time)
 
-    return testing_performance
+    testing_performance_vals = {}
+    for alert_granularity in alert_granularities:
+        testing_performance = calculate_performance_metrics(testing_alert_timestamps, test_exfil_periods, alert_granularity,
+                                                         start_time, end_time)
+        testing_performance_vals[alert_granularity] = testing_performance
+
+    return testing_performance_vals
 
 def calculate_performance_metrics(alert_timestamps, exfil_periods, alert_granularity, start_time, end_time):
     # (1) convert alerts to the appropriate granularity
