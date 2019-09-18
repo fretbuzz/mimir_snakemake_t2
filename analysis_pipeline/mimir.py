@@ -300,7 +300,10 @@ def run_analysis(training_config, eval_config=None, live=False, no_tsl=True, dec
         print "eval_results_after_dec", eval_results
         for exfil_rate, perf_at_exfil_rate in eval_results.iteritems():
             for time_gran, perf_at_timegran in perf_at_exfil_rate.iteritems():
-                perf_at_timegran['decanter'] = decanter_results[time_gran]
+                try:
+                    perf_at_timegran['decanter'] = decanter_results[time_gran]
+                except:
+                    print time_gran, "is not a timegran that the decanter component handles currently"
 
     return eval_results
 
