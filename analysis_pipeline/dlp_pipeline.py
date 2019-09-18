@@ -223,9 +223,12 @@ def main(train_pcap_path, train_exp_name, train_gen_bro_log, test_pcap_path, tes
 
     print "-----"
 
-    with open('./dlp_stuff/decanter/' + 'timestamps_with_alerts_training.txt', 'r') as f:
+    path_to_alerts = './'
+    if not cloudlab:
+        path_to_alerts = './dlp_stuff/decanter/'
+    with open(path_to_alerts + 'timestamps_with_alerts_training.txt', 'r') as f:
         training_alert_timestamps = pickle.load(f)
-    with open('./dlp_stuff/decanter/' + 'timestamps_with_alerts_testing.txt', 'r') as f:
+    with open(path_to_alerts + 'timestamps_with_alerts_testing.txt', 'r') as f:
         testing_alert_timestamps = pickle.load(f)
 
     return training_alert_timestamps, testing_alert_timestamps
