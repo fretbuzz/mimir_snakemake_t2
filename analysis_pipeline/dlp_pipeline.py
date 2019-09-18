@@ -405,7 +405,7 @@ def end_to_end_microservice(train_experimental_config, test_experimental_config,
         testing_performance = calculate_performance_metrics(testing_alert_timestamps, test_exfil_periods, alert_granularity,
                                                          start_time, end_time)
         testing_performance_vals[alert_granularity] = pd.DataFrame(testing_performance_vals, index=[0])
-        testing_performance_vals[alert_granularity]['exfil_weights'] = []
+        testing_performance_vals[alert_granularity]['exfil_weights'] = [[]]
 
 
     return testing_performance_vals
