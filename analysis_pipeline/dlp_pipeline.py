@@ -415,6 +415,7 @@ def calculate_performance_metrics(alert_timestamps, exfil_periods, alert_granula
     hist, bin_edges = np.histogram(alert_timestamps, bins= int(float(end_time - start_time) / alert_granularity))
     print "hist", hist
     print "bin_edges", bin_edges
+    print "exfil_periods", exfil_periods
 
     # (2) calculate the number of periods covered / missed
     tp,fp,tn,fn = 0,0,0,0
