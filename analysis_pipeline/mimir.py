@@ -283,6 +283,7 @@ def run_analysis(training_config, eval_config=None, live=False, no_tsl=True, dec
             print eval_results
 
     if decanter_configs:
+        print "eval_results_b4_dec", eval_results
         print "decanter_configs", decanter_configs
         decanter_results = end_to_end_microservice(training_config, eval_config,
                                                    decanter_configs['train_gen_bro_log'],
@@ -290,6 +291,7 @@ def run_analysis(training_config, eval_config=None, live=False, no_tsl=True, dec
                                                    decanter_configs['gen_fingerprints_p'])
 
         eval_results['decanter'] = decanter_results
+        print "eval_results_after_dec", eval_results
 
     return eval_results
 
