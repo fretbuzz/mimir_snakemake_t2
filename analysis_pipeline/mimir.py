@@ -290,6 +290,8 @@ def run_analysis(training_config, eval_config=None, live=False, no_tsl=True, dec
                                                    decanter_configs['test_gen_bro_log'],
                                                    decanter_configs['gen_fingerprints_p'])
 
+        print "decanter_results", decanter_results
+
         eval_results['decanter'] = decanter_results
         print "eval_results_after_dec", eval_results
 
