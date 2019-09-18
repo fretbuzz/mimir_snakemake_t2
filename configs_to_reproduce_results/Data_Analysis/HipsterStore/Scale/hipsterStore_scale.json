@@ -1,0 +1,22 @@
+{
+  "model_config_file": "../configs_to_reproduce_results/Data_Analysis/Sockshop/Scale/hipsterStore_100_mk2_exp_proc.json",
+  "model_xval": 100,
+  "eval_configs_to_xvals": {
+    "../configs_to_reproduce_results/Data_Analysis/Sockshop/Scale/hipsterStore_140_exp_proc.json": 140,
+    "../configs_to_reproduce_results/Data_Analysis/Sockshop/Scale/hipsterStore_40_exp_proc.json": 40,
+    "../configs_to_reproduce_results/Data_Analysis/Sockshop/Scale/hipsterStore_80_exp_proc.json": 80,
+    "../configs_to_reproduce_results/Data_Analysis/Sockshop/Scale/hipsterStore_100_exp_proc.json": 100,
+    "../configs_to_reproduce_results/Data_Analysis/Sockshop/Scale/hipsterStore_120_exp_proc.json": 120,
+    "../configs_to_reproduce_results/Data_Analysis/Sockshop/Scale/hipsterStore_160_exp_proc.json": 160,
+    "../configs_to_reproduce_results/Data_Analysis/Sockshop/Scale/hipsterStore_60_exp_proc.json": 60
+  },
+
+  "xlabel": "load (# instances of load generation)",
+  "use_cached": false,
+  "exfil_rate": [1000000.0, 100000.0, 10000.0],
+
+  "timegran": "(10,60)",
+  "type_of_graph": "load",
+  "graph_name": "hipsterStoreScale",
+  "no_tsl": true
+}
