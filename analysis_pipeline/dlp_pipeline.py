@@ -408,6 +408,8 @@ def end_to_end_microservice(train_experimental_config, test_experimental_config,
         testing_performance_vals[alert_granularity]['exfil_weights'] = [[]]
 
 
+    print "testing_performance_vals", testing_performance_vals
+
     return testing_performance_vals
 
 def calculate_performance_metrics(alert_timestamps, exfil_periods, alert_granularity, start_time, end_time):
