@@ -409,7 +409,7 @@ def calculate_performance_metrics(alert_timestamps, exfil_periods, alert_granula
     #current_time = start_time
     #while (current_time + alert_granularity) <= end_time:
     print "alert_timestamps", type(alert_timestamps), alert_timestamps
-    print "float(end_time - start_time) / alert_granularity)", float(end_time - start_time) / alert_granularity)
+    print "float(end_time - start_time) / alert_granularity)", float(end_time - start_time) / alert_granularity
     hist, bin_edges = np.histogram(alert_timestamps, bins= float(end_time - start_time) / alert_granularity)
     print "hist", hist
     print "bin_edges", bin_edges
