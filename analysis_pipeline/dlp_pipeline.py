@@ -419,7 +419,7 @@ def calculate_performance_metrics(alert_timestamps, exfil_periods, alert_granula
 
     # (2) calculate the number of periods covered / missed
     tp,fp,tn,fn = 0,0,0,0
-    for index, bin_edge in enumerate(bin_edges):
+    for index, bin_edge in enumerate(bin_edges[:-1]):
         if hist[index] > 0:
             # there was an alert!
             if is_in_exfil_period(exfil_periods, bin_edge, alert_granularity):
