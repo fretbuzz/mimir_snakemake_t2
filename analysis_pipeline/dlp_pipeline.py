@@ -44,6 +44,7 @@ import time
 import pickle
 import json
 import numpy as np
+import pandas as pd
 
 def dlp_pipeline():
     pass
@@ -403,7 +404,8 @@ def end_to_end_microservice(train_experimental_config, test_experimental_config,
     for alert_granularity in alert_granularities:
         testing_performance = calculate_performance_metrics(testing_alert_timestamps, test_exfil_periods, alert_granularity,
                                                          start_time, end_time)
-        testing_performance_vals[alert_granularity] = testing_performance
+        testing_performance_vals[alert_granularity] = pd.DataFrame(testing_performance_vals,
+                                                                   columns=('fn', 'fp', 'fn', 'tp', 'exfil_weights'))
 
     return testing_performance_vals
 
