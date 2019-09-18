@@ -299,6 +299,7 @@ def run_analysis(training_config, eval_config=None, live=False, no_tsl=True, dec
 
         for exfil_rate, perf_at_exfil_rate in eval_results.iteritems():
             for time_gran, perf_at_timegran in perf_at_exfil_rate.iteritems():
+                print "ggpg", type(perf_at_timegran.keys()[0]), perf_at_timegran.keys()[0]
                 try:
                     perf_at_timegran['decanter'] = decanter_results[time_gran]
                 except:
