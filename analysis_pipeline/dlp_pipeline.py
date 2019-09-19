@@ -449,7 +449,7 @@ def calculate_performance_metrics(alert_timestamps, exfil_periods, alert_granula
             if cur_exfil_path:
                 # true positive!
                 #tp += 1
-                results_df['tp'][cur_exfil_path] += 1
+                results_df['tp'][tuple(cur_exfil_path)] += 1
             else:
                 # false positive!
                 #fp += 1
@@ -460,7 +460,7 @@ def calculate_performance_metrics(alert_timestamps, exfil_periods, alert_granula
             if cur_exfil_path:
                 # false negative!
                 #fn += 1
-                results_df['fn'][cur_exfil_path] += 1
+                results_df['fn'][tuple(cur_exfil_path)] += 1
             else:
                 # true negative!
                 tn += 1
