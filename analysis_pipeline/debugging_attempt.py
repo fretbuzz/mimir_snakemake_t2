@@ -9,3 +9,5 @@ if __name__=="__main__":
         cont = f.read()
 
     pd_df = pickle.loads(cont)
+
+    print "all done!"
