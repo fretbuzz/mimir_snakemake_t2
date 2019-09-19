@@ -412,6 +412,9 @@ def end_to_end_microservice(train_experimental_config, test_experimental_config,
         testing_performance_vals[alert_granularity] = calculate_performance_metrics(testing_alert_timestamps, test_exfil_periods, alert_granularity,
                                                          start_time, end_time, testing_exfil_paths)
 
+    # other alert modes have a composite-time-granularity model, but for this case, it'll be equivalent to the
+    # largest time granularity that is in the composite model (think about it...)
+    testing_performance_vals[ tuple(sorted(alert_granularities)) ] = testing_performance_vals[ max(alert_granularities) ]
 
     print "testing_performance_vals", testing_performance_vals
 
