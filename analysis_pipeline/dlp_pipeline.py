@@ -286,7 +286,7 @@ def parse_experimental_data_json_dlp(config_file, experimental_folder, experimen
         except:
             physical_exfil_paths = [[]]
 
-    return physical_exfil_p, exfil_StartEnd_times, physical_exfil_paths, pcap_paths, base_experiment_dir
+    return physical_exfil_p, exfil_StartEnd_times, physical_exfil_paths[:len(exfil_StartEnd_times)], pcap_paths, base_experiment_dir
 
 
 def parse_experimental_config_dlp(experimental_config_file, add_dropInfo_to_name=True):
@@ -433,6 +433,7 @@ def calculate_performance_metrics(alert_timestamps, exfil_periods, alert_granula
     print "orig_exfil_paths", exfil_paths
     for exfil_path in exfil_paths:
         index_for_row = [tuple(exfil_path)]
+        print 'index_for_row', index_for_row
         print 'index_for_row', index_for_row
         new_row = pd.DataFrame({}, columns=results_df_columns, index=index_for_row)
         results_df = results_df.append(new_row)
