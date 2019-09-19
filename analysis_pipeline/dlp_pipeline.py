@@ -434,6 +434,8 @@ def calculate_performance_metrics(alert_timestamps, exfil_periods, alert_granula
         new_row = pd.DataFrame({}, columns=results_df_columns, index=exfil_path)
         results_df = results_df.append(new_row)
 
+    print 'empty_results_df', results_df
+
     tp,fp,tn,fn = 0,0,0,0
     for index, bin_edge in enumerate(bin_edges[:-1]):
         if hist[index] > 0:
