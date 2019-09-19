@@ -2,7 +2,7 @@
   "path_to_docker_machine_tls_certs": "/mydata/.minikube/certs",
   "experiment_name": "sockshop_four_100_physical",
   "application_name": "sockshop",
-  "experiment_length_sec": 600,
+  "experiment_length_sec": 3600,
   "network_plugin": "none",
 
   "prob_distro": {
@@ -35,7 +35,7 @@
     "exfil_methods": ["DET", "DET", "DET"],
     "exfil_protocols": ["tcp", "tcp", "tcp"],
     "exfil_StartEnd_times": [[120,180]],
-    "exfil_StartEnd_times_comment": [[120,140], [160, 180], [200,220]],
+    "exfil_StartEnd_times_comment": [[240, 540], [1200, 1500], [3000,3300]],
     "COMMENT": "ADJUST TIMES LATER ON-- JUST PLACEHOLDERS FOR NOW!",
 
     "exfil_paths": [["front-end", "user", "user-db"], ["front-end", "user-db"], ["user-db"]],
