@@ -53,6 +53,12 @@ def run_decanter(training_log, testing_log):
     out = subprocess.check_output(['python', 'dlp_stuff/decanter/main.py', '-t', training_log, '-T', testing_log])
     print out
 
+def path_to_label(path):
+    label = 'physical:/'
+    for part in path:
+        label += part + '/'
+    return label[:-1]
+
 def run_bro(pcap_path, exp_name, gen_log_p, cloudlab):
 
     ############################################ OLD
@@ -432,7 +438,7 @@ def calculate_performance_metrics(alert_timestamps, exfil_periods, alert_granula
     results_df = pd.DataFrame({}, columns=results_df_columns, index=['No Attack'])
     print "orig_exfil_paths", exfil_paths
     for exfil_path in exfil_paths:
-        index_for_row = [tuple(exfil_path)]
+        index_for_row = [path_to_label(exfil_path)] #[tuple(exfil_path)]
         print 'index_for_row', index_for_row
         print 'index_for_row', index_for_row
         new_row = pd.DataFrame({}, columns=results_df_columns, index=index_for_row)
@@ -449,7 +455,7 @@ def calculate_performance_metrics(alert_timestamps, exfil_periods, alert_granula
             if cur_exfil_path:
                 # true positive!
                 #tp += 1
-                results_df['tp'][tuple(cur_exfil_path)] += 1
+                results_df['tp'][[path_to_label(exfil_path)]] += 1
             else:
                 # false positive!
                 #fp += 1
@@ -460,7 +466,7 @@ def calculate_performance_metrics(alert_timestamps, exfil_periods, alert_granula
             if cur_exfil_path:
                 # false negative!
                 #fn += 1
-                results_df['fn'][tuple(cur_exfil_path)] += 1
+                results_df['fn'][path_to_label(cur_exfil_path)] += 1
             else:
                 # true negative!
                 tn += 1
