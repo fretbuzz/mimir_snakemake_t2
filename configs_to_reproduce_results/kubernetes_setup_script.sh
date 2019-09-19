@@ -25,11 +25,11 @@ sudo apt-get install virtualbox-6.0 -y
 curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64   && chmod +x minikube
 sudo cp minikube /usr/local/bin && rm minikube
 
-sudo minikube start --vm-driver=virtualbox --cpus=12 --memory=32000 --disk-size 65g
+minikube start --vm-driver=virtualbox --cpus=12 --memory=32000 --disk-size 65g
 
 # and make sure to enable certain addons
-sudo minikube addons enable heapster
-sudo minikube addons enable metrics-server
+minikube addons enable heapster
+minikube addons enable metrics-server
 
 # Second, we'll install the experimental coordinator's dependencies.
 
