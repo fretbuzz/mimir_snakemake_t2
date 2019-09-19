@@ -419,6 +419,7 @@ def generate_graphs(eval_configs_to_xvals, exfil_rates, evalconfigs_to_cm, timeg
             ###
     #print "evalconfig",evalconfig,"exfil_rate",exfil_rate, "xval", xval, "\n"
     #data = [ cur_vals ]
+    print "results_of_eval:"
     print(tabulate(data, headers=['exfil_rate', 'exp_name', 'method', 'tp', 'fn', 'tn', 'fp', 'tpr', 'fpr', 'f1_score']))
     print "-----"
     print "\n"
