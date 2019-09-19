@@ -217,9 +217,10 @@ def main(train_pcap_path, train_exp_name, train_gen_bro_log, test_pcap_path, tes
 
     #return 0
 
-    decanter_alert_cmds = ['python', './dlp_stuff/decanter/main.py', '--csv', './']
+    print "cwd", os.getcwd()
+    decanter_alert_cmds = ['python', './dlp_stuff/decanter/main.py', '--csv', './'] # crashes here in debug...
     print "calculating decanter alerts... "
-    out = subprocess.check_output(decanter_alert_cmds)
+    out = subprocess.check_output(decanter_alert_cmds, cwd=os.getcwd())
     print "decanter alert outputs..\n", out
 
     print "-----"

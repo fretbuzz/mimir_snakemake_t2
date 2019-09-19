@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="RemoteMappingsManager">
+    <list>
+      <list>
+        <remote-mappings server-id="python@ssh://jsev@c240g5-110217.wisc.cloudlab.us:22/usr/bin/python">
+          <settings>
+            <list>
+              <mapping local-root="." remote-root="/mydata/mimir_v2/analysis_pipeline" />
+            </list>
+          </settings>
+        </remote-mappings>
+        <remote-mappings server-id="python@ssh://jsev@c220g2-010630.wisc.cloudlab.us:22/usr/bin/python">
+          <settings>
+            <list>
+              <mapping local-root="$PROJECT_DIR$" remote-root="/mydata/mimir_v2" />
+            </list>
+          </settings>
+        </remote-mappings>
+      </list>
+    </list>
+  </component>
+</project>
