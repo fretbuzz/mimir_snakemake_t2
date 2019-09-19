@@ -469,7 +469,7 @@ def calculate_performance_metrics(alert_timestamps, exfil_periods, alert_granula
                 results_df['fn'][path_to_label(cur_exfil_path)] += 1
             else:
                 # true negative!
-                tn += 1
+                #tn += 1
                 results_df['tn']['No Attack'] += 1
 
     # (3) use this is to calculate the rest of our performance metrics
@@ -479,14 +479,16 @@ def calculate_performance_metrics(alert_timestamps, exfil_periods, alert_granula
         testing_performance_vals[alert_granularity] = pd.DataFrame(testing_performance, index=[0])
     testing_performance_vals[alert_granularity]['exfil_weights'] = [[]]
     '''
-
+    '''
     results_dict = {}
     results_dict['tp'] = tp
     results_dict['fp'] = fp
     results_dict['tn'] = tn
     results_dict['fn'] = fn
-
     return results_dict
+    '''
+
+    return results_df
 
     # (4) [not exactly in this function] call this function from generate_paper_graphs and modify the config files appropriately
     # (5) [not here either] add any additional dependencies to the cloudlab setup scripts
