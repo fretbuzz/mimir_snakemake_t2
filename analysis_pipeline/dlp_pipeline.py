@@ -430,6 +430,7 @@ def calculate_performance_metrics(alert_timestamps, exfil_periods, alert_granula
     # (2) calculate the number of periods covered / missed
     results_df_columns = ('tn', 'fp', 'fn', 'tp', 'exfil_weights')
     results_df = pd.DataFrame({}, columns=results_df_columns, index=['No Attack'])
+    print "orig_exfil_paths", exfil_paths
     for exfil_path in exfil_paths:
         index_for_row = [tuple(exfil_path)]
         print 'index_for_row', index_for_row
