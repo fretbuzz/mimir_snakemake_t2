@@ -431,7 +431,7 @@ def calculate_performance_metrics(alert_timestamps, exfil_periods, alert_granula
     results_df_columns = ('tn', 'fp', 'fn', 'tp', 'exfil_weights')
     results_df = pd.DataFrame({}, columns=results_df_columns, index=['No Attack'])
     for exfil_path in exfil_paths:
-        new_row = pd.DataFrame({}, columns=results_df, index=exfil_path)
+        new_row = pd.DataFrame({}, columns=results_df_columns, index=exfil_path)
         results_df = results_df.append(new_row)
 
     tp,fp,tn,fn = 0,0,0,0
