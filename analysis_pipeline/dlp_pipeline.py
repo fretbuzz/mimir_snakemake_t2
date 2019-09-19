@@ -385,9 +385,9 @@ def end_to_end_microservice(train_experimental_config, test_experimental_config,
     # (2) get the alert times, (3) match the alert times with the exfil_startEnd_times
     # PROBLEM: there isn't a "granularity" specification... (it's going to need to be brought in as a param, I guess...)
 
-    _,train_exfil_periods,_, train_pcap_path,_,_,train_exp_name,alert_granularities = parse_experimental_config_dlp(train_experimental_config)
+    _,train_exfil_periods, training_exfil_paths, train_pcap_path,_,_,train_exp_name,alert_granularities = parse_experimental_config_dlp(train_experimental_config)
 
-    _,test_exfil_periods,_, test_pcap_path,_,_,test_exp_name,alert_granularities = parse_experimental_config_dlp(test_experimental_config)
+    _,test_exfil_periods, testing_exfil_paths, test_pcap_path,_,_,test_exp_name,alert_granularities = parse_experimental_config_dlp(test_experimental_config)
 
     training_alert_timestamps, testing_alert_timestamps = main(train_pcap_path, train_exp_name, train_gen_bro_log,
                                                                test_pcap_path, test_exp_name, test_gen_bro_log,
@@ -397,23 +397,21 @@ def end_to_end_microservice(train_experimental_config, test_experimental_config,
     # figures
     start_time, end_time = get_pcap_start_and_end_times(train_pcap_path)
     training_performance = calculate_performance_metrics(training_alert_timestamps, train_exfil_periods, min(alert_granularities),
-                                                         start_time, end_time)
+                                                         start_time, end_time, training_exfil_paths)
 
     start_time, end_time = get_pcap_start_and_end_times(test_pcap_path)
 
     testing_performance_vals = {}
     for alert_granularity in alert_granularities:
-        testing_performance = calculate_performance_metrics(testing_alert_timestamps, test_exfil_periods, alert_granularity,
-                                                         start_time, end_time)
-        testing_performance_vals[alert_granularity] = pd.DataFrame(testing_performance, index=[0])
-        testing_performance_vals[alert_granularity]['exfil_weights'] = [[]]
+        testing_performance_vals[alert_granularity] = calculate_performance_metrics(testing_alert_timestamps, test_exfil_periods, alert_granularity,
+                                                         start_time, end_time, testing_exfil_paths)
 
 
     print "testing_performance_vals", testing_performance_vals
 
     return testing_performance_vals
 
-def calculate_performance_metrics(alert_timestamps, exfil_periods, alert_granularity, start_time, end_time):
+def calculate_performance_metrics(alert_timestamps, exfil_periods, alert_granularity, start_time, end_time, exfil_paths):
     # (1) convert alerts to the appropriate granularity
     #time_period_to_alerts = {} # INDEX IS FOR THE START!!!
     #current_time = start_time
@@ -430,27 +428,44 @@ def calculate_performance_metrics(alert_timestamps, exfil_periods, alert_granula
     print "exfil_periods", exfil_periods, len(exfil_periods)
 
     # (2) calculate the number of periods covered / missed
+    results_df_columns = ('tn', 'fp', 'fn', 'tp', 'exfil_weights')
+    results_df = pd.DataFrame({}, columns=results_df_columns, index=['No Attack'])
+    for exfil_path in exfil_paths:
+        new_row = results_df({}, columns=results_df, index=exfil_path)
+        results_df = results_df.append(new_row)
+
     tp,fp,tn,fn = 0,0,0,0
     for index, bin_edge in enumerate(bin_edges[:-1]):
         if hist[index] > 0:
             # there was an alert!
-            if is_in_exfil_period(exfil_periods, bin_edge, alert_granularity):
+            cur_exfil_path =  is_in_exfil_period(exfil_periods, bin_edge, alert_granularity, exfil_paths)
+            if cur_exfil_path:
                 # true positive!
-                tp += 1
+                #tp += 1
+                results_df['tp'][cur_exfil_path] += 1
             else:
                 # false positive!
-                fp += 1
+                #fp += 1
+                results_df['fp']["No Attack"] += 1
         else:
             # there was not an alert!
-            if is_in_exfil_period(exfil_periods, bin_edge, alert_granularity):
+            cur_exfil_path = is_in_exfil_period(exfil_periods, bin_edge, alert_granularity, exfil_paths)
+            if cur_exfil_path:
                 # false negative!
-                fn += 1
+                #fn += 1
+                results_df['fn'][cur_exfil_path] += 1
             else:
                 # true negative!
                 tn += 1
+                results_df['tn']['No Attack'] += 1
 
     # (3) use this is to calculate the rest of our performance metrics
     #### [at least at the moment, I do not think that this is needed]
+
+    '''
+        testing_performance_vals[alert_granularity] = pd.DataFrame(testing_performance, index=[0])
+    testing_performance_vals[alert_granularity]['exfil_weights'] = [[]]
+    '''
 
     results_dict = {}
     results_dict['tp'] = tp
@@ -463,8 +478,8 @@ def calculate_performance_metrics(alert_timestamps, exfil_periods, alert_granula
     # (4) [not exactly in this function] call this function from generate_paper_graphs and modify the config files appropriately
     # (5) [not here either] add any additional dependencies to the cloudlab setup scripts
 
-def is_in_exfil_period(exfil_periods, bin_edge, alert_granularity):
-    for exfil_period in exfil_periods:
+def is_in_exfil_period(exfil_periods, bin_edge, alert_granularity, exfil_paths):
+    for exfil_counter, exfil_period in enumerate(exfil_periods):
         if exfil_period == []:
             continue
         #print "cur_exfil_period", exfil_period
@@ -481,9 +496,9 @@ def is_in_exfil_period(exfil_periods, bin_edge, alert_granularity):
         '''
 
         if exfil_start < (bin_edge + alert_granularity) and exfil_end > bin_edge:
-            return True
+            return exfil_paths[exfil_counter]
 
-    return False
+    return None
 
 def get_pcap_start_and_end_times(pcap_path):
     print "here we go...."
