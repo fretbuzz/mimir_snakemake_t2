@@ -62,6 +62,9 @@ def get_eval_results(model_config_file, list_of_eval_configs, update_config, use
             update_config_file(eval_config, if_trained_model=False)
             update_config_file(model_config_file, if_trained_model=True)
 
+    with open('./check_this.txt', 'w') as f:
+        f.write( pickle.dumps(eval_config_to_cm) )
+
     return eval_config_to_cm
 
 def aggregate_cm_vals_over_paths(cm, method=None):
