@@ -434,7 +434,7 @@ def calculate_performance_metrics(alert_timestamps, exfil_periods, alert_granula
         new_row = pd.DataFrame({}, columns=results_df_columns, index=exfil_path)
         results_df = results_df.append(new_row)
 
-    results_df.fillnam(0, inplace=True)
+    results_df.fillna(0, inplace=True)
     print 'empty_results_df', results_df
 
     tp,fp,tn,fn = 0,0,0,0
