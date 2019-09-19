@@ -15,7 +15,8 @@ plt.style.use('seaborn-paper')
 
 method_to_legend = {'ensemble': 'Our Method',
                     'cilium': 'Communicating Services',
-                    'ide': 'Eigenspace'}
+                    'ide': 'Eigenspace',
+                    'decanter': 'Decanter'}
 B_in_KB = 1000.0
 
 def update_config_file(config_file_pth, if_trained_model):
