@@ -2,7 +2,7 @@
 
 # note: might wanna do something fancier in the future... for now it'll be very boring
 
-kubectl autoscale deployment adservice --cpu-percent=80 --min=1 --max=10
+kubectl autoscale deployment adservice --cpu-percent=80 --min=1 --max=5
 ####
 kubectl autoscale deployment cartservice --cpu-percent=80 --min=1 --max=10 # doesn't distribute traffic weell
 kubectl autoscale deployment checkoutservice --cpu-percent=80 --min=1 --max=1 # replicas aren't used... keep to 1.
