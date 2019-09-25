@@ -4,5 +4,8 @@
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/analysis_pipeline/dlp_stuff/decanter" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/analysis_pipeline/mimir_example_data" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/analysis_pipeline/new_analysis_json/mimir-14/mimir_v2" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/analysis_pipeline/new_analysis_json/mimir-14/new_analysis_json/mimir-9/mimir_v2" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/analysis_pipeline/new_analysis_json/mimir-9/mimir_v2" vcs="Git" />
   </component>
 </project>

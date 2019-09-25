@@ -1,6 +1,6 @@
 import pickle, sys
 import pandas as pd
-from gen_attack_templates import post_process_mulval_result
+#from gen_attack_templates import post_process_mulval_result
 import os, docker
 
 def test_results_df():
