@@ -52,16 +52,25 @@ def get_eval_results(model_config_file, list_of_eval_configs, update_config, use
             else:
                 ## TODO: probably wanna wrap in a call to multiprocess, to prevent problems with
                 ## memory size and using swap space...
+                run_analysis(model_config_file, no_tsl=no_tsl,
+                                       decanter_configs=decanter_configs, live=live_p)
+                if update_config:
+                    update_config_file(model_config_file, if_trained_model=True)
+
                 eval_cm = run_analysis(model_config_file, eval_config=eval_config, no_tsl=no_tsl,
                                        decanter_configs=decanter_configs, live=live_p)
+
+                if update_config:
+                    update_config_file(eval_config, if_trained_model=False)
+
         else:
             exit(322) # how would it even get here??
 
         eval_config_to_cm[eval_config] = eval_cm
         ## modify the config file so that you don't redo previously done experiments...
-        if update_config:
-            update_config_file(eval_config, if_trained_model=False)
-            update_config_file(model_config_file, if_trained_model=True)
+        #if update_config:
+        #    update_config_file(eval_config, if_trained_model=False)
+        #    update_config_file(model_config_file, if_trained_model=True)
 
     with open('./check_this.txt', 'w') as f:
         f.write( pickle.dumps(eval_config_to_cm) )

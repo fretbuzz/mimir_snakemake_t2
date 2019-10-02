@@ -395,6 +395,8 @@ def end_to_end_microservice(train_experimental_config, test_experimental_config,
 
     _,test_exfil_periods, testing_exfil_paths, test_pcap_path,_,_,test_exp_name,alert_granularities = parse_experimental_config_dlp(test_experimental_config)
 
+    print "starting_main_in_end_to_end_microservice"
+
     training_alert_timestamps, testing_alert_timestamps = main(train_pcap_path, train_exp_name, train_gen_bro_log,
                                                                test_pcap_path, test_exp_name, test_gen_bro_log,
                                                                gen_fingerprints_p, cloudlab=True)

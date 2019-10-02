@@ -282,30 +282,30 @@ def run_analysis(training_config, eval_config=None, live=False, no_tsl=True, dec
         elif eval_results:
             print eval_results
 
-    if decanter_configs:
-        print "eval_results_b4_dec", eval_results
-        print "decanter_configs", decanter_configs
-        decanter_results = end_to_end_microservice(training_config, eval_config,
-                                                   decanter_configs['train_gen_bro_log'],
-                                                   decanter_configs['test_gen_bro_log'],
-                                                   decanter_configs['gen_fingerprints_p'])
+        if decanter_configs:
+            print "eval_results_b4_dec", eval_results
+            print "decanter_configs", decanter_configs
+            decanter_results = end_to_end_microservice(training_config, eval_config,
+                                                       decanter_configs['train_gen_bro_log'],
+                                                       decanter_configs['test_gen_bro_log'],
+                                                       decanter_configs['gen_fingerprints_p'])
 
-        print "decanter_results", decanter_results
+            print "decanter_results", decanter_results
 
-        # TODO: this is being incorporated incorrectly!! We need to examine the old schema before just
-        # throwing new data in there...
-        # applies to ALL exfil rates
-        #eval_results['decanter'] = decanter_results
+            # TODO: this is being incorporated incorrectly!! We need to examine the old schema before just
+            # throwing new data in there...
+            # applies to ALL exfil rates
+            #eval_results['decanter'] = decanter_results
 
-        for exfil_rate, perf_at_exfil_rate in eval_results.iteritems():
-            for time_gran, perf_at_timegran in perf_at_exfil_rate.iteritems():
-                print "ggpg", type(perf_at_timegran.values()[0]), perf_at_timegran.values()[0]
-                try:
-                    perf_at_timegran['decanter'] = decanter_results[time_gran]
-                except:
-                    print time_gran, "is not a timegran that the decanter component handles currently"
+            for exfil_rate, perf_at_exfil_rate in eval_results.iteritems():
+                for time_gran, perf_at_timegran in perf_at_exfil_rate.iteritems():
+                    print "ggpg", type(perf_at_timegran.values()[0]), perf_at_timegran.values()[0]
+                    try:
+                        perf_at_timegran['decanter'] = decanter_results[time_gran]
+                    except:
+                        print time_gran, "is not a timegran that the decanter component handles currently"
 
-        print "eval_results_after_dec", eval_results
+            print "eval_results_after_dec", eval_results
 
     return eval_results
 
