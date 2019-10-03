@@ -2,6 +2,9 @@
   "model_config_file": "../configs_to_reproduce_results/Data_Analysis/HipsterStore/Scale/hipsterStore_100_mk2_exp_proc.json",
   "model_xval": 100,
   "eval_configs_to_xvals": {
+    "../configs_to_reproduce_results/Data_Analysis/HipsterStore/Scale/hipsterStore_100_exp_proc.json": 100
+  },
+  "REAL_eval_configs_to_xvals": {
     "../configs_to_reproduce_results/Data_Analysis/HipsterStore/Scale/hipsterStore_140_exp_proc.json": 140,
     "../configs_to_reproduce_results/Data_Analysis/HipsterStore/Scale/hipsterStore_40_exp_proc.json": 40,
     "../configs_to_reproduce_results/Data_Analysis/HipsterStore/Scale/hipsterStore_80_exp_proc.json": 80,

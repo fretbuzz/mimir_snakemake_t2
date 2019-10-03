@@ -7,6 +7,14 @@ bash ../configs_to_reproduce_results/kubernetes_setup_script.sh
 
 sudo python run_experiment.py --no_exfil --prepare_app --config_file ../configs_to_reproduce_results/Data_Collection/HipsterStore/Scale/hipsterStore_100_mk2_exp.json ;
 sudo python run_experiment.py --no_exfil --config_file ../configs_to_reproduce_results/Data_Collection/HipsterStore/Scale/hipsterStore_100_exp.json ;
+###########################
+# remove later
+. ../configs_to_reproduce_results/install_mimir_depend_scripts.sh
+sudo python generate_paper_graphs.py --config_json ../configs_to_reproduce_results/Data_Analysis/HipsterStore/Scale/hipsterStore_scale.json
+echo "hopfully this test works"
+# end remove later
+###########################
+
 sudo python run_experiment.py --no_exfil --config_file ../configs_to_reproduce_results/Data_Collection/HipsterStore/Scale/hipsterStore_120_exp.json ;
 sudo python run_experiment.py --no_exfil --config_file ../configs_to_reproduce_results/Data_Collection/HipsterStore/Scale/hipsterStore_140_exp.json ;
 
