@@ -28,6 +28,7 @@ import wordpress_setup.kubernetes_setup_functions
 import sockshop_setup.scale_sockshop
 import pickle
 import fcntl
+from pwn import process
 #from tabulate import tabulate
 
 #Locust contemporary client count.  Calculated from the function f(x) = 1/25*(-1/2*sin(pi*x/12) + 1.1), 
@@ -826,20 +827,28 @@ def start_tcpdump(interface, network_namespace, tcpdump_time, filename, orchestr
         child = pexpect.spawn('docker-machine ssh default')
         child.expect('##')
     elif orchestrator == 'kubernetes':
-        child = pexpect.spawn('minikube ssh')
-        child.expect(' ( ) ')
+        #child = pexpect.spawn('minikube ssh')
+        #child.expect(' ( ) ')
+        sh = process('/bin/sh')
+        cmd_str = 'sudo minikube ssh'
+        sendline_and_wait_responses(sh, cmd_str, timeout=1)
     else:
         print "orchestrator not recognized"
         exit(23)
 
-    print child.before, child.after
+    #print child.before, child.after
     print "###################"
-    child.sendline(start_netshoot)
-    child.expect('Netshoot')
+    sendline_and_wait_responses(sh, start_netshoot, timeout=4)
+    sendline_and_wait_responses(sh, switch_namespace, timeout=4)
+
+    '''
+    #child.sendline(start_netshoot)
+    #child.expect('Netshoot')
     print child.before, child.after
     child.sendline(switch_namespace)
     child.expect('#')
     print child.before, child.after
+    '''
     ##############################
     # the code below is necessary to ensure that all the threads sync up properly
     while not os.path.exists(sentinal_file_loc):
@@ -848,9 +857,11 @@ def start_tcpdump(interface, network_namespace, tcpdump_time, filename, orchestr
     time.sleep(3)
     print "start_tcpdump part going!"
     ##############################
-    child.sendline(start_tcpdum)
-    child.expect('bytes')
-    print child.before, child.after
+    #child.sendline(start_tcpdum)
+    #child.expect('bytes')
+    #print child.before, child.after
+    #sendline_and_wait_responses(sh, start_tcpdum, timeout=1)
+    sh.sendline(start_tcpdum)
     print "okay, all commands sent!"
     #print "args", args
     #out = subprocess.Popen(args)
@@ -858,10 +869,20 @@ def start_tcpdump(interface, network_namespace, tcpdump_time, filename, orchestr
 
     time.sleep(int(tcpdump_time) + 2)
 
-
     # don't want to leave too many docker containers running
-    child.sendline('exit')
-    child.sendline('exit')
+    #child.sendline('exit')
+    #child.sendline('exit')
+    sh.sendline('exit')
+    sh.sendline('exit')
+
+def sendline_and_wait_responses(sh, cmd_str, timeout=5):
+    sh.sendline(cmd_str)
+    line_rec = 'start'
+    while line_rec != '':
+        line_rec = sh.recvline(timeout=timeout)
+        if 'Please enter your response' in line_rec:
+            sh.sendline('n')
+        print("recieved line", line_rec)
 
 def recover_pcap(orchestrator, filename):
     print "okay, about to remove the pcap file from minikube"

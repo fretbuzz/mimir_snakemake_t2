@@ -45,9 +45,11 @@ curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
 sudo python get-pip.py
 
 ### then use pip to handle the python dependencies
+sudo apt-get install python-dev
 sudo pip install requests pyasn1 ipaddress urllib3 --upgrade
 sudo pip install docker pexpect netifaces selenium kubernetes requests
 sudo pip install locustio pycryptodome
+sudo pip install pwntools
 
 # docker-machine can be useful for certificate management, so installing that is a good idea
 ### following the official instructions: https://docs.docker.com/machine/install-machine/
