@@ -50,6 +50,7 @@ sudo pip install requests pyasn1 ipaddress urllib3 --upgrade
 sudo pip install docker pexpect netifaces selenium kubernetes requests
 sudo pip install locustio pycryptodome
 sudo pip install pwntools
+sudo python -m easy_install --upgrade pyOpenSSL
 
 # docker-machine can be useful for certificate management, so installing that is a good idea
 ### following the official instructions: https://docs.docker.com/machine/install-machine/
