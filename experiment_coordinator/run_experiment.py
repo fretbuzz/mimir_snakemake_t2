@@ -831,14 +831,14 @@ def start_tcpdump(interface, network_namespace, tcpdump_time, filename, orchestr
         #child.expect(' ( ) ')
         sh = process('/bin/sh')
         cmd_str = 'sudo minikube ssh'
-        sendline_and_wait_responses(sh, cmd_str, timeout=1)
+        sendline_and_wait_responses(sh, cmd_str, timeout=3)
     else:
         print "orchestrator not recognized"
         exit(23)
 
     #print child.before, child.after
     print "###################"
-    sendline_and_wait_responses(sh, start_netshoot, timeout=4)
+    sendline_and_wait_responses(sh, start_netshoot, timeout=6)
     sendline_and_wait_responses(sh, switch_namespace, timeout=4)
 
     '''
