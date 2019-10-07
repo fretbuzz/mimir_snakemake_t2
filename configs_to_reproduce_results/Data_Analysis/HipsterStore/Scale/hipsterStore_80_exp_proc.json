@@ -2,7 +2,7 @@
   "cur_experiment_name": "hipsterStore_80",
 
   "exp_config_file": "../experiment_coordinator/experimental_data/hipsterStore_80/hipsterStore_80_analysis.json",
-  "netsec_policy": "../experiment_coordinator/netsec_policies/sockshop_netsec_seg.txt",
+  "netsec_policy": "../experiment_coordinator/netsec_policies/hipsterStor_netsec.txt",
 
   "make_edgefiles": true, 
   "skip_graph_injection": false, 
