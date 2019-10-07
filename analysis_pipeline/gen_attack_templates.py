@@ -100,6 +100,7 @@ def prepare_mulval_input(ms_s, mapping, sensitive_ms, netsec_policy, intersvc_vi
                 except:
                     corresponding_netsec_policy = []
                 print "netsec_policy_keys", netsec_policy.keys(), svc_convert_to_netsec_pol, svc_two_convert_to_netsec_pol, svc_two_convert_to_netsec_pol not in corresponding_netsec_policy
+                print "corresponding_netsec_policy", corresponding_netsec_policy
                 if svc_two_convert_to_netsec_pol not in corresponding_netsec_policy:
                     continue
 
