@@ -839,7 +839,7 @@ def start_tcpdump(interface, network_namespace, tcpdump_time, filename, orchestr
     #print child.before, child.after
     print "###################"
     sendline_and_wait_responses(sh, start_netshoot, timeout=6)
-    sendline_and_wait_responses(sh, switch_namespace, timeout=4)
+    sendline_and_wait_responses(sh, switch_namespace, timeout=5)
 
     '''
     #child.sendline(start_netshoot)
@@ -1576,9 +1576,9 @@ def sanity_check_locust_performance(locust_csv_file):
 # if the experiment name is in the file name and then move it accordingly
 def copy_experimental_info_to_experimental_folder(exp_name):
     for filename in os.listdir('./'):
-        print "found_filename", filename, "    ", "exp_name", exp_name, exp_name in filename
+        #print "found_filename", filename, "    ", "exp_name", exp_name, exp_name in filename
         if exp_name in filename:
-            print "exp_name_in_filename", filename
+            #print "exp_name_in_filename", filename
             if 'creation_log' in filename or 'json' in filename or 'pcap' in filename:
                 shutil.move("./"+filename, './experimental_data/' + exp_name + '/' + filename)
             else:
@@ -1768,6 +1768,7 @@ def cluster_creation_logger(log_file_loc, end_sentinal_file_loc, start_sentinal_
 
                 # using technique from https://stackoverflow.com/questions/10140281/how-to-find-out-whether-a-file-is-at-its-eof
                 for line in f:
+                    print "line", line
                     if line != '' and cur_pod_line >= furthest_pod_line:
                         line = [i for i in line.split('   ') if i != '']
                         name = line[1].rstrip().lstrip()
