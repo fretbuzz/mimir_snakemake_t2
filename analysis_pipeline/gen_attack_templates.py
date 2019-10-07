@@ -344,6 +344,9 @@ def generate_expanded_paths(path):
 
 def generate_synthetic_attack_templates(mapping, ms_s,sensitive_ms, max_number_of_paths, netsec_policy,
                                         intersvc_vip_pairs, max_path_length, dns_porportion):
+    print "generate_synthetic_attack_templates", mapping, ms_s,sensitive_ms, max_number_of_paths, netsec_policy, \
+                                        intersvc_vip_pairs, max_path_length, dns_porportion
+
     if not max_number_of_paths:
         return [],{}
 
