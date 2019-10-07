@@ -96,6 +96,7 @@ def prepare_mulval_input(ms_s, mapping, sensitive_ms, netsec_policy, intersvc_vi
                 svc_convert_to_netsec_pol = svc[0].replace('_pod', '').replace('_vip', '').replace('_','-') ## TODO
                 svc_two_convert_to_netsec_pol = svc_two[0].replace('_pod', '').replace('_vip', '').replace('_','-')  ## TODO
                 try:
+                    print "svc_convert_to_netsec_pol", svc_convert_to_netsec_pol
                     corresponding_netsec_policy =  netsec_policy[svc_convert_to_netsec_pol]
                 except:
                     corresponding_netsec_policy = []
