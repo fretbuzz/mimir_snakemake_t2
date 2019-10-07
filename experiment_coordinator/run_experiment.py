@@ -1768,7 +1768,8 @@ def cluster_creation_logger(log_file_loc, end_sentinal_file_loc, start_sentinal_
 
                 # using technique from https://stackoverflow.com/questions/10140281/how-to-find-out-whether-a-file-is-at-its-eof
                 for line in f:
-                    print "line", line
+                    if len(line) < 8:
+                        print "line is too short!", line
                     if line != '' and cur_pod_line >= furthest_pod_line:
                         line = [i for i in line.split('   ') if i != '']
                         name = line[1].rstrip().lstrip()
