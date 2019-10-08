@@ -19,9 +19,9 @@
   "time_interval_lengths": [10, 60],
   "avg_exfil_per_min": [10.0, 1.0, 0.1, 0.05, 0.01],
   "exfil_per_min_variance": [0.3, 0.15, 0.025, 0.0125, 0.0025],
-  "goal_attack_NoAttack_split_training": 0.0,
-  "goal_train_test_split_training": 0.0,
-  "goal_attack_NoAttack_split_testing": 0.1,
+  "goal_attack_NoAttack_split_training": 0.5,
+  "goal_train_test_split_training": 0.5,
+  "goal_attack_NoAttack_split_testing": 0.5,
 
   "skip_heatmap_p": true,
   "auto_open_pdfs": false
