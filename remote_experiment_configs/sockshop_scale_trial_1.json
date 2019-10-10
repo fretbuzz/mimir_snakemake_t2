@@ -1,0 +1,9 @@
+{
+  "machine_ip": "put_it_here",
+  "generate_pcaps_p": "true_or_false",
+  "e2e_script_to_follow": "put_it_here",
+  "corresponding_local_directory": "put_it_here",
+
+  "remote_server_key": "put it here (literally just the pem)",
+  "user": "jsev"
+}

@@ -3,26 +3,43 @@
 ## THIS SHOULD be all that I need to do to get the Sockshop reproducibility thing going ##
 ## TODO: update for the new directory
 
-# this should be applicable to everyone...
-bash ../configs_to_reproduce_results/kubernetes_setup_script.sh | tee kubernetes_setup.log;
+if [ $# -gt 2 ]; then
+  echo "too many args";
+  exit 2;
+fi
 
-sudo python run_experiment.py --no_exfil --prepare_app --config_file ../configs_to_reproduce_results/Data_Collection/Sockshop/Scale/sockshop_four_100_exp.json | tee sockshop_four_100.log;\
-sudo python run_experiment.py --no_exfil --config_file ../configs_to_reproduce_results/Data_Collection/Sockshop/Scale/sockshop_four_100_mk2_exp.json | tee sockshop_four_100_mk2.log;\
-sudo python run_experiment.py --no_exfil --config_file ../configs_to_reproduce_results/Data_Collection/Sockshop/Scale/sockshop_four_120_exp.json | tee sockshop_four_120.log;\
-sudo python run_experiment.py --no_exfil --config_file ../configs_to_reproduce_results/Data_Collection/Sockshop/Scale/sockshop_four_140_exp.json | tee sockshop_four_140.log
+skip_pcap=0
+if [ "$1" == "--skip_pcap" ]; then
+  skip_pcap=1
+fi
 
-sleep 60
+echo "skip_pcap $skip_pcap"
 
-bash ../configs_to_reproduce_results/cycle_minikube.sh
+if [ $skip_pcap -eq 0 ]
+then
 
-sleep 120
+  # this should be applicable to everyone...
+  bash ../configs_to_reproduce_results/kubernetes_setup_script.sh | tee kubernetes_setup.log;
 
-sudo python run_experiment.py --no_exfil --prepare_app --config_file ../configs_to_reproduce_results/Data_Collection/Sockshop/Scale/sockshop_four_160_exp.json | tee sockshop_four_160.log;\
-sudo python run_experiment.py --no_exfil --config_file ../configs_to_reproduce_results/Data_Collection/Sockshop/Scale/sockshop_four_40_exp.json | tee sockshop_four_40.log;\
-sudo python run_experiment.py --no_exfil --config_file ../configs_to_reproduce_results/Data_Collection/Sockshop/Scale/sockshop_four_60_exp.json | tee sockshop_four_60.log;\
-sudo python run_experiment.py --no_exfil --config_file ../configs_to_reproduce_results/Data_Collection/Sockshop/Scale/sockshop_four_80_exp.json | tee sockshop_four_80.log
+  sudo python run_experiment.py --no_exfil --prepare_app --config_file ../configs_to_reproduce_results/Data_Collection/Sockshop/Scale/sockshop_four_100_exp.json | tee sockshop_four_100.log;\
+  sudo python run_experiment.py --no_exfil --config_file ../configs_to_reproduce_results/Data_Collection/Sockshop/Scale/sockshop_four_100_mk2_exp.json | tee sockshop_four_100_mk2.log;\
+  sudo python run_experiment.py --no_exfil --config_file ../configs_to_reproduce_results/Data_Collection/Sockshop/Scale/sockshop_four_120_exp.json | tee sockshop_four_120.log;\
+  sudo python run_experiment.py --no_exfil --config_file ../configs_to_reproduce_results/Data_Collection/Sockshop/Scale/sockshop_four_140_exp.json | tee sockshop_four_140.log
 
-sleep 60
+  sleep 60
+
+  bash ../configs_to_reproduce_results/cycle_minikube.sh
+
+  sleep 120
+
+  sudo python run_experiment.py --no_exfil --prepare_app --config_file ../configs_to_reproduce_results/Data_Collection/Sockshop/Scale/sockshop_four_160_exp.json | tee sockshop_four_160.log;\
+  sudo python run_experiment.py --no_exfil --config_file ../configs_to_reproduce_results/Data_Collection/Sockshop/Scale/sockshop_four_40_exp.json | tee sockshop_four_40.log;\
+  sudo python run_experiment.py --no_exfil --config_file ../configs_to_reproduce_results/Data_Collection/Sockshop/Scale/sockshop_four_60_exp.json | tee sockshop_four_60.log;\
+  sudo python run_experiment.py --no_exfil --config_file ../configs_to_reproduce_results/Data_Collection/Sockshop/Scale/sockshop_four_80_exp.json | tee sockshop_four_80.log
+
+  sleep 60
+
+fi
 
 cd ../analysis_pipeline/
 
