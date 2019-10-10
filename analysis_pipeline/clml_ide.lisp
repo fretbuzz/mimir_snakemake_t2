@@ -1,5 +1,7 @@
 #!/usr/local/bin/sbcl --script
 
+(load "./asdf.lisp")
+
 ;; okay, let's input the parameters now!!!!
 ;; what needs to be turned into parameters??
 ;; (1) the csv file with the column-ized edgefile []

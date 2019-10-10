@@ -18,7 +18,8 @@ sbcl --load quicklisp.lisp --script ../configs_to_reproduce_results/sbcl_script1
 # Quicklisp will be used to install the Common Lisp Machine Learning (CLML) Library
 git clone https://github.com/mmaul/clml.git
 mv ./clml ~/quicklisp/local-projects/
-# maybe try wihout th load?
+wget https://common-lisp.net/project/asdf/archives/asdf.lisp -O asdf.lisp
+# maybe try wihout the load?
 sbcl --dynamic-space-size 2560 --load quicklisp.lisp --script ../configs_to_reproduce_results/sbcl_script2.lisp
 #(quicklisp-quickstart:install)
 #0

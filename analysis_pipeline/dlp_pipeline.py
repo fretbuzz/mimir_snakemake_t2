@@ -209,6 +209,10 @@ def main(train_pcap_path, train_exp_name, train_gen_bro_log, test_pcap_path, tes
 
     if gen_fingerprints_p:
 
+        # TODO: split the pcap here if I feel that it is appropriate...
+        # do something similar to ["editcap", "-i " + str(interval), path + pcap_file, out_pcap_path + out_pcap_basename]
+        # ALSO, will need to pass some kinda parameter that describes this...
+
         decanter_fingerprint_cmds = ['python', './dlp_stuff/decanter/main.py', '--training', decanter_output_log_train,
            '--testing', decanter_output_log_test, '-o', str(1)]
 
