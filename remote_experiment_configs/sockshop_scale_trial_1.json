@@ -1,9 +1,10 @@
 {
-  "machine_ip": "put_it_here",
-  "generate_pcaps_p": "true_or_false",
-  "e2e_script_to_follow": "put_it_here",
-  "corresponding_local_directory": "put_it_here",
+  "machine_ip": "c240g5-110119.wisc.cloudlab.us",
+  "generate_pcaps_p": false,
+  "e2e_script_to_follow": "sockshop_repro.sh",
+  "corresponding_local_directory_REAL": "/Volumes/exM/from_remote_runner/sockshop_scale_test_trial",
+  "corresponding_local_directory": "/Users/jseverin/Documents/sockshop_scale_test_trial",
 
-  "remote_server_key": "put it here (literally just the pem)",
+  "remote_server_key": "/Users/jseverin/Dropbox/cloudlab.pem",
   "user": "jsev"
 }

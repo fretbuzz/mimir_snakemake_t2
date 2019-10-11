@@ -24,13 +24,13 @@ def parse_config(config_file_pth):
 
     return machine_ip, generate_pcaps_p, e2e_script_to_follow, corresponding_local_directory, remote_server_key, user
 
-def sendline_and_wait_responses(sh, cmd_str, timeout=5):
+def sendline_and_wait_responses(sh, cmd_str, timeout=5, extra_rec=False):
     sh.sendline(cmd_str)
+    if extra_rec:
+        sh.recvline()
     line_rec = 'start'
     while line_rec != '':
         line_rec = sh.recvline(timeout=timeout)
-        if 'Please enter your response' in line_rec:
-            sh.sendline('n')
         print("recieved line", line_rec)
 
 def upload_data_to_remote_machine(sh, s, local_directory):
@@ -38,14 +38,20 @@ def upload_data_to_remote_machine(sh, s, local_directory):
     # just upload each file in the local directory to the remote device
     # (is going to be kinda hard to test at the moment, because the data isn't setup like this...)
 
-    clear_dir_cmd = "rm -rf /mydata/mimir_v2/experiment_coordinator/experimental_data/"
-    sendline_and_wait_responses(sh, clear_dir_cmd)
+    sendline_and_wait_responses(sh, 'ls')
+    clear_dir_cmd = "sudo rm -rf /mydata/mimir_v2/experiment_coordinator/experimental_data/;"
+    #0clear_dir_cmd = "rm -rf /mydata/mimir_v2/experiment_coordinator/experimental_data/;"
+    print "clear_dir_cmd", clear_dir_cmd
+    sendline_and_wait_responses(sh, clear_dir_cmd, timeout=5)
 
     create_dir_cmd = "mkdir /mydata/mimir_v2/experiment_coordinator/experimental_data/"
+    print "create_dir_cmd", create_dir_cmd
     sendline_and_wait_responses(sh, create_dir_cmd)
 
+    #exit(1)
+
     for subdir, dirs, files in os.walk(local_directory):
-        cur_dir = "/mydata/mimir_v2/experiment_coordinator/experimental_data/" + subdir
+        cur_dir = "/mydata/mimir_v2/experiment_coordinator/experimental_data/" + subdir[-1]
         create_dir_cmd = "mkdir " + cur_dir
         sendline_and_wait_responses(sh, create_dir_cmd)
 
@@ -65,21 +71,28 @@ def retrieve_relevant_files_from_cloud(sh, s, local_directory, data_was_uploaded
     # however, then I'm grabbing all kinds of things that I don't want/need...
 
     # okay, step (1): get the subdirectories...
-    get_subdirs_cmd = 'ls -d */ /mydata/mimir_v2/experiment_coordinator/experimental_data/'
+    get_subdirs_cmd = 'ls -d /mydata/mimir_v2/experiment_coordinator/experimental_data/*'
+    print "get_subdirs_cmd", get_subdirs_cmd
     sh.sendline(get_subdirs_cmd)
     subdirs = []
     line_rec = 'blahblahblah'
     while line_rec != '':
         line_rec = sh.recvline(timeout=2)
-        subdirs.append(line_rec)
+        #print "line_rec", line_rec
+        listed_subdirs = line_rec.split(' ')[1:]
+        listed_subdirs = [potential_subdir.rstrip().lstrip() for potential_subdir in listed_subdirs if potential_subdir != '' and \
+                          potential_subdir != '/mydata/mimir_v2/experiment_coordinator/experimental_data/']
+        subdirs.extend(listed_subdirs)
 
     # step (1.5): if local directory doesn't exist, then make it!
     if not os.path.exists(local_directory):
         os.makedirs(local_directory)
 
+    print "subdirs", subdirs
+
     # then, step (2): recover the relevant files from each subdirectory
     for subdir in subdirs:
-        cur_subdir = "/mydata/mimir_v2/experiment_coordinator/experimental_data/" + subdir
+        cur_subdir = subdir #"/mydata/mimir_v2/experiment_coordinator/experimental_data/" + subdir
         get_files_in_subdir = "ls -p " + cur_subdir + " | grep -v /"
 
         sh.sendline(get_files_in_subdir)
@@ -87,12 +100,17 @@ def retrieve_relevant_files_from_cloud(sh, s, local_directory, data_was_uploaded
         line_rec = 'blahblahblah'
         while line_rec != '':
             line_rec = sh.recvline(timeout=2)
-            files_in_subdir.append(line_rec)
+            if line_rec != '':
+                files_in_subdir.append(line_rec.replace('$','').strip())
+        print "files_in_subdir", files_in_subdir
 
         # step (2.5): if local directory for the current experiment does not exist, make it!
+        if cur_subdir[-1] != '/':
+            cur_subdir += '/'
         if local_directory[-1] != '/':
             local_directory += '/'
-        cur_local_subdir = local_directory + subdir
+        cur_local_subdir = local_directory + subdir.split('/')[-1]
+        print "cur_local_subdir",cur_local_subdir
         if not os.path.exists(cur_local_subdir):
             os.makedirs(cur_local_subdir)
 
@@ -100,12 +118,15 @@ def retrieve_relevant_files_from_cloud(sh, s, local_directory, data_was_uploaded
         # note: if data was uploaded, then we don't need to recover the pcap/config files
         if not data_was_uploaded:
             for file_in_subdir in files_in_subdir:
-                cur_file = cur_subdir + '/' + file_in_subdir
-                s.download(file_or_directory=cur_file, local=cur_local_subdir + '/' + file_in_subdir)
+                cur_file = cur_subdir + file_in_subdir
+                print "cur_file", cur_file
+                cur_local_file = cur_local_subdir + '/' + file_in_subdir
+                print "cur_local_file", cur_local_file
+                s.download(file_or_directory=cur_file, local=cur_local_file)
         # we should always recover the actual results...
         # step (4): make sure there's a nested results subdirectory
-        cur_subdir += '/results'
-        cur_local_subdir = cur_local_subdir + '/results'
+        cur_subdir += 'results/'
+        cur_local_subdir = cur_local_subdir + '/results/'
         if not os.path.exists(cur_local_subdir):
             os.makedirs(cur_local_subdir)
         # step (4.5): get a list of all the generated results files
@@ -115,15 +136,16 @@ def retrieve_relevant_files_from_cloud(sh, s, local_directory, data_was_uploaded
         line_rec = 'blahblahblah'
         while line_rec != '':
             line_rec = sh.recvline(timeout=2)
-            files_in_subdir.append(line_rec)
-        # step (5): retrieve all the generated results
+            if line_rec != '':
+                files_in_subdir.append(line_rec.replace('$', '').strip())        # step (5): retrieve all the generated results
         for file_in_subdir in files_in_subdir:
-            cur_file = cur_subdir + '/' + file_in_subdir
-            s.download(file_or_directory=cur_file, local=cur_local_subdir + '/' + file_in_subdir)
+            cur_file = cur_subdir + file_in_subdir
+            s.download(file_or_directory=cur_file, local=cur_local_subdir + file_in_subdir)
 
-def run_experiment(config_file_pth):
+def run_experiment(config_file_pth, only_retrieve):
     # step 1: parse the config file
     machine_ip, generate_pcaps_p, e2e_script_to_follow, corresponding_local_directory, remote_server_key, user = parse_config(config_file_pth)
+    print "generate_pcaps_p",generate_pcaps_p, not generate_pcaps_p
 
     # step 2: create ssh session on the remote device
     s = None
@@ -148,13 +170,16 @@ def run_experiment(config_file_pth):
 
     sendline_and_wait_responses(sh, prelim_commands, timeout=5)
 
-    # step 4: call the actual e2e script
-    # if necessary, bypass pcap/data collection in the e2e script
-    e2e_script_start_cmd = ". ../configs_to_reproduce_results/e2e_repro_scripts/" + e2e_script_to_follow
-    if not generate_pcaps_p:
-        upload_data_to_remote_machine(sh, s, corresponding_local_directory)
-        e2e_script_start_cmd += ' --skip_pcap'
-    sendline_and_wait_responses(sh, e2e_script_start_cmd, timeout=600)
+    if not only_retrieve:
+        # step 4: call the actual e2e script
+        # if necessary, bypass pcap/data collection in the e2e script
+        e2e_script_start_cmd = ". ../configs_to_reproduce_results/e2e_repro_scripts/" + e2e_script_to_follow
+        if not generate_pcaps_p:
+            print "uploading_data...."
+            upload_data_to_remote_machine(sh, s, corresponding_local_directory)
+            e2e_script_start_cmd += ' --skip_pcap'
+        print "calling_e2e_script_now....", "not generate_pcaps_p", not generate_pcaps_p
+        sendline_and_wait_responses(sh, e2e_script_start_cmd, timeout=600)
 
     # Step 5: Pull the relevant data to store locally
     # NOTE: what should be pulled depends on what (if anything) was uploaded
@@ -169,6 +194,8 @@ if __name__=="__main__":
     parser = argparse.ArgumentParser(description='This can run multiple experiments in a row on MIMIR. Also makes graphs')
     parser.add_argument('--config_json', dest='config_json', default=None,
                         help='this is the configuration file used to run to loop through several experiments')
+    parser.add_argument('--only_retrieve', dest='only_retrieve',
+                        default=False, action='store_true')
     args = parser.parse_args()
 
     if not args.config_json:
@@ -176,4 +203,4 @@ if __name__=="__main__":
     else:
         config_file_pth = args.config_json
 
-    run_experiment(config_file_pth)
+    run_experiment(config_file_pth, args.only_retrieve)
