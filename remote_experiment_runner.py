@@ -33,7 +33,7 @@ def sendline_and_wait_responses(sh, cmd_str, timeout=5, extra_rec=False):
         line_rec = sh.recvline(timeout=timeout)
         print("recieved line", line_rec)
 
-def upload_data_to_remote_machine(sh, s, local_directory):
+def upload_data_to_remote_machine(sh, s, sftp, local_directory):
     # okay, what do I want to do here?
     # just upload each file in the local directory to the remote device
     # (is going to be kinda hard to test at the moment, because the data isn't setup like this...)
@@ -59,11 +59,14 @@ def upload_data_to_remote_machine(sh, s, local_directory):
             cur_file = os.path.join(subdir, file)
             print cur_file
             # we want to upload every file in this directory (but NOT the subdirectories!)
-            s.upload(cur_file, remote=cur_dir + '/' + file)
+            # TODO: need to upload the pcaps via a binary transfer method (not ascii- this causes problems! -- testing solution now...)
+            #s.upload(cur_file, remote=cur_dir + '/' + file)
+            #sftp.write('put ' + cur_dir + '/' + file + ' ' + cur_file)
+            sendline_and_wait_responses(sftp, 'put ' + cur_dir + '/' + file + ' ' + cur_file)
 
     print "all done uploading files! (hopefully it worked, because I haven't actually tested this function!)"
 
-def retrieve_relevant_files_from_cloud(sh, s, local_directory, data_was_uploaded=False):
+def retrieve_relevant_files_from_cloud(sh, s, sftp, local_directory, data_was_uploaded=False):
     # this function needs to grab the relevant files that were generated on the remote device and download them
     # so that they are available locally...
 
@@ -122,7 +125,10 @@ def retrieve_relevant_files_from_cloud(sh, s, local_directory, data_was_uploaded
                 print "cur_file", cur_file
                 cur_local_file = cur_local_subdir + '/' + file_in_subdir
                 print "cur_local_file", cur_local_file
-                s.download(file_or_directory=cur_file, local=cur_local_file)
+                # TODO: PROBLEM: pulls in ASCII mode... needs to be in binary mode (testing solution now...)
+                #s.download(file_or_directory=cur_file, local=cur_local_file)
+                #sftp.write("get " + cur_file + " " + cur_local_file)
+                sendline_and_wait_responses(sftp, "get " + cur_file + " " + cur_local_file)
         # we should always recover the actual results...
         # step (4): make sure there's a nested results subdirectory
         cur_subdir += 'results/'
@@ -140,7 +146,11 @@ def retrieve_relevant_files_from_cloud(sh, s, local_directory, data_was_uploaded
                 files_in_subdir.append(line_rec.replace('$', '').strip())        # step (5): retrieve all the generated results
         for file_in_subdir in files_in_subdir:
             cur_file = cur_subdir + file_in_subdir
-            s.download(file_or_directory=cur_file, local=cur_local_subdir + file_in_subdir)
+            # TODO: PROBLEM: pulls in ASCII mode... needs to be in binary mode (testing solution now...)
+            #s.download(file_or_directory=cur_file, local=cur_local_subdir + file_in_subdir)
+            #sftp.write("get " + cur_file + " " + cur_local_subdir + file_in_subdir)
+            sendline_and_wait_responses(sftp, "get " + cur_file + " " + cur_local_subdir + file_in_subdir)
+
 
 def run_experiment(config_file_pth, only_retrieve):
     # step 1: parse the config file
@@ -157,6 +167,7 @@ def run_experiment(config_file_pth, only_retrieve):
         except:
             time.sleep(60)
     sh = s.run('sh')
+    sftp = pwnlib.tubes.ssh.process(['sftp', '-i', '~/Dropbox/cloudlab.pem', 'jsev@c240g5-110215.wisc.cloudlab.us'])
     print "shell on the remote device is started..."
 
     # step 3: call the preliminary commands that sets up the shell correctly
@@ -176,7 +187,7 @@ def run_experiment(config_file_pth, only_retrieve):
         e2e_script_start_cmd = ". ../configs_to_reproduce_results/e2e_repro_scripts/" + e2e_script_to_follow
         if not generate_pcaps_p:
             print "uploading_data...."
-            upload_data_to_remote_machine(sh, s, corresponding_local_directory)
+            upload_data_to_remote_machine(sh, s, sftp, corresponding_local_directory)
             e2e_script_start_cmd += ' --skip_pcap'
         print "calling_e2e_script_now....", "not generate_pcaps_p", not generate_pcaps_p
         print "e2e_script_start_cmd",e2e_script_start_cmd
@@ -185,10 +196,12 @@ def run_experiment(config_file_pth, only_retrieve):
 
     # Step 5: Pull the relevant data to store locally
     # NOTE: what should be pulled depends on what (if anything) was uploaded
-    retrieve_relevant_files_from_cloud(sh, s, corresponding_local_directory, data_was_uploaded=(not generate_pcaps_p))
+    retrieve_relevant_files_from_cloud(sh, s, sftp, corresponding_local_directory, data_was_uploaded=(not generate_pcaps_p))
 
     # Step 6: maybe run the log file checker to make sure everything is legit?
     # TODO (what it says above): do this at a later point in time (there's already a ticket on the kanban board)
+
+    sftp.write('exit')
 
 if __name__=="__main__":
     print "RUNNING"
