@@ -274,13 +274,18 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
 
         if exfil_p:
             if start_time + next_exfil_start_time - time.time() - 60.0 > 0.0:
+                print "waiting to perform exfil....."
                 time.sleep(start_time + next_exfil_start_time - time.time() - 60.0)
+
+            print "about_to_start_exfil..."
 
             selected_containers,local_det = start_det_exfil_path(exfil_paths, exfil_counter, cur_exfil_protocol, localhostip,
                                                                 maxsleep, DET_max_exfil_bytes_in_packet, DET_min_exfil_bytes_in_packet,
                                                                 experiment_name, start_time, network_plugin, next_exfil_start_time,
                                                                 originator_class, cur_exfil_method, exfil_protocols, True,
                                                                 det_log_file)
+
+            print "exfil started..."
 
             #time.sleep(start_time + next_exfil_end_time - time.time())
             ## monitor for one of the exfil containers being stopped and restart if possible...
@@ -690,7 +695,9 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
                                         client_count, "-r", str(spawn_rate), '--csv=' + locust_info_file,
                                "-t", str(int(timestep) - 1) + 's']
                 print "locust_cmds", locust_cmds
-                proc = subprocess.Popen(locust_cmds, preexec_fn=os.setsid, stdout=devnull, stderr=devnull)
+                with open('locust_logs.txt', 'w') as g:
+                    proc = subprocess.Popen(locust_cmds, preexec_fn=os.setsid, stdout=g, stderr=devnull)
+                #print "locust_out",
                 #print proc.stdout
             # for use w/ seastore:
             elif app_name == "atsea_store":

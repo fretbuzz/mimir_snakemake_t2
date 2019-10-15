@@ -167,7 +167,6 @@ def run_experiment(config_file_pth, only_retrieve):
         except:
             time.sleep(60)
     sh = s.run('sh')
-    sftp = pwnlib.tubes.ssh.process(['sftp', '-i', '~/Dropbox/cloudlab.pem', 'jsev@c240g5-110215.wisc.cloudlab.us'])
     print "shell on the remote device is started..."
 
     # step 3: call the preliminary commands that sets up the shell correctly
@@ -187,8 +186,10 @@ def run_experiment(config_file_pth, only_retrieve):
         e2e_script_start_cmd = ". ../configs_to_reproduce_results/e2e_repro_scripts/" + e2e_script_to_follow
         if not generate_pcaps_p:
             print "uploading_data...."
+            sftp = pwnlib.tubes.ssh.process(['sftp', '-i', '~/Dropbox/cloudlab.pem', 'jsev@c240g5-110215.wisc.cloudlab.us'])
             upload_data_to_remote_machine(sh, s, sftp, corresponding_local_directory)
             e2e_script_start_cmd += ' --skip_pcap'
+            sftp.write('exit')
         print "calling_e2e_script_now....", "not generate_pcaps_p", not generate_pcaps_p
         print "e2e_script_start_cmd",e2e_script_start_cmd
         #exit(2)
@@ -196,13 +197,13 @@ def run_experiment(config_file_pth, only_retrieve):
 
     # Step 5: Pull the relevant data to store locally
     # NOTE: what should be pulled depends on what (if anything) was uploaded
+    print "start sftp..."
+    sftp = pwnlib.tubes.ssh.process(['sftp', '-i', '~/Dropbox/cloudlab.pem', 'jsev@c240g5-110215.wisc.cloudlab.us'])
     retrieve_relevant_files_from_cloud(sh, s, sftp, corresponding_local_directory, data_was_uploaded=(not generate_pcaps_p))
+    sftp.write('exit')
 
     # Step 6: maybe run the log file checker to make sure everything is legit?
     # TODO (what it says above): do this at a later point in time (there's already a ticket on the kanban board)
-
-    sftp.write('exit')
-
 if __name__=="__main__":
     print "RUNNING"
 
