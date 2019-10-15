@@ -45,6 +45,7 @@ import pickle
 import json
 import numpy as np
 import pandas as pd
+from datetime import datetime, timedelta
 
 def dlp_pipeline():
     pass
@@ -203,15 +204,22 @@ def run_decanter_module():
     '''
 
 def main(train_pcap_path, train_exp_name, train_gen_bro_log, test_pcap_path, test_exp_name, test_gen_bro_log,
-         gen_fingerprints_p, cloudlab=True):
+         gen_fingerprints_p, cloudlab=True, fraction_of_training_pcap_to_use=1.0):
+
+    # TODO: split the pcap here if I feel that it is appropriate...
+    # do something similar to ["editcap", "-i " + str(interval), path + pcap_file, out_pcap_path + out_pcap_basename]
+    # ALSO, will need to pass some kinda parameter that describes this...
+    # step 1: get pcap length (parse capinfos output)
+    # step 2: multiply pcap length by the fraction we want to use
+    # step 3: copy pcap (w/ name change obvi). then use editcap to get all packets after a particular time stamp
+    # step 4: then feed the new name to the
+    partial_train_pcap_path = make_partial_pcap(train_pcap_path, frac_of_pcap_to_use=fraction_of_training_pcap_to_use)
     decanter_output_log_train = run_bro(train_pcap_path, train_exp_name, train_gen_bro_log, cloudlab)
+
+    # don't split the test pcap...
     decanter_output_log_test = run_bro(test_pcap_path, test_exp_name, test_gen_bro_log, cloudlab)
 
     if gen_fingerprints_p:
-
-        # TODO: split the pcap here if I feel that it is appropriate...
-        # do something similar to ["editcap", "-i " + str(interval), path + pcap_file, out_pcap_path + out_pcap_basename]
-        # ALSO, will need to pass some kinda parameter that describes this...
 
         decanter_fingerprint_cmds = ['python', './dlp_stuff/decanter/main.py', '--training', decanter_output_log_train,
            '--testing', decanter_output_log_test, '-o', str(1)]
@@ -253,6 +261,50 @@ def compute_performance_metrics(experiment_json):
     # (but will need to make a new function for this!!)
 
     pass
+
+def make_partial_pcap(pcap_name, frac_of_pcap_to_use=1.0):
+    seconds_with_label = get_capinfos_entry(pcap_name, number_lines_down=9)
+    print "seconds_with_label", seconds_with_label
+    seconds = float(seconds_with_label.split(' ')[1])
+    seconds_to_chop_off_from_front = seconds * (1.0 - frac_of_pcap_to_use)
+    print "returned seconds...", seconds
+    start_time = get_capinfos_entry(pcap_name, number_lines_down=10)
+    print "start_time", start_time
+
+    start_time_dt = datetime.strptime(start_time, '%Y-%m-%d %H:%M:%S.%f')
+    print "start_time_dt", start_time_dt
+    end_time_dt = start_time_dt +  + timedelta(seconds=seconds_to_chop_off_from_front)
+    print "end_time_dt", end_time_dt
+
+    pcap_name_cp = pcap_name[:-5] + "_cp.pcap"
+
+    cp_pcap = ['cp', pcap_name, pcap_name_cp]
+
+    output = subprocess.check_output(cp_pcap)
+    print "cp_output", output
+
+    # use editcap to chop off the first part of the pcap
+    editcap_cmd = "editcap " + pcap_name_cp + " " + pcap_name_cp + " -A \"" + end_time_dt.strftime('%Y-%m-%d %H:%M:%S.%f' + "\"")
+    print "editcap_cmd", editcap_cmd
+    # and then return pcap_name_cp
+    out = subprocess.check_output(editcap_cmd)
+    print "out", out
+
+    print "okay, let's go..."
+    return pcap_name_cp
+
+def get_capinfos_entry(pcap_name, number_lines_down):
+    get_length = ["capinfos", pcap_name]
+    output = subprocess.check_output(get_length)
+    print "output", output, "\n--"
+    seconds = output.split('\n')
+    print "seconds kinda", seconds
+    seconds = seconds[number_lines_down]
+
+    print "gg bruh", seconds
+    seconds = seconds.split('   ')[1]
+    print "time duration", seconds
+    return seconds
 
 def parse_experimental_data_json_dlp(config_file, experimental_folder, experiment_name, make_edgefiles,
                                      time_interval_lengths, pcap_file_path, pod_creation_log_path):
@@ -391,7 +443,7 @@ def parse_experimental_config_dlp(experimental_config_file, add_dropInfo_to_name
            avg_exfil_per_min, cur_experiment_name, time_interval_lengths
 
 def end_to_end_microservice(train_experimental_config, test_experimental_config, train_gen_bro_log, test_gen_bro_log,
-                            gen_fingerprints_p):
+                            gen_fingerprints_p, fraction_of_training_pcap_to_use=1.0):
     # okay, so what do I wan to do here... well, I want to (1) get the pcap files for the train/test data,
     # (2) get the alert times, (3) match the alert times with the exfil_startEnd_times
     # PROBLEM: there isn't a "granularity" specification... (it's going to need to be brought in as a param, I guess...)
@@ -404,7 +456,8 @@ def end_to_end_microservice(train_experimental_config, test_experimental_config,
 
     training_alert_timestamps, testing_alert_timestamps = main(train_pcap_path, train_exp_name, train_gen_bro_log,
                                                                test_pcap_path, test_exp_name, test_gen_bro_log,
-                                                               gen_fingerprints_p, cloudlab=True)
+                                                               gen_fingerprints_p, cloudlab=True,
+                                                               fraction_of_training_pcap_to_use=fraction_of_training_pcap_to_use)
 
     # TODO: okay, it is now time to implement the missing component... actually translating the alerts into performance
     # figures

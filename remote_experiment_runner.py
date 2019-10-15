@@ -179,6 +179,8 @@ def run_experiment(config_file_pth, only_retrieve):
             upload_data_to_remote_machine(sh, s, corresponding_local_directory)
             e2e_script_start_cmd += ' --skip_pcap'
         print "calling_e2e_script_now....", "not generate_pcaps_p", not generate_pcaps_p
+        print "e2e_script_start_cmd",e2e_script_start_cmd
+        #exit(2)
         sendline_and_wait_responses(sh, e2e_script_start_cmd, timeout=600)
 
     # Step 5: Pull the relevant data to store locally

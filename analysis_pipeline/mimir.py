@@ -296,10 +296,16 @@ def run_decanter_component(decanter_configs, training_config, eval_config, eval_
     print "params_in_call_to_end_to_end_microservices", (training_config, eval_config,
         decanter_configs['train_gen_bro_log'], decanter_configs['test_gen_bro_log'], decanter_configs['gen_fingerprints_p'])
 
+    if 'fraction_of_pcap_to_use' in decanter_configs:
+        fraction_of_training_pcap_to_use = float(decanter_configs['fraction_of_training_pcap_to_use'])
+    else:
+        fraction_of_training_pcap_to_use = 1.0
+
     decanter_results = end_to_end_microservice(training_config, eval_config,
                                                decanter_configs['train_gen_bro_log'],
                                                decanter_configs['test_gen_bro_log'],
-                                               decanter_configs['gen_fingerprints_p'])
+                                               decanter_configs['gen_fingerprints_p'],
+                                               fraction_of_training_pcap_to_use=fraction_of_training_pcap_to_use)
 
     ###return
 

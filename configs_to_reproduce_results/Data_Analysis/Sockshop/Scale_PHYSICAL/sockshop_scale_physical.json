@@ -13,6 +13,7 @@
   "perform_decanter": true,
   "train_gen_bro_log": true,
   "test_gen_bro_log": true,
-  "gen_fingerprints_p": true
+  "gen_fingerprints_p": true,
+  "fraction_of_training_pcap_to_use": 0.3
 }
 
