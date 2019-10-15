@@ -214,7 +214,7 @@ def main(train_pcap_path, train_exp_name, train_gen_bro_log, test_pcap_path, tes
     # step 3: copy pcap (w/ name change obvi). then use editcap to get all packets after a particular time stamp
     # step 4: then feed the new name to the
     partial_train_pcap_path = make_partial_pcap(train_pcap_path, frac_of_pcap_to_use=fraction_of_training_pcap_to_use)
-    decanter_output_log_train = run_bro(train_pcap_path, train_exp_name, train_gen_bro_log, cloudlab)
+    decanter_output_log_train = run_bro(partial_train_pcap_path, train_exp_name, train_gen_bro_log, cloudlab)
 
     # don't split the test pcap...
     decanter_output_log_test = run_bro(test_pcap_path, test_exp_name, test_gen_bro_log, cloudlab)
