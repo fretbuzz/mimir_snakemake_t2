@@ -695,8 +695,7 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
                                         client_count, "-r", str(spawn_rate), '--csv=' + locust_info_file,
                                "-t", str(int(timestep) - 1) + 's']
                 print "locust_cmds", locust_cmds
-                with open('locust_logs.txt', 'w') as g:
-                    proc = subprocess.Popen(locust_cmds, preexec_fn=os.setsid, stdout=g, stderr=devnull)
+                proc = subprocess.Popen(locust_cmds, preexec_fn=os.setsid, stdout=devnull, stderr=devnull)
                 #print "locust_out",
                 #print proc.stdout
             # for use w/ seastore:

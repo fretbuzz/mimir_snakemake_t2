@@ -17,11 +17,11 @@ WORDPRESS_PORT="$(echo $host | sed -e 's,^.*:,:,g' -e 's,.*:\([0-9]*\).*,\1,g' -
 #cd ..
 
 # then run some expreiments
-sudo python run_experiment.py --no_exfil --prepare_app --config_file ../configs_to_reproduce_results/Data_Collection/Wordpress/Scale/wordpress_85.json | tee wordpress_85.log
+sudo python -u run_experiment.py --no_exfil --prepare_app --config_file ../configs_to_reproduce_results/Data_Collection/Wordpress/Scale/wordpress_85.json | tee wordpress_85.log
 
 sleep 180
 
-sudo python run_experiment.py --no_exfil --config_file ../configs_to_reproduce_results/Data_Collection/Wordpress/Scale/wordpress_85_mk2.json | tee wordpress_85_mk2.log
+sudo python -u run_experiment.py --no_exfil --config_file ../configs_to_reproduce_results/Data_Collection/Wordpress/Scale/wordpress_85_mk2.json | tee wordpress_85_mk2.log
 
 ## then cycle minikube/wordpress down/up
 bash ../configs_to_reproduce_results/cycle_minikube.sh
@@ -44,11 +44,11 @@ sleep 120
 
 # time for next batch of experiments
 
-sudo python run_experiment.py --no_exfil --prepare_app --config_file ../configs_to_reproduce_results/Data_Collection/Wordpress/Scale/wordpress_65.json | tee wordpress_65.log
+sudo python -u run_experiment.py --no_exfil --prepare_app --config_file ../configs_to_reproduce_results/Data_Collection/Wordpress/Scale/wordpress_65.json | tee wordpress_65.log
 
 sleep 180
 
-sudo python run_experiment.py --no_exfil --config_file ../configs_to_reproduce_results/Data_Collection/Wordpress/Scale/wordpress_45.json | tee wordpress_45.log
+sudo python -u run_experiment.py --no_exfil --config_file ../configs_to_reproduce_results/Data_Collection/Wordpress/Scale/wordpress_45.json | tee wordpress_45.log
 
 ## cycle it there.
 bash ../configs_to_reproduce_results/cycle_minikube.sh
@@ -69,13 +69,13 @@ WORDPRESS_PORT="$(echo $host | sed -e 's,^.*:,:,g' -e 's,.*:\([0-9]*\).*,\1,g' -
 
 sleep 120
 
-sudo python run_experiment.py --no_exfil --prepare_app  --config_file ../configs_to_reproduce_results/Data_Collection/Wordpress/Scale/wordpress_105.json | tee wordpress_105.log
+sudo python -u run_experiment.py --no_exfil --prepare_app  --config_file ../configs_to_reproduce_results/Data_Collection/Wordpress/Scale/wordpress_105.json | tee wordpress_105.log
 
 sleep 120
 
 cd ../analysis_pipeline/
 
 . ../configs_to_reproduce_results/install_mimir_depend_scripts.sh
-python generate_paper_graphs.py --config_json ../configs_to_reproduce_results/Data_Analysis/Wordpress/Scale/wordpress_scale.json | tee wordpress_scale.log
+python -u generate_paper_graphs.py --config_json ../configs_to_reproduce_results/Data_Analysis/Wordpress/Scale/wordpress_scale.json | tee wordpress_scale.log
 
 ls
