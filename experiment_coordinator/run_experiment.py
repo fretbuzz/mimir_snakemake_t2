@@ -1261,8 +1261,8 @@ def start_det_proxy_mode(orchestrator, container, src, dst, protocol, maxsleep, 
 
         upload_config_command = ["docker", "cp", "./current_det_config.json", container.id+ ":/config.json"]
         out = subprocess.check_output(upload_config_command)
-        #print "upload_config_command", upload_config_command
-        #print "upload_config_command result", out
+        print "upload_config_command", upload_config_command
+        print "upload_config_command result", out
 
         time.sleep(1)
         start_det_command = ["python", "/DET/det.py", "-c", "/config.json", "-p", protocol, "-Z"]
