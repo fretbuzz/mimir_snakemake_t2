@@ -937,6 +937,7 @@ def install_exfil_dependencies(exfil_paths, orchestrator, class_to_installer, ex
         containers,networks = get_class_instances(orchestrator, element, "None")
         # now actually install the dependencies
         chosen_container = containers[0]
+        print "current_container_type:", element
         install_det_dependencies(orchestrator, chosen_container, class_to_installer[element])
         # now commit the image
         old_image_name = None
