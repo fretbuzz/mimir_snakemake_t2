@@ -195,6 +195,8 @@ def run_experiment(config_file_pth, only_retrieve):
         #exit(2)
         sendline_and_wait_responses(sh, e2e_script_start_cmd, timeout=600)
 
+    #return ## TODO<--- remove this in the future!!!
+
     # Step 5: Pull the relevant data to store locally
     # NOTE: what should be pulled depends on what (if anything) was uploaded
     print "start sftp..."
@@ -215,7 +217,8 @@ if __name__=="__main__":
     args = parser.parse_args()
 
     if not args.config_json:
-        config_file_pth = "./remote_experiment_configs/sockshop_scale_trial_1.json"
+        #config_file_pth = "./remote_experiment_configs/sockshop_scale_trial_1.json"
+        config_file_pth = "./remote_experiment_configs/sockshop_scale_take1.json"
     else:
         config_file_pth = args.config_json
 

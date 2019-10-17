@@ -1,0 +1,11 @@
+{
+  "machine_ip": "c220g5-110507.wisc.cloudlab.us",
+  "generate_pcaps_p": true,
+  "e2e_script_to_follow": "hipsterStore_repro.sh",
+  "corresponding_local_directory": "/Volumes/exM2/experimental_data/hipsterStore_scale_take1",
+
+  "remote_server_key": "/Users/jseverin/Dropbox/cloudlab.pem",
+  "user": "jsev",
+
+  "return_local_data_only": true
+}

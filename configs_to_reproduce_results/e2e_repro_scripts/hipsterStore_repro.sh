@@ -7,15 +7,6 @@ bash ../configs_to_reproduce_results/kubernetes_setup_script.sh | tee kubernetes
 
 sudo python -u run_experiment.py --no_exfil --prepare_app --config_file ../configs_to_reproduce_results/Data_Collection/HipsterStore/Scale/hipsterStore_100_mk2_exp.json | tee hipsterStore_100_mk2.log;
 sudo python -u run_experiment.py --no_exfil --config_file ../configs_to_reproduce_results/Data_Collection/HipsterStore/Scale/hipsterStore_100_exp.json | tee hipsterStore_100.log;
-###########################
-# remove later
-cd ../analysis_pipeline/
-. ../configs_to_reproduce_results/install_mimir_depend_scripts.sh
-sudo python -u generate_paper_graphs.py --config_json ../configs_to_reproduce_results/Data_Analysis/HipsterStore/Scale/hipsterStore_scale.json | tee hipsterStore_repro.log;
-echo "hopfully this test works"
-# end remove later
-###########################
-
 sudo python -u run_experiment.py --no_exfil --config_file ../configs_to_reproduce_results/Data_Collection/HipsterStore/Scale/hipsterStore_120_exp.json | tee hipsterStore_120.log;
 sudo python -u run_experiment.py --no_exfil --config_file ../configs_to_reproduce_results/Data_Collection/HipsterStore/Scale/hipsterStore_140_exp.json | tee hipsterStore_140.log;
 
@@ -41,3 +32,5 @@ sudo python -u generate_paper_graphs.py --config_json ../configs_to_reproduce_re
 
 
 echo "okieee, all done :)"
+
+

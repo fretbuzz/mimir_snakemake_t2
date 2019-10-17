@@ -1,0 +1,10 @@
+{
+  "machine_ip": "c240g5-110119.wisc.cloudlab.us",
+  "generate_pcaps_p": true,
+  "e2e_script_to_follow": "sockshop_repo_PHYSICAL.sh",
+  "corresponding_local_directory_REAL": "/Volumes/exM/from_remote_runner/sockshop_scale_trial1_rep2",
+  "corresponding_local_directory": "/Users/jseverin/Documents/sockshop_scale_trial1_rep2",
+
+  "remote_server_key": "/Users/jseverin/Dropbox/cloudlab.pem",
+  "user": "jsev"
+}

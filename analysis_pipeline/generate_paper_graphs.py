@@ -562,6 +562,8 @@ def run_looper(config_file_pth, update_config, use_remote, only_finished_p, live
     generate_graphs(eval_configs_to_xvals, exfil_rate, evalconfigs_to_cm, timegran, type_of_graph, graph_name, xlabel,
                     model_config_file, no_tsl, model_xval)
 
+    return eval_configs_to_xvals, exfil_rate, evalconfigs_to_cm, model_config_file
+
 if __name__=="__main__":
     print "RUNNING"
 
