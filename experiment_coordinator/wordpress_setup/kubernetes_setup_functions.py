@@ -2,7 +2,7 @@ import subprocess
 import time
 import sys
 
-def wait_until_pods_done(namespace):
+def wait_until_pods_done(namespace, except_pods=()):
         # wait until  pods are started
         print "Checking if " + namespace + " pods are ready..."
         pods_ready_p = False
@@ -14,7 +14,7 @@ def wait_until_pods_done(namespace):
                 #print out2
                 statuses = parse_kubeclt_output(out, [1,2,3])
                 print statuses
-                pods_ready_p = check_if_pods_ready(statuses)
+                pods_ready_p = check_if_pods_ready(statuses, except_pods=except_pods)
                 print namespace + " pods are ready: ", pods_ready_p
                 time.sleep(10)
         print namespace + " pods are ready!"
@@ -36,16 +36,22 @@ def parse_kubeclt_output(kc_out, desired_chunks):
             results.append(chunks_from_line)
     return results
 
-def check_if_pods_ready(statuses):
+def check_if_pods_ready(statuses, except_pods=()):
     are_pods_ready = True
     #print statuses
     for status in statuses[1:]:
         if len(status) > 1:
             #print "status", status
             is_ready =  is_pod_ready_p(status[1])
+            pod_name = status[0]
             #print is_ready
-            if not is_ready:
-                are_pods_ready = False
+            pod_is_excempt = False
+            for excempt_pod in except_pods:
+                if excempt_pod + '-' in pod_name:
+                    pod_is_excempt = True
+            if not pod_is_excempt:
+                if not is_ready:
+                    are_pods_ready = False
         for part in status:
                 #print "part", part
                 if part == "Completed":

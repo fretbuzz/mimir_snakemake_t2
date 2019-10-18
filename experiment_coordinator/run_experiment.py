@@ -607,7 +607,8 @@ def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_co
         wordpress_setup.kubernetes_setup_functions.wait_until_pods_done("kube-system")
         out = subprocess.check_output(['bash', 'hipsterStore_setup/deploy_hipsterStore.sh'])
 
-        wordpress_setup.kubernetes_setup_functions.wait_until_pods_done("default")
+        # TODO: when the google dev's fix the advservice serivce, I'll want to remove it from the except_pods param
+        wordpress_setup.kubernetes_setup_functions.wait_until_pods_done("default", except_pods=['adservice',])
 
         try:
             out = subprocess.check_output(['bash', 'hipsterStore_setup/autoscale_hipsterStore.sh'])
