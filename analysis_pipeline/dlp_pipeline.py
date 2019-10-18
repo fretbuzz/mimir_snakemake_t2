@@ -286,7 +286,7 @@ def make_partial_pcap(pcap_name, frac_of_pcap_to_use=1.0):
     print "cp_output", output
 
     # use editcap to chop off the first part of the pcap
-    editcap_cmd = "sudo editcap " + pcap_name_cp + " " + pcap_name_cp_LATER + " -A \"" + end_time_dt.strftime('%Y-%m-%d %H:%M:%S.%f' + "\"")
+    editcap_cmd = ["sudo", "editcap", pcap_name_cp, + pcap_name_cp_LATER, " -A ", "\"" + end_time_dt.strftime('%Y-%m-%d %H:%M:%S.%f' + "\"")]
     print "getcwd", os.getcwd()
     print "editcap_cmd", editcap_cmd
     # and then return pcap_name_cp
