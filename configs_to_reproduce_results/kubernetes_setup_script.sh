@@ -33,9 +33,11 @@ sudo minikube addons enable metrics-server
 
 # Second, we'll install the experimental coordinator's dependencies.
 
-### setup docker
-curl -fsSL https://get.docker.com -o get-docker.sh
-sudo sh get-docker.sh
+### setup docker (need to use a specific version because one of the newer ones was causing problems)
+#curl -fsSL https://get.docker.com -o get-docker.sh
+#sudo sh get-docker.sh
+#sudo apt-cache policy docker-ce #???
+sudo apt-get -y install docker-ce=17.06.0~ce-0~ubuntu
 
 eval $(sudo minikube docker-env)
 sudo docker pull nicolaka/netshoot
