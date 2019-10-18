@@ -214,9 +214,9 @@ if __name__=="__main__":
     args = parser.parse_args()
 
     if not args.config_json:
-        config_file_pth = "./remote_experiment_configs/sockshop_scale_trial_1.json"
+        #config_file_pth = "./remote_experiment_configs/sockshop_scale_trial_1.json"
         #config_file_pth = "./remote_experiment_configs/sockshop_scale_take1.json"
-        #config_file_pth = "./remote_experiment_configs/hipsterStore_scale_take1.json"
+        config_file_pth = "./remote_experiment_configs/hipsterStore_scale_take1.json"
     else:
         config_file_pth = args.config_json
 
