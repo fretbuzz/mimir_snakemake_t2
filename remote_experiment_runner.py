@@ -60,9 +60,8 @@ def upload_data_to_remote_machine(sh, s, sftp, local_directory):
             print cur_file
             # we want to upload every file in this directory (but NOT the subdirectories!)
             # TODO: need to upload the pcaps via a binary transfer method (not ascii- this causes problems! -- testing solution now...)
-            #s.upload(cur_file, remote=cur_dir + '/' + file)
-            #sftp.write('put ' + cur_dir + '/' + file + ' ' + cur_file)
-            sendline_and_wait_responses(sftp, 'put ' + cur_dir + '/' + file + ' ' + cur_file)
+            s.upload(cur_file, remote=cur_dir + '/' + file)
+            ###sendline_and_wait_responses(sftp, 'put ' + cur_dir + '/' + file + ' ' + cur_file)
 
     print "all done uploading files! (hopefully it worked, because I haven't actually tested this function!)"
 
@@ -126,9 +125,8 @@ def retrieve_relevant_files_from_cloud(sh, s, sftp, local_directory, data_was_up
                 cur_local_file = cur_local_subdir + '/' + file_in_subdir
                 print "cur_local_file", cur_local_file
                 # TODO: PROBLEM: pulls in ASCII mode... needs to be in binary mode (testing solution now...)
-                #s.download(file_or_directory=cur_file, local=cur_local_file)
-                #sftp.write("get " + cur_file + " " + cur_local_file)
-                sendline_and_wait_responses(sftp, "get " + cur_file + " " + cur_local_file)
+                s.download(file_or_directory=cur_file, local=cur_local_file)
+                #sendline_and_wait_responses(sftp, "get " + cur_file + " " + cur_local_file)
         # we should always recover the actual results...
         # step (4): make sure there's a nested results subdirectory
         cur_subdir += 'results/'
@@ -147,9 +145,8 @@ def retrieve_relevant_files_from_cloud(sh, s, sftp, local_directory, data_was_up
         for file_in_subdir in files_in_subdir:
             cur_file = cur_subdir + file_in_subdir
             # TODO: PROBLEM: pulls in ASCII mode... needs to be in binary mode (testing solution now...)
-            #s.download(file_or_directory=cur_file, local=cur_local_subdir + file_in_subdir)
-            #sftp.write("get " + cur_file + " " + cur_local_subdir + file_in_subdir)
-            sendline_and_wait_responses(sftp, "get " + cur_file + " " + cur_local_subdir + file_in_subdir)
+            s.download(file_or_directory=cur_file, local=cur_local_subdir + file_in_subdir)
+            #sendline_and_wait_responses(sftp, "get " + cur_file + " " + cur_local_subdir + file_in_subdir)
 
 
 def run_experiment(config_file_pth, only_retrieve):
@@ -218,7 +215,8 @@ if __name__=="__main__":
 
     if not args.config_json:
         #config_file_pth = "./remote_experiment_configs/sockshop_scale_trial_1.json"
-        config_file_pth = "./remote_experiment_configs/sockshop_scale_take1.json"
+        #config_file_pth = "./remote_experiment_configs/sockshop_scale_take1.json"
+        config_file_pth = "./remote_experiment_configs/hipsterStore_scale_take1.json"
     else:
         config_file_pth = args.config_json
 

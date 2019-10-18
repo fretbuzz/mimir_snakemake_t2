@@ -277,6 +277,7 @@ def make_partial_pcap(pcap_name, frac_of_pcap_to_use=1.0):
     print "end_time_dt", end_time_dt
 
     pcap_name_cp = pcap_name[:-5] + "_cp.pcap"
+    pcap_name_cp_LATER = pcap_name[:-5] + "_cp_LATER.pcap"
 
     cp_pcap = ['cp', pcap_name, pcap_name_cp]
 
@@ -284,7 +285,7 @@ def make_partial_pcap(pcap_name, frac_of_pcap_to_use=1.0):
     print "cp_output", output
 
     # use editcap to chop off the first part of the pcap
-    editcap_cmd = "editcap " + pcap_name_cp + " " + pcap_name_cp + " -A \"" + end_time_dt.strftime('%Y-%m-%d %H:%M:%S.%f' + "\"")
+    editcap_cmd = "editcap " + pcap_name_cp + " " + pcap_name_cp_LATER + " -A \"" + end_time_dt.strftime('%Y-%m-%d %H:%M:%S.%f' + "\"")
     print "editcap_cmd", editcap_cmd
     # and then return pcap_name_cp
     out = subprocess.check_output(editcap_cmd)
