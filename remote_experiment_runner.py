@@ -148,7 +148,6 @@ def retrieve_relevant_files_from_cloud(sh, s, sftp, local_directory, data_was_up
             s.download(file_or_directory=cur_file, local=cur_local_subdir + file_in_subdir)
             #sendline_and_wait_responses(sftp, "get " + cur_file + " " + cur_local_subdir + file_in_subdir)
 
-
 def run_experiment(config_file_pth, only_retrieve):
     # step 1: parse the config file
     machine_ip, generate_pcaps_p, e2e_script_to_follow, corresponding_local_directory, remote_server_key, user = parse_config(config_file_pth)
@@ -183,23 +182,24 @@ def run_experiment(config_file_pth, only_retrieve):
         e2e_script_start_cmd = ". ../configs_to_reproduce_results/e2e_repro_scripts/" + e2e_script_to_follow
         if not generate_pcaps_p:
             print "uploading_data...."
-            sftp = pwnlib.tubes.ssh.process(['sftp', '-i', '~/Dropbox/cloudlab.pem', 'jsev@c240g5-110215.wisc.cloudlab.us'])
-            upload_data_to_remote_machine(sh, s, sftp, corresponding_local_directory)
+            #sftp = pwnlib.tubes.ssh.process(['sftp', '-i', '~/Dropbox/cloudlab.pem', 'jsev@c240g5-110215.wisc.cloudlab.us'])
+            upload_data_to_remote_machine(sh, s, None, corresponding_local_directory)
             e2e_script_start_cmd += ' --skip_pcap'
-            sftp.write('exit')
+            #sftp.write('exit')
         print "calling_e2e_script_now....", "not generate_pcaps_p", not generate_pcaps_p
         print "e2e_script_start_cmd",e2e_script_start_cmd
+        e2e_script_start_cmd += '; exit'
         #exit(2)
-        sendline_and_wait_responses(sh, e2e_script_start_cmd, timeout=600)
+        sendline_and_wait_responses(sh, e2e_script_start_cmd, timeout=5400)
 
     #return ## TODO<--- remove this in the future!!!
 
     # Step 5: Pull the relevant data to store locally
     # NOTE: what should be pulled depends on what (if anything) was uploaded
-    print "start sftp..."
-    sftp = pwnlib.tubes.ssh.process(['sftp', '-i', '~/Dropbox/cloudlab.pem', 'jsev@c240g5-110215.wisc.cloudlab.us'])
-    retrieve_relevant_files_from_cloud(sh, s, sftp, corresponding_local_directory, data_was_uploaded=(not generate_pcaps_p))
-    sftp.write('exit')
+    #print "start sftp..."
+    #sftp = pwnlib.tubes.ssh.process(['sftp', '-i', '~/Dropbox/cloudlab.pem', 'jsev@c240g5-110215.wisc.cloudlab.us'])
+    retrieve_relevant_files_from_cloud(sh, s, None, corresponding_local_directory, data_was_uploaded=(not generate_pcaps_p))
+    #sftp.write('exit')
 
     # Step 6: maybe run the log file checker to make sure everything is legit?
     # TODO (what it says above): do this at a later point in time (there's already a ticket on the kanban board)
@@ -214,9 +214,9 @@ if __name__=="__main__":
     args = parser.parse_args()
 
     if not args.config_json:
-        config_file_pth = "./remote_experiment_configs/sockshop_scale_trial_1.json"
-        #config_file_pth = "./remote_experiment_configs/sockshop_scale_take1.json"
-        ###config_file_pth = "./remote_experiment_configs/hipsterStore_scale_take1.json"
+        ##config_file_pth = "./remote_experiment_configs/sockshop_scale_trial_1.json"
+        ##config_file_pth = "./remote_experiment_configs/sockshop_scale_take1.json"
+        config_file_pth = "./remote_experiment_configs/hipsterStore_scale_take1.json"
     else:
         config_file_pth = args.config_json
 
