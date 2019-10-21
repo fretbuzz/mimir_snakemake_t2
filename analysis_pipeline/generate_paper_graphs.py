@@ -36,10 +36,24 @@ def update_config_file(config_file_pth, if_trained_model):
     with open(config_file_pth, 'w') as f:
         json.dump(config_file, f, indent=2)
 
+def handle_single_exp(model_config_file, eval_config, no_tsl, decanter_configs, live_p, update_config, eval_config_to_cm):
+
+    eval_cm = run_analysis(model_config_file, eval_config=eval_config, no_tsl=no_tsl,
+                           decanter_configs=decanter_configs, live=live_p)
+
+    if update_config:
+        update_config_file(eval_config, if_trained_model=False)
+
+    eval_config_to_cm[eval_config] = eval_cm
+
+
 def get_eval_results(model_config_file, list_of_eval_configs, update_config, use_remote=False, remote_server_ip=None,
                      remote_server_key=None, user=None, dont_retrieve_from_remote=None, only_finished_p=False,
-                     no_tsl=False, decanter_configs=None, live_p=False):
+                     no_tsl=False, decanter_configs=None, live_p=False, analyze_in_parallel=False):
     eval_config_to_cm = {}
+    ran_model_already = False
+    running_analyses = []
+
     for eval_config in list_of_eval_configs:
         if not use_remote:
             if only_finished_p:
@@ -52,25 +66,40 @@ def get_eval_results(model_config_file, list_of_eval_configs, update_config, use
             else:
                 ## TODO: probably wanna wrap in a call to multiprocess, to prevent problems with
                 ## memory size and using swap space...
-                run_analysis(model_config_file, no_tsl=no_tsl,
-                                       decanter_configs=decanter_configs, live=live_p)
-                if update_config:
-                    update_config_file(model_config_file, if_trained_model=True)
+                if not ran_model_already:
+                    run_analysis(model_config_file, no_tsl=no_tsl,
+                                           decanter_configs=decanter_configs, live=live_p)
+                    if update_config:
+                        update_config_file(model_config_file, if_trained_model=True)
+                    ran_model_already = True
 
-                eval_cm = run_analysis(model_config_file, eval_config=eval_config, no_tsl=no_tsl,
-                                       decanter_configs=decanter_configs, live=live_p)
+                # run the analysis in several different process in parallel...
+                if analyze_in_parallel:
+                    handle_single_exp_args = (model_config_file, eval_config, no_tsl, decanter_configs, live_p, update_config,
+                                      eval_config_to_cm)
+                    p = multiprocessing.Process(target=handle_single_exp, args=handle_single_exp_args)
+                    running_analyses.append(p)
+                    p.start()
+                else:
+                    eval_cm = run_analysis(model_config_file, eval_config=eval_config, no_tsl=no_tsl,
+                                           decanter_configs=decanter_configs, live=live_p)
 
-                if update_config:
-                    update_config_file(eval_config, if_trained_model=False)
-
+                    if update_config:
+                        update_config_file(eval_config, if_trained_model=False)
         else:
             exit(322) # how would it even get here??
 
-        eval_config_to_cm[eval_config] = eval_cm
+        if not analyze_in_parallel:
+            eval_config_to_cm[eval_config] = eval_cm
+
         ## modify the config file so that you don't redo previously done experiments...
         #if update_config:
         #    update_config_file(eval_config, if_trained_model=False)
         #    update_config_file(model_config_file, if_trained_model=True)
+
+    if analyze_in_parallel:
+        for proc in running_analyses:
+            proc.join()
 
     with open('./check_this.txt', 'w') as f:
         f.write( pickle.dumps(eval_config_to_cm) )
@@ -156,7 +185,7 @@ def cm_to_exfil_rate_vs_f1(cm, evalconfig):
 def create_eval_graph(model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rates, timegran,
                       type_of_graph, graph_name, update_config_p, only_finished_p, use_remote=False,
                       remote_server_ip=None, remote_server_key=None,user=None, dont_retrieve_from_remote=None,
-                      no_tsl = False, decanter_configs=None, live_p=False):
+                      no_tsl = False, decanter_configs=None, live_p=False, analyze_in_parallel = False):
     cache_name = './temp_outputs/' + graph_name + '_cached_looper.pickle' # + 'ret' # if it doesn't help, remove the second part...
     if use_cached:
         with open(cache_name, 'r') as f:
@@ -166,7 +195,7 @@ def create_eval_graph(model_config_file, eval_configs_to_xvals, xlabel, use_cach
                                              remote_server_ip=remote_server_ip, remote_server_key=remote_server_key,
                                              user=user, dont_retrieve_from_remote=dont_retrieve_from_remote,
                                              only_finished_p=only_finished_p, no_tsl=no_tsl, decanter_configs=decanter_configs,
-                                             live_p = live_p)
+                                             live_p = live_p, analyze_in_parallel = analyze_in_parallel)
         with open(cache_name, 'w') as f:
             f.write(pickle.dumps(evalconfigs_to_cm))
 
@@ -530,18 +559,23 @@ def parse_config(config_file_pth):
                 except:
                     raise Exception('If you want to peform decanter component, please include all Decanter-related configs!')
 
+        if 'analyze_in_parallel' in config_file:
+            analyze_in_parallel = config_file['analyze_in_parallel']
+        else:
+            analyze_in_parallel = False
+
     #print "orig_decanter_configs", decanter_configs
     #exit(2)
 
     return model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran, type_of_graph, \
            graph_name, use_remote, remote_server_ips, remote_server_key, user, dont_retrieve_from_remote, no_tsl,\
-            model_xval, decanter_configs
+            model_xval, decanter_configs, analyze_in_parallel
 
 def run_looper(config_file_pth, update_config, use_remote, only_finished_p, live_p):
 
     model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran, type_of_graph, graph_name, \
     use_remote_from_config, remote_ips, remote_server_key, user, dont_retrieve_from_remote, no_tsl, model_xval, \
-    decanter_configs =  parse_config(config_file_pth)
+    decanter_configs, analyze_in_parallel =  parse_config(config_file_pth)
 
     if use_remote_from_config is not None:
         use_remote = use_remote_from_config or use_remote
@@ -557,7 +591,7 @@ def run_looper(config_file_pth, update_config, use_remote, only_finished_p, live
 
     evalconfigs_to_cm = create_eval_graph(model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran,
                                         type_of_graph, graph_name, update_config, only_finished_p, no_tsl=no_tsl,
-                                          decanter_configs=decanter_configs, live_p=live_p)
+                                          decanter_configs=decanter_configs, live_p=live_p, analyze_in_parallel=analyze_in_parallel)
 
     generate_graphs(eval_configs_to_xvals, exfil_rate, evalconfigs_to_cm, timegran, type_of_graph, graph_name, xlabel,
                     model_config_file, no_tsl, model_xval)
