@@ -180,13 +180,20 @@ def cm_to_exfil_rate_vs_f1(cm, evalconfig):
 
     return timegran_to_method_to_rate_to_f1
 
+def generate_secondary_cache_name(model_config_file):
+    return model_config_file[:-4] + 'cached_evalconfigs_to_cm.pickle'
 
-
-def create_eval_graph(model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rates, timegran,
-                      type_of_graph, graph_name, update_config_p, only_finished_p, use_remote=False,
-                      remote_server_ip=None, remote_server_key=None,user=None, dont_retrieve_from_remote=None,
-                      no_tsl = False, decanter_configs=None, live_p=False, analyze_in_parallel = False):
+def get_evalconfigs_to_cm(model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rates, timegran,
+                          type_of_graph, graph_name, update_config_p, only_finished_p, use_remote=False,
+                          remote_server_ip=None, remote_server_key=None, user=None, dont_retrieve_from_remote=None,
+                          no_tsl = False, decanter_configs=None, live_p=False, analyze_in_parallel = False):
     cache_name = './temp_outputs/' + graph_name + '_cached_looper.pickle' # + 'ret' # if it doesn't help, remove the second part...
+
+    # the idea of these line is to ensure that the cached results are in the an obvious location, so my looper can grab
+    # them later on to make an average-results graph...
+    ##secondary_cache_name = "/".join(model_config_file.split('/')[:-2]) + 'cached_evalconfigs_to_cm.pickle'
+    secondary_cache_name = generate_secondary_cache_name(model_config_file)
+
     if use_cached:
         with open(cache_name, 'r') as f:
             evalconfigs_to_cm = pickle.loads(f.read())
@@ -198,7 +205,8 @@ def create_eval_graph(model_config_file, eval_configs_to_xvals, xlabel, use_cach
                                              live_p = live_p, analyze_in_parallel = analyze_in_parallel)
         with open(cache_name, 'w') as f:
             f.write(pickle.dumps(evalconfigs_to_cm))
-
+        with open(secondary_cache_name, 'w') as f:
+            f.write(pickle.dumps(evalconfigs_to_cm))
     return evalconfigs_to_cm
 
 def exfil_rate_vs_f1_at_various_timegran(timegran_to_method_to_rate_to_f1, evalconfig, method='ensemble'):
@@ -589,9 +597,9 @@ def run_looper(config_file_pth, update_config, use_remote, only_finished_p, live
     ##use_remote = use_remote
     only_finished_p = False #only_finished_p ## VERY USEFUL
 
-    evalconfigs_to_cm = create_eval_graph(model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran,
-                                        type_of_graph, graph_name, update_config, only_finished_p, no_tsl=no_tsl,
-                                          decanter_configs=decanter_configs, live_p=live_p, analyze_in_parallel=analyze_in_parallel)
+    evalconfigs_to_cm = get_evalconfigs_to_cm(model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran,
+                                              type_of_graph, graph_name, update_config, only_finished_p, no_tsl=no_tsl,
+                                              decanter_configs=decanter_configs, live_p=live_p, analyze_in_parallel=analyze_in_parallel)
 
     generate_graphs(eval_configs_to_xvals, exfil_rate, evalconfigs_to_cm, timegran, type_of_graph, graph_name, xlabel,
                     model_config_file, no_tsl, model_xval)

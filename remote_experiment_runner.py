@@ -163,6 +163,7 @@ def run_experiment(config_file_pth, only_retrieve):
         except:
             time.sleep(60)
     sh = s.run('sh')
+    sh_screen = s.run('nice -11 screen -U')
     print "shell on the remote device is started..."
 
     # step 3: call the preliminary commands that sets up the shell correctly
@@ -175,6 +176,7 @@ def run_experiment(config_file_pth, only_retrieve):
     sudo chown -R $USER $HOME/.config; ls"
 
     sendline_and_wait_responses(sh, prelim_commands, timeout=5)
+    sendline_and_wait_responses(sh_screen, prelim_commands, timeout=5)
 
     if not only_retrieve:
         # step 4: call the actual e2e script
@@ -190,7 +192,7 @@ def run_experiment(config_file_pth, only_retrieve):
         print "e2e_script_start_cmd",e2e_script_start_cmd
         e2e_script_start_cmd += '; exit'
         #exit(2)
-        sendline_and_wait_responses(sh, e2e_script_start_cmd, timeout=5400)
+        sendline_and_wait_responses(sh_screen, e2e_script_start_cmd, timeout=5400)
 
     #return ## TODO<--- remove this in the future!!!
 
@@ -214,9 +216,9 @@ if __name__=="__main__":
     args = parser.parse_args()
 
     if not args.config_json:
-        ##config_file_pth = "./remote_experiment_configs/sockshop_scale_trial_1.json"
+        config_file_pth = "./remote_experiment_configs/sockshop_scale_trial_1.json"
         ##config_file_pth = "./remote_experiment_configs/sockshop_scale_take1.json"
-        config_file_pth = "./remote_experiment_configs/hipsterStore_scale_take1.json"
+        #config_file_pth = "./remote_experiment_configs/hipsterStore_scale_take1.json"
     else:
         config_file_pth = args.config_json
 

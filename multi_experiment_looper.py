@@ -170,7 +170,7 @@ def track_multiple_remotes(remote_ips, eval_experiment_names, training_experimen
     # once we get here, all the experiments must have finished running... so what's next
     # okay, well if everything ran, then once we get to here, we just want to returnt the correct stuff
     # evalconfigs_to_cm
-    ### OR could i use: create_eval_graph ???? would it be possible???
+    ### OR could i use: get_evalconfigs_to_cm ???? would it be possible???
     return evalconfigs_to_cm
 
 def update_config_file(config_file_pth, if_trained_model):
