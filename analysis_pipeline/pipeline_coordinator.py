@@ -248,7 +248,7 @@ class multi_experiment_pipeline(object):
                                                             self.base_output_name, self.rates_to_experiment_info,
                                                             self.rate_to_time_gran_to_outtraffic, self.auto_open_pdfs)
 
-    ## NOTE: I'm going to try to do this WITHOUT the call to multi-process here!!ee
+    ## NOTE: I'm going to try to do this WITHOUT the call to multi-process here!!
     def run_single_pipeline(self, rate_counter, calc_vals, skip_graph_injection, calc_ide=False,
                             no_labeled_data=False, pretrained_cilium_model=None):
         prefix_for_inject_params = 'avg_exfil_' + str(self.avg_exfil_per_min[rate_counter]) + ':' + str(

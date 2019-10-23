@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-curl -fsSL https://get.docker.com -o get-docker.sh
-sudo sh get-docker.sh
+#curl -fsSL https://get.docker.com -o get-docker.sh
+#sudo sh get-docker.sh
+sudo apt-get -y install docker-ce=17.06.0~ce-0~ubuntu
 
 # Second, install Steel Bank Common Lisp (SBCL)
 sudo aptitude update
