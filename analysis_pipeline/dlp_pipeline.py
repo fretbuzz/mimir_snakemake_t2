@@ -294,7 +294,7 @@ def make_partial_pcap(pcap_name, frac_of_pcap_to_use=1.0):
     print "out", out
 
     print "okay, let's go..."
-    return pcap_name_cp
+    return pcap_name_cp_LATER
 
 def get_capinfos_entry(pcap_name, number_lines_down):
     get_length = ["capinfos", pcap_name]
