@@ -195,8 +195,7 @@ class multi_experiment_pipeline(object):
                 #                         no_labeled_data=self.no_labeled_data,
                 #                         pretrained_cilium_model=self.cilium_allowed_svc_comm)
 
-                avg_exfil_per_min = self.avg_exfil_per_min[rate_counter]
-                args = (rate_counter, avg_exfil_per_min, self.exfil_per_min_variance,
+                args = (rate_counter, self.avg_exfil_per_min, self.exfil_per_min_variance,
                         self.base_output_name, self.exps_exfil_paths,
                         self.exps_initiator_info, self.calculate_z_scores_p,
                         self.end_of_train_portions, self.training_exfil_paths,
@@ -225,16 +224,16 @@ class multi_experiment_pipeline(object):
                 job.join()
 
             for rate_counter in range(0, len(self.avg_exfil_per_min)):
-                avg_exfil_per_min = self.avg_exfil_per_min[rate_counter]
-                self.single_pipeline_after_injection(rate_to_list_time_gran_to_mod_zscore_df[avg_exfil_per_min],
-                                                rate_to_list_time_gran_to_zscore_dataframe[avg_exfil_per_min],
-                                                rate_to_list_time_gran_to_feature_dataframe[avg_exfil_per_min],
-                                                rate_to_list_time_gran_to_mod_zscore_df_training[avg_exfil_per_min],
-                                                rate_to_list_time_gran_to_mod_zscore_df_testing[avg_exfil_per_min],
-                                                rate_to_starts_of_testing[avg_exfil_per_min],
-                                                rate_to_cilium_allowed_svc_comm[avg_exfil_per_min],
-                                                rate_to_cur_base_output_name[avg_exfil_per_min], rate_counter,
-                                                avg_exfil_per_min)
+                cur_avg_exfil_per_min = self.avg_exfil_per_min[rate_counter]
+                self.single_pipeline_after_injection(rate_to_list_time_gran_to_mod_zscore_df[cur_avg_exfil_per_min],
+                                                rate_to_list_time_gran_to_zscore_dataframe[cur_avg_exfil_per_min],
+                                                rate_to_list_time_gran_to_feature_dataframe[cur_avg_exfil_per_min],
+                                                rate_to_list_time_gran_to_mod_zscore_df_training[cur_avg_exfil_per_min],
+                                                rate_to_list_time_gran_to_mod_zscore_df_testing[cur_avg_exfil_per_min],
+                                                rate_to_starts_of_testing[cur_avg_exfil_per_min],
+                                                rate_to_cilium_allowed_svc_comm[cur_avg_exfil_per_min],
+                                                rate_to_cur_base_output_name[cur_avg_exfil_per_min], rate_counter,
+                                                self.avg_exfil_per_min)
 
             if not self.pretrained_min_pipeline:
 
