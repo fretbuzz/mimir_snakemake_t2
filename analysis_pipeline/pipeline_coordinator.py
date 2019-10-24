@@ -174,66 +174,69 @@ class multi_experiment_pipeline(object):
         self.pretrained_min_pipeline = pretrained_model_object
         print "self.get_endresult_from_memory", self.get_endresult_from_memory
         if not self.get_endresult_from_memory:
-            min_rate_statspipelines = None
+            with multiprocessing.Manager() as manager:
+                min_rate_statspipelines = None
 
-            self.generate_and_assign_exfil_paths()
-            #if not self.only_ide:
-            ###initial_cilium_is_none_p = self.cilium_allowed_svc_comm is None
-            rate_to_list_time_gran_to_mod_zscore_df = {}
-            rate_to_cur_base_output_name = {}
-            rate_to_list_time_gran_to_zscore_dataframe = {}
-            rate_to_list_time_gran_to_feature_dataframe = {}
-            rate_to_list_time_gran_to_mod_zscore_df_training = {}
-            rate_to_list_time_gran_to_mod_zscore_df_testing = {}
-            rate_to_starts_of_testing, rate_to_cilium_allowed_svc_comm = {}, {}
+                self.generate_and_assign_exfil_paths()
+                #if not self.only_ide:
+                ###initial_cilium_is_none_p = self.cilium_allowed_svc_comm is None
+                rate_to_list_time_gran_to_mod_zscore_df = manager.dict()
+                rate_to_cur_base_output_name = manager.dict()
+                rate_to_list_time_gran_to_zscore_dataframe = manager.dict()
+                rate_to_list_time_gran_to_feature_dataframe = manager.dict()
+                rate_to_list_time_gran_to_mod_zscore_df_training = manager.dict()
+                rate_to_list_time_gran_to_mod_zscore_df_testing = manager.dict()
+                rate_to_starts_of_testing, rate_to_cilium_allowed_svc_comm = manager.dict(), manager.dict()
 
-            jobs = []
-            for rate_counter in range(0, len(self.avg_exfil_per_min)):
-                # (i), (ii) <--- I think that they both belong here...
-                #self.run_single_pipeline(rate_counter, self.calc_vals, self.skip_graph_injection,
-                #                         calc_ide=self.calc_ide,
-                #                         no_labeled_data=self.no_labeled_data,
-                #                         pretrained_cilium_model=self.cilium_allowed_svc_comm)
+                jobs = []
+                for rate_counter in range(0, len(self.avg_exfil_per_min)):
+                    # (i), (ii) <--- I think that they both belong here...
+                    #self.run_single_pipeline(rate_counter, self.calc_vals, self.skip_graph_injection,
+                    #                         calc_ide=self.calc_ide,
+                    #                         no_labeled_data=self.no_labeled_data,
+                    #                         pretrained_cilium_model=self.cilium_allowed_svc_comm)
 
-                args = (rate_counter, self.avg_exfil_per_min, self.exfil_per_min_variance,
-                        self.base_output_name, self.exps_exfil_paths,
-                        self.exps_initiator_info, self.calculate_z_scores_p,
-                        self.end_of_train_portions, self.training_exfil_paths,
-                        self.testing_exfil_paths, self.skip_model_part,
-                        self.ROC_curve_p, self.avg_pkt_size,
-                        self.pkt_size_variance, self.drop_pairwise_features,
-                        self.perform_svcpair_sec_component,
-                        self.ide_window_size, self.drop_infra_from_graph, self.function_list,
-                        self.pretrained_min_pipeline,
-                        self.calc_vals, self.skip_graph_injection, self.calc_ide,
-                        self.cilium_allowed_svc_comm, self.no_labeled_data,
-                        rate_to_list_time_gran_to_mod_zscore_df,
-                        rate_to_cur_base_output_name,
-                        rate_to_list_time_gran_to_zscore_dataframe,
-                        rate_to_list_time_gran_to_feature_dataframe,
-                        rate_to_list_time_gran_to_mod_zscore_df_training,
-                        rate_to_list_time_gran_to_mod_zscore_df_testing,
-                        rate_to_starts_of_testing, rate_to_cilium_allowed_svc_comm)
-                p = multiprocessing.Process(
-                    target=inject_comm_graphs_at_single_exfil_rate,
-                    args=args)
-                p.start()
-                jobs.append(p)
+                    args = (rate_counter, self.avg_exfil_per_min, self.exfil_per_min_variance,
+                            self.base_output_name, self.exps_exfil_paths,
+                            self.exps_initiator_info, self.calculate_z_scores_p,
+                            self.end_of_train_portions, self.training_exfil_paths,
+                            self.testing_exfil_paths, self.skip_model_part,
+                            self.ROC_curve_p, self.avg_pkt_size,
+                            self.pkt_size_variance, self.drop_pairwise_features,
+                            self.perform_svcpair_sec_component,
+                            self.ide_window_size, self.drop_infra_from_graph, self.function_list,
+                            self.pretrained_min_pipeline,
+                            self.calc_vals, self.skip_graph_injection, self.calc_ide,
+                            self.cilium_allowed_svc_comm, self.no_labeled_data,
+                            rate_to_list_time_gran_to_mod_zscore_df,
+                            rate_to_cur_base_output_name,
+                            rate_to_list_time_gran_to_zscore_dataframe,
+                            rate_to_list_time_gran_to_feature_dataframe,
+                            rate_to_list_time_gran_to_mod_zscore_df_training,
+                            rate_to_list_time_gran_to_mod_zscore_df_testing,
+                            rate_to_starts_of_testing, rate_to_cilium_allowed_svc_comm)
+                    p = multiprocessing.Process(
+                        target=inject_comm_graphs_at_single_exfil_rate,
+                        args=args)
+                    p.start()
+                    jobs.append(p)
 
-            for job in jobs:
-                job.join()
+                for job in jobs:
+                    job.join()
 
-            for rate_counter in range(0, len(self.avg_exfil_per_min)):
-                cur_avg_exfil_per_min = self.avg_exfil_per_min[rate_counter]
-                self.single_pipeline_after_injection(rate_to_list_time_gran_to_mod_zscore_df[cur_avg_exfil_per_min],
-                                                rate_to_list_time_gran_to_zscore_dataframe[cur_avg_exfil_per_min],
-                                                rate_to_list_time_gran_to_feature_dataframe[cur_avg_exfil_per_min],
-                                                rate_to_list_time_gran_to_mod_zscore_df_training[cur_avg_exfil_per_min],
-                                                rate_to_list_time_gran_to_mod_zscore_df_testing[cur_avg_exfil_per_min],
-                                                rate_to_starts_of_testing[cur_avg_exfil_per_min],
-                                                rate_to_cilium_allowed_svc_comm[cur_avg_exfil_per_min],
-                                                rate_to_cur_base_output_name[cur_avg_exfil_per_min], rate_counter,
-                                                self.avg_exfil_per_min)
+                print "rate_to_list_time_gran_to_mod_zscore_df.keys()", rate_to_list_time_gran_to_mod_zscore_df.keys()
+
+                for rate_counter in range(0, len(self.avg_exfil_per_min)):
+                    cur_avg_exfil_per_min = self.avg_exfil_per_min[rate_counter]
+                    self.single_pipeline_after_injection(rate_to_list_time_gran_to_mod_zscore_df[cur_avg_exfil_per_min],
+                                                    rate_to_list_time_gran_to_zscore_dataframe[cur_avg_exfil_per_min],
+                                                    rate_to_list_time_gran_to_feature_dataframe[cur_avg_exfil_per_min],
+                                                    rate_to_list_time_gran_to_mod_zscore_df_training[cur_avg_exfil_per_min],
+                                                    rate_to_list_time_gran_to_mod_zscore_df_testing[cur_avg_exfil_per_min],
+                                                    rate_to_starts_of_testing[cur_avg_exfil_per_min],
+                                                    rate_to_cilium_allowed_svc_comm[cur_avg_exfil_per_min],
+                                                    rate_to_cur_base_output_name[cur_avg_exfil_per_min], rate_counter,
+                                                    self.avg_exfil_per_min)
 
             if not self.pretrained_min_pipeline:
 
@@ -660,6 +663,9 @@ def inject_comm_graphs_at_single_exfil_rate(rate_counter, avg_exfil_per_min, exf
     rate_to_starts_of_testing[exfil_rate] = out_q.get()
     rate_to_cilium_allowed_svc_comm[exfil_rate] = out_q.get()
     rate_to_cur_base_output_name[exfil_rate] = cur_base_output_name
+
+    print "rate_to_list_time_gran_to_mod_zscore_df_at_end", rate_to_list_time_gran_to_mod_zscore_df
+
     p.join()
 
 def pipeline_one_exfil_rate(rate_counter, base_output_name, function_list, exps_exfil_paths, exps_initiator_info,
