@@ -273,7 +273,8 @@ def make_partial_pcap(pcap_name, frac_of_pcap_to_use=1.0):
 
     start_time_dt = datetime.strptime(start_time, '%Y-%m-%d %H:%M:%S.%f')
     print "start_time_dt", start_time_dt
-    end_time_dt = start_time_dt +  + timedelta(seconds=seconds_to_chop_off_from_front)
+    print "seconds_to_chop_off_from_front", seconds_to_chop_off_from_front
+    end_time_dt = start_time_dt + timedelta(seconds=seconds_to_chop_off_from_front)
     print "end_time_dt", end_time_dt
 
     pcap_name_cp = pcap_name[:-5] + "_cp.pcap"
