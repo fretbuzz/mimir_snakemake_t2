@@ -266,14 +266,16 @@ def make_partial_pcap(pcap_name, frac_of_pcap_to_use=1.0):
     seconds_with_label = get_capinfos_entry(pcap_name, number_lines_down=9)
     print "seconds_with_label", seconds_with_label
     seconds = float(seconds_with_label.split(' ')[1])
-    seconds_to_chop_off_from_front = seconds * (1.0 - frac_of_pcap_to_use)
     print "returned seconds...", seconds
+
+    seconds_to_chop_off_from_front = seconds * (1.0 - frac_of_pcap_to_use)
+    print "seconds_to_chop_off_from_front", seconds_to_chop_off_from_front, (1.0 - frac_of_pcap_to_use)
+
     start_time = get_capinfos_entry(pcap_name, number_lines_down=10)
     print "start_time", start_time
 
     start_time_dt = datetime.strptime(start_time, '%Y-%m-%d %H:%M:%S.%f')
     print "start_time_dt", start_time_dt
-    print "seconds_to_chop_off_from_front", seconds_to_chop_off_from_front
     end_time_dt = start_time_dt + timedelta(seconds=seconds_to_chop_off_from_front)
     print "end_time_dt", end_time_dt
 
