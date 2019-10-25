@@ -293,9 +293,10 @@ def run_decanter_component(decanter_configs, training_config, eval_config, eval_
     print "decanter_configs", decanter_configs
 
     print "params_in_call_to_end_to_end_microservices", (training_config, eval_config,
-        decanter_configs['train_gen_bro_log'], decanter_configs['test_gen_bro_log'], decanter_configs['gen_fingerprints_p'])
+        decanter_configs['train_gen_bro_log'], decanter_configs['test_gen_bro_log'], decanter_configs['gen_fingerprints_p']),\
+        decanter_configs['fraction_of_training_pcap_to_use']
 
-    if 'fraction_of_pcap_to_use' in decanter_configs:
+    if 'fraction_of_training_pcap_to_use' in decanter_configs:
         print "found fraction_of_training_pcap_to_use in decanter_configs"
         fraction_of_training_pcap_to_use = float(decanter_configs['fraction_of_training_pcap_to_use'])
     else:
