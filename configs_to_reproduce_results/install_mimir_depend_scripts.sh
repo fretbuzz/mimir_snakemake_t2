@@ -37,8 +37,14 @@ sudo aptitude install wireshark-common -y
 sudo aptitude install tshark -y
 
 # Fourth, pdfkit is used for display purposes.
-sudo aptitude install wkhtmltopdf -y
-sudo cp  /usr/bin/wkhtmltopdf  /usr/local/bin/wkhtmltopdf
+#sudo aptitude install wkhtmltopdf -y
+# sudo cp  /usr/bin/wkhtmltopdf  /usr/local/bin/wkhtmltopdf
+
+wget https://github.com/wkhtmltopdf/wkhtmltopdf/releases/download/0.12.4/wkhtmltox-0.12.4_linux-generic-amd64.tar.xz
+tar xvf wkhtmltox-0.12.4_linux-generic-amd64.tar.xz
+sudo mv wkhtmltox/bin/wkhtmlto* /usr/bin/
+sudo ln -nfs /usr/bin/wkhtmltopdf /usr/local/bin/wkhtmltopdf
+sudo apt-get install libpng-dev
 
 # Fifth, Python is the language that the system is written in.
 sudo aptitude install python2.7 -y
