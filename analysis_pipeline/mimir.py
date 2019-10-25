@@ -287,7 +287,6 @@ def run_analysis(training_config, eval_config=None, live=False, no_tsl=True, dec
             eval_results = run_decanter_component(decanter_configs, training_config, eval_config, eval_results)
             # TODO: update the decanter configs appropriately....
 
-
     return eval_results
 
 def run_decanter_component(decanter_configs, training_config, eval_config, eval_results):
@@ -297,8 +296,10 @@ def run_decanter_component(decanter_configs, training_config, eval_config, eval_
         decanter_configs['train_gen_bro_log'], decanter_configs['test_gen_bro_log'], decanter_configs['gen_fingerprints_p'])
 
     if 'fraction_of_pcap_to_use' in decanter_configs:
+        print "found fraction_of_training_pcap_to_use in decanter_configs"
         fraction_of_training_pcap_to_use = float(decanter_configs['fraction_of_training_pcap_to_use'])
     else:
+        print "did NOT find fraction_of_training_pcap_to_use in decanter_configs"
         fraction_of_training_pcap_to_use = 1.0
 
     decanter_results = end_to_end_microservice(training_config, eval_config,

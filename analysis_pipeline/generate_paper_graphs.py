@@ -564,6 +564,7 @@ def parse_config(config_file_pth):
                     decanter_configs['train_gen_bro_log'] = config_file['train_gen_bro_log']
                     decanter_configs['test_gen_bro_log'] = config_file['test_gen_bro_log']
                     decanter_configs['gen_fingerprints_p'] = config_file['gen_fingerprints_p']
+                    decanter_configs['fraction_of_training_pcap_to_use'] = config_file['fraction_of_training_pcap_to_use']
                 except:
                     raise Exception('If you want to peform decanter component, please include all Decanter-related configs!')
 
