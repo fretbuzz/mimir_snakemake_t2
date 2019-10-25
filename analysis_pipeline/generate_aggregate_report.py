@@ -317,7 +317,7 @@ def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
             ax.set_xlabel('log exfil rate (MB/min)', fontsize=25)
             ax.legend()
 
-        f1_vs_exfil_rate_filname = "./temp_outputs/" + str(timegan) + "_f1_vs_exfil_rate.png"
+        f1_vs_exfil_rate_filname = "../temp_outputs/" + str(timegan) + "_f1_vs_exfil_rate.png"
         fig.savefig(f1_vs_exfil_rate_filname)
 
         sections.append(exfil_vs_f1_sec.render(
