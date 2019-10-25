@@ -50,7 +50,8 @@ def handle_single_exp(model_config_file, eval_config, no_tsl, decanter_configs, 
 def get_eval_results(model_config_file, list_of_eval_configs, update_config, use_remote=False, remote_server_ip=None,
                      remote_server_key=None, user=None, dont_retrieve_from_remote=None, only_finished_p=False,
                      no_tsl=False, decanter_configs=None, live_p=False, analyze_in_parallel=False):
-    eval_config_to_cm = {}
+    manager = multiprocessing.Manager()
+    eval_config_to_cm = manager.dict()
     ran_model_already = False
     running_analyses = []
 
