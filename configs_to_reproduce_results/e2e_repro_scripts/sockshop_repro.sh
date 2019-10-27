@@ -46,11 +46,11 @@ then
 
   sleep 60
 
+  sudo minikube stop
+
 fi
 
 cd ../analysis_pipeline/
-
-sudo minikube stop
 
 ## then install the analysis pipeline depdencies
 . ../configs_to_reproduce_results/install_mimir_depend_scripts.sh

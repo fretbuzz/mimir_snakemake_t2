@@ -16,7 +16,7 @@ import sys, traceback
 class single_model_stats_pipeline():
     def __init__(self, aggregate_mod_score_df, base_output_name, skip_model_part, clf, drop_pairwise_features, timegran,
                  lasso_feature_selection_p, dont_prepare_data_p=False, skip_heatmap_p=True,
-                 no_labeled_data=False):
+                 no_labeled_data=False, recipes_used=None):
 
         self.no_labeled_data = no_labeled_data
         self.dont_prepare_data_p=dont_prepare_data_p
@@ -38,6 +38,7 @@ class single_model_stats_pipeline():
         self.feature_raw_heatmaps_training =  ['none.png']
         self.method_to_test_predictions = {}
         self.method_to_train_predictions = {}
+        self.recipes_used = recipes_used
 
         #if not dont_prepare_data_p:
         self.X_train, self.y_train, self.X_test, self.y_test, self.pre_drop_X_train, self.time_gran_to_debugging_csv, \
@@ -118,7 +119,7 @@ class single_model_stats_pipeline():
             self.feature_raw_heatmaps = ['../' + local_heatmap_val_path]
         print coef_impact_df
 
-    def _generate_rocs(self):
+    def _generate_rocs(self, exp_name):
         #if self.no_testing:
         #    return
 
@@ -150,7 +151,7 @@ class single_model_stats_pipeline():
         print "list_of_y_vals", list_of_y_vals
         print "roc_path", self.ROC_path + self.plot_name
         ax, _, plot_path = construct_ROC_curve(list_of_x_vals, list_of_y_vals, self.title, self.ROC_path + self.plot_name,
-                                               line_titles, show_p=False)
+                                               line_titles, show_p=False, exp_name=exp_name)
         self.plot_path = plot_path
 
     def _generate_optimal_predictions(self, method_to_predictions, correct_y):
@@ -389,7 +390,7 @@ class single_model_stats_pipeline():
         if not self.no_labeled_data:
             self._generate_debugging_csv()
 
-            self._generate_rocs()
+            self._generate_rocs(self.recipes_used[0])
 
             if self.no_testing:
                 self.method_to_optimal_f1_scores_train, self.method_to_optimal_predictions_train, self.method_to_optimal_thresh_train = \
@@ -473,7 +474,8 @@ class single_rate_stats_pipeline():
 
             stat_pipeline = single_model_stats_pipeline(feature_df, self.base_output_name, self.skip_model_part, clf,
                                                         drop_pairwise_features, timegran, lasso_feature_selection_p,
-                                                        skip_heatmap_p=skip_heatmap_p, no_labeled_data=self.no_labeled_data)
+                                                        skip_heatmap_p=skip_heatmap_p, no_labeled_data=self.no_labeled_data,
+                                                        recipes_used=self.recipes_used)
 
             #if pretrained_statistical_analysis_v2 == None or (timegran not in pretrained_statistical_analysis_v2.timegran_to_statistical_pipeline):
             if pretrained_statistical_analysis_v2 == None:
@@ -1386,7 +1388,7 @@ def determine_categorical_cm_df(y_test, optimal_predictions, exfil_paths, exfil_
     return categorical_cm_df
 
 
-def construct_ROC_curve(list_of_x_vals, list_of_y_vals, title, plot_name, line_titles, show_p=False):
+def construct_ROC_curve(list_of_x_vals, list_of_y_vals, title, plot_name, line_titles, show_p=False, exp_name=''):
     # okay, what we want to do here is to construct
     # x_vals should be FPR
     # y_vals should be TPR
@@ -1406,13 +1408,13 @@ def construct_ROC_curve(list_of_x_vals, list_of_y_vals, title, plot_name, line_t
         plt.plot(x_vals, list_of_y_vals[counter], label = line_titles[counter], marker=line_markers[counter])
 
     plt.legend()
-    plt.savefig( plot_name + '.png', format='png', dpi=1000)
+    plt.savefig( plot_name + exp_name + '.png', format='png', dpi=1000)
 
-    local_graph_loc = './temp_outputs/' + title + '.png'
+    local_graph_loc = './temp_outputs/' + title + exp_name+ '.png'# XAB
     local_graph_loc = local_graph_loc.replace(' ', '_')
     plt.savefig( local_graph_loc, format='png', dpi=1000)
 
     if show_p:
         plt.show()
     plt.close()
-    return axs, plot_name + '.png', '../' + local_graph_loc[2:]
+    return axs, plot_name + exp_name + '.png', '../' + local_graph_loc[2:]
