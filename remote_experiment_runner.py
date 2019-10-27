@@ -59,13 +59,12 @@ def upload_data_to_remote_machine(sh, s, sftp, local_directory):
             cur_file = os.path.join(subdir, file)
             print cur_file
             # we want to upload every file in this directory (but NOT the subdirectories!)
-            # TODO: need to upload the pcaps via a binary transfer method (not ascii- this causes problems! -- testing solution now...)
             s.upload(cur_file, remote=cur_dir + '/' + file)
             ###sendline_and_wait_responses(sftp, 'put ' + cur_dir + '/' + file + ' ' + cur_file)
 
     print "all done uploading files! (hopefully it worked, because I haven't actually tested this function!)"
 
-def retrieve_relevant_files_from_cloud(sh, s, sftp, local_directory, data_was_uploaded=False):
+def retrieve_relevant_files_from_cloud(sh, s, sftp, local_directory, data_was_uploaded=False, machine_ip=None):
     # this function needs to grab the relevant files that were generated on the remote device and download them
     # so that they are available locally...
 
@@ -124,29 +123,30 @@ def retrieve_relevant_files_from_cloud(sh, s, sftp, local_directory, data_was_up
                 print "cur_file", cur_file
                 cur_local_file = cur_local_subdir + '/' + file_in_subdir
                 print "cur_local_file", cur_local_file
-                # TODO: PROBLEM: pulls in ASCII mode... needs to be in binary mode (testing solution now...)
                 s.download(file_or_directory=cur_file, local=cur_local_file)
                 #sendline_and_wait_responses(sftp, "get " + cur_file + " " + cur_local_file)
         # we should always recover the actual results...
         # step (4): make sure there's a nested results subdirectory
-        cur_subdir += 'results/'
-        cur_local_subdir = cur_local_subdir + '/results/'
-        if not os.path.exists(cur_local_subdir):
-            os.makedirs(cur_local_subdir)
-        # step (4.5): get a list of all the generated results files
-        get_files_in_subdir = "ls -p " + cur_subdir + " | grep -v /"
-        sh.sendline(get_files_in_subdir)
-        files_in_subdir = []
-        line_rec = 'blahblahblah'
-        while line_rec != '':
-            line_rec = sh.recvline(timeout=2)
-            if line_rec != '':
-                files_in_subdir.append(line_rec.replace('$', '').strip())        # step (5): retrieve all the generated results
-        for file_in_subdir in files_in_subdir:
-            cur_file = cur_subdir + file_in_subdir
-            # TODO: PROBLEM: pulls in ASCII mode... needs to be in binary mode (testing solution now...)
-            s.download(file_or_directory=cur_file, local=cur_local_subdir + file_in_subdir)
-            #sendline_and_wait_responses(sftp, "get " + cur_file + " " + cur_local_subdir + file_in_subdir)
+        try:
+            cur_subdir += 'results/'
+            cur_local_subdir = cur_local_subdir + '/results/'
+            if not os.path.exists(cur_local_subdir):
+                os.makedirs(cur_local_subdir)
+            # step (4.5): get a list of all the generated results files
+            get_files_in_subdir = "ls -p " + cur_subdir + " | grep -v /"
+            sh.sendline(get_files_in_subdir)
+            files_in_subdir = []
+            line_rec = 'blahblahblah'
+            while line_rec != '':
+                line_rec = sh.recvline(timeout=2)
+                if line_rec != '':
+                    files_in_subdir.append(line_rec.replace('$', '').strip())        # step (5): retrieve all the generated results
+            for file_in_subdir in files_in_subdir:
+                cur_file = cur_subdir + file_in_subdir
+                s.download(file_or_directory=cur_file, local=cur_local_subdir + file_in_subdir)
+                #sendline_and_wait_responses(sftp, "get " + cur_file + " " + cur_local_subdir + file_in_subdir)
+        except:
+            print "results are not present for " + subdir + ' on ' + str(machine_ip)
 
 def run_experiment(config_file_pth, only_retrieve):
     # step 1: parse the config file
@@ -200,7 +200,8 @@ def run_experiment(config_file_pth, only_retrieve):
     # NOTE: what should be pulled depends on what (if anything) was uploaded
     #print "start sftp..."
     #sftp = pwnlib.tubes.ssh.process(['sftp', '-i', '~/Dropbox/cloudlab.pem', 'jsev@c240g5-110215.wisc.cloudlab.us'])
-    retrieve_relevant_files_from_cloud(sh, s, None, corresponding_local_directory, data_was_uploaded=(not generate_pcaps_p))
+    retrieve_relevant_files_from_cloud(sh, s, None, corresponding_local_directory, data_was_uploaded=(not generate_pcaps_p),
+                                       machine_ip=machine_ip)
     #sftp.write('exit')
 
     # Step 6: maybe run the log file checker to make sure everything is legit?
@@ -217,8 +218,13 @@ if __name__=="__main__":
 
     if not args.config_json:
         #config_file_pth = "./remote_experiment_configs/sockshop_scale_trial_1.json"
-        config_file_pth = "./remote_experiment_configs/sockshop_scale_take1.json"
+        #config_file_pth = "./remote_experiment_configs/sockshop_scale_take1.json"
         #config_file_pth = "./remote_experiment_configs/hipsterStore_scale_take1.json"
+
+        #config_file_pth = "./remote_experiment_configs/trials/sockshop_scale_trial_1_rep1.json"
+        #config_file_pth = "./remote_experiment_configs/trials/sockshop_scale_trial_1_rep2.json"
+        config_file_pth = "./remote_experiment_configs/trials/sockshop_scale_trial_1_rep3.json"
+
     else:
         config_file_pth = args.config_json
 

@@ -37,9 +37,9 @@ sudo aptitude install wireshark-common -y
 sudo aptitude install tshark -y
 
 # Fourth, pdfkit is used for display purposes.
+# NOTE: need to be kinda fancy so that wkhtmtltopdf with patched QT is installed
 #sudo aptitude install wkhtmltopdf -y
 # sudo cp  /usr/bin/wkhtmltopdf  /usr/local/bin/wkhtmltopdf
-
 wget https://github.com/wkhtmltopdf/wkhtmltopdf/releases/download/0.12.4/wkhtmltox-0.12.4_linux-generic-amd64.tar.xz
 tar xvf wkhtmltox-0.12.4_linux-generic-amd64.tar.xz
 sudo mv wkhtmltox/bin/wkhtmlto* /usr/bin/
