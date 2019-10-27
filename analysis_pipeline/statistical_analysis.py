@@ -98,9 +98,9 @@ class single_model_stats_pipeline():
 
         # make heatmaps so I can see which features are contributing
         current_heatmap_val_path = self.base_output_name + train_test + 'coef_val_heatmap_' + str(time_gran) + '.png'
-        local_heatmap_val_path = 'temp_outputs/' + train_test + self.recipes_used[0] +  '_heatmap_coef_val_at_' +  str(time_gran) + '.png'
+        local_heatmap_val_path = 'temp_outputs/' + train_test + self.recipes_used +  '_heatmap_coef_val_at_' +  str(time_gran) + '.png'
         current_heatmap_path = self.base_output_name + train_test + 'coef_act_heatmap_' + str(time_gran) + '.png'
-        local_heatmap_path = 'temp_outputs/' + train_test + + self.recipes_used[0] + '_heatmap_coef_contribs_at_' +  str(time_gran) + '.png'
+        local_heatmap_path = 'temp_outputs/' + train_test + + self.recipes_used + '_heatmap_coef_contribs_at_' +  str(time_gran) + '.png'
 
         if training_p:
             coef_impact_df, raw_feature_val_df = generate_heatmap.generate_covariate_heatmap(self.coef_dict, self.X_train, self.exfil_paths_train)
@@ -390,7 +390,7 @@ class single_model_stats_pipeline():
         if not self.no_labeled_data:
             self._generate_debugging_csv()
 
-            self._generate_rocs(self.recipes_used[0])
+            self._generate_rocs(self.recipes_used)
 
             if self.no_testing:
                 self.method_to_optimal_f1_scores_train, self.method_to_optimal_predictions_train, self.method_to_optimal_thresh_train = \
@@ -475,7 +475,7 @@ class single_rate_stats_pipeline():
             stat_pipeline = single_model_stats_pipeline(feature_df, self.base_output_name, self.skip_model_part, clf,
                                                         drop_pairwise_features, timegran, lasso_feature_selection_p,
                                                         skip_heatmap_p=skip_heatmap_p, no_labeled_data=self.no_labeled_data,
-                                                        recipes_used=self.recipes_used)
+                                                        recipes_used=self.recipes_used[0])
 
             #if pretrained_statistical_analysis_v2 == None or (timegran not in pretrained_statistical_analysis_v2.timegran_to_statistical_pipeline):
             if pretrained_statistical_analysis_v2 == None:
@@ -605,7 +605,8 @@ class single_rate_stats_pipeline():
                                                      self.skip_model_part, clf, drop_pairwise_features,
                                                      tuple(self.timegran_to_statistical_pipeline.keys()),
                                                      lasso_feature_selection_p=False, dont_prepare_data_p=True,
-                                                     skip_heatmap_p=skip_heatmap_p, no_labeled_data=self.no_labeled_data)
+                                                     skip_heatmap_p=skip_heatmap_p, no_labeled_data=self.no_labeled_data,
+                                                     recipes_used=self.recipes_used[0] + '_multi_time')
 
         ### TODO: what is going on here??? it's still fitting of the training data?? but it should on the testing data...
         #if pretrained_statistical_analysis_v2 == None or (timegran not in pretrained_statistical_analysis_v2.timegran_to_statistical_pipeline):

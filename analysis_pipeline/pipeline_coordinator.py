@@ -295,10 +295,12 @@ class multi_experiment_pipeline(object):
 
 
     def generate_aggregate_report(self):
+        cur_exp_name = self.function_list[0].base_exp_name
         generate_aggregate_report.generate_aggregate_report(self.rate_to_timegran_to_methods_to_attacks_found_dfs,
                                                             self.rate_to_timegran_list_of_methods_to_attacks_found_training_df,
                                                             self.base_output_name, self.rates_to_experiment_info,
-                                                            self.rate_to_time_gran_to_outtraffic, self.auto_open_pdfs)
+                                                            self.rate_to_time_gran_to_outtraffic, self.auto_open_pdfs,
+                                                            cur_exp_name)
         # XAB
 
     def single_pipeline_after_injection(self, list_time_gran_to_mod_zscore_df, list_time_gran_to_zscore_dataframe,

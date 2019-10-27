@@ -11,7 +11,7 @@ import math
 def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
                               rate_to_timegran_list_to_methods_to_attacks_found_training_df,
                               base_output_name, rates_to_experiment_info, rate_to_time_gran_to_outtraffic,
-                              auto_open_pdfs_p):
+                              auto_open_pdfs_p, cur_exp_name):
 
     date = str(datetime.datetime.now())
     env = Environment(
@@ -40,7 +40,7 @@ def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
     time_gran_to_comp_bargraph_info = {}
     for time_gran in rate_to_timegran_to_methods_to_attacks_found_dfs[rate_to_timegran_to_methods_to_attacks_found_dfs.keys()[0]].keys():
         filename = "subplots_comp-bargraph" + str(time_gran) + ".png"
-        cur_lineGraph_loc = "./temp_outputs/" + filename
+        cur_lineGraph_loc = "./temp_outputs/" + cur_exp_name + '_' + filename
 
         nrows = int(math.ceil(num_of_rates / 3.0))
         ncolumns = 3
@@ -64,7 +64,7 @@ def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
 
             ## okay, one graph for each of these set of params should be made
             filename = "comp_bargraph_" + str(rate) + "_" + str(timegran) + ".png"
-            temp_graph_loc = "./temp_outputs/" + filename
+            temp_graph_loc = "./temp_outputs/" + cur_exp_name + '_' + filename
             bargraph_locs.append(temp_graph_loc)
             graph_loc = base_output_name + filename
 
@@ -162,7 +162,7 @@ def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
     for time_gran, attack_to_methods_to_f1s in time_gran_to_attack_to_methods_to_f1s.iteritems():
         plt.clf()
         filename = "comp_linegraph_" + str(time_gran) + ".png"
-        cur_lineGraph_loc = "./temp_outputs/" + filename
+        cur_lineGraph_loc = "./temp_outputs/" + cur_exp_name + '_' + filename
         # for the outer loop, want to make a new figure (i.e. the whole grid)
         # (note: I'd still want it be 2D even if the theree was only enough to fill a single row...)
         nrows = int(math.ceil(num_of_attacks /3.0))
@@ -225,7 +225,7 @@ def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
         plt.clf()
         plt.figure(figsize=(15,15))
         fp_com_filename = "comp_fps_bar_" + str(timegran) + ".png"
-        fp_com_loc = "./temp_outputs/" + fp_com_filename
+        fp_com_loc = "./temp_outputs/" + cur_exp_name + '_' + fp_com_filename
         k = 0
         axe = plt.subplot()
         index = range(0, len(rate_order))
@@ -317,7 +317,7 @@ def generate_aggregate_report(rate_to_timegran_to_methods_to_attacks_found_dfs,
             ax.set_xlabel('log exfil rate (MB/min)', fontsize=25)
             ax.legend()
 
-        f1_vs_exfil_rate_filname = "./temp_outputs/" + str(timegan) + "_f1_vs_exfil_rate.png"
+        f1_vs_exfil_rate_filname = "./temp_outputs/" + cur_exp_name + '_' + str(timegan) + "_f1_vs_exfil_rate.png"
         fig.savefig(f1_vs_exfil_rate_filname)
 
         sections.append(exfil_vs_f1_sec.render(
