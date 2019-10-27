@@ -51,8 +51,17 @@ def dlp_pipeline():
     pass
 
 def run_decanter(training_log, testing_log):
-    out = subprocess.check_output(['python', 'dlp_stuff/decanter/main.py', '-t', training_log, '-T', testing_log])
-    print out
+    process = subprocess.Popen(['python', 'dlp_stuff/decanter/main.py', '-t', training_log, '-T', testing_log],
+                                  stdout=subprocess.PIPE)
+    # from https://www.endpoint.com/blog/2015/01/28/getting-realtime-output-using-python:
+    while True:
+        output = process.stdout.readline()
+        if output == '' and process.poll() is not None:
+            break
+        if output:
+            print output.strip()
+    return_code = process.poll()
+    print return_code
 
 def path_to_label(path):
     label = 'physical:/'

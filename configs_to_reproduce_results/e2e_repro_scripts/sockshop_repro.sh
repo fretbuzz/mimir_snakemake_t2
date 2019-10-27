@@ -46,7 +46,7 @@ then
 
   sleep 60
 
-  sudo minikube stop
+  sudo minikube stop || true
 
 fi
 

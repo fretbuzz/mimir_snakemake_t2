@@ -16,13 +16,12 @@ def parse_config(config_file_pth):
         config_file = json.loads(f.read(), object_pairs_hook=OrderedDict)
 
         machine_ip = config_file["machine_ip"]
-        generate_pcaps_p = config_file["generate_pcaps_p"]
         e2e_script_to_follow = config_file["e2e_script_to_follow"]
         corresponding_local_directory = config_file["corresponding_local_directory"]
         remote_server_key = config_file["remote_server_key"]
         user = config_file["user"]
 
-    return machine_ip, generate_pcaps_p, e2e_script_to_follow, corresponding_local_directory, remote_server_key, user
+    return machine_ip, e2e_script_to_follow, corresponding_local_directory, remote_server_key, user
 
 def sendline_and_wait_responses(sh, cmd_str, timeout=5, extra_rec=False):
     sh.sendline(cmd_str)
@@ -155,10 +154,9 @@ def retrieve_relevant_files_from_cloud(sh, s, sftp, local_directory, data_was_up
     s.download(file_or_directory=dir_with_exp_graphs, local=local_directory)
 
 
-def run_experiment(config_file_pth, only_retrieve):
+def run_experiment(config_file_pth, only_retrieve, upload_data, only_process):
     # step 1: parse the config file
-    machine_ip, generate_pcaps_p, e2e_script_to_follow, corresponding_local_directory, remote_server_key, user = parse_config(config_file_pth)
-    print "generate_pcaps_p",generate_pcaps_p, not generate_pcaps_p
+    machine_ip, e2e_script_to_follow, corresponding_local_directory, remote_server_key, user = parse_config(config_file_pth)
 
     # step 2: create ssh session on the remote device
     s = None
@@ -189,14 +187,14 @@ def run_experiment(config_file_pth, only_retrieve):
         # step 4: call the actual e2e script
         # if necessary, bypass pcap/data collection in the e2e script
         e2e_script_start_cmd = ". ../configs_to_reproduce_results/e2e_repro_scripts/" + e2e_script_to_follow
-        if not generate_pcaps_p:
+        if upload_data and not only_process:
             print "uploading_data...."
             #sftp = pwnlib.tubes.ssh.process(['sftp', '-i', '~/Dropbox/cloudlab.pem', 'jsev@c240g5-110215.wisc.cloudlab.us'])
             upload_data_to_remote_machine(sh, s, None, corresponding_local_directory)
+        if upload_data or only_process:
             e2e_script_start_cmd += ' --skip_pcap'
             #sftp.write('exit')
-        print "calling_e2e_script_now....", "not generate_pcaps_p", not generate_pcaps_p
-        print "e2e_script_start_cmd",e2e_script_start_cmd
+        print "e2e_script_start_cmd", e2e_script_start_cmd
         e2e_script_start_cmd += '; exit'
         #exit(2)
         sendline_and_wait_responses(sh_screen, e2e_script_start_cmd, timeout=5400)
@@ -207,8 +205,8 @@ def run_experiment(config_file_pth, only_retrieve):
     # NOTE: what should be pulled depends on what (if anything) was uploaded
     #print "start sftp..."
     #sftp = pwnlib.tubes.ssh.process(['sftp', '-i', '~/Dropbox/cloudlab.pem', 'jsev@c240g5-110215.wisc.cloudlab.us'])
-    retrieve_relevant_files_from_cloud(sh, s, None, corresponding_local_directory, data_was_uploaded=(not generate_pcaps_p),
-                                       machine_ip=machine_ip)
+    retrieve_relevant_files_from_cloud(sh, s, None, corresponding_local_directory,
+                                       data_was_uploaded=(upload_data and not only_process), machine_ip=machine_ip)
     #sftp.write('exit')
 
     # Step 6: maybe run the log file checker to make sure everything is legit?
@@ -221,6 +219,12 @@ if __name__=="__main__":
                         help='this is the configuration file used to run to loop through several experiments')
     parser.add_argument('--only_retrieve', dest='only_retrieve',
                         default=False, action='store_true')
+    parser.add_argument('--upload_data', dest='upload_data',
+                        default=False, action='store_true',
+                        help='Should it upload the pcaps instead of generating them')
+    parser.add_argument('--only_process', dest='only_process',
+                        default=False, action='store_true',
+                        help='Do not upload pcaps-- only process')
     args = parser.parse_args()
 
     if not args.config_json:
@@ -228,11 +232,12 @@ if __name__=="__main__":
         #config_file_pth = "./remote_experiment_configs/sockshop_scale_take1.json"
         #config_file_pth = "./remote_experiment_configs/hipsterStore_scale_take1.json"
 
-        #config_file_pth = "./remote_experiment_configs/trials/sockshop_scale_trial_1_rep1.json"
+        config_file_pth = "./remote_experiment_configs/trials/sockshop_scale_trial_1_rep1.json"
         #config_file_pth = "./remote_experiment_configs/trials/sockshop_scale_trial_1_rep2.json"
         #config_file_pth = "./remote_experiment_configs/trials/sockshop_scale_trial_1_rep3.json"
-        config_file_pth = "./remote_experiment_configs/sockshop_scale_newRepro.json"
+
+        ###config_file_pth = "./remote_experiment_configs/sockshop_scale_newRepro.json"
     else:
         config_file_pth = args.config_json
 
-    run_experiment(config_file_pth, args.only_retrieve)
+    run_experiment(config_file_pth, args.only_retrieve, args.upload_data, args.only_process)
