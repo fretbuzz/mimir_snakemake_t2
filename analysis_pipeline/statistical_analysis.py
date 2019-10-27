@@ -98,9 +98,9 @@ class single_model_stats_pipeline():
 
         # make heatmaps so I can see which features are contributing
         current_heatmap_val_path = self.base_output_name + train_test + 'coef_val_heatmap_' + str(time_gran) + '.png'
-        local_heatmap_val_path = 'temp_outputs/' + train_test + 'heatmap_coef_val_at_' +  str(time_gran) + '.png'
+        local_heatmap_val_path = 'temp_outputs/' + train_test + self.recipes_used[0] +  '_heatmap_coef_val_at_' +  str(time_gran) + '.png'
         current_heatmap_path = self.base_output_name + train_test + 'coef_act_heatmap_' + str(time_gran) + '.png'
-        local_heatmap_path = 'temp_outputs/' + train_test + 'heatmap_coef_contribs_at_' +  str(time_gran) + '.png'
+        local_heatmap_path = 'temp_outputs/' + train_test + + self.recipes_used[0] + '_heatmap_coef_contribs_at_' +  str(time_gran) + '.png'
 
         if training_p:
             coef_impact_df, raw_feature_val_df = generate_heatmap.generate_covariate_heatmap(self.coef_dict, self.X_train, self.exfil_paths_train)
