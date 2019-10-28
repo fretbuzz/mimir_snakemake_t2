@@ -1574,7 +1574,7 @@ def sanity_check_locust_performance(locust_csv_file):
         total_requests += int(method_to_requests[method])
         total_fails += int(method_to_fails[method])
     try:
-        fail_percentage = float(total_fails) / float(total_requests + total_fails)
+        fail_percentage = float(total_fails) / float(total_requests)
     except ZeroDivisionError:
         fail_percentage = 0
     return total_requests, total_fails, fail_percentage

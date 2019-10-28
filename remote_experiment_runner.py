@@ -10,6 +10,7 @@ from collections import OrderedDict
 import pwnlib.tubes.ssh
 from pwn import *
 import time
+import pysftp
 
 def parse_config(config_file_pth):
     with open(config_file_pth, 'r') as f:
@@ -61,9 +62,30 @@ def upload_data_to_remote_machine(sh, s, sftp, local_directory):
             print cur_file
             # we want to upload every file in this directory (but NOT the subdirectories!)
             print "cur_file (local)",cur_file, "cur remote file ", cur_dir + '/' + file
-            s.upload(cur_file, remote=cur_dir + '/' + file)
+            #s.upload(cur_file, remote=cur_dir + '/' + file)
+
             #sftp_upload_cmd = 'put ' + cur_file + ' ' + cur_dir + '/' + file
             #sendline_and_wait_responses(sftp, sftp_upload_cmd)
+            '''
+            # TODO: let's add some code with zipping and unzipping the file in question...
+            # first let's compress the file
+            tar_cmds = ['tar', '-czvf', cur_file + '.gz', cur_file]
+            print "tar-ing the file...", tar_cmds
+            # if tar-ed file does NOT already exist, then create it...
+            if not os.path.exists(cur_file + '.gz') and '.gz' not in cur_file:
+                tar_out = subprocess.check_output(tar_cmds)
+                print "tar_out", tar_out
+
+            # then let's send the zipped file
+            print "uploading tar-ed file..."
+            with sftp.cd(cur_dir + '/'):  # temporarily chdir to public
+                sftp.put(cur_file + '.gz')  # upload file to public/ on remote
+
+            # finally, let's unzip the zipped file
+            unzip_cmd = 'tar -xvf ' + cur_dir + '/' + cur_file.split('/')[-1] + '.gz'
+            print "unzip_cmd", unzip_cmd
+            sendline_and_wait_responses(sh, unzip_cmd)
+            '''
 
     print "all done uploading files! (hopefully it worked, because I haven't actually tested this function!)"
 
@@ -187,7 +209,8 @@ def run_experiment(config_file_pth, only_retrieve, upload_data, only_process):
     sendline_and_wait_responses(sh, prelim_commands, timeout=5)
     sendline_and_wait_responses(sh_screen, prelim_commands, timeout=5)
 
-    sftp = None
+    sftp =  pysftp.Connection(machine_ip, username=user, private_key=remote_server_key)
+    #sftp = None
     ''''
     sftp_command = ['sftp', '-i', '~/Dropbox/cloudlab.pem', user + '@' + machine_ip]
     print "sftp_command", sftp_command
@@ -249,7 +272,7 @@ if __name__=="__main__":
         #config_file_pth = "./remote_experiment_configs/trials/sockshop_scale_trial_1_rep2.json"
         #config_file_pth = "./remote_experiment_configs/trials/sockshop_scale_trial_1_rep3.json"
 
-        ###config_file_pth = "./remote_experiment_configs/sockshop_scale_newRepro.json"
+        #config_file_pth = "./remote_experiment_configs/sockshop_scale_newRepro.json"
     else:
         config_file_pth = args.config_json
 
