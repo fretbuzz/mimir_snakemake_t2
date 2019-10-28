@@ -50,16 +50,20 @@ def upload_data_to_remote_machine(sh, s, sftp, local_directory):
     #exit(1)
 
     for subdir, dirs, files in os.walk(local_directory):
-        cur_dir = "/mydata/mimir_v2/experiment_coordinator/experimental_data/" + subdir[-1]
+        print "subdir", subdir #, subdir[-1]
+        cur_dir = "/mydata/mimir_v2/experiment_coordinator/experimental_data/" + subdir.split('/')[-1]
         create_dir_cmd = "mkdir " + cur_dir
+        print "create_dir_cmd", create_dir_cmd
         sendline_and_wait_responses(sh, create_dir_cmd)
 
         for file in files:
             cur_file = os.path.join(subdir, file)
             print cur_file
             # we want to upload every file in this directory (but NOT the subdirectories!)
+            print "cur_file (local)",cur_file, "cur remote file ", cur_dir + '/' + file
             s.upload(cur_file, remote=cur_dir + '/' + file)
-            ###sendline_and_wait_responses(sftp, 'put ' + cur_dir + '/' + file + ' ' + cur_file)
+            #sftp_upload_cmd = 'put ' + cur_file + ' ' + cur_dir + '/' + file
+            #sendline_and_wait_responses(sftp, sftp_upload_cmd)
 
     print "all done uploading files! (hopefully it worked, because I haven't actually tested this function!)"
 
@@ -183,14 +187,22 @@ def run_experiment(config_file_pth, only_retrieve, upload_data, only_process):
     sendline_and_wait_responses(sh, prelim_commands, timeout=5)
     sendline_and_wait_responses(sh_screen, prelim_commands, timeout=5)
 
+    sftp = None
+    ''''
+    sftp_command = ['sftp', '-i', '~/Dropbox/cloudlab.pem', user + '@' + machine_ip]
+    print "sftp_command", sftp_command
+    sftp = pwnlib.tubes.ssh.process(sftp_command)
+    print "sftp.recvline()", sftp.recvline()
+    print "sftp.recvline() (2nd)", sftp.recvline(timeout=5)
+    '''
+
     if not only_retrieve:
         # step 4: call the actual e2e script
         # if necessary, bypass pcap/data collection in the e2e script
         e2e_script_start_cmd = ". ../configs_to_reproduce_results/e2e_repro_scripts/" + e2e_script_to_follow
         if upload_data and not only_process:
             print "uploading_data...."
-            #sftp = pwnlib.tubes.ssh.process(['sftp', '-i', '~/Dropbox/cloudlab.pem', 'jsev@c240g5-110215.wisc.cloudlab.us'])
-            upload_data_to_remote_machine(sh, s, None, corresponding_local_directory)
+            upload_data_to_remote_machine(sh, s, sftp, corresponding_local_directory)
         if upload_data or only_process:
             e2e_script_start_cmd += ' --skip_pcap'
             #sftp.write('exit')
@@ -218,7 +230,8 @@ if __name__=="__main__":
     parser.add_argument('--config_json', dest='config_json', default=None,
                         help='this is the configuration file used to run to loop through several experiments')
     parser.add_argument('--only_retrieve', dest='only_retrieve',
-                        default=False, action='store_true')
+                        default=False, action='store_true',
+                        help='Does no computing activites on the remote host-- only downloads files')
     parser.add_argument('--upload_data', dest='upload_data',
                         default=False, action='store_true',
                         help='Should it upload the pcaps instead of generating them')
