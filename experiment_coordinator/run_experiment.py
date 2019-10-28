@@ -636,7 +636,7 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
     devnull = open(os.devnull, 'wb')  # disposing of stdout manualy
 
     client_ratio = []
-    total_succeeded_requests = 0
+    total_total_requests = 0
     total_failed_requests = 0
 
     if (traffic_type == "normal"):
@@ -761,7 +761,7 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
         #subprocess.call([locust_info_file + '_requests.csv', '>>', locust_info_file])
         #try:
         aggregate_locust_file(locust_info_file +'_requests.csv', locust_info_file + '_AGGREGATED')
-        succeeded_requests, failed_requests, fail_percentage = sanity_check_locust_performance(locust_info_file +'_requests.csv')
+        total_requests, failed_requests, fail_percentage = sanity_check_locust_performance(locust_info_file +'_requests.csv')
 
         try:
             os.remove(locust_info_file +'_requests.csv')
@@ -771,12 +771,12 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
         #except Exception as e:
         #    raise("exception_in_prepare_apps: " + e.output)
 
-        print "succeeded requests", succeeded_requests, 'failed_requests', failed_requests, "fail percentage", fail_percentage
-        total_succeeded_requests += int(succeeded_requests)
+        print "total_requests requests", total_requests, 'failed_requests', failed_requests, "fail percentage", fail_percentage
+        total_total_requests += int(total_requests)
         total_failed_requests += int(failed_requests)
 
         with open(locust_info_file, 'w') as f:
-            print >>f, "total_succeeded_requests", total_succeeded_requests, "total_failed_requests", total_failed_requests
+            print >>f, "total_total_requests", total_total_requests, "total_failed_requests", total_failed_requests
 
 
 
