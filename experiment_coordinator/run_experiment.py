@@ -527,7 +527,7 @@ def start_det_exfil_originator(exfil_paths, exfil_counter, originator_class, sel
         print "that exfiltration method was not recognized!"
 
 def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_config, exfil_paths, class_to_installer,
-                exfil_path_class_to_image, pod_config_log_cmds):
+                exfil_path_class_to_image):
 
     if app_name == "sockshop":
         #sockshop_setup.scale_sockshop.main(deployment_config['deployment_scaling'], deployment_config['autoscale_p'])
