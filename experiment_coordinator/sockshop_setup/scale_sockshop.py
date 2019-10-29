@@ -64,6 +64,17 @@ def scale_sockshop(deployment_scaling, autoscale_p):
         out = subprocess.check_output(["kubectl", "apply", "-f", "./sockshop_setup/hpa_configs/"])
         print out
 
+        ##################
+        # TODO: we need to take into account the min/max pods in each deployment as specified in the experiment configuration file
+
+        '''
+        # kubectl autoscale deployment php-apache --cpu-percent=50 --min=1 --max=10
+        out = subprocess.check_output(["kubectl", "autoscale", "deployment", php-apache, "--cpu-percent=" + 50, --min=1 --max=10])
+        print out
+        '''
+        ######################
+
+
         '''
         # NOTE the front-end microservice crashes fairly regularly... it's important that there's a couple more so one's always live
         delete_old_front_end = ["kubectl", "delete", "hpa", "front-end", "--namespace=sock-shop"]
