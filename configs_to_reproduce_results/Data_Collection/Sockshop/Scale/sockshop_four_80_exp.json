@@ -38,19 +38,19 @@
     "autoscale_p": true,
      "deployment_scaling": {
       "front-end": {
-        "max": 8,
+        "max": 6,
         "min": 2
       },
       "queue-master": {
-        "max": 6,
+        "max": 3,
         "min": 2
       },
       "shipping": {
-        "max": 6,
+        "max": 3,
         "min": 2
       },
       "orders": {
-        "max": 6,
+        "max": 3,
         "min": 2
       },
       "catalogue": {
@@ -58,7 +58,7 @@
         "min": 2
       },
       "cart": {
-        "max": 6,
+        "max": 2,
         "min": 2
       },
       "payment": {
