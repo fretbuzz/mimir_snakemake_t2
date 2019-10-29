@@ -8,15 +8,18 @@ def wait_until_pods_done(namespace):
         pods_ready_p = False
         while not pods_ready_p:
                 print "command to be used ", "kubectl get pods -n " + namespace
-                out = subprocess.check_output(["kubectl", "get", "pods", "-n", namespace])
-                print out
-                #out2 = subprocess.check_output(["kubectl", "get", "pods", "--all-namespaces"])
-                #print out2
-                statuses = parse_kubeclt_output(out, [1,2,3])
-                print statuses
-                pods_ready_p = check_if_pods_ready(statuses)
-                print namespace + " pods are ready: ", pods_ready_p
-                time.sleep(10)
+                try:
+                    out = subprocess.check_output(["kubectl", "get", "pods", "-n", namespace])
+                    print out
+                    #out2 = subprocess.check_output(["kubectl", "get", "pods", "--all-namespaces"])
+                    #print out2
+                    statuses = parse_kubeclt_output(out, [1,2,3])
+                    print statuses
+                    pods_ready_p = check_if_pods_ready(statuses)
+                    print namespace + " pods are ready: ", pods_ready_p
+                    time.sleep(10)
+                except:
+                    pass
         print namespace + " pods are ready!"
 
 def parse_kubeclt_output(kc_out, desired_chunks):
