@@ -205,76 +205,76 @@ def retrieve_files_in_directory(sh, s, cur_subdir, cur_local_subdir, subdir_name
         s.download(file_or_directory=cur_file, local=cur_local_subdir + file_in_subdir)
         # sendline_and_wait_responses(sftp, "get " + cur_file + " " + cur_local_subdir + file_in_subdir)
 
-def run_experiment(config_file_pth, only_retrieve, upload_data, only_process):
+def run_experiment(config_file_pth, only_retrieve, upload_data, only_process, run_only_log_checker):
     # step 1: parse the config file
     machine_ip, e2e_script_to_follow, corresponding_local_directory, remote_server_key, user = parse_config(config_file_pth)
 
-    # step 2: create ssh session on the remote device
-    s = None
-    while s == None:
-        try:
-            s = pwnlib.tubes.ssh.ssh(host=machine_ip,
-                keyfile=remote_server_key,
-                user=user)
-        except:
-            time.sleep(60)
-    sh = s.run('sh')
-    sh_screen = s.run('nice -11 screen -U')
-    print "shell on the remote device is started..."
+    if not run_only_log_checker:
+        # step 2: create ssh session on the remote device
+        s = None
+        while s == None:
+            try:
+                s = pwnlib.tubes.ssh.ssh(host=machine_ip,
+                    keyfile=remote_server_key,
+                    user=user)
+            except:
+                time.sleep(60)
+        sh = s.run('sh')
+        sh_screen = s.run('nice -11 screen -U')
+        print "shell on the remote device is started..."
 
-    # step 3: call the preliminary commands that sets up the shell correctly
-    prelim_commands = "cd /mydata; export MINIKUBE_HOME=/mydata; " \
-    "sudo chown jsev /mydata; " \
-    "git clone https://github.com/fretbuzz/mimir_v2.git; "\
-    "cd ./mimir_v2/experiment_coordinator/; " \
-    "PATH=$PATH:/opt/bro/bin/; " \
-    "sudo chown -R $USER $MINIKUBE_HOME/.minikube; \
-    sudo chown -R $USER $HOME/.config; ls"
+        # step 3: call the preliminary commands that sets up the shell correctly
+        prelim_commands = "cd /mydata; export MINIKUBE_HOME=/mydata; " \
+        "sudo chown jsev /mydata; " \
+        "git clone https://github.com/fretbuzz/mimir_v2.git; "\
+        "cd ./mimir_v2/experiment_coordinator/; " \
+        "PATH=$PATH:/opt/bro/bin/; " \
+        "sudo chown -R $USER $MINIKUBE_HOME/.minikube; \
+        sudo chown -R $USER $HOME/.config; ls"
 
-    sendline_and_wait_responses(sh, prelim_commands, timeout=5)
-    sendline_and_wait_responses(sh_screen, prelim_commands, timeout=5)
+        sendline_and_wait_responses(sh, prelim_commands, timeout=5)
+        sendline_and_wait_responses(sh_screen, prelim_commands, timeout=5)
 
-    sftp =  pysftp.Connection(machine_ip, username=user, private_key=remote_server_key)
-    #sftp = None
-    ''''
-    sftp_command = ['sftp', '-i', '~/Dropbox/cloudlab.pem', user + '@' + machine_ip]
-    print "sftp_command", sftp_command
-    sftp = pwnlib.tubes.ssh.process(sftp_command)
-    print "sftp.recvline()", sftp.recvline()
-    print "sftp.recvline() (2nd)", sftp.recvline(timeout=5)
-    '''
+        sftp =  pysftp.Connection(machine_ip, username=user, private_key=remote_server_key)
+        #sftp = None
+        ''''
+        sftp_command = ['sftp', '-i', '~/Dropbox/cloudlab.pem', user + '@' + machine_ip]
+        print "sftp_command", sftp_command
+        sftp = pwnlib.tubes.ssh.process(sftp_command)
+        print "sftp.recvline()", sftp.recvline()
+        print "sftp.recvline() (2nd)", sftp.recvline(timeout=5)
+        '''
 
-    if not only_retrieve:
-        # step 4: call the actual e2e script
-        # if necessary, bypass pcap/data collection in the e2e script
-        e2e_script_start_cmd = ". ../configs_to_reproduce_results/e2e_repro_scripts/" + e2e_script_to_follow
-        if upload_data and not only_process:
-            print "uploading_data...."
-            upload_data_to_remote_machine(sh, s, sftp, corresponding_local_directory)
-        if upload_data or only_process:
-            e2e_script_start_cmd += ' --skip_pcap'
-            #sftp.write('exit')
-        print "e2e_script_start_cmd", e2e_script_start_cmd
-        e2e_script_start_cmd += '; exit'
-        #exit(2)
-        sendline_and_wait_responses(sh_screen, e2e_script_start_cmd, timeout=5400)
+        if not only_retrieve:
+            # step 4: call the actual e2e script
+            # if necessary, bypass pcap/data collection in the e2e script
+            e2e_script_start_cmd = ". ../configs_to_reproduce_results/e2e_repro_scripts/" + e2e_script_to_follow
+            if upload_data and not only_process:
+                print "uploading_data...."
+                upload_data_to_remote_machine(sh, s, sftp, corresponding_local_directory)
+            if upload_data or only_process:
+                e2e_script_start_cmd += ' --skip_pcap'
+                #sftp.write('exit')
+            print "e2e_script_start_cmd", e2e_script_start_cmd
+            e2e_script_start_cmd += '; exit'
+            #exit(2)
+            sendline_and_wait_responses(sh_screen, e2e_script_start_cmd, timeout=5400)
 
-    #return ## TODO<--- remove this in the future!!!
+        #return ## TODO<--- remove this in the future!!!
 
-    # Step 5: Pull the relevant data to store locally
-    # NOTE: what should be pulled depends on what (if anything) was uploaded
-    #print "start sftp..."
-    #sftp = pwnlib.tubes.ssh.process(['sftp', '-i', '~/Dropbox/cloudlab.pem', 'jsev@c240g5-110215.wisc.cloudlab.us'])
-    retrieve_relevant_files_from_cloud(sh, s, None, corresponding_local_directory,
-                                       data_was_uploaded=(upload_data and not only_process), machine_ip=machine_ip)
-    #sftp.write('exit')
+        # Step 5: Pull the relevant data to store locally
+        # NOTE: what should be pulled depends on what (if anything) was uploaded
+        #print "start sftp..."
+        #sftp = pwnlib.tubes.ssh.process(['sftp', '-i', '~/Dropbox/cloudlab.pem', 'jsev@c240g5-110215.wisc.cloudlab.us'])
+        retrieve_relevant_files_from_cloud(sh, s, None, corresponding_local_directory,
+                                           data_was_uploaded=(upload_data and not only_process), machine_ip=machine_ip)
+        #sftp.write('exit')
 
     # Step 6: maybe run the log file checker to make sure everything is legit?
-    # TODO (what it says above): do this at a later point in time (there's already a ticket on the kanban board)
-    # Okay, let's try to actually do this now...
-    # PLAN: (1) call log checker
-    # (2) add flag for only log checker
-    # (3) beef up log checker
+    # PLAN: (1) call log checker [done]
+    # (2) add flag for only log checker [done]
+    # (3) beef up log checker [done]
+    log_checker.main(exp_parent_directory=corresponding_local_directory)
 
 if __name__=="__main__":
     print "RUNNING"
@@ -290,7 +290,11 @@ if __name__=="__main__":
                         help='Should it upload the pcaps instead of generating them')
     parser.add_argument('--only_process', dest='only_process',
                         default=False, action='store_true',
-                        help='Do not generator or upload pcaps-- only process pcaps *already* on the device')
+                        help='Do not generate or upload pcaps-- start at processing pcaps *already* on the device')
+    parser.add_argument('--run_only_log_checker', dest='run_only_log_checker',
+                        default=False, action='store_true',
+                        help='Do not generator pcaps, upload pcaps, process pcaps, or retrieve pcaps -- only run the '
+                             'log checker on the data already on the local device')
     args = parser.parse_args()
 
     if not args.config_json:
@@ -309,4 +313,4 @@ if __name__=="__main__":
     else:
         config_file_pth = args.config_json
 
-    run_experiment(config_file_pth, args.only_retrieve, args.upload_data, args.only_process)
+    run_experiment(config_file_pth, args.only_retrieve, args.upload_data, args.only_process, args.run_only_log_checker)
