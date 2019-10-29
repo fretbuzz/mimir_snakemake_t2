@@ -1,0 +1,9 @@
+{
+  "machine_ip": "c240g5-110105.wisc.cloudlab.us",
+  "e2e_script_to_follow": "wordpress_repro.sh",
+  "corresponding_local_directory": "/Volumes/exM2/new_experimental_data/wordpress_scale_trial1",
+
+  "remote_server_key": "/Users/jseverin/Dropbox/cloudlab.pem",
+  "user": "jsev",
+  "return_local_data_only": true
+}

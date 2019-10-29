@@ -260,7 +260,7 @@ if __name__=="__main__":
                         help='Should it upload the pcaps instead of generating them')
     parser.add_argument('--only_process', dest='only_process',
                         default=False, action='store_true',
-                        help='Do not upload pcaps-- only process')
+                        help='Do not generator or upload pcaps-- only process pcaps *already* on the device')
     args = parser.parse_args()
 
     if not args.config_json:
@@ -268,11 +268,13 @@ if __name__=="__main__":
         #config_file_pth = "./remote_experiment_configs/sockshop_scale_take1.json"
         #config_file_pth = "./remote_experiment_configs/hipsterStore_scale_take1.json"
 
-        config_file_pth = "./remote_experiment_configs/trials/sockshop_scale_trial_1_rep1.json"
+        #config_file_pth = "./remote_experiment_configs/trials/sockshop_scale_trial_1_rep1.json"
         #config_file_pth = "./remote_experiment_configs/trials/sockshop_scale_trial_1_rep2.json"
         #config_file_pth = "./remote_experiment_configs/trials/sockshop_scale_trial_1_rep3.json"
 
         #config_file_pth = "./remote_experiment_configs/sockshop_scale_newRepro.json"
+
+        config_file_pth = "./remote_experiment_configs/wordpress_scale_trail_1.json"
     else:
         config_file_pth = args.config_json
 
