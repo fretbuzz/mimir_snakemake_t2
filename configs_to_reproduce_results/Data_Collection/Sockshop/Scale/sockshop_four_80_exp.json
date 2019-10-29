@@ -36,38 +36,38 @@
 
   "Deployment": {
     "autoscale_p": true,
-    "deployment_scaling": {
+     "deployment_scaling": {
       "front-end": {
-        "max": 6,
-        "min": 6
+        "max": 8,
+        "min": 2
       },
       "queue-master": {
-        "max": 3,
-        "min": 3
+        "max": 6,
+        "min": 2
       },
       "shipping": {
-        "max": 3,
-        "min": 3
+        "max": 6,
+        "min": 2
       },
       "orders": {
-        "max": 3,
-        "min": 3
+        "max": 6,
+        "min": 2
       },
       "catalogue": {
         "max": 6,
-        "min": 6
+        "min": 2
       },
       "cart": {
-        "max": 2,
+        "max": 6,
         "min": 2
       },
       "payment": {
         "max": 6,
-        "min": 6
+        "min": 2
       },
       "user": {
         "max": 6,
-        "min": 6
+        "min": 2
       }
     }
   }

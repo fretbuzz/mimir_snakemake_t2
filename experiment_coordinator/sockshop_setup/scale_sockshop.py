@@ -61,19 +61,30 @@ def scale_sockshop(deployment_scaling, autoscale_p):
         print out
         '''
 
+        ##################
+        # we need to take into account the min/max pods in each deployment as specified in the experiment configuration file
+        # step 1: iterate through the hpa files and see if they correspond to any of the services we have scaling info for
+        deploys = deployment_scaling.keys()
+        hpa_files = os.listdir('./sockshop_setup/hpa_configs/')
+        for hpa_file in hpa_files:
+            for deploy in deploys:
+                if hpa_file == deploy + '-hsc.yaml':
+                    # step 2: switch the values in the files with the appropriate values from the config files
+                    sed_max_replica_cmd = "sed -i -E 's/maxReplicas: [0-9]*/maxReplicas: " + \
+                                          deployment_scaling[deploy]['max'] + "/' " + hpa_file
+                    sed_min_replica_cmd = "sed -i -E 's/minReplicas: [0-9]*/minReplicas: " + \
+                                          deployment_scaling[deploy]['min'] + "/' " + hpa_file
+                    print "sed_max_replica_cmd", sed_max_replica_cmd
+                    print "sed_min_replica_cmd", sed_min_replica_cmd
+                    out = subprocess.check_output(sed_max_replica_cmd)
+                    print "out for sed_max_replica_cmd:", out
+                    out = subprocess.check_output(sed_min_replica_cmd)
+                    print "out for sed_min_replica_cmd:", out
+
+                    break
         out = subprocess.check_output(["kubectl", "apply", "-f", "./sockshop_setup/hpa_configs/"])
         print out
-
-        ##################
-        # TODO: we need to take into account the min/max pods in each deployment as specified in the experiment configuration file
-
-        '''
-        # kubectl autoscale deployment php-apache --cpu-percent=50 --min=1 --max=10
-        out = subprocess.check_output(["kubectl", "autoscale", "deployment", php-apache, "--cpu-percent=" + 50, --min=1 --max=10])
-        print out
-        '''
         ######################
-
 
         '''
         # NOTE the front-end microservice crashes fairly regularly... it's important that there's a couple more so one's always live
