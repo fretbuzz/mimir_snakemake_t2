@@ -44,7 +44,7 @@ def find_logfile_paths(exp_parent_directory):
         for subdir, dirs, files in os.walk(exp_parent_directory):
             print "files in results directory", files
             for file in files:
-                if '.log' in file:
+                if subdir + '.log' in file:
                     log_file = file
                     break
 
