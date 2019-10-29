@@ -29,6 +29,11 @@ def is_there_problem_in_logfile(logfile_contents):
 
     return False
 
+def is_there_problem_in_deploy_log(deploy_log_contents):
+    # TODO: Look to see if there is 0/N pods ready for a particular deployment at each log point...
+
+    pass
+
 def find_logfile_paths(exp_parent_directory):
     log_files = []
     for subdir, dirs, files in os.walk(exp_parent_directory):
@@ -42,10 +47,12 @@ def find_logfile_paths(exp_parent_directory):
                 if '.log' in file:
                     log_file = file
                     break
+
+                # also want to find the deploy config files (look for _deploy_config in filename...)
         if log_file != '':
             log_files.append(log_file)
     return log_files
 
 if __name__ == "__main__":
-    logfile_name = "/Users/jseverin/Documents/sockshop_scale_test_trial" # TODO<- put it here...
-    main(logfile_name)
+    exp_directory = "/Users/jseverin/Documents/sockshop_scale_test_trial" # TODO<- put it here...
+    main(exp_directory)

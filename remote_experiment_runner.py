@@ -11,6 +11,7 @@ import pwnlib.tubes.ssh
 from pwn import *
 import time
 import pysftp
+import log_checker
 
 def parse_config(config_file_pth):
     with open(config_file_pth, 'r') as f:
@@ -150,9 +151,15 @@ def retrieve_relevant_files_from_cloud(sh, s, sftp, local_directory, data_was_up
                 print "cur_local_file", cur_local_file
                 s.download(file_or_directory=cur_file, local=cur_local_file)
                 #sendline_and_wait_responses(sftp, "get " + cur_file + " " + cur_local_file)
+
+        # need to recover the debug directory too...
+        retrieve_files_in_directory(sh, s, cur_subdir, cur_local_subdir, 'debug')
+
         # we should always recover the actual results...
         # step (4): make sure there's a nested results subdirectory
         try:
+            retrieve_files_in_directory(sh, s, cur_subdir, cur_local_subdir, 'results')
+            '''
             cur_subdir += 'results/'
             cur_local_subdir = cur_local_subdir + '/results/'
             if not os.path.exists(cur_local_subdir):
@@ -170,7 +177,7 @@ def retrieve_relevant_files_from_cloud(sh, s, sftp, local_directory, data_was_up
                 cur_file = cur_subdir + file_in_subdir
                 s.download(file_or_directory=cur_file, local=cur_local_subdir + file_in_subdir)
                 #sendline_and_wait_responses(sftp, "get " + cur_file + " " + cur_local_subdir + file_in_subdir)
-
+            '''
         except:
             print "results are not present for " + subdir + ' on ' + str(machine_ip)
 
@@ -179,6 +186,24 @@ def retrieve_relevant_files_from_cloud(sh, s, sftp, local_directory, data_was_up
     dir_with_exp_graphs = '/mydata/mimir_v2/analysis_pipeline/multilooper_outs/'
     s.download(file_or_directory=dir_with_exp_graphs, local=local_directory)
 
+def retrieve_files_in_directory(sh, s, cur_subdir, cur_local_subdir, subdir_name):
+    cur_subdir += subdir_name + '/'
+    cur_local_subdir = cur_local_subdir + '/' + subdir_name + '/'
+    if not os.path.exists(cur_local_subdir):
+        os.makedirs(cur_local_subdir)
+    # step (4.5): get a list of all the generated results files
+    get_files_in_subdir = "ls -p " + cur_subdir + " | grep -v /"
+    sh.sendline(get_files_in_subdir)
+    files_in_subdir = []
+    line_rec = 'blahblahblah'
+    while line_rec != '':
+        line_rec = sh.recvline(timeout=2)
+        if line_rec != '':
+            files_in_subdir.append(line_rec.replace('$', '').strip())  # step (5): retrieve all the generated results
+    for file_in_subdir in files_in_subdir:
+        cur_file = cur_subdir + file_in_subdir
+        s.download(file_or_directory=cur_file, local=cur_local_subdir + file_in_subdir)
+        # sendline_and_wait_responses(sftp, "get " + cur_file + " " + cur_local_subdir + file_in_subdir)
 
 def run_experiment(config_file_pth, only_retrieve, upload_data, only_process):
     # step 1: parse the config file
@@ -246,6 +271,11 @@ def run_experiment(config_file_pth, only_retrieve, upload_data, only_process):
 
     # Step 6: maybe run the log file checker to make sure everything is legit?
     # TODO (what it says above): do this at a later point in time (there's already a ticket on the kanban board)
+    # Okay, let's try to actually do this now...
+    # PLAN: (1) call log checker
+    # (2) add flag for only log checker
+    # (3) beef up log checker
+
 if __name__=="__main__":
     print "RUNNING"
 
@@ -274,7 +304,8 @@ if __name__=="__main__":
 
         #config_file_pth = "./remote_experiment_configs/sockshop_scale_newRepro.json"
 
-        config_file_pth = "./remote_experiment_configs/wordpress_scale_trail_1.json"
+        #config_file_pth = "./remote_experiment_configs/wordpress_scale_trail_1.json"
+        config_file_pth = './remote_experiment_configs/sockshop_scale_test1.json'
     else:
         config_file_pth = args.config_json
 
