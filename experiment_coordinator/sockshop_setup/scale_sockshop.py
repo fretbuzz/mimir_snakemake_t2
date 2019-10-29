@@ -70,10 +70,10 @@ def scale_sockshop(deployment_scaling, autoscale_p):
             for deploy in deploys:
                 if hpa_file == deploy + '-hsc.yaml':
                     # step 2: switch the values in the files with the appropriate values from the config files
-                    sed_max_replica_cmd = "sed -i -E 's/maxReplicas: [0-9]*/maxReplicas: " + \
-                                          deployment_scaling[deploy]['max'] + "/' " + hpa_file
-                    sed_min_replica_cmd = "sed -i -E 's/minReplicas: [0-9]*/minReplicas: " + \
-                                          deployment_scaling[deploy]['min'] + "/' " + hpa_file
+                    sed_max_replica_cmd = ["sed", '-i', '-E', "s/maxReplicas: [0-9]*/maxReplicas: " + \
+                                          str(deployment_scaling[deploy]['max']) + '/', './sockshop_setup/hpa_configs/' + hpa_file]
+                    sed_min_replica_cmd = ["sed", "-i", "-E", "s/minReplicas: [0-9]*/minReplicas: " + \
+                                          str(deployment_scaling[deploy]['min']) + '/', './sockshop_setup/hpa_configs/' + hpa_file]
                     print "sed_max_replica_cmd", sed_max_replica_cmd
                     print "sed_min_replica_cmd", sed_min_replica_cmd
                     out = subprocess.check_output(sed_max_replica_cmd)
