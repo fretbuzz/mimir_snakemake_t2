@@ -50,6 +50,22 @@ CLIENT_RATIO_CYBER = [0.0328, 0.0255, 0.0178, 0.0142, 0.0119, 0.0112, 0.0144, 0.
 
 
 def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localhostip, exfil_p):
+    pod_config_file = experiment_name + '_pod_config' '_' + '.txt'
+    node_config_file = experiment_name + '_node_config' '_' + '.txt'
+    deploy_config_file = experiment_name + '_deploy_config' '_' + '.txt'
+    try:
+        os.remove(pod_config_file)
+    except:
+        print pod_config_file, "   ", "does not exist"
+    try:
+        os.remove(node_config_file)
+    except:
+        print node_config_file, "   ", "does not exist"
+    try:
+        os.remove(deploy_config_file)
+    except:
+        print deploy_config_file, "   ", "does not exist"
+
     # step (1) read in the config file
     with open(config_file.rstrip().lstrip()) as f:
         config_params = json.load(f)
@@ -138,6 +154,10 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
     except:
         setup_params = {}
 
+    pod_config_cmds = ['bash', './exp_support_scripts/kubernetes_pod_config.sh', pod_config_file,
+                       node_config_file, deploy_config_file]
+    out = subprocess.check_output( pod_config_cmds + ['--clear_files'])
+    print out
     if prepare_app_p:
         prepare_app(app_name, setup_params,  spec_port, spec_ip, config_params["Deployment"], exfil_paths,
                     class_to_installer, exfil_path_class_to_image)
@@ -184,26 +204,13 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
         out = subprocess.check_output(['bash', './exp_support_scripts/kubernetes_svc_config.sh', svc_config_file])
         print out
 
-        pod_config_file = experiment_name + '_pod_config' '_' + '.txt'
-        node_config_file = experiment_name + '_node_config' '_' + '.txt'
-        try:
-            os.remove(pod_config_file)
-        except:
-            print pod_config_file, "   ", "does not exist"
-        try:
-            os.remove(node_config_file)
-        except:
-            print node_config_file, "   ", "does not exist"
-        out = subprocess.check_output(['bash', './exp_support_scripts/kubernetes_pod_config.sh', pod_config_file, node_config_file])
-        print out
-
     # step (5) start load generator
     i = 0
     max_client_count = int( config_params["experiment"]["number_background_locusts"])
     thread.start_new_thread(generate_background_traffic, ((int(experiment_length)+2.4), max_client_count,
                 config_params["experiment"]["traffic_type"], config_params["experiment"]["background_locust_spawn_rate"],
                                                           config_params["application_name"], ip, port, experiment_name,
-                                                          sentinal_file_loc, prob_distro))
+                                                          sentinal_file_loc, prob_distro, pod_config_cmds))
 
     # step (4) setup testing infrastructure (i.e. tcpdump)
     for network_id, network_namespace in network_ids_to_namespaces.iteritems():
@@ -520,7 +527,7 @@ def start_det_exfil_originator(exfil_paths, exfil_counter, originator_class, sel
         print "that exfiltration method was not recognized!"
 
 def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_config, exfil_paths, class_to_installer,
-                exfil_path_class_to_image):
+                exfil_path_class_to_image, pod_config_log_cmds):
 
     if app_name == "sockshop":
         #sockshop_setup.scale_sockshop.main(deployment_config['deployment_scaling'], deployment_config['autoscale_p'])
@@ -631,7 +638,7 @@ def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_co
 #   time: total time for test. Will be subdivided into 24 smaller chunks to represent 1 hour each
 #   max_clients: Arg provided by user in parameters.py. Represents maximum number of simultaneous clients
 def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate, app_name, ip, port, experiment_name,
-                                sentinal_file_loc, prob_distro):
+                                sentinal_file_loc, prob_distro, pod_config_log_cmds):
     #minikube = get_IP()#subprocess.check_output(["minikube", "ip"]).rstrip()
     devnull = open(os.devnull, 'wb')  # disposing of stdout manualy
 
@@ -778,6 +785,7 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
         with open(locust_info_file, 'w') as f:
             print >>f, "total_total_requests", total_total_requests, "total_failed_requests", total_failed_requests
 
+        subprocess.Popen( pod_config_log_cmds )
 
 
 def get_IP(orchestrator):
