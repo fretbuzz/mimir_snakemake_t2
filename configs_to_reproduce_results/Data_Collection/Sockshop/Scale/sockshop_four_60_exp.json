@@ -61,6 +61,10 @@
         "max": 2,
         "min": 2
       },
+      "carts": {
+        "max": 2,
+        "min": 2
+      },
       "payment": {
         "max": 6,
         "min": 2
