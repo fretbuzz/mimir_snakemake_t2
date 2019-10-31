@@ -5,9 +5,9 @@
 bash ../configs_to_reproduce_results/kubernetes_setup_script.sh | tee kubernetes_setup.log;
 
 # then do wordpress-specific setup
-bash install_scripts/install_selenium_dependencies.sh
+bash install_scripts/install_selenium_dependencies.sh | tee wordpress_setup_log.txt;
 source ~/.bashrc # try this if it crashes again...
-bash ../configs_to_reproduce_results/setup_wordpress.sh
+bash ../configs_to_reproduce_results/setup_wordpress.sh | tee -a wordpress_setup_log.txt;
 MINIKUBE_IP=$(sudo minikube ip) # this theoretically ends whatever script is being used
 host=$(sudo minikube service wwwppp-wordpress --url | tail -n 1)
 WORDPRESS_PORT="$(echo $host | sed -e 's,^.*:,:,g' -e 's,.*:\([0-9]*\).*,\1,g' -e 's,[^0-9],,g')"
