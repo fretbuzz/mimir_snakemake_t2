@@ -45,6 +45,9 @@ sudo apt-get -y install docker-ce=17.06.0~ce-0~ubuntu
 eval $(sudo minikube docker-env)
 sudo docker pull nicolaka/netshoot
 
+eval $(sudo minikube docker-env)
+sudo docker pull nicolaka/netshoot
+
 ### then pip to handle the python dependencies
 curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
 sudo python get-pip.py
