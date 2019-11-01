@@ -853,7 +853,7 @@ def start_tcpdump(interface, network_namespace, tcpdump_time, filename, orchestr
 
     #print child.before, child.after
     print "###################"
-    sendline_and_wait_responses(sh, start_netshoot, timeout=6)
+    sendline_and_wait_responses(sh, start_netshoot, timeout=180)
     sendline_and_wait_responses(sh, switch_namespace, timeout=5)
 
     '''
