@@ -5,5 +5,5 @@ sudo minikube start --vm-driver=virtualbox --cpus=12 --memory=32000 --disk-size 
 
 sudo minikube addons enable heapster
 sudo minikube addons enable metrics-server
-$(sudo minikube docker-env)
+eval $(sudo minikube docker-env)
 sudo docker pull nicolaka/netshoot
