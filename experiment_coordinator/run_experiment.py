@@ -562,8 +562,9 @@ def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_co
         try:
             out = subprocess.check_output(prepare_cmds)
             print out
-        except Exception as e:
-            print "exception_in_prepare_apps: ", e
+        except subprocess.CalledProcessError as e:
+            #print "exception_in_prepare_apps: ", e
+            print "command '{}' return with error (code {}): {}".format(e.cmd, e.returncode, e.output)
 
     elif app_name == "atsea_store":
         pass
