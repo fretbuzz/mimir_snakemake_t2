@@ -107,6 +107,7 @@ def retrieve_relevant_files_from_cloud(sh, s, sftp, local_directory, data_was_up
         line_rec = sh.recvline(timeout=2)
         #print "line_rec", line_rec
         listed_subdirs = line_rec.split(' ')[1:]
+        #print "listed_subdirs",listed_subdirs
         listed_subdirs = [potential_subdir.rstrip().lstrip() for potential_subdir in listed_subdirs if potential_subdir != '' and \
                           potential_subdir != '/mydata/mimir_v2/experiment_coordinator/experimental_data/']
         subdirs.extend(listed_subdirs)
@@ -120,6 +121,7 @@ def retrieve_relevant_files_from_cloud(sh, s, sftp, local_directory, data_was_up
     # then, step (2): recover the relevant files from each subdirectory
     for subdir in subdirs:
         cur_subdir = subdir #"/mydata/mimir_v2/experiment_coordinator/experimental_data/" + subdir
+        print "cur_subdir",cur_subdir
         get_files_in_subdir = "ls -p " + cur_subdir + " | grep -v /"
 
         sh.sendline(get_files_in_subdir)
@@ -153,7 +155,10 @@ def retrieve_relevant_files_from_cloud(sh, s, sftp, local_directory, data_was_up
                 #sendline_and_wait_responses(sftp, "get " + cur_file + " " + cur_local_file)
 
         # need to recover the debug directory too...
-        retrieve_files_in_directory(sh, s, cur_subdir, cur_local_subdir, 'debug')
+        try:
+            retrieve_files_in_directory(sh, s, cur_subdir, cur_local_subdir, 'debug')
+        except:
+            print "debug not present for " + subdir + ' on ' + str(machine_ip)
 
         # we should always recover the actual results...
         # step (4): make sure there's a nested results subdirectory

@@ -388,7 +388,13 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
     #'''
     filename = experiment_name + '_' + 'bridge' + '_' # note: will need to redo this if I want to go
                                                                        # back to using Docker Swarm at some point
-    recover_pcap(orchestrator, filename + 'any' + '.pcap')
+    pcap_filename = filename + 'any' + '.pcap'
+    recover_pcap(orchestrator, pcap_filename)
+
+    # okay, now compress it
+    out = subprocess.check_output(['gzip', pcap_filename])
+    print "gzip_cmd_out", out
+
     ##  split tthe pcap
     ### DO NOT WANT TO SPLIT THE PCAP ACTUALLY
     #cmd_list = ["editcap", "-i " + str(split_pcap_interval), filename + 'any' + '.pcap', filename + 'any']
