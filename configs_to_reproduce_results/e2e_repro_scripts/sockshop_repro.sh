@@ -21,6 +21,14 @@ then
   # this should be applicable to everyone...
   bash ../configs_to_reproduce_results/kubernetes_setup_script.sh | tee kubernetes_setup.log;
 
+  sudo python -u run_experiment.py --no_exfil --prepare_app --config_file ../configs_to_reproduce_results/Data_Collection/Sockshop/Scale/sockshop_four_60_exp.json | tee sockshop_four_60.log;\
+
+  sleep 60
+
+  bash ../configs_to_reproduce_results/cycle_minikube.sh
+
+  sleep 120
+
   sudo python -u run_experiment.py --no_exfil --prepare_app --config_file ../configs_to_reproduce_results/Data_Collection/Sockshop/Scale/sockshop_four_160_exp.json | tee sockshop_four_160.log;\
   sleep 120
   sudo python -u run_experiment.py --no_exfil --config_file ../configs_to_reproduce_results/Data_Collection/Sockshop/Scale/sockshop_four_100_mk2_exp.json | tee sockshop_four_100_mk2.log;\
@@ -44,14 +52,6 @@ then
   sleep 120
 
   sudo python -u run_experiment.py --no_exfil --prepare_app --config_file ../configs_to_reproduce_results/Data_Collection/Sockshop/Scale/sockshop_four_40_exp.json | tee sockshop_four_40.log;\
-
-  sleep 60
-
-  bash ../configs_to_reproduce_results/cycle_minikube.sh
-
-  sleep 120
-
-  sudo python -u run_experiment.py --no_exfil --prepare_app --config_file ../configs_to_reproduce_results/Data_Collection/Sockshop/Scale/sockshop_four_60_exp.json | tee sockshop_four_60.log;\
 
   sleep 60
 
