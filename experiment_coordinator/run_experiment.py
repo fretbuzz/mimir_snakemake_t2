@@ -53,6 +53,7 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
     pod_config_file = experiment_name + '_pod_config' '_' + '.txt'
     node_config_file = experiment_name + '_node_config' '_' + '.txt'
     deploy_config_file = experiment_name + '_deploy_config' '_' + '.txt'
+    docker_cont_config_file = experiment_name + '_docker_pod_config' '_' + '.txt'
     try:
         os.remove(pod_config_file)
     except:
@@ -65,6 +66,10 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
         os.remove(deploy_config_file)
     except:
         print deploy_config_file, "   ", "does not exist"
+    try:
+        os.remove(docker_cont_config_file)
+    except:
+        print docker_cont_config_file, "   ", "does not exist"
 
     # step (1) read in the config file
     with open(config_file.rstrip().lstrip()) as f:
@@ -155,7 +160,7 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
         setup_params = {}
 
     pod_config_cmds = ['bash', './exp_support_scripts/kubernetes_pod_config.sh', pod_config_file,
-                       node_config_file, deploy_config_file]
+                       node_config_file, deploy_config_file, docker_cont_config_file]
     out = subprocess.check_output( pod_config_cmds + ['--clear_files'])
     print out
     if prepare_app_p:

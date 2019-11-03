@@ -220,7 +220,6 @@ def run_experiment(config_file_pth, only_retrieve, upload_data, only_process, ru
             except:
                 time.sleep(60)
         sh = s.run('sh')
-        sh_screen = s.run('nice -11 screen -U')
         print "shell on the remote device is started..."
 
         # step 3: call the preliminary commands that sets up the shell correctly
@@ -233,7 +232,6 @@ def run_experiment(config_file_pth, only_retrieve, upload_data, only_process, ru
         sudo chown -R $USER $HOME/.config; ls"
 
         sendline_and_wait_responses(sh, prelim_commands, timeout=5)
-        sendline_and_wait_responses(sh_screen, prelim_commands, timeout=5)
 
         sftp =  pysftp.Connection(machine_ip, username=user, private_key=remote_server_key)
         #sftp = None
@@ -258,6 +256,8 @@ def run_experiment(config_file_pth, only_retrieve, upload_data, only_process, ru
             print "e2e_script_start_cmd", e2e_script_start_cmd
             e2e_script_start_cmd += '; exit'
             #exit(2)
+            sh_screen = s.run('nice -11 screen -U')
+            sendline_and_wait_responses(sh_screen, prelim_commands, timeout=5)
             sendline_and_wait_responses(sh_screen, e2e_script_start_cmd, timeout=5400)
 
         #return ## TODO<--- remove this in the future!!!

@@ -37,6 +37,9 @@ def is_there_problem_in_logfile(logfile_contents):
         return True
     # Second thing to find: pulling the pcap in the middle of an experiment (so strange...)
     # TODO
+    # Third thing to find: make sure that netshoot started succesfully...
+    if 'Welcome to Netshoot!' not in logfile_contents:
+        return True
 
     return False
 
