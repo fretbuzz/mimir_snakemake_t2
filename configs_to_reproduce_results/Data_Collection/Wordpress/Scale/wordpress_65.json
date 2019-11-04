@@ -1,6 +1,6 @@
 {
     "application_name": "wordpress",
-    "experiment_name": "wordpress_mk22",
+    "experiment_name": "wordpress_65",
     "path_to_docker_machine_tls_certs":"/mydata/.minikube/certs",
     "experiment_length_sec": 10800,
 

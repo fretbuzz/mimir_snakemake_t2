@@ -7,3 +7,4 @@ analysis_pipeline/multilooper_outs/*
 experiment_coordinator/experimental_configs/*
 experiment_coordinator/cloudlab_exp_configs/*
 experiment_coordinator/cloudlab_temp_configs/*
+remote_experiment_configs/*
