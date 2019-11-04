@@ -105,11 +105,12 @@ def retrieve_relevant_files_from_cloud(sh, s, sftp, local_directory, data_was_up
     line_rec = 'blahblahblah'
     while line_rec != '':
         line_rec = sh.recvline(timeout=2)
-        #print "line_rec", line_rec
-        listed_subdirs = line_rec.split(' ')[1:]
-        #print "listed_subdirs",listed_subdirs
+        print "line_rec", line_rec
+        listed_subdirs = line_rec.split(' ')
+        print "listed_subdirs",listed_subdirs
         listed_subdirs = [potential_subdir.rstrip().lstrip() for potential_subdir in listed_subdirs if potential_subdir != '' and \
-                          potential_subdir != '/mydata/mimir_v2/experiment_coordinator/experimental_data/']
+                          potential_subdir != '/mydata/mimir_v2/experiment_coordinator/experimental_data/' and \
+                          potential_subdir != '$']
         subdirs.extend(listed_subdirs)
 
     # step (1.5): if local directory doesn't exist, then make it!

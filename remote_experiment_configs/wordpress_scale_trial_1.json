@@ -1,5 +1,5 @@
 {
-  "machine_ip": "c240g5-110227.wisc.cloudlab.us",
+  "machine_ip": "c220g5-110524.wisc.cloudlab.us",
   "e2e_script_to_follow": "wordpress_repro.sh",
   "corresponding_local_directory": "/Volumes/exM2/new_experimental_data/wordpress_scale_trial1",
 
