@@ -1,69 +1,88 @@
 ### WORDPRESS REPRODUCABILITY -- SCALE ###
 ## THIS SHOULD be all that I need to do to get the wordpress reproducibility thing going ##
 
-# should be applicable to everyone
-bash ../configs_to_reproduce_results/kubernetes_setup_script.sh | tee kubernetes_setup.log;
+if [ $# -gt 2 ]; then
+  echo "too many args";
+  exit 2;
+fi
 
-# then do wordpress-specific setup
-sudo bash install_scripts/install_selenium_dependencies.sh | tee wordpress_setup_log.txt;
-source ~/.bashrc # try this if it crashes again...
-bash ../configs_to_reproduce_results/setup_wordpress.sh | tee -a wordpress_setup_log.txt;
-MINIKUBE_IP=$(sudo minikube ip) # this theoretically ends whatever script is being used
-host=$(sudo minikube service wwwppp-wordpress --url | tail -n 1)
-WORDPRESS_PORT="$(echo $host | sed -e 's,^.*:,:,g' -e 's,.*:\([0-9]*\).*,\1,g' -e 's,[^0-9],,g')"
-# this part is done in the ../configs_to_reproduce_results/setup_wordpress.sh script
-#cd ./wordpress_setup/
-#python setup_wordpress.py $MINIKUBE_IP $WORDPRESS_PORT "hi"
-#cd ..
+skip_pcap=0
+if [ "$1" == "--skip_pcap" ]; then
+  skip_pcap=1
+fi
 
-# then run some expreiments
-sudo python -u run_experiment.py --no_exfil --prepare_app --config_file ../configs_to_reproduce_results/Data_Collection/Wordpress/Scale/wordpress_85.json | tee wordpress_85.log
+echo "skip_pcap $skip_pcap"
 
-## then cycle minikube/wordpress down/up
-bash ../configs_to_reproduce_results/cycle_minikube.sh
+if [ $skip_pcap -eq 0 ]
+then
+  # should be applicable to everyone
+  bash ../configs_to_reproduce_results/kubernetes_setup_script.sh | tee kubernetes_setup.log;
 
-sleep 120
+  # then do wordpress-specific setup
+  sudo bash install_scripts/install_selenium_dependencies.sh | tee wordpress_setup_log.txt;
+  source ~/.bashrc # try this if it crashes again...
+  bash ../configs_to_reproduce_results/setup_wordpress.sh | tee -a wordpress_setup_log.txt;
+  MINIKUBE_IP=$(sudo minikube ip) # this theoretically ends whatever script is being used
+  host=$(sudo minikube service wwwppp-wordpress --url | tail -n 1)
+  WORDPRESS_PORT="$(echo $host | sed -e 's,^.*:,:,g' -e 's,.*:\([0-9]*\).*,\1,g' -e 's,[^0-9],,g')"
+  # this part is done in the ../configs_to_reproduce_results/setup_wordpress.sh script
+  #cd ./wordpress_setup/
+  #python setup_wordpress.py $MINIKUBE_IP $WORDPRESS_PORT "hi"
+  #cd ..
 
-bash ../configs_to_reproduce_results/setup_wordpress.sh
-MINIKUBE_IP=$(sudo minikube ip) # this theoretically ends whatever script is being used
-host=$(sudo minikube service wwwppp-wordpress --url | tail -n 1)
-WORDPRESS_PORT="$(echo $host | sed -e 's,^.*:,:,g' -e 's,.*:\([0-9]*\).*,\1,g' -e 's,[^0-9],,g')"
+  # then run some expreiments
+  sudo python -u run_experiment.py --no_exfil --prepare_app --config_file ../configs_to_reproduce_results/Data_Collection/Wordpress/Scale/wordpress_85.json | tee wordpress_85.log
 
-sleep 120
+  ## then cycle minikube/wordpress down/up
+  bash ../configs_to_reproduce_results/cycle_minikube.sh
 
-# time for next batch of experiments
-sudo python -u run_experiment.py --no_exfil --config_file ../configs_to_reproduce_results/Data_Collection/Wordpress/Scale/wordpress_85_mk2.json | tee wordpress_85_mk2.log
+  sleep 120
 
-## then cycle minikube/wordpress down/up
-bash ../configs_to_reproduce_results/cycle_minikube.sh
+  bash ../configs_to_reproduce_results/setup_wordpress.sh
+  MINIKUBE_IP=$(sudo minikube ip) # this theoretically ends whatever script is being used
+  host=$(sudo minikube service wwwppp-wordpress --url | tail -n 1)
+  WORDPRESS_PORT="$(echo $host | sed -e 's,^.*:,:,g' -e 's,.*:\([0-9]*\).*,\1,g' -e 's,[^0-9],,g')"
 
-sleep 120
+  sleep 120
 
-bash ../configs_to_reproduce_results/setup_wordpress.sh
-MINIKUBE_IP=$(sudo minikube ip) # this theoretically ends whatever script is being used
-host=$(sudo minikube service wwwppp-wordpress --url | tail -n 1)
-WORDPRESS_PORT="$(echo $host | sed -e 's,^.*:,:,g' -e 's,.*:\([0-9]*\).*,\1,g' -e 's,[^0-9],,g')"
+  # time for next batch of experiments
+  sudo python -u run_experiment.py --no_exfil --config_file ../configs_to_reproduce_results/Data_Collection/Wordpress/Scale/wordpress_85_mk2.json | tee wordpress_85_mk2.log
 
-sleep 120
+  ## then cycle minikube/wordpress down/up
+  bash ../configs_to_reproduce_results/cycle_minikube.sh
 
-# time for next batch of experiments
+  sleep 120
 
-sudo python -u run_experiment.py --no_exfil --prepare_app --config_file ../configs_to_reproduce_results/Data_Collection/Wordpress/Scale/wordpress_65.json | tee wordpress_65.log
+  bash ../configs_to_reproduce_results/setup_wordpress.sh
+  MINIKUBE_IP=$(sudo minikube ip) # this theoretically ends whatever script is being used
+  host=$(sudo minikube service wwwppp-wordpress --url | tail -n 1)
+  WORDPRESS_PORT="$(echo $host | sed -e 's,^.*:,:,g' -e 's,.*:\([0-9]*\).*,\1,g' -e 's,[^0-9],,g')"
 
-## then cycle minikube/wordpress down/up
-bash ../configs_to_reproduce_results/cycle_minikube.sh
+  sleep 120
 
-sleep 120
+  # time for next batch of experiments
 
-bash ../configs_to_reproduce_results/setup_wordpress.sh
-MINIKUBE_IP=$(sudo minikube ip) # this theoretically ends whatever script is being used
-host=$(sudo minikube service wwwppp-wordpress --url | tail -n 1)
-WORDPRESS_PORT="$(echo $host | sed -e 's,^.*:,:,g' -e 's,.*:\([0-9]*\).*,\1,g' -e 's,[^0-9],,g')"
+  sudo python -u run_experiment.py --no_exfil --prepare_app --config_file ../configs_to_reproduce_results/Data_Collection/Wordpress/Scale/wordpress_65.json | tee wordpress_65.log
 
-sleep 120
+  ## then cycle minikube/wordpress down/up
+  bash ../configs_to_reproduce_results/cycle_minikube.sh
 
-# time for next batch of experiments
-sudo python -u run_experiment.py --no_exfil --config_file ../configs_to_reproduce_results/Data_Collection/Wordpress/Scale/wordpress_45.json | tee wordpress_45.log
+  sleep 120
+
+  bash ../configs_to_reproduce_results/setup_wordpress.sh
+  MINIKUBE_IP=$(sudo minikube ip) # this theoretically ends whatever script is being used
+  host=$(sudo minikube service wwwppp-wordpress --url | tail -n 1)
+  WORDPRESS_PORT="$(echo $host | sed -e 's,^.*:,:,g' -e 's,.*:\([0-9]*\).*,\1,g' -e 's,[^0-9],,g')"
+
+  sleep 120
+
+  # time for next batch of experiments
+  sudo python -u run_experiment.py --no_exfil --config_file ../configs_to_reproduce_results/Data_Collection/Wordpress/Scale/wordpress_45.json | tee wordpress_45.log
+
+  sleep 60
+
+  sudo minikube stop || true
+fi
 
 ## cycle it there.
 bash ../configs_to_reproduce_results/cycle_minikube.sh
