@@ -392,8 +392,9 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
     recover_pcap(orchestrator, pcap_filename)
 
     # okay, now compress it
-    out = subprocess.check_output(['gzip', pcap_filename])
-    print "gzip_cmd_out", out
+    if app_name == "wordpress":
+        out = subprocess.check_output(['gzip', pcap_filename])
+        print "gzip_cmd_out", out
 
     ##  split tthe pcap
     ### DO NOT WANT TO SPLIT THE PCAP ACTUALLY
