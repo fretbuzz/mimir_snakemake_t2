@@ -1,7 +1,7 @@
 {
   "cur_experiment_name": "wordpress_85",
 
-  "exp_config_file": "../experiment_coordinator/experimental_data/wordpress_mk24/wordpress_mk24_analysis.json",
+  "exp_config_file": "../experiment_coordinator/experimental_data/wordpress_85/wordpress_85_analysis.json",
   "netsec_policy": "None", 
 
   "make_edgefiles": true,
