@@ -66,6 +66,7 @@ def split_pcap(path, pcap_file, out_pcap_path, out_pcap_basename, interval):
     ## Notes (3/16): the cmd below is failing, which is breaking downstream functions...
 
     cmd_list = ["editcap", "-i " + str(interval), path + pcap_file, out_pcap_path + out_pcap_basename]
+    print "split_pcap_cmd_list", cmd_list
     out = subprocess.check_output(cmd_list)
     print out
     print "done"
