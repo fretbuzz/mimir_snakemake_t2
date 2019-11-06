@@ -68,11 +68,13 @@ def get_eval_results(model_config_file, list_of_eval_configs, update_config, use
                 ## TODO: probably wanna wrap in a call to multiprocess, to prevent problems with
                 ## memory size and using swap space...
                 if not ran_model_already:
+                    print "training only the model...."
                     run_analysis(model_config_file, no_tsl=no_tsl,
                                            decanter_configs=decanter_configs, live=live_p)
                     if update_config:
                         update_config_file(model_config_file, if_trained_model=True)
                     ran_model_already = True
+                    print "model was trained... getting ready to run the testing data..."
 
                 # run the analysis in several different process in parallel...
                 if analyze_in_parallel:

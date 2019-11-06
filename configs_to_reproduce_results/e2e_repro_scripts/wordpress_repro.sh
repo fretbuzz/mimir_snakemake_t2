@@ -25,10 +25,6 @@ then
   MINIKUBE_IP=$(sudo minikube ip) # this theoretically ends whatever script is being used
   host=$(sudo minikube service wwwppp-wordpress --url | tail -n 1)
   WORDPRESS_PORT="$(echo $host | sed -e 's,^.*:,:,g' -e 's,.*:\([0-9]*\).*,\1,g' -e 's,[^0-9],,g')"
-  # this part is done in the ../configs_to_reproduce_results/setup_wordpress.sh script
-  #cd ./wordpress_setup/
-  #python setup_wordpress.py $MINIKUBE_IP $WORDPRESS_PORT "hi"
-  #cd ..
 
   # then run some expreiments
   sudo python -u run_experiment.py --no_exfil --prepare_app --config_file ../configs_to_reproduce_results/Data_Collection/Wordpress/Scale/wordpress_85.json | tee wordpress_85.log
@@ -125,6 +121,9 @@ sleep 120
 cd ../analysis_pipeline/
 
 . ../configs_to_reproduce_results/install_mimir_depend_scripts.sh
-python -u generate_paper_graphs.py --config_json ../configs_to_reproduce_results/Data_Analysis/Wordpress/Scale/wordpress_scale.json | tee wordpress_scale.log
+
+mkdir multilooper_outs
+
+python -u generate_paper_graphs.py --config_json ../configs_to_reproduce_results/Data_Analysis/Wordpress/Scale/wordpress_scale.json | tee ./multilooper_outs/wordpress_scale.log
 
 ls

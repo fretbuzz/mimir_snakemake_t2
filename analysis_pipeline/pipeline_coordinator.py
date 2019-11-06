@@ -371,110 +371,6 @@ class multi_experiment_pipeline(object):
         self.rate_to_timegran_to_statistical_pipeline[cur_exfil_rate] = timegran_to_statistical_pipeline
         self.rate_to_time_gran_to_predicted_test[cur_exfil_rate] = stats_pipelines.time_gran_to_predicted_test
 
-    ## NOTE: I'm going to try to do this WITHOUT the call to multi-process here!!
-    def run_single_pipeline(self, rate_counter, calc_vals, skip_graph_injection, calc_ide=False,
-                            no_labeled_data=False, pretrained_cilium_model=None):
-
-        ## okay, how about we make this a new function??
-        prefix_for_inject_params = 'avg_exfil_' + str(self.avg_exfil_per_min[rate_counter]) + ':' + str(
-            self.exfil_per_min_variance[rate_counter]) + '_' #+  '_avg_pkt_' + str(self.avg_pkt_size[rate_counter]) + ':' + str(
-            #self.pkt_size_variance[rate_counter]) + '_'
-        cur_base_output_name = self.base_output_name + prefix_for_inject_params
-        cur_exfil_rate = self.avg_exfil_per_min[rate_counter]
-
-        out_q = multiprocessing.Queue()
-        cur_function_list = [copy.deepcopy(i) for i in self.function_list]
-
-        if self.pretrained_min_pipeline:
-            pretrained_min_pipeline = self.pretrained_min_pipeline
-        else:
-            pretrained_min_pipeline = None
-
-        args = [rate_counter, self.base_output_name, cur_function_list, self.exps_exfil_paths, self.exps_initiator_info,
-                self.calculate_z_scores_p, calc_vals, self.end_of_train_portions, self.training_exfil_paths,
-                self.testing_exfil_paths, self.skip_model_part, out_q,
-                self.ROC_curve_p, self.avg_exfil_per_min, self.exfil_per_min_variance, self.avg_pkt_size,
-                self.pkt_size_variance, skip_graph_injection, calc_ide,
-                self.drop_pairwise_features, self.perform_svcpair_sec_component, None,
-                self.ide_window_size, self.drop_infra_from_graph, prefix_for_inject_params, pretrained_min_pipeline,
-                pretrained_cilium_model, no_labeled_data]
-        p = multiprocessing.Process(
-            target=pipeline_one_exfil_rate,
-            args=args)
-        p.start()
-
-        list_time_gran_to_mod_zscore_df = out_q.get()
-        list_time_gran_to_zscore_dataframe = out_q.get()
-        list_time_gran_to_feature_dataframe = out_q.get()
-        list_time_gran_to_mod_zscore_df_training = out_q.get()
-        list_time_gran_to_mod_zscore_df_testing = out_q.get()
-        starts_of_testing = out_q.get()
-        cilium_allowed_svc_comm = out_q.get()
-        p.join()
-        ### end what could be potentially parallelized... (would need to switch the out_q.get()'s to shared variables tho...)
-
-        if cilium_allowed_svc_comm is not None:
-            self.cilium_allowed_svc_comm = cilium_allowed_svc_comm
-            self.perform_svcpair_sec_component = False
-
-        # step (2) :  store aggregated DFs for reference purposes
-        print "about_to_do_list_time_gran_to_mod_zscore_df"
-        time_gran_to_aggregate_mod_score_dfs = aggregate_dfs(list_time_gran_to_mod_zscore_df)
-        print "about_to_do_list_time_gran_to_feature_dataframe"
-        time_gran_to_aggreg_feature_dfs = aggregate_dfs(list_time_gran_to_feature_dataframe)
-
-        for time_gran, aggregate_feature_df in time_gran_to_aggreg_feature_dfs.iteritems():
-            aggregate_feature_df.to_csv(
-                cur_base_output_name + 'aggregate_feature_df_at_time_gran_of_' + str(time_gran) + '_sec.csv',
-                na_rep='?')
-        for time_gran, aggregate_feature_df in time_gran_to_aggregate_mod_score_dfs.iteritems():
-            aggregate_feature_df.to_csv(
-                cur_base_output_name + 'modz_feat_df_at_time_gran_of_' + str(time_gran) + '_sec.csv',
-                na_rep='?')
-
-        recipes_used = [recipe.base_exp_name for recipe in self.function_list]
-        for counter, recipe in enumerate(recipes_used):
-            name = '_'.join(recipe.split('_')[1:])
-            self.names.append(name)
-
-        stats_pipelines = single_rate_stats_pipeline(time_gran_to_aggregate_mod_score_dfs, self.ROC_curve_p,
-                                                     cur_base_output_name, recipes_used, self.skip_model_part,
-                                                     self.avg_exfil_per_min[rate_counter],
-                                                     self.avg_pkt_size[rate_counter],
-                                                     self.exfil_per_min_variance[rate_counter],
-                                                     self.pkt_size_variance[rate_counter],
-                                                     self.no_labeled_data)
-
-        stats_pipelines.run_statistical_pipeline(self.drop_pairwise_features, self.pretrained_min_pipeline,
-                                                 skip_heatmap_p = self.skip_heatmap_p, logistic_p=self.use_logistic)
-
-        if not self.no_labeled_data:
-            stats_pipelines.create_the_report(self.auto_open_pdfs, use_ts_lower=self.use_ts_lower)
-
-        self.single_rate_stats_pipelines[self.avg_exfil_per_min[rate_counter]] = stats_pipelines
-
-        list_of_optimal_fone_scores_at_this_exfil_rates, Xs, Ys, Xts, Yts, trained_models, list_of_attacks_found_dfs, \
-        list_of_attacks_found_training_df, experiment_info, time_gran_to_outtraffic, timegran_to_statistical_pipeline = \
-            stats_pipelines.generate_return_values()
-
-        optimal_fones = list_of_optimal_fone_scores_at_this_exfil_rates
-        timegran_to_methods_to_attacks_found_dfs = list_of_attacks_found_dfs
-        timegran_to_methods_toattacks_found_training_df = list_of_attacks_found_training_df
-
-        self.rates_to_experiment_info[self.avg_exfil_per_min[rate_counter]] = experiment_info
-        self.rate_to_timegran_to_methods_to_attacks_found_dfs[
-            self.avg_exfil_per_min[rate_counter]] = timegran_to_methods_to_attacks_found_dfs
-        self.rate_to_timegran_list_of_methods_to_attacks_found_training_df[
-            self.avg_exfil_per_min[rate_counter]] = timegran_to_methods_toattacks_found_training_df
-        self.list_of_optimal_fone_scores_at_exfil_rates.append(optimal_fones)
-
-        if self.avg_exfil_per_min[rate_counter] not in self.rate_to_time_gran_to_xs:
-            self.rate_to_time_gran_to_outtraffic[self.avg_exfil_per_min[rate_counter]] = []
-        self.rate_to_time_gran_to_outtraffic[self.avg_exfil_per_min[rate_counter]].append(time_gran_to_outtraffic)
-
-        self.rate_to_timegran_to_statistical_pipeline[cur_exfil_rate] = timegran_to_statistical_pipeline
-        self.rate_to_time_gran_to_predicted_test[cur_exfil_rate] = stats_pipelines.time_gran_to_predicted_test
-
     def train_multi_exfilrate_model(self):
         ## using this is the current plan I think: self.rate_to_timegran_to_statistical_pipeline
         ## steps: (1) go through, get all the vals with injected exfil paths
@@ -658,6 +554,8 @@ def inject_comm_graphs_at_single_exfil_rate(rate_counter, avg_exfil_per_min, exf
     p.start()
 
     exfil_rate = avg_exfil_per_min[rate_counter]
+    print "inject_comm_graphs_at_single_exfil_rate waiting for results on this exfil rate: " + str(exfil_rate)
+
     rate_to_list_time_gran_to_mod_zscore_df[exfil_rate] = out_q.get()
     rate_to_list_time_gran_to_zscore_dataframe[exfil_rate] = out_q.get()
     rate_to_list_time_gran_to_feature_dataframe[exfil_rate] = out_q.get()
@@ -667,7 +565,7 @@ def inject_comm_graphs_at_single_exfil_rate(rate_counter, avg_exfil_per_min, exf
     rate_to_cilium_allowed_svc_comm[exfil_rate] = out_q.get()
     rate_to_cur_base_output_name[exfil_rate] = cur_base_output_name
 
-    print "rate_to_list_time_gran_to_mod_zscore_df_at_end", rate_to_list_time_gran_to_mod_zscore_df
+    #print "rate_to_list_time_gran_to_mod_zscore_df_at_end", rate_to_list_time_gran_to_mod_zscore_df
 
     p.join()
 
@@ -755,6 +653,7 @@ def pipeline_one_exfil_rate(rate_counter, base_output_name, function_list, exps_
     out_q.put(list_time_gran_to_mod_zscore_df_testing)
     out_q.put(starts_of_testing)
     out_q.put(cilium_allowed_svc_comm)
+
 
 def determine_and_assign_exfil_paths(calc_vals, skip_model_part, function_list, goal_train_test_split,
                                      goal_attack_NoAttack_split_training, time_each_synthetic_exfil,

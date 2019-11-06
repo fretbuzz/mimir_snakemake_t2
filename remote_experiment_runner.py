@@ -67,6 +67,10 @@ def upload_data_to_remote_machine(sh, s, sftp, local_directory):
 
             #sftp_upload_cmd = 'put ' + cur_file + ' ' + cur_dir + '/' + file
             #sendline_and_wait_responses(sftp, sftp_upload_cmd)
+
+            with sftp.cd(cur_dir + '/'):  # temporarily chdir to public
+                sftp.put(cur_file)  # upload file to public/ on remote
+
             '''
             # TODO: let's add some code with zipping and unzipping the file in question...
             # first let's compress the file
@@ -119,80 +123,103 @@ def retrieve_relevant_files_from_cloud(sh, s, sftp, local_directory, data_was_up
 
     print "subdirs", subdirs
 
-    # then, step (2): recover the relevant files from each subdirectory
-    for subdir in subdirs:
-        cur_subdir = subdir #"/mydata/mimir_v2/experiment_coordinator/experimental_data/" + subdir
-        print "cur_subdir",cur_subdir
-        get_files_in_subdir = "ls -p " + cur_subdir + " | grep -v /"
-
-        sh.sendline(get_files_in_subdir)
-        files_in_subdir = []
-        line_rec = 'blahblahblah'
-        while line_rec != '':
-            line_rec = sh.recvline(timeout=2)
-            if line_rec != '':
-                files_in_subdir.append(line_rec.replace('$','').strip())
-        print "files_in_subdir", files_in_subdir
-
-        # step (2.5): if local directory for the current experiment does not exist, make it!
-        if cur_subdir[-1] != '/':
-            cur_subdir += '/'
-        if local_directory[-1] != '/':
-            local_directory += '/'
-        cur_local_subdir = local_directory + subdir.split('/')[-1]
-        print "cur_local_subdir",cur_local_subdir
-        if not os.path.exists(cur_local_subdir):
-            os.makedirs(cur_local_subdir)
-
-        # Step (3): grab the files generated during the processing
-        # note: if data was uploaded, then we don't need to recover the pcap/config files
-        if not data_was_uploaded:
-            for file_in_subdir in files_in_subdir:
-                cur_file = cur_subdir + file_in_subdir
-                print "cur_file", cur_file
-                cur_local_file = cur_local_subdir + '/' + file_in_subdir
-                print "cur_local_file", cur_local_file
-                s.download(file_or_directory=cur_file, local=cur_local_file)
-                #sendline_and_wait_responses(sftp, "get " + cur_file + " " + cur_local_file)
-
-        # need to recover the debug directory too...
-        try:
-            retrieve_files_in_directory(sh, s, cur_subdir, cur_local_subdir, 'debug')
-        except:
-            print "debug not present for " + subdir + ' on ' + str(machine_ip)
-
-        # we should always recover the actual results...
-        # step (4): make sure there's a nested results subdirectory
-        try:
-            retrieve_files_in_directory(sh, s, cur_subdir, cur_local_subdir, 'results')
-            '''
-            cur_subdir += 'results/'
-            cur_local_subdir = cur_local_subdir + '/results/'
-            if not os.path.exists(cur_local_subdir):
-                os.makedirs(cur_local_subdir)
-            # step (4.5): get a list of all the generated results files
+    if False:
+        # then, step (2): recover the relevant files from each subdirectory
+        for subdir in subdirs:
+            cur_subdir = subdir #"/mydata/mimir_v2/experiment_coordinator/experimental_data/" + subdir
+            print "cur_subdir",cur_subdir
             get_files_in_subdir = "ls -p " + cur_subdir + " | grep -v /"
+
             sh.sendline(get_files_in_subdir)
             files_in_subdir = []
             line_rec = 'blahblahblah'
             while line_rec != '':
                 line_rec = sh.recvline(timeout=2)
                 if line_rec != '':
-                    files_in_subdir.append(line_rec.replace('$', '').strip())        # step (5): retrieve all the generated results
-            for file_in_subdir in files_in_subdir:
-                cur_file = cur_subdir + file_in_subdir
-                s.download(file_or_directory=cur_file, local=cur_local_subdir + file_in_subdir)
-                #sendline_and_wait_responses(sftp, "get " + cur_file + " " + cur_local_subdir + file_in_subdir)
-            '''
-        except:
-            print "results are not present for " + subdir + ' on ' + str(machine_ip)
+                    files_in_subdir.append(line_rec.replace('$','').strip())
+            print "files_in_subdir", files_in_subdir
+
+            # step (2.5): if local directory for the current experiment does not exist, make it!
+            if cur_subdir[-1] != '/':
+                cur_subdir += '/'
+            if local_directory[-1] != '/':
+                local_directory += '/'
+            cur_local_subdir = local_directory + subdir.split('/')[-1]
+            print "cur_local_subdir",cur_local_subdir
+            if not os.path.exists(cur_local_subdir):
+                os.makedirs(cur_local_subdir)
+
+            # Step (3): grab the files generated during the processing
+            # note: if data was uploaded, then we don't need to recover the pcap/config files
+            if not data_was_uploaded:
+                for file_in_subdir in files_in_subdir:
+                    cur_file = cur_subdir + file_in_subdir
+                    print "cur_file", cur_file
+                    cur_local_file = cur_local_subdir + '/' + file_in_subdir
+                    print "cur_local_file", cur_local_file
+                    ######s.download(file_or_directory=cur_file, local=cur_local_file)
+                    #sendline_and_wait_responses(sftp, "get " + cur_file + " " + cur_local_file)
+                    print "recover file via sftp..."
+                    sftp.get(cur_file,localpath=cur_local_file)
+
+            # need to recover the debug directory too...
+            try:
+                retrieve_files_in_directory(sh, s, sftp, cur_subdir, cur_local_subdir, 'debug')
+            except:
+                print "debug not present for " + subdir + ' on ' + str(machine_ip)
+
+            # we should always recover the actual results...
+            # step (4): make sure there's a nested results subdirectory
+            try:
+                retrieve_files_in_directory(sh, s, sftp, cur_subdir, cur_local_subdir, 'results')
+                '''
+                cur_subdir += 'results/'
+                cur_local_subdir = cur_local_subdir + '/results/'
+                if not os.path.exists(cur_local_subdir):
+                    os.makedirs(cur_local_subdir)
+                # step (4.5): get a list of all the generated results files
+                get_files_in_subdir = "ls -p " + cur_subdir + " | grep -v /"
+                sh.sendline(get_files_in_subdir)
+                files_in_subdir = []
+                line_rec = 'blahblahblah'
+                while line_rec != '':
+                    line_rec = sh.recvline(timeout=2)
+                    if line_rec != '':
+                        files_in_subdir.append(line_rec.replace('$', '').strip())        # step (5): retrieve all the generated results
+                for file_in_subdir in files_in_subdir:
+                    cur_file = cur_subdir + file_in_subdir
+                    s.download(file_or_directory=cur_file, local=cur_local_subdir + file_in_subdir)
+                    #sendline_and_wait_responses(sftp, "get " + cur_file + " " + cur_local_subdir + file_in_subdir)
+                '''
+            except:
+                print "results are not present for " + subdir + ' on ' + str(machine_ip)
 
     # TODO: recover the graphs generated by generate_paper_graphs here...
     # (okay, we need to actually test this tho...)
-    dir_with_exp_graphs = '/mydata/mimir_v2/analysis_pipeline/multilooper_outs/'
-    s.download(file_or_directory=dir_with_exp_graphs, local=local_directory)
+    dir_with_exp_graphs_dir = '/mydata/mimir_v2/analysis_pipeline/'
+    exp_graphs_dir = 'multilooper_outs/'
+    #s.download(file_or_directory=dir_with_exp_graphs, local=local_directory)
+    print "------------------------"
+    local_directory = local_directory + '/' + exp_graphs_dir
+    print "local_directory",local_directory
+    if not os.path.exists(local_directory):
+        os.makedirs(local_directory)
+    with sftp.cd(dir_with_exp_graphs_dir):
+        sftp.get_r(exp_graphs_dir, localdir=local_directory)  # upload file to public/ on remote
 
-def retrieve_files_in_directory(sh, s, cur_subdir, cur_local_subdir, subdir_name):
+def printTotals(already_transfered, total_to_transfer):
+    print "Transferred: {0}\tOut of: {1}".format( already_transfered, total_to_transfer),
+    #sys.stdout.flush()
+
+#def progressBar(value, endvalue, bar_length=20):
+#    percent = float(value) / endvalue
+#    arrow = '-' * int(round(percent * bar_length) - 1) + '>'
+#    spaces = ' ' * (bar_length - len(arrow))
+#    sys.stdout.write("\rPercent: [{0}] {1}%".format(arrow + spaces, int(round(percent * 100))))
+#    sys.stdout.flush()
+
+
+def retrieve_files_in_directory(sh, s, sftp, cur_subdir, cur_local_subdir, subdir_name):
     cur_subdir += subdir_name + '/'
     cur_local_subdir = cur_local_subdir + '/' + subdir_name + '/'
     if not os.path.exists(cur_local_subdir):
@@ -208,8 +235,10 @@ def retrieve_files_in_directory(sh, s, cur_subdir, cur_local_subdir, subdir_name
             files_in_subdir.append(line_rec.replace('$', '').strip())  # step (5): retrieve all the generated results
     for file_in_subdir in files_in_subdir:
         cur_file = cur_subdir + file_in_subdir
-        s.download(file_or_directory=cur_file, local=cur_local_subdir + file_in_subdir)
+        ######s.download(file_or_directory=cur_file, local=cur_local_subdir + file_in_subdir)
         # sendline_and_wait_responses(sftp, "get " + cur_file + " " + cur_local_subdir + file_in_subdir)
+        sftp.get(cur_file, localpath=cur_local_subdir + file_in_subdir)  # upload file to public/ on remote
+
 
 def run_experiment(config_file_pth, only_retrieve, upload_data, only_process, run_only_log_checker):
     # step 1: parse the config file
@@ -272,7 +301,7 @@ def run_experiment(config_file_pth, only_retrieve, upload_data, only_process, ru
         # NOTE: what should be pulled depends on what (if anything) was uploaded
         #print "start sftp..."
         #sftp = pwnlib.tubes.ssh.process(['sftp', '-i', '~/Dropbox/cloudlab.pem', 'jsev@c240g5-110215.wisc.cloudlab.us'])
-        retrieve_relevant_files_from_cloud(sh, s, None, corresponding_local_directory,
+        retrieve_relevant_files_from_cloud(sh, s, sftp, corresponding_local_directory,
                                            data_was_uploaded=(upload_data and not only_process), machine_ip=machine_ip)
         #sftp.write('exit')
 
@@ -309,12 +338,13 @@ if __name__=="__main__":
         #config_file_pth = "./remote_experiment_configs/hipsterStore_scale_take1.json"
 
         #config_file_pth = "./remote_experiment_configs/trials/sockshop_scale_trial_1_rep1.json"
-        #config_file_pth = "./remote_experiment_configs/trials/sockshop_scale_trial_1_rep2.json"
+        config_file_pth = "./remote_experiment_configs/trials/sockshop_scale_trial_1_rep2.json"
         #config_file_pth = "./remote_experiment_configs/trials/sockshop_scale_trial_1_rep3.json"
 
         #config_file_pth = "./remote_experiment_configs/sockshop_scale_newRepro.json"
 
-        config_file_pth = "./remote_experiment_configs/wordpress_scale_trial_1.json"
+        #config_file_pth = "./remote_experiment_configs/wordpress_scale_trial_1.json"
+        #config_file_pth = "./remote_experiment_configs/wordpress_scale_trial_2.json"
         #config_file_pth = './remote_experiment_configs/sockshop_scale_test1.json'
     else:
         config_file_pth = args.config_json

@@ -72,7 +72,9 @@ cd ../analysis_pipeline/
 ## then install the analysis pipeline depdencies
 . ../configs_to_reproduce_results/install_mimir_depend_scripts.sh | tee install_mimr_depend_log.txt
 
-sudo python -u generate_paper_graphs.py --config_json ../configs_to_reproduce_results/Data_Analysis/Sockshop/Scale/new_sockshop_scale.json | tee new_sockshop_scale.log
+mkdir multilooper_outs
+
+sudo python -u generate_paper_graphs.py --config_json ../configs_to_reproduce_results/Data_Analysis/Sockshop/Scale/new_sockshop_scale.json | tee ./multilooper_outs/new_sockshop_scale.log
 
 # sudo python generate_paper_graphs.py --dont_update_config --config_json ../configs_to_reproduce_results/Data_Analysis/Sockshop/Scale/new_sockshop_scale.json
 
