@@ -124,6 +124,6 @@ cd ../analysis_pipeline/
 
 mkdir multilooper_outs
 
-python -u generate_paper_graphs.py --config_json ../configs_to_reproduce_results/Data_Analysis/Wordpress/Scale/wordpress_scale.json | tee ./multilooper_outs/wordpress_scale.log
+sudo python -u generate_paper_graphs.py --config_json ../configs_to_reproduce_results/Data_Analysis/Wordpress/Scale/wordpress_scale.json | tee ./multilooper_outs/wordpress_scale.log
 
 ls
