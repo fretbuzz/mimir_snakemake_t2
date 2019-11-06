@@ -158,7 +158,7 @@ def process_pcap(experiment_folder_path, pcap_file, intervals, exp_name, make_ed
     if make_edgefiles_p:
         # unzip the pcap if necessary
         unzipped_pcap = False
-        if '.pcap.gz' in pcap_file:
+        if '.pcap.gz' in pcap_file or (not os.path.exists(pcap_path + pcap_file) and os.path.exists(pcap_path + pcap_file + '.gz')):
             unzipped_pcap = True
             out = subprocess.check_output(['gzip', '-d', pcap_path + pcap_file])
             print "unzipping output: ", out
@@ -201,7 +201,7 @@ def process_pcap(experiment_folder_path, pcap_file, intervals, exp_name, make_ed
         # rezi[ the pcap if necessary
         unzipped_pcap = False
         if unzipped_pcap:
-            out = subprocess.check_output(['gzip', pcap_path + pcap_file[:-3]])
+            out = subprocess.check_output(['gzip', pcap_path + pcap_file])
             print "zipping output: ", out
 
     else:
