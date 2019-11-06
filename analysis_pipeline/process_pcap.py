@@ -159,9 +159,13 @@ def process_pcap(experiment_folder_path, pcap_file, intervals, exp_name, make_ed
     if make_edgefiles_p:
         # unzip the pcap if necessary
         unzipped_pcap = False
-        if '.pcap.gz' in pcap_file or (not os.path.exists(pcap_path + pcap_file) and os.path.exists(pcap_path + pcap_file + '.gz')):
+        if '.pcap.gz' in pcap_file:
             unzipped_pcap = True
             out = subprocess.check_output(['gzip', '-d', pcap_path + pcap_file])
+            print "unzipping output: ", out
+        if (not os.path.exists(pcap_path + pcap_file) and os.path.exists(pcap_path + pcap_file + '.gz')):
+            unzipped_pcap = True
+            out = subprocess.check_output(['gzip', '-d', pcap_path + pcap_file + '.gz'])
             print "unzipping output: ", out
 
         for interval in intervals:
@@ -199,8 +203,7 @@ def process_pcap(experiment_folder_path, pcap_file, intervals, exp_name, make_ed
         with open(interval_to_infra_path, 'w') as f:
             f.write(json.dumps(infra_instances))
 
-        # rezi[ the pcap if necessary
-        unzipped_pcap = False
+        # rezip the pcap if necessary
         if unzipped_pcap:
             out = subprocess.check_output(['gzip', pcap_path + pcap_file])
             print "zipping output: ", out
