@@ -11,6 +11,7 @@ from tabulate import tabulate
 import numpy as np
 import ast
 import os, errno
+import time
 plt.style.use('seaborn-paper')
 
 method_to_legend = {'ensemble': 'Our Method',
@@ -78,6 +79,17 @@ def get_eval_results(model_config_file, list_of_eval_configs, update_config, use
 
                 # run the analysis in several different process in parallel...
                 if analyze_in_parallel:
+                    # need to wait a bit to avoid unzipping several large pcaps at once if the following conditions hold:
+                    # (1) is wordpress application (b/c only wordpress has such large pcaps that zipping is needed)
+                    # (2) multiple eval traces are being analyzed (b/c a single one wouldn't be able to overload storage)
+                    # (3) the pcaps are actually being analyzed (as opposed to using previously-generated edgefiles)
+                    if 'wordpress' in model_config_file:
+                        if len(list_of_eval_configs) > 1:
+                            with open(eval_config) as json_file:
+                                data = json.load(json_file)
+                                make_edgefiles_p = data['make_edgefiles']
+                            if make_edgefiles_p:
+                                time.sleep(300)
                     handle_single_exp_args = (model_config_file, eval_config, no_tsl, decanter_configs, live_p, update_config,
                                       eval_config_to_cm)
                     p = multiprocessing.Process(target=handle_single_exp, args=handle_single_exp_args)

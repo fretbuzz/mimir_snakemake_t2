@@ -128,6 +128,7 @@ def process_pcap_via_tshark(path, pcap_name, tshark_stats_dir_path, make_edgefil
 
 def process_pcap(experiment_folder_path, pcap_file, intervals, exp_name, make_edgefiles_p, mapping,
                  cluster_creation_log, pcap_path, infra_instances):
+
     # first off, gotta make this new folder
     print "starting to process the pcap!"
     path_to_split_pcap_dir = experiment_folder_path + 'split_pcaps/'
@@ -155,6 +156,13 @@ def process_pcap(experiment_folder_path, pcap_file, intervals, exp_name, make_ed
 
     interval_to_files = {}
     if make_edgefiles_p:
+        # unzip the pcap if necessary
+        unzipped_pcap = False
+        if '.pcap.gz' in pcap_file:
+            unzipped_pcap = True
+            out = subprocess.check_output(['gzip', '-d', pcap_path + pcap_file])
+            print "unzipping output: ", out
+
         for interval in intervals:
             print "CURRENT INTERVAL", interval
             # wanna take ethe pcap and split the file
@@ -189,6 +197,12 @@ def process_pcap(experiment_folder_path, pcap_file, intervals, exp_name, make_ed
             f.write(json.dumps(mapping))
         with open(interval_to_infra_path, 'w') as f:
             f.write(json.dumps(infra_instances))
+
+        # rezi[ the pcap if necessary
+        unzipped_pcap = False
+        if unzipped_pcap:
+            out = subprocess.check_output(['gzip', pcap_path + pcap_file[:-3]])
+            print "zipping output: ", out
 
     else:
         print interval_to_edgefile_path
