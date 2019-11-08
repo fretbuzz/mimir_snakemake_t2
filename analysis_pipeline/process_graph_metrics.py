@@ -188,6 +188,11 @@ def normalize_data_v2(time_gran_to_feature_dataframe, time_gran_to_attack_labels
         feature_dataframe['attack_labels'] = current_attack_labels
         last_label_in_training = int(math.floor(float(end_of_training) / time_gran))
 
+        ####################
+        feature_dataframe = np.minimum(feature_dataframe,  1000000000) # handles inf's
+        feature_dataframe = np.maximum(feature_dataframe, -1000000000) # handles inf's
+        ####################
+
         training_values = feature_dataframe.iloc[:last_label_in_training]
         training_noAttack_values = training_values.loc[training_values['attack_labels'] == 0]
 
@@ -223,7 +228,8 @@ def normalize_data_v2(time_gran_to_feature_dataframe, time_gran_to_attack_labels
 
             #### TODO: probably want to normalize based off of the model's data... not the current data
             ## (note: all this code below exists b/c I'm normalizing using the current feature set instead of the model's)
-            feature_dataframe = feature_dataframe.fillna(feature_dataframe.median())
+            feature_dataframe = feature_dataframe.fillna(feature_dataframe.median()) # TODO: is this is the right way? I'm thinking stick a zero or something?? Or should I just not include for this
+            # TODO: ^^ should just not run w/ the incomplete data... (so adjust in the ensemble model)...^^^
             feature_dataframe = feature_dataframe.fillna(0.0) # maybe? (once done w/ overhaul of graph gen, should never trigger anyway...)
             feature_dataframe = np.minimum(feature_dataframe, 1000000)  # 100
             feature_dataframe = np.maximum(feature_dataframe, -10000000)  # 100
