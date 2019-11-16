@@ -80,6 +80,11 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
     except:
         pass
 
+    try:
+        number_reps_workload_pattern = int(config_params['experiment']['number_reps_workload_pattern'])
+    except:
+        number_reps_workload_pattern = 1
+
     #split_pcap_interval = config_params['split_pcap']
     network_plugin = 'none'
     try:
@@ -215,7 +220,8 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
     thread.start_new_thread(generate_background_traffic, ((int(experiment_length)+2.4), max_client_count,
                 config_params["experiment"]["traffic_type"], config_params["experiment"]["background_locust_spawn_rate"],
                                                           config_params["application_name"], ip, port, experiment_name,
-                                                          sentinal_file_loc, prob_distro, pod_config_cmds))
+                                                          sentinal_file_loc, prob_distro, pod_config_cmds,
+                                                          number_reps_workload_pattern))
 
     # step (4) setup testing infrastructure (i.e. tcpdump)
     for network_id, network_namespace in network_ids_to_namespaces.iteritems():
@@ -651,7 +657,7 @@ def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_co
 #   time: total time for test. Will be subdivided into 24 smaller chunks to represent 1 hour each
 #   max_clients: Arg provided by user in parameters.py. Represents maximum number of simultaneous clients
 def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate, app_name, ip, port, experiment_name,
-                                sentinal_file_loc, prob_distro, pod_config_log_cmds):
+                                sentinal_file_loc, prob_distro, pod_config_log_cmds, number_reps_workload_pattern):
     #minikube = get_IP()#subprocess.check_output(["minikube", "ip"]).rstrip()
     devnull = open(os.devnull, 'wb')  # disposing of stdout manualy
 
@@ -668,8 +674,11 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
     elif (traffic_type == "cybermonday"):
         client_ratio = CLIENT_RATIO_CYBER
     else:
-        #raise RuntimeError("Invalid traffic parameter provided!")
-        client_ratio = CLIENT_RATIO_NORMAL
+        raise RuntimeError("Invalid traffic parameter provided!")
+        #client_ratio = CLIENT_RATIO_NORMAL
+
+    client_ratio = client_ratio * number_reps_workload_pattern
+
     if (run_time <= 0):
         raise RuntimeError("Invalid testing time provided!")
 
@@ -702,9 +711,8 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
     print "generation_of_background_traffic part going!"
     #############################################
 
-    #24 = hours in a day, we're working with 1 hour granularity
-    timestep = run_time / 24.0
-    for i in xrange(24):
+    timestep = run_time / len(client_ratio)
+    for i in xrange(len(client_ratio)):
 
         client_count = str(int(round(normalizer*client_ratio[i]*max_clients)))
         proc = 0
