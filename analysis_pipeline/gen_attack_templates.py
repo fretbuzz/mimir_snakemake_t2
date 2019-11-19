@@ -25,7 +25,9 @@ def run_mulval():
 
     commands = [ ['/root/mulval/utils/graph_gen.sh', '/mnt/vol2/test_mulval_input.P'],
                  ['mv', '/root/mulval/utils/xsb_log.txt', '/mnt/vol2/xsb_log.txt'],
-                 ['mv', '/root/mulval/utils/AttackGraph.txt', '/mnt/vol2/AttackGraph.txt']]
+                 ['mv', '/root/mulval/utils/AttackGraph.txt', '/mnt/vol2/AttackGraph.txt'],
+                 ['mv', '/input/AttackGraph.txt', '/mnt/vol2/AttackGraph.txt'], # this is b/c it wasn't working on hipsterstore... might break others, tbh....
+                 ['mv', '/input/xsb_log.txt', '/mnt/vol2/xsb_log.txt']]  # this is b/c it wasn't working on hipsterstore... might break other applications, tbh....
     for command in commands:
         out = container.exec_run(command, workdir='/root/mulval/utils/')
         print out #out.output, out
