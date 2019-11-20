@@ -165,7 +165,9 @@ def process_pcap(experiment_folder_path, pcap_file, intervals, exp_name, make_ed
             print "unzipping output: ", out
         if (not os.path.exists(pcap_path + pcap_file) and os.path.exists(pcap_path + pcap_file + '.gz')):
             unzipped_pcap = True
-            out = subprocess.check_output(['gzip', '-d', pcap_path + pcap_file + '.gz'])
+            unzipping_cmds = ['gzip', '-d', pcap_path + pcap_file + '.gz']
+            print "unzipping_cmds", unzipping_cmds
+            out = subprocess.check_output(unzipping_cmds)
             print "unzipping output: ", out
 
         for interval in intervals:

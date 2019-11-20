@@ -397,6 +397,15 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
     pcap_filename = filename + 'any' + '.pcap'
     recover_pcap(orchestrator, pcap_filename)
 
+    # let's make sure that the packets in the pcap are in order (otherwise there can be problems sometimes (rarely, but still))
+    # NOTE: this is not tested!!
+    out = subprocess.check_output(["editcap", "-S 0.000001", pcap_filename,  pcap_filename + 'in_order'])
+    print "editcap -S out", out
+    out = subprocess.check_output(["rm", "-f", pcap_filename])
+    print "rm orign pcap out", out
+    out = subprocess.check_output(["mv", pcap_filename + 'in_order', pcap_filename])
+    print "mv inorder pcap to orig pcap out:", out
+
     # okay, now compress it
     if app_name == "wordpress":
         out = subprocess.check_output(['gzip', pcap_filename])
