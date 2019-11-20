@@ -240,6 +240,7 @@ class multi_experiment_pipeline(object):
 
             if not self.pretrained_min_pipeline:
 
+                # TODO: put new ensemble model here (it'll call a new member function...)
                 min_rate_statspipelines_ts = self.decrease_exfil_of_model()
                 with open(self.where_to_save_minrate_statspipelines, 'w') as f:
                     pickle.dump(min_rate_statspipelines_ts, f)

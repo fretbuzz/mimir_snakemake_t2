@@ -1,5 +1,5 @@
 {
-  "machine_ip": "c220g1-030622.wisc.cloudlab.us",
+  "machine_ip": "c220g2-010629.wisc.cloudlab.us",
   "e2e_script_to_follow": "hipsterStore_repro.sh",
   "corresponding_local_directory": "/Volumes/exM2/experimental_data/hipsterStore_scale_take1",
 
