@@ -344,9 +344,9 @@ if __name__=="__main__":
 
         #config_file_pth = "./remote_experiment_configs/sockshop_scale_newRepro.json"
 
-        config_file_pth = "./remote_experiment_configs/wordpress_scale_trial_1.json"
+        #config_file_pth = "./remote_experiment_configs/wordpress_scale_trial_1.json"
         #config_file_pth = "./remote_experiment_configs/wordpress_scale_trial_2.json"
-        #config_file_pth = "./remote_experiment_configs/wordpress_scale_trial_3.json"
+        config_file_pth = "./remote_experiment_configs/wordpress_scale_trial_3.json"
         #config_file_pth = './remote_experiment_configs/sockshop_scale_test1.json'
 
     else:
