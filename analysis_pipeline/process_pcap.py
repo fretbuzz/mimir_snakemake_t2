@@ -210,6 +210,17 @@ def process_pcap(experiment_folder_path, pcap_file, intervals, exp_name, make_ed
             out = subprocess.check_output(['gzip', pcap_path + pcap_file])
             print "zipping output: ", out
 
+            # if zipping the pcaps is necessary, it also means that we don't have space to leave all the split pcaps
+            # just lying around... we'll need to remove all the pcaps in the split_pcaps/ directory
+            # using method from here: https://stackoverflow.com/questions/185936/how-to-delete-the-contents-of-a-folder-in-python
+            for the_file in os.listdir(path_to_split_pcap_dir):
+                file_path = os.path.join(path_to_split_pcap_dir, the_file)
+                try:
+                    if os.path.isfile(file_path):
+                        os.unlink(file_path)
+                except Exception as e:
+                    print(e)
+
     else:
         print interval_to_edgefile_path
         with open(interval_to_edgefile_path, 'r') as f:
