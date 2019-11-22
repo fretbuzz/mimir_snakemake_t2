@@ -396,6 +396,7 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
                                                                        # back to using Docker Swarm at some point
     pcap_filename = filename + 'any' + '.pcap'
     recover_pcap(orchestrator, pcap_filename)
+    print "pcap recovered!"
 
     # let's make sure that the packets in the pcap are in order (otherwise there can be problems sometimes (rarely, but still))
     # NOTE: this is not tested!!

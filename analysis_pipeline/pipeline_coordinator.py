@@ -110,6 +110,7 @@ class multi_experiment_pipeline(object):
         self.rates_to_outtraffic_info = base_output_name + 'outtraffic_bytese.txt'
         self.where_to_save_this_obj = base_output_name + '_multi_experiment_pipeline'
         self.where_to_save_minrate_statspipelines = base_output_name + '_min_rate_statspipeline'
+        self.where_to_save_persvc_ensemble_model = base_output_name + '_persvc_ensemble_model'
         self.rate_to_time_gran_to_xs = {}
         self.rate_to_time_gran_to_ys = {}
         self.rate_to_time_gran_to_outtraffic = {}
@@ -241,6 +242,11 @@ class multi_experiment_pipeline(object):
             if not self.pretrained_min_pipeline:
 
                 # TODO: put new ensemble model here (it'll call a new member function...)
+                persvc_ensemble_model = self.train_persvc_ensemble_model()
+                with open(self.where_to_save_persvc_ensemble_model, 'w') as f:
+                    pickle.dump(persvc_ensemble_model, f)
+
+
                 min_rate_statspipelines_ts = self.decrease_exfil_of_model()
                 with open(self.where_to_save_minrate_statspipelines, 'w') as f:
                     pickle.dump(min_rate_statspipelines_ts, f)
@@ -333,6 +339,9 @@ class multi_experiment_pipeline(object):
             name = '_'.join(recipe.split('_')[1:])
             self.names.append(name)
 
+        ## Note: the rest of this function exists to support the use-case where there was a self.pretrained_min_pipeline
+        ## value specified (I probably want to decouple this more...)
+
         stats_pipelines = single_rate_stats_pipeline(time_gran_to_aggregate_mod_score_dfs, self.ROC_curve_p,
                                                      cur_base_output_name, recipes_used, self.skip_model_part,
                                                      self.avg_exfil_per_min[rate_counter],
@@ -372,6 +381,10 @@ class multi_experiment_pipeline(object):
         self.rate_to_timegran_to_statistical_pipeline[cur_exfil_rate] = timegran_to_statistical_pipeline
         self.rate_to_time_gran_to_predicted_test[cur_exfil_rate] = stats_pipelines.time_gran_to_predicted_test
 
+    def train_persvc_ensemble_model(self):
+        # TODO: this entire function
+        return None # TODO <-- return something that isn't nonsense a some poin...
+
     def train_multi_exfilrate_model(self):
         ## using this is the current plan I think: self.rate_to_timegran_to_statistical_pipeline
         ## steps: (1) go through, get all the vals with injected exfil paths
@@ -405,10 +418,9 @@ class multi_experiment_pipeline(object):
                 ## (a) :: get only those with injected
                 attack_portions = cur_df.loc[cur_df['labels'] == 1]
                 ## (b) :: append onto dataframe
-                ## TODO: probably want to put it back in vvvv (removed for debugging purposes...)
                 time_gran_to_new_df[timegran] = time_gran_to_new_df[timegran].append(attack_portions, ignore_index=True)
-                ## (c) :: switch is_test to all zeros (REMOVE IF I MAKE THE SWITCH PERMENANT)
-                time_gran_to_new_df[timegran]['is_test'] = 0 ## acctually going to keep this... so both models can be useful....
+                ## (c) :: switch is_test to all zeros (REMOVE IF I MAKE THE SWITCH PERMENANT) (<<- ignore this...)
+                time_gran_to_new_df[timegran]['is_test'] = 0 ## actually going to keep this... so both models can be useful....
 
                 #### write to file
         for timegran in time_gran_to_new_df.keys():
