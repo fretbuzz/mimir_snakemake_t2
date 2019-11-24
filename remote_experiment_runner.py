@@ -110,7 +110,7 @@ def retrieve_relevant_files_from_cloud(sh, s, sftp, local_directory, data_was_up
     while line_rec != '':
         line_rec = sh.recvline(timeout=2)
         print "line_rec", line_rec
-        listed_subdirs = line_rec.split(' ')
+        listed_subdirs = line_rec.replace('\t', ' ').split(' ')
         print "listed_subdirs",listed_subdirs
         listed_subdirs = [potential_subdir.rstrip().lstrip() for potential_subdir in listed_subdirs if potential_subdir != '' and \
                           potential_subdir != '/mydata/mimir_v2/experiment_coordinator/experimental_data/' and \
@@ -158,7 +158,8 @@ def retrieve_relevant_files_from_cloud(sh, s, sftp, local_directory, data_was_up
                 print "cur_local_file", cur_local_file
                 ######s.download(file_or_directory=cur_file, local=cur_local_file)
                 #sendline_and_wait_responses(sftp, "get " + cur_file + " " + cur_local_file)
-                print "recover file via sftp..."
+                #print "cur_subdir", cur_subdir, "file_in_subdir", file_in_subdir
+                print "recover file via sftp...", "remote_file", cur_file, "localpath", cur_local_file
                 sftp.get(cur_file,localpath=cur_local_file)
 
         # need to recover the debug directory too...
@@ -320,7 +321,7 @@ if __name__=="__main__":
                         help='this is the configuration file used to run to loop through several experiments')
     parser.add_argument('--only_retrieve', dest='only_retrieve',
                         default=False, action='store_true',
-                        help='Does no computing activites on the remote host-- only downloads files')
+                        help='Does no computing activities on the remote host-- only downloads files')
     parser.add_argument('--upload_data', dest='upload_data',
                         default=False, action='store_true',
                         help='Should it upload the pcaps instead of generating them')
@@ -336,7 +337,7 @@ if __name__=="__main__":
     if not args.config_json:
         #config_file_pth = "./remote_experiment_configs/sockshop_scale_trial_1.json"
         #config_file_pth = "./remote_experiment_configs/sockshop_scale_take1.json"
-        #config_file_pth = "./remote_experiment_configs/hipsterStore_scale_take1.json"
+        config_file_pth = "./remote_experiment_configs/hipsterStore_scale_take1.json"
 
         #config_file_pth = "./remote_experiment_configs/trials/sockshop_scale_trial_1_rep1.json"
         #config_file_pth = "./remote_experiment_configs/trials/sockshop_scale_trial_1_rep2.json"
@@ -346,7 +347,7 @@ if __name__=="__main__":
 
         #config_file_pth = "./remote_experiment_configs/wordpress_scale_trial_1.json"
         #config_file_pth = "./remote_experiment_configs/wordpress_scale_trial_2.json"
-        config_file_pth = "./remote_experiment_configs/wordpress_scale_trial_3.json"
+        ##config_file_pth = "./remote_experiment_configs/wordpress_scale_trial_3.json"
         #config_file_pth = './remote_experiment_configs/sockshop_scale_test1.json'
 
     else:
