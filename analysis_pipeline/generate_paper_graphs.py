@@ -213,7 +213,17 @@ def get_evalconfigs_to_cm(model_config_file, eval_configs_to_xvals, xlabel, use_
         with open(cache_name, 'r') as f:
             evalconfigs_to_cm = pickle.loads(f.read())
     else:
-        evalconfigs_to_cm = get_eval_results(model_config_file, eval_configs_to_xvals.keys(), update_config_p, use_remote,
+        list_of_eval_configs = []
+        list_of_eval_sizes = []
+        for config,size in eval_configs_to_xvals.iteritems():
+            list_of_eval_configs.append(config)
+            list_of_eval_sizes.append(size)
+
+        # using solution from: https://stackoverflow.com/questions/9764298/is-it-possible-to-sort-two-listswhich-reference-each-other-in-the-exact-same-w
+        # necessary for wordpress exps to be able to run on cloudlab... (b/c of space issues)...
+        list_of_eval_sizes, list_of_eval_configs = (list(l) for l in zip(*sorted(zip(list_of_eval_sizes, list_of_eval_configs))))
+
+        evalconfigs_to_cm = get_eval_results(model_config_file, list_of_eval_configs, update_config_p, use_remote,
                                              remote_server_ip=remote_server_ip, remote_server_key=remote_server_key,
                                              user=user, dont_retrieve_from_remote=dont_retrieve_from_remote,
                                              only_finished_p=only_finished_p, no_tsl=no_tsl, decanter_configs=decanter_configs,
