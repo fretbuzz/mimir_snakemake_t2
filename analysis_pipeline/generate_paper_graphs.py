@@ -222,6 +222,7 @@ def get_evalconfigs_to_cm(model_config_file, eval_configs_to_xvals, xlabel, use_
         # using solution from: https://stackoverflow.com/questions/9764298/is-it-possible-to-sort-two-listswhich-reference-each-other-in-the-exact-same-w
         # necessary for wordpress exps to be able to run on cloudlab... (b/c of space issues)...
         list_of_eval_sizes, list_of_eval_configs = (list(l) for l in zip(*sorted(zip(list_of_eval_sizes, list_of_eval_configs))))
+        list_of_eval_configs.reverse()
         print "list_of_eval_sizes", list_of_eval_sizes, "list_of_eval_configs", list_of_eval_configs
 
         evalconfigs_to_cm = get_eval_results(model_config_file, list_of_eval_configs, update_config_p, use_remote,
