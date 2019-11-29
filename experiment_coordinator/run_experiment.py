@@ -400,7 +400,9 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
 
     # let's make sure that the packets in the pcap are in order (otherwise there can be problems sometimes (rarely, but still))
     # NOTE: this is not tested!!
-    out = subprocess.check_output(["editcap", "-S 0.000001", pcap_filename,  pcap_filename + 'in_order'])
+    editcap_instr = ["editcap", "-S 0.000001", pcap_filename,  pcap_filename + 'in_order']
+    print "editcap_instr", editcap_instr
+    out = subprocess.check_output(editcap_instr)
     print "editcap -S out", out
     out = subprocess.check_output(["rm", "-f", pcap_filename])
     print "rm orign pcap out", out
