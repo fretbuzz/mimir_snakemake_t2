@@ -6,6 +6,8 @@ import process_roc
 import generate_report
 from jinja2 import FileSystemLoader, Environment
 import pandas as pd
+from statistical_analysis import construct_ROC_curve
+from numpy import np
 
 # FOR A PARTICUALR EXFIL RATE (implicitly, because that determines the input data...)
 class exfil_detection_model():
@@ -125,9 +127,15 @@ class exfil_detection_model():
         for type_of_model in self.trained_models.keys():
             self.model_to_tg_report_sections[type_of_model] = {}
             for timegran in self.trained_models[type_of_model].keys():
+                ROC_path = self.base_output_name + '_roc_' + type_of_model + '_' + str(timegran)
+                plot_name = 'roc_' + type_of_model + '_' + str(timegran)
+                title = 'ROC for ' + type_of_model + ' at ' + str(timegran) + ' sec granularity'
+                exp_name = self.recipes_used
+                
                 self.model_to_tg_report_sections[type_of_model][timegran] = \
-                    self.trained_models[type_of_model][timegran].generate_report_section(skip_heatmaps=skip_heatmaps,
-                                                                                         using_pretrained_model=using_pretrained_model)
+                    self.trained_models[type_of_model][timegran].generate_report_section(skip_heatmaps,
+                                                                                         using_pretrained_model,
+                                                                                         ROC_path, plot_name, title, exp_name)
 
         for type_of_model, report_sections in self.model_to_tg_report_sections.iteritems():
             output_location = self.base_output_name + '_' + type_of_model
@@ -322,7 +330,48 @@ class single_timegran_exfil_model():
         print coef_impact_df
         '''
 
-    def generate_report_section(self, skip_heatmaps, using_pretrained_model, plot_path):
+    def _generate_ROC(self, ROC_path, plot_name, title, exp_name):
+        #'''        
+        list_of_x_vals = []
+        list_of_y_vals = []
+        line_titles = []
+        if not self.testing_data_present:
+            #print "self.method_to_train_predictions", self.method_to_train_predictions
+            #method_to_predictions = self.method_to_train_predictions
+            predictions = self.train_predictions
+            correct_labels = self.Y
+        else:
+            #method_to_predictions = self.method_to_test_predictions
+            predictions = self.test_predictions
+            correct_labels = self.Yt
+
+        method_to_test_thresholds = {}
+        method_to_predictions = {}
+        method_to_predictions['ensemble'] = predictions
+        for method, test_predictions in method_to_predictions.iteritems():
+            # print "self.y_test",self.y_test
+            # print "test_predictions", test_predictions
+            #print "method", method
+            # print "test_predictions", test_predictions
+            test_predictions = np.nan_to_num(test_predictions)
+            # print "self.y_test",self.y_test
+            fpr, tpr, thresholds = sklearn.metrics.roc_curve(y_true=correct_labels, y_score=test_predictions,
+                                                             pos_label=1)
+            list_of_x_vals.append(fpr)
+            list_of_y_vals.append(tpr)
+            line_titles.append(method)
+            method_to_test_thresholds[method] = thresholds
+
+        print "list_of_x_vals", list_of_x_vals
+        print "list_of_y_vals", list_of_y_vals
+        print "roc_path", ROC_path + plot_name
+        ax, _, plot_path = construct_ROC_curve(list_of_x_vals, list_of_y_vals, title,
+                                               ROC_path + plot_name,
+                                               line_titles, show_p=False, exp_name=exp_name)
+        #'''
+        return plot_path
+
+    def generate_report_section(self, skip_heatmaps, using_pretrained_model,ROC_path, plot_name, title, exp_name):
         # (will probably need to pass in the comparison methods -- can then reassemble the dicts used in the orig method...)
 
         if not skip_heatmaps:
@@ -340,8 +389,8 @@ class single_timegran_exfil_model():
         number_attacks_in_train = len(self.Y[self.Y['labels'] == 1])
         number_non_attacks_in_train = len(self.Y[self.Y['labels'] == 0])
 
-        testing_data_present = (self.Xt.shape[0] != 0)
-        if not testing_data_present: # in this case, there's no testing data present...
+        self.testing_data_present = (self.Xt.shape[0] != 0)
+        if not self.testing_data_present: # in this case, there's no testing data present...
             percent_attacks = 0.0
         else:
             # so testing in this case.
@@ -379,7 +428,7 @@ class single_timegran_exfil_model():
             feature_activation_heatmap_training='none.png'
             feature_raw_heatmap_training='none.png'
     
-        if not testing_data_present:
+        if not self.testing_data_present:
             ensemble_optimal_f1_scores_test = self.optimal_train_thresh_and_f1[1] # self.method_to_optimal_f1_scores_train[self.method_name]
             ensemble_df_test = self.train_confusion_matrix #self.method_to_cm_df_train[self.method_name]
             ensemble_optimal_thresh_test = self.optimal_train_thresh_and_f1[0] #self.method_to_optimal_thresh_train[self.method_name]
@@ -387,6 +436,8 @@ class single_timegran_exfil_model():
             ensemble_optimal_f1_scores_test = self.optimal_test_thresh_and_f1[1] #self.method_to_optimal_f1_scores_test[self.method_name]
             ensemble_df_test = self.test_confusion_matrix #self.method_to_cm_df_test[self.method_name]
             ensemble_optimal_thresh_test = self.optimal_test_thresh_and_f1[0] #self.method_to_optimal_thresh_test[self.method_name]
+            
+        plot_path = self._generate_ROC(ROC_path, plot_name, title, exp_name)
     
         report_section = table_section_template.render(
             time_gran=str(self.timegran) + " sec granularity",
