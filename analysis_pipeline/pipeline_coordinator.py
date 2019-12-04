@@ -246,7 +246,6 @@ class multi_experiment_pipeline(object):
                 with open(self.where_to_save_persvc_ensemble_model, 'w') as f:
                     pickle.dump(persvc_ensemble_model, f)
 
-
                 min_rate_statspipelines_ts = self.decrease_exfil_of_model()
                 with open(self.where_to_save_minrate_statspipelines, 'w') as f:
                     pickle.dump(min_rate_statspipelines_ts, f)
