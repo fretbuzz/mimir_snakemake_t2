@@ -1274,6 +1274,7 @@ def prepare_data(aggregate_mod_score_dfs, skip_model_part, time_gran_to_debuggin
     print X_train.dtypes
 
     # need to replace the missing values in the data w/ meaningful values...
+    # TODO?? DOES THIS MAKE SENSE????
     X_train = X_train.fillna(X_train.median())
     X_test = X_test.fillna(X_train.median())
     print "X_train_median", X_train.median()
