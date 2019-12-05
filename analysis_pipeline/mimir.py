@@ -68,7 +68,8 @@ def parse_experimental_data_json(config_file, experimental_folder, experiment_na
                                                no_processing_at_all=no_processing_at_all)
     return pipeline_object
 
-def parse_experimental_config(experimental_config_file, live=False, is_eval=False, add_dropInfo_to_name=True):
+def parse_experimental_config(experimental_config_file, live=False, is_eval=False, add_dropInfo_to_name=True,
+                              skip_to_calc_zscore=False):
     with open(experimental_config_file) as f:
         config_file = json.load(f)
 
@@ -204,6 +205,14 @@ def parse_experimental_config(experimental_config_file, live=False, is_eval=Fals
         else:
             auto_open_pdfs = True
 
+        # in this case, we want to only retrain the model (WITHOUT recalculating the features-- just pull the features from the csv...)
+        if skip_to_calc_zscore:
+            make_edgefiles = False
+            skip_graph_injection = True
+            calc_vals = False
+            calculate_z_scores = True
+            get_endresult_from_memory = False
+
         experiment_classes = [parse_experimental_data_json(exp_config_file, experimental_folder, cur_experiment_name,
                                                            make_edgefiles, time_interval_lengths, pcap_file_path,
                                                            pod_creation_log_path, netsec_policy, time_of_synethic_exfil,
@@ -255,8 +264,8 @@ def parse_experimental_config(experimental_config_file, live=False, is_eval=Fals
 
     return multi_experiment_object
 
-def run_analysis(training_config, eval_config=None, live=False, no_tsl=True, decanter_configs=None):
-    training_experimente_object = parse_experimental_config(training_config, is_eval=False)
+def run_analysis(training_config, eval_config=None, live=False, no_tsl=True, decanter_configs=None, skip_to_calc_zscore=False):
+    training_experimente_object = parse_experimental_config(training_config, is_eval=False, skip_to_calc_zscore=skip_to_calc_zscore)
     min_rate_training_statspipelines, training_results, svcpair_model = training_experimente_object.run_pipelines(no_tsl=no_tsl)
 
     print "min_rate_training_statspipelines",min_rate_training_statspipelines
@@ -266,7 +275,7 @@ def run_analysis(training_config, eval_config=None, live=False, no_tsl=True, dec
     ##exit(233)
 
     if eval_config:
-        eval_experimente_object = parse_experimental_config(eval_config, live=live, is_eval=True)
+        eval_experimente_object = parse_experimental_config(eval_config, live=live, is_eval=True, skip_to_calc_zscore=skip_to_calc_zscore)
         _, eval_results,_ = eval_experimente_object.run_pipelines(pretrained_model_object=min_rate_training_statspipelines,
                                                                   no_tsl=no_tsl, svcpair_model=svcpair_model)
 
@@ -342,6 +351,8 @@ if __name__=="__main__":
                         help='this the data that the trained model is applied to')
     parser.add_argument('--live', dest='live', default=False, action='store_true',
                         help='the eval set doesn\'t have attack labels')
+    parser.add_argument('--retrain_model', dest='retrain_model', default=False, action='store_true',
+                        help='retrains the model and applies it to the testing data-- note that it does NOT recalculate the features, it just uses the CSV')
     args = parser.parse_args()
 
     if not args.training_config_json:
@@ -364,4 +375,4 @@ if __name__=="__main__":
 
     else:
         #parse_experimental_config(args.training_config_json, eval_config)
-        run_analysis(args.training_config_json, eval_config=args.config_json, live=args.live)
+        run_analysis(args.training_config_json, eval_config=args.config_json, live=args.live, skip_to_calc_zscore = args.retrain_model)
