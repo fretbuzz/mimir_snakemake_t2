@@ -69,7 +69,7 @@ def parse_experimental_data_json(config_file, experimental_folder, experiment_na
     return pipeline_object
 
 def parse_experimental_config(experimental_config_file, live=False, is_eval=False, add_dropInfo_to_name=True,
-                              skip_to_calc_zscore=False):
+                              skip_to_calc_zscore=False, exp_data_dir=None):
     with open(experimental_config_file) as f:
         config_file = json.load(f)
 
@@ -151,10 +151,17 @@ def parse_experimental_config(experimental_config_file, live=False, is_eval=Fals
         cur_experiment_name = config_file['cur_experiment_name']
 
         exp_config_file = config_file['exp_config_file']
+        if exp_data_dir is not None:
+            # if the experiment directory differs from the one listed in the config file, then exp_data_dir is not none and we need to adjust things here...
+            if exp_data_dir[-1] != '/':
+                exp_data_dir = exp_data_dir + '/'
+            exp_config_file = exp_data_dir + '/'.join(exp_config_file.split('/')[-2:])
+
         if 'experimental_folder' in config_file:
             experimental_folder = config_file['experimental_folder']
         else:
             experimental_folder = "/".join(exp_config_file.split('/')[:-1]) + "/"
+
 
         if 'base_output_location' in config_file:
             base_output_location = config_file['base_output_location']
@@ -264,8 +271,10 @@ def parse_experimental_config(experimental_config_file, live=False, is_eval=Fals
 
     return multi_experiment_object
 
-def run_analysis(training_config, eval_config=None, live=False, no_tsl=True, decanter_configs=None, skip_to_calc_zscore=False):
-    training_experimente_object = parse_experimental_config(training_config, is_eval=False, skip_to_calc_zscore=skip_to_calc_zscore)
+def run_analysis(training_config, eval_config=None, live=False, no_tsl=True, decanter_configs=None,
+                 skip_to_calc_zscore=False, exp_data_dir=None):
+    training_experimente_object = parse_experimental_config(training_config, is_eval=False, skip_to_calc_zscore=skip_to_calc_zscore,
+                                                            exp_data_dir=exp_data_dir)
     min_rate_training_statspipelines, training_results, svcpair_model = training_experimente_object.run_pipelines(no_tsl=no_tsl)
 
     print "min_rate_training_statspipelines",min_rate_training_statspipelines
@@ -275,7 +284,8 @@ def run_analysis(training_config, eval_config=None, live=False, no_tsl=True, dec
     ##exit(233)
 
     if eval_config:
-        eval_experimente_object = parse_experimental_config(eval_config, live=live, is_eval=True, skip_to_calc_zscore=skip_to_calc_zscore)
+        eval_experimente_object = parse_experimental_config(eval_config, live=live, is_eval=True, skip_to_calc_zscore=skip_to_calc_zscore,
+                                                            exp_data_dir=exp_data_dir)
         _, eval_results,_ = eval_experimente_object.run_pipelines(pretrained_model_object=min_rate_training_statspipelines,
                                                                   no_tsl=no_tsl, svcpair_model=svcpair_model)
 
@@ -352,7 +362,10 @@ if __name__=="__main__":
     parser.add_argument('--live', dest='live', default=False, action='store_true',
                         help='the eval set doesn\'t have attack labels')
     parser.add_argument('--retrain_model', dest='retrain_model', default=False, action='store_true',
-                        help='retrains the model and applies it to the testing data-- note that it does NOT recalculate the features, it just uses the CSV')
+                        help='retrains the model and applies it to the testing data-- note that it does NOT recalculate the features, it just uses the feature CSV')
+    parser.add_argument('--exp_data_dir', dest='exp_data_dir', default=None,
+                        help='if the experiment directory differs from the one listed in the config file, you can specify it here (useful for running locally)')
+
     args = parser.parse_args()
 
     if not args.training_config_json:
@@ -375,4 +388,5 @@ if __name__=="__main__":
 
     else:
         #parse_experimental_config(args.training_config_json, eval_config)
-        run_analysis(args.training_config_json, eval_config=args.config_json, live=args.live, skip_to_calc_zscore = args.retrain_model)
+        run_analysis(args.training_config_json, eval_config=args.config_json, live=args.live,
+                     skip_to_calc_zscore = args.retrain_model, exp_data_dir = args.exp_data_dir)
