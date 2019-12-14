@@ -68,8 +68,8 @@ def parse_experimental_data_json(config_file, experimental_folder, experiment_na
                                                no_processing_at_all=no_processing_at_all)
     return pipeline_object
 
-def parse_experimental_config(experimental_config_file, live=False, is_eval=False, add_dropInfo_to_name=True,
-                              skip_to_calc_zscore=False, exp_data_dir=None):
+def parse_experimental_config(experimental_config_file, return_new_model_function, live=False, is_eval=False,
+                              add_dropInfo_to_name=True, skip_to_calc_zscore=False, exp_data_dir=None):
     with open(experimental_config_file) as f:
         config_file = json.load(f)
 
@@ -255,7 +255,7 @@ def parse_experimental_config(experimental_config_file, live=False, is_eval=Fals
     multi_experiment_object = \
         multi_experiment_pipeline(experiment_classes, base_output_location, True, time_of_synethic_exfil,
                                   goal_train_test_split_training, goal_attack_NoAttack_split_training, None, None,
-                                  calc_vals, skip_model_part, calculate_z_scores_p=calculate_z_scores,
+                                  calc_vals, skip_model_part, return_new_model_function, calculate_z_scores_p=calculate_z_scores,
                                   avg_exfil_per_min=avg_exfil_per_min, exfil_per_min_variance=exfil_per_min_variance,
                                   avg_pkt_size=avg_pkt_size, pkt_size_variance=pkt_size_variance,
                                   skip_graph_injection=skip_graph_injection,
@@ -271,10 +271,10 @@ def parse_experimental_config(experimental_config_file, live=False, is_eval=Fals
 
     return multi_experiment_object
 
-def run_analysis(training_config, eval_config=None, live=False, no_tsl=True, decanter_configs=None,
-                 skip_to_calc_zscore=False, exp_data_dir=None):
-    training_experimente_object = parse_experimental_config(training_config, is_eval=False, skip_to_calc_zscore=skip_to_calc_zscore,
-                                                            exp_data_dir=exp_data_dir)
+def run_analysis(training_config, return_new_model_function, eval_config=None, live=False, no_tsl=True,
+                 decanter_configs=None, skip_to_calc_zscore=False, exp_data_dir=None):
+    training_experimente_object = parse_experimental_config(training_config, return_new_model_function, is_eval=False,
+                                                            skip_to_calc_zscore=skip_to_calc_zscore, exp_data_dir=exp_data_dir)
     min_rate_training_statspipelines, training_results, svcpair_model = training_experimente_object.run_pipelines(no_tsl=no_tsl)
 
     print "min_rate_training_statspipelines",min_rate_training_statspipelines
@@ -353,7 +353,6 @@ if __name__=="__main__":
     print "RUNNING"
     print sys.argv
 
-
     parser = argparse.ArgumentParser(description='This is the central CL interface for the MIMIR system')
     parser.add_argument('--training_config_json', dest='training_config_json', default=None,
                         help='this is the configuration file used to train/retrieve the model')
@@ -365,6 +364,9 @@ if __name__=="__main__":
                         help='retrains the model and applies it to the testing data-- note that it does NOT recalculate the features, it just uses the feature CSV')
     parser.add_argument('--exp_data_dir', dest='exp_data_dir', default=None,
                         help='if the experiment directory differs from the one listed in the config file, you can specify it here (useful for running locally)')
+    parser.add_argument('--return_new_model_func', dest='ret_new_mod_func', default=False,
+                        help='when training, returns the model from statistical_analysis_perSvc.py for use on the evaluation data')
+
 
     args = parser.parse_args()
 
@@ -376,7 +378,8 @@ if __name__=="__main__":
         #run_analysis('./analysis_json/training_config_example.json', eval_config = './new_analysis_json/sockshop_mk20.json')
         #run_analysis('./analysis_json/training_config_example.json', eval_config = './new_analysis_json/sockshop_mk22.json')
         #run_analysis('./analysis_json/training_config_example.json', eval_config = './new_analysis_json/sockshop_mk23.json')
-        run_analysis('./new_analysis_json/training_config_example.json', eval_config = './new_analysis_json/sockshop_mk24.json')
+        run_analysis(args.ret_new_mod_func, './new_analysis_json/training_config_example.json',
+                     eval_config = './new_analysis_json/sockshop_mk24.json')
         #run_analysis('./analysis_json/training_config_example.json', eval_config = './new_analysis_json/sockshop_auto_mk27.json')
 
         #run_analysis('./analysis_json/wordpress_one_3_auto_mk5.json', eval_config='./analysis_json/wordpress_one_v2_na_eval.json')
@@ -388,5 +391,5 @@ if __name__=="__main__":
 
     else:
         #parse_experimental_config(args.training_config_json, eval_config)
-        run_analysis(args.training_config_json, eval_config=args.config_json, live=args.live,
+        run_analysis(args.ret_new_mod_func, args.training_config_json, eval_config=args.config_json, live=args.live,
                      skip_to_calc_zscore = args.retrain_model, exp_data_dir = args.exp_data_dir)

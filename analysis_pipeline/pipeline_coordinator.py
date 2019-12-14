@@ -14,6 +14,7 @@ import multiprocessing
 import pyximport
 pyximport.install()
 import pickle
+from statistical_analysis_perSvc import exfil_detection_model
 
 # this function determines how much time to is available for injection attacks in each experiment.
 # it takes into account when the physical attack starts (b/c need to split into training/testing set
@@ -68,7 +69,7 @@ def determine_injection_times(exps_info, goal_train_test_split, goal_attack_NoAt
 class multi_experiment_pipeline(object):
     def __init__(self, function_list, base_output_name, ROC_curve_p, time_each_synthetic_exfil, goal_train_test_split,
                  goal_attack_NoAttack_split_training, training_window_size, size_of_neighbor_training_window, calc_vals,
-                 skip_model_part, calculate_z_scores_p=True, avg_exfil_per_min=None, exfil_per_min_variance=None,
+                 skip_model_part, return_new_model_function, calculate_z_scores_p=True, avg_exfil_per_min=None, exfil_per_min_variance=None,
                  avg_pkt_size=None, pkt_size_variance=None, skip_graph_injection=False, get_endresult_from_memory=False,
                  goal_attack_NoAttack_split_testing=0.0, calc_ide=False,
                  perform_svcpair_sec_component=True, only_perform_cilium_component=True,
@@ -144,6 +145,8 @@ class multi_experiment_pipeline(object):
         self.rate_to_tg_to_cm = {}
         self.cilium_allowed_svc_comm = None
         self.where_to_save_cilium_model = base_output_name + '_cilium_model'
+
+        self.use_new_model_func = return_new_model_function
 
     # note: this going to be used to load the pipeline object prior to doing all of this work...
     def loader(self, filename):
@@ -255,10 +258,13 @@ class multi_experiment_pipeline(object):
                 with open(self.where_to_save_minrate_statspipelines + 'multi', 'w') as z:
                     pickle.dump(min_rate_statspipelines_agg, z)
 
-                if self.use_ts_lower:
-                    min_rate_statspipelines = min_rate_statspipelines_ts
+                if self.use_new_model_func:
+                    min_rate_statspipelines = persvc_ensemble_model
                 else:
-                    min_rate_statspipelines = min_rate_statspipelines_agg
+                    if self.use_ts_lower:
+                        min_rate_statspipelines = min_rate_statspipelines_ts
+                    else:
+                        min_rate_statspipelines = min_rate_statspipelines_agg
 
                 ## save the cilium model, if the model is being trained...
                 with open(self.where_to_save_cilium_model, 'w') as g:
@@ -267,13 +273,17 @@ class multi_experiment_pipeline(object):
             if not self.no_labeled_data:
                 self.generate_aggregate_report()
         else:
-            if self.use_ts_lower:
-                #print "self.where_to_save_minrate_statspipelines", self.where_to_save_minrate_statspipelines
-                with open(self.where_to_save_minrate_statspipelines, 'r') as f:
+            if self.use_new_model_func:
+                with open(self.where_to_save_persvc_ensemble_model, 'w') as f:
                     min_rate_statspipelines = pickle.load(f)
             else:
-                with open(self.where_to_save_minrate_statspipelines  + 'multi', 'r') as f:
-                    min_rate_statspipelines = pickle.load(f)
+                if self.use_ts_lower:
+                    #print "self.where_to_save_minrate_statspipelines", self.where_to_save_minrate_statspipelines
+                    with open(self.where_to_save_minrate_statspipelines, 'r') as f:
+                        min_rate_statspipelines = pickle.load(f)
+                else:
+                    with open(self.where_to_save_minrate_statspipelines  + 'multi', 'r') as f:
+                        min_rate_statspipelines = pickle.load(f)
 
             try:
                 with open(self.where_to_save_cilium_model, 'r') as f:
@@ -380,9 +390,22 @@ class multi_experiment_pipeline(object):
         self.rate_to_timegran_to_statistical_pipeline[cur_exfil_rate] = timegran_to_statistical_pipeline
         self.rate_to_time_gran_to_predicted_test[cur_exfil_rate] = stats_pipelines.time_gran_to_predicted_test
 
+
     def train_persvc_ensemble_model(self):
         # TODO: this entire function
-        return None # TODO <-- return something that isn't nonsense a some poin...
+
+        time_gran_to_new_df = combine_different_exfil_rate_dfs(self.rate_to_timegran_to_statistical_pipeline)
+        cur_base_output_name = self.base_output_name + 'new_models_'
+
+        exfil_model_object = exfil_detection_model(time_gran_to_new_df, self.ROC_curve_p, cur_base_output_name,
+                                                   self.names, self.skip_model_part, ' multirate_varies', 'multirate_varies',
+                                                   'multirate_varies', 'multirate_varies', False)
+        exfil_model_object.train_pergran_models()
+
+        using_pretrained_model = not( not self.pretrained_min_pipeline)
+        exfil_model_object.generate_reports(self.auto_open_pdfs, self.skip_heatmap_p, using_pretrained_model)
+
+        return exfil_model_object
 
     def train_multi_exfilrate_model(self):
         ## using this is the current plan I think: self.rate_to_timegran_to_statistical_pipeline
@@ -400,28 +423,9 @@ class multi_experiment_pipeline(object):
                                          self.names, self.skip_model_part, 'varies', 'varies', 'varies',
                                          'varies', False)
         '''
-        time_gran_to_new_df = {}
-        #counter = 0
-        for rate,timegran_to_statistical_pipeline in self.rate_to_timegran_to_statistical_pipeline.iteritems():
-            #counter += 1
-            #if counter ==4:
-            #    break
-            for timegran, stats_pipeline in timegran_to_statistical_pipeline.iteritems():
-                if type(timegran) == tuple:
-                    continue
-                if timegran not in time_gran_to_new_df:
-                    time_gran_to_new_df[timegran] = copy.deepcopy(stats_pipeline.aggregate_mod_score_df)
-                    continue
-                # append relevant part to the time_gran_to_new_df and flip is_test (b/c don't need is_test anymore)
-                cur_df = stats_pipeline.aggregate_mod_score_df
-                ## (a) :: get only those with injected
-                attack_portions = cur_df.loc[cur_df['labels'] == 1]
-                ## (b) :: append onto dataframe
-                time_gran_to_new_df[timegran] = time_gran_to_new_df[timegran].append(attack_portions, ignore_index=True)
-                ## (c) :: switch is_test to all zeros (REMOVE IF I MAKE THE SWITCH PERMENANT) (<<- ignore this...)
-                time_gran_to_new_df[timegran]['is_test'] = 0 ## actually going to keep this... so both models can be useful....
 
-                #### write to file
+        time_gran_to_new_df = combine_different_exfil_rate_dfs(self.rate_to_timegran_to_statistical_pipeline)
+
         for timegran in time_gran_to_new_df.keys():
             time_gran_to_new_df[timegran].to_csv(path_or_buf=self.base_output_name + str(timegran) + '_multi_exfilrate_vals.csv')
 
@@ -520,6 +524,37 @@ class multi_experiment_pipeline(object):
         sav2_object.create_the_report(self.auto_open_pdfs)
 
         return sav2_object
+
+
+def combine_different_exfil_rate_dfs(rate_to_timegran_to_statistical_pipeline):
+    '''
+    This function takes our set of feature dfs, all of which have an associated time granularity and exfiltration
+    rate. The datasets of the different exfiltration rates needed to be combined (when the time granularities match).
+    '''
+
+
+    time_gran_to_new_df = {}
+    # counter = 0
+    for rate, timegran_to_statistical_pipeline in rate_to_timegran_to_statistical_pipeline.iteritems():
+        # counter += 1
+        # if counter ==4:
+        #    break
+        for timegran, stats_pipeline in timegran_to_statistical_pipeline.iteritems():
+            if type(timegran) == tuple:
+                continue
+            if timegran not in time_gran_to_new_df:
+                time_gran_to_new_df[timegran] = copy.deepcopy(stats_pipeline.aggregate_mod_score_df)
+                continue
+            # append relevant part to the time_gran_to_new_df and flip is_test (b/c don't need is_test anymore)
+            cur_df = stats_pipeline.aggregate_mod_score_df
+            ## (a) :: get only those with injected
+            attack_portions = cur_df.loc[cur_df['labels'] == 1]
+            ## (b) :: append onto dataframe
+            time_gran_to_new_df[timegran] = time_gran_to_new_df[timegran].append(attack_portions, ignore_index=True)
+            ## (c) :: switch is_test to all zeros (REMOVE IF I MAKE THE SWITCH PERMENANT) (<<- ignore this...)
+            time_gran_to_new_df[timegran][
+                'is_test'] = 0  ## actually going to keep this... so both models can be useful....
+    return time_gran_to_new_df
 
 def inject_comm_graphs_at_single_exfil_rate(rate_counter, avg_exfil_per_min, exfil_per_min_variance,
                                             base_output_name, exps_exfil_paths,
