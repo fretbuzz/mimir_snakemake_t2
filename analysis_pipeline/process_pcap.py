@@ -128,7 +128,7 @@ def process_pcap_via_tshark(path, pcap_name, tshark_stats_dir_path, make_edgefil
     return tshark_stats_dir_path, pcap_name
 
 def process_pcap(experiment_folder_path, pcap_file, intervals, exp_name, make_edgefiles_p, mapping,
-                 cluster_creation_log, pcap_path, infra_instances, skip_to_calc_zscore, future_feature_df, smallest_time_gran):
+                 cluster_creation_log, pcap_path, infra_instances, skip_to_calc_zscore):
 
     # first off, gotta make this new folder
     print "starting to process the pcap!"
@@ -234,12 +234,7 @@ def process_pcap(experiment_folder_path, pcap_file, intervals, exp_name, make_ed
             #    infra_instances = json.load(f)
         else:
             # things get wierd when re-calculating models for data that was processed on a remote machine
-
-            number_of_times = len(future_feature_df.index)
-            print "number_of_times", number_of_times
-            interval_to_files = {}
-            interval_to_files[str(smallest_time_gran)] = [0 for i in range(0, number_of_times)]
-
+            interval_to_files = None
 
     return interval_to_files, mapping, infra_instances
 

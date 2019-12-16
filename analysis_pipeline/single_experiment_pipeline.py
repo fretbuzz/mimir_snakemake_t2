@@ -159,31 +159,30 @@ class data_anylsis_pipline(object):
         time_grans = [int(i) for i in self.time_interval_lengths]
         self.smallest_time_gran = min(time_grans)
 
-        if self.skip_to_calc_zscore:
-            '''
-            prefix_for_inject_params = 'avg_exfil_' + str(avg_exfil_per_min[rate_counter]) + ':' + str( exfil_per_min_variance[rate_counter]) + '_'
-            '''
-            prefix_for_inject_params = 'avg_exfil_' + "???" + ':' + "???" + '_'
-            print "self.result_dir",self.result_dir
-
-            # from https://stackoverflow.com/questions/3207219/how-do-i-list-all-files-of-a-directory
-            folder_where_df_will_be = self.experiment_folder_path + '../results/'
-            print "folder_where_df_will_be", folder_where_df_will_be
-            onlyfiles = [f for f in listdir(folder_where_df_will_be) if isfile(join(folder_where_df_will_be, f)) \
-                         if '.csv' in f and str(self.smallest_time_gran) + '_' in f and '(' not in f and 'DEBUGGING' not in f and 'multi' not in f]
-            print "files in that dir:"
-            for of in onlyfiles:
-                print "file: " + of
-            where_df_will_be = folder_where_df_will_be + onlyfiles[0]
-            print "where_df_will_be",where_df_will_be
-            future_feature_df = pd.read_csv(where_df_will_be, na_values='?')
-        else:
-            future_feature_df = None
-
-        self.interval_to_filenames,self.mapping, self.infra_instances = process_pcap.process_pcap(self.experiment_folder_path, self.pcap_file, self.time_interval_lengths,
+        interval_to_filenames,self.mapping, self.infra_instances = process_pcap.process_pcap(self.experiment_folder_path, self.pcap_file, self.time_interval_lengths,
                                                                             self.exp_name, self.make_edgefiles_p, copy.deepcopy(self.mapping),
                                                                             self.cluster_creation_log, self.pcap_path, self.infra_instances,
-                                                                            self.skip_to_calc_zscore, future_feature_df, self.smallest_time_gran)
+                                                                            self.skip_to_calc_zscore)
+
+        if self.skip_to_calc_zscore:
+            interval_to_filenames = {}
+
+            for time_gran in time_grans:
+            # from https://stackoverflow.com/questions/3207219/how-do-i-list-all-files-of-a-directory
+                folder_where_df_will_be = self.experiment_folder_path + '../results/'
+                print "folder_where_df_will_be", folder_where_df_will_be
+                onlyfiles = [f for f in listdir(folder_where_df_will_be) if isfile(join(folder_where_df_will_be, f)) \
+                             if '.csv' in f and str(time_gran) + '_' in f and '(' not in f and 'DEBUGGING' not in f and 'multi' not in f]
+                print "files in that dir:"
+                for of in onlyfiles:
+                    print "file: " + of
+                where_df_will_be = folder_where_df_will_be + onlyfiles[0]
+                print "where_df_will_be",where_df_will_be
+                future_feature_df = pd.read_csv(where_df_will_be, na_values='?')
+                number_of_times = len(future_feature_df.index)
+                interval_to_filenames[str(time_gran)] = [0 for i in range(0, number_of_times)]
+
+        self.interval_to_filenames = interval_to_filenames
 
     def get_exp_info(self):
         self.total_experiment_length = len(self.interval_to_filenames[str(self.smallest_time_gran)]) * self.smallest_time_gran
@@ -222,6 +221,7 @@ class data_anylsis_pipline(object):
                          calc_ide, ide_window_size, drop_infra_from_graph,
                          pretrained_min_pipeline=None, no_labeled_data=False):
         self.end_of_training = end_of_training
+        print "llklkl", self.calc_vals, calc_ide
         if self.calc_vals or calc_ide:
             exp_length = len(self.interval_to_filenames[str(self.smallest_time_gran)]) * self.smallest_time_gran
             print "exp_length_ZZZ", exp_length, type(exp_length)

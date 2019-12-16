@@ -194,20 +194,32 @@ def retrieve_relevant_files_from_cloud(sh, s, sftp, local_directory, data_was_up
         except:
             print "results are not present for " + subdir + ' on ' + str(machine_ip)
 
+        # TODO: also need to bring the alerts file back too... TODO: need to test this whole thing!!!!!!!
+        # step 1: make the relevant exp-containing dir (if it does not already exist) # TODO: might want to look at directories and loop this for all directories with exp name in it...
+        experiment_analysis_files = local_directory.split('/')[-1] + 'dropInfra'
+        cur_local_directory = local_directory + '/' + experiment_analysis_files
+        if not os.path.exists(cur_local_directory):
+            os.makedirs(cur_local_directory)
+        # step 2: bring the remote files in the alert dir to the local remote dir (TODO TODO TODO)
+        cur_subdir = cur_subdir[:-1]  + cur_subdir.split('/')[-2] + 'dropInfra' # remote
+        retrieve_files_in_directory(sh, s, sftp, cur_subdir, cur_local_directory, 'alerts')
+
+
     # (okay, we need to actually test this tho...)
     dir_with_exp_graphs_dir = '/mydata/mimir_v2/analysis_pipeline/'
     exp_graphs_dir = 'multilooper_outs/'
     #s.download(file_or_directory=dir_with_exp_graphs, local=local_directory)
     print "------------------------"
-    local_directory = local_directory + '/' + exp_graphs_dir
-    print "local_directory",local_directory
-    if not os.path.exists(local_directory):
-        os.makedirs(local_directory)
+    cur_local_directory = local_directory + '/' + exp_graphs_dir
+    print "cur_local_directory",cur_local_directory
+    if not os.path.exists(cur_local_directory):
+        os.makedirs(cur_local_directory)
     with sftp.cd(dir_with_exp_graphs_dir):
         try:
-            sftp.get_r(exp_graphs_dir, localdir=local_directory)  # upload file to public/ on remote
+            sftp.get_r(exp_graphs_dir, localdir=cur_local_directory)  # upload file to public/ on remote
         except:
             print "the multilooper_out directory must not exist yet!"
+
 
 def printTotals(already_transfered, total_to_transfer):
     print "Transferred: {0}\tOut of: {1}".format( already_transfered, total_to_transfer),

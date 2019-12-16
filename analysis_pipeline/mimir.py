@@ -216,20 +216,6 @@ def parse_experimental_config(experimental_config_file, return_new_model_functio
         else:
             auto_open_pdfs = True
 
-        # in this case, we want to only retrain the model (WITHOUT recalculating the features-- just pull the features from the csv...)
-        if skip_to_calc_zscore:
-            print "skip_to_calc_zscore was called!!"
-            make_edgefiles = False
-            skip_graph_injection = True
-            calc_vals = False
-            calculate_z_scores = True
-            get_endresult_from_memory = False
-
-        experiment_classes = [parse_experimental_data_json(exp_config_file, experimental_folder, cur_experiment_name,
-                                                           make_edgefiles, time_interval_lengths, pcap_file_path,
-                                                           pod_creation_log_path, netsec_policy, time_of_synethic_exfil,
-                                                           skip_to_calc_zscore, no_processing_at_all=get_endresult_from_memory)]
-
         if 'calc_ide' in config_file:
             calc_ide = config_file['calc_ide']
         else:
@@ -239,6 +225,22 @@ def parse_experimental_config(experimental_config_file, return_new_model_functio
             ide_window_size = config_file['ide_window_size']
         else:
             ide_window_size = 10
+
+        # in this case, we want to only retrain the model (WITHOUT recalculating the features-- just pull the features from the csv...)
+        if skip_to_calc_zscore:
+            print "skip_to_calc_zscore was called!!"
+            make_edgefiles = False
+            skip_graph_injection = True
+            calc_vals = False
+            get_endresult_from_memory = False
+            calc_ide = False
+            calculate_z_scores = True
+
+        experiment_classes = [parse_experimental_data_json(exp_config_file, experimental_folder, cur_experiment_name,
+                                                           make_edgefiles, time_interval_lengths, pcap_file_path,
+                                                           pod_creation_log_path, netsec_policy, time_of_synethic_exfil,
+                                                           skip_to_calc_zscore, no_processing_at_all=get_endresult_from_memory)]
+
 
         if 'skip_heatmap_p' in config_file:
             skip_heatmap_p = config_file['skip_heatmap_p']
