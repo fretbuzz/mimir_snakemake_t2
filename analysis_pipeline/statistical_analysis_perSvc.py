@@ -7,7 +7,7 @@ import generate_report
 from jinja2 import FileSystemLoader, Environment
 import pandas as pd
 from statistical_analysis import construct_ROC_curve
-from numpy import np
+import numpy as np
 
 # FOR A PARTICUALR EXFIL RATE (implicitly, because that determines the input data...)
 class exfil_detection_model():

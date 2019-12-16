@@ -644,6 +644,7 @@ def pipeline_one_exfil_rate(rate_counter, base_output_name, function_list, exps_
         experiment_object.calc_vals = calc_vals
         experiment_object.calc_zscore_p = calculate_z_scores_p or calc_vals
         experiment_object.skip_graph_injection = skip_graph_injection
+        experiment_object.result_dir = base_output_name
 
         #if pretrained_transformers and time_gran in pretrained_transformers:
         #    pretrained_transformer = pretrained_transformers[time_gran]

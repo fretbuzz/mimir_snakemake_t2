@@ -14,6 +14,8 @@ import random
 from statistical_analysis import drop_useless_columns_aggreg_DF
 import cilium_config_generator
 import time
+from os import listdir
+from os.path import isfile, join
 
 # Note: see run_analysis_pipeline_recipes for pre-configured sets of parameters (there are rather a lot)
 class data_anylsis_pipline(object):
@@ -21,7 +23,7 @@ class data_anylsis_pipline(object):
                  basegraph_name=None, calc_vals=True, make_net_graphs_p=False, alert_file=None,
                  sec_between_exfil_pkts=1, time_of_synethic_exfil=None, netsec_policy=None, skip_graph_injection=False,
                  cluster_creation_log=None, sensitive_ms=None, exfil_StartEnd_times=[], physical_exfil_paths=[],
-                 old_mulval_info=None, base_experiment_dir='', no_processing_at_all=False):
+                 old_mulval_info=None, base_experiment_dir='', no_processing_at_all=False, skip_to_calc_zscore=False):
 
         print "basefile_name", basefile_name
         try:
@@ -114,6 +116,8 @@ class data_anylsis_pipline(object):
         self.time_gran_to_list_of_amt_of_out_traffic_bytes = None
         self.time_gran_to_list_of_amt_of_out_traffic_pkts = None
         self.intersvc_vip_pairs = None
+        self.skip_to_calc_zscore = skip_to_calc_zscore
+        self.result_dir = None
 
         ## TODO: these values need to be encorporated into the pipeline.
         #self.exfil_StartEnd_times = exfil_StartEnd_times
@@ -123,8 +127,12 @@ class data_anylsis_pipline(object):
             self.process_pcaps()
 
             if exfil_StartEnd_times is None or exfil_StartEnd_times == [[]]:
-                min_time_gran = min([int(i) for i in self.interval_to_filenames.keys()])
-                exp_length = len(self.interval_to_filenames[str(min_time_gran)]) * min_time_gran
+                min_time_gran = min([int(i) for i in self.time_interval_lengths])
+                if self.interval_to_filenames is not None: # when running local analysis of remotely processed files, it gets weird...
+                    exp_length = len(self.interval_to_filenames[str(min_time_gran)]) * min_time_gran
+                else:
+                    exp_length = None
+
                 self.exfil_StartEnd_times = [[exp_length, exp_length]]
                 self.physical_exfil_paths = [[]]
                 #self.exfil_start_time = exp_length
@@ -148,11 +156,34 @@ class data_anylsis_pipline(object):
         return synthetic_exfil_paths, initiator_info_for_paths
 
     def process_pcaps(self):
+        time_grans = [int(i) for i in self.time_interval_lengths]
+        self.smallest_time_gran = min(time_grans)
+
+        if self.skip_to_calc_zscore:
+            '''
+            prefix_for_inject_params = 'avg_exfil_' + str(avg_exfil_per_min[rate_counter]) + ':' + str( exfil_per_min_variance[rate_counter]) + '_'
+            '''
+            prefix_for_inject_params = 'avg_exfil_' + "???" + ':' + "???" + '_'
+            print "self.result_dir",self.result_dir
+
+            # from https://stackoverflow.com/questions/3207219/how-do-i-list-all-files-of-a-directory
+            folder_where_df_will_be = self.experiment_folder_path + '../results/'
+            print "folder_where_df_will_be", folder_where_df_will_be
+            onlyfiles = [f for f in listdir(folder_where_df_will_be) if isfile(join(folder_where_df_will_be, f)) \
+                         if '.csv' in f and str(self.smallest_time_gran) + '_' in f and '(' not in f and 'DEBUGGING' not in f and 'multi' not in f]
+            print "files in that dir:"
+            for of in onlyfiles:
+                print "file: " + of
+            where_df_will_be = folder_where_df_will_be + onlyfiles[0]
+            print "where_df_will_be",where_df_will_be
+            future_feature_df = pd.read_csv(where_df_will_be, na_values='?')
+        else:
+            future_feature_df = None
+
         self.interval_to_filenames,self.mapping, self.infra_instances = process_pcap.process_pcap(self.experiment_folder_path, self.pcap_file, self.time_interval_lengths,
                                                                             self.exp_name, self.make_edgefiles_p, copy.deepcopy(self.mapping),
-                                                                            self.cluster_creation_log, self.pcap_path, self.infra_instances)
-        time_grans = [int(i) for i in self.interval_to_filenames.keys()]
-        self.smallest_time_gran = min(time_grans)
+                                                                            self.cluster_creation_log, self.pcap_path, self.infra_instances,
+                                                                            self.skip_to_calc_zscore, future_feature_df, self.smallest_time_gran)
 
     def get_exp_info(self):
         self.total_experiment_length = len(self.interval_to_filenames[str(self.smallest_time_gran)]) * self.smallest_time_gran
@@ -198,12 +229,12 @@ class data_anylsis_pipline(object):
                                         self.time_interval_lengths, self.exfil_StartEnd_times, exp_length)
 
             # print "interval_to_filenames_ZZZ",interval_to_filenames
-            for interval, filenames in self.interval_to_filenames.iteritems():
-                print "interval_ZZZ", interval, len(filenames)
+            #for interval, filenames in self.interval_to_filenames.iteritems():
+            #    print "interval_ZZZ", interval, len(filenames)
             for time_gran, attack_labels in time_gran_to_attack_labels.iteritems():
                 print "time_gran_right_after_creation", time_gran, "len of attack labels", len(attack_labels)
 
-            print self.interval_to_filenames, type(self.interval_to_filenames), 'stufff', self.interval_to_filenames.keys()
+            #print self.interval_to_filenames, type(self.interval_to_filenames), 'stufff', self.interval_to_filenames.keys()
 
             # most of the parameters are kinda arbitrary ATM...
             print "INITIAL time_gran_to_attack_labels", time_gran_to_attack_labels

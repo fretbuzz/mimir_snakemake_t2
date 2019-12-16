@@ -18,7 +18,8 @@ This file runs the MIMIR anomaly detection system by parsing configuration files
 
 def parse_experimental_data_json(config_file, experimental_folder, experiment_name, make_edgefiles,
                                  time_interval_lengths, pcap_file_path, pod_creation_log_path,
-                                 netsec_policy=None, time_of_synethic_exfil=None, no_processing_at_all=False):
+                                 netsec_policy=None, time_of_synethic_exfil=None, skip_to_calc_zscore=False,
+                                 no_processing_at_all=False):
     with open(config_file) as f:
         config_file = json.load(f)
         basefile_name = experimental_folder + experiment_name + '/edgefiles/' + experiment_name + '_'
@@ -65,12 +66,15 @@ def parse_experimental_data_json(config_file, experimental_folder, experiment_na
                                                sensitive_ms=sensitive_ms, exfil_StartEnd_times=exfil_StartEnd_times,
                                                physical_exfil_paths=physical_exfil_paths,
                                                base_experiment_dir=base_experiment_dir,
-                                               no_processing_at_all=no_processing_at_all)
+                                               no_processing_at_all=no_processing_at_all,
+                                               skip_to_calc_zscore=skip_to_calc_zscore)
     return pipeline_object
 
 def parse_experimental_config(experimental_config_file, return_new_model_function, live=False, is_eval=False,
                               add_dropInfo_to_name=True, skip_to_calc_zscore=False, exp_data_dir=None):
-    with open(experimental_config_file) as f:
+
+    print "experimental_config_file", type(experimental_config_file), experimental_config_file
+    with open(experimental_config_file, 'r') as f:
         config_file = json.load(f)
 
         if 'skip_model_part' in config_file:
@@ -214,6 +218,7 @@ def parse_experimental_config(experimental_config_file, return_new_model_functio
 
         # in this case, we want to only retrain the model (WITHOUT recalculating the features-- just pull the features from the csv...)
         if skip_to_calc_zscore:
+            print "skip_to_calc_zscore was called!!"
             make_edgefiles = False
             skip_graph_injection = True
             calc_vals = False
@@ -223,7 +228,7 @@ def parse_experimental_config(experimental_config_file, return_new_model_functio
         experiment_classes = [parse_experimental_data_json(exp_config_file, experimental_folder, cur_experiment_name,
                                                            make_edgefiles, time_interval_lengths, pcap_file_path,
                                                            pod_creation_log_path, netsec_policy, time_of_synethic_exfil,
-                                                           no_processing_at_all=get_endresult_from_memory)]
+                                                           skip_to_calc_zscore, no_processing_at_all=get_endresult_from_memory)]
 
         if 'calc_ide' in config_file:
             calc_ide = config_file['calc_ide']
@@ -271,7 +276,7 @@ def parse_experimental_config(experimental_config_file, return_new_model_functio
 
     return multi_experiment_object
 
-def run_analysis(training_config, return_new_model_function, eval_config=None, live=False, no_tsl=True,
+def run_analysis(return_new_model_function, training_config, eval_config=None, live=False, no_tsl=True,
                  decanter_configs=None, skip_to_calc_zscore=False, exp_data_dir=None):
     training_experimente_object = parse_experimental_config(training_config, return_new_model_function, is_eval=False,
                                                             skip_to_calc_zscore=skip_to_calc_zscore, exp_data_dir=exp_data_dir)
@@ -284,7 +289,7 @@ def run_analysis(training_config, return_new_model_function, eval_config=None, l
     ##exit(233)
 
     if eval_config:
-        eval_experimente_object = parse_experimental_config(eval_config, live=live, is_eval=True, skip_to_calc_zscore=skip_to_calc_zscore,
+        eval_experimente_object = parse_experimental_config(eval_config, None, live=live, is_eval=True, skip_to_calc_zscore=skip_to_calc_zscore,
                                                             exp_data_dir=exp_data_dir)
         _, eval_results,_ = eval_experimente_object.run_pipelines(pretrained_model_object=min_rate_training_statspipelines,
                                                                   no_tsl=no_tsl, svcpair_model=svcpair_model)
@@ -391,5 +396,8 @@ if __name__=="__main__":
 
     else:
         #parse_experimental_config(args.training_config_json, eval_config)
+        print "training_config_json", args.training_config_json
+        print "eval_config", args.config_json
+        print "retrain_model", args.retrain_model
         run_analysis(args.ret_new_mod_func, args.training_config_json, eval_config=args.config_json, live=args.live,
                      skip_to_calc_zscore = args.retrain_model, exp_data_dir = args.exp_data_dir)
