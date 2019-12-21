@@ -39,7 +39,7 @@ def update_config_file(config_file_pth, if_trained_model):
 
 def handle_single_exp(model_config_file, eval_config, no_tsl, decanter_configs, live_p, update_config, eval_config_to_cm):
 
-    eval_cm = run_analysis(model_config_file, eval_config=eval_config, no_tsl=no_tsl,
+    eval_cm = run_analysis(False, model_config_file, eval_config=eval_config, no_tsl=no_tsl,
                            decanter_configs=decanter_configs, live=live_p)
 
     if update_config:
@@ -60,7 +60,7 @@ def get_eval_results(model_config_file, list_of_eval_configs, update_config, use
         if not use_remote:
             if only_finished_p:
                 if has_experiment_already_been_run(eval_config):
-                    eval_cm = run_analysis(model_config_file, eval_config=eval_config, no_tsl=no_tsl,
+                    eval_cm = run_analysis(False, model_config_file, eval_config=eval_config, no_tsl=no_tsl,
                                            decanter_configs=decanter_configs, live=live_p)
                 else:
                     continue  # don't want to wait ---> so just pass over this one.
@@ -70,7 +70,7 @@ def get_eval_results(model_config_file, list_of_eval_configs, update_config, use
                 ## memory size and using swap space...
                 if not ran_model_already:
                     print "training only the model...."
-                    run_analysis(model_config_file, no_tsl=no_tsl,
+                    run_analysis(False, model_config_file, no_tsl=no_tsl,
                                            decanter_configs=decanter_configs, live=live_p)
                     if update_config:
                         update_config_file(model_config_file, if_trained_model=True)
@@ -96,7 +96,7 @@ def get_eval_results(model_config_file, list_of_eval_configs, update_config, use
                     running_analyses.append(p)
                     p.start()
                 else:
-                    eval_cm = run_analysis(model_config_file, eval_config=eval_config, no_tsl=no_tsl,
+                    eval_cm = run_analysis(False, model_config_file, eval_config=eval_config, no_tsl=no_tsl,
                                            decanter_configs=decanter_configs, live=live_p)
 
                     if update_config:
