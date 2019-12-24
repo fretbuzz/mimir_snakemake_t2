@@ -38,11 +38,11 @@ def update_config_file(config_file_pth, if_trained_model):
         json.dump(config_file, f, indent=2)
 
 def handle_single_exp(model_config_file, eval_config, no_tsl, decanter_configs, live_p, update_config,
-                      eval_config_to_cm, retrain_model_p, per_svc_exfil_model_p):
+                      eval_config_to_cm, retrain_model_p, per_svc_exfil_model_p, exp_data_dir):
 
     eval_cm = run_analysis(False, model_config_file, eval_config=eval_config, no_tsl=no_tsl,
                            decanter_configs=decanter_configs, live=live_p, skip_to_calc_zscore=retrain_model_p,
-                           per_svc_exfil_model_p=per_svc_exfil_model_p)
+                           per_svc_exfil_model_p=per_svc_exfil_model_p, exp_data_dir=exp_data_dir)
 
     if update_config:
         update_config_file(eval_config, if_trained_model=False)
@@ -53,7 +53,7 @@ def handle_single_exp(model_config_file, eval_config, no_tsl, decanter_configs, 
 def get_eval_results(model_config_file, list_of_eval_configs, update_config, retrain_model_p, per_svc_exfil_model_p,
                      use_remote=False, remote_server_ip=None,
                      remote_server_key=None, user=None, dont_retrieve_from_remote=None, only_finished_p=False,
-                     no_tsl=False, decanter_configs=None, live_p=False, analyze_in_parallel=False):
+                     no_tsl=False, decanter_configs=None, live_p=False, analyze_in_parallel=False, exp_data_dir=None):
     manager = multiprocessing.Manager()
     eval_config_to_cm = manager.dict()
     ran_model_already = False
@@ -65,7 +65,8 @@ def get_eval_results(model_config_file, list_of_eval_configs, update_config, ret
                 if has_experiment_already_been_run(eval_config):
                     eval_cm = run_analysis(False, model_config_file, eval_config=eval_config, no_tsl=no_tsl,
                                            decanter_configs=decanter_configs, live=live_p,
-                                           skip_to_calc_zscore=retrain_model_p, per_svc_exfil_model_p=per_svc_exfil_model_p)
+                                           skip_to_calc_zscore=retrain_model_p, per_svc_exfil_model_p=per_svc_exfil_model_p,
+                                           exp_data_dir=exp_data_dir)
                 else:
                     continue  # don't want to wait ---> so just pass over this one.
                 pass
@@ -76,7 +77,8 @@ def get_eval_results(model_config_file, list_of_eval_configs, update_config, ret
                     print "training only the model...."
                     run_analysis(False, model_config_file, no_tsl=no_tsl,
                                  decanter_configs=decanter_configs, live=live_p,
-                                 skip_to_calc_zscore=retrain_model_p, per_svc_exfil_model_p=per_svc_exfil_model_p)
+                                 skip_to_calc_zscore=retrain_model_p, per_svc_exfil_model_p=per_svc_exfil_model_p,
+                                 exp_data_dir=exp_data_dir)
                     if update_config:
                         update_config_file(model_config_file, if_trained_model=True)
                     ran_model_already = True
@@ -96,14 +98,14 @@ def get_eval_results(model_config_file, list_of_eval_configs, update_config, ret
                             if make_edgefiles_p:
                                 time.sleep(300)
                     handle_single_exp_args = (model_config_file, eval_config, no_tsl, decanter_configs, live_p, update_config,
-                                      eval_config_to_cm, retrain_model_p, per_svc_exfil_model_p)
+                                      eval_config_to_cm, retrain_model_p, per_svc_exfil_model_p, exp_data_dir)
                     p = multiprocessing.Process(target=handle_single_exp, args=handle_single_exp_args)
                     running_analyses.append(p)
                     p.start()
                 else:
                     eval_cm = run_analysis(False, model_config_file, eval_config=eval_config, no_tsl=no_tsl,
                                            decanter_configs=decanter_configs, live=live_p, skip_to_calc_zscore=retrain_model_p,
-                                           per_svc_exfil_model_p=per_svc_exfil_model_p)
+                                           per_svc_exfil_model_p=per_svc_exfil_model_p, exp_data_dir=exp_data_dir)
 
                     if update_config:
                         update_config_file(eval_config, if_trained_model=False)
@@ -216,7 +218,8 @@ def get_evalconfigs_to_cm(model_config_file, eval_configs_to_xvals, xlabel, use_
                           type_of_graph, graph_name, update_config_p, only_finished_p,
                           retrain_model_p, per_svc_exfil_model_p, use_remote=False,
                           remote_server_ip=None, remote_server_key=None, user=None, dont_retrieve_from_remote=None,
-                          no_tsl = False, decanter_configs=None, live_p=False, analyze_in_parallel = False):
+                          no_tsl = False, decanter_configs=None, live_p=False, analyze_in_parallel = False,
+                          exp_data_dir=None):
     # TODO: modify this function to use: retrain_model_p, per_svc_exfil_model_p
 
     cache_name = './temp_outputs/' + graph_name
@@ -253,7 +256,7 @@ def get_evalconfigs_to_cm(model_config_file, eval_configs_to_xvals, xlabel, use_
                                              remote_server_ip=remote_server_ip, remote_server_key=remote_server_key,
                                              user=user, dont_retrieve_from_remote=dont_retrieve_from_remote,
                                              only_finished_p=only_finished_p, no_tsl=no_tsl, decanter_configs=decanter_configs,
-                                             live_p = live_p, analyze_in_parallel = analyze_in_parallel)
+                                             live_p = live_p, analyze_in_parallel = analyze_in_parallel, exp_data_dir=exp_data_dir)
         with open(cache_name, 'w') as f:
             f.write(pickle.dumps(evalconfigs_to_cm))
         with open(secondary_cache_name, 'w') as f:
@@ -633,7 +636,7 @@ def parse_config(config_file_pth):
             model_xval, decanter_configs, analyze_in_parallel
 
 def run_looper(config_file_pth, update_config, use_remote, only_finished_p, live_p, retrain_model_p, min_exfil_rate_model_p,
-               per_svc_exfil_model_p):
+               per_svc_exfil_model_p, exp_data_dir):
 
     model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran, type_of_graph, graph_name, \
     use_remote_from_config, remote_ips, remote_server_key, user, dont_retrieve_from_remote, no_tsl, model_xval, \
@@ -659,7 +662,7 @@ def run_looper(config_file_pth, update_config, use_remote, only_finished_p, live
     evalconfigs_to_cm = get_evalconfigs_to_cm(model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran,
                                               type_of_graph, graph_name, update_config, only_finished_p, retrain_model_p,
                                               per_svc_exfil_model_p, no_tsl=no_tsl, decanter_configs=decanter_configs,
-                                              live_p=live_p, analyze_in_parallel=analyze_in_parallel)
+                                              live_p=live_p, analyze_in_parallel=analyze_in_parallel, exp_data_dir=exp_data_dir)
 
     generate_graphs(eval_configs_to_xvals, exfil_rate, evalconfigs_to_cm, timegran, type_of_graph, graph_name, xlabel,
                     model_config_file, no_tsl, model_xval)
@@ -689,10 +692,16 @@ if __name__=="__main__":
                         default=False, action='store_true')
 
     parser.add_argument('--min_exfil_rate_model', dest='min_exfil_rate_model_p',
-                        default=False, action='store_true')
+                        default=False, action='store_true',
+                        help='return the min_exfil_rate_model (in which data is treated as a time series')
 
     parser.add_argument('--per_svc_exfil_model', dest='per_svc_exfil_model_p',
-                        default=False, action='store_true')
+                        default=False, action='store_true',
+                        hepl='return the brand new model that is stored in statistical_analysis_perSvc.py')
+
+    parser.add_argument('--exp_data_dir', dest='exp_data_dir', default=None,
+                        help='if the experiment directory differs from the one listed in the config file, you can specify it here (useful for running locally)')
+
 
     args = parser.parse_args()
 
@@ -711,4 +720,4 @@ if __name__=="__main__":
         config_file_pth = args.config_json
 
     run_looper(config_file_pth, (not args.dont_update_config), args.use_remote, args.only_finished_p, args.live_p,
-               args.retrain_model_p, args.min_exfil_rate_model_p, args.per_svc_exfil_model_p)
+               args.retrain_model_p, args.min_exfil_rate_model_p, args.per_svc_exfil_model_p, args.exp_data_dir)

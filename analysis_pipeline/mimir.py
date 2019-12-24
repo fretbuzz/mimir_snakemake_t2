@@ -280,11 +280,13 @@ def parse_experimental_config(experimental_config_file, return_new_model_functio
 
 def run_analysis(return_new_model_function, training_config, eval_config=None, live=False, no_tsl=True,
                  decanter_configs=None, skip_to_calc_zscore=False, exp_data_dir=None,
-                 per_svc_exfil_model_p=False):
+                 per_svc_exfil_model_p=False, load_old_pipelines=False):
+
     training_experimente_object = parse_experimental_config(training_config, return_new_model_function, is_eval=False,
                                                             skip_to_calc_zscore=skip_to_calc_zscore, exp_data_dir=exp_data_dir)
 
-    min_rate_training_statspipelines, training_results, svcpair_model = training_experimente_object.run_pipelines(no_tsl=no_tsl, per_svc_exfil_model_p=per_svc_exfil_model_p)
+    min_rate_training_statspipelines, training_results, svcpair_model = training_experimente_object.run_pipelines(no_tsl=no_tsl, per_svc_exfil_model_p=per_svc_exfil_model_p,
+                                                                                                                  load_old_pipelines=load_old_pipelines)
 
     print "min_rate_training_statspipelines",min_rate_training_statspipelines
     print "training_results", training_results
@@ -297,7 +299,8 @@ def run_analysis(return_new_model_function, training_config, eval_config=None, l
                                                             exp_data_dir=exp_data_dir)
         _, eval_results,_ = eval_experimente_object.run_pipelines(pretrained_model_object=min_rate_training_statspipelines,
                                                                   no_tsl=no_tsl, svcpair_model=svcpair_model,
-                                                                  per_svc_exfil_model_p=per_svc_exfil_model_p)
+                                                                  per_svc_exfil_model_p=per_svc_exfil_model_p,
+                                                                  load_old_pipelines=load_old_pipelines)
 
         print "----------------------------"
         print "eval_results:"
@@ -377,6 +380,11 @@ if __name__=="__main__":
     parser.add_argument('--return_new_model_func', dest='ret_new_mod_func', default=False,
                         help='when training, returns the model from statistical_analysis_perSvc.py for use on the evaluation data')
 
+    parser.add_argument('--load_old_pipelines', dest='load_old_pipelines', default=False, action='store_true',
+                        help='[for dev purposes] loads the old pipelines (from statistical_analysis.py), so that the new one can be tested more easily')
+
+
+
 
     args = parser.parse_args()
 
@@ -405,4 +413,5 @@ if __name__=="__main__":
         print "eval_config", args.config_json
         print "retrain_model", args.retrain_model
         run_analysis(args.ret_new_mod_func, args.training_config_json, eval_config=args.config_json, live=args.live,
-                     skip_to_calc_zscore = args.retrain_model, exp_data_dir = args.exp_data_dir)
+                     skip_to_calc_zscore = args.retrain_model, exp_data_dir = args.exp_data_dir,
+                     load_old_pipelines = args.load_old_pipelines)

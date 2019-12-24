@@ -71,14 +71,15 @@ class exfil_detection_model():
         for type_of_model in self.types_of_models:
             self.type_of_model_to_time_gran_to_cm[type_of_model] = {}
             for timegran in self.Xs.keys():
+                # this if-block exists b/c not all the model types are implemented...
                 if type_of_model == 'lasso':
                     self.trained_models[type_of_model][timegran] = \
                         single_timegran_exfil_model(self.Xs[timegran], self.Ys[timegran], self.Xts[timegran],
-                                                    self.Yts[timegran], 'lasso')
+                                                    self.Yts[timegran], 'lasso', timegran)
                 elif type_of_model == 'logistic':
                     self.trained_models[type_of_model][timegran] = \
                         single_timegran_exfil_model(self.Xs[timegran], self.Ys[timegran], self.Xts[timegran],
-                                                    self.Yts[timegran], 'logistic')
+                                                    self.Yts[timegran], 'logistic', timegran)
                 elif type_of_model == 'boosting':
                     # TODO
                     pass
@@ -86,8 +87,9 @@ class exfil_detection_model():
                     # TODO
                     pass
 
-                self.trained_models[type_of_model][timegran] = single_timegran_exfil_model(self.Xs[timegran], self.Ys[timegran],
-                                                                        self.Xts[timegran], self.Yts[timegran], timegran)
+                # when all the model types are implemented, I can then remove the above if-block and enable the code below
+                #self.trained_models[type_of_model][timegran] = single_timegran_exfil_model(self.Xs[timegran], self.Ys[timegran],
+                #                                                        self.Xts[timegran], self.Yts[timegran], type_of_model, timegran)
 
                 self.trained_models[type_of_model][timegran].train()
 
@@ -147,6 +149,7 @@ class single_timegran_exfil_model():
     '''This class is an ensemble model of many models that each determine whether a particular svc is involved in the exfil'''
 
     def __init__(self, X, Y, Xt, Yt, model_to_fit, timegran):
+        print "Xt", Xt
         exfil_paths = Xt['exfil_path']
         exfil_paths_train = X['exfil_path']
         try:

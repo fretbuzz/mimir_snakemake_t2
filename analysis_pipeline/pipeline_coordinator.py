@@ -168,7 +168,8 @@ class multi_experiment_pipeline(object):
                                                                     self.goal_attack_NoAttack_split_testing,
                                                                     self.max_path_length, self.max_dns_porportion)
 
-    def run_pipelines(self, pretrained_model_object = None, no_tsl=False, svcpair_model=None, per_svc_exfil_model_p=False):
+    def run_pipelines(self, pretrained_model_object = None, no_tsl=False, svcpair_model=None,
+                      per_svc_exfil_model_p=False, load_old_pipelines=False):
         if no_tsl:
             self.use_ts_lower = False
         else:
@@ -244,7 +245,7 @@ class multi_experiment_pipeline(object):
                                                     rate_to_starts_of_testing[cur_avg_exfil_per_min],
                                                     rate_to_cilium_allowed_svc_comm[cur_avg_exfil_per_min],
                                                     rate_to_cur_base_output_name[cur_avg_exfil_per_min], rate_counter,
-                                                    self.avg_exfil_per_min)
+                                                    self.avg_exfil_per_min, load_old_pipelines)
 
             if not self.pretrained_min_pipeline:
 
@@ -326,7 +327,7 @@ class multi_experiment_pipeline(object):
     def single_pipeline_after_injection(self, list_time_gran_to_mod_zscore_df, list_time_gran_to_zscore_dataframe,
                                         list_time_gran_to_feature_dataframe, list_time_gran_to_mod_zscore_df_training,
                                         list_time_gran_to_mod_zscore_df_testing, starts_of_testing, cilium_allowed_svc_comm,
-                                        cur_base_output_name, rate_counter, avg_exfil_per_min):
+                                        cur_base_output_name, rate_counter, avg_exfil_per_min, load_old_pipelines):
 
         if cilium_allowed_svc_comm is not None:
             self.cilium_allowed_svc_comm = cilium_allowed_svc_comm
@@ -355,19 +356,36 @@ class multi_experiment_pipeline(object):
         ## Note: the rest of this function exists to support the use-case where there was a self.pretrained_min_pipeline
         ## value specified (I probably want to decouple this more...)
 
-        stats_pipelines = single_rate_stats_pipeline(time_gran_to_aggregate_mod_score_dfs, self.ROC_curve_p,
-                                                     cur_base_output_name, recipes_used, self.skip_model_part,
-                                                     self.avg_exfil_per_min[rate_counter],
-                                                     self.avg_pkt_size[rate_counter],
-                                                     self.exfil_per_min_variance[rate_counter],
-                                                     self.pkt_size_variance[rate_counter],
-                                                     self.no_labeled_data)
+        ## ## start stuff that could be loaded... ## ##
 
-        stats_pipelines.run_statistical_pipeline(self.drop_pairwise_features, self.pretrained_min_pipeline,
-                                                 skip_heatmap_p=self.skip_heatmap_p, logistic_p=self.use_logistic)
+        stats_pipeline_loc = self.base_output_name + '_single_rate_stats_pipelines_' + \
+                             str(self.avg_exfil_per_min[rate_counter]) + ':' + str(self.exfil_per_min_variance[rate_counter])
+        print "load_old_pipelines", load_old_pipelines
+        #exit(2)
 
-        if not self.no_labeled_data:
-            stats_pipelines.create_the_report(self.auto_open_pdfs, use_ts_lower=self.use_ts_lower)
+        # does this make sense??? I am not sure, tbh...
+        if load_old_pipelines:
+            with open(stats_pipeline_loc, 'r') as f:
+                stats_pipelines = pickle.loads(f.read())
+        else:
+            stats_pipelines = single_rate_stats_pipeline(time_gran_to_aggregate_mod_score_dfs, self.ROC_curve_p,
+                                                         cur_base_output_name, recipes_used, self.skip_model_part,
+                                                         self.avg_exfil_per_min[rate_counter],
+                                                         self.avg_pkt_size[rate_counter],
+                                                         self.exfil_per_min_variance[rate_counter],
+                                                         self.pkt_size_variance[rate_counter],
+                                                         self.no_labeled_data)
+
+            stats_pipelines.run_statistical_pipeline(self.drop_pairwise_features, self.pretrained_min_pipeline,
+                                                     skip_heatmap_p=self.skip_heatmap_p, logistic_p=self.use_logistic)
+
+            if not self.no_labeled_data:
+                stats_pipelines.create_the_report(self.auto_open_pdfs, use_ts_lower=self.use_ts_lower)
+
+            with open(stats_pipeline_loc, 'w') as f:
+                pickle.dump(stats_pipelines, f)
+
+        ## ## end stuff to load... ## ##
 
         self.single_rate_stats_pipelines[self.avg_exfil_per_min[rate_counter]] = stats_pipelines
 
