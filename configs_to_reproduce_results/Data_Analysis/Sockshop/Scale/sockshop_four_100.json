@@ -10,7 +10,7 @@
   "calculate_z_scores": true,
   "get_endresult_from_memory": false,
 
-  "perform_cilium_component": true,
+  "perform_cilium_component": false,
   "calc_ide": true,
   "drop_pairwise_features": false,
   "drop_infra_from_graph": true,
@@ -23,5 +23,5 @@
   "goal_train_test_split_training": 0.0,
   "goal_attack_NoAttack_split_testing": 0.1,
 
-  "skip_heatmap_p": false
+  "skip_heatmap_p": true
 }

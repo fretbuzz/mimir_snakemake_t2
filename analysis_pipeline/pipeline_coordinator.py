@@ -168,11 +168,15 @@ class multi_experiment_pipeline(object):
                                                                     self.goal_attack_NoAttack_split_testing,
                                                                     self.max_path_length, self.max_dns_porportion)
 
-    def run_pipelines(self, pretrained_model_object = None, no_tsl=False, svcpair_model=None):
+    def run_pipelines(self, pretrained_model_object = None, no_tsl=False, svcpair_model=None, per_svc_exfil_model_p=False):
         if no_tsl:
             self.use_ts_lower = False
         else:
             self.use_ts_lower = True
+
+        if per_svc_exfil_model_p:
+            self.use_new_model_func  = per_svc_exfil_model_p
+
         self.cilium_allowed_svc_comm = svcpair_model
 
         self.pretrained_min_pipeline = pretrained_model_object

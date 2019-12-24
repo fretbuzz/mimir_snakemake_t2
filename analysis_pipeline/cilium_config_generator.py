@@ -153,7 +153,7 @@ def generate_cilium_policy(communicating_svc, basefilename):
 # this function coordinates the overall functionality of the cilium component of MIMIR
 # for more information, please see comment at top of page
 def cilium_component(time_length, pcap_location, cilium_component_dir, make_edgefiles_p, svcs,
-                     mapping, pod_creation_log, results_dir, interval_to_filename):
+                     mapping, pod_creation_log, results_dir, interval_to_filename, retrain_model=False):
     make_edgefiles_p = True ##  might want to remove at some point... idk for sure though...
     #vip_debugging = False # this function exists for debugging purposes. It makese the cur_cilium_comms
     #                     # also print the relevant VIPS and then quit right after. This is useful for
@@ -162,6 +162,7 @@ def cilium_component(time_length, pcap_location, cilium_component_dir, make_edge
     cilium_inout_dir = results_dir + '_svcpair_comp_inouts/'
     print "svcpair_comp_inout", cilium_inout_dir
     output_file_name = cilium_inout_dir + 'cur_svcpair_comms'
+    print "output_file_name", output_file_name
     netsecoutput_file_name = cilium_inout_dir + 'cur_svcpcair_netsec_policy.txt' # this prints out what COULD be a
 
     # step (0) make sure the directory where we are going to store all the MIMIR cilium component files exist
@@ -182,107 +183,112 @@ def cilium_component(time_length, pcap_location, cilium_component_dir, make_edge
     ''''
     pcap_slice_locations = generate_pcap_slice(time_length, pcap_location, cilium_component_dir, make_edgefiles_p)
     '''
-    infra_instances = {}
-    communicatng_svcs = []
-    communicating_svcc_with_vips = []
-    # step (2) generate corresponding tshark stats file
-    #for pcap_slice_location in pcap_slice_locations:
-    smallest_interval = min(interval_to_filename.keys())
-    for counter, edgefile in enumerate(interval_to_filename[smallest_interval]):
-        '''
-        # find where the sliced pcap is
-        pcap_slice_location_components = pcap_slice_location.split('/')
-        pcap_slice_path = '/'.join(pcap_slice_location_components[:-1]) + '/'
-        pcap_slice_name = pcap_slice_location_components[-1]
-        print "getting convo stats via tshark now..."
-        time.sleep(5)
+    if not retrain_model:
+        infra_instances = {}
+        communicatng_svcs = []
+        communicating_svcc_with_vips = []
+        # step (2) generate corresponding tshark stats file
+        #for pcap_slice_location in pcap_slice_locations:
+        smallest_interval = min(interval_to_filename.keys())
+        for counter, edgefile in enumerate(interval_to_filename[smallest_interval]):
+            '''
+            # find where the sliced pcap is
+            pcap_slice_location_components = pcap_slice_location.split('/')
+            pcap_slice_path = '/'.join(pcap_slice_location_components[:-1]) + '/'
+            pcap_slice_name = pcap_slice_location_components[-1]
+            print "getting convo stats via tshark now..."
+            time.sleep(5)
+    
+            # then get communication statistics using tshark
+            tshark_stats_path, tshark_stats_file = process_pcap_via_tshark(pcap_slice_path, pcap_slice_name,
+                                                                           cilium_component_dir + '/', make_edgefiles_p)
+    
+            # step (3) generate edgefile (hostnames rather than ip addresses) using mapping from IPs->components
+            edgefile_name = cilium_component_dir + '/edgefile_first_' + str(time_length) + '_sec.txt'
+            mapping,infra_instances = update_mapping(mapping, pod_creation_log, time_length, 0, infra_instances)
+    
+            edgefile =  convert_tshark_stats_to_edgefile('', edgefile_name, tshark_stats_path, tshark_stats_file,
+                                             make_edgefiles_p, mapping)
+            '''
+            print "cilium_current_edgefile", edgefile
+            #print "smallest_interval", smallest_interval, type(smallest_interval)
+            mapping,infra_instances = update_mapping(mapping, pod_creation_log, int(smallest_interval), counter, infra_instances)
 
-        # then get communication statistics using tshark
-        tshark_stats_path, tshark_stats_file = process_pcap_via_tshark(pcap_slice_path, pcap_slice_name,
-                                                                       cilium_component_dir + '/', make_edgefiles_p)
+            #print "edgefile", edgefile
+            #print 'remainder of cilium component is... '
 
-        # step (3) generate edgefile (hostnames rather than ip addresses) using mapping from IPs->components
-        edgefile_name = cilium_component_dir + '/edgefile_first_' + str(time_length) + '_sec.txt'
-        mapping,infra_instances = update_mapping(mapping, pod_creation_log, time_length, 0, infra_instances)
+            # step (4) we want to remove infrastructure from this graph, as well, since it is not processed by the rest of
+            # the system. By infrastructure, I am referring to components of the system deployed by the orchestrator. For
+            # kubernetes, this is pretty much everything in the Kube-system namespace other than the DNS server.
+            # step 4a: convert edgefile into networkx graph
+            print "edgefile", edgefile
+            f = open(edgefile, 'r')
+            lines = f.readlines()
+            G = nx.DiGraph()
+            nx.parse_edgelist(lines, delimiter=' ', create_using=G)
+            G = aggregate_outside_nodes(G)
+            # step 4b: map nodes->svc's
+            containers_to_ms,_ = map_nodes_to_svcs(G, None, mapping)
+            containers_to_ms['outside'] = 'outside'
+            #_, service_G = aggregate_graph(G, containers_to_ms)
+            nx.set_node_attributes(G, containers_to_ms, 'svc')
+            # step 4c: remove nodes belonging to the infrastructure services
+            infra_nodes = find_infra_components_in_graph(G, infra_instances)
+            G = remove_infra_from_graph(G, infra_nodes)
 
-        edgefile =  convert_tshark_stats_to_edgefile('', edgefile_name, tshark_stats_path, tshark_stats_file,
-                                         make_edgefiles_p, mapping)
-        '''
-        print "cilium_current_edgefile", edgefile
-        #print "smallest_interval", smallest_interval, type(smallest_interval)
-        mapping,infra_instances = update_mapping(mapping, pod_creation_log, int(smallest_interval), counter, infra_instances)
+            # step 5: parse the remaining graph to figure out which services communnicate
+            name_to_svc = {}
+            for node,data in G.nodes(data=True):
+                try:
+                    name_to_svc[node] = data['svc']
+                except:
+                    print node, data
 
-        #print "edgefile", edgefile
-        #print 'remainder of cilium component is... '
+            communicating_hosts = []
+            for (u,v,d) in G.edges(data=True):
+                communicating_hosts.append((u,v))
 
-        # step (4) we want to remove infrastructure from this graph, as well, since it is not processed by the rest of
-        # the system. By infrastructure, I am referring to components of the system deployed by the orchestrator. For
-        # kubernetes, this is pretty much everything in the Kube-system namespace other than the DNS server.
-        # step 4a: convert edgefile into networkx graph
-        f = open(edgefile, 'r')
-        lines = f.readlines()
-        G = nx.DiGraph()
-        nx.parse_edgelist(lines, delimiter=' ', create_using=G)
-        G = aggregate_outside_nodes(G)
-        # step 4b: map nodes->svc's
-        containers_to_ms,_ = map_nodes_to_svcs(G, None, mapping)
-        containers_to_ms['outside'] = 'outside'
-        #_, service_G = aggregate_graph(G, containers_to_ms)
-        nx.set_node_attributes(G, containers_to_ms, 'svc')
-        # step 4c: remove nodes belonging to the infrastructure services
-        infra_nodes = find_infra_components_in_graph(G, infra_instances)
-        G = remove_infra_from_graph(G, infra_nodes)
+            communicatng_svcs.extend(calc_svc2svc_communcating(name_to_svc, communicating_hosts, False))
+            communicating_svcc_with_vips.extend(calc_svc2svc_communcating(name_to_svc, communicating_hosts, True))
 
-        # step 5: parse the remaining graph to figure out which services communnicate
-        name_to_svc = {}
-        for node,data in G.nodes(data=True):
-            try:
-                name_to_svc[node] = data['svc']
-            except:
-                print node, data
+        # step (6) write which services communicate out to a file, for reference purposes
+        communicatng_svcs = list(set(communicatng_svcs))
+        communicating_svcc_with_vips = list(set(communicating_svcc_with_vips))
 
-        communicating_hosts = []
-        for (u,v,d) in G.edges(data=True):
-            communicating_hosts.append((u,v))
+        vips_present_lines = ''
+        #if vip_debugging:
+        additional_output_file_name = output_file_name +  '_vip_debugging'
+        vips_present = set()
+        for comm_pair in communicating_svcc_with_vips:
+            #if 'VIP' in comm_pair[0] or 'VIP' in comm_pair[1]:
 
-        communicatng_svcs.extend(calc_svc2svc_communcating(name_to_svc, communicating_hosts, False))
-        communicating_svcc_with_vips.extend(calc_svc2svc_communcating(name_to_svc, communicating_hosts, True))
+            # w/ current tshark setup, 'VIP' being in either 0 or 1 is semantically equivalent.
+            if 'VIP' in comm_pair[1]:
+                vips_present.add(comm_pair)
+            #if 'VIP' in comm_pair[1]:
+            #    vips_present.add(comm_pair[1])
+        with open(additional_output_file_name + '.txt', 'w') as f:
+            for item in vips_present:
+                src = item[0].lower().replace('-', '_')
+                dst = item[1].lower().replace('-', '_')
+                src += '_pod'
+                f.write(src + " " + dst  + '\n')
+                vips_present_lines +=  src + " " + dst  + '\n'
 
-    # step (6) write which services communicate out to a file, for reference purposes
-    communicatng_svcs = list(set(communicatng_svcs))
-    communicating_svcc_with_vips = list(set(communicating_svcc_with_vips))
+        with open(output_file_name + '.txt', 'w') as f:
+            for comm_svc in communicatng_svcs:
+                f.write(str(comm_svc) + '\n')
 
-    vips_present_lines = ''
-    #if vip_debugging:
-    additional_output_file_name = output_file_name +  '_vip_debugging'
-    vips_present = set()
-    for comm_pair in communicating_svcc_with_vips:
-        #if 'VIP' in comm_pair[0] or 'VIP' in comm_pair[1]:
+        #if vip_debugging:
+        #    print "existing b/c vip_debugging is true. can check output file safely now."
+        #    exit(233)
 
-        # w/ current tshark setup, 'VIP' being in either 0 or 1 is semantically equivalent.
-        if 'VIP' in comm_pair[1]:
-            vips_present.add(comm_pair)
-        #if 'VIP' in comm_pair[1]:
-        #    vips_present.add(comm_pair[1])
-    with open(additional_output_file_name + '.txt', 'w') as f:
-        for item in vips_present:
-            src = item[0].lower().replace('-', '_')
-            dst = item[1].lower().replace('-', '_')
-            src += '_pod'
-            f.write(src + " " + dst  + '\n')
-            vips_present_lines +=  src + " " + dst  + '\n'
-
-    with open(output_file_name + '.txt', 'w') as f:
-        for comm_svc in communicatng_svcs:
-            f.write(str(comm_svc) + '\n')
-
-    #if vip_debugging:
-    #    print "existing b/c vip_debugging is true. can check output file safely now."
-    #    exit(233)
-
-    basefilename = None
-    #generate_cilium_policy(communicatng_svcs, basefilename)
-    generate_mimir_netsec_policy(netsecoutput_file_name, communicatng_svcs, vips_present_lines)
+        basefilename = None
+        #generate_cilium_policy(communicatng_svcs, basefilename)
+        generate_mimir_netsec_policy(netsecoutput_file_name, communicatng_svcs, vips_present_lines)
+    else:
+        with open(output_file_name + '.txt', 'r') as f:
+            communicatng_svcs = f.read().split('\n')
 
     return communicatng_svcs
 

@@ -37,10 +37,12 @@ def update_config_file(config_file_pth, if_trained_model):
     with open(config_file_pth, 'w') as f:
         json.dump(config_file, f, indent=2)
 
-def handle_single_exp(model_config_file, eval_config, no_tsl, decanter_configs, live_p, update_config, eval_config_to_cm):
+def handle_single_exp(model_config_file, eval_config, no_tsl, decanter_configs, live_p, update_config,
+                      eval_config_to_cm, retrain_model_p, per_svc_exfil_model_p):
 
     eval_cm = run_analysis(False, model_config_file, eval_config=eval_config, no_tsl=no_tsl,
-                           decanter_configs=decanter_configs, live=live_p)
+                           decanter_configs=decanter_configs, live=live_p, skip_to_calc_zscore=retrain_model_p,
+                           per_svc_exfil_model_p=per_svc_exfil_model_p)
 
     if update_config:
         update_config_file(eval_config, if_trained_model=False)
@@ -48,7 +50,8 @@ def handle_single_exp(model_config_file, eval_config, no_tsl, decanter_configs, 
     eval_config_to_cm[eval_config] = eval_cm
 
 
-def get_eval_results(model_config_file, list_of_eval_configs, update_config, use_remote=False, remote_server_ip=None,
+def get_eval_results(model_config_file, list_of_eval_configs, update_config, retrain_model_p, per_svc_exfil_model_p,
+                     use_remote=False, remote_server_ip=None,
                      remote_server_key=None, user=None, dont_retrieve_from_remote=None, only_finished_p=False,
                      no_tsl=False, decanter_configs=None, live_p=False, analyze_in_parallel=False):
     manager = multiprocessing.Manager()
@@ -61,7 +64,8 @@ def get_eval_results(model_config_file, list_of_eval_configs, update_config, use
             if only_finished_p:
                 if has_experiment_already_been_run(eval_config):
                     eval_cm = run_analysis(False, model_config_file, eval_config=eval_config, no_tsl=no_tsl,
-                                           decanter_configs=decanter_configs, live=live_p)
+                                           decanter_configs=decanter_configs, live=live_p,
+                                           skip_to_calc_zscore=retrain_model_p, per_svc_exfil_model_p=per_svc_exfil_model_p)
                 else:
                     continue  # don't want to wait ---> so just pass over this one.
                 pass
@@ -71,7 +75,8 @@ def get_eval_results(model_config_file, list_of_eval_configs, update_config, use
                 if not ran_model_already:
                     print "training only the model...."
                     run_analysis(False, model_config_file, no_tsl=no_tsl,
-                                           decanter_configs=decanter_configs, live=live_p)
+                                 decanter_configs=decanter_configs, live=live_p,
+                                 skip_to_calc_zscore=retrain_model_p, per_svc_exfil_model_p=per_svc_exfil_model_p)
                     if update_config:
                         update_config_file(model_config_file, if_trained_model=True)
                     ran_model_already = True
@@ -91,13 +96,14 @@ def get_eval_results(model_config_file, list_of_eval_configs, update_config, use
                             if make_edgefiles_p:
                                 time.sleep(300)
                     handle_single_exp_args = (model_config_file, eval_config, no_tsl, decanter_configs, live_p, update_config,
-                                      eval_config_to_cm)
+                                      eval_config_to_cm, retrain_model_p, per_svc_exfil_model_p)
                     p = multiprocessing.Process(target=handle_single_exp, args=handle_single_exp_args)
                     running_analyses.append(p)
                     p.start()
                 else:
                     eval_cm = run_analysis(False, model_config_file, eval_config=eval_config, no_tsl=no_tsl,
-                                           decanter_configs=decanter_configs, live=live_p)
+                                           decanter_configs=decanter_configs, live=live_p, skip_to_calc_zscore=retrain_model_p,
+                                           per_svc_exfil_model_p=per_svc_exfil_model_p)
 
                     if update_config:
                         update_config_file(eval_config, if_trained_model=False)
@@ -195,19 +201,36 @@ def cm_to_exfil_rate_vs_f1(cm, evalconfig):
 
     return timegran_to_method_to_rate_to_f1
 
-def generate_secondary_cache_name(model_config_file):
-    return model_config_file[:-4] + 'cached_evalconfigs_to_cm.pickle'
+def generate_secondary_cache_name(model_config_file, no_tsl, per_svc_exfil_model_p):
+    sec_cache_name =  model_config_file[:-4]
+
+    if not no_tsl:
+        sec_cache_name += '_min_exfilrate_tsl_'
+    if per_svc_exfil_model_p:
+        sec_cache_name += '_persvc_exfil_model_'
+
+    sec_cache_name += 'cached_evalconfigs_to_cm.pickle'
+    return sec_cache_name
 
 def get_evalconfigs_to_cm(model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rates, timegran,
-                          type_of_graph, graph_name, update_config_p, only_finished_p, use_remote=False,
+                          type_of_graph, graph_name, update_config_p, only_finished_p,
+                          retrain_model_p, per_svc_exfil_model_p, use_remote=False,
                           remote_server_ip=None, remote_server_key=None, user=None, dont_retrieve_from_remote=None,
                           no_tsl = False, decanter_configs=None, live_p=False, analyze_in_parallel = False):
-    cache_name = './temp_outputs/' + graph_name + '_cached_looper.pickle' # + 'ret' # if it doesn't help, remove the second part...
+    # TODO: modify this function to use: retrain_model_p, per_svc_exfil_model_p
+
+    cache_name = './temp_outputs/' + graph_name
+    if not no_tsl:
+        cache_name += '_min_exfilrate_tsl_'
+    if per_svc_exfil_model_p:
+        cache_name += '_persvc_exfil_model_'
+
+    cache_name += '_cached_looper.pickle' # + 'ret' # if it doesn't help, remove the second part...
 
     # the idea of these line is to ensure that the cached results are in the an obvious location, so my looper can grab
     # them later on to make an average-results graph...
     ##secondary_cache_name = "/".join(model_config_file.split('/')[:-2]) + 'cached_evalconfigs_to_cm.pickle'
-    secondary_cache_name = generate_secondary_cache_name(model_config_file)
+    secondary_cache_name = generate_secondary_cache_name(model_config_file, no_tsl, per_svc_exfil_model_p)
 
     if use_cached:
         with open(cache_name, 'r') as f:
@@ -225,7 +248,8 @@ def get_evalconfigs_to_cm(model_config_file, eval_configs_to_xvals, xlabel, use_
         list_of_eval_configs.reverse()
         print "list_of_eval_sizes", list_of_eval_sizes, "list_of_eval_configs", list_of_eval_configs
 
-        evalconfigs_to_cm = get_eval_results(model_config_file, list_of_eval_configs, update_config_p, use_remote,
+        evalconfigs_to_cm = get_eval_results(model_config_file, list_of_eval_configs, update_config_p,
+                                             retrain_model_p, per_svc_exfil_model_p, use_remote,
                                              remote_server_ip=remote_server_ip, remote_server_key=remote_server_key,
                                              user=user, dont_retrieve_from_remote=dont_retrieve_from_remote,
                                              only_finished_p=only_finished_p, no_tsl=no_tsl, decanter_configs=decanter_configs,
@@ -608,7 +632,8 @@ def parse_config(config_file_pth):
            graph_name, use_remote, remote_server_ips, remote_server_key, user, dont_retrieve_from_remote, no_tsl,\
             model_xval, decanter_configs, analyze_in_parallel
 
-def run_looper(config_file_pth, update_config, use_remote, only_finished_p, live_p):
+def run_looper(config_file_pth, update_config, use_remote, only_finished_p, live_p, retrain_model_p, min_exfil_rate_model_p,
+               per_svc_exfil_model_p):
 
     model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran, type_of_graph, graph_name, \
     use_remote_from_config, remote_ips, remote_server_key, user, dont_retrieve_from_remote, no_tsl, model_xval, \
@@ -626,9 +651,15 @@ def run_looper(config_file_pth, update_config, use_remote, only_finished_p, live
     ##use_remote = use_remote
     only_finished_p = False #only_finished_p ## VERY USEFUL
 
+    # retrain_model_p, min_exfil_rate_model_p,
+    #                per_svc_exfil_model_p):
+
+    no_tsl = not( (not no_tsl) or min_exfil_rate_model_p )
+
     evalconfigs_to_cm = get_evalconfigs_to_cm(model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran,
-                                              type_of_graph, graph_name, update_config, only_finished_p, no_tsl=no_tsl,
-                                              decanter_configs=decanter_configs, live_p=live_p, analyze_in_parallel=analyze_in_parallel)
+                                              type_of_graph, graph_name, update_config, only_finished_p, retrain_model_p,
+                                              per_svc_exfil_model_p, no_tsl=no_tsl, decanter_configs=decanter_configs,
+                                              live_p=live_p, analyze_in_parallel=analyze_in_parallel)
 
     generate_graphs(eval_configs_to_xvals, exfil_rate, evalconfigs_to_cm, timegran, type_of_graph, graph_name, xlabel,
                     model_config_file, no_tsl, model_xval)
@@ -654,6 +685,15 @@ if __name__=="__main__":
     parser.add_argument('--live', dest='live_p',
                         default=False, action='store_true')
 
+    parser.add_argument('--retrain_model', dest='retrain_model_p',
+                        default=False, action='store_true')
+
+    parser.add_argument('--min_exfil_rate_model', dest='min_exfil_rate_model_p',
+                        default=False, action='store_true')
+
+    parser.add_argument('--per_svc_exfil_model', dest='per_svc_exfil_model_p',
+                        default=False, action='store_true')
+
     args = parser.parse_args()
 
     if not args.config_json:
@@ -670,4 +710,5 @@ if __name__=="__main__":
     else:
         config_file_pth = args.config_json
 
-    run_looper(config_file_pth, (not args.dont_update_config), args.use_remote, args.only_finished_p, args.live_p)
+    run_looper(config_file_pth, (not args.dont_update_config), args.use_remote, args.only_finished_p, args.live_p,
+               args.retrain_model_p, args.min_exfil_rate_model_p, args.per_svc_exfil_model_p)

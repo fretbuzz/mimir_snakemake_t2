@@ -477,7 +477,8 @@ class data_anylsis_pipline(object):
                                                                                 self.cilium_component_dir,
                                                                                 self.make_edgefiles_p, self.ms_s, self.mapping,
                                                                                 self.cluster_creation_log,
-                                                                                results_dir, interval_to_filename)
+                                                                                results_dir, interval_to_filename,
+                                                                                retrain_model=self.skip_to_calc_zscore)
         return self.cilium_allowed_svc_comm
 
     def calc_cilium_performance(self, avg_exfil_per_min, exfil_var_per_min, avg_pkt_size, avg_pkt_var, cilium_allowed_svc_comm):

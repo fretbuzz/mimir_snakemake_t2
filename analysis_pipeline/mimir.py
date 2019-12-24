@@ -279,10 +279,12 @@ def parse_experimental_config(experimental_config_file, return_new_model_functio
     return multi_experiment_object
 
 def run_analysis(return_new_model_function, training_config, eval_config=None, live=False, no_tsl=True,
-                 decanter_configs=None, skip_to_calc_zscore=False, exp_data_dir=None):
+                 decanter_configs=None, skip_to_calc_zscore=False, exp_data_dir=None,
+                 per_svc_exfil_model_p=False):
     training_experimente_object = parse_experimental_config(training_config, return_new_model_function, is_eval=False,
                                                             skip_to_calc_zscore=skip_to_calc_zscore, exp_data_dir=exp_data_dir)
-    min_rate_training_statspipelines, training_results, svcpair_model = training_experimente_object.run_pipelines(no_tsl=no_tsl)
+
+    min_rate_training_statspipelines, training_results, svcpair_model = training_experimente_object.run_pipelines(no_tsl=no_tsl, per_svc_exfil_model_p=per_svc_exfil_model_p)
 
     print "min_rate_training_statspipelines",min_rate_training_statspipelines
     print "training_results", training_results
@@ -294,7 +296,8 @@ def run_analysis(return_new_model_function, training_config, eval_config=None, l
         eval_experimente_object = parse_experimental_config(eval_config, None, live=live, is_eval=True, skip_to_calc_zscore=skip_to_calc_zscore,
                                                             exp_data_dir=exp_data_dir)
         _, eval_results,_ = eval_experimente_object.run_pipelines(pretrained_model_object=min_rate_training_statspipelines,
-                                                                  no_tsl=no_tsl, svcpair_model=svcpair_model)
+                                                                  no_tsl=no_tsl, svcpair_model=svcpair_model,
+                                                                  per_svc_exfil_model_p=per_svc_exfil_model_p)
 
         print "----------------------------"
         print "eval_results:"

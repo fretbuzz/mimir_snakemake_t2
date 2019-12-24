@@ -123,6 +123,12 @@ def retrieve_relevant_files_from_cloud(sh, s, sftp, local_directory, data_was_up
 
     print "subdirs", subdirs
 
+    subdirs = [subdir for subdir in subdirs if has_pcap_file(sh, subdir)]
+
+    print "subdirs_with_pcap_files", subdirs
+
+    # stop uploading all those stupid dirs
+
     # then, step (2): recover the relevant files from each subdirectory
     for subdir in subdirs:
         cur_subdir = subdir #"/mydata/mimir_v2/experiment_coordinator/experimental_data/" + subdir
@@ -172,6 +178,7 @@ def retrieve_relevant_files_from_cloud(sh, s, sftp, local_directory, data_was_up
         # step (4): make sure there's a nested results subdirectory
         try:
             retrieve_files_in_directory(sh, s, sftp, cur_subdir, cur_local_subdir, 'results')
+            pass
             '''
             cur_subdir += 'results/'
             cur_local_subdir = cur_local_subdir + '/results/'
@@ -196,13 +203,24 @@ def retrieve_relevant_files_from_cloud(sh, s, sftp, local_directory, data_was_up
 
         # TODO: also need to bring the alerts file back too... TODO: need to test this whole thing!!!!!!!
         # step 1: make the relevant exp-containing dir (if it does not already exist) # TODO: might want to look at directories and loop this for all directories with exp name in it...
-        experiment_analysis_files = local_directory.split('/')[-1] + 'dropInfra'
-        cur_local_directory = local_directory + '/' + experiment_analysis_files
+        print "----downloading alerts-----"
+        print "local_directory.split('/')[-1]", local_directory.split('/'), local_directory
+        experiment_analysis_files =  cur_subdir.split('/')[-2]  + '/' + cur_subdir.split('/')[-2] .split('/')[-1] + 'dropInfra'
+        cur_local_directory = local_directory + experiment_analysis_files
+        print "cur_local_directory",cur_local_directory
         if not os.path.exists(cur_local_directory):
             os.makedirs(cur_local_directory)
         # step 2: bring the remote files in the alert dir to the local remote dir (TODO TODO TODO)
-        cur_subdir = cur_subdir[:-1]  + cur_subdir.split('/')[-2] + 'dropInfra' # remote
-        retrieve_files_in_directory(sh, s, sftp, cur_subdir, cur_local_directory, 'alerts')
+        print cur_subdir[:-1], cur_subdir.split('/')[-2]
+        cur_subdir = cur_subdir[:-1]  + '/' + cur_subdir.split('/')[-2] + 'dropInfra' + '/' # remote
+        print "cur_subdir",cur_subdir
+        print "cur_local_directory", cur_local_directory
+        try:
+            retrieve_files_in_directory(sh, s, sftp, cur_subdir, cur_local_directory, 'alerts')
+        except Exception as E:
+            print cur_subdir, " had this problem", E
+        print "---done downloading alerts---"
+        print "EEEE"
 
 
     # (okay, we need to actually test this tho...)
@@ -220,6 +238,22 @@ def retrieve_relevant_files_from_cloud(sh, s, sftp, local_directory, data_was_up
         except:
             print "the multilooper_out directory must not exist yet!"
 
+def has_pcap_file(sh, subdir):
+    sh.sendline('ls ' + subdir)
+
+    files_in_subdir = []
+    line_rec = 'blahblahblah'
+    while line_rec != '':
+        line_rec = sh.recvline(timeout=2)
+        if line_rec != '':
+            files_in_subdir.append(line_rec.replace('$', '').strip())  # step (5): retrieve all the generated results
+
+    for file in files_in_subdir:
+        if '.pcap' in file:
+            return True
+
+    return False
+
 
 def printTotals(already_transfered, total_to_transfer):
     print "Transferred: {0}\tOut of: {1}".format( already_transfered, total_to_transfer),
@@ -233,7 +267,7 @@ def printTotals(already_transfered, total_to_transfer):
 #    sys.stdout.flush()
 
 
-def retrieve_files_in_directory(sh, s, sftp, cur_subdir, cur_local_subdir, subdir_name):
+def retrieve_files_in_directory(sh, s, sftp, cur_subdir, cur_local_subdir, subdir_name, recursive_dir=False):
     cur_subdir += subdir_name + '/'
     cur_local_subdir = cur_local_subdir + '/' + subdir_name + '/'
     if not os.path.exists(cur_local_subdir):
@@ -251,7 +285,11 @@ def retrieve_files_in_directory(sh, s, sftp, cur_subdir, cur_local_subdir, subdi
         cur_file = cur_subdir + file_in_subdir
         ######s.download(file_or_directory=cur_file, local=cur_local_subdir + file_in_subdir)
         # sendline_and_wait_responses(sftp, "get " + cur_file + " " + cur_local_subdir + file_in_subdir)
-        sftp.get(cur_file, localpath=cur_local_subdir + file_in_subdir)  # upload file to public/ on remote
+        print "cur_file", cur_file, "localpath", cur_local_subdir + file_in_subdir
+        if recursive_dir:
+            sftp.get_r(cur_file, localpath=cur_local_subdir + file_in_subdir)  # retreive file from remote
+        else:
+            sftp.get(cur_file, localpath=cur_local_subdir + file_in_subdir)  # retreive file from remote
 
 
 def run_experiment(config_file_pth, only_retrieve, upload_data, only_process, run_only_log_checker):
@@ -346,13 +384,14 @@ if __name__=="__main__":
                              'log checker on the data already on the local device')
     args = parser.parse_args()
 
+
     if not args.config_json:
         #config_file_pth = "./remote_experiment_configs/sockshop_scale_trial_1.json"
         #config_file_pth = "./remote_experiment_configs/sockshop_scale_take1.json"
         ####config_file_pth = "./remote_experiment_configs/hipsterStore_scale_take1.json"
 
-        config_file_pth = "./remote_experiment_configs/trials/sockshop_scale_trial_1_rep1.json"
-        #config_file_pth = "./remote_experiment_configs/trials/sockshop_scale_trial_1_rep2.json"
+        #config_file_pth = "./remote_experiment_configs/trials/sockshop_scale_trial_1_rep1.json"
+        config_file_pth = "./remote_experiment_configs/trials/sockshop_scale_trial_1_rep2.json"
         #config_file_pth = "./remote_experiment_configs/trials/sockshop_scale_trial_1_rep3.json"
 
         #config_file_pth = "./remote_experiment_configs/sockshop_scale_newRepro.json"
