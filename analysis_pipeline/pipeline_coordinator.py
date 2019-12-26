@@ -247,6 +247,11 @@ class multi_experiment_pipeline(object):
                                                     rate_to_cur_base_output_name[cur_avg_exfil_per_min], rate_counter,
                                                     self.avg_exfil_per_min, load_old_pipelines)
 
+                recipes_used = [recipe.base_exp_name for recipe in self.function_list]
+                for counter, recipe in enumerate(recipes_used):
+                    name = '_'.join(recipe.split('_')[1:])
+                    self.names.append(name)
+
             if not self.pretrained_min_pipeline:
 
                 # TODO: put new ensemble model here (it'll call a new member function...)
@@ -349,9 +354,6 @@ class multi_experiment_pipeline(object):
                 na_rep='?')
 
         recipes_used = [recipe.base_exp_name for recipe in self.function_list]
-        for counter, recipe in enumerate(recipes_used):
-            name = '_'.join(recipe.split('_')[1:])
-            self.names.append(name)
 
         ## Note: the rest of this function exists to support the use-case where there was a self.pretrained_min_pipeline
         ## value specified (I probably want to decouple this more...)
@@ -415,9 +417,13 @@ class multi_experiment_pipeline(object):
 
     def train_persvc_ensemble_model(self):
         # TODO: this entire function
+        print "starting train_persvc_ensemble_model"
+
 
         time_gran_to_new_df = combine_different_exfil_rate_dfs(self.rate_to_timegran_to_statistical_pipeline)
         cur_base_output_name = self.base_output_name + 'new_models_'
+
+        print "time_gran_to_new_df", time_gran_to_new_df
 
         exfil_model_object = exfil_detection_model(time_gran_to_new_df, self.ROC_curve_p, cur_base_output_name,
                                                    self.names, self.skip_model_part, ' multirate_varies', 'multirate_varies',
@@ -565,10 +571,10 @@ def combine_different_exfil_rate_dfs(rate_to_timegran_to_statistical_pipeline):
             if type(timegran) == tuple:
                 continue
             if timegran not in time_gran_to_new_df:
-                time_gran_to_new_df[timegran] = copy.deepcopy(stats_pipeline.aggregate_mod_score_df)
+                time_gran_to_new_df[timegran] = copy.deepcopy(stats_pipeline.orig_aggregate_mod_score_df)
                 continue
             # append relevant part to the time_gran_to_new_df and flip is_test (b/c don't need is_test anymore)
-            cur_df = stats_pipeline.aggregate_mod_score_df
+            cur_df = stats_pipeline.orig_aggregate_mod_score_df
             ## (a) :: get only those with injected
             attack_portions = cur_df.loc[cur_df['labels'] == 1]
             ## (b) :: append onto dataframe

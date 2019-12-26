@@ -21,6 +21,7 @@ class single_model_stats_pipeline():
         self.no_labeled_data = no_labeled_data
         self.dont_prepare_data_p=dont_prepare_data_p
         self.method_name = 'ensemble'
+        self.orig_aggregate_mod_score_df = copy.deepcopy(aggregate_mod_score_df)
         self.aggregate_mod_score_df = copy.deepcopy(aggregate_mod_score_df)
         self.base_output_name = base_output_name
         self.skip_model_part = skip_model_part
@@ -1391,6 +1392,11 @@ def determine_categorical_cm_df(y_test, optimal_predictions, exfil_paths, exfil_
 
 
 def construct_ROC_curve(list_of_x_vals, list_of_y_vals, title, plot_name, line_titles, show_p=False, exp_name=''):
+    if len(exp_name) > 1:
+        exit('exp_name list has more than 1 entry (there should only be 1!)')
+
+    exp_name = exp_name[0]
+
     # okay, what we want to do here is to construct
     # x_vals should be FPR
     # y_vals should be TPR
@@ -1410,10 +1416,12 @@ def construct_ROC_curve(list_of_x_vals, list_of_y_vals, title, plot_name, line_t
         plt.plot(x_vals, list_of_y_vals[counter], label = line_titles[counter], marker=line_markers[counter])
 
     plt.legend()
+    print "roc_plot componens (nonlocal)", plot_name, '|', exp_name, '|', '.png'
     plt.savefig( plot_name + exp_name + '.png', format='png', dpi=1000)
 
     local_graph_loc = './temp_outputs/' + title + exp_name+ '.png'# XAB
     local_graph_loc = local_graph_loc.replace(' ', '_')
+    print "roc_plot_name (local)", local_graph_loc
     plt.savefig( local_graph_loc, format='png', dpi=1000)
 
     if show_p:

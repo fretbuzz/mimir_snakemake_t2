@@ -6,8 +6,9 @@ import process_roc
 import generate_report
 from jinja2 import FileSystemLoader, Environment
 import pandas as pd
-from statistical_analysis import construct_ROC_curve
+from statistical_analysis import construct_ROC_curve, drop_useless_columns_testTrain_Xs, drop_useless_columns_aggreg_DF
 import numpy as np
+import copy
 
 # FOR A PARTICUALR EXFIL RATE (implicitly, because that determines the input data...)
 class exfil_detection_model():
@@ -15,6 +16,9 @@ class exfil_detection_model():
     def __init__(self, time_gran_to_aggregate_mod_score_dfs, ROC_curve_p, base_output_name, recipes_used,
                  skip_model_part, avg_exfil_per_min, avg_pkt_size, exfil_per_min_variance, pkt_size_variance,
                  no_labeled_data):
+
+        time_gran_to_aggregate_mod_score_dfs = copy.deepcopy(time_gran_to_aggregate_mod_score_dfs)
+
         print "persvc_ensemble_exfil_model"
         self.list_of_optimal_fone_scores_at_this_exfil_rates = {}
         self.Xs = {}
@@ -75,11 +79,23 @@ class exfil_detection_model():
                 if type_of_model == 'lasso':
                     self.trained_models[type_of_model][timegran] = \
                         single_timegran_exfil_model(self.Xs[timegran], self.Ys[timegran], self.Xts[timegran],
-                                                    self.Yts[timegran], 'lasso', timegran)
+                                                    self.Yts[timegran], 'lasso', timegran, self.base_output_name, self.recipes_used)
+
+                    self.trained_models[type_of_model][timegran].train()
+
+                    self.type_of_model_to_time_gran_to_cm[type_of_model][timegran] = self.trained_models[type_of_model][
+                        timegran].train_confusion_matrix
+
                 elif type_of_model == 'logistic':
                     self.trained_models[type_of_model][timegran] = \
                         single_timegran_exfil_model(self.Xs[timegran], self.Ys[timegran], self.Xts[timegran],
-                                                    self.Yts[timegran], 'logistic', timegran)
+                                                    self.Yts[timegran], 'logistic', timegran, self.base_output_name, self.recipes_used)
+
+                    self.trained_models[type_of_model][timegran].train()
+
+                    self.type_of_model_to_time_gran_to_cm[type_of_model][timegran] = self.trained_models[type_of_model][
+                        timegran].train_confusion_matrix
+
                 elif type_of_model == 'boosting':
                     # TODO
                     pass
@@ -91,9 +107,7 @@ class exfil_detection_model():
                 #self.trained_models[type_of_model][timegran] = single_timegran_exfil_model(self.Xs[timegran], self.Ys[timegran],
                 #                                                        self.Xts[timegran], self.Yts[timegran], type_of_model, timegran)
 
-                self.trained_models[type_of_model][timegran].train()
-
-                self.type_of_model_to_time_gran_to_cm[type_of_model][timegran] = self.trained_models[type_of_model][timegran].train_confusion_matrix
+                #print " self.trained_models[type_of_model][timegran]",  self.trained_models[type_of_model][timegran]
 
     def apply_to_new_data(self, Xt, Yt):
         if Xt is not None:
@@ -114,7 +128,8 @@ class exfil_detection_model():
                         self.trained_models[type_of_model][timegran].test_confusion_matrix
 
         # TODO: need to combine the alerts at the various timegrans...
-        # (let's add this in later...)
+        # (let's add this in later...) -- do not do anything complicated, just OR the alerts....
+        # ^^ is it really that simple.
 
         # TODO: need corresponding attribs for these values (the problem is that we have many different models....)
         # maybe should best be handled in the over-arching function, so that I can make specific calls to the various attributes)
@@ -125,22 +140,19 @@ class exfil_detection_model():
 
     def generate_reports(self, auto_open_p, skip_heatmaps, using_pretrained_model):
         ## TODO: I need to add the other alert calculation methods (e.g., cilium, ide)
+        # (^^ probably as a list of the alert levels, and then can find when the alerts are coming here)
 
         for type_of_model in self.trained_models.keys():
             self.model_to_tg_report_sections[type_of_model] = {}
             for timegran in self.trained_models[type_of_model].keys():
-                ROC_path = self.base_output_name + '_roc_' + type_of_model + '_' + str(timegran)
-                plot_name = 'roc_' + type_of_model + '_' + str(timegran)
-                title = 'ROC for ' + type_of_model + ' at ' + str(timegran) + ' sec granularity'
-                exp_name = self.recipes_used
-                
-                self.model_to_tg_report_sections[type_of_model][timegran] = \
-                    self.trained_models[type_of_model][timegran].generate_report_section(skip_heatmaps,
-                                                                                         using_pretrained_model,
-                                                                                         ROC_path, plot_name, title, exp_name)
+                # if model is not implemented yet, then self.trained_models[type_of_model][timegran] will be a list
+                if type(self.trained_models[type_of_model][timegran]) != list:
+                    self.model_to_tg_report_sections[type_of_model][timegran] = \
+                        self.trained_models[type_of_model][timegran].generate_report_section(skip_heatmaps,
+                                                                                             using_pretrained_model)
 
         for type_of_model, report_sections in self.model_to_tg_report_sections.iteritems():
-            output_location = self.base_output_name + '_' + type_of_model
+            output_location = self.base_output_name + '_' + type_of_model + 'NEW_MODEL'
             generate_report.join_report_sections(self.recipes_used, output_location, self.avg_exfil_per_min,
                                                  self.avg_pkt_size, self.exfil_per_min_variance, self.pkt_size_variance,
                                                  report_sections, auto_open_p)
@@ -148,10 +160,33 @@ class exfil_detection_model():
 class single_timegran_exfil_model():
     '''This class is an ensemble model of many models that each determine whether a particular svc is involved in the exfil'''
 
-    def __init__(self, X, Y, Xt, Yt, model_to_fit, timegran):
-        print "Xt", Xt
+    def __init__(self, X, Y, Xt, Yt, model_to_fit, timegran, base_output_name, recipes_used):
+        # might be oversimplifying with the [0]???
+        Xt = Xt[0]
+        X = X[0]
+        Yt = Yt[0]
+        Y = Y[0]
+
         exfil_paths = Xt['exfil_path']
         exfil_paths_train = X['exfil_path']
+
+        try:
+            X = X.drop(columns='real_ide_angles_')
+        except:
+            pass
+
+        try:
+            Xt = Xt.drop(columns='real_ide_angles_')
+        except:
+            pass
+
+        Xt = drop_useless_columns_aggreg_DF(Xt)
+        X = drop_useless_columns_aggreg_DF(X)
+
+        # if having problems with X_train_exfil_weight, can try using the value returned by this func...
+        X, Xt, dropped_feature_list, X_train_exfil_weight, X_test_exfil_weight = drop_useless_columns_testTrain_Xs(X, Xt)
+
+        #print "Xt", Xt
         try:
             exfil_paths = exfil_paths.replace('0', '[]')
             exfil_paths_train = exfil_paths_train.replace('0', '[]')
@@ -161,20 +196,11 @@ class single_timegran_exfil_model():
                 exfil_paths_train = exfil_paths_train.replace(0, '[]')
             except:
                 pass
-        X_train_exfil_weight = X['exfil_weight']
-        X_test_exfil_weight = Xt['exfil_weight']
-        X = X.drop(columns='exfil_path')
-        X = X.drop(columns='concrete_exfil_path')
-        X = X.drop(columns='exfil_weight')
-        X = X.drop(columns='exfil_pkts')
-        Xt = Xt.drop(columns='exfil_path')
-        Xt = Xt.drop(columns='concrete_exfil_path')
-        Xt = Xt.drop(columns='exfil_weight')
-        Xt = Xt.drop(columns='exfil_pkts')
+
+        #X_train_exfil_weight = exfil_paths_train
+        #X_test_exfil_weight = exfil_paths
 
         # TODO: need to add in the dropping of the other stuff too (honestly, just calling the function might be easiest...)
-
-
         # Xs, Ys, Xts, and Yts are each dicts mapping a service to it's set of features/labels
         self.X = X
         self.Y = Y
@@ -199,6 +225,18 @@ class single_timegran_exfil_model():
         self.exfil_paths_test = exfil_paths
         self.exfil_weights_test = X_test_exfil_weight
 
+        self.base_output_name = base_output_name
+        self.recipes_used = recipes_used
+
+        self.feature_activation_heatmaps_training = ['']
+        self.feature_raw_heatmaps_training = ['']
+        self.feature_activation_heatmaps, self.feature_raw_heatmaps = [''],['']
+
+        self.ROC_path = self.base_output_name + '_roc_' + model_to_fit + '_' + str(timegran)
+        self.plot_name = 'roc_' + model_to_fit + '_' + str(timegran)
+        self.title = 'ROC for ' + model_to_fit + ' at ' + str(timegran) + ' sec granularity'
+        self.exp_name = self.recipes_used
+
     def train(self):
         if self.model_to_fit == 'logistic':
             self.clf = sklearn.linear_model.LogisticRegressionCV() ## putting positive here makes it works.
@@ -206,8 +244,18 @@ class single_timegran_exfil_model():
         elif self.model_to_fit == 'lasso':
             self.clf = sklearn.linear_model.LassoCV(cv=5, max_iter=80000) ## putting positive here makes it works.
 
+        print "self.X has NaN's here: ", np.where(np.isnan(self.X))
+        print "self.X has Inf's here: ", np.where(np.isinf(self.X))
+
+        print "self.X.columns.values", self.X.columns.values
         self.clf.fit(self.X, self.Y)
         self.train_predictions = self.clf.predict(X=self.X)
+
+        # need to determine the optimal threshold point now.
+        self._find_optimal_train_threshold()
+
+        print "self.optimal_train_thresh_and_f1", self.optimal_train_thresh_and_f1
+
         self._generate_train_cm()
 
     def apply_to_new_data(self, Xt, Yt):
@@ -259,8 +307,8 @@ class single_timegran_exfil_model():
         self.yt_optimal_thresholded = [int(i > threshold_corresponding_max_f1) for i in self.test_predictions]
 
     def _generate_train_cm(self):
-        y_train = self.Y.tolist()
-        print "y_train", y_train
+        y_train = self.Y['labels'].tolist()
+        #print "y_train", y_train
         attack_type_to_predictions, attack_type_to_truth, attack_type_to_weights = \
             process_roc.determine_categorical_labels(y_train, self.y_optimal_thresholded, self.exfil_paths_train, self.exfil_weights_train.tolist())
 
@@ -269,14 +317,14 @@ class single_timegran_exfil_model():
         categorical_cm_df = process_roc.determine_categorical_cm_df(attack_type_to_confusion_matrix_values,
                                                                     attack_type_to_weights)
         ## re-name the row without any attacks in it...
-        print "categorical_cm_df.index", categorical_cm_df.index
+        #print "categorical_cm_df.index", categorical_cm_df.index
         confusion_matrix = categorical_cm_df.rename({(): 'No Attack'}, axis='index')
 
         self.train_confusion_matrix = confusion_matrix
 
     def _generate_test_cm(self):
-        y_test = self.Yt.tolist()
-        print "y_train", y_test
+        y_test = self.Yt['labels'].tolist()
+        print "y_test", y_test
         attack_type_to_predictions, attack_type_to_truth, attack_type_to_weights = \
             process_roc.determine_categorical_labels(y_test, self.yt_optimal_thresholded, self.exfil_paths_test,
                                                      self.exfil_weights_test.tolist())
@@ -374,7 +422,7 @@ class single_timegran_exfil_model():
         #'''
         return plot_path
 
-    def generate_report_section(self, skip_heatmaps, using_pretrained_model,ROC_path, plot_name, title, exp_name):
+    def generate_report_section(self, skip_heatmaps, using_pretrained_model):
         # (will probably need to pass in the comparison methods -- can then reassemble the dicts used in the orig method...)
 
         if not skip_heatmaps:
@@ -439,12 +487,12 @@ class single_timegran_exfil_model():
             ensemble_optimal_f1_scores_test = self.optimal_test_thresh_and_f1[1] #self.method_to_optimal_f1_scores_test[self.method_name]
             ensemble_df_test = self.test_confusion_matrix #self.method_to_cm_df_test[self.method_name]
             ensemble_optimal_thresh_test = self.optimal_test_thresh_and_f1[0] #self.method_to_optimal_thresh_test[self.method_name]
-            
-        plot_path = self._generate_ROC(ROC_path, plot_name, title, exp_name)
-    
+
+        roc_plot_path = self._generate_ROC(self.ROC_path, self.plot_name, self.title, self.exp_name)
+
         report_section = table_section_template.render(
             time_gran=str(self.timegran) + " sec granularity",
-            roc=plot_path,
+            roc=roc_plot_path,
             feature_table=coef_feature_df,
             model_params=self.model_params,
             optimal_fOne=ensemble_optimal_f1_scores_test,

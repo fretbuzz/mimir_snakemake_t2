@@ -78,9 +78,9 @@ sudo python -u generate_paper_graphs.py --config_json ../configs_to_reproduce_re
 
 # will these next commands work?? probably not without a significant amount of debugging...
 
-sudo python -u generate_paper_graphs.py --retrain_model --min_exfil_rate_model  --config_json ../configs_to_reproduce_results/Data_Analysis/Sockshop/Scale/new_sockshop_scale.json | tee ./multilooper_outs/new_sock_minRate_tsl.log
+sudo python -u generate_paper_graphs.py --load_old_pipelines --retrain_model --min_exfil_rate_model --config_json ../configs_to_reproduce_results/Data_Analysis/Sockshop/Scale/new_sockshop_scale.json | tee ./multilooper_outs/new_sock_minRate_tsl.log
 
-sudo python -u generate_paper_graphs.py --retrain_model --per_svc_exfil_model --config_json ../configs_to_reproduce_results/Data_Analysis/Sockshop/Scale/new_sockshop_scale.json | tee ./multilooper_outs/new_sock_perSvc.log
+sudo python -u generate_paper_graphs.py --load_old_pipelines --retrain_model --per_svc_exfil_model --config_json ../configs_to_reproduce_results/Data_Analysis/Sockshop/Scale/new_sockshop_scale.json | tee ./multilooper_outs/new_sock_perSvc.log
 
 ls
 ####
