@@ -9,6 +9,7 @@ import pandas as pd
 from statistical_analysis import construct_ROC_curve, drop_useless_columns_testTrain_Xs, drop_useless_columns_aggreg_DF
 import numpy as np
 import copy
+import time
 
 # FOR A PARTICUALR EXFIL RATE (implicitly, because that determines the input data...)
 class exfil_detection_model():
@@ -152,10 +153,17 @@ class exfil_detection_model():
                                                                                              using_pretrained_model)
 
         for type_of_model, report_sections in self.model_to_tg_report_sections.iteritems():
-            output_location = self.base_output_name + '_' + type_of_model + 'NEW_MODEL'
-            generate_report.join_report_sections(self.recipes_used, output_location, self.avg_exfil_per_min,
-                                                 self.avg_pkt_size, self.exfil_per_min_variance, self.pkt_size_variance,
-                                                 report_sections, auto_open_p)
+            first_time_gran = self.trained_models[type_of_model].keys()[0]
+            if type(self.trained_models[type_of_model][first_time_gran]) != list:
+                output_location = self.base_output_name + '_' + type_of_model + 'NEW_MODEL'
+                print "current report output loc", output_location
+                generate_report.join_report_sections(self.recipes_used, output_location, self.avg_exfil_per_min,
+                                                     self.avg_pkt_size, self.exfil_per_min_variance, self.pkt_size_variance,
+                                                     report_sections, auto_open_p, new_model=True)
+
+                #print "sleeping for a bit..."
+                #time.sleep(3600)
+
 
 class single_timegran_exfil_model():
     '''This class is an ensemble model of many models that each determine whether a particular svc is involved in the exfil'''
@@ -228,9 +236,9 @@ class single_timegran_exfil_model():
         self.base_output_name = base_output_name
         self.recipes_used = recipes_used
 
-        self.feature_activation_heatmaps_training = ['']
-        self.feature_raw_heatmaps_training = ['']
-        self.feature_activation_heatmaps, self.feature_raw_heatmaps = [''],['']
+        self.feature_activation_heatmaps_training = ['nonsense.png']
+        self.feature_raw_heatmaps_training = ['nonsense.png']
+        self.feature_activation_heatmaps, self.feature_raw_heatmaps = ['nonsense.png'],['nonsense.png']
 
         self.ROC_path = self.base_output_name + '_roc_' + model_to_fit + '_' + str(timegran)
         self.plot_name = 'roc_' + model_to_fit + '_' + str(timegran)
@@ -416,8 +424,9 @@ class single_timegran_exfil_model():
         print "list_of_x_vals", list_of_x_vals
         print "list_of_y_vals", list_of_y_vals
         print "roc_path", ROC_path + plot_name
+        exp_name = [i + '_NEW_MODEL' for i in exp_name]
         ax, _, plot_path = construct_ROC_curve(list_of_x_vals, list_of_y_vals, title,
-                                               ROC_path + plot_name,
+                                               ROC_path + plot_name + 'NEW_MODEL_',
                                                line_titles, show_p=False, exp_name=exp_name)
         #'''
         return plot_path
@@ -489,6 +498,11 @@ class single_timegran_exfil_model():
             ensemble_optimal_thresh_test = self.optimal_test_thresh_and_f1[0] #self.method_to_optimal_thresh_test[self.method_name]
 
         roc_plot_path = self._generate_ROC(self.ROC_path, self.plot_name, self.title, self.exp_name)
+
+        print "roc_plot_path", roc_plot_path
+        print "time_gran", str(self.timegran) + " sec granularity"
+        print "ideal_threshold", ensemble_optimal_thresh_test
+        print "attacks_found", ensemble_df_test.to_html()
 
         report_section = table_section_template.render(
             time_gran=str(self.timegran) + " sec granularity",

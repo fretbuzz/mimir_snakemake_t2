@@ -86,7 +86,7 @@ def generate_report(list_of_rocs, list_of_feat_coef, list_of_attacks_found_dfs, 
 
 
 def join_report_sections(recipes_used, output_location, avg_exfil_per_min, avg_pkt_size, exfil_per_min_variance,
-                         pkt_size_variance, sections, auto_open_p):
+                         pkt_size_variance, sections, auto_open_p, new_model=False):
     # setup jinga and the associated template
     env = Environment(
         loader=FileSystemLoader(searchpath="./report_templates")
@@ -96,6 +96,9 @@ def join_report_sections(recipes_used, output_location, avg_exfil_per_min, avg_p
 
     title = "MIMIR Results Report"
     print "about to render the template..."
+
+    if new_model:
+        title += ' from NEW MODEL'
 
     date = str(datetime.datetime.now()) ### TODO: is this the right timezone?
 

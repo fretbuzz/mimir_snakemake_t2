@@ -1392,10 +1392,13 @@ def determine_categorical_cm_df(y_test, optimal_predictions, exfil_paths, exfil_
 
 
 def construct_ROC_curve(list_of_x_vals, list_of_y_vals, title, plot_name, line_titles, show_p=False, exp_name=''):
-    if len(exp_name) > 1:
-        exit('exp_name list has more than 1 entry (there should only be 1!)')
+    if type(exp_name) == list:
+        if len(exp_name) > 1:
+            print "error in construct_ROC_curve func in statistical_analysis.py"
+            print "exp_name", exp_name, len(exp_name)
+            exit('exp_name list has more than 1 entry (there should only be 1!)')
 
-    exp_name = exp_name[0]
+        exp_name = exp_name[0]
 
     # okay, what we want to do here is to construct
     # x_vals should be FPR
@@ -1419,7 +1422,7 @@ def construct_ROC_curve(list_of_x_vals, list_of_y_vals, title, plot_name, line_t
     print "roc_plot componens (nonlocal)", plot_name, '|', exp_name, '|', '.png'
     plt.savefig( plot_name + exp_name + '.png', format='png', dpi=1000)
 
-    local_graph_loc = './temp_outputs/' + title + exp_name+ '.png'# XAB
+    local_graph_loc = './temp_outputs/' + title + exp_name + '.png'# XAB
     local_graph_loc = local_graph_loc.replace(' ', '_')
     print "roc_plot_name (local)", local_graph_loc
     plt.savefig( local_graph_loc, format='png', dpi=1000)
