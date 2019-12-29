@@ -266,11 +266,11 @@ class single_model_stats_pipeline():
 
         if self.no_testing:
             ensemble_optimal_f1_scores_test = self.method_to_optimal_f1_scores_train[self.method_name]
-            ensemble_df_test = self.method_to_cm_df_train[self.method_name]
+            ensemble_df_test = '' #self.method_to_cm_df_train[self.method_name]
             ensemble_optimal_thresh_test = self.method_to_optimal_thresh_train[self.method_name]
         else:
             ensemble_optimal_f1_scores_test = self.method_to_optimal_f1_scores_test[self.method_name]
-            ensemble_df_test = self.method_to_cm_df_test[self.method_name]
+            ensemble_df_test = self.method_to_cm_df_test[self.method_name].to_html()
             ensemble_optimal_thresh_test = self.method_to_optimal_thresh_test[self.method_name]
 
         report_section = table_section_template.render(
@@ -280,7 +280,7 @@ class single_model_stats_pipeline():
             model_params=self.model_params,
             optimal_fOne=ensemble_optimal_f1_scores_test,
             percent_attacks=percent_attacks,
-            attacks_found=ensemble_df_test.to_html(),
+            attacks_found=ensemble_df_test,
             attacks_found_training=attacks_found_training,
             percent_attacks_training=percent_attacks_train,
             feature_activation_heatmap=self.feature_activation_heatmaps[0],

@@ -146,7 +146,10 @@ class multi_experiment_pipeline(object):
         self.cilium_allowed_svc_comm = None
         self.where_to_save_cilium_model = base_output_name + '_cilium_model'
 
-        self.use_new_model_func = return_new_model_function
+        #self.use_new_model_func = return_new_model_function
+        self.rate_to_persvc_model = {}
+        self.rate_to_type_of_model_to_time_gran_to_predicted_test = {}
+        self.rate_to_type_of_model_to_time_gran_to_cm = {}
 
     # note: this going to be used to load the pipeline object prior to doing all of this work...
     def loader(self, filename):
@@ -169,14 +172,14 @@ class multi_experiment_pipeline(object):
                                                                     self.max_path_length, self.max_dns_porportion)
 
     def run_pipelines(self, pretrained_model_object = None, no_tsl=False, svcpair_model=None,
-                      per_svc_exfil_model_p=False, load_old_pipelines=False):
+                      per_svc_exfil_model_p=False, load_old_pipelines=False, persvc_ensemble_model=None):
         if no_tsl:
             self.use_ts_lower = False
         else:
             self.use_ts_lower = True
 
-        if per_svc_exfil_model_p:
-            self.use_new_model_func  = per_svc_exfil_model_p
+        #if per_svc_exfil_model_p:
+        #    self.use_new_model_func  = per_svc_exfil_model_p
 
         self.cilium_allowed_svc_comm = svcpair_model
 
@@ -235,6 +238,11 @@ class multi_experiment_pipeline(object):
 
                 print "rate_to_list_time_gran_to_mod_zscore_df.keys()", rate_to_list_time_gran_to_mod_zscore_df.keys()
 
+                recipes_used = [recipe.base_exp_name for recipe in self.function_list]
+                for counter, recipe in enumerate(recipes_used):
+                    name = '_'.join(recipe.split('_')[1:])
+                    self.names.append(name)
+
                 for rate_counter in range(0, len(self.avg_exfil_per_min)):
                     cur_avg_exfil_per_min = self.avg_exfil_per_min[rate_counter]
                     self.single_pipeline_after_injection(rate_to_list_time_gran_to_mod_zscore_df[cur_avg_exfil_per_min],
@@ -247,10 +255,31 @@ class multi_experiment_pipeline(object):
                                                     rate_to_cur_base_output_name[cur_avg_exfil_per_min], rate_counter,
                                                     self.avg_exfil_per_min, load_old_pipelines)
 
-                recipes_used = [recipe.base_exp_name for recipe in self.function_list]
-                for counter, recipe in enumerate(recipes_used):
-                    name = '_'.join(recipe.split('_')[1:])
-                    self.names.append(name)
+                    # TODO: apply the new model here?? (only for eval purposes tho... not for training...)
+                    # I think we need to pass both the new and old models, honestly....
+                    if persvc_ensemble_model:
+                        list_time_gran_to_mod_zscore_df = rate_to_list_time_gran_to_mod_zscore_df_testing[cur_avg_exfil_per_min]
+                        time_gran_to_aggregate_mod_score_dfs = aggregate_dfs(list_time_gran_to_mod_zscore_df)
+
+                        persvc_ensemble_model_cur = copy.deepcopy(persvc_ensemble_model)
+
+                        self.rate_to_persvc_model = {}
+                        persvc_ensemble_model_cur.apply_to_new_data( time_gran_to_aggregate_mod_score_dfs,
+                                                                     self.base_output_name, self.names,
+                                                                     self.avg_exfil_per_min[rate_counter],
+                                                                     self.avg_pkt_size[rate_counter],
+                                                                     self.exfil_per_min_variance[rate_counter],
+                                                                     self.pkt_size_variance[rate_counter] )
+
+                        self.rate_to_persvc_model[cur_avg_exfil_per_min] = persvc_ensemble_model_cur
+                        self.rate_to_type_of_model_to_time_gran_to_predicted_test[cur_avg_exfil_per_min] = \
+                            persvc_ensemble_model_cur.type_of_model_to_time_gran_to_predicted_test
+                        self.rate_to_type_of_model_to_time_gran_to_cm[cur_avg_exfil_per_min] = \
+                            persvc_ensemble_model_cur.type_of_model_to_time_gran_to_cm
+
+                        using_pretrained_model = not (not self.pretrained_min_pipeline)
+                        persvc_ensemble_model_cur.generate_reports(self.auto_open_pdfs, self.skip_heatmap_p, using_pretrained_model)
+
 
             if not self.pretrained_min_pipeline:
 
@@ -268,13 +297,11 @@ class multi_experiment_pipeline(object):
                 with open(self.where_to_save_minrate_statspipelines + 'multi', 'w') as z:
                     pickle.dump(min_rate_statspipelines_agg, z)
 
-                if self.use_new_model_func:
-                    min_rate_statspipelines = persvc_ensemble_model
+
+                if self.use_ts_lower:
+                    min_rate_statspipelines = min_rate_statspipelines_ts
                 else:
-                    if self.use_ts_lower:
-                        min_rate_statspipelines = min_rate_statspipelines_ts
-                    else:
-                        min_rate_statspipelines = min_rate_statspipelines_agg
+                    min_rate_statspipelines = min_rate_statspipelines_agg
 
                 ## save the cilium model, if the model is being trained...
                 with open(self.where_to_save_cilium_model, 'w') as g:
@@ -283,17 +310,17 @@ class multi_experiment_pipeline(object):
             if not self.no_labeled_data:
                 self.generate_aggregate_report()
         else:
-            if self.use_new_model_func:
-                with open(self.where_to_save_persvc_ensemble_model, 'w') as f:
+            #if self.use_new_model_func:
+            with open(self.where_to_save_persvc_ensemble_model, 'r') as f:
+                persvc_ensemble_model = pickle.load(f)
+
+            if self.use_ts_lower:
+                #print "self.where_to_save_minrate_statspipelines", self.where_to_save_minrate_statspipelines
+                with open(self.where_to_save_minrate_statspipelines, 'r') as f:
                     min_rate_statspipelines = pickle.load(f)
             else:
-                if self.use_ts_lower:
-                    #print "self.where_to_save_minrate_statspipelines", self.where_to_save_minrate_statspipelines
-                    with open(self.where_to_save_minrate_statspipelines, 'r') as f:
-                        min_rate_statspipelines = pickle.load(f)
-                else:
-                    with open(self.where_to_save_minrate_statspipelines  + 'multi', 'r') as f:
-                        min_rate_statspipelines = pickle.load(f)
+                with open(self.where_to_save_minrate_statspipelines  + 'multi', 'r') as f:
+                    min_rate_statspipelines = pickle.load(f)
 
             try:
                 with open(self.where_to_save_cilium_model, 'r') as f:
@@ -306,19 +333,40 @@ class multi_experiment_pipeline(object):
         ## okay, so for non-eval this should be @ same injection rate for train and test (marked i)
         # for eval, this should simply be over eval (whether physical or strictly injected) (marked ii)
 
+        ## TODO: modify the part below to handle the new model using eval data... (ideally ONLY the retiurn statements...)
+        ## and in fact, only really the 2nd term in the retrun statements...
+
+        '''
+        self.rate_to_type_of_model_to_time_gran_to_predicted_test
+        self.type_of_model_to_time_gran_to_cm
+        '''
+
         if self.no_labeled_data and self.skip_model_part:
-            return min_rate_statspipelines, self.rate_to_time_gran_to_predicted_test[min(self.avg_exfil_per_min)], None
+            return min_rate_statspipelines, self.rate_to_time_gran_to_predicted_test[min(self.avg_exfil_per_min)], \
+                   None, persvc_ensemble_model, self.rate_to_type_of_model_to_time_gran_to_predicted_test[min(self.avg_exfil_per_min)]
 
         self.rate_to_tg_to_cm = {}
         for rate,single_rate_statsp in self.single_rate_stats_pipelines.iteritems():
             self.rate_to_tg_to_cm[rate] = single_rate_statsp.time_gran_to_cm
 
         ## okay, now write it out...
+
         with open(self.base_output_name + '_rate_to_tg_to_cm.pickle', 'w') as f:
             f.write(pickle.dumps(self.rate_to_tg_to_cm))
 
-        return min_rate_statspipelines, self.rate_to_tg_to_cm, self.cilium_allowed_svc_comm
+        # need to turn rate_to_type_of_model_to_time_gran_to_cm into
+        type_of_model_to_rate_to_tg_to_cm = {}
+        if len(self.rate_to_type_of_model_to_time_gran_to_cm.keys()) > 0:
+            types_of_models = self.rate_to_type_of_model_to_time_gran_to_cm[ self.rate_to_type_of_model_to_time_gran_to_cm.keys()[0] ].keys()
+            for type_of_model in types_of_models:
+                type_of_model_to_rate_to_tg_to_cm[type_of_model] = {}
 
+                for rate, type_of_model_to_time_gran_to_cm in self.rate_to_type_of_model_to_time_gran_to_cm.iteritems():
+                    time_gran_to_cm = type_of_model_to_time_gran_to_cm[type_of_model]
+
+                    type_of_model_to_rate_to_tg_to_cm[type_of_model][rate] = time_gran_to_cm
+
+        return min_rate_statspipelines, self.rate_to_tg_to_cm, self.cilium_allowed_svc_comm, persvc_ensemble_model, type_of_model_to_rate_to_tg_to_cm
 
     def generate_aggregate_report(self):
         cur_exp_name = self.function_list[0].base_exp_name

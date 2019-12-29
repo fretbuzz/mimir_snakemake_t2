@@ -12,6 +12,7 @@ import numpy as np
 import ast
 import os, errno
 import time
+import copy
 plt.style.use('seaborn-paper')
 
 method_to_legend = {'ensemble': 'Our Method',
@@ -38,9 +39,9 @@ def update_config_file(config_file_pth, if_trained_model):
         json.dump(config_file, f, indent=2)
 
 def handle_single_exp(model_config_file, eval_config, no_tsl, decanter_configs, live_p, update_config,
-                      eval_config_to_cm, retrain_model_p, per_svc_exfil_model_p, exp_data_dir):
+                      eval_config_to_cm, retrain_model_p, per_svc_exfil_model_p, exp_data_dir, eval_config_to_modelType_to_cm):
 
-    eval_cm = run_analysis(False, model_config_file, eval_config=eval_config, no_tsl=no_tsl,
+    eval_cm, perModel_eval_cm = run_analysis(False, model_config_file, eval_config=eval_config, no_tsl=no_tsl,
                            decanter_configs=decanter_configs, live=live_p, skip_to_calc_zscore=retrain_model_p,
                            per_svc_exfil_model_p=per_svc_exfil_model_p, exp_data_dir=exp_data_dir)
 
@@ -48,6 +49,7 @@ def handle_single_exp(model_config_file, eval_config, no_tsl, decanter_configs, 
         update_config_file(eval_config, if_trained_model=False)
 
     eval_config_to_cm[eval_config] = eval_cm
+    eval_config_to_modelType_to_cm[eval_config] = perModel_eval_cm
 
 
 def get_eval_results(model_config_file, list_of_eval_configs, update_config, retrain_model_p, per_svc_exfil_model_p,
@@ -56,6 +58,7 @@ def get_eval_results(model_config_file, list_of_eval_configs, update_config, ret
                      no_tsl=False, decanter_configs=None, live_p=False, analyze_in_parallel=False, exp_data_dir=None):
     manager = multiprocessing.Manager()
     eval_config_to_cm = manager.dict()
+    eval_config_to_modelType_to_cm = manager.dict()
     ran_model_already = False
     running_analyses = []
 
@@ -63,7 +66,7 @@ def get_eval_results(model_config_file, list_of_eval_configs, update_config, ret
         if not use_remote:
             if only_finished_p:
                 if has_experiment_already_been_run(eval_config):
-                    eval_cm = run_analysis(False, model_config_file, eval_config=eval_config, no_tsl=no_tsl,
+                    eval_cm, perModel_eval_cm = run_analysis(False, model_config_file, eval_config=eval_config, no_tsl=no_tsl,
                                            decanter_configs=decanter_configs, live=live_p,
                                            skip_to_calc_zscore=retrain_model_p, per_svc_exfil_model_p=per_svc_exfil_model_p,
                                            exp_data_dir=exp_data_dir)
@@ -98,12 +101,12 @@ def get_eval_results(model_config_file, list_of_eval_configs, update_config, ret
                             if make_edgefiles_p:
                                 time.sleep(300)
                     handle_single_exp_args = (model_config_file, eval_config, no_tsl, decanter_configs, live_p, update_config,
-                                      eval_config_to_cm, retrain_model_p, per_svc_exfil_model_p, exp_data_dir)
+                                      eval_config_to_cm, retrain_model_p, per_svc_exfil_model_p, exp_data_dir, eval_config_to_modelType_to_cm)
                     p = multiprocessing.Process(target=handle_single_exp, args=handle_single_exp_args)
                     running_analyses.append(p)
                     p.start()
                 else:
-                    eval_cm = run_analysis(False, model_config_file, eval_config=eval_config, no_tsl=no_tsl,
+                    eval_cm, perModel_eval_cm = run_analysis(False, model_config_file, eval_config=eval_config, no_tsl=no_tsl,
                                            decanter_configs=decanter_configs, live=live_p, skip_to_calc_zscore=retrain_model_p,
                                            per_svc_exfil_model_p=per_svc_exfil_model_p, exp_data_dir=exp_data_dir)
 
@@ -114,6 +117,7 @@ def get_eval_results(model_config_file, list_of_eval_configs, update_config, ret
 
         if not analyze_in_parallel:
             eval_config_to_cm[eval_config] = eval_cm
+            eval_config_to_modelType_to_cm[eval_config] = perModel_eval_cm
 
         ## modify the config file so that you don't redo previously done experiments...
         #if update_config:
@@ -127,7 +131,10 @@ def get_eval_results(model_config_file, list_of_eval_configs, update_config, ret
     with open('./check_this.txt', 'w') as f:
         f.write( pickle.dumps(eval_config_to_cm) )
 
-    return eval_config_to_cm
+    with open('./check_this_perModel.txt', 'w') as f:
+        f.write( pickle.dumps(perModel_eval_cm) )
+
+    return eval_config_to_cm, perModel_eval_cm
 
 def aggregate_cm_vals_over_paths(cm, method=None):
     tn = 0.0
@@ -223,21 +230,26 @@ def get_evalconfigs_to_cm(model_config_file, eval_configs_to_xvals, xlabel, use_
     # TODO: modify this function to use: retrain_model_p, per_svc_exfil_model_p
 
     cache_name = './temp_outputs/' + graph_name
+    cache_name_cp = copy.copy(cache_name)
     if not no_tsl:
         cache_name += '_min_exfilrate_tsl_'
-    if per_svc_exfil_model_p:
-        cache_name += '_persvc_exfil_model_'
+    #if per_svc_exfil_model_p:
+    #    cache_name += '_persvc_exfil_model_'
+    cache_name_persvc = cache_name_cp + '_persvc_exfil_model_'
 
     cache_name += '_cached_looper.pickle' # + 'ret' # if it doesn't help, remove the second part...
 
     # the idea of these line is to ensure that the cached results are in the an obvious location, so my looper can grab
     # them later on to make an average-results graph...
     ##secondary_cache_name = "/".join(model_config_file.split('/')[:-2]) + 'cached_evalconfigs_to_cm.pickle'
-    secondary_cache_name = generate_secondary_cache_name(model_config_file, no_tsl, per_svc_exfil_model_p)
+    secondary_cache_name = generate_secondary_cache_name(model_config_file, no_tsl, False)
+    secondary_cache_name_persvc = generate_secondary_cache_name(model_config_file, False, True)
 
     if use_cached:
         with open(cache_name, 'r') as f:
             evalconfigs_to_cm = pickle.loads(f.read())
+        with open(cache_name_persvc, 'r') as f:
+            evalconfigs_to_model_to_cm = pickle.loads(f.read())
     else:
         list_of_eval_configs = []
         list_of_eval_sizes = []
@@ -251,7 +263,7 @@ def get_evalconfigs_to_cm(model_config_file, eval_configs_to_xvals, xlabel, use_
         list_of_eval_configs.reverse()
         print "list_of_eval_sizes", list_of_eval_sizes, "list_of_eval_configs", list_of_eval_configs
 
-        evalconfigs_to_cm = get_eval_results(model_config_file, list_of_eval_configs, update_config_p,
+        evalconfigs_to_cm, evalconfigs_to_model_to_cm = get_eval_results(model_config_file, list_of_eval_configs, update_config_p,
                                              retrain_model_p, per_svc_exfil_model_p, use_remote,
                                              remote_server_ip=remote_server_ip, remote_server_key=remote_server_key,
                                              user=user, dont_retrieve_from_remote=dont_retrieve_from_remote,
@@ -261,7 +273,12 @@ def get_evalconfigs_to_cm(model_config_file, eval_configs_to_xvals, xlabel, use_
             f.write(pickle.dumps(evalconfigs_to_cm))
         with open(secondary_cache_name, 'w') as f:
             f.write(pickle.dumps(evalconfigs_to_cm))
-    return evalconfigs_to_cm
+        with open(cache_name_persvc, 'w') as f:
+            f.write(pickle.dumps(evalconfigs_to_model_to_cm))
+        with open(secondary_cache_name_persvc, 'w') as f:
+            f.write(pickle.dumps(evalconfigs_to_model_to_cm))
+
+    return evalconfigs_to_cm, evalconfigs_to_model_to_cm
 
 def exfil_rate_vs_f1_at_various_timegran(timegran_to_method_to_rate_to_f1, evalconfig, method='ensemble'):
     plt.clf()
@@ -381,7 +398,7 @@ def generate_graphs(eval_configs_to_xvals, exfil_rates, evalconfigs_to_cm, timeg
                 if type_of_graph == 'angle':
                     prob_distro = get_prob_distr(evalconfig)
                     eval_to_prob_dist[evalconfig] = prob_distro
-                print "eval_to_prob_dist",eval_to_prob_dist
+                #print "eval_to_prob_dist",eval_to_prob_dist
 
                 timegran_to_method_to_rate_to_f1 = cm_to_exfil_rate_vs_f1(cur_cm, evalconfig)
                 exfil_rate_vs_f1_at_various_timegran(timegran_to_method_to_rate_to_f1, evalconfig)
@@ -394,9 +411,9 @@ def generate_graphs(eval_configs_to_xvals, exfil_rates, evalconfigs_to_cm, timeg
             method_to_y_vals_list[method] = y_vals_list
 
 
-        print "type_of_graph",type_of_graph
+        #print "type_of_graph",type_of_graph
         if type_of_graph == 'angle':
-            print "---angle--"
+            #print "---angle--"
             ## okay, we want to make the desired graph...
             ## x-axis will be euclidean distance...
             ## y-axis will be the F1 score...
@@ -434,8 +451,8 @@ def generate_graphs(eval_configs_to_xvals, exfil_rates, evalconfigs_to_cm, timeg
             x_vals_list = [i/float(model_xval) for i in x_vals_list]
 
             y_vals_list = method_to_y_vals_list[method]
-            print "x_vals_list", x_vals_list
-            print "y_vals_list", y_vals_list
+            #print "x_vals_list", x_vals_list
+            #print "y_vals_list", y_vals_list
             x_vals_list, y_vals_list = zip(*sorted(zip(x_vals_list, y_vals_list)))
 
             plt.plot(x_vals_list, y_vals_list, marker='.', markersize=22, label=method_to_legend[method])
@@ -659,11 +676,30 @@ def run_looper(config_file_pth, update_config, use_remote, only_finished_p, live
 
     no_tsl = not( (not no_tsl) or min_exfil_rate_model_p )
 
-    evalconfigs_to_cm = get_evalconfigs_to_cm(model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran,
+    evalconfigs_to_cm, evalconfigs_to_model_to_cm = get_evalconfigs_to_cm(model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran,
                                               type_of_graph, graph_name, update_config, only_finished_p, retrain_model_p,
                                               per_svc_exfil_model_p, no_tsl=no_tsl, decanter_configs=decanter_configs,
                                               live_p=live_p, analyze_in_parallel=analyze_in_parallel, exp_data_dir=exp_data_dir)
 
+    # TODO: finish writing part related to evalconfigs_to_model_to_cm
+    ############################################################
+    # this part handles displaying all of the new models...
+    model_to_evalconfig_to_cm = {}
+    for evalconfig, model_to_cm in evalconfigs_to_model_to_cm.iteritems():
+        for model,cm in model_to_cm.iteritems():
+            if model not in model_to_evalconfig_to_cm.keys():
+                model_to_evalconfig_to_cm[model] = {}
+            model_to_evalconfig_to_cm[model][evalconfig] = cm
+
+    for model, cur_evalconfig_to_cm in model_to_evalconfig_to_cm.iteritems():
+        generate_graphs(eval_configs_to_xvals, exfil_rate, cur_evalconfig_to_cm, timegran, type_of_graph,
+                        str(graph_name) + '_NEW_MODEL_' + model + '_',
+                        xlabel, model_config_file, False, model_xval)
+    ############################################################
+
+
+    print "\n\n-----"
+    print "old model..."
     generate_graphs(eval_configs_to_xvals, exfil_rate, evalconfigs_to_cm, timegran, type_of_graph, graph_name, xlabel,
                     model_config_file, no_tsl, model_xval)
 
@@ -697,7 +733,7 @@ if __name__=="__main__":
 
     parser.add_argument('--per_svc_exfil_model', dest='per_svc_exfil_model_p',
                         default=False, action='store_true',
-                        hepl='return the brand new model that is stored in statistical_analysis_perSvc.py')
+                        hepl='[does not do anything, no reason to include this (not removing b/c might be convenient in the future...]')
 
     parser.add_argument('--exp_data_dir', dest='exp_data_dir', default=None,
                         help='if the experiment directory differs from the one listed in the config file, you can specify it here (useful for running locally)')

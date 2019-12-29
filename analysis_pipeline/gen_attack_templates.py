@@ -32,6 +32,8 @@ def run_mulval():
         out = container.exec_run(command, workdir='/root/mulval/utils/')
         print out #out.output, out
 
+    print "mulval cmds done..."
+
     print client.containers.list()
 
     print container.stop()

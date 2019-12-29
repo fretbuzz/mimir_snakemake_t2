@@ -71,7 +71,7 @@ def parse_experimental_data_json(config_file, experimental_folder, experiment_na
     return pipeline_object
 
 def parse_experimental_config(experimental_config_file, return_new_model_function, live=False, is_eval=False,
-                              add_dropInfo_to_name=True, skip_to_calc_zscore=False, exp_data_dir=None):
+                              add_dropInfo_to_name=True, skip_to_calc_zscore=False, exp_data_dir=None, load_endresult=False):
 
     print "experimental_config_file", type(experimental_config_file), experimental_config_file
     with open(experimental_config_file, 'r') as f:
@@ -236,6 +236,9 @@ def parse_experimental_config(experimental_config_file, return_new_model_functio
             calc_ide = False
             calculate_z_scores = True
 
+        if load_endresult:
+            get_endresult_from_memory = True
+
         experiment_classes = [parse_experimental_data_json(exp_config_file, experimental_folder, cur_experiment_name,
                                                            make_edgefiles, time_interval_lengths, pcap_file_path,
                                                            pod_creation_log_path, netsec_policy, time_of_synethic_exfil,
@@ -280,27 +283,31 @@ def parse_experimental_config(experimental_config_file, return_new_model_functio
 
 def run_analysis(return_new_model_function, training_config, eval_config=None, live=False, no_tsl=True,
                  decanter_configs=None, skip_to_calc_zscore=False, exp_data_dir=None,
-                 per_svc_exfil_model_p=False, load_old_pipelines=False):
+                 per_svc_exfil_model_p=False, load_old_pipelines=False, load_endresult_train = False):
 
     training_experimente_object = parse_experimental_config(training_config, return_new_model_function, is_eval=False,
-                                                            skip_to_calc_zscore=skip_to_calc_zscore, exp_data_dir=exp_data_dir)
+                                                            skip_to_calc_zscore=skip_to_calc_zscore,
+                                                            exp_data_dir=exp_data_dir, load_endresult=load_endresult_train)
 
-    min_rate_training_statspipelines, training_results, svcpair_model = training_experimente_object.run_pipelines(no_tsl=no_tsl, per_svc_exfil_model_p=per_svc_exfil_model_p,
-                                                                                                                  load_old_pipelines=load_old_pipelines)
+    min_rate_training_statspipelines, training_results, svcpair_model, new_persvc_model, train_results_per_model_new = \
+        training_experimente_object.run_pipelines(no_tsl=no_tsl, per_svc_exfil_model_p=per_svc_exfil_model_p, load_old_pipelines=load_old_pipelines)
 
     print "min_rate_training_statspipelines",min_rate_training_statspipelines
     print "training_results", training_results
     eval_results = None
+    eval_results_per_model_new = None
     #time.sleep(35)
     ##exit(233)
 
     if eval_config:
         eval_experimente_object = parse_experimental_config(eval_config, None, live=live, is_eval=True, skip_to_calc_zscore=skip_to_calc_zscore,
                                                             exp_data_dir=exp_data_dir)
-        _, eval_results,_ = eval_experimente_object.run_pipelines(pretrained_model_object=min_rate_training_statspipelines,
-                                                                  no_tsl=no_tsl, svcpair_model=svcpair_model,
-                                                                  per_svc_exfil_model_p=per_svc_exfil_model_p,
-                                                                  load_old_pipelines=load_old_pipelines)
+        _, eval_results,_,_, eval_results_per_model_new = \
+            eval_experimente_object.run_pipelines(pretrained_model_object=min_rate_training_statspipelines,
+                                                                    no_tsl=no_tsl, svcpair_model=svcpair_model,
+                                                                    per_svc_exfil_model_p=per_svc_exfil_model_p,
+                                                                    load_old_pipelines=load_old_pipelines,
+                                                                    persvc_ensemble_model=new_persvc_model)
 
         print "----------------------------"
         print "eval_results:"
@@ -319,7 +326,7 @@ def run_analysis(return_new_model_function, training_config, eval_config=None, l
             eval_results = run_decanter_component(decanter_configs, training_config, eval_config, eval_results)
             # TODO: update the decanter configs appropriately....
 
-    return eval_results
+    return eval_results, eval_results_per_model_new
 
 def run_decanter_component(decanter_configs, training_config, eval_config, eval_results):
     print "decanter_configs", decanter_configs
@@ -378,11 +385,13 @@ if __name__=="__main__":
     parser.add_argument('--exp_data_dir', dest='exp_data_dir', default=None,
                         help='if the experiment directory differs from the one listed in the config file, you can specify it here (useful for running locally)')
     parser.add_argument('--return_new_model_func', dest='ret_new_mod_func', default=False,
-                        help='when training, returns the model from statistical_analysis_perSvc.py for use on the evaluation data')
+                        help='[doesn\'t do anything] when training, returns the model from statistical_analysis_perSvc.py for use on the evaluation data')
 
     parser.add_argument('--load_old_pipelines', dest='load_old_pipelines', default=False, action='store_true',
                         help='[for dev purposes] loads the old pipelines (from statistical_analysis.py), so that the new one can be tested more easily')
 
+    parser.add_argument('--load_endresult_train', dest='load_endresult_train', default=False, action='store_true',
+                        help='(for dev purposes) for the training data, load the endresult from memory (this flag is overrides retrain_model for the training data')
 
 
 
@@ -414,4 +423,4 @@ if __name__=="__main__":
         print "retrain_model", args.retrain_model
         run_analysis(args.ret_new_mod_func, args.training_config_json, eval_config=args.config_json, live=args.live,
                      skip_to_calc_zscore = args.retrain_model, exp_data_dir = args.exp_data_dir,
-                     load_old_pipelines = args.load_old_pipelines)
+                     load_old_pipelines = args.load_old_pipelines, load_endresult_train = args.load_endresult_train)
