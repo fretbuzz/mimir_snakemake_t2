@@ -43,7 +43,7 @@ class exfil_detection_model():
         self.model_to_tg_report_sections = {}
 
         ###### # this list controls which individual models are calculated
-        self.types_of_models = ['lasso', 'logistic', 'boosting', 'persvc_boosting']
+        self.types_of_models = ['lasso', 'logistic', 'boosting lasso', 'boosting logisitic' 'persvc_boosting']
         ######
 
         for timegran, feature_df in self.time_gran_to_aggregate_mod_score_dfs.iteritems():
@@ -79,16 +79,17 @@ class exfil_detection_model():
             self.type_of_model_to_time_gran_to_cm[type_of_model] = {}
             for timegran in self.Xs.keys():
                 # this if-block exists b/c not all the model types are implemented...
-                if type_of_model == 'lasso':
+                if type_of_model in ['lasso', 'logistic', 'boosting lasso', 'boosting logisitic']:
                     self.trained_models[type_of_model][timegran] = \
                         single_timegran_exfil_model(self.Xs[timegran], self.Ys[timegran], self.Xts[timegran],
-                                                    self.Yts[timegran], 'lasso', timegran, self.base_output_name, self.recipes_used)
+                                                    self.Yts[timegran], type_of_model, timegran, self.base_output_name, self.recipes_used)
 
                     self.trained_models[type_of_model][timegran].train()
 
                     self.type_of_model_to_time_gran_to_cm[type_of_model][timegran] = self.trained_models[type_of_model][
                         timegran].train_confusion_matrix
 
+                '''
                 elif type_of_model == 'logistic':
                     self.trained_models[type_of_model][timegran] = \
                         single_timegran_exfil_model(self.Xs[timegran], self.Ys[timegran], self.Xts[timegran],
@@ -105,6 +106,7 @@ class exfil_detection_model():
                 elif type_of_model == 'persvc_boosting':
                     # TODO
                     pass
+                '''
 
                 # when all the model types are implemented, I can then remove the above if-block and enable the code below
                 #self.trained_models[type_of_model][timegran] = single_timegran_exfil_model(self.Xs[timegran], self.Ys[timegran],
@@ -159,8 +161,6 @@ class exfil_detection_model():
     def generate_reports(self, auto_open_p, skip_heatmaps, using_pretrained_model):
         ## TODO: I need to add the other alert calculation methods (e.g., cilium, ide)
         # (^^ probably as a list of the alert levels, and then can find when the alerts are coming here)
-
-        ## TODO: need to prevent -- ... --
 
         for type_of_model in self.trained_models.keys():
             self.model_to_tg_report_sections[type_of_model] = {}
@@ -284,6 +284,17 @@ class single_timegran_exfil_model():
 
         elif self.model_to_fit == 'lasso':
             self.clf = sklearn.linear_model.LassoCV(cv=5, max_iter=80000) ## putting positive here makes it works.
+
+        elif self.model_to_fit == 'boosting lasso':
+            self.clf = sklearn.ensemble.AdaBoostClassifier(base_estimator=sklearn.linear_model.LassoCV(cv=5, max_iter=80000),
+                                                           n_estimators=10, learning_rate=1.0, algorithm='SAMME.R', random_state=None)
+
+        elif self.model_to_fit == 'boosting logistic':
+            self.clf = sklearn.ensemble.AdaBoostClassifier(
+                base_estimator=sklearn.linear_model.LogisticRegressionCV(),
+                n_estimators=10, learning_rate=1.0, algorithm='SAMME.R', random_state=None)
+
+
 
         print "self.X has NaN's here: ", np.where(np.isnan(self.X))
         print "self.X has Inf's here: ", np.where(np.isinf(self.X))
