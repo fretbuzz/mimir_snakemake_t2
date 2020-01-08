@@ -346,7 +346,7 @@ def convert_prob_distro_dict_to_array(prob_distro_dict, prob_distro_keys):
     return prob_distro_vector
 
 def generate_graphs(eval_configs_to_xvals, exfil_rates, evalconfigs_to_cm, timegran, type_of_graph, graph_name,
-                    xlabel, model_config_file, no_tsl=False, model_xval=100):
+                    xlabel, model_config_file, no_tsl=False, model_xval=100, new_model=None):
     method_to_rate_to_xlist_ylist = {}
     methods = evalconfigs_to_cm[eval_configs_to_xvals.keys()[0]][exfil_rates[0]][timegran].keys()
     angles_method_to_rate_to_xlist_ylist = {}
@@ -536,6 +536,13 @@ def generate_graphs(eval_configs_to_xvals, exfil_rates, evalconfigs_to_cm, timeg
             ###
     #print "evalconfig",evalconfig,"exfil_rate",exfil_rate, "xval", xval, "\n"
     #data = [ cur_vals ]
+    indicator_string = "results_table_for_"
+    if new_model:
+        indicator_string += 'NEW_' + new_model
+    else:
+        indicator_string += 'old_model'
+
+    print indicator_string
     print "results_of_eval:"
     print(tabulate(data, headers=['exfil_rate', 'exp_name', 'method', 'tp', 'fn', 'tn', 'fp', 'tpr', 'fpr', 'f1_score']))
     print "-----"
@@ -694,7 +701,7 @@ def run_looper(config_file_pth, update_config, use_remote, only_finished_p, live
     for model, cur_evalconfig_to_cm in model_to_evalconfig_to_cm.iteritems():
         generate_graphs(eval_configs_to_xvals, exfil_rate, cur_evalconfig_to_cm, timegran, type_of_graph,
                         str(graph_name) + '_NEW_MODEL_' + model + '_',
-                        xlabel, model_config_file, False, model_xval)
+                        xlabel, model_config_file, False, model_xval, new_model=model)
     ############################################################
 
 
@@ -733,7 +740,7 @@ if __name__=="__main__":
 
     parser.add_argument('--per_svc_exfil_model', dest='per_svc_exfil_model_p',
                         default=False, action='store_true',
-                        hepl='[does not do anything, no reason to include this (not removing b/c might be convenient in the future...]')
+                        help='[does not do anything, no reason to include this (not removing b/c might be convenient in the future...]')
 
     parser.add_argument('--exp_data_dir', dest='exp_data_dir', default=None,
                         help='if the experiment directory differs from the one listed in the config file, you can specify it here (useful for running locally)')

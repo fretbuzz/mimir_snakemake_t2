@@ -1,5 +1,5 @@
 {
-  "machine_ip": "c220g2-030831.wisc.cloudlab.us",
+  "machine_ip": "c220g2-010824.wisc.cloudlab.us",
   "e2e_script_to_follow": "sockshop_repro.sh",
   "corresponding_local_directory": "/Volumes/exM2/new_experimental_data/sockshop_scale_rep2",
 

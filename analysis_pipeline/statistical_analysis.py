@@ -1069,6 +1069,11 @@ def extract_comparison_methods(X_train, X_test):
     '''
     ########## END complicated ide stuff...
 
+    cilium_train, cilium_test  = get_cilium_values(X_train, X_test)
+
+    return ide_train, ide_test, X_train, X_test, cilium_train, cilium_test
+
+def get_cilium_values(X_train, X_test):
     # cilium_for_first_sec_
     cilium_columns = []
     for column in X_train:
@@ -1084,7 +1089,7 @@ def extract_comparison_methods(X_train, X_test):
         cilium_train = [0 for i in range(0, len(X_train))]
         cilium_test = [0 for i in range(0, len(X_test))]
 
-    return ide_train, ide_test, X_train, X_test, cilium_train, cilium_test
+    return cilium_train, cilium_test
 
 def drop_useless_columns_testTrain_Xs( X_train, X_test ):
     X_train = X_train.drop(columns='exfil_path')

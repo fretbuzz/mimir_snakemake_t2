@@ -6,7 +6,7 @@ import process_roc
 import generate_report
 from jinja2 import FileSystemLoader, Environment
 import pandas as pd
-from statistical_analysis import construct_ROC_curve, drop_useless_columns_testTrain_Xs, drop_useless_columns_aggreg_DF
+from statistical_analysis import construct_ROC_curve, drop_useless_columns_testTrain_Xs, drop_useless_columns_aggreg_DF, get_cilium_values
 import numpy as np
 import copy
 import time
@@ -43,7 +43,7 @@ class exfil_detection_model():
         self.model_to_tg_report_sections = {}
 
         ###### # this list controls which individual models are calculated
-        self.types_of_models = ['lasso', 'logistic', 'boosting lasso', 'boosting logisitic' 'persvc_boosting']
+        self.types_of_models = ['lasso', 'logistic', 'logistic_ide', 'boosting lasso', 'boosting logisitic' 'persvc_boosting']
         ######
 
         for timegran, feature_df in self.time_gran_to_aggregate_mod_score_dfs.iteritems():
@@ -59,6 +59,8 @@ class exfil_detection_model():
             self.time_gran_to_outtraffic[timegran] = []
             self.skip_model_part = skip_model_part
 
+        self.Xs_cp = copy.deepcopy(self.Xs)
+
         for type_of_model in self.types_of_models:
             self.trained_models[type_of_model] = {}
             for timegran in self.Xs.keys():
@@ -70,6 +72,8 @@ class exfil_detection_model():
         self.exfil_per_min_variance = exfil_per_min_variance
         self.pkt_size_variance = pkt_size_variance
 
+        self.type_of_model_to_time_gran_to_predicted_train = {}
+
     def train_pergran_models(self):
         # first, let's feed the correct values into the single_timegran_exfil_model instances...
         # TODO
@@ -77,42 +81,121 @@ class exfil_detection_model():
 
         for type_of_model in self.types_of_models:
             self.type_of_model_to_time_gran_to_cm[type_of_model] = {}
+            this_model_exists = False
+            timegran_to_alerts = {}
+            self.type_of_model_to_time_gran_to_predicted_train[type_of_model] = {}
+
             for timegran in self.Xs.keys():
                 # this if-block exists b/c not all the model types are implemented...
-                if type_of_model in ['lasso', 'logistic', 'boosting lasso', 'boosting logisitic']:
+                if type_of_model in ['lasso', 'logistic', 'logistic_ide']: #, 'boosting lasso', 'boosting logisitic']:
+                    print "current_type_of_model", type_of_model
+
+                    this_model_exists = True
+
+                    if '_ide' in type_of_model:
+                        use_ide_feature = True
+                    else:
+                        use_ide_feature = False
+
                     self.trained_models[type_of_model][timegran] = \
                         single_timegran_exfil_model(self.Xs[timegran], self.Ys[timegran], self.Xts[timegran],
-                                                    self.Yts[timegran], type_of_model, timegran, self.base_output_name, self.recipes_used)
+                                                    self.Yts[timegran], type_of_model,
+                                                    timegran, self.base_output_name, self.recipes_used,
+                                                    use_ide_feature=use_ide_feature)
 
                     self.trained_models[type_of_model][timegran].train()
 
                     self.type_of_model_to_time_gran_to_cm[type_of_model][timegran] = self.trained_models[type_of_model][
                         timegran].train_confusion_matrix
 
-                '''
-                elif type_of_model == 'logistic':
-                    self.trained_models[type_of_model][timegran] = \
-                        single_timegran_exfil_model(self.Xs[timegran], self.Ys[timegran], self.Xts[timegran],
-                                                    self.Yts[timegran], 'logistic', timegran, self.base_output_name, self.recipes_used)
+                    timegran_to_alerts[timegran] = self.trained_models[type_of_model][timegran].y_optimal_thresholded
 
-                    self.trained_models[type_of_model][timegran].train()
+                elif type_of_model == 'cilium':
+                    this_model_exists = True
+                    training_alerts, test_alerts = get_cilium_values(self.Xs[timegran], self.Xts[timegran])
+                    self.trained_models[type_of_model][timegran] = tuple(training_alerts)
+                    timegran_to_alerts[timegran] = tuple(training_alerts)
 
-                    self.type_of_model_to_time_gran_to_cm[type_of_model][timegran] = self.trained_models[type_of_model][
-                        timegran].train_confusion_matrix
+                    self.type_of_model_to_time_gran_to_cm[type_of_model][timegran] =  \
+                        generate_confusion_matrices(self.Ys[timegran][0], 0.5, self.Xs[timegran][0]['exfil_path'],
+                                                    self.Xs[timegran][0]['exfil_weight'].tolist())
 
-                elif type_of_model == 'boosting':
-                    # TODO
-                    pass
-                elif type_of_model == 'persvc_boosting':
-                    # TODO
-                    pass
-                '''
+                    # step 1: self.trained_models[type_of_model][timegran] is just the list of alerts here...
+                        # also set timegran_to_alerts[timegran] too...
+                    # [attempted...]
+                    # step 2: what about multitime?? not a problem for cilium :)
+                    ### just use 60 sec as the ensemble granularity...
+                    # [attempted...]
+                    # step 3: modify the apply_to_new_data function to handle cilium too
+                    # [attempted...]
+                    # step 4: modify the report generation function to avoid causing problems with
+                    # the new function...
+                    # [^^ attempting ^^]
+                    #######
+                    # step 5: add a comparison list and modify the report generation function accordingly...
+                    # PROBLEM : we need the CM's... we gotta
+                    # NOTE: you *could* imagine that it would work better if we had a cilium
+                    # class that implements the same interface as everyone else...
 
-                # when all the model types are implemented, I can then remove the above if-block and enable the code below
-                #self.trained_models[type_of_model][timegran] = single_timegran_exfil_model(self.Xs[timegran], self.Ys[timegran],
-                #                                                        self.Xts[timegran], self.Yts[timegran], type_of_model, timegran)
+            self.type_of_model_to_time_gran_to_predicted_train[type_of_model] = timegran_to_alerts
 
-                #print " self.trained_models[type_of_model][timegran]",  self.trained_models[type_of_model][timegran]
+            if this_model_exists:
+                ensemble_timegran = '(' + ','.join([str(i) for i in self.Xts.keys()]) + ')'
+
+                if type_of_model == 'cilium':
+                    largest_timegran = max(self.Xts.keys())
+                    self.type_of_model_to_time_gran_to_predicted_train[type_of_model][ensemble_timegran] = \
+                        tuple(self.type_of_model_to_time_gran_to_predicted_train[type_of_model][largest_timegran])
+                    self.trained_models[type_of_model][ensemble_timegran] = \
+                        tuple(self.type_of_model_to_time_gran_to_predicted_train[type_of_model][largest_timegran])
+
+                    self.type_of_model_to_time_gran_to_cm[type_of_model][ensemble_timegran] = \
+                        generate_confusion_matrices(self.Ys[largest_timegran][0], 0.5, self.Xs[largest_timegran][0]['exfil_path'],
+                                                    self.Xs[largest_timegran][0]['exfil_weight'].tolist())
+
+                else:
+                    # now need to combine the alerts at different time granularities
+
+                    print "self.Xs_cp", self.Xs_cp, type(self.Xs_cp)
+
+                    multi_time_object = multi_time_alerts(
+                        self.type_of_model_to_time_gran_to_predicted_train[type_of_model],
+                        copy.deepcopy(self.Ys), copy.deepcopy(self.Xs_cp),
+                        self.base_output_name, type_of_model, self.recipes_used,
+                        is_train=True)
+
+                    alerts_for_multitime = multi_time_object.alerts
+                    self.type_of_model_to_time_gran_to_predicted_train[type_of_model][ensemble_timegran] = alerts_for_multitime
+                    self.trained_models[type_of_model][ensemble_timegran] = multi_time_object
+                    self.type_of_model_to_time_gran_to_cm[type_of_model][ensemble_timegran] = multi_time_object.confusion_matrix
+
+                    ## time.sleep(3700)
+
+
+                    '''
+                    elif type_of_model == 'logistic':
+                        self.trained_models[type_of_model][timegran] = \
+                            single_timegran_exfil_model(self.Xs[timegran], self.Ys[timegran], self.Xts[timegran],
+                                                        self.Yts[timegran], 'logistic', timegran, self.base_output_name, self.recipes_used)
+    
+                        self.trained_models[type_of_model][timegran].train()
+    
+                        self.type_of_model_to_time_gran_to_cm[type_of_model][timegran] = self.trained_models[type_of_model][
+                            timegran].train_confusion_matrix
+    
+                    elif type_of_model == 'boosting':
+                        # TODO
+                        pass
+                    elif type_of_model == 'persvc_boosting':
+                        # TODO
+                        pass
+                    '''
+
+                    # when all the model types are implemented, I can then remove the above if-block and enable the code below
+                    #self.trained_models[type_of_model][timegran] = single_timegran_exfil_model(self.Xs[timegran], self.Ys[timegran],
+                    #                                                        self.Xts[timegran], self.Yts[timegran], type_of_model, timegran)
+
+                    #print " self.trained_models[type_of_model][timegran]",  self.trained_models[type_of_model][timegran]
 
     def apply_to_new_data(self, time_gran_to_aggregate_mod_score_df, cur_base_output_name, recipes_used, avg_exfil_per_min,
                           avg_pkt_size, exfil_per_min_variance, pkt_size_variance):
@@ -133,30 +216,78 @@ class exfil_detection_model():
         #print "self.Yts", self.Yts
 
         timegran_to_alerts = {}
-        for type_of_model in self.types_of_models:
+        for type_of_model_index in range(0, len(self.types_of_models)):
+            type_of_model = self.types_of_models[type_of_model_index]
             self.type_of_model_to_time_gran_to_predicted_test[type_of_model] = {}
+            timegran_to_alerts = {}
+            this_model_exists = False
+
             for timegran in self.Xts.keys():
                 if type(self.trained_models[type_of_model][timegran]) != list:
-                    self.trained_models[type_of_model][timegran].apply_to_new_data(self.Xts[timegran], self.Yts[timegran],
-                                                                                   self.base_output_name, self.recipes_used,
-                                                                                   self.avg_exfil_per_min, self.exfil_per_min_variance)
-                    timegran_to_alerts[timegran] = self.trained_models[type_of_model][timegran].yt_optimal_thresholded
 
-                    #if self.Yts is None:
-                    self.type_of_model_to_time_gran_to_predicted_test[type_of_model] = timegran_to_alerts
-                    #else:
-                    self.type_of_model_to_time_gran_to_cm[type_of_model][timegran] = \
-                            self.trained_models[type_of_model][timegran].test_confusion_matrix
+                    print "current_type_of_model: ", type_of_model
 
-            # now need to combine the alerts at different time granularities
-            ensemble_timegran = '(' + ','.join(self.Xts.keys()) + ')'
-            multi_time_object = multi_time_alerts(self.type_of_model_to_time_gran_to_predicted_test[type_of_model],
-                                                  self.Yts[0], self.Xts[0], self.base_output_name, type_of_model, self.recipes_used)
+                    if type_of_model == 'cilium':
+                        this_model_exists = True
+                        training_alerts, test_alerts = get_cilium_values(self.Xs[timegran], self.Xts[timegran])
+                        timegran_to_alerts[timegran] = tuple(test_alerts)
 
-            alerts_for_multitime = multi_time_object.alerts
-            self.type_of_model_to_time_gran_to_predicted_test[type_of_model][ensemble_timegran] = alerts_for_multitime
-            self.trained_models[type_of_model][ensemble_timegran] = multi_time_object
-            self.type_of_model_to_time_gran_to_cm[type_of_model][ensemble_timegran] = multi_time_object.confusion_matrix
+                        self.type_of_model_to_time_gran_to_cm[type_of_model][timegran] = \
+                            generate_confusion_matrices(self.Yts[timegran][0], 0.5, self.Xts[timegran][0]['exfil_path'],
+                                                        self.Xts[timegran][0]['exfil_weight'].tolist())
+
+                    else:
+                        this_model_exists = True
+
+                        if '_ide' in type_of_model:
+                            use_ide_feature = True
+                        else:
+                            use_ide_feature = False
+
+                        self.trained_models[type_of_model][timegran].apply_to_new_data(self.Xts[timegran], self.Yts[timegran],
+                                                                                       self.base_output_name, self.recipes_used,
+                                                                                       self.avg_exfil_per_min, self.exfil_per_min_variance,
+                                                                                       use_ide_feature=use_ide_feature)
+
+                        timegran_to_alerts[timegran] = self.trained_models[type_of_model][timegran].yt_optimal_thresholded
+
+                        print "timegran_to_alerts_qq", timegran_to_alerts
+
+                        #if self.Yts is None:
+                        #else:
+                        self.type_of_model_to_time_gran_to_cm[type_of_model][timegran] = \
+                                self.trained_models[type_of_model][timegran].test_confusion_matrix
+
+            self.type_of_model_to_time_gran_to_predicted_test[type_of_model] = timegran_to_alerts
+
+            if this_model_exists:
+                # now need to combine the alerts at different time granularities
+                ensemble_timegran = '(' + ','.join([str(i) for i in self.Xts.keys()]) + ')'
+
+
+                if type_of_model == 'cilium':
+                    largest_timegran = max(self.Xts.keys())
+                    self.type_of_model_to_time_gran_to_predicted_train[type_of_model][ensemble_timegran] = \
+                        tuple(self.type_of_model_to_time_gran_to_predicted_train[type_of_model][largest_timegran])
+                    self.trained_models[type_of_model][ensemble_timegran] = \
+                        tuple(self.type_of_model_to_time_gran_to_predicted_train[type_of_model][largest_timegran])
+
+                    self.type_of_model_to_time_gran_to_cm[type_of_model][largest_timegran] = \
+                        generate_confusion_matrices(self.Yts[largest_timegran][0], 0.5, self.Xts[largest_timegran][0]['exfil_path'],
+                                                    self.Xts[largest_timegran][0]['exfil_weight'].tolist())
+                else:
+                    #print "type_of_model", type_of_model, "type_of_model_index", type_of_model_index, "type_of_model", type_of_model, \
+                    #        "self.Xts.keys()",  self.Xts.keys()
+                    #print "self.type_of_model_to_time_gran_to_predicted_test", self.type_of_model_to_time_gran_to_predicted_test
+
+                    multi_time_object = multi_time_alerts(self.type_of_model_to_time_gran_to_predicted_test[type_of_model],
+                                                          copy.deepcopy(self.Yts), copy.deepcopy(self.Xts),
+                                                          self.base_output_name, type_of_model, self.recipes_used)
+
+                    alerts_for_multitime = multi_time_object.alerts
+                    self.type_of_model_to_time_gran_to_predicted_test[type_of_model][ensemble_timegran] = alerts_for_multitime
+                    self.trained_models[type_of_model][ensemble_timegran] = multi_time_object
+                    self.type_of_model_to_time_gran_to_cm[type_of_model][ensemble_timegran] = multi_time_object.confusion_matrix
 
     def generate_reports(self, auto_open_p, skip_heatmaps, using_pretrained_model):
         ## TODO: I need to add the other alert calculation methods (e.g., cilium, ide)
@@ -166,14 +297,16 @@ class exfil_detection_model():
             self.model_to_tg_report_sections[type_of_model] = {}
             for timegran in self.trained_models[type_of_model].keys():
                 # if model is not implemented yet, then self.trained_models[type_of_model][timegran] will be a list
-                if type(self.trained_models[type_of_model][timegran]) != list:
+                if type(self.trained_models[type_of_model][timegran]) != list and \
+                    type(self.trained_models[type_of_model][timegran]) != tuple :
                     self.model_to_tg_report_sections[type_of_model][timegran] = \
                         self.trained_models[type_of_model][timegran].generate_report_section(skip_heatmaps,
                                                                                              using_pretrained_model)
 
         for type_of_model, report_sections in self.model_to_tg_report_sections.iteritems():
             first_time_gran = self.trained_models[type_of_model].keys()[0]
-            if type(self.trained_models[type_of_model][first_time_gran]) != list:
+            if type(self.trained_models[type_of_model][first_time_gran]) != list and \
+                    type(self.trained_models[type_of_model][first_time_gran]) != tuple:
                 output_location = self.base_output_name
                 if using_pretrained_model:
                     output_location += '_' + str(self.avg_exfil_per_min) + ":"  + str(self.exfil_per_min_variance)
@@ -186,16 +319,17 @@ class exfil_detection_model():
                                                      self.avg_pkt_size, self.exfil_per_min_variance, self.pkt_size_variance,
                                                      report_sections, auto_open_p, new_model=True)
 
-                #time.sleep(3600) # TODO: <--- remove!!!
+                ### ### <--|| -|-|- ||--> ### ###
 
+                # ----- # ----- # ----- # ----- #
+                #time.sleep(3600) # TODO: <--- remove!!!
                 #print "sleeping for a bit..."
                 #time.sleep(3600)
-
 
 class single_timegran_exfil_model():
     '''This class is an ensemble model of many models that each determine whether a particular svc is involved in the exfil'''
 
-    def __init__(self, X, Y, Xt, Yt, model_to_fit, timegran, base_output_name, recipes_used):
+    def __init__(self, X, Y, Xt, Yt, model_to_fit, timegran, base_output_name, recipes_used, use_ide_feature=False):
         # might be oversimplifying with the [0]???
         Xt = Xt[0]
         X = X[0]
@@ -206,12 +340,20 @@ class single_timegran_exfil_model():
         exfil_paths_train = X['exfil_path']
 
         try:
+            self.X_ide = X.loc[:, ['real_ide_angles_']]
             X = X.drop(columns='real_ide_angles_')
+
+            # what to do in case of NaNs... is this what we want???
+            self.X_ide.fillna(value=0, inplace=True)
         except:
             pass
 
         try:
+            self.Xt_ide = Xt.loc[:, ['real_ide_angles_']]
             Xt = Xt.drop(columns='real_ide_angles_')
+
+            # what to do in case of NaNs... is this what we want???
+            self.Xt_ide.fillna(value=0, inplace=True)
         except:
             pass
 
@@ -233,7 +375,7 @@ class single_timegran_exfil_model():
             except:
                 pass
 
-        #X_train_exfil_weight = exfil_paths_train
+        #X_train_exfil_weight = exfil_paths
         #X_test_exfil_weight = exfil_paths
 
         # TODO: need to add in the dropping of the other stuff too (honestly, just calling the function might be easiest...)
@@ -278,21 +420,27 @@ class single_timegran_exfil_model():
         self.title = 'ROC for ' + self.model_to_fit + ' at ' + str(self.timegran) + ' sec granularity'
         self.exp_name = self.recipes_used
 
+        if use_ide_feature:
+            self.X = self.X_ide
+            self.Xt = self.Xt_ide
+
     def train(self):
-        if self.model_to_fit == 'logistic':
+        if 'logistic' in self.model_to_fit:
             self.clf = sklearn.linear_model.LogisticRegressionCV() ## putting positive here makes it works.
 
-        elif self.model_to_fit == 'lasso':
+        elif 'lasso' in self.model_to_fit:
             self.clf = sklearn.linear_model.LassoCV(cv=5, max_iter=80000) ## putting positive here makes it works.
 
-        elif self.model_to_fit == 'boosting lasso':
-            self.clf = sklearn.ensemble.AdaBoostClassifier(base_estimator=sklearn.linear_model.LassoCV(cv=5, max_iter=80000),
-                                                           n_estimators=10, learning_rate=1.0, algorithm='SAMME.R', random_state=None)
+        elif 'boosting lasso' in self.model_to_fit:
+            pass
+            #self.clf = sklearn.ensemble.AdaBoostClassifier(base_estimator=sklearn.linear_model.LassoCV(cv=5, max_iter=80000),
+            #                                               n_estimators=10, learning_rate=1.0, algorithm='SAMME.R', random_state=None)
 
-        elif self.model_to_fit == 'boosting logistic':
-            self.clf = sklearn.ensemble.AdaBoostClassifier(
-                base_estimator=sklearn.linear_model.LogisticRegressionCV(),
-                n_estimators=10, learning_rate=1.0, algorithm='SAMME.R', random_state=None)
+        elif 'boosting logistic' in self.model_to_fit:
+            pass
+            #self.clf = sklearn.ensemble.AdaBoostClassifier(
+            #    base_estimator=sklearn.linear_model.LogisticRegressionCV(),
+            #    n_estimators=10, learning_rate=1.0, algorithm='SAMME.R', random_state=None)
 
 
 
@@ -310,8 +458,11 @@ class single_timegran_exfil_model():
 
         self._generate_train_cm()
 
-    def apply_to_new_data(self, Xt, Yt, base_output_name, recipes_used, avg_exfil_per_min, exfil_per_min_variance):
+    def apply_to_new_data(self, Xt, Yt, base_output_name, recipes_used, avg_exfil_per_min, exfil_per_min_variance,
+                          use_ide_feature=False):
         self.base_output_name = base_output_name
+        if use_ide_feature:
+            self.base_output_name += '_IDE_'
         self.recipes_used = recipes_used
         self.ROC_path = self.base_output_name + '_roc_' + self.model_to_fit + '_' + str(self.timegran)
         self.plot_name = 'roc_' + self.model_to_fit + '_' + str(self.timegran)
@@ -321,6 +472,10 @@ class single_timegran_exfil_model():
         self.exfil_per_min_variance = exfil_per_min_variance
 
         if Xt is not None:
+            self.Xt_ide = Xt.loc[:, ['real_ide_angles_']]
+            # what to do in case of NaNs... is this what we want????
+            self.Xt_ide.fillna(value=0, inplace=True)
+
             Xt = Xt.drop(columns='real_ide_angles_')
 
             exfil_paths = Xt['exfil_path']
@@ -343,6 +498,9 @@ class single_timegran_exfil_model():
 
             self.Xt = Xt
             self.Yt = Yt
+
+            if use_ide_feature:
+                self.Xt = self.Xt_ide
 
         print '\n\n------\n\n'
 
@@ -458,7 +616,7 @@ class single_timegran_exfil_model():
         local_heatmap_path = 'temp_outputs/' + train_test + self.recipes_used + '_heatmap_coef_contribs_at_' +  str(time_gran) + '.png'
 
         if training_p:
-            coef_impact_df, raw_feature_val_df = generate_heatmap.generate_covariate_heatmap(self.coef_dict, self.X_train, self.exfil_paths_train)
+            coef_impact_df, raw_feature_val_df = generate_heatmap.generate_covariate_heatmap(self.coef_dict, self.X_train, self.exfil_paths)
         else:
             coef_impact_df, raw_feature_val_df = generate_heatmap.generate_covariate_heatmap(self.coef_dict, self.X_test, self.exfil_paths_test)
 
@@ -610,15 +768,25 @@ class single_timegran_exfil_model():
         return report_section
 
 class multi_time_alerts():
-    def __init__(self, timegran_to_single_timegran_exfil_model, Yts, Xts, base_output_name, model_to_fit, recipes_used):
-        self.ensemble_timegran = '(' + ','.join(self.timegran_to_single_timegran_exfil_model.keys()) + ')'
-        self.timegran_to_single_timegran_exfil_model = timegran_to_single_timegran_exfil_model
-        self.confusion_matrix = None
-        longest_timegram = max(timegran_to_single_timegran_exfil_model.keys())
+    def __init__(self, time_gran_to_predicted_test, Yts, Xts, base_output_name, model_to_fit, recipes_used, is_train=False):
 
-        ###### #TODO
+
+        self.time_gran_to_predicted_test = time_gran_to_predicted_test
+        self.ensemble_timegran = '(' + ','.join([str(i) for i in Xts.keys()]) + ')'
+        self.confusion_matrix = None
+        longest_timegram = max([int(i) for i in Xts.keys()])
+        print "longest_timegram", longest_timegram
+
         self.Yt = Yts[longest_timegram]
+        #print "self.Yt", self.Yt, type(self.Yt)
         Xt = Xts[longest_timegram]
+
+        if is_train:
+            self.Yt = self.Yt[0]
+            Xt = Xt[0]
+
+        print "Xt", type(Xt), Xt
+
         exfil_paths = Xt['exfil_path']
         try:
             exfil_paths = exfil_paths.replace('0', '[]')
@@ -628,7 +796,10 @@ class multi_time_alerts():
             except:
                 pass
         self.exfil_paths_test = exfil_paths
+
         _, _, _, _, self.exfil_weights_test = drop_useless_columns_testTrain_Xs(copy.deepcopy(Xt), Xt)
+        self.exfil_weights_train = None
+
 
         self.ROC_path = None
         self.plot_name  = None
@@ -641,30 +812,44 @@ class multi_time_alerts():
         self.exp_name = recipes_used
         ##########
 
-        self.alerts = timegran_to_single_timegran_exfil_model[longest_timegram].test_predictions
+        self.alerts = time_gran_to_predicted_test[longest_timegram]
 
         timegran_to_alerts_at_longest_timegran = {}
-        for timegran in timegran_to_single_timegran_exfil_model.keys():
+        for timegran in time_gran_to_predicted_test.keys():
             timegran_to_alerts_at_longest_timegran[timegran] = []
 
-        for timegran, single_timegran_exfil_model in timegran_to_single_timegran_exfil_model.iteritems():
+            print "raw_alerts", time_gran_to_predicted_test[timegran]
+
+        for timegran, test_predictions in time_gran_to_predicted_test.iteritems():
+            print type(longest_timegram), type(timegran)
             ratio_of_current_timesteps_in_longest_timesteps = longest_timegram / timegran
-            for i in range(0, ratio_of_current_timesteps_in_longest_timesteps):
+            print "cur_timegran", timegran, "ratio_of_current_timesteps_in_longest_timesteps", ratio_of_current_timesteps_in_longest_timesteps, "len", len(test_predictions)
+
+            #final_timesteps = int(float(len(self.alerts)) / ratio_of_current_timesteps_in_longest_timesteps)
+            #print "final_timesteps", final_timesteps, len(self.alerts), ratio_of_current_timesteps_in_longest_timesteps
+
+            for i in range(0, len(test_predictions), ratio_of_current_timesteps_in_longest_timesteps):
                 is_alert = 0
-                for j in range(i, i + ratio_of_current_timesteps_in_longest_timesteps):
-                    is_alert = is_alert or single_timegran_exfil_model.test_predictions[j]
-                    timegran_to_alerts_at_longest_timegran[timegran].append(is_alert)
+                for j in range(0,ratio_of_current_timesteps_in_longest_timesteps):
+                    if i + j < len(test_predictions):
+                        is_alert = is_alert or test_predictions[i + j]
+                timegran_to_alerts_at_longest_timegran[timegran].append(is_alert)
 
         all_alert_lists = timegran_to_alerts_at_longest_timegran.values()
         all_alert_lists_len = [len(i) for i in all_alert_lists]
 
         if min(all_alert_lists_len) != max(all_alert_lists_len):
             print "problem with multi-gran alerts"
+            for counter, alert_list in enumerate(all_alert_lists):
+                print counter, len(alert_list), alert_list
             exit(7)
 
         for timegran, alerts_at_longest_timegran in timegran_to_alerts_at_longest_timegran.iteritems():
+            print "timegran", timegran, "|", alerts_at_longest_timegran
             for index in range(0,len(self.alerts)):
                 self.alerts[index] = self.alerts[index] or alerts_at_longest_timegran[index]
+
+        print "multitime_alerts", self.alerts
 
     def generate_report_section(self, skip_heatmaps, using_pretrained_model):
     #def _generate_report_section(self, Yt, exfil_paths_test, exfil_weights_test, ROC_path, plot_name,
@@ -806,6 +991,23 @@ def get_lin_mod_coef_dict(clf, X_train_columns, X_train_dtypes, sanity_check_num
 
     print "coef_dict"
     return coef_dict
+
+def generate_confusion_matrices(Y, y_optimal_thresholded, exfil_paths, exfil_weights):
+    y = Y['labels'].tolist()
+    # print "y_train", y_train
+    attack_type_to_predictions, attack_type_to_truth, attack_type_to_weights = \
+        process_roc.determine_categorical_labels(y, y_optimal_thresholded, exfil_paths,
+                                                 exfil_weights.tolist())
+
+    attack_type_to_confusion_matrix_values = process_roc.determine_cm_vals_for_categories(attack_type_to_predictions,
+                                                                                          attack_type_to_truth)
+    categorical_cm_df = process_roc.determine_categorical_cm_df(attack_type_to_confusion_matrix_values,
+                                                                attack_type_to_weights)
+    ## re-name the row without any attacks in it...
+    # print "categorical_cm_df.index", categorical_cm_df.index
+    confusion_matrix = categorical_cm_df.rename({(): 'No Attack'}, axis='index')
+
+    return confusion_matrix
 
 
 class single_svc_exfil_model():
