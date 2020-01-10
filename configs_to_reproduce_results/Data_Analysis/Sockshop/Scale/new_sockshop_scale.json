@@ -15,6 +15,6 @@
   "type_of_graph": "load",
   "graph_name": "new_sockshop_scale",
   "no_tsl": true,
-  "analyze_in_parallel": true
+  "analyze_in_parallel": false
 }
 
