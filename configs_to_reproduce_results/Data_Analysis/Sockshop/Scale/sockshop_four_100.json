@@ -10,7 +10,7 @@
   "calculate_z_scores": true,
   "get_endresult_from_memory": false,
 
-  "perform_cilium_component": false,
+  "perform_cilium_component": true,
   "calc_ide": true,
   "drop_pairwise_features": false,
   "drop_infra_from_graph": true,

@@ -71,7 +71,8 @@ def parse_experimental_data_json(config_file, experimental_folder, experiment_na
     return pipeline_object
 
 def parse_experimental_config(experimental_config_file, return_new_model_function, live=False, is_eval=False,
-                              add_dropInfo_to_name=True, skip_to_calc_zscore=False, exp_data_dir=None, load_endresult=False):
+                              add_dropInfo_to_name=True, skip_to_calc_zscore=False, exp_data_dir=None, load_endresult=False,
+                              no_cilium=False, dont_open_pdfs = False):
 
     print "experimental_config_file", type(experimental_config_file), experimental_config_file
     with open(experimental_config_file, 'r') as f:
@@ -152,6 +153,9 @@ def parse_experimental_config(experimental_config_file, return_new_model_functio
         else:
             perform_svcpair_sec_component = False
 
+        if no_cilium:
+            perform_svcpair_sec_component = False
+
         cur_experiment_name = config_file['cur_experiment_name']
 
         exp_config_file = config_file['exp_config_file']
@@ -215,6 +219,9 @@ def parse_experimental_config(experimental_config_file, return_new_model_functio
             auto_open_pdfs = config_file['auto_open_pdfs']
         else:
             auto_open_pdfs = True
+
+        if dont_open_pdfs:
+            auto_open_pdfs = False
 
         if 'calc_ide' in config_file:
             calc_ide = config_file['calc_ide']
@@ -283,11 +290,13 @@ def parse_experimental_config(experimental_config_file, return_new_model_functio
 
 def run_analysis(return_new_model_function, training_config, eval_config=None, live=False, no_tsl=True,
                  decanter_configs=None, skip_to_calc_zscore=False, exp_data_dir=None,
-                 per_svc_exfil_model_p=False, load_old_pipelines=False, load_endresult_train = False):
+                 per_svc_exfil_model_p=False, load_old_pipelines=False, load_endresult_train = False,
+                 no_cilium = False, dont_open_pdfs = False):
 
     training_experimente_object = parse_experimental_config(training_config, return_new_model_function, is_eval=False,
                                                             skip_to_calc_zscore=skip_to_calc_zscore,
-                                                            exp_data_dir=exp_data_dir, load_endresult=load_endresult_train)
+                                                            exp_data_dir=exp_data_dir, load_endresult=load_endresult_train,
+                                                            no_cilium=no_cilium, dont_open_pdfs = dont_open_pdfs)
 
     min_rate_training_statspipelines, training_results, svcpair_model, new_persvc_model, train_results_per_model_new = \
         training_experimente_object.run_pipelines(no_tsl=no_tsl, per_svc_exfil_model_p=per_svc_exfil_model_p, load_old_pipelines=load_old_pipelines)
@@ -301,7 +310,7 @@ def run_analysis(return_new_model_function, training_config, eval_config=None, l
 
     if eval_config:
         eval_experimente_object = parse_experimental_config(eval_config, None, live=live, is_eval=True, skip_to_calc_zscore=skip_to_calc_zscore,
-                                                            exp_data_dir=exp_data_dir)
+                                                            exp_data_dir=exp_data_dir, no_cilium=no_cilium, dont_open_pdfs=dont_open_pdfs)
         _, eval_results,_,_, eval_results_per_model_new = \
             eval_experimente_object.run_pipelines(pretrained_model_object=min_rate_training_statspipelines,
                                                                     no_tsl=no_tsl, svcpair_model=svcpair_model,
@@ -325,6 +334,7 @@ def run_analysis(return_new_model_function, training_config, eval_config=None, l
             print "eval_results_b4_dec", eval_results
             eval_results = run_decanter_component(decanter_configs, training_config, eval_config, eval_results)
             # TODO: update the decanter configs appropriately....
+
 
     return eval_results, eval_results_per_model_new
 
@@ -393,6 +403,11 @@ if __name__=="__main__":
     parser.add_argument('--load_endresult_train', dest='load_endresult_train', default=False, action='store_true',
                         help='(for dev purposes) for the training data, load the endresult from memory (this flag is overrides retrain_model for the training data')
 
+    parser.add_argument('--no_cilium', dest='no_cilium', default=False, action='store_true',
+                        help='(for dev purposes) treats the config files as if they said not to do the cilium stuff')
+
+    parser.add_argument('--dont_open_pdfs', dest='dont_open_pdfs', default=False, action='store_true',
+                        help='(for dev purposes) no matter what it says in the config files, do not open the pdf files')
 
 
     args = parser.parse_args()
@@ -423,4 +438,5 @@ if __name__=="__main__":
         print "retrain_model", args.retrain_model
         run_analysis(args.ret_new_mod_func, args.training_config_json, eval_config=args.config_json, live=args.live,
                      skip_to_calc_zscore = args.retrain_model, exp_data_dir = args.exp_data_dir,
-                     load_old_pipelines = args.load_old_pipelines, load_endresult_train = args.load_endresult_train)
+                     load_old_pipelines = args.load_old_pipelines, load_endresult_train = args.load_endresult_train,
+                     no_cilium = args.no_cilium, dont_open_pdfs = args.dont_open_pdfs)
