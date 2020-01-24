@@ -262,8 +262,8 @@ class exfil_detection_model():
 
             if this_model_exists:
                 # now need to combine the alerts at different time granularities
-                ensemble_timegran = '(' + ','.join([str(i) for i in self.Xts.keys()]) + ')'
-
+                # want ensemble_timegran to be a a tuple like: (10, 60), NOT a string like '(10, 60)'
+                ensemble_timegran = tuple( self.Xts.keys() ) #'(' + ','.join([str(i) for i in self.Xts.keys()]) + ')'
 
                 if type_of_model == 'cilium':
                     largest_timegran = max(self.Xts.keys())
@@ -283,6 +283,8 @@ class exfil_detection_model():
                     multi_time_object = multi_time_alerts(self.type_of_model_to_time_gran_to_predicted_test[type_of_model],
                                                           copy.deepcopy(self.Yts), copy.deepcopy(self.Xts),
                                                           self.base_output_name, type_of_model, self.recipes_used)
+                    # this fucntion is called so that multi_time_object will fill in the confusion_matrix object
+                    _ = multi_time_object.generate_report_section(None, None)
 
                     alerts_for_multitime = multi_time_object.alerts
                     self.type_of_model_to_time_gran_to_predicted_test[type_of_model][ensemble_timegran] = alerts_for_multitime

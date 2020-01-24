@@ -291,11 +291,11 @@ def parse_experimental_config(experimental_config_file, return_new_model_functio
 def run_analysis(return_new_model_function, training_config, eval_config=None, live=False, no_tsl=True,
                  decanter_configs=None, skip_to_calc_zscore=False, exp_data_dir=None,
                  per_svc_exfil_model_p=False, load_old_pipelines=False, load_endresult_train = False,
-                 no_cilium = False, dont_open_pdfs = False):
+                 no_cilium = False, dont_open_pdfs = False, use_all_results_from_mem=False):
 
     training_experimente_object = parse_experimental_config(training_config, return_new_model_function, is_eval=False,
                                                             skip_to_calc_zscore=skip_to_calc_zscore,
-                                                            exp_data_dir=exp_data_dir, load_endresult=load_endresult_train,
+                                                            exp_data_dir=exp_data_dir, load_endresult=(load_endresult_train),
                                                             no_cilium=no_cilium, dont_open_pdfs = dont_open_pdfs)
 
     min_rate_training_statspipelines, training_results, svcpair_model, new_persvc_model, train_results_per_model_new = \
