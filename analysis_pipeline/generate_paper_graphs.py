@@ -18,7 +18,10 @@ plt.style.use('seaborn-paper')
 method_to_legend = {'ensemble': 'Our Method',
                     'cilium': 'Communicating Services',
                     'ide': 'Eigenspace',
-                    'decanter': 'Decanter'}
+                    'decanter': 'Decanter',
+                    'logistic_ide': 'logistic_ide',
+                    'logistic': 'logistic',
+                    'lasso': 'lasso'}
 B_in_KB = 1000.0
 
 def update_config_file(config_file_pth, if_trained_model):
@@ -171,6 +174,7 @@ def aggregate_cm_vals_over_paths(cm, method=None):
 
 def cm_to_f1(cm, exfil_rate, timegran,method=None):
     #print "cm", cm
+    print method, "method"
     if method:
         cm = cm[exfil_rate][timegran][method]
     else:
@@ -370,10 +374,13 @@ def convert_prob_distro_dict_to_array(prob_distro_dict, prob_distro_keys):
     return prob_distro_vector
 
 def generate_graphs(eval_configs_to_xvals, exfil_rates, evalconfigs_to_cm, timegran, type_of_graph, graph_name,
-                    xlabel, model_config_file, no_tsl=False, model_xval=100, new_model=None):
+                    xlabel, model_config_file, no_tsl=False, model_xval=100, new_model=None, no_methods=False):
     method_to_rate_to_xlist_ylist = {}
-    print "evalconfigs_to_cm",evalconfigs_to_cm
-    methods = evalconfigs_to_cm[eval_configs_to_xvals.keys()[0]][exfil_rates[0]][timegran].keys()
+    #print "evalconfigs_to_cm",evalconfigs_to_cm
+    if new_model is not None:
+        methods = [new_model]
+    else:
+        methods = evalconfigs_to_cm[eval_configs_to_xvals.keys()[0]][exfil_rates[0]][timegran].keys()
     angles_method_to_rate_to_xlist_ylist = {}
 
     try:
@@ -426,7 +433,10 @@ def generate_graphs(eval_configs_to_xvals, exfil_rates, evalconfigs_to_cm, timeg
                 #print "eval_to_prob_dist",eval_to_prob_dist
 
                 timegran_to_method_to_rate_to_f1 = cm_to_exfil_rate_vs_f1(cur_cm, evalconfig)
-                exfil_rate_vs_f1_at_various_timegran(timegran_to_method_to_rate_to_f1, evalconfig)
+                if new_model:
+                    exfil_rate_vs_f1_at_various_timegran(timegran_to_method_to_rate_to_f1, evalconfig, method=new_model)
+                else:
+                    exfil_rate_vs_f1_at_various_timegran(timegran_to_method_to_rate_to_f1, evalconfig)
 
                 ## (step1) cache the results from get_eval_results (b/c gotta iterate on steps2&3) [[[done]]]
                 ## (step2) put process cms (to get F1 scores)
@@ -716,29 +726,71 @@ def run_looper(config_file_pth, update_config, use_remote, only_finished_p, live
                                                use_training_model_from_mem=use_training_model_from_mem, no_cilium=no_cilium,
                                                dont_open_pdfs=dont_open_pdfs, use_all_results_from_mem=use_all_results_from_mem)
 
-    # TODO: finish writing part related to evalconfigs_to_model_to_cm
-    ############################################################
+
     # this part handles displaying all of the new models...
     model_to_evalconfig_to_cm = {}
     for evalconfig, model_to_cm in evalconfigs_to_model_to_cm.items():
         for model,cm in model_to_cm.items():
+            if len(cm[cm.keys()[0]]) == 0:
+                continue
             if model not in model_to_evalconfig_to_cm.keys():
                 model_to_evalconfig_to_cm[model] = {}
             model_to_evalconfig_to_cm[model][evalconfig] = cm
 
-    print "model_to_evalconfig_to_cm",model_to_evalconfig_to_cm
+    '''
+    new_evalconfig_to_rate_to_timegram_to_method_cm = {}
+    for model, evalconfig_to_cm in model_to_evalconfig_to_cm.items():
+        for evalconfig, rate_to_timegram_to_cm in evalconfig_to_cm.items():
+            if evalconfig not in new_evalconfig_to_rate_to_timegram_to_method_cm:
+                new_evalconfig_to_rate_to_timegram_to_method_cm[evalconfig] = {}
+            for rate, timegram_to_cm in rate_to_timegram_to_cm.items():
+                if rate not in new_evalconfig_to_rate_to_timegram_to_method_cm[evalconfig] and rate != {}:
+                    new_evalconfig_to_rate_to_timegram_to_method_cm[evalconfig][rate] = {}
+                for timegran, cm in timegram_to_cm.items():
+                    if timegran not in new_evalconfig_to_rate_to_timegram_to_method_cm[evalconfig][rate]:
+                        new_evalconfig_to_rate_to_timegram_to_method_cm[evalconfig][rate][timegran] = {}
+                    new_evalconfig_to_rate_to_timegram_to_method_cm[evalconfig][rate][timegran][model] = cm
+    '''
 
-    for model, cur_evalconfig_to_cm in model_to_evalconfig_to_cm.iteritems():
-        generate_graphs(eval_configs_to_xvals, exfil_rate, cur_evalconfig_to_cm, timegran, type_of_graph,
-                        str(graph_name) + '_NEW_MODEL_' + str(model) + '_',
-                        xlabel, model_config_file, False, model_xval, new_model=model)
+    # TODO: finish writing part related to evalconfigs_to_model_to_cm
     ############################################################
+    print "\n\n-----"
+    print "new model..."
 
+    new_evalconfig_to_rate_to_timegram_to_method_cm = {}
+    for model, evalconfig_to_cm in model_to_evalconfig_to_cm.items():
+        for evalconfig, rate_to_timegram_to_cm in evalconfig_to_cm.items():
+            if evalconfig not in new_evalconfig_to_rate_to_timegram_to_method_cm:
+                new_evalconfig_to_rate_to_timegram_to_method_cm[evalconfig] = {}
+            for rate, timegram_to_cm in rate_to_timegram_to_cm.items():
+                if rate not in new_evalconfig_to_rate_to_timegram_to_method_cm[evalconfig] and rate != {}:
+                    new_evalconfig_to_rate_to_timegram_to_method_cm[evalconfig][rate] = {}
+                for cur_timegran, cm in timegram_to_cm.items():
+                    if type(cur_timegran) != int and type(cur_timegran) != tuple:
+                        continue
+                    if cur_timegran not in new_evalconfig_to_rate_to_timegram_to_method_cm[evalconfig][rate]:
+                        new_evalconfig_to_rate_to_timegram_to_method_cm[evalconfig][rate][cur_timegran] = {}
+                    new_evalconfig_to_rate_to_timegram_to_method_cm[evalconfig][rate][cur_timegran][model] = cm
+
+    print "model_to_evalconfig_to_cm.keys()", model_to_evalconfig_to_cm.keys()
+    for model, cur_evalconfig_to_cm in model_to_evalconfig_to_cm.iteritems():
+        #generate_graphs(eval_configs_to_xvals, exfil_rate, cur_evalconfig_to_cm, timegran, type_of_graph,
+        #                str(graph_name) + '_NEW_MODEL_' + str(model) + '_',
+        #                xlabel, model_config_file, False, model_xval, new_model=model, no_methods=True)
+
+        generate_graphs(eval_configs_to_xvals, exfil_rate, new_evalconfig_to_rate_to_timegram_to_method_cm, timegran, type_of_graph,
+                        str(graph_name) + '_NEW_MODEL_' + str(model) + '_',
+                        xlabel, model_config_file, False, model_xval, new_model = model, no_methods = True)
 
     print "\n\n-----"
     print "old model..."
     generate_graphs(eval_configs_to_xvals, exfil_rate, evalconfigs_to_cm, timegran, type_of_graph, graph_name, xlabel,
                     model_config_file, no_tsl, model_xval)
+
+    #print "model_to_evalconfig_to_cm",model_to_evalconfig_to_cm
+
+    ############################################################
+
 
     return eval_configs_to_xvals, exfil_rate, evalconfigs_to_cm, model_config_file
 
