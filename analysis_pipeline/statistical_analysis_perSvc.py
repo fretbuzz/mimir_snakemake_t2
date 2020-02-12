@@ -156,7 +156,7 @@ class exfil_detection_model():
                 else:
                     # now need to combine the alerts at different time granularities
 
-                    print "self.Xs_cp", self.Xs_cp, type(self.Xs_cp)
+                    #print "self.Xs_cp", self.Xs_cp, type(self.Xs_cp)
 
                     multi_time_object = multi_time_alerts(
                         self.type_of_model_to_time_gran_to_predicted_train[type_of_model],
@@ -251,7 +251,7 @@ class exfil_detection_model():
 
                         timegran_to_alerts[timegran] = self.trained_models[type_of_model][timegran].yt_optimal_thresholded
 
-                        print "timegran_to_alerts_qq", timegran_to_alerts
+                        #print "timegran_to_alerts_qq", timegran_to_alerts
 
                         #if self.Yts is None:
                         #else:
@@ -314,8 +314,8 @@ class exfil_detection_model():
                     output_location += '_' + str(self.avg_exfil_per_min) + ":"  + str(self.exfil_per_min_variance)
 
                 output_location += '_' + type_of_model + 'NEW_MODEL'
-                print "current report output loc", output_location
-                print "self.recipes_used", self.recipes_used
+                #print "current report output loc", output_location
+                #print "self.recipes_used", self.recipes_used
 
                 generate_report.join_report_sections(self.recipes_used, output_location, self.avg_exfil_per_min,
                                                      self.avg_pkt_size, self.exfil_per_min_variance, self.pkt_size_variance,
@@ -446,17 +446,17 @@ class single_timegran_exfil_model():
 
 
 
-        print "self.X has NaN's here: ", np.where(np.isnan(self.X))
-        print "self.X has Inf's here: ", np.where(np.isinf(self.X))
+        #print "self.X has NaN's here: ", np.where(np.isnan(self.X))
+        #print "self.X has Inf's here: ", np.where(np.isinf(self.X))
 
-        print "self.X.columns.values", self.X.columns.values
+        #print "self.X.columns.values", self.X.columns.values
         self.clf.fit(self.X, self.Y)
         self.train_predictions = self.clf.predict(X=self.X)
 
         # need to determine the optimal threshold point now.
         self._find_optimal_train_threshold()
 
-        print "self.optimal_train_thresh_and_f1", self.optimal_train_thresh_and_f1
+        #print "self.optimal_train_thresh_and_f1", self.optimal_train_thresh_and_f1
 
         self._generate_train_cm()
 
@@ -504,12 +504,12 @@ class single_timegran_exfil_model():
             if use_ide_feature:
                 self.Xt = self.Xt_ide
 
-        print '\n\n------\n\n'
+        #print '\n\n------\n\n'
 
-        print "self.Xt", self.Xt, type(self.Xt)
+        #print "self.Xt", self.Xt, type(self.Xt)
 
-        print "self.Xt has NaN's here: ", np.where(np.isnan(self.Xt))
-        print "self.Xt has Inf's here: ", np.where(np.isinf(self.Xt))
+        #print "self.Xt has NaN's here: ", np.where(np.isnan(self.Xt))
+        #print "self.Xt has Inf's here: ", np.where(np.isinf(self.Xt))
 
         self.test_predictions = self.clf.predict(X=self.Xt)
 
@@ -552,7 +552,7 @@ class single_timegran_exfil_model():
         ########
         self.test_thresholds = thresholds
         self.test_f1s = list_of_f1_scores
-        self.optimal_test_thresh_and_f1 = (max_f1_score, threshold_corresponding_max_f1)
+        self.optimal_test_thresh_and_f1 = (threshold_corresponding_max_f1, max_f1_score)
         self.yt_optimal_thresholded = [int(i > threshold_corresponding_max_f1) for i in self.test_predictions]
 
     def _generate_train_cm(self):
@@ -574,7 +574,7 @@ class single_timegran_exfil_model():
     def _generate_test_cm(self):
         print "\n===\n"
         y_test = self.Yt['labels'].tolist()
-        print "y_test", y_test
+        #print "y_test", y_test
         print "self.yt_optimal_thresholded", self.yt_optimal_thresholded
         attack_type_to_predictions, attack_type_to_truth, attack_type_to_weights = \
             process_roc.determine_categorical_labels(y_test, self.yt_optimal_thresholded, self.exfil_paths_test,
@@ -583,12 +583,12 @@ class single_timegran_exfil_model():
         attack_type_to_confusion_matrix_values = process_roc.determine_cm_vals_for_categories(
             attack_type_to_predictions, attack_type_to_truth)
 
-        print "attack_type_to_confusion_matrix_values", attack_type_to_confusion_matrix_values
+        #print "attack_type_to_confusion_matrix_values", attack_type_to_confusion_matrix_values
 
         categorical_cm_df = process_roc.determine_categorical_cm_df(attack_type_to_confusion_matrix_values,
                                                                     attack_type_to_weights)
         ## re-name the row without any attacks in it...
-        print "categorical_cm_df.index", categorical_cm_df.index
+        #print "categorical_cm_df.index", categorical_cm_df.index
         confusion_matrix = categorical_cm_df.rename({(): 'No Attack'}, axis='index')
 
         self.test_confusion_matrix = confusion_matrix
@@ -667,9 +667,9 @@ class single_timegran_exfil_model():
             line_titles.append(method)
             method_to_test_thresholds[method] = thresholds
 
-        print "list_of_x_vals", list_of_x_vals
-        print "list_of_y_vals", list_of_y_vals
-        print "roc_path", ROC_path + plot_name
+        #print "list_of_x_vals", list_of_x_vals
+        #print "list_of_y_vals", list_of_y_vals
+        #print "roc_path", ROC_path + plot_name
         exp_name = [i + '_NEW_MODEL' for i in exp_name]
         ax, _, plot_path = construct_ROC_curve(list_of_x_vals, list_of_y_vals, title,
                                                ROC_path + plot_name + 'NEW_MODEL_',
@@ -710,8 +710,8 @@ class single_timegran_exfil_model():
         self.coef_dict  = get_lin_mod_coef_dict(self.clf, self.X.columns.values, self.X.dtypes,
                                                 sanity_check_number_coefs=(not using_pretrained_model),
                                                 model_type=self.model_to_fit)
-        print("self.X_train",self.X)
-        print("self.coef_dict",self.coef_dict)
+        #print("self.X_train",self.X)
+        #print("self.coef_dict",self.coef_dict)
         self.coef_feature_df = pd.DataFrame.from_dict(self.coef_dict, orient='index')
         self.coef_feature_df.columns = ['Coefficient']
 
@@ -745,9 +745,9 @@ class single_timegran_exfil_model():
 
         roc_plot_path = self._generate_ROC(self.ROC_path, self.plot_name, self.title, self.exp_name)
 
-        print "roc_plot_path", roc_plot_path
-        print "time_gran", str(self.timegran) + " sec granularity"
-        print "ideal_threshold", ensemble_optimal_thresh_test
+        #print "roc_plot_path", roc_plot_path
+        #print "time_gran", str(self.timegran) + " sec granularity"
+        #print "ideal_threshold", ensemble_optimal_thresh_test
         #print "attacks_found", ensemble_df_test.to_html()
 
         report_section = table_section_template.render(
@@ -777,7 +777,7 @@ class multi_time_alerts():
         self.ensemble_timegran = '(' + ','.join([str(i) for i in Xts.keys()]) + ')'
         self.confusion_matrix = None
         longest_timegram = max([int(i) for i in Xts.keys()])
-        print "longest_timegram", longest_timegram
+        #print "longest_timegram", longest_timegram
 
         self.Yt = Yts[longest_timegram]
         #print "self.Yt", self.Yt, type(self.Yt)
@@ -787,7 +787,7 @@ class multi_time_alerts():
             self.Yt = self.Yt[0]
             Xt = Xt[0]
 
-        print "Xt", type(Xt), Xt
+        #print "Xt", type(Xt), Xt
 
         exfil_paths = Xt['exfil_path']
         try:
@@ -820,12 +820,12 @@ class multi_time_alerts():
         for timegran in time_gran_to_predicted_test.keys():
             timegran_to_alerts_at_longest_timegran[timegran] = []
 
-            print "raw_alerts", time_gran_to_predicted_test[timegran]
+            #print "raw_alerts", time_gran_to_predicted_test[timegran]
 
         for timegran, test_predictions in time_gran_to_predicted_test.iteritems():
-            print type(longest_timegram), type(timegran)
+            #print type(longest_timegram), type(timegran)
             ratio_of_current_timesteps_in_longest_timesteps = longest_timegram / timegran
-            print "cur_timegran", timegran, "ratio_of_current_timesteps_in_longest_timesteps", ratio_of_current_timesteps_in_longest_timesteps, "len", len(test_predictions)
+            #print "cur_timegran", timegran, "ratio_of_current_timesteps_in_longest_timesteps", ratio_of_current_timesteps_in_longest_timesteps, "len", len(test_predictions)
 
             #final_timesteps = int(float(len(self.alerts)) / ratio_of_current_timesteps_in_longest_timesteps)
             #print "final_timesteps", final_timesteps, len(self.alerts), ratio_of_current_timesteps_in_longest_timesteps
@@ -841,17 +841,17 @@ class multi_time_alerts():
         all_alert_lists_len = [len(i) for i in all_alert_lists]
 
         if min(all_alert_lists_len) != max(all_alert_lists_len):
-            print "problem with multi-gran alerts"
+            #print "problem with multi-gran alerts"
             for counter, alert_list in enumerate(all_alert_lists):
                 print counter, len(alert_list), alert_list
             exit(7)
 
         for timegran, alerts_at_longest_timegran in timegran_to_alerts_at_longest_timegran.iteritems():
-            print "timegran", timegran, "|", alerts_at_longest_timegran
+            #print "timegran", timegran, "|", alerts_at_longest_timegran
             for index in range(0,len(self.alerts)):
                 self.alerts[index] = self.alerts[index] or alerts_at_longest_timegran[index]
 
-        print "multitime_alerts", self.alerts
+        #print "multitime_alerts", self.alerts
 
     def generate_report_section(self, skip_heatmaps, using_pretrained_model):
     #def _generate_report_section(self, Yt, exfil_paths_test, exfil_weights_test, ROC_path, plot_name,
@@ -892,8 +892,8 @@ class multi_time_alerts():
         yt_optimal_thresholded = [int(i > threshold_corresponding_max_f1) for i in self.alerts]
 
         y_test = self.Yt['labels'].tolist()
-        print "y_test", y_test
-        print "self.yt_optimal_thresholded", yt_optimal_thresholded
+        #print "y_test", y_test
+        #print "self.yt_optimal_thresholded", yt_optimal_thresholded
         attack_type_to_predictions, attack_type_to_truth, attack_type_to_weights = \
             process_roc.determine_categorical_labels(y_test, yt_optimal_thresholded, self.exfil_paths_test,
                                                      self.exfil_weights_test.tolist())
@@ -901,12 +901,12 @@ class multi_time_alerts():
         attack_type_to_confusion_matrix_values = process_roc.determine_cm_vals_for_categories(
             attack_type_to_predictions, attack_type_to_truth)
 
-        print "attack_type_to_confusion_matrix_values", attack_type_to_confusion_matrix_values
+        #print "attack_type_to_confusion_matrix_values", attack_type_to_confusion_matrix_values
 
         categorical_cm_df = process_roc.determine_categorical_cm_df(attack_type_to_confusion_matrix_values,
                                                                     attack_type_to_weights)
         ## re-name the row without any attacks in it...
-        print "categorical_cm_df.index", categorical_cm_df.index
+        #print "categorical_cm_df.index", categorical_cm_df.index
         self.confusion_matrix = categorical_cm_df.rename({(): 'No Attack'}, axis='index')
 
 
@@ -932,16 +932,16 @@ class multi_time_alerts():
             line_titles.append(method)
             method_to_test_thresholds[method] = thresholds
 
-        print "roc_path", self.ROC_path + self.plot_name
+        #print "roc_path", self.ROC_path + self.plot_name
         exp_name = [i + '_NEW_MODEL' for i in self.exp_name]
         ax, _, roc_plot_path = construct_ROC_curve(list_of_x_vals, list_of_y_vals, self.title,
                                                self.ROC_path + self.plot_name + 'NEW_MODEL_',
                                                line_titles, show_p=False, exp_name=exp_name)
         ##################
 
-        print "roc_plot_path", roc_plot_path
-        print "time_gran", str(self.ensemble_timegran) + " sec granularity"
-        print "ideal_threshold", ensemble_optimal_thresh_test
+        #print "roc_plot_path", roc_plot_path
+        #print "time_gran", str(self.ensemble_timegran) + " sec granularity"
+        #print "ideal_threshold", ensemble_optimal_thresh_test
         # print "attacks_found", ensemble_df_test.to_html()
 
         report_section = table_section_template.render(
@@ -965,10 +965,10 @@ class multi_time_alerts():
 
 def get_lin_mod_coef_dict(clf, X_train_columns, X_train_dtypes, sanity_check_number_coefs, model_type):
     coef_dict = {}
-    print "Coefficients: "
-    print "LASSO model", clf.get_params()
-    print '----------------------'
-    print "len(clf.coef_)", len(clf.coef_), "len(X_train_columns)", len(X_train_columns)
+    #print "Coefficients: "
+    #print "LASSO model", clf.get_params()
+    #print '----------------------'
+    #print "len(clf.coef_)", len(clf.coef_), "len(X_train_columns)", len(X_train_columns)
 
     if 'logistic' in model_type:
         model_coefs = clf.coef_[0]
@@ -987,11 +987,11 @@ def get_lin_mod_coef_dict(clf, X_train_columns, X_train_dtypes, sanity_check_num
         coef_dict[feat] = coef
     coef_dict['intercept'] = float(clf.intercept_)
 
-    print "COEFS_HERE"
-    for coef, feature in coef_dict.iteritems():
-        print coef, feature
+    #print "COEFS_HERE"
+    #for coef, feature in coef_dict.iteritems():
+    #    print coef, feature
 
-    print "coef_dict"
+    #print "coef_dict"
     return coef_dict
 
 def generate_confusion_matrices(Y, y_optimal_thresholded, exfil_paths, exfil_weights):
@@ -1010,18 +1010,3 @@ def generate_confusion_matrices(Y, y_optimal_thresholded, exfil_paths, exfil_wei
     confusion_matrix = categorical_cm_df.rename({(): 'No Attack'}, axis='index')
 
     return confusion_matrix
-
-
-class single_svc_exfil_model():
-    '''This class is an ML model for if a particular svc is involved in the exfil'''
-    def __init__(self, X, Y, Xt, Yt):
-        self.X = X
-        self.Y = Y
-        self.Xt = Xt
-        self.Yt = Yt
-
-    def train_single_svc_exfil_model(self):
-        clf = sklearn.linear_model.LogisticRegressionCV()
-
-    def apply_single_svc_exfil_model_to_new_data(self):
-        pass

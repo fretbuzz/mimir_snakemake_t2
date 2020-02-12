@@ -236,7 +236,7 @@ class multi_experiment_pipeline(object):
                 for job in jobs:
                     job.join()
 
-                print "rate_to_list_time_gran_to_mod_zscore_df.keys()", rate_to_list_time_gran_to_mod_zscore_df.keys()
+                #"rate_to_list_time_gran_to_mod_zscore_df.keys()", rate_to_list_time_gran_to_mod_zscore_df.keys()
 
                 recipes_used = [recipe.base_exp_name for recipe in self.function_list]
                 for counter, recipe in enumerate(recipes_used):
@@ -464,14 +464,13 @@ class multi_experiment_pipeline(object):
 
 
     def train_persvc_ensemble_model(self):
-        # TODO: this entire function
         print "starting train_persvc_ensemble_model"
 
 
         time_gran_to_new_df = combine_different_exfil_rate_dfs(self.rate_to_timegran_to_statistical_pipeline)
         cur_base_output_name = self.base_output_name + 'new_models_'
 
-        print "time_gran_to_new_df", time_gran_to_new_df
+        #print "time_gran_to_new_df", time_gran_to_new_df
 
         exfil_model_object = exfil_detection_model(time_gran_to_new_df, self.ROC_curve_p, cur_base_output_name,
                                                    self.names, self.skip_model_part, ' multirate_varies', 'multirate_varies',
@@ -542,7 +541,7 @@ class multi_experiment_pipeline(object):
                             timegran].test_predictions))
         ## initial FP limit is # of FPs at optimal F1 operating point of highst exfil rate systtem
         for rate_counter in range(0, len(self.avg_exfil_per_min)):
-            print "cur_fp_limit", fp_limit
+            #print "cur_fp_limit", fp_limit
             new_exfil_rate_statspipeline = self.rate_to_timegran_to_statistical_pipeline[self.avg_exfil_per_min[rate_counter]][timegran]
             new_rate_cm = new_exfil_rate_statspipeline.find_optimal_cm_given_fps(fp_limit)
             ## do we actually need to do this??? yes we do. as shown by performance at the 60 second granularity...
@@ -677,7 +676,7 @@ def inject_comm_graphs_at_single_exfil_rate(rate_counter, avg_exfil_per_min, exf
     p.start()
 
     exfil_rate = avg_exfil_per_min[rate_counter]
-    print "inject_comm_graphs_at_single_exfil_rate waiting for results on this exfil rate: " + str(exfil_rate)
+    #print "inject_comm_graphs_at_single_exfil_rate waiting for results on this exfil rate: " + str(exfil_rate)
 
     rate_to_list_time_gran_to_mod_zscore_df[exfil_rate] = out_q.get()
     rate_to_list_time_gran_to_zscore_dataframe[exfil_rate] = out_q.get()
@@ -711,7 +710,7 @@ def pipeline_one_exfil_rate(rate_counter, base_output_name, function_list, exps_
 
     cilium_allowed_svc_comm = None
     for counter,experiment_object in enumerate(function_list):
-        print "exps_exfil_paths[counter]_to_func",exps_exfil_paths[counter], exps_initiator_info
+        #print "exps_exfil_paths[counter]_to_func",exps_exfil_paths[counter], exps_initiator_info
 
         experiment_object.alert_file = experiment_object.orig_alert_file + prefix_for_inject_params
         experiment_object.basegraph_name = experiment_object.orig_basegraph_name + prefix_for_inject_params
@@ -751,17 +750,17 @@ def pipeline_one_exfil_rate(rate_counter, base_output_name, function_list, exps_
                     pretrained_svcpair_model)
             # okay, so now I probably need to do something with these alerts...
             # and then actually do something with all of this stuff...
-            print 'at rate', avg_exfil_per_min[rate_counter], "cilium_performance", time_gran_to_cilium_alerts
+            #print 'at rate', avg_exfil_per_min[rate_counter], "cilium_performance", time_gran_to_cilium_alerts
 
             for time_gran, cilium_alerts in time_gran_to_cilium_alerts.iteritems():
                 length_alerts = len(time_gran_to_mod_zscore_df[time_gran].index.values)
                 cilium_alerts = cilium_alerts[:length_alerts]
-                print len(time_gran_to_mod_zscore_df[time_gran].index.values), len(cilium_alerts), length_alerts
+                #print len(time_gran_to_mod_zscore_df[time_gran].index.values), len(cilium_alerts), length_alerts
                 time_gran_to_mod_zscore_df[time_gran]['cilium_for_first_sec_' + str(start_of_testing)] = cilium_alerts
 
 
-        print "exps_exfil_pathas[time_gran_to_mod_zscore_df]", time_gran_to_mod_zscore_df
-        print time_gran_to_mod_zscore_df[time_gran_to_mod_zscore_df.keys()[0]].columns.values
+        #print "exps_exfil_pathas[time_gran_to_mod_zscore_df]", time_gran_to_mod_zscore_df
+        #print time_gran_to_mod_zscore_df[time_gran_to_mod_zscore_df.keys()[0]].columns.values
         list_time_gran_to_mod_zscore_df.append(time_gran_to_mod_zscore_df)
         list_time_gran_to_zscore_dataframe.append(time_gran_to_zscore_dataframe)
         list_time_gran_to_feature_dataframe.append(time_gran_to_feature_dataframe)
@@ -785,12 +784,12 @@ def determine_and_assign_exfil_paths(calc_vals, skip_model_part, function_list, 
                                      goal_attack_NoAttack_split_training, time_each_synthetic_exfil,
                                      goal_attack_NoAttack_split_testing, max_path_length, dns_porportion):
     if calc_vals and not skip_model_part:
-        print function_list
+        #print function_list
         exp_infos = []
         for experiment_object in function_list:
-            print "calc_vals", calc_vals
+            #print "calc_vals", calc_vals
             total_experiment_length, exfil_startEnd_times = experiment_object.get_exp_info()
-            print "func_exp_info", total_experiment_length, exfil_startEnd_times
+            #print "func_exp_info", total_experiment_length, exfil_startEnd_times
             exp_infos.append({"total_experiment_length":total_experiment_length, "exfil_startEnd_times":exfil_startEnd_times})
 
         ## get the exfil_paths that were generated using the mulval component...
@@ -808,7 +807,7 @@ def determine_and_assign_exfil_paths(calc_vals, skip_model_part, function_list, 
 
         orig_max_number_of_paths=  max_number_of_paths
         for experiment_object in function_list:
-            print "experiment_object", experiment_object
+            #print "experiment_object", experiment_object
             synthetic_exfil_paths, initiator_info_for_paths = \
                 experiment_object.generate_synthetic_exfil_paths(max_number_of_paths=max_number_of_paths,
                                                                  max_path_length=max_path_length,
@@ -866,14 +865,14 @@ def determine_and_assign_exfil_paths(calc_vals, skip_model_part, function_list, 
 
 def aggregate_dfs(list_time_gran_to_mod_zscore_df):
     time_gran_to_aggregate_mod_score_dfs = {}
-    print "list_time_gran_to_mod_zscore_df",list_time_gran_to_mod_zscore_df
+    #print "list_time_gran_to_mod_zscore_df",list_time_gran_to_mod_zscore_df
     for time_gran_to_mod_zscore_df in list_time_gran_to_mod_zscore_df:
-        print "time_gran_to_mod_zscore_df",time_gran_to_mod_zscore_df
+        #print "time_gran_to_mod_zscore_df",time_gran_to_mod_zscore_df
         for time_gran, mod_zscore_df in time_gran_to_mod_zscore_df.iteritems():
             if time_gran not in time_gran_to_aggregate_mod_score_dfs.keys():
                 time_gran_to_aggregate_mod_score_dfs[time_gran] = mod_zscore_df
-                print "post_initializing_aggregate_dataframe", len(time_gran_to_aggregate_mod_score_dfs[time_gran]), \
-                    type(time_gran_to_aggregate_mod_score_dfs[time_gran]), time_gran
+                #print "post_initializing_aggregate_dataframe", len(time_gran_to_aggregate_mod_score_dfs[time_gran]), \
+                #    type(time_gran_to_aggregate_mod_score_dfs[time_gran]), time_gran
 
             else:
                 time_gran_to_aggregate_mod_score_dfs[time_gran] = \
@@ -886,7 +885,7 @@ def assign_exfil_paths_to_experiments(exp_infos, goal_train_test_split, goal_att
                                       time_each_synthetic_exfil, exps_exfil_paths, goal_attack_NoAttack_split_testing):
 
     flat_exps_exfil_paths = [tuple(exfil_path) for exp_exfil_paths in exps_exfil_paths for exfil_path in exp_exfil_paths]
-    print "flat_exps_exfil_paths",flat_exps_exfil_paths
+    #print "flat_exps_exfil_paths",flat_exps_exfil_paths
     possible_exfil_paths = list(set(flat_exps_exfil_paths))
 
     total_training_injections_possible,total_testing_injections_possible,possible_exfil_path_injections,end_of_train_portions = \
@@ -904,9 +903,9 @@ def assign_exfil_paths_to_experiments(exp_infos, goal_train_test_split, goal_att
     training_exfil_paths = []
     testing_exfil_paths = []
 
-    print "total_testing_injections_possible",total_testing_injections_possible
-    print "total_training_injections_possible", total_training_injections_possible
-    print "possible_exfil_paths",possible_exfil_paths
+    #print "total_testing_injections_possible",total_testing_injections_possible
+    #print "total_training_injections_possible", total_training_injections_possible
+    #print "possible_exfil_paths",possible_exfil_paths
 
     #if
     testing_number_times_inject_all_paths = math.floor(total_testing_injections_possible / float(len(possible_exfil_paths)))
@@ -932,10 +931,10 @@ def assign_exfil_paths_to_experiments(exp_infos, goal_train_test_split, goal_att
         ## note: this ^^ variable contains the number of times can inject training/testing exfil paths here...
         current_training_exfil_paths = []
         training_times_to_inject_this_exp = possible_exfil_path_injection['training']
-        print "(initial)training_times_to_inject_this_exp",training_times_to_inject_this_exp
+        #print "(initial)training_times_to_inject_this_exp",training_times_to_inject_this_exp
         while training_times_to_inject_this_exp > 0:
             path = max(exfil_paths_to_train_injection_counts.iteritems(), key=operator.itemgetter(1))[0]
-            print "current_max_path", path
+            #print "current_max_path", path
             if exfil_paths_to_train_injection_counts[path] > 0:
                 current_training_exfil_paths.append(list(path))
                 training_times_to_inject_this_exp -= 1
@@ -949,7 +948,7 @@ def assign_exfil_paths_to_experiments(exp_infos, goal_train_test_split, goal_att
         testing_times_to_inject_this_exp = possible_exfil_path_injection['testing']
         while testing_times_to_inject_this_exp > 0:
             path = max(exfil_paths_to_test_injection_counts.iteritems(), key=operator.itemgetter(1))[0]
-            print "current_max_testing_path", path
+            #print "current_max_testing_path", path
             if exfil_paths_to_test_injection_counts[path] > 0:
                 current_testing_exfil_paths.append(list(path))
                 testing_times_to_inject_this_exp -= 1
@@ -959,8 +958,8 @@ def assign_exfil_paths_to_experiments(exp_infos, goal_train_test_split, goal_att
                 break
         testing_exfil_paths.append(current_testing_exfil_paths)
 
-    print "training_exfil_paths", training_exfil_paths
-    print "testing_exfil_paths", testing_exfil_paths
+    #print "training_exfil_paths", training_exfil_paths
+    #print "testing_exfil_paths", testing_exfil_paths
 
     remaining_testing_injections = sum(exfil_paths_to_test_injection_counts.values())
     remaining_training_injections = sum(exfil_paths_to_train_injection_counts.values())
@@ -998,7 +997,7 @@ def determine_injection_amnts(exp_infos, goal_train_test_split, goal_attack_NoAt
         total_testing_injections_possible += testing_exfil_path_injections
         possible_exfil_path_injections.append({"testing": testing_exfil_path_injections,
                                                "training": training_exfil_path_injections})
-    print "possible_exfil_path_injections", possible_exfil_path_injections
+    #print "possible_exfil_path_injections", possible_exfil_path_injections
     #exit(34)
     return total_training_injections_possible,total_testing_injections_possible,possible_exfil_path_injections,end_of_train_portions
 
@@ -1007,16 +1006,16 @@ def determine_injection_amnts(exp_infos, goal_train_test_split, goal_attack_NoAt
 def generate_exfil_path_occurence_df(list_of_time_gran_to_mod_zscore_df, experiment_names):
     experiments_to_exfil_path_time_dicts = []
     for time_gran_to_mod_zscore_df in list_of_time_gran_to_mod_zscore_df:
-        print time_gran_to_mod_zscore_df.keys()
+        #print time_gran_to_mod_zscore_df.keys()
         min_time_gran = min(time_gran_to_mod_zscore_df.keys())
-        print time_gran_to_mod_zscore_df[min_time_gran]
+        #print time_gran_to_mod_zscore_df[min_time_gran]
         # I *hope* this solves the list is unhashable problem....
         time_gran_to_mod_zscore_df[min_time_gran]['exfil_path'] = \
             [tuple(i) if type(i) == list  else i for i in time_gran_to_mod_zscore_df[min_time_gran]['exfil_path']]
-        print time_gran_to_mod_zscore_df[min_time_gran]['exfil_path']
-        print time_gran_to_mod_zscore_df[min_time_gran]['exfil_path']
-        print time_gran_to_mod_zscore_df[min_time_gran]['exfil_path'].values
-        print time_gran_to_mod_zscore_df[min_time_gran]['exfil_path'].value_counts()
+        #print time_gran_to_mod_zscore_df[min_time_gran]['exfil_path']
+        #print time_gran_to_mod_zscore_df[min_time_gran]['exfil_path']
+        #print time_gran_to_mod_zscore_df[min_time_gran]['exfil_path'].values
+        #print time_gran_to_mod_zscore_df[min_time_gran]['exfil_path'].value_counts()
         logical_exfil_paths_freq = time_gran_to_mod_zscore_df[min_time_gran]['exfil_path'].value_counts().to_dict()
         #exit(233)
         for path, occur in logical_exfil_paths_freq.iteritems():
@@ -1036,7 +1035,7 @@ def graph_fone_versus_exfil_rate(optimal_fone_scores, exfil_weights_frac, exfil_
             else:
                 time_gran_to_fone_list[time_grans[timegran_counter]] = [optimal_score]
 
-            print "time_gran_to_exfil_param_list", time_gran_to_exfil_param_list
+            #print "time_gran_to_exfil_param_list", time_gran_to_exfil_param_list
             if time_grans[timegran_counter] in time_gran_to_exfil_param_list:
                 time_gran_to_exfil_param_list[time_grans[timegran_counter]].append(
                     [(exfil_weights_frac[exfil_counter], exfil_pkts_frac[exfil_counter])])
@@ -1055,14 +1054,13 @@ def graph_fone_versus_exfil_rate(optimal_fone_scores, exfil_weights_frac, exfil_
 
 if __name__ == "__main__":
     time_gran_to_attack_labels = {1: [0, 0, 1, 1, 0, 0, 0, 0, 0, 0], 2: [0, 1, 0, 0, 0]}
-    print "INITIAL time_gran_to_attack_labels", time_gran_to_attack_labels
+    #print "INITIAL time_gran_to_attack_labels", time_gran_to_attack_labels
     synthetic_exfil_paths = [['a', 'b'], ['b', 'c']]
     time_of_synethic_exfil = 2
     startup_time_before_injection = 4
     time_gran_to_attack_labels, time_gran_to_attack_ranges, time_gran_to_physical_attack_ranges = \
         determine_attacks_to_times(time_gran_to_attack_labels, synthetic_exfil_paths,
                                    time_of_synethic_exfil, startup_time_before_injection)
-    print "time_gran_to_attack_labels", time_gran_to_attack_labels
-    print "time_gran_to_attack_ranges", time_gran_to_attack_ranges
-    print "time_gran_to_physical_attack_ranges", time_gran_to_physical_attack_ranges
-
+    #print "time_gran_to_attack_labels", time_gran_to_attack_labels
+    #print "time_gran_to_attack_ranges", time_gran_to_attack_ranges
+    #print "time_gran_to_physical_attack_ranges", time_gran_to_physical_attack_ranges

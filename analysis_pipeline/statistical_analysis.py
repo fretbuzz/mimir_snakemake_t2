@@ -91,7 +91,7 @@ class single_model_stats_pipeline():
         else:
             train_test = 'test_'
 
-        print "self.time_gran", self.time_gran
+        #print "self.time_gran", self.time_gran
         if type(self.time_gran) == tuple:
             time_gran = "_".join([str(i) for i in self.time_gran]) + '_multi_'
         else:
@@ -118,7 +118,7 @@ class single_model_stats_pipeline():
         else:
             self.feature_activation_heatmaps = ['../' + local_heatmap_path]
             self.feature_raw_heatmaps = ['../' + local_heatmap_val_path]
-        print coef_impact_df
+        #print coef_impact_df
 
     def _generate_rocs(self, exp_name):
         #if self.no_testing:
@@ -128,7 +128,7 @@ class single_model_stats_pipeline():
         list_of_y_vals = []
         line_titles = []
         if self.no_testing:
-            print "self.method_to_train_predictions", self.method_to_train_predictions
+            #print "self.method_to_train_predictions", self.method_to_train_predictions
             method_to_predictions = self.method_to_train_predictions
             correct_labels = self.y_train
         else:
@@ -138,7 +138,7 @@ class single_model_stats_pipeline():
         for method, test_predictions in method_to_predictions.iteritems():
             #print "self.y_test",self.y_test
             #print "test_predictions", test_predictions
-            print "method", method
+            #print "method", method
             #print "test_predictions", test_predictions
             test_predictions = np.nan_to_num(test_predictions)
             #print "self.y_test",self.y_test
@@ -148,9 +148,9 @@ class single_model_stats_pipeline():
             line_titles.append(method)
             self.method_to_test_thresholds[method] = thresholds
 
-        print "list_of_x_vals", list_of_x_vals
-        print "list_of_y_vals", list_of_y_vals
-        print "roc_path", self.ROC_path + self.plot_name
+        #print "list_of_x_vals", list_of_x_vals
+        #print "list_of_y_vals", list_of_y_vals
+        #print "roc_path", self.ROC_path + self.plot_name
         ax, _, plot_path = construct_ROC_curve(list_of_x_vals, list_of_y_vals, self.title, self.ROC_path + self.plot_name,
                                                line_titles, show_p=False, exp_name=exp_name)
         self.plot_path = plot_path
@@ -173,32 +173,32 @@ class single_model_stats_pipeline():
     def _generate_confusion_matrixes(self, method_to_optimal_predictions, correct_y, exfil_paths, exfil_weights):
         method_to_cm_df = {}
         for method, optimal_predictions in method_to_optimal_predictions.iteritems():
-            print "correct_y", len(correct_y)
-            print "optimal_predictions", len(optimal_predictions)
+            #print "correct_y", len(correct_y)
+            #print "optimal_predictions", len(optimal_predictions)
             confusion_matrix = determine_categorical_cm_df(correct_y, optimal_predictions, exfil_paths,
                                                                      exfil_weights)
             method_to_cm_df[method] = confusion_matrix
         return method_to_cm_df
 
     def _generate_debugging_csv(self):
-        print "self.time_gran_to_debugging_csv[self.time_gran]", self.time_gran_to_debugging_csv[self.time_gran]
-        print "self.train_predictions",self.train_predictions
-        print "self.test_predictions", self.test_predictions
-        print "np.concatenate([self.train_predictions, self.test_predictions])", np.concatenate(
-            [self.train_predictions, self.test_predictions])
-        print self.time_gran_to_debugging_csv[self.time_gran].shape
-        print len(np.concatenate([self.train_predictions, self.test_predictions]))
+        #print "self.time_gran_to_debugging_csv[self.time_gran]", self.time_gran_to_debugging_csv[self.time_gran]
+        #print "self.train_predictions",self.train_predictions
+        #print "self.test_predictions", self.test_predictions
+        #print "np.concatenate([self.train_predictions, self.test_predictions])", np.concatenate(
+        #    [self.train_predictions, self.test_predictions])
+        #print self.time_gran_to_debugging_csv[self.time_gran].shape
+        #print len(np.concatenate([self.train_predictions, self.test_predictions]))
 
-        print(np.concatenate([self.train_predictions, self.test_predictions]))
-        print self.base_output_name
+        #print(np.concatenate([self.train_predictions, self.test_predictions]))
+        #print self.base_output_name
         self.time_gran_to_debugging_csv[self.time_gran].loc[:, "aggreg_anom_score"] = np.concatenate(
             [self.train_predictions, self.test_predictions])
 
         # I don't want the attributes w/ zero coefficients to show up in the debugging csv b/c it makes it hard to read
         for feature,coef in self.coef_dict.iteritems():
-            print "coef_check", coef, not coef, feature
+            #print "coef_check", coef, not coef, feature
             if not coef:
-                print "just_dropped", feature
+                #print "just_dropped", feature
                 try:
                     self.time_gran_to_debugging_csv[self.time_gran] = self.time_gran_to_debugging_csv[self.time_gran].drop([feature],axis=1)
                     self.coef_feature_df = self.coef_feature_df.drop(feature, axis=0)
@@ -314,7 +314,7 @@ class single_model_stats_pipeline():
                 self.clf.fit(self.X_train, self.y_train)
                 self.train_predictions = self.clf.predict(X=self.X_train)
 
-                print "self.X_test.shape", self.X_test.shape, self.X_test.shape[0]
+                #print "self.X_test.shape", self.X_test.shape, self.X_test.shape[0]
                 if self.X_test.shape[0] != 0:
                     self.test_predictions = self.clf.predict(X=self.X_test)
                 else:
@@ -324,7 +324,7 @@ class single_model_stats_pipeline():
             else: # AM I SURE I WANT THIS
                 ## fitting on the training set... so not super valid unless eval sete is there too...
 
-                print "self.X_test.shape", self.X_test.shape, self.X_test.shape[0]
+                #print "self.X_test.shape", self.X_test.shape, self.X_test.shape[0]
                 if self.X_test.shape[0] != 0:
                     if self.lasso_feature_selection_p:
                         lsvc = LinearSVC(C=0.01, penalty="l1", dual=False).fit(self.X_test, self.y_test)
@@ -353,7 +353,7 @@ class single_model_stats_pipeline():
                         self.feature_select_transformer = model
 
                     self.clf.fit(self.X_train, self.y_train)
-                    print "train_predictions", self.clf.predict(X=self.X_train)
+                    #print "train_predictions", self.clf.predict(X=self.X_train)
                     self.train_predictions = self.clf.predict(X=self.X_train)
                     self.test_predictions = np.array([])
                     self.no_testing = True  # no wait, here's the plan... just treat training like testing for purposes of the report...)
@@ -365,8 +365,8 @@ class single_model_stats_pipeline():
             self.using_pretrained_model = True
             self.test_predictions = self.clf.predict(X=self.X_test)
 
-        print "Qt", self.time_gran
-        print self.X_test.shape
+        #print "Qt", self.time_gran
+        #print self.X_test.shape
 
 
 
@@ -374,8 +374,8 @@ class single_model_stats_pipeline():
         self.coef_dict  = get_coef_dict(self.clf, self.X_train.columns.values, self.base_output_name,
                                         self.X_train.dtypes, sanity_check_number_coefs=(not using_pretrained_model),
                                         lasso_feature_selection_p = self.lasso_feature_selection_p)
-        print("self.X_train",self.X_train)
-        print("self.coef_dict",self.coef_dict)
+        #print("self.X_train",self.X_train)
+        #print("self.coef_dict",self.coef_dict)
         self.coef_feature_df = pd.DataFrame.from_dict(self.coef_dict, orient='index')
         self.coef_feature_df.columns = ['Coefficient']
 
@@ -560,7 +560,7 @@ class single_rate_stats_pipeline():
         max_timegran = max(timegran_to_predictions.keys())
         final_predictions = {}
 
-        print "timegran_to_predictions", timegran_to_predictions
+        #print "timegran_to_predictions", timegran_to_predictions
         for time_gran, predictions in timegran_to_predictions.iteritems():
             #  final_trainpredictions[time_gran] = [0 for i in range(0, len(timegran_to_trainpredictions[max_timegran]))]
             # final_testpredictions[time_gran] = [0 for i in range(0, len(timegran_to_testpredictions[max_timegran]))]
@@ -582,7 +582,7 @@ class single_rate_stats_pipeline():
 
         ## take the relevant parts from the aggregate mod score and put them up in there too.
         relevant_features_at_timegran = self.timegran_to_statistical_pipeline[max_timegran].aggregate_mod_score_df
-        print relevant_features_at_timegran.columns.values
+        #print relevant_features_at_timegran.columns.values
         final_predictions['exfil_path'] = relevant_features_at_timegran['exfil_path']
         final_predictions['concrete_exfil_path'] = relevant_features_at_timegran['concrete_exfil_path']
         final_predictions['exfil_weight'] = relevant_features_at_timegran['exfil_weight']
@@ -842,7 +842,7 @@ def drop_useless_columns_aggreg_DF(aggregate_mod_score_dfs):
     try:
         aggregate_mod_score_dfs = aggregate_mod_score_dfs.drop(
             columns='labelsmod_z_score')  # might wanna just stop these from being generaetd
-        print aggregate_mod_score_dfs.columns
+        #print aggregate_mod_score_dfs.columns
     except:
         pass
     try:
@@ -1114,7 +1114,7 @@ def drop_useless_columns_testTrain_Xs( X_train, X_test ):
     except:
         pass
 
-    print "X_train_columns", X_train.columns, "---"
+    #print "X_train_columns", X_train.columns, "---"
     try:
         dropped_feature_list = ['New Class-Class Edges with DNS_mod_z_score',
                                 'New Class-Class Edges_mod_z_score',
@@ -1133,7 +1133,7 @@ def drop_useless_columns_testTrain_Xs( X_train, X_test ):
         dropped_feature_list = ['New Class-Class Edges with DNS_', 'New Class-Class Edges with Outside_',
                                 'New Class-Class Edges_',
                                 '1-step-induced-pod density_']
-        print "X_train_columns", X_train.columns, "---"
+        #print "X_train_columns", X_train.columns, "---"
         try:
             X_train = X_train.drop(columns='New Class-Class Edges with DNS_')
         except:
@@ -1171,10 +1171,10 @@ def drop_useless_columns_testTrain_Xs( X_train, X_test ):
 
 def get_coef_dict(clf, X_train_columns, base_output_name, X_train_dtypes, sanity_check_number_coefs, lasso_feature_selection_p):
     coef_dict = {}
-    print "Coefficients: "
-    print "LASSO model", clf.get_params()
-    print '----------------------'
-    print "len(clf.coef_)", len(clf.coef_), "len(X_train_columns)", len(X_train_columns)
+    #print "Coefficients: "
+    #print "LASSO model", clf.get_params()
+    #print '----------------------'
+    #print "len(clf.coef_)", len(clf.coef_), "len(X_train_columns)", len(X_train_columns)
 
     if 'logistic' in base_output_name or lasso_feature_selection_p:
         model_coefs = clf.coef_[0]
@@ -1195,11 +1195,11 @@ def get_coef_dict(clf, X_train_columns, base_output_name, X_train_dtypes, sanity
         coef_dict[feat] = coef
     coef_dict['intercept'] = float(clf.intercept_)
 
-    print "COEFS_HERE"
-    for coef, feature in coef_dict.iteritems():
-        print coef, feature
+    #print "COEFS_HERE"
+    #for coef, feature in coef_dict.iteritems():
+    #    print coef, feature
 
-    print "coef_dict"
+    #print "coef_dict"
     return coef_dict
 
 def prepare_data(aggregate_mod_score_dfs, skip_model_part, time_gran_to_debugging_csv, time_gran,
@@ -1230,9 +1230,9 @@ def prepare_data(aggregate_mod_score_dfs, skip_model_part, time_gran_to_debuggin
     aggregate_mod_score_dfs_training = aggregate_mod_score_dfs[aggregate_mod_score_dfs['is_test'] == 0]
     aggregate_mod_score_dfs_testing = aggregate_mod_score_dfs[aggregate_mod_score_dfs['is_test'] == 1]
     time_gran_to_debugging_csv[time_gran] = aggregate_mod_score_dfs.copy(deep=True)
-    print "aggregate_mod_score_dfs_training", aggregate_mod_score_dfs_training
-    print "aggregate_mod_score_dfs_testing", aggregate_mod_score_dfs_testing
-    print aggregate_mod_score_dfs['is_test']
+    #print "aggregate_mod_score_dfs_training", aggregate_mod_score_dfs_training
+    #print "aggregate_mod_score_dfs_testing", aggregate_mod_score_dfs_testing
+    #print aggregate_mod_score_dfs['is_test']
 
     #else:
         ## note: generally you'd want to split into test and train sets, but if we're not doing logic
@@ -1243,7 +1243,7 @@ def prepare_data(aggregate_mod_score_dfs, skip_model_part, time_gran_to_debuggin
     #    time_gran_to_debugging_csv[time_gran] = aggregate_mod_score_dfs_training.copy(deep=True).append(
     #        aggregate_mod_score_dfs_testing.copy(deep=True))
 
-    print aggregate_mod_score_dfs_training.index
+    #print aggregate_mod_score_dfs_training.index
     #aggregate_mod_score_dfs_training, aggregate_mod_score_dfs_testing = \
     #    drop_useless_columns_aggreg_testtrain_DF(aggregate_mod_score_dfs_training, aggregate_mod_score_dfs_testing)
 
@@ -1271,24 +1271,24 @@ def prepare_data(aggregate_mod_score_dfs, skip_model_part, time_gran_to_debuggin
         drop_useless_columns_testTrain_Xs(X_train, X_test)
 
 
-    print '-------'
-    print type(X_train)
-    print "X_train_columns_values", X_train.columns.values
-    print "columns", X_train.columns
-    print "columns", X_test.columns
+    #print '-------'
+    #print type(X_train)
+    #print "X_train_columns_values", X_train.columns.values
+    #print "columns", X_train.columns
+    #print "columns", X_test.columns
 
-    print X_train.dtypes
+    #print X_train.dtypes
 
     # need to replace the missing values in the data w/ meaningful values...
     # TODO?? DOES THIS MAKE SENSE????
     X_train = X_train.fillna(X_train.median())
     X_test = X_test.fillna(X_train.median())
-    print "X_train_median", X_train.median()
+    #print "X_train_median", X_train.median()
 
-    print X_train
+    #print X_train
     pre_drop_X_train = X_train.copy(deep=True)
     X_train = X_train.dropna(axis=1)
-    print X_train
+    #print X_train
     X_test = X_test.dropna(axis=1)
 
     return X_train, y_train, X_test, y_test, pre_drop_X_train, time_gran_to_debugging_csv, dropped_feature_list, \
@@ -1337,8 +1337,8 @@ def generate_ROC_curves(y_test, test_predictions, base_output_name, time_gran, i
     ##  ewma_test = X_test['max_ewma_control_chart_scores']
     # now for the ewma part...
     # fpr_ewma, tpr_ewma, thresholds_ewma = sklearn.metrics.roc_curve(y_true=y_test, y_score = ewma_test, pos_label=1)
-    print "y_test", y_test
-    print "ide_test", ide_test, ide_train
+    #print "y_test", y_test
+    #print "ide_test", ide_test, ide_train
     try:
         fpr_ide, tpr_ide, thresholds_ide = sklearn.metrics.roc_curve(y_true=y_test, y_score=ide_test, pos_label=1)
         line_titles = ['ensemble model', 'ide_angles']
@@ -1365,14 +1365,14 @@ def generate_ROC_curves(y_test, test_predictions, base_output_name, time_gran, i
     ### determination of the optimal operating point goes here (take all the thresh vals and predictions,
     ### find the corresponding f1 scores (using sklearn func), and then return the best.
     optimal_f1_score, optimal_thresh = process_roc.determine_optimal_threshold(y_test, test_predictions, thresholds)
-    print "optimal_f1_score", optimal_f1_score, "optimal_thresh", optimal_thresh
+    #print "optimal_f1_score", optimal_f1_score, "optimal_thresh", optimal_thresh
     list_of_optimal_fone_scores.append(optimal_f1_score)
     ### get confusion matrix... take predictions from classifer. THreshold
     ### using optimal threshold determined previously. Extract the labels too. This gives two lists, appropriate
     ### for using the confusion_matrix function of sklearn. However, this does NOT handle the different
     ### categories... (for display will probably want to make a df)
     optimal_predictions = [int(i > optimal_thresh) for i in test_predictions]
-    print "optimal_predictions", optimal_predictions
+    #print "optimal_predictions", optimal_predictions
     ### determine categorical-level behavior... Split the two lists from the previous step into 2N lists,
     ### where N is the # of categories, and then can just do the confusion matrix function on them...
     ### (and then display the results somehow...)
@@ -1384,14 +1384,14 @@ def generate_ROC_curves(y_test, test_predictions, base_output_name, time_gran, i
 
 def determine_categorical_cm_df(y_test, optimal_predictions, exfil_paths, exfil_weights):
     y_test = y_test['labels'].tolist()
-    print "new_y_test", y_test
+    #print "new_y_test", y_test
     attack_type_to_predictions, attack_type_to_truth, attack_type_to_weights = \
         process_roc.determine_categorical_labels(y_test, optimal_predictions, exfil_paths, exfil_weights.tolist())
     attack_type_to_confusion_matrix_values = process_roc.determine_cm_vals_for_categories(attack_type_to_predictions,
                                                                                           attack_type_to_truth)
     categorical_cm_df = process_roc.determine_categorical_cm_df(attack_type_to_confusion_matrix_values, attack_type_to_weights)
     ## re-name the row without any attacks in it...
-    print "categorical_cm_df.index", categorical_cm_df.index
+    #print "categorical_cm_df.index", categorical_cm_df.index
     categorical_cm_df = categorical_cm_df.rename({(): 'No Attack'}, axis='index')
     return categorical_cm_df
 
@@ -1417,19 +1417,19 @@ def construct_ROC_curve(list_of_x_vals, list_of_y_vals, title, plot_name, line_t
     plt.title(title)
 
     line_markers = ['s', '*', 'h', '+', '1']
-    print "list_of_x_vals", list_of_x_vals
-    print "list_of_y_vals", list_of_y_vals
-    print "line_titles", line_titles
+    #print "list_of_x_vals", list_of_x_vals
+    #print "list_of_y_vals", list_of_y_vals
+    #print "line_titles", line_titles
     for counter,x_vals in enumerate(list_of_x_vals):
         plt.plot(x_vals, list_of_y_vals[counter], label = line_titles[counter], marker=line_markers[counter])
 
     plt.legend()
-    print "roc_plot componens (nonlocal)", plot_name, '|', exp_name, '|', '.png'
+    #print "roc_plot componens (nonlocal)", plot_name, '|', exp_name, '|', '.png'
     plt.savefig( plot_name + exp_name + '.png', format='png', dpi=1000)
 
     local_graph_loc = './temp_outputs/' + title + exp_name + '.png'# XAB
     local_graph_loc = local_graph_loc.replace(' ', '_')
-    print "roc_plot_name (local)", local_graph_loc
+    #print "roc_plot_name (local)", local_graph_loc
     plt.savefig( local_graph_loc, format='png', dpi=1000)
 
     if show_p:

@@ -174,12 +174,12 @@ def aggregate_cm_vals_over_paths(cm, method=None):
 
 def cm_to_f1(cm, exfil_rate, timegran,method=None):
     #print "cm", cm
-    print method, "method"
+    #print method, "method"
     if method:
         cm = cm[exfil_rate][timegran][method]
     else:
         cm = cm[exfil_rate][timegran]
-    print "cm",cm
+    #print "cm",cm
     tn, fp, fn, tp = aggregate_cm_vals_over_paths(cm)
     f1_score = (2.0 * tp) / (2.0 * tp + fp + fn)
     return f1_score
@@ -266,14 +266,14 @@ def get_evalconfigs_to_cm(model_config_file, eval_configs_to_xvals, xlabel, use_
     secondary_cache_name_persvc = generate_secondary_cache_name(model_config_file, False, True)
 
     if use_cached:
-        print "cache_name",cache_name
+        #print "cache_name",cache_name
         with open(cache_name, 'r') as f:
             #cont = f.read()
             #print "cont",cont
             evalconfigs_to_cm = pickle.load(f)
             #evalconfigs_to_cm = pickle.loads(cont) #TODO<--renable!
             #evalconfigs_to_cm = {} # TODO: actually debug this whole part... (so I can re-enable the line above)
-        print "cache_name_persvc", cache_name_persvc
+        #print "cache_name_persvc", cache_name_persvc
         with open(cache_name_persvc, 'r') as f:
             evalconfigs_to_model_to_cm = pickle.loads(f.read())
     else:
@@ -287,7 +287,7 @@ def get_evalconfigs_to_cm(model_config_file, eval_configs_to_xvals, xlabel, use_
         # necessary for wordpress exps to be able to run on cloudlab... (b/c of space issues)...
         list_of_eval_sizes, list_of_eval_configs = (list(l) for l in zip(*sorted(zip(list_of_eval_sizes, list_of_eval_configs))))
         list_of_eval_configs.reverse()
-        print "list_of_eval_sizes", list_of_eval_sizes, "list_of_eval_configs", list_of_eval_configs
+        #print "list_of_eval_sizes", list_of_eval_sizes, "list_of_eval_configs", list_of_eval_configs
 
         evalconfigs_to_cm, evalconfigs_to_model_to_cm = get_eval_results(model_config_file, list_of_eval_configs, update_config_p,
                                              retrain_model_p, per_svc_exfil_model_p, use_remote,
@@ -321,7 +321,7 @@ def exfil_rate_vs_f1_at_various_timegran(timegran_to_method_to_rate_to_f1, evalc
         rates, f1s = zip(*sorted(zip(rates, f1s)))
 
         # so rates would be x-axis and f1s would be the y-axis
-        print "exfil_rate_vs_f1_at_various_timegran", timegran, rates, f1s
+        #print "exfil_rate_vs_f1_at_various_timegran", timegran, rates, f1s
 
         if type(timegran) == tuple:
             timegran = 'multi-time'
@@ -339,7 +339,7 @@ def exfil_rate_vs_f1_at_various_timegran(timegran_to_method_to_rate_to_f1, evalc
     ax.set_ylim(top=1.1, bottom=-0.1)  # we can do it manually...
     plt.tight_layout()
     f1_vs_exfil_rate_filname = "./multilooper_outs/diffTimeGran_" + evalconfig_name + "_f1_vs_exfil_rate.png"
-    print "f1_vs_exfil_rate_filname",f1_vs_exfil_rate_filname
+    #print "f1_vs_exfil_rate_filname",f1_vs_exfil_rate_filname
     fig.savefig(f1_vs_exfil_rate_filname)
 
 def has_experiment_already_been_run(config_file_pth):
@@ -356,10 +356,10 @@ def has_experiment_already_been_run(config_file_pth):
     return False
 
 def get_prob_distr(processing_config):
-    print "processing_config", processing_config
+    #print "processing_config", processing_config
     with open(processing_config, 'r') as g:
         config_stuff = json.loads(g.read())
-        print "file_made_by_experimental_apparatus", config_stuff['exp_config_file']
+        #print "file_made_by_experimental_apparatus", config_stuff['exp_config_file']
         with open(config_stuff['exp_config_file'], 'r') as z:
             z_cont = z.read()
             #print "g_cont", z_cont, len(z_cont)
@@ -617,9 +617,9 @@ def parse_config(config_file_pth):
         if 'timegran' in config_file:
             timegran = config_file['timegran']
 
-            print "timegran", timegran, type(timegran), type(timegran) != int
+            #print "timegran", timegran, type(timegran), type(timegran) != int
             if type(timegran) != int:
-                print "timegran_is_a_str... literal_eval..."
+                #print "timegran_is_a_str... literal_eval..."
                 timegran = ast.literal_eval(timegran)
         else:
             timegran = False
@@ -772,7 +772,7 @@ def run_looper(config_file_pth, update_config, use_remote, only_finished_p, live
                         new_evalconfig_to_rate_to_timegram_to_method_cm[evalconfig][rate][cur_timegran] = {}
                     new_evalconfig_to_rate_to_timegram_to_method_cm[evalconfig][rate][cur_timegran][model] = cm
 
-    print "model_to_evalconfig_to_cm.keys()", model_to_evalconfig_to_cm.keys()
+    #print "model_to_evalconfig_to_cm.keys()", model_to_evalconfig_to_cm.keys()
     for model, cur_evalconfig_to_cm in model_to_evalconfig_to_cm.iteritems():
         #generate_graphs(eval_configs_to_xvals, exfil_rate, cur_evalconfig_to_cm, timegran, type_of_graph,
         #                str(graph_name) + '_NEW_MODEL_' + str(model) + '_',

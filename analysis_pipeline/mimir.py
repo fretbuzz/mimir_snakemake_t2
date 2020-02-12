@@ -74,7 +74,7 @@ def parse_experimental_config(experimental_config_file, return_new_model_functio
                               add_dropInfo_to_name=True, skip_to_calc_zscore=False, exp_data_dir=None, load_endresult=False,
                               no_cilium=False, dont_open_pdfs = False):
 
-    print "experimental_config_file", type(experimental_config_file), experimental_config_file
+    #print "experimental_config_file", type(experimental_config_file), experimental_config_file
     with open(experimental_config_file, 'r') as f:
         config_file = json.load(f)
 
@@ -235,7 +235,7 @@ def parse_experimental_config(experimental_config_file, return_new_model_functio
 
         # in this case, we want to only retrain the model (WITHOUT recalculating the features-- just pull the features from the csv...)
         if skip_to_calc_zscore:
-            print "skip_to_calc_zscore was called!!"
+            #print "skip_to_calc_zscore was called!!"
             make_edgefiles = False
             skip_graph_injection = True
             calc_vals = False
@@ -301,8 +301,8 @@ def run_analysis(return_new_model_function, training_config, eval_config=None, l
     min_rate_training_statspipelines, training_results, svcpair_model, new_persvc_model, train_results_per_model_new = \
         training_experimente_object.run_pipelines(no_tsl=no_tsl, per_svc_exfil_model_p=per_svc_exfil_model_p, load_old_pipelines=load_old_pipelines)
 
-    print "min_rate_training_statspipelines",min_rate_training_statspipelines
-    print "training_results", training_results
+    #print "min_rate_training_statspipelines",min_rate_training_statspipelines
+    #print "training_results", training_results
     eval_results = None
     eval_results_per_model_new = None
     #time.sleep(35)
@@ -322,7 +322,7 @@ def run_analysis(return_new_model_function, training_config, eval_config=None, l
         print "eval_results:"
 
         if eval_results and live:
-            print "eval_results.keys()", eval_results.keys()
+            #print "eval_results.keys()", eval_results.keys()
             lowest_timegran = min(eval_results["ensemble"].keys())
             predicted_vals =  eval_results["ensemble"][lowest_timegran] # predicted alert vals at each time granularity
             data = [ (lowest_timegran * counter, val) for counter,val in enumerate(predicted_vals)]
@@ -331,7 +331,7 @@ def run_analysis(return_new_model_function, training_config, eval_config=None, l
             print eval_results
 
         if decanter_configs:
-            print "eval_results_b4_dec", eval_results
+            #print "eval_results_b4_dec", eval_results
             eval_results = run_decanter_component(decanter_configs, training_config, eval_config, eval_results)
             # TODO: update the decanter configs appropriately....
 
