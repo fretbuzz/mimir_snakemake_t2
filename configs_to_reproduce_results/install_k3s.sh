@@ -7,9 +7,11 @@ sudo snap install multipass --classic
 
 sleep 15
 
-sudo /snap/bin/multipass launch --name k3s-master --cpus 1 --mem 2G --disk 3G | tee /dev/null
-sudo /snap/bin/multipass launch --name k3s-worker1 --cpus 4 --mem 6G --disk 5G | tee /dev/null
-sudo /snap/bin/multipass launch --name k3s-worker2 --cpus 4 --mem 6G --disk 5G | tee /dev/null
+sudo /snap/bin/multipass launch --name k3s-master --cpus 1 --mem 8G --disk 3G | tee /dev/null
+sudo /snap/bin/multipass launch --name k3s-worker1 --cpus 4 --mem 32G --disk 10G | tee /dev/null
+sudo /snap/bin/multipass launch --name k3s-worker2 --cpus 4 --mem 32G --disk 10G | tee /dev/null
+sudo /snap/bin/multipass launch --name k3s-worker3 --cpus 4 --mem 32G --disk 10G | tee /dev/null
+sudo /snap/bin/multipass launch --name k3s-worker4 --cpus 4 --mem 32G --disk 10G | tee /dev/null
 
 # Deploy k3s on the master node
 sudo /snap/bin/multipass exec k3s-master -- /bin/bash -c "curl -sfL https://get.k3s.io | K3S_KUBECONFIG_MODE="644" sh -s - --no-deploy=traefik"
@@ -21,6 +23,8 @@ K3S_TOKEN="$(sudo /snap/bin/multipass exec k3s-master -- /bin/bash -c "sudo cat 
 sudo /snap/bin/multipass exec k3s-worker1 -- /bin/bash -c "curl -sfL https://get.k3s.io | K3S_TOKEN=${K3S_TOKEN} K3S_URL=${K3S_NODEIP_MASTER} sh -"
 # Deploy k3s on the worker node
 sudo /snap/bin/multipass exec k3s-worker2 -- /bin/bash -c "curl -sfL https://get.k3s.io | K3S_TOKEN=${K3S_TOKEN} K3S_URL=${K3S_NODEIP_MASTER} sh -"
+sudo /snap/bin/multipass exec k3s-worker3 -- /bin/bash -c "curl -sfL https://get.k3s.io | K3S_TOKEN=${K3S_TOKEN} K3S_URL=${K3S_NODEIP_MASTER} sh -"
+sudo /snap/bin/multipass exec k3s-worker4 -- /bin/bash -c "curl -sfL https://get.k3s.io | K3S_TOKEN=${K3S_TOKEN} K3S_URL=${K3S_NODEIP_MASTER} sh -"
 
 sudo /snap/bin/multipass list
 sudo /snap/bin/multipass exec k3s-master kubectl get nodes
