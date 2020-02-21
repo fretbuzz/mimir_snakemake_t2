@@ -291,7 +291,7 @@ def parse_experimental_config(experimental_config_file, return_new_model_functio
 def run_analysis(return_new_model_function, training_config, eval_config=None, live=False, no_tsl=True,
                  decanter_configs=None, skip_to_calc_zscore=False, exp_data_dir=None,
                  per_svc_exfil_model_p=False, load_old_pipelines=False, load_endresult_train = False,
-                 no_cilium = False, dont_open_pdfs = False, use_all_results_from_mem=False):
+                 no_cilium = False, dont_open_pdfs = False, use_all_results_from_mem=False, load_all_old_models=False):
 
     training_experimente_object = parse_experimental_config(training_config, return_new_model_function, is_eval=False,
                                                             skip_to_calc_zscore=skip_to_calc_zscore,
@@ -299,7 +299,8 @@ def run_analysis(return_new_model_function, training_config, eval_config=None, l
                                                             no_cilium=no_cilium, dont_open_pdfs = dont_open_pdfs)
 
     min_rate_training_statspipelines, training_results, svcpair_model, new_persvc_model, train_results_per_model_new = \
-        training_experimente_object.run_pipelines(no_tsl=no_tsl, per_svc_exfil_model_p=per_svc_exfil_model_p, load_old_pipelines=load_old_pipelines)
+        training_experimente_object.run_pipelines(no_tsl=no_tsl, per_svc_exfil_model_p=per_svc_exfil_model_p, load_old_pipelines=load_old_pipelines,
+        load_all_old_models=load_all_old_models)
 
     #print "min_rate_training_statspipelines",min_rate_training_statspipelines
     #print "training_results", training_results
@@ -316,7 +317,8 @@ def run_analysis(return_new_model_function, training_config, eval_config=None, l
                                                                     no_tsl=no_tsl, svcpair_model=svcpair_model,
                                                                     per_svc_exfil_model_p=per_svc_exfil_model_p,
                                                                     load_old_pipelines=load_old_pipelines,
-                                                                    persvc_ensemble_model=new_persvc_model)
+                                                                    persvc_ensemble_model=new_persvc_model,
+                                                                    load_all_old_models=load_all_old_models)
 
         print "----------------------------"
         print "eval_results:"
@@ -400,6 +402,9 @@ if __name__=="__main__":
     parser.add_argument('--load_old_pipelines', dest='load_old_pipelines', default=False, action='store_true',
                         help='[for dev purposes] loads the old pipelines (from statistical_analysis.py), so that the new one can be tested more easily')
 
+    parser.add_argument('--load_all_old_models', dest='load_all_old_models', default=False, action='store_true',
+                        help='[for dev purposes] loads all old models, at all possible points (do not use outside of development for statistical_analysis_perSvc.py!)')
+
     parser.add_argument('--load_endresult_train', dest='load_endresult_train', default=False, action='store_true',
                         help='(for dev purposes) for the training data, load the endresult from memory (this flag is overrides retrain_model for the training data')
 
@@ -439,4 +444,4 @@ if __name__=="__main__":
         run_analysis(args.ret_new_mod_func, args.training_config_json, eval_config=args.config_json, live=args.live,
                      skip_to_calc_zscore = args.retrain_model, exp_data_dir = args.exp_data_dir,
                      load_old_pipelines = args.load_old_pipelines, load_endresult_train = args.load_endresult_train,
-                     no_cilium = args.no_cilium, dont_open_pdfs = args.dont_open_pdfs)
+                     no_cilium = args.no_cilium, dont_open_pdfs = args.dont_open_pdfs, load_all_old_models = args.load_all_old_models)

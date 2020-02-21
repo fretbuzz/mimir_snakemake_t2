@@ -172,7 +172,8 @@ class multi_experiment_pipeline(object):
                                                                     self.max_path_length, self.max_dns_porportion)
 
     def run_pipelines(self, pretrained_model_object = None, no_tsl=False, svcpair_model=None,
-                      per_svc_exfil_model_p=False, load_old_pipelines=False, persvc_ensemble_model=None):
+                      per_svc_exfil_model_p=False, load_old_pipelines=False, persvc_ensemble_model=None,
+                      load_all_old_models=False):
         if no_tsl:
             self.use_ts_lower = False
         else:
@@ -253,7 +254,7 @@ class multi_experiment_pipeline(object):
                                                     rate_to_starts_of_testing[cur_avg_exfil_per_min],
                                                     rate_to_cilium_allowed_svc_comm[cur_avg_exfil_per_min],
                                                     rate_to_cur_base_output_name[cur_avg_exfil_per_min], rate_counter,
-                                                    self.avg_exfil_per_min, load_old_pipelines)
+                                                    self.avg_exfil_per_min, (load_old_pipelines or load_all_old_models))
 
                     # TODO: apply the new model here?? (only for eval purposes tho... not for training...)
                     # I think we need to pass both the new and old models, honestly....
@@ -288,14 +289,24 @@ class multi_experiment_pipeline(object):
                 with open(self.where_to_save_persvc_ensemble_model, 'w') as f:
                     pickle.dump(persvc_ensemble_model, f)
 
-                min_rate_statspipelines_ts = self.decrease_exfil_of_model()
-                with open(self.where_to_save_minrate_statspipelines, 'w') as f:
-                    pickle.dump(min_rate_statspipelines_ts, f)
+                # TODO: remove eventually
+                #exit(11)
 
-                ## let's generate both reports... we can then use a param to pick between them...
-                min_rate_statspipelines_agg = self.train_multi_exfilrate_model()
-                with open(self.where_to_save_minrate_statspipelines + 'multi', 'w') as z:
-                    pickle.dump(min_rate_statspipelines_agg, z)
+                if load_all_old_models:
+                    with open(self.where_to_save_minrate_statspipelines, 'r') as f:
+                        min_rate_statspipelines_ts = pickle.load(f)
+
+                    with open(self.where_to_save_minrate_statspipelines + 'multi', 'r') as z:
+                        min_rate_statspipelines_agg = pickle.load(z)
+                else:
+                    min_rate_statspipelines_ts = self.decrease_exfil_of_model()
+                    with open(self.where_to_save_minrate_statspipelines, 'w') as f:
+                        pickle.dump(min_rate_statspipelines_ts, f)
+
+                    ## let's generate both reports... we can then use a param to pick between them...
+                    min_rate_statspipelines_agg = self.train_multi_exfilrate_model()
+                    with open(self.where_to_save_minrate_statspipelines + 'multi', 'w') as z:
+                        pickle.dump(min_rate_statspipelines_agg, z)
 
 
                 if self.use_ts_lower:

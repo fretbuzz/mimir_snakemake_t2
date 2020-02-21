@@ -54,7 +54,7 @@ sudo python get-pip.py
 sudo apt-get -y install python-dev
 sudo pip install requests pyasn1 ipaddress urllib3 --upgrade
 sudo pip install docker pexpect netifaces selenium kubernetes requests
-sudo pip install locustio pycryptodome
+sudo pip install locustio==0.13.5 pycryptodome
 sudo pip install pwntools
 sudo python -m easy_install --upgrade pyOpenSSL
 

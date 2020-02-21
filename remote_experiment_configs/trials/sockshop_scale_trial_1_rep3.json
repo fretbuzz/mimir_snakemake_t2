@@ -1,10 +1,10 @@
 {
-  "machine_ip": "c240g5-110225.wisc.cloudlab.us",
+  "machine_ip": "c220g5-120124.wisc.cloudlab.us",
   "e2e_script_to_follow": "sockshop_repro.sh",
   "corresponding_local_directory": "/Volumes/exM2/new_experimental_data/sockshop_scale_rep3",
 
   "remote_server_key": "/Users/jseverin/Dropbox/cloudlab.pem",
   "user": "jsev",
 
-  "return_local_data_only": true
+  "return_local_data_only": false
 }

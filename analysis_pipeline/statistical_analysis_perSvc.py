@@ -10,6 +10,7 @@ from statistical_analysis import construct_ROC_curve, drop_useless_columns_testT
 import numpy as np
 import copy
 import time
+from sklearn.ensemble import AdaBoostRegressor
 
 # FOR A PARTICUALR EXFIL RATE (implicitly, because that determines the input data...)
 class exfil_detection_model():
@@ -43,7 +44,9 @@ class exfil_detection_model():
         self.model_to_tg_report_sections = {}
 
         ###### # this list controls which individual models are calculated
-        self.types_of_models = ['lasso', 'logistic', 'logistic_ide', 'boosting lasso', 'boosting logisitic' 'persvc_boosting']
+        self.types_of_models = ['boosting_logisitic', 'boosting_regressor_default', 'boosting_classifier_default',
+                                'histo_boost_regressor', 'histo_boost_classifer',
+                                'boosting_lasso', 'lasso', 'logistic', 'logistic_ide',  'persvc_boosting']
         ######
 
         for timegran, feature_df in self.time_gran_to_aggregate_mod_score_dfs.iteritems():
@@ -87,7 +90,7 @@ class exfil_detection_model():
 
             for timegran in self.Xs.keys():
                 # this if-block exists b/c not all the model types are implemented...
-                if type_of_model in ['lasso', 'logistic', 'logistic_ide']: #, 'boosting lasso', 'boosting logisitic']:
+                if type_of_model in ['lasso', 'logistic', 'logistic_ide', 'boosting_lasso']: #, 'boosting lasso', 'boosting logisitic']:
                     print "current_type_of_model", type_of_model
 
                     this_model_exists = True
@@ -219,7 +222,11 @@ class exfil_detection_model():
         for type_of_model_index in range(0, len(self.types_of_models)):
             type_of_model = self.types_of_models[type_of_model_index]
             self.type_of_model_to_time_gran_to_predicted_test[type_of_model] = {}
+            type_of_model_with_optimal_train_thresh = type_of_model + '_with_optimal_train_thresh'
+            self.type_of_model_to_time_gran_to_cm[type_of_model_with_optimal_train_thresh] = {}
+
             timegran_to_alerts = {}
+            timegran_to_alerts_with_optimal_train_threshold = {}
             this_model_exists = False
 
             for timegran in self.Xts.keys():
@@ -258,7 +265,16 @@ class exfil_detection_model():
                         self.type_of_model_to_time_gran_to_cm[type_of_model][timegran] = \
                                 self.trained_models[type_of_model][timegran].test_confusion_matrix
 
+                        # okay, but we also need to store the version that uses the optimal_training_threshold
+                        cur_model_type = type_of_model + '_with_optimal_train_thresh'
+                        self.type_of_model_to_time_gran_to_cm[cur_model_type][timegran] =\
+                                self.trained_models[type_of_model][timegran].categorical_cm_df_with_optimal_train_threshold
+                        timegran_to_alerts_with_optimal_train_threshold[timegran] = self.trained_models[type_of_model][timegran].yt_thresholded_with_optimal_train_thresh
+
+
             self.type_of_model_to_time_gran_to_predicted_test[type_of_model] = timegran_to_alerts
+            cur_model_type = type_of_model + '_with_optimal_train_thresh'
+            self.type_of_model_to_time_gran_to_predicted_test[cur_model_type] = timegran_to_alerts_with_optimal_train_threshold
 
             if this_model_exists:
                 # now need to combine the alerts at different time granularities
@@ -290,6 +306,23 @@ class exfil_detection_model():
                     self.type_of_model_to_time_gran_to_predicted_test[type_of_model][ensemble_timegran] = alerts_for_multitime
                     self.trained_models[type_of_model][ensemble_timegran] = multi_time_object
                     self.type_of_model_to_time_gran_to_cm[type_of_model][ensemble_timegran] = multi_time_object.confusion_matrix
+
+                    ### now do the same using the optimal threshold determined in the training portion
+                    cur_model_type = type_of_model + '_with_optimal_train_thresh'
+                    print "self.type_of_model_to_time_gran_to_predicted_test.keys()", self.type_of_model_to_time_gran_to_predicted_test.keys()
+                    multi_time_object_optimal_train_thresh = multi_time_alerts(self.type_of_model_to_time_gran_to_predicted_test[cur_model_type],
+                                                                              copy.deepcopy(self.Yts), copy.deepcopy(self.Xts),
+                                                                              self.base_output_name, cur_model_type, self.recipes_used)
+                    # this fucntion is called so that multi_time_object will fill in the confusion_matrix object
+                    _ = multi_time_object_optimal_train_thresh.generate_report_section(None, None)
+
+                    alerts_for_multitime = multi_time_object_optimal_train_thresh.alerts
+                    self.type_of_model_to_time_gran_to_predicted_test[cur_model_type][ensemble_timegran] = alerts_for_multitime
+                    cur_model_type = type_of_model + '_with_optimal_train_thresh'
+                    #if cur_model_type not in self.trained_models:
+                    #    self.trained_models[cur_model_type] = {}
+                    #self.trained_models[cur_model_type][ensemble_timegran] = multi_time_object_optimal_train_thresh
+                    self.type_of_model_to_time_gran_to_cm[cur_model_type][ensemble_timegran] = multi_time_object_optimal_train_thresh.confusion_matrix
 
     def generate_reports(self, auto_open_p, skip_heatmaps, using_pretrained_model):
         ## TODO: I need to add the other alert calculation methods (e.g., cilium, ide)
@@ -427,22 +460,34 @@ class single_timegran_exfil_model():
             self.Xt = self.Xt_ide
 
     def train(self):
-        if 'logistic' in self.model_to_fit:
-            self.clf = sklearn.linear_model.LogisticRegressionCV() ## putting positive here makes it works.
+        if 'boosting_lasso' in self.model_to_fit:
+            #pass
+            self.clf = AdaBoostRegressor(base_estimator=sklearn.linear_model.LassoCV(cv=5, max_iter=80000),
+                                                           n_estimators=10, learning_rate=1.0, random_state=None)
+
+        elif 'boosting_logistic' in self.model_to_fit:
+            pass # TODO
+            #self.clf = sklearn.ensemble.AdaBoostClassifier(
+            #    base_estimator=sklearn.linear_model.LogisticRegressionCV(),
+            #    n_estimators=10, learning_rate=1.0, algorithm='SAMME.R', random_state=None)
+
+        elif 'boosting_regressor_default' in self.model_to_fit:
+            pass # TODO
+
+        elif 'boosting_classifier_default' in self.model_to_fit:
+            pass # TODO
+
+        elif 'histo_boost_regressor' in self.model_to_fit:
+            pass # TODO
+
+        elif 'histo_boost_classifer' in self.model_to_fit:
+            pass # TODO
 
         elif 'lasso' in self.model_to_fit:
             self.clf = sklearn.linear_model.LassoCV(cv=5, max_iter=80000) ## putting positive here makes it works.
 
-        elif 'boosting lasso' in self.model_to_fit:
-            pass
-            #self.clf = sklearn.ensemble.AdaBoostClassifier(base_estimator=sklearn.linear_model.LassoCV(cv=5, max_iter=80000),
-            #                                               n_estimators=10, learning_rate=1.0, algorithm='SAMME.R', random_state=None)
-
-        elif 'boosting logistic' in self.model_to_fit:
-            pass
-            #self.clf = sklearn.ensemble.AdaBoostClassifier(
-            #    base_estimator=sklearn.linear_model.LogisticRegressionCV(),
-            #    n_estimators=10, learning_rate=1.0, algorithm='SAMME.R', random_state=None)
+        elif 'logistic' in self.model_to_fit:
+            self.clf = sklearn.linear_model.LogisticRegressionCV()  ## putting positive here makes it works.
 
 
 
@@ -517,6 +562,8 @@ class single_timegran_exfil_model():
             # can calculate performance vals...
             self._find_optimal_test_threshold()
             self._generate_test_cm()
+
+            self._find_test_performance_using_optimal_train_threshold()
         else:
             # cannot calculate performance vals... (so do nothing???)
             pass
@@ -554,6 +601,21 @@ class single_timegran_exfil_model():
         self.test_f1s = list_of_f1_scores
         self.optimal_test_thresh_and_f1 = (threshold_corresponding_max_f1, max_f1_score)
         self.yt_optimal_thresholded = [int(i > threshold_corresponding_max_f1) for i in self.test_predictions]
+
+    def _find_test_performance_using_optimal_train_threshold(self):
+        self.yt_thresholded_with_optimal_train_thresh = [int(i > self.optimal_train_thresh_and_f1[0]) for i in self.test_predictions]
+        self.f1_score_with_optimal_train_thresh = sklearn.metrics.f1_score(self.Yt, self.yt_thresholded_with_optimal_train_thresh, pos_label=1, average='binary')
+
+        print "vals", len(self.Yt), len(self.yt_thresholded_with_optimal_train_thresh), len(self.exfil_paths_test), len(self.exfil_weights_test.tolist())
+
+        attack_type_to_predictions, attack_type_to_truth, attack_type_to_weights = \
+            process_roc.determine_categorical_labels(self.Yt['labels'].tolist(), self.yt_thresholded_with_optimal_train_thresh,
+                                                     self.exfil_paths_test, self.exfil_weights_test.tolist())
+
+        attack_type_to_confusion_matrix_values = process_roc.determine_cm_vals_for_categories(attack_type_to_predictions,
+                                                                                              attack_type_to_truth)
+        self.categorical_cm_df_with_optimal_train_threshold = process_roc.determine_categorical_cm_df(attack_type_to_confusion_matrix_values,
+                                                                    attack_type_to_weights)
 
     def _generate_train_cm(self):
         y_train = self.Y['labels'].tolist()
@@ -707,22 +769,28 @@ class single_timegran_exfil_model():
         )
         table_section_template = env.get_template("table_section.html")
 
-        self.coef_dict  = get_lin_mod_coef_dict(self.clf, self.X.columns.values, self.X.dtypes,
-                                                sanity_check_number_coefs=(not using_pretrained_model),
-                                                model_type=self.model_to_fit)
-        #print("self.X_train",self.X)
-        #print("self.coef_dict",self.coef_dict)
-        self.coef_feature_df = pd.DataFrame.from_dict(self.coef_dict, orient='index')
-        self.coef_feature_df.columns = ['Coefficient']
+        if 'boosting' not in self.model_to_fit:
+            self.coef_dict  = get_lin_mod_coef_dict(self.clf, self.X.columns.values, self.X.dtypes,
+                                                    sanity_check_number_coefs=(not using_pretrained_model),
+                                                    model_type=self.model_to_fit)
 
-        self.model_params = self.clf.get_params()
-        try:
-            self.model_params['alpha_val'] = self.clf.alpha_
-        except:
-            pass
+            #print("self.X_train",self.X)
+            #print("self.coef_dict",self.coef_dict)
+            self.coef_feature_df = pd.DataFrame.from_dict(self.coef_dict, orient='index')
+            self.coef_feature_df.columns = ['Coefficient']
+
+            self.model_params = self.clf.get_params()
+            try:
+                self.model_params['alpha_val'] = self.clf.alpha_
+            except:
+                pass
+        else:
+            self.coef_dict = {}
+            self.coef_feature_df = pd.DataFrame({})
+            self.model_params = {}
 
         coef_feature_df = self.coef_feature_df.to_html()
-    
+
         if not using_pretrained_model:
             attacks_found_training=self.train_confusion_matrix.to_html()
             percent_attacks_train = (float(number_attacks_in_train) / (number_non_attacks_in_train + number_attacks_in_train))
@@ -743,12 +811,18 @@ class single_timegran_exfil_model():
             ensemble_df_test = self.test_confusion_matrix.to_html() #self.method_to_cm_df_test[self.method_name]
             ensemble_optimal_thresh_test = self.optimal_test_thresh_and_f1[0] #self.method_to_optimal_thresh_test[self.method_name]
 
+            ensemble_optimal_f1_scores_test = str(ensemble_optimal_f1_scores_test) + ' (using optimal train thresh: ' + \
+                                              str(self.f1_score_with_optimal_train_thresh) + ')'
+            ensemble_optimal_thresh_test = str(ensemble_optimal_thresh_test) + ' (optimal train thresh: ' + \
+                                              str(self.optimal_train_thresh_and_f1[0]) + ')'
+
         roc_plot_path = self._generate_ROC(self.ROC_path, self.plot_name, self.title, self.exp_name)
 
         #print "roc_plot_path", roc_plot_path
         #print "time_gran", str(self.timegran) + " sec granularity"
         #print "ideal_threshold", ensemble_optimal_thresh_test
         #print "attacks_found", ensemble_df_test.to_html()
+
 
         report_section = table_section_template.render(
             time_gran=str(self.timegran) + " sec granularity",
@@ -814,6 +888,7 @@ class multi_time_alerts():
         self.exp_name = recipes_used
         ##########
 
+        print "time_gran_to_predicted_test.keys()", time_gran_to_predicted_test.keys()
         self.alerts = time_gran_to_predicted_test[longest_timegram]
 
         timegran_to_alerts_at_longest_timegran = {}

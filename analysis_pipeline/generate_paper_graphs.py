@@ -13,6 +13,7 @@ import ast
 import os, errno
 import time
 import copy
+import pandas as pd
 plt.style.use('seaborn-paper')
 
 method_to_legend = {'ensemble': 'Our Method',
@@ -21,7 +22,8 @@ method_to_legend = {'ensemble': 'Our Method',
                     'decanter': 'Decanter',
                     'logistic_ide': 'logistic_ide',
                     'logistic': 'logistic',
-                    'lasso': 'lasso'}
+                    'lasso': 'lasso',
+                    'boosting_lasso': 'boosting_lasso'}
 B_in_KB = 1000.0
 
 def update_config_file(config_file_pth, if_trained_model):
@@ -43,13 +45,14 @@ def update_config_file(config_file_pth, if_trained_model):
 
 def handle_single_exp(model_config_file, eval_config, no_tsl, decanter_configs, live_p, update_config,
                       eval_config_to_cm, retrain_model_p, per_svc_exfil_model_p, exp_data_dir, eval_config_to_modelType_to_cm,
-                      use_training_model_from_mem, no_cilium, dont_open_pdfs, use_all_results_from_mem):
+                      use_training_model_from_mem, no_cilium, dont_open_pdfs, use_all_results_from_mem, load_old_pipelines):
 
     eval_cm, perModel_eval_cm = run_analysis(False, model_config_file, eval_config=eval_config, no_tsl=no_tsl,
                            decanter_configs=decanter_configs, live=live_p, skip_to_calc_zscore=retrain_model_p,
                            per_svc_exfil_model_p=per_svc_exfil_model_p, exp_data_dir=exp_data_dir,
                            load_endresult_train=use_training_model_from_mem, no_cilium=no_cilium,
-                            dont_open_pdfs=dont_open_pdfs, use_all_results_from_mem=use_all_results_from_mem)
+                           dont_open_pdfs=dont_open_pdfs, use_all_results_from_mem=use_all_results_from_mem,
+                           load_old_pipelines=load_old_pipelines)
 
     if update_config:
         update_config_file(eval_config, if_trained_model=False)
@@ -63,7 +66,7 @@ def get_eval_results(model_config_file, list_of_eval_configs, update_config, ret
                      remote_server_key=None, user=None, dont_retrieve_from_remote=None, only_finished_p=False,
                      no_tsl=False, decanter_configs=None, live_p=False, analyze_in_parallel=False, exp_data_dir=None,
                      use_training_model_from_mem=None, no_cilium=False, dont_open_pdfs = False,
-                     use_all_results_from_mem=False):
+                     use_all_results_from_mem=False, load_old_pipelines=False):
     manager = multiprocessing.Manager()
 
 
@@ -80,7 +83,8 @@ def get_eval_results(model_config_file, list_of_eval_configs, update_config, ret
                                            decanter_configs=decanter_configs, live=live_p,
                                            skip_to_calc_zscore=retrain_model_p, per_svc_exfil_model_p=per_svc_exfil_model_p,
                                            exp_data_dir=exp_data_dir, load_endresult_train=use_training_model_from_mem,
-                                           no_cilium=no_cilium, dont_open_pdfs=dont_open_pdfs, use_all_results_from_mem=use_all_results_from_mem)
+                                           no_cilium=no_cilium, dont_open_pdfs=dont_open_pdfs,
+                                           use_all_results_from_mem=use_all_results_from_mem, load_old_pipelines=load_old_pipelines)
                 else:
                     continue  # don't want to wait ---> so just pass over this one.
                 pass
@@ -93,7 +97,8 @@ def get_eval_results(model_config_file, list_of_eval_configs, update_config, ret
                                  decanter_configs=decanter_configs, live=live_p,
                                  skip_to_calc_zscore=retrain_model_p, per_svc_exfil_model_p=per_svc_exfil_model_p,
                                  exp_data_dir=exp_data_dir, load_endresult_train=use_training_model_from_mem,
-                                 no_cilium=no_cilium, dont_open_pdfs=dont_open_pdfs, use_all_results_from_mem=use_all_results_from_mem)
+                                 no_cilium=no_cilium, dont_open_pdfs=dont_open_pdfs, use_all_results_from_mem=use_all_results_from_mem,
+                                 load_old_pipelines=load_old_pipelines)
                     if update_config:
                         update_config_file(model_config_file, if_trained_model=True)
                     ran_model_already = True
@@ -114,7 +119,7 @@ def get_eval_results(model_config_file, list_of_eval_configs, update_config, ret
                                 time.sleep(300)
                     handle_single_exp_args = (model_config_file, eval_config, no_tsl, decanter_configs, live_p, update_config,
                                       eval_config_to_cm, retrain_model_p, per_svc_exfil_model_p, exp_data_dir, eval_config_to_modelType_to_cm,
-                                      use_training_model_from_mem, no_cilium, dont_open_pdfs, use_all_results_from_mem)
+                                      use_training_model_from_mem, no_cilium, dont_open_pdfs, use_all_results_from_mem, load_old_pipelines)
                     p = multiprocessing.Process(target=handle_single_exp, args=handle_single_exp_args)
                     running_analyses.append(p)
                     p.start()
@@ -123,7 +128,8 @@ def get_eval_results(model_config_file, list_of_eval_configs, update_config, ret
                                            decanter_configs=decanter_configs, live=live_p, skip_to_calc_zscore=retrain_model_p,
                                            per_svc_exfil_model_p=per_svc_exfil_model_p, exp_data_dir=exp_data_dir,
                                             load_endresult_train=use_training_model_from_mem, no_cilium=no_cilium,
-                                            dont_open_pdfs=dont_open_pdfs, use_all_results_from_mem=use_all_results_from_mem)
+                                            dont_open_pdfs=dont_open_pdfs, use_all_results_from_mem=use_all_results_from_mem,
+                                            load_old_pipelines=load_old_pipelines)
 
                     if update_config:
                         update_config_file(eval_config, if_trained_model=False)
@@ -246,7 +252,7 @@ def get_evalconfigs_to_cm(model_config_file, eval_configs_to_xvals, xlabel, use_
                           remote_server_ip=None, remote_server_key=None, user=None, dont_retrieve_from_remote=None,
                           no_tsl = False, decanter_configs=None, live_p=False, analyze_in_parallel = False,
                           exp_data_dir=None, use_training_model_from_mem=False, no_cilium=False, dont_open_pdfs=False,
-                          use_all_results_from_mem=False):
+                          use_all_results_from_mem=False, load_old_pipelines=False):
     # TODO: modify this function to use: retrain_model_p, per_svc_exfil_model_p
 
     cache_name = './temp_outputs/' + graph_name
@@ -295,8 +301,9 @@ def get_evalconfigs_to_cm(model_config_file, eval_configs_to_xvals, xlabel, use_
                                              user=user, dont_retrieve_from_remote=dont_retrieve_from_remote,
                                              only_finished_p=only_finished_p, no_tsl=no_tsl, decanter_configs=decanter_configs,
                                              live_p = live_p, analyze_in_parallel = analyze_in_parallel, exp_data_dir=exp_data_dir,
-                                              use_training_model_from_mem=use_training_model_from_mem, no_cilium=no_cilium,
-                                              dont_open_pdfs=dont_open_pdfs, use_all_results_from_mem=use_all_results_from_mem)
+                                             use_training_model_from_mem=use_training_model_from_mem, no_cilium=no_cilium,
+                                             dont_open_pdfs=dont_open_pdfs, use_all_results_from_mem=use_all_results_from_mem,
+                                             load_old_pipelines=load_old_pipelines)
         with open(cache_name, 'w') as f:
             f.write(pickle.dumps(evalconfigs_to_cm))
         with open(secondary_cache_name, 'w') as f:
@@ -578,7 +585,7 @@ def generate_graphs(eval_configs_to_xvals, exfil_rates, evalconfigs_to_cm, timeg
         indicator_string += 'old_model'
 
     print indicator_string
-    print "results_of_eval:"
+    print "results_of_eval: " + '(at ' + str(timegran) + ' sec timegran)'
     print(tabulate(data, headers=['exfil_rate', 'exp_name', 'method', 'tp', 'fn', 'tn', 'fp', 'tpr', 'fpr', 'f1_score']))
     print "-----"
     print "\n"
@@ -696,7 +703,7 @@ def parse_config(config_file_pth):
 
 def run_looper(config_file_pth, update_config, use_remote, only_finished_p, live_p, retrain_model_p, min_exfil_rate_model_p,
                per_svc_exfil_model_p, exp_data_dir, use_training_model_from_mem, no_cilium, dont_open_pdfs,
-               use_all_results_from_mem):
+               use_all_results_from_mem, load_old_pipelines):
 
     model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran, type_of_graph, graph_name, \
     use_remote_from_config, remote_ips, remote_server_key, user, dont_retrieve_from_remote, no_tsl, model_xval, \
@@ -724,7 +731,8 @@ def run_looper(config_file_pth, update_config, use_remote, only_finished_p, live
                                               per_svc_exfil_model_p, no_tsl=no_tsl, decanter_configs=decanter_configs,
                                               live_p=live_p, analyze_in_parallel=analyze_in_parallel, exp_data_dir=exp_data_dir,
                                                use_training_model_from_mem=use_training_model_from_mem, no_cilium=no_cilium,
-                                               dont_open_pdfs=dont_open_pdfs, use_all_results_from_mem=use_all_results_from_mem)
+                                               dont_open_pdfs=dont_open_pdfs, use_all_results_from_mem=use_all_results_from_mem,
+                                               load_old_pipelines=load_old_pipelines)
 
 
     # this part handles displaying all of the new models...
@@ -782,6 +790,8 @@ def run_looper(config_file_pth, update_config, use_remote, only_finished_p, live
                         str(graph_name) + '_NEW_MODEL_' + str(model) + '_',
                         xlabel, model_config_file, False, model_xval, new_model = model, no_methods = True)
 
+    turn_nested_results_dict_into_csv(new_evalconfig_to_rate_to_timegram_to_method_cm, eval_configs_to_xvals)
+
     print "\n\n-----"
     print "old model..."
     generate_graphs(eval_configs_to_xvals, exfil_rate, evalconfigs_to_cm, timegran, type_of_graph, graph_name, xlabel,
@@ -793,6 +803,62 @@ def run_looper(config_file_pth, update_config, use_remote, only_finished_p, live
 
 
     return eval_configs_to_xvals, exfil_rate, evalconfigs_to_cm, model_config_file
+
+def turn_nested_results_dict_into_csv(new_evalconfig_to_rate_to_timegram_to_method_cm, eval_configs_to_xvals,
+                                      output_dir='./multilooper_outs/'):
+    print "starting_to_run_turn_nested_results_dict_into_csv..."
+
+    results_df = None
+    results_df_two = None
+    for new_evalconfig, rate_to_timegran_to_method_cm in new_evalconfig_to_rate_to_timegram_to_method_cm.iteritems():
+        # PLAN: MAKE A SINGLE row in df and then append rows: https://pandas.pydata.org/pandas-docs/stable/user_guide/merging.html
+        evalconfig_name = new_evalconfig.split('/')[-1]
+        for rate, timegran_to_method_cm in rate_to_timegran_to_method_cm.iteritems():
+            for timegran, method_cm in timegran_to_method_cm.iteritems():
+                cur_f1_dict = {}
+                for method, performnace_vals in method_cm.iteritems():
+                    current_dict_two = {'exp_name': evalconfig_name, 'exfil_rate': rate, 'timegran': timegran, 'model_name': method}
+                    current_dict_two.update(performnace_vals)
+
+                    current_dict_two_cols = ['exp_name', 'exfil_rate', 'timegran']
+                    current_dict_two_cols_other = [i for i in current_dict_two.keys() if i not in current_dict_two_cols]
+                    current_dict_two_cols = current_dict_two_cols + current_dict_two_cols_other
+
+                    if results_df_two is None:
+                        results_df_two = pd.DataFrame(current_dict_two, columns=current_dict_two_cols, index=[0])
+                    else:
+                        results_df_two = results_df_two.append(current_dict_two, ignore_index=True)
+
+                    tn, fp, fn, tp = aggregate_cm_vals_over_paths(performnace_vals)
+                    f1_score = (2.0 * tp) / (2.0 * tp + fp + fn)
+                    cur_f1_dict[method] = f1_score
+
+                #print "eval_configs_to_xvals", eval_configs_to_xvals
+                cur_load_level = eval_configs_to_xvals[new_evalconfig]
+                current_dict = {'exp_name': evalconfig_name, 'exfil_rate': rate, 'timegran': timegran,
+                                'load_level': cur_load_level}
+                current_dict.update(cur_f1_dict)
+
+                current_dict_cols = ['exp_name', 'exfil_rate', 'timegran']
+                current_dict_cols_other = [i for i in current_dict.keys() if i not in current_dict]
+                current_dict_cols = current_dict_cols + current_dict_cols_other
+                current_dict_cols.append('load_level')
+
+                # cm_to_f1(cm, exfil_rate, timegran,method=None)
+                if results_df is None:
+                    print "current_dict", current_dict
+                    results_df = pd.DataFrame(current_dict, columns=current_dict_cols, index=[0])
+                else:
+                    results_df = results_df.append(current_dict, ignore_index=True)
+
+    # TODO: save results_df and results_df_two somewhere meaningful...
+    # TODO:
+    #   (a) change order of columns to make sense for the given CSVs
+    #   (b) change order of rows to make sense for the given CSVs
+    results_df = results_df.sort_values(by=['timegran', 'exfil_rate', 'load_level'], ascending=[True, False, False])
+    results_df.to_csv(output_dir + 'model_comparison.csv')
+    results_df_two.to_csv(output_dir + 'timegran_comparison.csv')
+
 
 if __name__=="__main__":
     print "RUNNING"
@@ -841,6 +907,10 @@ if __name__=="__main__":
                         help='(for dev purposes) no matter what it says in the config files, treat it as if it wants to '
                              'use the endresults already in memory...')
 
+    parser.add_argument('--load_old_pipelines', dest='load_old_pipelines', default=False, action='store_true',
+                        help='[for dev purposes] loads the old pipelines (from statistical_analysis.py), so that the new one can be tested more easily')
+
+
     args = parser.parse_args()
 
     if not args.config_json:
@@ -859,4 +929,5 @@ if __name__=="__main__":
 
     run_looper(config_file_pth, (not args.dont_update_config), args.use_remote, args.only_finished_p, args.live_p,
                args.retrain_model_p, args.min_exfil_rate_model_p, args.per_svc_exfil_model_p, args.exp_data_dir,
-               args.use_training_model_from_mem, args.no_cilium, args.dont_open_pdfs, args.use_all_results_from_mem)
+               args.use_training_model_from_mem, args.no_cilium, args.dont_open_pdfs, args.use_all_results_from_mem,
+               args.load_old_pipelines)
