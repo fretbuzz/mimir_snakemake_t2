@@ -6,6 +6,7 @@ curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
 sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu xenial stable"
 sudo apt-get update
 sudo apt-get -y install docker-ce=17.06.0~ce-0~ubuntu
+echo "docker cmd should work..."
 
 # Second, install Steel Bank Common Lisp (SBCL)
 sudo aptitude update
