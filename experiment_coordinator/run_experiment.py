@@ -800,13 +800,13 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
             #'''
         #subprocess.call([locust_info_file + '_requests.csv', '>>', locust_info_file])
         #try:
-        aggregate_locust_file(locust_info_file +'_requests.csv', locust_info_file + '_AGGREGATED')
-        total_requests, failed_requests, fail_percentage = sanity_check_locust_performance(locust_info_file +'_requests.csv')
+        aggregate_locust_file(locust_info_file +'_stats.csv', locust_info_file + '_AGGREGATED')
+        total_requests, failed_requests, fail_percentage = sanity_check_locust_performance(locust_info_file +'_stats.csv')
 
         try:
-            os.remove(locust_info_file +'_requests.csv')
+            os.remove(locust_info_file +'_stats.csv')
         except OSError:
-            print "couldn't remove the locust file:", locust_info_file +'_requests.csv'
+            print "couldn't remove the locust file:", locust_info_file +'_stats.csv'
 
         #except Exception as e:
         #    raise("exception_in_prepare_apps: " + e.output)
