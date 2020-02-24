@@ -363,6 +363,9 @@ class single_model_stats_pipeline():
         else:
             self.train_predictions = np.array([])
             self.using_pretrained_model = True
+            print "self.X_test.columns.values:"
+            for col_val in self.X_test.columns.values:
+                print col_val
             self.test_predictions = self.clf.predict(X=self.X_test)
 
         #print "Qt", self.time_gran

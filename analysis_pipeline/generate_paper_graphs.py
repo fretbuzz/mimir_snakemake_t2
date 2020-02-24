@@ -23,7 +23,11 @@ method_to_legend = {'ensemble': 'Our Method',
                     'logistic_ide': 'logistic_ide',
                     'logistic': 'logistic',
                     'lasso': 'lasso',
-                    'boosting_lasso': 'boosting_lasso'}
+                    'boosting_lasso': 'boosting_lasso',
+                    'boosting_lasso_with_optimal_train_thresh': 'boosting_lasso_with_optimal_train_thresh',
+                    'logistic_ide_with_optimal_train_thresh' : 'logistic_ide_with_optimal_train_thresh',
+                    'logistic_with_optimal_train_thresh': 'logistic_with_optimal_train_thresh',
+                    'lasso_with_optimal_train_thresh': 'lasso_with_optimal_train_thresh'}
 B_in_KB = 1000.0
 
 def update_config_file(config_file_pth, if_trained_model):
