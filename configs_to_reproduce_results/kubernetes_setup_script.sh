@@ -23,8 +23,8 @@ sudo apt-get install gcc make linux-headers-$(uname -r) dkms -y
 # try this...
 wget https://download.virtualbox.org/virtualbox/6.1.4/virtualbox-6.1_6.1.4-136177~Ubuntu~xenial_amd64.deb
 sudo dpkg -i virtualbox-6.1_6.1.4-136177~Ubuntu~xenial_amd64.deb
-sudo apt-get install libcurl3 libopus0 libsdl1.2debian
-sudo apt-get -f install
+sudo apt-get install libcurl3 libopus0 libsdl1.2debian -y
+sudo apt-get -f install -y
 
 
 # okay, onto the next step
