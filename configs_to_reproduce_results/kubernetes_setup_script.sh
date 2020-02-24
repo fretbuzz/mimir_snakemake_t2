@@ -13,12 +13,19 @@ kubectl version
 # The we'll install the VirtualBox Driver:
 # Following from here:: https://websiteforstudents.com/virtualbox-6-0-is-out-heres-how-to-install-upgrade-on-ubuntu-16-04-18-04-18-10/
 sudo apt-get install gcc make linux-headers-$(uname -r) dkms -y
-wget -q https://www.virtualbox.org/download/oracle_vbox_2016.asc -O- | sudo apt-key add -
-wget -q https://www.virtualbox.org/download/oracle_vbox.asc -O- | sudo apt-key add -
-sudo sh -c 'echo "deb http://download.virtualbox.org/virtualbox/debian $(lsb_release -sc) contrib" >> /etc/apt/sources.list.d/virtualbox.list'
-sudo apt update
-sudo apt-get install virtualbox-6.0 -y
+# ren-enable the folllowing if my new method does not work...
+#wget -q https://www.virtualbox.org/download/oracle_vbox_2016.asc -O- | sudo apt-key add -
+#wget -q https://www.virtualbox.org/download/oracle_vbox.asc -O- | sudo apt-key add -
+#sudo sh -c 'echo "deb http://download.virtualbox.org/virtualbox/debian $(lsb_release -sc) contrib" >> /etc/apt/sources.list.d/virtualbox.list'
+#sudo apt update
+#sudo apt-get install virtualbox-6.0 -y
 #### vboxmanage setproperty machinefolder /mydata/
+# try this...
+wget https://download.virtualbox.org/virtualbox/6.1.4/virtualbox-6.1_6.1.4-136177~Ubuntu~xenial_amd64.deb
+sudo dpkg -i virtualbox-6.1_6.1.4-136177~Ubuntu~xenial_amd64.deb
+sudo apt-get install libcurl3 libopus0 libsdl1.2debian
+sudo apt-get -f install
+
 
 # okay, onto the next step
 # First, we'll install and start Minikube
