@@ -367,6 +367,7 @@ class single_model_stats_pipeline():
             for col_val in self.X_test.columns.values:
                 print col_val
             self.test_predictions = self.clf.predict(X=self.X_test)
+            # ???
 
         #print "Qt", self.time_gran
         #print self.X_test.shape
@@ -1082,11 +1083,13 @@ def get_cilium_values(X_train, X_test):
     for column in X_train:
         if 'cilium_for_first_sec_' in column:
             cilium_columns.append(column)
+    print "cilium_columns", cilium_columns
     try:
         cilium_train = copy.deepcopy( X_train[cilium_columns[0]] )
         cilium_test = copy.deepcopy( X_test[cilium_columns[0]] )
-        X_train = X_train.drop(columns=cilium_columns[0])
-        X_test = X_test.drop(columns=cilium_columns[0])
+        for cil_col in cilium_columns:
+            X_train = X_train.drop(columns=cil_col)
+            X_test = X_test.drop(columns=cil_col)
 
     except:
         cilium_train = [0 for i in range(0, len(X_train))]
