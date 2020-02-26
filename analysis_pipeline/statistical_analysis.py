@@ -1093,6 +1093,10 @@ def get_cilium_values(X_train, X_test):
     except:
         cilium_train = [0 for i in range(0, len(X_train))]
 
+    cilium_columns = []
+    for column in X_test:
+        if 'cilium_for_first_sec_' in column:
+            cilium_columns.append(column)
     test_dropped = []
     try:
         cilium_test = copy.deepcopy( X_test[cilium_columns[0]] )
