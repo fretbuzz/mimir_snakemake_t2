@@ -42,6 +42,7 @@ class exfil_detection_model():
         self.type_of_model_to_time_gran_to_cm = {}
         self.type_of_model_to_time_gran_to_predicted_test = {} # rate_to_time_gran_to_predicted_test
         self.model_to_tg_report_sections = {}
+        self.cil_training_alerts, self.cil_test_alerts = {}, {}
 
         ###### # this list controls which individual models are calculated
         self.types_of_models = ['boosting_logisitic', 'boosting_regressor_default', 'boosting_classifier_default',
@@ -90,6 +91,7 @@ class exfil_detection_model():
 
             for timegran in self.Xs.keys():
                 # this if-block exists b/c not all the model types are implemented...
+                self.cil_training_alerts[timegran], self.cil_test_alerts[timegran] = get_cilium_values(self.Xs[timegran], self.Xts[timegran])
                 if type_of_model in ['lasso', 'logistic', 'logistic_ide', 'boosting_lasso']: #, 'boosting lasso', 'boosting logisitic']:
                     print "current_type_of_model", type_of_model
 
@@ -115,7 +117,8 @@ class exfil_detection_model():
 
                 elif type_of_model == 'cilium':
                     this_model_exists = True
-                    training_alerts, test_alerts = get_cilium_values(self.Xs[timegran], self.Xts[timegran])
+                    training_alerts, testing_alerts =  self.cil_training_alerts[timegran], self.cil_test_alerts[timegran]
+
                     self.trained_models[type_of_model][timegran] = tuple(training_alerts)
                     timegran_to_alerts[timegran] = tuple(training_alerts)
 
@@ -230,13 +233,14 @@ class exfil_detection_model():
             this_model_exists = False
 
             for timegran in self.Xts.keys():
+                _, self.cil_test_alerts[timegran] = get_cilium_values(self.Xs[timegran], self.Xts[timegran])
                 if type(self.trained_models[type_of_model][timegran]) != list:
 
                     print "current_type_of_model: ", type_of_model
 
                     if type_of_model == 'cilium':
                         this_model_exists = True
-                        training_alerts, test_alerts = get_cilium_values(self.Xs[timegran], self.Xts[timegran])
+                        training_alerts, test_alerts = self.cil_training_alerts[timegran], self.cil_test_alerts[timegran]
                         timegran_to_alerts[timegran] = tuple(test_alerts)
 
                         self.type_of_model_to_time_gran_to_cm[type_of_model][timegran] = \
