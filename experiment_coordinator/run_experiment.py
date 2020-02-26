@@ -393,9 +393,11 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
             with open(container_config_file, 'w') as f:
                 f.write(out)
         #'''
-        filename = experiment_name + '_' + 'bridge' + '_' # note: will need to redo this if I want to go
-                                                                           # back to using Docker Swarm at some point
-        pcap_filename = filename + 'any' + '.pcap'
+
+    filename = experiment_name + '_' + 'bridge' + '_' # note: will need to redo this if I want to go
+                                                      # back to using Docker Swarm at some point
+    pcap_filename = filename + 'any' + '.pcap'
+    if not post_process_only:
         recover_pcap(orchestrator, pcap_filename)
         print "pcap recovered!"
 
