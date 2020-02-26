@@ -523,6 +523,7 @@ class single_timegran_exfil_model():
         self.exfil_per_min_variance = exfil_per_min_variance
 
         if Xt is not None:
+            print "Xt is not None..."
             self.Xt_ide = Xt.loc[:, ['real_ide_angles_']]
             # what to do in case of NaNs... is this what we want????
             self.Xt_ide.fillna(value=0, inplace=True)
@@ -559,6 +560,10 @@ class single_timegran_exfil_model():
 
         #print "self.Xt has NaN's here: ", np.where(np.isnan(self.Xt))
         #print "self.Xt has Inf's here: ", np.where(np.isinf(self.Xt))
+
+        print "self.Xt.columns.values:"
+        for col_val in self.Xt.columns.values:
+            print col_val
 
         self.test_predictions = self.clf.predict(X=self.Xt)
 
