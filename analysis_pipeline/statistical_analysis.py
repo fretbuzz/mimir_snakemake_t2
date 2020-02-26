@@ -1088,7 +1088,7 @@ def get_cilium_values(X_train, X_test):
     try:
         cilium_train = copy.deepcopy( X_train[cilium_columns[0]] )
         for cil_col in cilium_columns:
-            X_train = X_train.drop(columns=cil_col, inplace=True)
+            X_train.drop(columns=cil_col, inplace=True)
             train_dropped.append(cil_col)
     except:
         cilium_train = [0 for i in range(0, len(X_train))]
