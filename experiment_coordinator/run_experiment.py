@@ -55,6 +55,10 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
         config_params = json.load(f)
     app_name = config_params["application_name"]
 
+    # this file will be used to synchronize the three thread/processes: tcpdump, det, and the background load generator
+    end_sentinal_file_loc = './all_done.txt'
+    sentinal_file_loc = './ready_to_start_exp.txt'
+
     if not post_process_only:
         pod_config_file = experiment_name + '_pod_config' '_' + '.txt'
         node_config_file = experiment_name + '_node_config' '_' + '.txt'
@@ -111,8 +115,6 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
         #    username = ""
 
         # this file will be used to synchronize the three thread/processes: tcpdump, det, and the background load generator
-        end_sentinal_file_loc = './all_done.txt'
-        sentinal_file_loc = './ready_to_start_exp.txt'
         try:
             os.remove(sentinal_file_loc)
         except OSError:
