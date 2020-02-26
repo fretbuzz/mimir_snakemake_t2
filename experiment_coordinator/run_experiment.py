@@ -49,354 +49,355 @@ CLIENT_RATIO_CYBER = [0.0328, 0.0255, 0.0178, 0.0142, 0.0119, 0.0112, 0.0144, 0.
 0.0574, 0.0571, 0.0568, 0.0543, 0.0532, 0.0514, 0.0514, 0.0518, 0.0522, 0.0571, 0.0609, 0.0589, 0.0564]
 
 
-def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localhostip, exfil_p):
-    pod_config_file = experiment_name + '_pod_config' '_' + '.txt'
-    node_config_file = experiment_name + '_node_config' '_' + '.txt'
-    deploy_config_file = experiment_name + '_deploy_config' '_' + '.txt'
-    docker_cont_config_file = experiment_name + '_docker_pod_config' '_' + '.txt'
-    try:
-        os.remove(pod_config_file)
-    except:
-        print pod_config_file, "   ", "does not exist"
-    try:
-        os.remove(node_config_file)
-    except:
-        print node_config_file, "   ", "does not exist"
-    try:
-        os.remove(deploy_config_file)
-    except:
-        print deploy_config_file, "   ", "does not exist"
-    try:
-        os.remove(docker_cont_config_file)
-    except:
-        print docker_cont_config_file, "   ", "does not exist"
-
-    # step (1) read in the config file
-    with open(config_file.rstrip().lstrip()) as f:
-        config_params = json.load(f)
-
-    try:
-        exfil_p = exfil_p and config_params['exfiltration_info']['physical_attacks']
-    except:
-        pass
-
-    try:
-        number_reps_workload_pattern = int(config_params['experiment']['number_reps_workload_pattern'])
-    except:
-        number_reps_workload_pattern = 1
-
-    #split_pcap_interval = config_params['split_pcap']
-    network_plugin = 'none'
-    try:
-        network_plugin = config_params["network_plugin"]
-    except:
-        pass
-
-    try:
-        prob_distro = config_params["prob_distro"]
-    except:
-        prob_distro = None
-
-    exfil_methods = ['DET']
-    try:
-        exfil_methods = config_params["exfiltration_info"]["exfil_methods"]
-    except:
-        pass
-
-    #try:
-    #    username = config_params["username"]
-    #except:
-    #    username = ""
-
-    # this file will be used to synchronize the three thread/processes: tcpdump, det, and the background load generator
-    end_sentinal_file_loc = './all_done.txt'
-    sentinal_file_loc = './ready_to_start_exp.txt'
-    try:
-        os.remove(sentinal_file_loc)
-    except OSError:
-        pass
-    try:
-        os.remove(end_sentinal_file_loc)
-    except OSError:
-        pass
-
-    orchestrator = "kubernetes"
-    try:
-        exfil_paths = config_params["exfiltration_info"]["exfil_paths"]
-        DET_min_exfil_bytes_in_packet = list(config_params["exfiltration_info"]["DET_min_exfil_data_per_packet_bytes"])
-        DET_max_exfil_bytes_in_packet = list(config_params["exfiltration_info"]["DET_max_exfil_data_per_packet_bytes"])
-        DET_avg_exfil_rate_KB_per_sec = list(config_params["exfiltration_info"]["DET_avg_exfiltration_rate_KB_per_sec"])
-        exfil_protocols = config_params["exfiltration_info"]["exfil_protocols"]
-        class_to_installer = config_params["exfiltration_info"]["exfiltration_path_class_which_installer"]
-        originator_class = config_params["exfiltration_info"]["sensitive_ms"][0]
-    except:
-        exfil_paths = [[]]
-        DET_min_exfil_bytes_in_packet = []
-        DET_max_exfil_bytes_in_packet = []
-        DET_avg_exfil_rate_KB_per_sec = []
-        exfil_protocols = []
-        class_to_installer = {}
-        originator_class = None
-
-    try:
-        exfil_path_class_to_image = config_params["exfiltration_info"]["exfil_path_class_to_image"]
-    except:
-        exfil_path_class_to_image = {}
-    print "exfil_path_class_to_image",exfil_path_class_to_image
-    #exit(322)
-
-    # okay, now need to calculate the time between packetes (and throw an error if necessary)
-    avg_exfil_bytes_in_packet = [(float(DET_min_exfil_bytes_in_packet[i]) + float(DET_max_exfil_bytes_in_packet[i])) \
-                                 / 2.0 for i in range(0,len(DET_max_exfil_bytes_in_packet))]
-    BYTES_PER_KB = 1000
-    avg_number_of_packets_per_second = [(DET_avg_exfil_rate_KB_per_sec[i] * BYTES_PER_KB) / avg_exfil_bytes_in_packet[i] for i
-                                        in range(0, len(DET_avg_exfil_rate_KB_per_sec))]
-    average_seconds_between_packets = [1.0 / avg_number_of_packets_per_second[i] for i in range(0,len(avg_number_of_packets_per_second))]
-    # takes random value between 0 and the max, so 2*average gives the right will need to calculate the MAX_SLEEP_TIME
-    # after I load the webapp (and hence the corresponding database)
-    maxsleep = [average_seconds_between_packets[i] * 2 for i in range(0,len(average_seconds_between_packets))]
-
-    # step (2) setup the application, if necessary (e.g. fill up the DB, etc.)
-    # note: it is assumed that the application is already deployed
-    app_name = config_params["application_name"]
-    try:
-        setup_params = config_params["setup"]
-    except:
-        setup_params = {}
-
-    pod_config_cmds = ['bash', './exp_support_scripts/kubernetes_pod_config.sh', pod_config_file,
-                       node_config_file, deploy_config_file, docker_cont_config_file]
-    out = subprocess.check_output( pod_config_cmds + ['--clear_files'])
-    print out
-    if prepare_app_p:
-        prepare_app(app_name, setup_params,  spec_port, spec_ip, config_params["Deployment"], exfil_paths,
-                    class_to_installer, exfil_path_class_to_image)
-    ip,port = get_ip_and_port(app_name)
-    print "ip,port",ip,port
-
-    # determine the network namespaces
-    # this will require mapping the name of the network to the network id, which
-    # is then present (in truncated form) in the network namespace
-    full_network_ids = ["bridge"] # in kubernetes this is simple
-    network_ids_to_namespaces = {}
-    network_ids_to_namespaces['bridge'] = 'default' # in kubernetes this is simple
-
-    experiment_length = config_params["experiment_length_sec"]
-
-    # step (3b) get docker configs for docker containers (assuming # is constant for the whole experiment)
-    container_id_file = experiment_name + '_docker' + '_'  + '_networks.txt'
-    container_config_file = experiment_name + '_docker' '_' +  '_network_configs.txt'
-    det_log_file = './' + experiment_name + 'det_logs.log'
-    print "det_log_file: ", det_log_file
-
-    try:
-        os.remove(container_id_file)
-    except:
-        print container_id_file, "   ", "does not exist"
-    try:
-        os.remove(container_config_file)
-    except:
-        print container_config_file, "   ", "does not exist"
-    out = subprocess.check_output(['pwd'])
-    print out
-
-    out = subprocess.check_output(['bash', './exp_support_scripts/docker_network_configs.sh', container_id_file, container_config_file])
-    print out
-
-    if orchestrator == 'kubernetes':
-        # need some info about services, b/c they are not in the docker network configs
-        svc_config_file = experiment_name + '_svc_config' '_' +  '.txt'
+def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localhostip, exfil_p, post_process_only):
+    if not post_process_only:
+        pod_config_file = experiment_name + '_pod_config' '_' + '.txt'
+        node_config_file = experiment_name + '_node_config' '_' + '.txt'
+        deploy_config_file = experiment_name + '_deploy_config' '_' + '.txt'
+        docker_cont_config_file = experiment_name + '_docker_pod_config' '_' + '.txt'
         try:
-            os.remove(svc_config_file)
+            os.remove(pod_config_file)
         except:
-            print svc_config_file, "   ", "does not exist"
-        print os.getcwd()
-        out = subprocess.check_output(['bash', './exp_support_scripts/kubernetes_svc_config.sh', svc_config_file])
+            print pod_config_file, "   ", "does not exist"
+        try:
+            os.remove(node_config_file)
+        except:
+            print node_config_file, "   ", "does not exist"
+        try:
+            os.remove(deploy_config_file)
+        except:
+            print deploy_config_file, "   ", "does not exist"
+        try:
+            os.remove(docker_cont_config_file)
+        except:
+            print docker_cont_config_file, "   ", "does not exist"
+
+        # step (1) read in the config file
+        with open(config_file.rstrip().lstrip()) as f:
+            config_params = json.load(f)
+
+        try:
+            exfil_p = exfil_p and config_params['exfiltration_info']['physical_attacks']
+        except:
+            pass
+
+        try:
+            number_reps_workload_pattern = int(config_params['experiment']['number_reps_workload_pattern'])
+        except:
+            number_reps_workload_pattern = 1
+
+        #split_pcap_interval = config_params['split_pcap']
+        network_plugin = 'none'
+        try:
+            network_plugin = config_params["network_plugin"]
+        except:
+            pass
+
+        try:
+            prob_distro = config_params["prob_distro"]
+        except:
+            prob_distro = None
+
+        exfil_methods = ['DET']
+        try:
+            exfil_methods = config_params["exfiltration_info"]["exfil_methods"]
+        except:
+            pass
+
+        #try:
+        #    username = config_params["username"]
+        #except:
+        #    username = ""
+
+        # this file will be used to synchronize the three thread/processes: tcpdump, det, and the background load generator
+        end_sentinal_file_loc = './all_done.txt'
+        sentinal_file_loc = './ready_to_start_exp.txt'
+        try:
+            os.remove(sentinal_file_loc)
+        except OSError:
+            pass
+        try:
+            os.remove(end_sentinal_file_loc)
+        except OSError:
+            pass
+
+        orchestrator = "kubernetes"
+        try:
+            exfil_paths = config_params["exfiltration_info"]["exfil_paths"]
+            DET_min_exfil_bytes_in_packet = list(config_params["exfiltration_info"]["DET_min_exfil_data_per_packet_bytes"])
+            DET_max_exfil_bytes_in_packet = list(config_params["exfiltration_info"]["DET_max_exfil_data_per_packet_bytes"])
+            DET_avg_exfil_rate_KB_per_sec = list(config_params["exfiltration_info"]["DET_avg_exfiltration_rate_KB_per_sec"])
+            exfil_protocols = config_params["exfiltration_info"]["exfil_protocols"]
+            class_to_installer = config_params["exfiltration_info"]["exfiltration_path_class_which_installer"]
+            originator_class = config_params["exfiltration_info"]["sensitive_ms"][0]
+        except:
+            exfil_paths = [[]]
+            DET_min_exfil_bytes_in_packet = []
+            DET_max_exfil_bytes_in_packet = []
+            DET_avg_exfil_rate_KB_per_sec = []
+            exfil_protocols = []
+            class_to_installer = {}
+            originator_class = None
+
+        try:
+            exfil_path_class_to_image = config_params["exfiltration_info"]["exfil_path_class_to_image"]
+        except:
+            exfil_path_class_to_image = {}
+        print "exfil_path_class_to_image",exfil_path_class_to_image
+        #exit(322)
+
+        # okay, now need to calculate the time between packetes (and throw an error if necessary)
+        avg_exfil_bytes_in_packet = [(float(DET_min_exfil_bytes_in_packet[i]) + float(DET_max_exfil_bytes_in_packet[i])) \
+                                     / 2.0 for i in range(0,len(DET_max_exfil_bytes_in_packet))]
+        BYTES_PER_KB = 1000
+        avg_number_of_packets_per_second = [(DET_avg_exfil_rate_KB_per_sec[i] * BYTES_PER_KB) / avg_exfil_bytes_in_packet[i] for i
+                                            in range(0, len(DET_avg_exfil_rate_KB_per_sec))]
+        average_seconds_between_packets = [1.0 / avg_number_of_packets_per_second[i] for i in range(0,len(avg_number_of_packets_per_second))]
+        # takes random value between 0 and the max, so 2*average gives the right will need to calculate the MAX_SLEEP_TIME
+        # after I load the webapp (and hence the corresponding database)
+        maxsleep = [average_seconds_between_packets[i] * 2 for i in range(0,len(average_seconds_between_packets))]
+
+        # step (2) setup the application, if necessary (e.g. fill up the DB, etc.)
+        # note: it is assumed that the application is already deployed
+        app_name = config_params["application_name"]
+        try:
+            setup_params = config_params["setup"]
+        except:
+            setup_params = {}
+
+        pod_config_cmds = ['bash', './exp_support_scripts/kubernetes_pod_config.sh', pod_config_file,
+                           node_config_file, deploy_config_file, docker_cont_config_file]
+        out = subprocess.check_output( pod_config_cmds + ['--clear_files'])
+        print out
+        if prepare_app_p:
+            prepare_app(app_name, setup_params,  spec_port, spec_ip, config_params["Deployment"], exfil_paths,
+                        class_to_installer, exfil_path_class_to_image)
+        ip,port = get_ip_and_port(app_name)
+        print "ip,port",ip,port
+
+        # determine the network namespaces
+        # this will require mapping the name of the network to the network id, which
+        # is then present (in truncated form) in the network namespace
+        full_network_ids = ["bridge"] # in kubernetes this is simple
+        network_ids_to_namespaces = {}
+        network_ids_to_namespaces['bridge'] = 'default' # in kubernetes this is simple
+
+        experiment_length = config_params["experiment_length_sec"]
+
+        # step (3b) get docker configs for docker containers (assuming # is constant for the whole experiment)
+        container_id_file = experiment_name + '_docker' + '_'  + '_networks.txt'
+        container_config_file = experiment_name + '_docker' '_' +  '_network_configs.txt'
+        det_log_file = './' + experiment_name + 'det_logs.log'
+        print "det_log_file: ", det_log_file
+
+        try:
+            os.remove(container_id_file)
+        except:
+            print container_id_file, "   ", "does not exist"
+        try:
+            os.remove(container_config_file)
+        except:
+            print container_config_file, "   ", "does not exist"
+        out = subprocess.check_output(['pwd'])
         print out
 
-    # step (5) start load generator
-    i = 0
-    max_client_count = int( config_params["experiment"]["number_background_locusts"])
-    thread.start_new_thread(generate_background_traffic, ((int(experiment_length)+2.4), max_client_count,
-                config_params["experiment"]["traffic_type"], config_params["experiment"]["background_locust_spawn_rate"],
-                                                          config_params["application_name"], ip, port, experiment_name,
-                                                          sentinal_file_loc, prob_distro, pod_config_cmds,
-                                                          number_reps_workload_pattern))
+        out = subprocess.check_output(['bash', './exp_support_scripts/docker_network_configs.sh', container_id_file, container_config_file])
+        print out
 
-    # step (4) setup testing infrastructure (i.e. tcpdump)
-    for network_id, network_namespace in network_ids_to_namespaces.iteritems():
-        current_network = client.networks.get(network_id)
-        current_network_name = current_network.name
-        interfaces = ['any']  # in kubernetes this is easy
-        filename = experiment_name + '_' + current_network_name + '_'
-        for interface in interfaces:
-            thread.start_new_thread(start_tcpdump, (interface, network_namespace, str(int(experiment_length)),
-                                                filename + interface + '.pcap', orchestrator, sentinal_file_loc))
+        if orchestrator == 'kubernetes':
+            # need some info about services, b/c they are not in the docker network configs
+            svc_config_file = experiment_name + '_svc_config' '_' +  '.txt'
+            try:
+                os.remove(svc_config_file)
+            except:
+                print svc_config_file, "   ", "does not exist"
+            print os.getcwd()
+            out = subprocess.check_output(['bash', './exp_support_scripts/kubernetes_svc_config.sh', svc_config_file])
+            print out
 
-    # step (6) start data exfiltration at the relevant time
-    if exfil_p:
-        print "exfil_p", exfil_p
-        exfil_StartEnd_times = config_params["exfiltration_info"]["exfil_StartEnd_times"]
-    else:
-        exfil_StartEnd_times = []
+        # step (5) start load generator
+        i = 0
+        max_client_count = int( config_params["experiment"]["number_background_locusts"])
+        thread.start_new_thread(generate_background_traffic, ((int(experiment_length)+2.4), max_client_count,
+                    config_params["experiment"]["traffic_type"], config_params["experiment"]["background_locust_spawn_rate"],
+                                                              config_params["application_name"], ip, port, experiment_name,
+                                                              sentinal_file_loc, prob_distro, pod_config_cmds,
+                                                              number_reps_workload_pattern))
 
-    with open(det_log_file, 'w') as g:
-        fcntl.flock(g, fcntl.LOCK_EX)
-        g.write('\n')
-        fcntl.flock(g, fcntl.LOCK_UN)
+        # step (4) setup testing infrastructure (i.e. tcpdump)
+        for network_id, network_namespace in network_ids_to_namespaces.iteritems():
+            current_network = client.networks.get(network_id)
+            current_network_name = current_network.name
+            interfaces = ['any']  # in kubernetes this is easy
+            filename = experiment_name + '_' + current_network_name + '_'
+            for interface in interfaces:
+                thread.start_new_thread(start_tcpdump, (interface, network_namespace, str(int(experiment_length)),
+                                                    filename + interface + '.pcap', orchestrator, sentinal_file_loc))
 
-    thread.start_new_thread(cluster_creation_logger, ('./' + exp_name + '_cluster_creation_log.txt',
-                                                      './' + end_sentinal_file_loc, sentinal_file_loc,
-                                                      exp_name))
+        # step (6) start data exfiltration at the relevant time
+        if exfil_p:
+            print "exfil_p", exfil_p
+            exfil_StartEnd_times = config_params["exfiltration_info"]["exfil_StartEnd_times"]
+        else:
+            exfil_StartEnd_times = []
 
-    exfil_aggregated_file = './' + experiment_name + 'exfil_aggregate'
-    open(exfil_aggregated_file, 'w').close()
-    #################
-    ### sentinal_file_loc ;; should wait here and then create the file...
-    time.sleep(40) # going to wait for a longish-time so I know that the other threads/processes
-                   # have reached the waiting point before me.
-    ## now create the file that the other thread/processes are waiting for
-    with open(sentinal_file_loc, 'w') as f:
-        f.write('ready to go')
-    # now wait for 3 more seconds so that the background load generator can get started before this and tcpdump start
-    time.sleep(3)
-    # start the pod creation logger
-    #subprocess.Popen(['python', './exp_support_scripts/cluster_creation_looper.py', './' + exp_name + '_cluster_creation_log.txt',
-    #                  './' + end_sentinal_file_loc], shell=False, stdin=None, stdout=None, stderr=None, close_fds=True)
-    subprocess.Popen(['bash', './exp_support_scripts/hpa_looper.sh', str(int(math.ceil(float(experiment_length)/60))),
-                      './' + exp_name + '_hpa_log.txt'],  shell=False, stdin=None, stdout=None,
-                     stderr=None, close_fds=True)
-    print "DET part going!"
-
-    ##################
-    # now loop through the various exfiltration scenarios listed in the experimental configuration specification
-    start_time = time.time()
-    i = 0
-    exfil_info_file_name = './' + experiment_name + '_det_server_local_output.txt'
-
-    for exfil_counter, next_StartEnd_time in enumerate(exfil_StartEnd_times):
-        with open(det_log_file, 'a') as g:
+        with open(det_log_file, 'w') as g:
             fcntl.flock(g, fcntl.LOCK_EX)
-            g.write('\nExfil: ' + str(exfil_counter) + '\n')
+            g.write('\n')
             fcntl.flock(g, fcntl.LOCK_UN)
 
-        next_exfil_start_time = next_StartEnd_time[0]
-        next_exfil_end_time = next_StartEnd_time[1]
-        cur_exfil_method = exfil_methods[exfil_counter]
-        cur_exfil_protocol = exfil_protocols[exfil_counter]
+        thread.start_new_thread(cluster_creation_logger, ('./' + exp_name + '_cluster_creation_log.txt',
+                                                          './' + end_sentinal_file_loc, sentinal_file_loc,
+                                                          exp_name))
 
-        bytes_exfil_list = []
-        start_ex_list = []
-        end_ex_list = []
-        #selected_containers = {}
+        exfil_aggregated_file = './' + experiment_name + 'exfil_aggregate'
+        open(exfil_aggregated_file, 'w').close()
+        #################
+        ### sentinal_file_loc ;; should wait here and then create the file...
+        time.sleep(40) # going to wait for a longish-time so I know that the other threads/processes
+                       # have reached the waiting point before me.
+        ## now create the file that the other thread/processes are waiting for
+        with open(sentinal_file_loc, 'w') as f:
+            f.write('ready to go')
+        # now wait for 3 more seconds so that the background load generator can get started before this and tcpdump start
+        time.sleep(3)
+        # start the pod creation logger
+        #subprocess.Popen(['python', './exp_support_scripts/cluster_creation_looper.py', './' + exp_name + '_cluster_creation_log.txt',
+        #                  './' + end_sentinal_file_loc], shell=False, stdin=None, stdout=None, stderr=None, close_fds=True)
+        subprocess.Popen(['bash', './exp_support_scripts/hpa_looper.sh', str(int(math.ceil(float(experiment_length)/60))),
+                          './' + exp_name + '_hpa_log.txt'],  shell=False, stdin=None, stdout=None,
+                         stderr=None, close_fds=True)
+        print "DET part going!"
 
+        ##################
+        # now loop through the various exfiltration scenarios listed in the experimental configuration specification
+        start_time = time.time()
+        i = 0
+        exfil_info_file_name = './' + experiment_name + '_det_server_local_output.txt'
+
+        for exfil_counter, next_StartEnd_time in enumerate(exfil_StartEnd_times):
+            with open(det_log_file, 'a') as g:
+                fcntl.flock(g, fcntl.LOCK_EX)
+                g.write('\nExfil: ' + str(exfil_counter) + '\n')
+                fcntl.flock(g, fcntl.LOCK_UN)
+
+            next_exfil_start_time = next_StartEnd_time[0]
+            next_exfil_end_time = next_StartEnd_time[1]
+            cur_exfil_method = exfil_methods[exfil_counter]
+            cur_exfil_protocol = exfil_protocols[exfil_counter]
+
+            bytes_exfil_list = []
+            start_ex_list = []
+            end_ex_list = []
+            #selected_containers = {}
+
+            if exfil_p:
+                if start_time + next_exfil_start_time - time.time() - 60.0 > 0.0:
+                    print "waiting to perform exfil....."
+                    time.sleep(start_time + next_exfil_start_time - time.time() - 60.0)
+
+                print "about_to_start_exfil..."
+
+                selected_containers,local_det = start_det_exfil_path(exfil_paths, exfil_counter, cur_exfil_protocol, localhostip,
+                                                                    maxsleep, DET_max_exfil_bytes_in_packet, DET_min_exfil_bytes_in_packet,
+                                                                    experiment_name, start_time, network_plugin, next_exfil_start_time,
+                                                                    originator_class, cur_exfil_method, exfil_protocols, True,
+                                                                    det_log_file)
+
+                print "exfil started..."
+
+                #time.sleep(start_time + next_exfil_end_time - time.time())
+                ## monitor for one of the exfil containers being stopped and restart if possible...
+                while(start_time + next_exfil_end_time - time.time() > 0.0):
+                    time.sleep(1.0)
+                    # then check if everything is still alive.
+                    all_alive, stopped_containers = containers_still_alive_p(selected_containers)
+                    if not all_alive:  # if it's not...
+                        print "Container died!"
+
+                        with open(det_log_file, 'a') as g:
+                            fcntl.flock(g, fcntl.LOCK_EX)
+                            g.write('\nRestarting exfiltration...\n')
+                            fcntl.flock(g, fcntl.LOCK_UN)
+
+                        # stop everything.
+                        stop_det_instances(selected_containers, cur_exfil_method)
+                        os.killpg(os.getpgid(local_det.pid), signal.SIGKILL)
+
+                        # (recall: need to process everything...)
+                        bytes_exfil, start_ex, end_ex = parse_local_det_output(exfil_info_file_name, exfil_protocols[exfil_counter])
+                        bytes_exfil_list.append( bytes_exfil )
+                        start_ex_list.append( start_ex )
+                        end_ex_list.append( end_ex_list )
+
+                        # restart everything
+                        ## need remove stopped container from selected_containers
+                        for stopped_container in stopped_containers:
+                            exfil_element, container = stopped_container[0], stopped_container[1]
+                            del selected_containers[exfil_element]
+                        selected_containers, local_det = \
+                            start_det_exfil_path(exfil_paths, exfil_counter, cur_exfil_protocol, localhostip,
+                                                 maxsleep, DET_max_exfil_bytes_in_packet,
+                                                 DET_min_exfil_bytes_in_packet, experiment_name, start_time,
+                                                 network_plugin, next_exfil_start_time, originator_class,
+                                                 cur_exfil_method, exfil_protocols, False, det_log_file)
+                    else:
+                        pass
+                        #print "no containers died!"
+
+                stop_det_instances(selected_containers, cur_exfil_method)
+
+                ## is this part fine???
+                bytes_exfil, start_ex, end_ex = parse_local_det_output(exfil_info_file_name, exfil_protocols[exfil_counter])
+                print bytes_exfil, "bytes exfiltrated_in_most_recent_instance"
+                print "starting at ", start_ex, "and ending at", end_ex
+                print bytes_exfil + sum(bytes_exfil_list), "bytes exfiltrated_in_current_exfil_scenario"
+
+                bytes_exfil = bytes_exfil + sum(bytes_exfil_list)
+                with open(exfil_aggregated_file, 'a+') as g:
+                    g.write(cur_exfil_protocol + ' ' + str(bytes_exfil) + " bytes exfiltrated" + '\n')
+
+                with open(det_log_file, 'a') as h:
+                    fcntl.flock(h, fcntl.LOCK_EX)
+                    h.write('Exfil results: ' + cur_exfil_protocol + ' ' + str(bytes_exfil) + " bytes exfiltrated" + '\n')
+                    fcntl.flock(h, fcntl.LOCK_UN)
+
+                os.killpg(os.getpgid(local_det.pid), signal.SIGKILL)
+                print "attempting to kill: " + str(local_det.pid)
+
+        ################
+
+        # step (7) wait, all the tasks are being taken care of elsewhere
+        time_left_in_experiment = start_time + int(experiment_length) + 7 - time.time()
+        time.sleep(time_left_in_experiment)
+
+        with open(end_sentinal_file_loc, 'w') as f:
+            f.write('all_done')
+
+        subprocess.call(['cat', './' + experiment_name + '_locust_info.csv' ])
+
+        subprocess.call(['cp', './' + experiment_name + '_locust_info.csv', './' + experiment_name + '_locust_info_' +
+                           '.csv' ])
+        # for det, I think just cp and then delete the old file should do it?
         if exfil_p:
-            if start_time + next_exfil_start_time - time.time() - 60.0 > 0.0:
-                print "waiting to perform exfil....."
-                time.sleep(start_time + next_exfil_start_time - time.time() - 60.0)
+            subprocess.call(['cp', './' + experiment_name + '_det_server_local_output.txt', './' + experiment_name +
+                             '_det_server_local_output_' + '.txt'])
+            subprocess.call(['truncate', '-s', '0' ,'./' + experiment_name + '_det_server_local_output.txt'])
 
-            print "about_to_start_exfil..."
-
-            selected_containers,local_det = start_det_exfil_path(exfil_paths, exfil_counter, cur_exfil_protocol, localhostip,
-                                                                maxsleep, DET_max_exfil_bytes_in_packet, DET_min_exfil_bytes_in_packet,
-                                                                experiment_name, start_time, network_plugin, next_exfil_start_time,
-                                                                originator_class, cur_exfil_method, exfil_protocols, True,
-                                                                det_log_file)
-
-            print "exfil started..."
-
-            #time.sleep(start_time + next_exfil_end_time - time.time())
-            ## monitor for one of the exfil containers being stopped and restart if possible...
-            while(start_time + next_exfil_end_time - time.time() > 0.0):
-                time.sleep(1.0)
-                # then check if everything is still alive.
-                all_alive, stopped_containers = containers_still_alive_p(selected_containers)
-                if not all_alive:  # if it's not...
-                    print "Container died!"
-
-                    with open(det_log_file, 'a') as g:
-                        fcntl.flock(g, fcntl.LOCK_EX)
-                        g.write('\nRestarting exfiltration...\n')
-                        fcntl.flock(g, fcntl.LOCK_UN)
-
-                    # stop everything.
-                    stop_det_instances(selected_containers, cur_exfil_method)
-                    os.killpg(os.getpgid(local_det.pid), signal.SIGKILL)
-
-                    # (recall: need to process everything...)
-                    bytes_exfil, start_ex, end_ex = parse_local_det_output(exfil_info_file_name, exfil_protocols[exfil_counter])
-                    bytes_exfil_list.append( bytes_exfil )
-                    start_ex_list.append( start_ex )
-                    end_ex_list.append( end_ex_list )
-
-                    # restart everything
-                    ## need remove stopped container from selected_containers
-                    for stopped_container in stopped_containers:
-                        exfil_element, container = stopped_container[0], stopped_container[1]
-                        del selected_containers[exfil_element]
-                    selected_containers, local_det = \
-                        start_det_exfil_path(exfil_paths, exfil_counter, cur_exfil_protocol, localhostip,
-                                             maxsleep, DET_max_exfil_bytes_in_packet,
-                                             DET_min_exfil_bytes_in_packet, experiment_name, start_time,
-                                             network_plugin, next_exfil_start_time, originator_class,
-                                             cur_exfil_method, exfil_protocols, False, det_log_file)
-                else:
-                    pass
-                    #print "no containers died!"
-
-            stop_det_instances(selected_containers, cur_exfil_method)
-
-            ## is this part fine???
-            bytes_exfil, start_ex, end_ex = parse_local_det_output(exfil_info_file_name, exfil_protocols[exfil_counter])
-            print bytes_exfil, "bytes exfiltrated_in_most_recent_instance"
-            print "starting at ", start_ex, "and ending at", end_ex
-            print bytes_exfil + sum(bytes_exfil_list), "bytes exfiltrated_in_current_exfil_scenario"
-
-            bytes_exfil = bytes_exfil + sum(bytes_exfil_list)
-            with open(exfil_aggregated_file, 'a+') as g:
-                g.write(cur_exfil_protocol + ' ' + str(bytes_exfil) + " bytes exfiltrated" + '\n')
-
-            with open(det_log_file, 'a') as h:
-                fcntl.flock(h, fcntl.LOCK_EX)
-                h.write('Exfil results: ' + cur_exfil_protocol + ' ' + str(bytes_exfil) + " bytes exfiltrated" + '\n')
-                fcntl.flock(h, fcntl.LOCK_UN)
-
-            os.killpg(os.getpgid(local_det.pid), signal.SIGKILL)
-            print "attempting to kill: " + str(local_det.pid)
-
-    ################
-
-    # step (7) wait, all the tasks are being taken care of elsewhere
-    time_left_in_experiment = start_time + int(experiment_length) + 7 - time.time()
-    time.sleep(time_left_in_experiment)
-
-    with open(end_sentinal_file_loc, 'w') as f:
-        f.write('all_done')
-
-    subprocess.call(['cat', './' + experiment_name + '_locust_info.csv' ])
-
-    subprocess.call(['cp', './' + experiment_name + '_locust_info.csv', './' + experiment_name + '_locust_info_' +
-                       '.csv' ])
-    # for det, I think just cp and then delete the old file should do it?
-    if exfil_p:
-        subprocess.call(['cp', './' + experiment_name + '_det_server_local_output.txt', './' + experiment_name +
-                         '_det_server_local_output_' + '.txt'])
-        subprocess.call(['truncate', '-s', '0' ,'./' + experiment_name + '_det_server_local_output.txt'])
-
-    #''' # enable if you are using cilium as the network plugin
-    if network_plugin == 'cilium':
-        cilium_endpoint_args = ["kubectl", "-n", "kube-system", "exec", "cilium-6lffs", "--", "cilium", "endpoint", "list",
-                            "-o", "json"]
-        out = subprocess.check_output(cilium_endpoint_args)
-        container_config_file = experiment_name + '_' + '_cilium_network_configs.txt'
-        with open(container_config_file, 'w') as f:
-            f.write(out)
-    #'''
-    filename = experiment_name + '_' + 'bridge' + '_' # note: will need to redo this if I want to go
-                                                                       # back to using Docker Swarm at some point
-    pcap_filename = filename + 'any' + '.pcap'
-    recover_pcap(orchestrator, pcap_filename)
-    print "pcap recovered!"
+        #''' # enable if you are using cilium as the network plugin
+        if network_plugin == 'cilium':
+            cilium_endpoint_args = ["kubectl", "-n", "kube-system", "exec", "cilium-6lffs", "--", "cilium", "endpoint", "list",
+                                "-o", "json"]
+            out = subprocess.check_output(cilium_endpoint_args)
+            container_config_file = experiment_name + '_' + '_cilium_network_configs.txt'
+            with open(container_config_file, 'w') as f:
+                f.write(out)
+        #'''
+        filename = experiment_name + '_' + 'bridge' + '_' # note: will need to redo this if I want to go
+                                                                           # back to using Docker Swarm at some point
+        pcap_filename = filename + 'any' + '.pcap'
+        recover_pcap(orchestrator, pcap_filename)
+        print "pcap recovered!"
 
     ### note: the code below this is not working...
 
@@ -1933,6 +1934,10 @@ if __name__=="__main__":
     parser.add_argument('--no_exfil', dest='exfil_p', action='store_false',
                         default=True,
                         help='do NOT perform exfiltration (default is to perform it)')
+    parser.add_argument('--post_process_only', dest='post_process_only', action='store_true',
+                        default=False,
+                        help='(dev purposes only) assume that the PCAPs are locally stored and then do the post-processing to them...')
+
 
     #  localhost communicates w/ vm over vboxnet0 ifconfig interface, apparently, so use the
     # address there as the response address, in this case it seems to default to the below
@@ -1986,4 +1991,4 @@ if __name__=="__main__":
 
     exfil_p = args.exfil_p
 
-    main(exp_name, args.config_file, args.prepare_app_p, None, None, args.localhostip, exfil_p)
+    main(exp_name, args.config_file, args.prepare_app_p, None, None, args.localhostip, exfil_p, args.post_process_only)
