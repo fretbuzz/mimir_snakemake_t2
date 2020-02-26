@@ -50,6 +50,11 @@ CLIENT_RATIO_CYBER = [0.0328, 0.0255, 0.0178, 0.0142, 0.0119, 0.0112, 0.0144, 0.
 
 
 def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localhostip, exfil_p, post_process_only):
+    # step (1) read in the config file
+    with open(config_file.rstrip().lstrip()) as f:
+        config_params = json.load(f)
+    app_name = config_params["application_name"]
+
     if not post_process_only:
         pod_config_file = experiment_name + '_pod_config' '_' + '.txt'
         node_config_file = experiment_name + '_node_config' '_' + '.txt'
@@ -71,10 +76,6 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
             os.remove(docker_cont_config_file)
         except:
             print docker_cont_config_file, "   ", "does not exist"
-
-        # step (1) read in the config file
-        with open(config_file.rstrip().lstrip()) as f:
-            config_params = json.load(f)
 
         try:
             exfil_p = exfil_p and config_params['exfiltration_info']['physical_attacks']
@@ -159,7 +160,6 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
 
         # step (2) setup the application, if necessary (e.g. fill up the DB, etc.)
         # note: it is assumed that the application is already deployed
-        app_name = config_params["application_name"]
         try:
             setup_params = config_params["setup"]
         except:
