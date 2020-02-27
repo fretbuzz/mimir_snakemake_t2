@@ -1,3 +1,15 @@
+if [ $# -gt 2 ]; then
+  echo "too many args";
+  exit 2;
+fi
+
+use_k3s_cluster=0
+if [ "$1" == "--use_k3s_cluster" ]; then
+  use_k3s_cluster=1
+fi
+
+echo "use_k3s_cluster use_k3s_cluster"
+
 sudo apt-get update
 
 # This video will setup the Minikube Kubernetes environment, deploy a microservice application, and then collect some network activity data while simulating user traffic.
@@ -21,21 +33,26 @@ sudo apt-get install gcc make linux-headers-$(uname -r) dkms -y
 #sudo apt-get install virtualbox-6.0 -y
 #### vboxmanage setproperty machinefolder /mydata/
 # try this...
-wget https://download.virtualbox.org/virtualbox/6.1.4/virtualbox-6.1_6.1.4-136177~Ubuntu~xenial_amd64.deb
-sudo dpkg -i virtualbox-6.1_6.1.4-136177~Ubuntu~xenial_amd64.deb
-sudo apt-get install libcurl3 libopus0 libsdl1.2debian -y
-sudo apt-get -f install -y
+if [ use_k3s_cluster -eq 0 ]
+then
+  wget https://download.virtualbox.org/virtualbox/6.1.4/virtualbox-6.1_6.1.4-136177~Ubuntu~xenial_amd64.deb
+  sudo dpkg -i virtualbox-6.1_6.1.4-136177~Ubuntu~xenial_amd64.deb
+  sudo apt-get install libcurl3 libopus0 libsdl1.2debian -y
+  sudo apt-get -f install -y
 
-# okay, onto the next step
-# First, we'll install and start Minikube
-curl -Lo minikube https://storage.googleapis.com/minikube/releases/v1.3.1/minikube-linux-amd64  && chmod +x minikube
-sudo cp minikube /usr/local/bin && rm minikube
+  # okay, onto the next step
+  # First, we'll install and start Minikube
+  curl -Lo minikube https://storage.googleapis.com/minikube/releases/v1.3.1/minikube-linux-amd64  && chmod +x minikube
+  sudo cp minikube /usr/local/bin && rm minikube
 
-sudo minikube start --vm-driver=virtualbox --cpus=12 --memory=32000 --disk-size 65g
+  sudo minikube start --vm-driver=virtualbox --cpus=12 --memory=32000 --disk-size 65g
 
-# and make sure to enable certain addons
-sudo minikube addons enable heapster
-sudo minikube addons enable metrics-server
+  # and make sure to enable certain addons
+  sudo minikube addons enable heapster
+  sudo minikube addons enable metrics-server
+else
+  source ./install_k3s.sh
+fi
 
 # Second, we'll install the experimental coordinator's dependencies.
 

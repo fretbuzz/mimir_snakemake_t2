@@ -292,7 +292,7 @@ def retrieve_files_in_directory(sh, s, sftp, cur_subdir, cur_local_subdir, subdi
             sftp.get(cur_file, localpath=cur_local_subdir + file_in_subdir)  # retreive file from remote
 
 
-def run_experiment(config_file_pth, only_retrieve, upload_data, only_process, run_only_log_checker):
+def run_experiment(config_file_pth, only_retrieve, upload_data, only_process, run_only_log_checker, use_k3s_cluster):
     # step 1: parse the config file
     machine_ip, e2e_script_to_follow, corresponding_local_directory, remote_server_key, user = parse_config(config_file_pth)
 
@@ -345,7 +345,11 @@ def run_experiment(config_file_pth, only_retrieve, upload_data, only_process, ru
             #exit(2)
             sh_screen = s.run('nice -11 screen -U')
             sendline_and_wait_responses(sh_screen, prelim_commands, timeout=5)
-            sendline_and_wait_responses(sh_screen, e2e_script_start_cmd, timeout=5400)
+            try:
+                sendline_and_wait_responses(sh_screen, e2e_script_start_cmd, timeout=5400)
+            except EOFError as e:
+                print "e2e_script_start_cmd command resulted in EOFError, probably because the command timed out when finished. "
+                print "therefore, the file will just keep running. Here's the error: ", e
 
         #return ## TODO<--- remove this in the future!!!
 
@@ -358,6 +362,8 @@ def run_experiment(config_file_pth, only_retrieve, upload_data, only_process, ru
         #sftp.write('exit')
 
     # Step 6: maybe run the log file checker to make sure everything is legit?
+    # TODO: I think I never actually fulled tested this function... might want to do that before scaling up experimental data\
+    # collectio too high...
     # PLAN: (1) call log checker [done]
     # (2) add flag for only log checker [done]
     # (3) beef up log checker [done]
@@ -382,6 +388,11 @@ if __name__=="__main__":
                         default=False, action='store_true',
                         help='Do not generator pcaps, upload pcaps, process pcaps, or retrieve pcaps -- only run the '
                              'log checker on the data already on the local device')
+
+    parser.add_argument('--use_k3s_cluster', dest='use_k3s_cluster',
+                        default=False, action='store_true',
+                        help='Instead of using the minikube k8s cluster, use the k3s k8s cluster instead (in development ATM)')
+
     args = parser.parse_args()
 
 
@@ -404,4 +415,5 @@ if __name__=="__main__":
     else:
         config_file_pth = args.config_json
 
-    run_experiment(config_file_pth, args.only_retrieve, args.upload_data, args.only_process, args.run_only_log_checker)
+    run_experiment(config_file_pth, args.only_retrieve, args.upload_data, args.only_process, args.run_only_log_checker,
+                   args.use_k3s_cluster)

@@ -19,7 +19,7 @@ then
   bash ../configs_to_reproduce_results/kubernetes_setup_script.sh | tee kubernetes_setup.log;
 
   # then do robot-shop-specific-dependencies
-  . ../configs_to_reproduce_results/setup_wordpress.sh
+  . ../configs_to_reproduce_results/setup_robot_shop.sh
 
   # TODO: run experiments here...
 
