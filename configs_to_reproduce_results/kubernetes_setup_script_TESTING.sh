@@ -33,7 +33,7 @@ sudo apt-get install gcc make linux-headers-$(uname -r) dkms -y
 #sudo apt-get install virtualbox-6.0 -y
 #### vboxmanage setproperty machinefolder /mydata/
 # try this...
-if [ use_k3s_cluster -eq 0 ]
+if [ $use_k3s_cluster -eq 0 ]
 then
   wget https://download.virtualbox.org/virtualbox/6.1.4/virtualbox-6.1_6.1.4-136177~Ubuntu~xenial_amd64.deb
   sudo dpkg -i virtualbox-6.1_6.1.4-136177~Ubuntu~xenial_amd64.deb

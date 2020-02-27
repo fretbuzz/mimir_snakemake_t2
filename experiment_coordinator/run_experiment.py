@@ -49,7 +49,8 @@ CLIENT_RATIO_CYBER = [0.0328, 0.0255, 0.0178, 0.0142, 0.0119, 0.0112, 0.0144, 0.
 0.0574, 0.0571, 0.0568, 0.0543, 0.0532, 0.0514, 0.0514, 0.0518, 0.0522, 0.0571, 0.0609, 0.0589, 0.0564]
 
 
-def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localhostip, exfil_p, post_process_only):
+def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localhostip, exfil_p, post_process_only,
+         use_k3s_cluster):
     # step (1) read in the config file
     with open(config_file.rstrip().lstrip()) as f:
         config_params = json.load(f)
@@ -645,7 +646,8 @@ def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_co
         #    print "wordpress_setup.setup_wordpress.main triggered this exception: ", str(e)
         #print "setup_wordpress completed..."
     elif app_name == "hipsterStore":
-        ## clone the github repo b/c we're going to use their load generator
+        # TODO: make sure this part works with k3s...
+        # clone the github repo b/c we're going to use their load generator
         heapstr_str = ["minikube", "addons", "enable", "heapster"]
         out = subprocess.check_output(heapstr_str)
         print "heapstr_str_response ", out
@@ -669,6 +671,8 @@ def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_co
         out = subprocess.check_output(del_load_str)
         print "out", out
         install_exfil_dependencies(exfil_paths, orchestrator, class_to_installer, exfil_path_class_to_image)
+    elif app_name == "robot-shop":
+        pass # TODO
     else:
         # other applications will require other setup procedures (if they can be automated) #
         # note: some cannot be automated (i.e. wordpress)
@@ -681,7 +685,6 @@ def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_co
 #   max_clients: Arg provided by user in parameters.py. Represents maximum number of simultaneous clients
 def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate, app_name, ip, port, experiment_name,
                                 sentinal_file_loc, prob_distro, pod_config_log_cmds, number_reps_workload_pattern):
-    #minikube = get_IP()#subprocess.check_output(["minikube", "ip"]).rstrip()
     devnull = open(os.devnull, 'wb')  # disposing of stdout manualy
 
     client_ratio = []
@@ -718,13 +721,16 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
 
     if prob_distro:
         if app_name == "sockshop":
-                with open('./prob_distro_sock.pickle', 'w') as f:
-                    f.write(pickle.dumps(prob_distro))
+            with open('./prob_distro_sock.pickle', 'w') as f:
+                f.write(pickle.dumps(prob_distro))
         elif app_name == "wordpress":
             with open('./prob_distro_wp.pickle', 'w') as f:
                 f.write(pickle.dumps(prob_distro))
         elif app_name == "hipsterStore":
             with open('./prob_distro_hs.pickle', 'w') as f:
+                f.write(pickle.dumps(prob_distro))
+        elif app_name == "robot-shop":
+            with open('./prob_distro_rs.pickle', 'w') as f:
                 f.write(pickle.dumps(prob_distro))
 
     #############################################
@@ -775,6 +781,10 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
                                      "--csv=" + locust_info_file, "-t", str(int(timestep) - 1) + 's']
                 print "hipsterStore_cmds", hipsterStore_cmds
                 proc = subprocess.Popen(hipsterStore_cmds, preexec_fn=os.setsid, stdout=devnull, stderr=devnull)
+            elif app_name == 'robot-shop':
+                robot_shop_cmds = None # TODO
+                print "robot_shop_cmds", robot_shop_cmds
+                proc = subprocess.Popen(robot_shop_cmds, preexec_fn=os.setsid, stdout=devnull, stderr=devnull)
             else:
                 print "ERROR WITH START BACKGROUND TRAFFIC- NAME NOT RECOGNIZED"
                 exit(5)
@@ -886,7 +896,6 @@ def start_tcpdump(interface, network_namespace, tcpdump_time, filename, orchestr
         child = pexpect.spawn('docker-machine ssh default')
         child.expect('##')
     elif orchestrator == 'kubernetes':
-        #child = pexpect.spawn('minikube ssh')
         #child.expect(' ( ) ')
         sh = process('/bin/sh')
         cmd_str = 'sudo minikube ssh'
@@ -1761,11 +1770,14 @@ def setup_directories(exp_name):
     print "Just setup directories!"
 
 def get_ip():
+    # TODO: make sure works with k3s...
     out = subprocess.check_output(['minikube', 'ip'])
     return out.rstrip().lstrip()
 
 
 def get_ip_and_port(app_name):
+    # TODO: make sure works with k3s...
+
     print "get_ip_and_port", app_name
     out = None
     if app_name == 'sockshop':
@@ -1775,6 +1787,9 @@ def get_ip_and_port(app_name):
         out = subprocess.check_output(['minikube', 'service', 'wwwppp-wordpress',  '--url', "--wait", "120"])
     elif app_name == 'hipsterStore':
         out = subprocess.check_output(['minikube', 'service', 'frontend-external', '--url', "--wait", "120"])
+    elif app_name == 'robot-shop':
+        out = subprocess.check_output(["minikube", "service", "web", "--url", "--namespace=robot-shop", "--wait" ,"120"])
+
     else:
         pass
     print "out",out
@@ -1941,7 +1956,9 @@ if __name__=="__main__":
     parser.add_argument('--post_process_only', dest='post_process_only', action='store_true',
                         default=False,
                         help='(dev purposes only) assume that the PCAPs are locally stored and then do the post-processing to them...')
-
+    parser.add_argument('--use_k3s_cluster', dest='use_k3s_cluster', action='store_true',
+                        default=False,
+                        help='Instead of using the minikube k8s cluster, use the k3s k8s cluster instead (in development ATM)')
 
     #  localhost communicates w/ vm over vboxnet0 ifconfig interface, apparently, so use the
     # address there as the response address, in this case it seems to default to the below
@@ -1995,4 +2012,5 @@ if __name__=="__main__":
 
     exfil_p = args.exfil_p
 
-    main(exp_name, args.config_file, args.prepare_app_p, None, None, args.localhostip, exfil_p, args.post_process_only)
+    main(exp_name, args.config_file, args.prepare_app_p, None, None, args.localhostip, exfil_p, args.post_process_only,
+         args.use_k3s_cluster)

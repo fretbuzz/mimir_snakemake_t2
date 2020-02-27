@@ -22,6 +22,7 @@ then
   . ../configs_to_reproduce_results/setup_robot_shop.sh
 
   # TODO: run experiments here...
+  # first need to modify run_experiment.py and then I can add the experimental calls heres...
 
 fi
 
