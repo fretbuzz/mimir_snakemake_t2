@@ -15,6 +15,7 @@ import time
 import copy
 import pandas as pd
 plt.style.use('seaborn-paper')
+import shutil
 
 method_to_legend = {'ensemble': 'Our Method',
                     'cilium': 'Communicating Services',
@@ -707,7 +708,7 @@ def parse_config(config_file_pth):
 
 def run_looper(config_file_pth, update_config, use_remote, only_finished_p, live_p, retrain_model_p, min_exfil_rate_model_p,
                per_svc_exfil_model_p, exp_data_dir, use_training_model_from_mem, no_cilium, dont_open_pdfs,
-               use_all_results_from_mem, load_old_pipelines):
+               use_all_results_from_mem, load_old_pipelines, dont_move_multilooper, only_move_multilooper):
 
     model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran, type_of_graph, graph_name, \
     use_remote_from_config, remote_ips, remote_server_key, user, dont_retrieve_from_remote, no_tsl, model_xval, \
@@ -729,84 +730,103 @@ def run_looper(config_file_pth, update_config, use_remote, only_finished_p, live
     #                per_svc_exfil_model_p):
 
     no_tsl = not( (not no_tsl) or min_exfil_rate_model_p )
+    evalconfigs_to_cm = None
 
-    evalconfigs_to_cm, evalconfigs_to_model_to_cm = get_evalconfigs_to_cm(model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran,
-                                              type_of_graph, graph_name, update_config, only_finished_p, retrain_model_p,
-                                              per_svc_exfil_model_p, no_tsl=no_tsl, decanter_configs=decanter_configs,
-                                              live_p=live_p, analyze_in_parallel=analyze_in_parallel, exp_data_dir=exp_data_dir,
-                                               use_training_model_from_mem=use_training_model_from_mem, no_cilium=no_cilium,
-                                               dont_open_pdfs=dont_open_pdfs, use_all_results_from_mem=use_all_results_from_mem,
-                                               load_old_pipelines=load_old_pipelines)
+    if not only_move_multilooper:
+
+        evalconfigs_to_cm, evalconfigs_to_model_to_cm = get_evalconfigs_to_cm(model_config_file, eval_configs_to_xvals, xlabel, use_cached, exfil_rate, timegran,
+                                                  type_of_graph, graph_name, update_config, only_finished_p, retrain_model_p,
+                                                  per_svc_exfil_model_p, no_tsl=no_tsl, decanter_configs=decanter_configs,
+                                                  live_p=live_p, analyze_in_parallel=analyze_in_parallel, exp_data_dir=exp_data_dir,
+                                                   use_training_model_from_mem=use_training_model_from_mem, no_cilium=no_cilium,
+                                                   dont_open_pdfs=dont_open_pdfs, use_all_results_from_mem=use_all_results_from_mem,
+                                                   load_old_pipelines=load_old_pipelines)
 
 
-    # this part handles displaying all of the new models...
-    model_to_evalconfig_to_cm = {}
-    for evalconfig, model_to_cm in evalconfigs_to_model_to_cm.items():
-        for model,cm in model_to_cm.items():
-            if len(cm[cm.keys()[0]]) == 0:
-                continue
-            if model not in model_to_evalconfig_to_cm.keys():
-                model_to_evalconfig_to_cm[model] = {}
-            model_to_evalconfig_to_cm[model][evalconfig] = cm
+        # this part handles displaying all of the new models...
+        model_to_evalconfig_to_cm = {}
+        for evalconfig, model_to_cm in evalconfigs_to_model_to_cm.items():
+            for model,cm in model_to_cm.items():
+                if len(cm[cm.keys()[0]]) == 0:
+                    continue
+                if model not in model_to_evalconfig_to_cm.keys():
+                    model_to_evalconfig_to_cm[model] = {}
+                model_to_evalconfig_to_cm[model][evalconfig] = cm
 
-    '''
-    new_evalconfig_to_rate_to_timegram_to_method_cm = {}
-    for model, evalconfig_to_cm in model_to_evalconfig_to_cm.items():
-        for evalconfig, rate_to_timegram_to_cm in evalconfig_to_cm.items():
-            if evalconfig not in new_evalconfig_to_rate_to_timegram_to_method_cm:
-                new_evalconfig_to_rate_to_timegram_to_method_cm[evalconfig] = {}
-            for rate, timegram_to_cm in rate_to_timegram_to_cm.items():
-                if rate not in new_evalconfig_to_rate_to_timegram_to_method_cm[evalconfig] and rate != {}:
-                    new_evalconfig_to_rate_to_timegram_to_method_cm[evalconfig][rate] = {}
-                for timegran, cm in timegram_to_cm.items():
-                    if timegran not in new_evalconfig_to_rate_to_timegram_to_method_cm[evalconfig][rate]:
-                        new_evalconfig_to_rate_to_timegram_to_method_cm[evalconfig][rate][timegran] = {}
-                    new_evalconfig_to_rate_to_timegram_to_method_cm[evalconfig][rate][timegran][model] = cm
-    '''
+        '''
+        new_evalconfig_to_rate_to_timegram_to_method_cm = {}
+        for model, evalconfig_to_cm in model_to_evalconfig_to_cm.items():
+            for evalconfig, rate_to_timegram_to_cm in evalconfig_to_cm.items():
+                if evalconfig not in new_evalconfig_to_rate_to_timegram_to_method_cm:
+                    new_evalconfig_to_rate_to_timegram_to_method_cm[evalconfig] = {}
+                for rate, timegram_to_cm in rate_to_timegram_to_cm.items():
+                    if rate not in new_evalconfig_to_rate_to_timegram_to_method_cm[evalconfig] and rate != {}:
+                        new_evalconfig_to_rate_to_timegram_to_method_cm[evalconfig][rate] = {}
+                    for timegran, cm in timegram_to_cm.items():
+                        if timegran not in new_evalconfig_to_rate_to_timegram_to_method_cm[evalconfig][rate]:
+                            new_evalconfig_to_rate_to_timegram_to_method_cm[evalconfig][rate][timegran] = {}
+                        new_evalconfig_to_rate_to_timegram_to_method_cm[evalconfig][rate][timegran][model] = cm
+        '''
 
-    # TODO: finish writing part related to evalconfigs_to_model_to_cm
+        # TODO: finish writing part related to evalconfigs_to_model_to_cm
+        ############################################################
+        print "\n\n-----"
+        print "new model..."
+
+        new_evalconfig_to_rate_to_timegram_to_method_cm = {}
+        for model, evalconfig_to_cm in model_to_evalconfig_to_cm.items():
+            for evalconfig, rate_to_timegram_to_cm in evalconfig_to_cm.items():
+                if evalconfig not in new_evalconfig_to_rate_to_timegram_to_method_cm:
+                    new_evalconfig_to_rate_to_timegram_to_method_cm[evalconfig] = {}
+                for rate, timegram_to_cm in rate_to_timegram_to_cm.items():
+                    if rate not in new_evalconfig_to_rate_to_timegram_to_method_cm[evalconfig] and rate != {}:
+                        new_evalconfig_to_rate_to_timegram_to_method_cm[evalconfig][rate] = {}
+                    for cur_timegran, cm in timegram_to_cm.items():
+                        if type(cur_timegran) != int and type(cur_timegran) != tuple:
+                            continue
+                        if cur_timegran not in new_evalconfig_to_rate_to_timegram_to_method_cm[evalconfig][rate]:
+                            new_evalconfig_to_rate_to_timegram_to_method_cm[evalconfig][rate][cur_timegran] = {}
+                        new_evalconfig_to_rate_to_timegram_to_method_cm[evalconfig][rate][cur_timegran][model] = cm
+
+        #print "model_to_evalconfig_to_cm.keys()", model_to_evalconfig_to_cm.keys()
+        for model, cur_evalconfig_to_cm in model_to_evalconfig_to_cm.iteritems():
+            #generate_graphs(eval_configs_to_xvals, exfil_rate, cur_evalconfig_to_cm, timegran, type_of_graph,
+            #                str(graph_name) + '_NEW_MODEL_' + str(model) + '_',
+            #                xlabel, model_config_file, False, model_xval, new_model=model, no_methods=True)
+
+            generate_graphs(eval_configs_to_xvals, exfil_rate, new_evalconfig_to_rate_to_timegram_to_method_cm, timegran, type_of_graph,
+                            str(graph_name) + '_NEW_MODEL_' + str(model) + '_',
+                            xlabel, model_config_file, False, model_xval, new_model = model, no_methods = True)
+
+        turn_nested_results_dict_into_csv(new_evalconfig_to_rate_to_timegram_to_method_cm, eval_configs_to_xvals)
+
+        print "\n\n-----"
+        print "old model..."
+        generate_graphs(eval_configs_to_xvals, exfil_rate, evalconfigs_to_cm, timegran, type_of_graph, graph_name, xlabel,
+                        model_config_file, no_tsl, model_xval)
+
+        #print "model_to_evalconfig_to_cm",model_to_evalconfig_to_cm
+
     ############################################################
-    print "\n\n-----"
-    print "new model..."
-
-    new_evalconfig_to_rate_to_timegram_to_method_cm = {}
-    for model, evalconfig_to_cm in model_to_evalconfig_to_cm.items():
-        for evalconfig, rate_to_timegram_to_cm in evalconfig_to_cm.items():
-            if evalconfig not in new_evalconfig_to_rate_to_timegram_to_method_cm:
-                new_evalconfig_to_rate_to_timegram_to_method_cm[evalconfig] = {}
-            for rate, timegram_to_cm in rate_to_timegram_to_cm.items():
-                if rate not in new_evalconfig_to_rate_to_timegram_to_method_cm[evalconfig] and rate != {}:
-                    new_evalconfig_to_rate_to_timegram_to_method_cm[evalconfig][rate] = {}
-                for cur_timegran, cm in timegram_to_cm.items():
-                    if type(cur_timegran) != int and type(cur_timegran) != tuple:
-                        continue
-                    if cur_timegran not in new_evalconfig_to_rate_to_timegram_to_method_cm[evalconfig][rate]:
-                        new_evalconfig_to_rate_to_timegram_to_method_cm[evalconfig][rate][cur_timegran] = {}
-                    new_evalconfig_to_rate_to_timegram_to_method_cm[evalconfig][rate][cur_timegran][model] = cm
-
-    #print "model_to_evalconfig_to_cm.keys()", model_to_evalconfig_to_cm.keys()
-    for model, cur_evalconfig_to_cm in model_to_evalconfig_to_cm.iteritems():
-        #generate_graphs(eval_configs_to_xvals, exfil_rate, cur_evalconfig_to_cm, timegran, type_of_graph,
-        #                str(graph_name) + '_NEW_MODEL_' + str(model) + '_',
-        #                xlabel, model_config_file, False, model_xval, new_model=model, no_methods=True)
-
-        generate_graphs(eval_configs_to_xvals, exfil_rate, new_evalconfig_to_rate_to_timegram_to_method_cm, timegran, type_of_graph,
-                        str(graph_name) + '_NEW_MODEL_' + str(model) + '_',
-                        xlabel, model_config_file, False, model_xval, new_model = model, no_methods = True)
-
-    turn_nested_results_dict_into_csv(new_evalconfig_to_rate_to_timegram_to_method_cm, eval_configs_to_xvals)
-
-    print "\n\n-----"
-    print "old model..."
-    generate_graphs(eval_configs_to_xvals, exfil_rate, evalconfigs_to_cm, timegran, type_of_graph, graph_name, xlabel,
-                    model_config_file, no_tsl, model_xval)
-
-    #print "model_to_evalconfig_to_cm",model_to_evalconfig_to_cm
-
-    ############################################################
-
+    if not dont_move_multilooper:
+        if exp_data_dir is None:
+            exp_data_dir = "/".join(model_config_file.split('/')[:-1])
+        move_multilooper_directory(exp_data_dir)
 
     return eval_configs_to_xvals, exfil_rate, evalconfigs_to_cm, model_config_file
+
+def move_multilooper_directory(experimental_directory, local_multilooper_dir='./multilooper_outs/'):
+
+    if experimental_directory[-1] != '/':
+        experimental_directory += '/'
+    print "experimental_directory", experimental_directory
+    remote_experimental_directory = experimental_directory + 'multilooper_outs'
+    print "remote_experimental_directory", remote_experimental_directory
+
+    if os.path.exists(remote_experimental_directory):
+        shutil.rmtree(remote_experimental_directory)
+
+    shutil. copytree(src=local_multilooper_dir, dst=remote_experimental_directory)
 
 def turn_nested_results_dict_into_csv(new_evalconfig_to_rate_to_timegram_to_method_cm, eval_configs_to_xvals,
                                       output_dir='./multilooper_outs/'):
@@ -914,6 +934,14 @@ if __name__=="__main__":
     parser.add_argument('--load_old_pipelines', dest='load_old_pipelines', default=False, action='store_true',
                         help='[for dev purposes] loads the old pipelines (from statistical_analysis.py), so that the new one can be tested more easily')
 
+    parser.add_argument('--dont_move_multilooper', dest='dont_move_multilooper', default=False, action='store_true',
+                        help='normally, the multilooper directory is copied into the experimental directory. this flag'
+                             'can prevent that')
+
+    parser.add_argument('--only_move_multilooper', dest='only_move_multilooper', default=False, action='store_true',
+                        help='(for dev purposes) only perform the movement of the multilooper directory')
+
+
 
     args = parser.parse_args()
 
@@ -934,4 +962,4 @@ if __name__=="__main__":
     run_looper(config_file_pth, (not args.dont_update_config), args.use_remote, args.only_finished_p, args.live_p,
                args.retrain_model_p, args.min_exfil_rate_model_p, args.per_svc_exfil_model_p, args.exp_data_dir,
                args.use_training_model_from_mem, args.no_cilium, args.dont_open_pdfs, args.use_all_results_from_mem,
-               args.load_old_pipelines)
+               args.load_old_pipelines, args.dont_move_multilooper, args.only_move_multilooper)
