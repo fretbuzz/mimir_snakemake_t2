@@ -235,7 +235,7 @@ def retrieve_relevant_files_from_cloud(sh, s, sftp, local_directory, data_was_up
     print "cur_local_directory",cur_local_directory
     if os.path.exists(cur_local_directory):
         shutil.rmtree(cur_local_directory)
-    os.makedirs(cur_local_directory)
+    #os.makedirs(cur_local_directory)
     with sftp.cd(dir_with_exp_graphs_dir):
         try:
             print "retrieving multilooper directory now..."
