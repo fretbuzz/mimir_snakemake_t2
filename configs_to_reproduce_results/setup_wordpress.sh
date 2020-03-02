@@ -18,6 +18,7 @@ cd ./wordpress_setup/
 
 sleep 300
 
+echo "setting_up_minikube...", "setup_wordpress.py", $MINIKUBE_IP, $WORDPRESS_PORT, "hi"
 python setup_wordpress.py $MINIKUBE_IP $WORDPRESS_PORT "hi"
 cd ..
 

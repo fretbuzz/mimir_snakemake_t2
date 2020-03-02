@@ -17,6 +17,7 @@
   "xlabel" : "load (# instances of load generation)",
   "use_cached": false,
   "exfil_rate": [10000000.0, 1000000.0, 100000.0, 10000.0],
+  "timegran_other": "10",
   "timegran": "(10,60)",
   "type_of_graph": "load",
   "graph_name": "new_sockshop_scale",

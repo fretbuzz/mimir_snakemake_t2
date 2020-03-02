@@ -18,6 +18,8 @@ def main(exp_parent_directory):
         if is_there_problem_in_logfile(logfile_contents):
             logfiles_with_problems.append(logfile_name)
 
+    #print "---log_files_from_exps", log_files_from_exps, '---'
+    #print "---deploy_log_files", deploy_log_files, '---'
     for counter, logfile_name in enumerate(deploy_log_files):
         with open(logfile_name, 'r') as g:
             deploy_logfile_contents = g.read()
@@ -123,6 +125,7 @@ def find_logfile_paths(exp_parent_directory):
 
             if log_file != '':
                 log_files.append(log_file)
+            if deploy_log_file != '':
                 deploy_log_files.append(deploy_log_file)
 
     log_files = list(set(log_files))
