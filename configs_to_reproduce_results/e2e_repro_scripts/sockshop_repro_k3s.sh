@@ -28,8 +28,10 @@ then
   # this should be applicable to everyone...
   if [ $use_k3s_cluster -eq 0 ]
   then
+    echo "bash ../configs_to_reproduce_results/kubernetes_setup_script.sh"
     bash ../configs_to_reproduce_results/kubernetes_setup_script.sh | tee kubernetes_setup.log;
   else
+    echo "bash ../configs_to_reproduce_results/kubernetes_setup_script.sh --use_k3s_cluster"
     bash ../configs_to_reproduce_results/kubernetes_setup_script.sh --use_k3s_cluster | tee kubernetes_setup.log;
   fi
 
