@@ -14,7 +14,7 @@ sudo /snap/bin/multipass launch --name k3s-worker3 --cpus 4 --mem 32G --disk 10G
 sudo /snap/bin/multipass launch --name k3s-worker4 --cpus 4 --mem 32G --disk 10G | tee /dev/null
 
 # Deploy k3s on the master node
-sudo /snap/bin/multipass exec k3s-master -- /bin/bash -c "curl -sfL https://get.k3s.io | K3S_KUBECONFIG_MODE="644" sh -s - --no-deploy=traefik"
+sudo /snap/bin/multipass exec k3s-master -- /bin/bash -c "curl -sfL https://get.k3s.io | K3S_KUBECONFIG_MODE="644" sh -s - --no-deploy=traefik --docker"
 # Get the IP of the master node
 K3S_NODEIP_MASTER="https://$(sudo /snap/bin/multipass info k3s-master | grep "IPv4" | awk -F' ' '{print $2}'):6443"
 # Get the TOKEN from the master node

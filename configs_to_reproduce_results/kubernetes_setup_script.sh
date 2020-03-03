@@ -1,3 +1,9 @@
+use_k3s_cluster=0
+if [ "$1" == "--use_k3s_cluster" ]; then
+  use_k3s_cluster=1
+fi
+echo "use_k3s_cluster $use_k3s_cluster"
+
 sudo apt-get update
 
 # This video will setup the Minikube Kubernetes environment, deploy a microservice application, and then collect some network activity data while simulating user traffic.
@@ -10,32 +16,38 @@ chmod +x ./kubectl
 sudo mv ./kubectl /usr/local/bin/kubectl
 kubectl version
 
-# The we'll install the VirtualBox Driver:
-# Following from here:: https://websiteforstudents.com/virtualbox-6-0-is-out-heres-how-to-install-upgrade-on-ubuntu-16-04-18-04-18-10/
-sudo apt-get install gcc make linux-headers-$(uname -r) dkms -y
-# ren-enable the folllowing if my new method does not work...
-#wget -q https://www.virtualbox.org/download/oracle_vbox_2016.asc -O- | sudo apt-key add -
-#wget -q https://www.virtualbox.org/download/oracle_vbox.asc -O- | sudo apt-key add -
-#sudo sh -c 'echo "deb http://download.virtualbox.org/virtualbox/debian $(lsb_release -sc) contrib" >> /etc/apt/sources.list.d/virtualbox.list'
-#sudo apt update
-#sudo apt-get install virtualbox-6.0 -y
-#### vboxmanage setproperty machinefolder /mydata/
-# try this...
-wget https://download.virtualbox.org/virtualbox/6.1.4/virtualbox-6.1_6.1.4-136177~Ubuntu~xenial_amd64.deb
-sudo dpkg -i virtualbox-6.1_6.1.4-136177~Ubuntu~xenial_amd64.deb
-sudo apt-get install libcurl3 libopus0 libsdl1.2debian -y
-sudo apt-get -f install -y
+if [ $use_k3s_cluster -eq 0 ]
+then
+  # The we'll install the VirtualBox Driver:
+  # Following from here:: https://websiteforstudents.com/virtualbox-6-0-is-out-heres-how-to-install-upgrade-on-ubuntu-16-04-18-04-18-10/
+  sudo apt-get install gcc make linux-headers-$(uname -r) dkms -y
+  # ren-enable the folllowing if my new method does not work...
+  #wget -q https://www.virtualbox.org/download/oracle_vbox_2016.asc -O- | sudo apt-key add -
+  #wget -q https://www.virtualbox.org/download/oracle_vbox.asc -O- | sudo apt-key add -
+  #sudo sh -c 'echo "deb http://download.virtualbox.org/virtualbox/debian $(lsb_release -sc) contrib" >> /etc/apt/sources.list.d/virtualbox.list'
+  #sudo apt update
+  #sudo apt-get install virtualbox-6.0 -y
+  #### vboxmanage setproperty machinefolder /mydata/
+  # try this...
+  wget https://download.virtualbox.org/virtualbox/6.1.4/virtualbox-6.1_6.1.4-136177~Ubuntu~xenial_amd64.deb
+  sudo dpkg -i virtualbox-6.1_6.1.4-136177~Ubuntu~xenial_amd64.deb
+  sudo apt-get install libcurl3 libopus0 libsdl1.2debian -y
+  sudo apt-get -f install -y
 
-# okay, onto the next step
-# First, we'll install and start Minikube
-curl -Lo minikube https://storage.googleapis.com/minikube/releases/v1.3.1/minikube-linux-amd64  && chmod +x minikube
-sudo cp minikube /usr/local/bin && rm minikube
+  # okay, onto the next step
+  # First, we'll install and start Minikube
+  curl -Lo minikube https://storage.googleapis.com/minikube/releases/v1.3.1/minikube-linux-amd64  && chmod +x minikube
+  sudo cp minikube /usr/local/bin && rm minikube
 
-sudo minikube start --vm-driver=virtualbox --cpus=12 --memory=32000 --disk-size 65g
+  sudo minikube start --vm-driver=virtualbox --cpus=12 --memory=32000 --disk-size 65g
 
-# and make sure to enable certain addons
-sudo minikube addons enable heapster
-sudo minikube addons enable metrics-server
+  # and make sure to enable certain addons
+  sudo minikube addons enable heapster
+  sudo minikube addons enable metrics-server
+else
+  echo ". ./install_k3s.sh"
+  . ./install_k3s.sh
+fi
 
 # Second, we'll install the experimental coordinator's dependencies.
 
@@ -49,7 +61,12 @@ sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubun
 sudo apt-get update
 sudo apt-get -y install docker-ce=17.06.0~ce-0~ubuntu
 
-eval $(sudo minikube docker-env)
+if [ $use_k3s_cluster -eq 0 ]
+then
+  eval $(sudo minikube docker-env)
+else
+  echo "TODO: set docker enviromental context to the k3s cluster explicitly (I think that this is needed...)"
+fi
 sudo docker pull nicolaka/netshoot
 
 ### then pip to handle the python dependencies
