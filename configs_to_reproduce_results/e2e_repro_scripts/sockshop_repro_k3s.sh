@@ -32,7 +32,7 @@ then
     bash ../configs_to_reproduce_results/kubernetes_setup_script.sh | tee kubernetes_setup.log;
   else
     echo "bash ../configs_to_reproduce_results/kubernetes_setup_script.sh --use_k3s_cluster"
-    bash ../configs_to_reproduce_results/kubernetes_setup_script.sh --use_k3s_cluster | tee kubernetes_setup.log;
+    . ../configs_to_reproduce_results/kubernetes_setup_script.sh --use_k3s_cluster | tee kubernetes_setup.log;
   fi
 
   sudo python -u run_experiment.py --use_k3s_cluster --no_exfil --prepare_app --config_file ../configs_to_reproduce_results/Data_Collection/Sockshop/Scale/sockshop_four_60_exp.json | tee sockshop_four_60.log;\

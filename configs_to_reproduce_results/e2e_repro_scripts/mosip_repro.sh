@@ -3,6 +3,8 @@
 ## THIS SHOULD be all that I need to do to get the Sockshop reproducibility thing going ##
 ## TODO: update for the new directory
 
+apt-get update
+
 if [ $# -gt 2 ]; then
   echo "too many args";
   exit 2;
@@ -20,8 +22,7 @@ then
 
   # use this method for deployment https://github.com/mosip/mosip-infra/tree/master/deployment/sandbox
   # note: this is all untested and will certainly fail...
-  git clone https://github.com/mosip/mosip-infra
-  sudo su
+  git clone https://github.com/mosip/mosip-infra || true
   # TODO: replace the vars...
   cd mosip-infra/deployment/sandbox/
   sudo sh install-mosip-kernel.sh
