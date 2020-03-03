@@ -342,6 +342,11 @@ def run_experiment(config_file_pth, only_retrieve, upload_data, only_process, ru
             # step 4: call the actual e2e script
             # if necessary, bypass pcap/data collection in the e2e script
             e2e_script_start_cmd = ". ../configs_to_reproduce_results/e2e_repro_scripts/" + e2e_script_to_follow
+            if use_k3s_cluster:
+                if 'k3s' not in e2e_script_to_follow:
+                    print "I don't think k3s works with that script... (k3s should be in the script name...)"
+                    exit(2)
+                e2e_script_start_cmd += ' --use_k3s_cluster'
             if upload_data and not only_process:
                 print "uploading_data...."
                 upload_data_to_remote_machine(sh, s, sftp, corresponding_local_directory)
@@ -401,8 +406,6 @@ if __name__=="__main__":
                         default=False, action='store_true',
                         help='Instead of retrieving all the data, only recover the multilooper directory (will still perform'
                              'other steps (e.g., data generation) unless the other appropriate flags are used)')
-
-
     parser.add_argument('--use_k3s_cluster', dest='use_k3s_cluster',
                         default=False, action='store_true',
                         help='Instead of using the minikube k8s cluster, use the k3s k8s cluster instead (in development ATM)')

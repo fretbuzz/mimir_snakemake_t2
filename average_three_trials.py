@@ -3,115 +3,68 @@ import json
 from remote_experiment_runner import run_experiment
 from analysis_pipeline.generate_paper_graphs import run_looper, generate_graphs, generate_secondary_cache_name
 import pickle
+import pandas as pd
+import os
 
 def get_eval_cm():
     pass
 
-def main(config_files):
-    #print "okay, here we go"
-    '''I was going to take a single remote_experiment_config file and then autogenerate the set for a trial... but this
-    is too much automation, without a good reason. You loose a lot of flexibility to save a teeny bit of time. So, I'm just
-    going to have it take a set of config files instead...'''
-    '''
-    base_config_file_core = base_config_file[-5:]
-    print "base_config_file_core", base_config_file_core
+def main(experimental_directories, avg_results_filename):
+    # step 1: find the result csvs
+    results_csvs = []
+    for experimental_directory in experimental_directories:
+        results_csv = find_result_csvs(experimental_directory)
+        results_csvs.append(results_csv)
 
-    with open(base_config_file, "r") as read_file:
-        base_config = json.load(read_file)
+    print "results_csvs", results_csvs
 
-    dir_with_trial_configs = "/".join( base_config_file.split('/')[:-1] ) + '/' + 'trials/'
-    base_corresponding_local_dir = base_config['corresponding_local_directory']
-    for counter, machine_ip in enumerate(machine_ips):
-        base_config['corresponding_local_directory']  = None # TODO TODO TODO TODO TODO
+    list_of_result_dataframes = []
+    sanity_check_alerts = []
+    for counter, result_csv in enumerate(results_csvs):
+        cur_df = pd.read_csv(result_csv)
+        alert = sanity_check_results(cur_df, experimental_directories[counter])
+        sanity_check_alerts.append(alert)
+        list_of_result_dataframes.append( cur_df )
 
-        # TODO: write this to file
-        # add something onto the end of dir_with_trial_configs and then just use the json capabilities to write it...
-    '''
+    # average the dataframes
+    avg_results = pd.concat(list_of_result_dataframes).groupby(level=0).mean()
 
-    # hhhhmmm... this whole file is a mess ATM... I need to reconsider what goes in here...
-    # step 1: parse the config file...
-    # step 2: get the eval_configs to results somehow... (just grab the csv from the results directory somehow...)
-        # ^^ probably doing this via a new function would be the easiest... using existing functions is just asking for
-        # really hard debugging....
-    ## Okay, I am more-or-less up to here now...
-    # step 3: take the avg of the corresponding values...
-    ### going to need to get this thing running and then use the debugger...
-    # step 4: make the new graphs.... (use generate_graphs and it should be fairly easy...)
+    # output the dataframes
+    avg_results.to_csv('overall_results/' + avg_results_filename + '.csv')
 
-    # okay, to solve this I first need to acquire the necessary data (probably using remote_experiment_runner)
-    # and then I can fill in (1) before proceeding to actually implement (3) and (4)....
+    print "##########"
+    for sanity_check_alert in sanity_check_alerts:
+        if sanity_check_alert:
+            print sanity_check_alert
 
-    list_eval_configs_to_xvals_and_cm = []
+def find_result_csvs(experimental_directory):
+    if experimental_directories[-1] != '/':
+        experimental_directory += '/'
 
-    for counter, config_file in enumerate(config_files):
-        corresponding_multi_experiment_config_file = None
-        with open(config_file, "r") as read_file:
-            config = json.load(read_file)
-            # corresponding_local_directory
-            #corresponding_local_directory = config['corresponding_local_directory']
-            corresponding_multi_experiment_config_file = None
-            # ^^ TODO need to get this file... I think this'll be in the overarching directory created by remote_experiment_runner.py
-            # ^^ to be more concrete, using corresponding_local_directory to find the overarching directory and then just
-            # look there and the only json file should be the one that I need
-        return_local_data_only_p = config['return_local_data_only']
+    experimental_directory += 'multilooper_outs/'
 
-        if not return_local_data_only_p:
-            pass # TODO: maybe hook into remote_experiment_runner here?
+    if os.path.isdir( experimental_directory + 'multilooper_outs/'):
+        experimental_directory += 'multilooper_outs/'
 
-        # okay, then I need to get the eval results somehow...  in line 207 in generate_paper_graphs.py, I put the
-        # eval results in an obvious place, so that they can be grabbed easily...
-        with open(corresponding_multi_experiment_config_file, 'r') as multi_exp_config_file:
-            multi_exp_config  = json.load(multi_exp_config)
-        model_config_file = multi_exp_config['model_config_file']
-        eval_configs_to_xvals = multi_exp_config['eval_configs_to_xvals']
-        exp_eval_cache_file = generate_secondary_cache_name(model_config_file)
-        with open(exp_eval_cache_file, 'r') as f:
-            evalconfigs_to_cm = pickle.loads(f.read())
-        list_eval_configs_to_xvals_and_cm.append( (eval_configs_to_xvals, evalconfigs_to_cm) )
+    results_cvs_file =experimental_directory + 'model_comparison.csv'
 
-    # todo: average all the evalconfigs_to_cm that have corresponding eval_configs_to_xvals
-    # (use the debugger, should be fairly easy if I have the data)
+    print "results_cvs_file", results_cvs_file
 
-    # todo: now call run_looper again,but with this new averaged DF...
-    # most of these values can be
-    # generate_graphs(eval_configs_to_xvals, exfil_rate, evalconfigs_to_cm, timegran, type_of_graph, graph_name, xlabel,
-    #                model_config_file, no_tsl, model_xval)
+    if not os.path.isfile( results_cvs_file ):
+        return None
 
+    print "results_cvs_file", results_cvs_file
+    return results_cvs_file
 
-        # okay,
-        ''' this was some old code, but I think I'm going to do a different implementation route now...
-        # todo: need multiprocess for multithreading... do I though? think more about this...
-        if not return_local_data_only_p:
-            run_experiment(config_file, only_retrieve=False) # if you want to use only_retrieve, call that func directly...
-
-        # TODO: okay, this next part is alot harder than I initially thought b/c the multi_experiment_config_file (or something
-        # like that) is embedded in the e2e script...
-        ## !!!! I need the remote looper to move the multi_experment_config_file into the outer part of the nested
-        # directory... that way I can grab it with the corresponding_local_directory attribute...]!!!
-        # put this up there ^^^
-        # (I'll also need to adjust the relative paths of some components in th  file)
-
-        # okay, once we get here, let's assume that generate_paper_graphs can grab the values from cache...
-        # todo: right here, we need to get the DFs for all the individual sets of exps... and then we wan to avg these results...
-        eval_configs_to_xvals, exfil_rate, evalconfigs_to_cm, model_config_file = \
-            run_looper(corresponding_multi_experiment_config_file, update_config=False, use_remote=False,
-                       only_finished_p=True, live_p=False)
-        # todo: accumulate the dfs somewhere...
-        list_eval_configs_to_xvals_and_cm.append( (eval_configs_to_xvals, evalconfigs_to_cm) )
-        '''
-    ''' this was some old code, but I think I'm going to do a different implementation route now...
-    # todo: now take the average of the DFs
-    ## TODO: okay, so what goes into this section??: well, we need to ensure that the values are
-    ### NOTE: realistically, I'm going to need the part above running smoothly and having it be easy to reach
-    # this part, so I can use the debugger to see what exactly is going on in the heavily-nested evalconfigs_to_cm
-
-
-    print "okay, more stuff to do here..."
-    '''
+def sanity_check_results(results_df, exp_name):
+    # TODO
+    return None
 
 if __name__=="__main__":
     print "RUNNING"
-    config_files = ['./remote_experiment_configs/trials/sockshop_scale_trial_1_rep1.json',
-                    './remote_experiment_configs/trials/sockshop_scale_trial_1_rep2.json',
-                    './remote_experiment_configs/trials/sockshop_scale_trial_1_rep3.json']
-    main(config_files)
+    experimental_directories = ['/Volumes/exM2/new_experimental_data/sockshop_scale_rep2',
+                                '/Volumes/exM2/new_experimental_data/sockshop_scale_rep3',
+                                '/Volumes/exM2/new_experimental_data/sockshop_scale_rep4']
+    avg_results_filename = 'sockshop_scale'
+
+    main(experimental_directories, avg_results_filename)

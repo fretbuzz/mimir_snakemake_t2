@@ -20,6 +20,8 @@ if [ "$1" == "--use_k3s_cluster" ]; then
   use_k3s_cluster=1
 fi
 
+echo "use_k3s_cluster $use_k3s_cluster"
+
 if [ $skip_pcap -eq 0 ]
 then
 
