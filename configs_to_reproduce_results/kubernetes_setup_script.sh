@@ -47,6 +47,7 @@ then
 else
   echo ". ../configs_to_reproduce_results/install_k3s.sh"
   . ../configs_to_reproduce_results/install_k3s.sh
+  export KUBECONFIG=${HOME}/.kube/k3s.yaml
 fi
 
 # Second, we'll install the experimental coordinator's dependencies.

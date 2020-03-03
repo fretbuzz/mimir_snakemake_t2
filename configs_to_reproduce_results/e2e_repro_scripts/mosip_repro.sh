@@ -23,10 +23,11 @@ then
   # use this method for deployment https://github.com/mosip/mosip-infra/tree/master/deployment/sandbox
   # note: this is all untested and will certainly fail...
   git clone https://github.com/mosip/mosip-infra || true
-  # TODO: replace the vars...
+  # TODO: replace the vars (in ansible var file)...
   cd mosip-infra/deployment/sandbox/
   sudo sh install-mosip-kernel.sh
   sleep 360
+  echo "about to start running pre-registration module..."
   sudo sh install-mosip-pre-reg.sh
   seep 720
 
