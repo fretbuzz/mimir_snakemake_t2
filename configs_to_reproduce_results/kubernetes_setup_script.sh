@@ -45,8 +45,8 @@ then
   sudo minikube addons enable heapster
   sudo minikube addons enable metrics-server
 else
-  echo ". ./install_k3s.sh"
-  . ./install_k3s.sh
+  echo ". ../configs_to_reproduce_results/install_k3s.sh"
+  . ../configs_to_reproduce_results/install_k3s.sh
 fi
 
 # Second, we'll install the experimental coordinator's dependencies.
