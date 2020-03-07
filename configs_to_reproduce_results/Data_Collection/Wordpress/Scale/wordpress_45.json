@@ -18,7 +18,7 @@
     "Deployment" : {
       "deployment_scaling" :
         {
-          "wordpress": {"min": 10, "max": 23},
+          "wordpress": {"min": 10, "max": 21},
           "pxc" : 7
         },
       "autoscale_p": true,

@@ -47,7 +47,8 @@ class exfil_detection_model():
         ###### # this list controls which individual models are calculated
         self.types_of_models = ['boosting_logisitic', 'boosting_regressor_default', 'boosting_classifier_default',
                                 'histo_boost_regressor', 'histo_boost_classifer',
-                                'boosting_lasso', 'lasso', 'logistic', 'logistic_ide',  'persvc_boosting']
+                                'boosting_lasso', 'lasso', 'logistic', 'logistic_ide',  'persvc_boosting',
+                                'cilium']
         ######
 
         for timegran, feature_df in self.time_gran_to_aggregate_mod_score_dfs.iteritems():
@@ -123,8 +124,8 @@ class exfil_detection_model():
                     timegran_to_alerts[timegran] = tuple(training_alerts)
 
                     self.type_of_model_to_time_gran_to_cm[type_of_model][timegran] =  \
-                        generate_confusion_matrices(self.Ys[timegran][0], 0.5, self.Xs[timegran][0]['exfil_path'],
-                                                    self.Xs[timegran][0]['exfil_weight'].tolist())
+                        generate_confusion_matrices(self.Ys[timegran][0], training_alerts, self.Xs[timegran][0]['exfil_path'],
+                                                    self.Xs[timegran][0]['exfil_weight'])
 
                     # step 1: self.trained_models[type_of_model][timegran] is just the list of alerts here...
                         # also set timegran_to_alerts[timegran] too...
@@ -156,8 +157,10 @@ class exfil_detection_model():
                         tuple(self.type_of_model_to_time_gran_to_predicted_train[type_of_model][largest_timegran])
 
                     self.type_of_model_to_time_gran_to_cm[type_of_model][ensemble_timegran] = \
-                        generate_confusion_matrices(self.Ys[largest_timegran][0], 0.5, self.Xs[largest_timegran][0]['exfil_path'],
-                                                    self.Xs[largest_timegran][0]['exfil_weight'].tolist())
+                        generate_confusion_matrices(self.Ys[largest_timegran][0],
+                                                    self.type_of_model_to_time_gran_to_predicted_train[type_of_model][ensemble_timegran],
+                                                    self.Xs[largest_timegran][0]['exfil_path'],
+                                                    self.Xs[largest_timegran][0]['exfil_weight'])
 
                 else:
                     # now need to combine the alerts at different time granularities
@@ -243,9 +246,15 @@ class exfil_detection_model():
                         training_alerts, test_alerts = self.cil_training_alerts[timegran], self.cil_test_alerts[timegran]
                         timegran_to_alerts[timegran] = tuple(test_alerts)
 
+                        print "timegran", timegran
+                        print "self.Yts", self.Yts
+                        print "self.Yts[timegran][0]", self.Yts[timegran][0]
+                        print "self.Xts[timegran][0]['exfil_path']",self.Xts[timegran][0]['exfil_path']
+                        print "self.Xts[timegran][0]['exfil_weight']", self.Xts[timegran][0]['exfil_weight']
+
                         self.type_of_model_to_time_gran_to_cm[type_of_model][timegran] = \
-                            generate_confusion_matrices(self.Yts[timegran][0], 0.5, self.Xts[timegran][0]['exfil_path'],
-                                                        self.Xts[timegran][0]['exfil_weight'].tolist())
+                            generate_confusion_matrices(self.Yts[timegran][0], test_alerts, self.Xts[timegran][0]['exfil_path'],
+                                                        self.Xts[timegran][0]['exfil_weight'])
 
                     else:
                         this_model_exists = True
@@ -287,14 +296,16 @@ class exfil_detection_model():
 
                 if type_of_model == 'cilium':
                     largest_timegran = max(self.Xts.keys())
-                    self.type_of_model_to_time_gran_to_predicted_train[type_of_model][ensemble_timegran] = \
-                        tuple(self.type_of_model_to_time_gran_to_predicted_train[type_of_model][largest_timegran])
+                    self.type_of_model_to_time_gran_to_predicted_test[type_of_model][ensemble_timegran] = \
+                        tuple(self.type_of_model_to_time_gran_to_predicted_test[type_of_model][largest_timegran])
                     self.trained_models[type_of_model][ensemble_timegran] = \
-                        tuple(self.type_of_model_to_time_gran_to_predicted_train[type_of_model][largest_timegran])
+                        tuple(self.type_of_model_to_time_gran_to_predicted_test[type_of_model][largest_timegran])
 
                     self.type_of_model_to_time_gran_to_cm[type_of_model][largest_timegran] = \
-                        generate_confusion_matrices(self.Yts[largest_timegran][0], 0.5, self.Xts[largest_timegran][0]['exfil_path'],
-                                                    self.Xts[largest_timegran][0]['exfil_weight'].tolist())
+                        generate_confusion_matrices(self.Yts[largest_timegran][0],
+                                                    self.type_of_model_to_time_gran_to_predicted_test[type_of_model][ensemble_timegran],
+                                                    self.Xts[largest_timegran][0]['exfil_path'],
+                                                    self.Xts[largest_timegran][0]['exfil_weight'])
                 else:
                     #print "type_of_model", type_of_model, "type_of_model_index", type_of_model_index, "type_of_model", type_of_model, \
                     #        "self.Xts.keys()",  self.Xts.keys()
@@ -1078,9 +1089,13 @@ def get_lin_mod_coef_dict(clf, X_train_columns, X_train_dtypes, sanity_check_num
     #print "coef_dict"
     return coef_dict
 
-def generate_confusion_matrices(Y, y_optimal_thresholded, exfil_paths, exfil_weights):
+def generate_confusion_matrices(Y, y_optimal_thresholded, exfil_paths, exfil_weights, optimal_thresh=None):
     y = Y['labels'].tolist()
     # print "y_train", y_train
+
+    print "len(y_optimal_thresholded)", len(y_optimal_thresholded)
+    print "len(exfil_paths)", len(exfil_paths)
+
     attack_type_to_predictions, attack_type_to_truth, attack_type_to_weights = \
         process_roc.determine_categorical_labels(y, y_optimal_thresholded, exfil_paths,
                                                  exfil_weights.tolist())
