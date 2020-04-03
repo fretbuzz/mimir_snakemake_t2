@@ -10,7 +10,8 @@ from statistical_analysis import construct_ROC_curve, drop_useless_columns_testT
 import numpy as np
 import copy
 import time
-from sklearn.ensemble import AdaBoostRegressor
+from sklearn.ensemble import AdaBoostRegressor, AdaBoostClassifier, AdaBoostClassifier, AdaBoostRegressor, \
+    RandomForestClassifier, ExtraTreesClassifier, RandomTreesEmbedding, BaggingClassifier
 
 # FOR A PARTICUALR EXFIL RATE (implicitly, because that determines the input data...)
 class exfil_detection_model():
@@ -43,12 +44,14 @@ class exfil_detection_model():
         self.type_of_model_to_time_gran_to_predicted_test = {} # rate_to_time_gran_to_predicted_test
         self.model_to_tg_report_sections = {}
         self.cil_training_alerts, self.cil_test_alerts = {}, {}
+        self.time_gran_to_cilium_alerts_train = {}
 
         ###### # this list controls which individual models are calculated
         self.types_of_models = ['boosting_logisitic', 'boosting_regressor_default', 'boosting_classifier_default',
-                                'histo_boost_regressor', 'histo_boost_classifer',
                                 'boosting_lasso', 'lasso', 'logistic', 'logistic_ide',  'persvc_boosting',
-                                'cilium']
+                                'cilium', 'bagging_classifier', 'extra_trees_classifier',
+                                'ensemble_random_forest', 'boosting_logistic']
+
         ######
 
         for timegran, feature_df in self.time_gran_to_aggregate_mod_score_dfs.iteritems():
@@ -82,7 +85,7 @@ class exfil_detection_model():
     def train_pergran_models(self):
         # first, let's feed the correct values into the single_timegran_exfil_model instances...
         # TODO
-
+        #self.time_gran_to_cilium_alerts_train = time_gran_to_cilium_alerts_train
 
         for type_of_model in self.types_of_models:
             self.type_of_model_to_time_gran_to_cm[type_of_model] = {}
@@ -92,8 +95,13 @@ class exfil_detection_model():
 
             for timegran in self.Xs.keys():
                 # this if-block exists b/c not all the model types are implemented...
-                self.cil_training_alerts[timegran], self.cil_test_alerts[timegran] = get_cilium_values(self.Xs[timegran], self.Xts[timegran])
-                if type_of_model in ['lasso', 'logistic', 'logistic_ide', 'boosting_lasso']: #, 'boosting lasso', 'boosting logisitic']:
+                print 'gggg', self.Xs[timegran][0].columns.values
+                #self.cil_training_alerts[timegran], self.cil_test_alerts[timegran] = get_cilium_values(rate_to_time_gran_to_cilium_alerts_train, [])
+
+                if type_of_model in ['lasso', 'logistic', 'logistic_ide', 'boosting_lasso', 'boosting_classifier_default',
+                                     'bagging_classifier', 'random_tree_embedding', 'extra_trees_classifier', 'ensemble_random_forest',
+                                     'stacking_classifier_default', 'histo_boost_classifer', 'histo_boost_regressor',
+                                     'boosting_regressor_default', 'boosting_logistic']: #, 'boosting lasso', 'boosting logisitic']:
                     print "current_type_of_model", type_of_model
 
                     this_model_exists = True
@@ -117,8 +125,11 @@ class exfil_detection_model():
                     timegran_to_alerts[timegran] = self.trained_models[type_of_model][timegran].y_optimal_thresholded
 
                 elif type_of_model == 'cilium':
+                    pass
+                    ''' # not going to implement for training b/c it is a lot of work for little benefit
                     this_model_exists = True
                     training_alerts, testing_alerts =  self.cil_training_alerts[timegran], self.cil_test_alerts[timegran]
+                    print "--cil_training_alerts--", training_alerts, '|||', testing_alerts
 
                     self.trained_models[type_of_model][timegran] = tuple(training_alerts)
                     timegran_to_alerts[timegran] = tuple(training_alerts)
@@ -126,6 +137,7 @@ class exfil_detection_model():
                     self.type_of_model_to_time_gran_to_cm[type_of_model][timegran] =  \
                         generate_confusion_matrices(self.Ys[timegran][0], training_alerts, self.Xs[timegran][0]['exfil_path'],
                                                     self.Xs[timegran][0]['exfil_weight'])
+                    '''
 
                     # step 1: self.trained_models[type_of_model][timegran] is just the list of alerts here...
                         # also set timegran_to_alerts[timegran] too...
@@ -150,6 +162,8 @@ class exfil_detection_model():
                 ensemble_timegran = '(' + ','.join([str(i) for i in self.Xts.keys()]) + ')'
 
                 if type_of_model == 'cilium':
+                    pass
+                    ''' # not implementing cilium for training data
                     largest_timegran = max(self.Xts.keys())
                     self.type_of_model_to_time_gran_to_predicted_train[type_of_model][ensemble_timegran] = \
                         tuple(self.type_of_model_to_time_gran_to_predicted_train[type_of_model][largest_timegran])
@@ -161,7 +175,7 @@ class exfil_detection_model():
                                                     self.type_of_model_to_time_gran_to_predicted_train[type_of_model][ensemble_timegran],
                                                     self.Xs[largest_timegran][0]['exfil_path'],
                                                     self.Xs[largest_timegran][0]['exfil_weight'])
-
+                    '''
                 else:
                     # now need to combine the alerts at different time granularities
 
@@ -207,7 +221,7 @@ class exfil_detection_model():
                     #print " self.trained_models[type_of_model][timegran]",  self.trained_models[type_of_model][timegran]
 
     def apply_to_new_data(self, time_gran_to_aggregate_mod_score_df, cur_base_output_name, recipes_used, avg_exfil_per_min,
-                          avg_pkt_size, exfil_per_min_variance, pkt_size_variance):
+                          avg_pkt_size, exfil_per_min_variance, pkt_size_variance, time_gran_to_cilium_alerts_test):
 
         self.base_output_name = cur_base_output_name
         self.recipes_used = recipes_used
@@ -236,12 +250,14 @@ class exfil_detection_model():
             this_model_exists = False
 
             for timegran in self.Xts.keys():
-                _, self.cil_test_alerts[timegran] = get_cilium_values(self.Xs[timegran], self.Xts[timegran])
+                _, self.cil_test_alerts[timegran] = get_cilium_values([], time_gran_to_cilium_alerts_test)
                 if type(self.trained_models[type_of_model][timegran]) != list:
 
                     print "current_type_of_model: ", type_of_model
 
                     if type_of_model == 'cilium':
+                        print "QUICKSILVER_WAS_HERE"
+                        print self.Xts[timegran].columns.values
                         this_model_exists = True
                         training_alerts, test_alerts = self.cil_training_alerts[timegran], self.cil_test_alerts[timegran]
                         timegran_to_alerts[timegran] = tuple(test_alerts)
@@ -477,34 +493,60 @@ class single_timegran_exfil_model():
     def train(self):
         if 'boosting_lasso' in self.model_to_fit:
             #pass
-            self.clf = AdaBoostRegressor(base_estimator=sklearn.linear_model.LassoCV(cv=5, max_iter=80000),
-                                                           n_estimators=10, learning_rate=1.0, random_state=None)
+            self.clf = AdaBoostRegressor(base_estimator=sklearn.linear_model.LassoCV(cv=5, max_iter=80000))
 
         elif 'boosting_logistic' in self.model_to_fit:
-            pass # TODO
-            #self.clf = sklearn.ensemble.AdaBoostClassifier(
-            #    base_estimator=sklearn.linear_model.LogisticRegressionCV(),
-            #    n_estimators=10, learning_rate=1.0, algorithm='SAMME.R', random_state=None)
+            # enable
+            self.clf = AdaBoostClassifier(base_estimator=sklearn.linear_model.LogisticRegression())
 
         elif 'boosting_regressor_default' in self.model_to_fit:
-            pass # TODO
+            # enable.
+            self.clf =  AdaBoostRegressor()
 
         elif 'boosting_classifier_default' in self.model_to_fit:
-            pass # TODO
+            self.clf = AdaBoostClassifier()
 
         elif 'histo_boost_regressor' in self.model_to_fit:
-            pass # TODO
+            # is an experimental model or something like that
+            pass
+            #self.clf = HistGradientBoostingRegressor()
 
         elif 'histo_boost_classifer' in self.model_to_fit:
-            pass # TODO
+            # is an experimental model or something like that
+            pass
+            #self.clf = HistGradientBoostingClassifier()
 
         elif 'lasso' in self.model_to_fit:
-            self.clf = sklearn.linear_model.LassoCV(cv=5, max_iter=80000) ## putting positive here makes it works.
+            self.clf = sklearn.linear_model.LassoCV(cv=5, max_iter=80000)
 
         elif 'logistic' in self.model_to_fit:
-            self.clf = sklearn.linear_model.LogisticRegressionCV()  ## putting positive here makes it works.
+            self.clf = sklearn.linear_model.LogisticRegressionCV()
 
+        elif 'stacking_classifier_default' in self.model_to_fit:
+            # is an experimental model or something like that
+            pass
+            #self.clf = StackingClassifier()
 
+        elif 'ensemble_random_forest' in self.model_to_fit:
+            # enable
+            self.clf = RandomForestClassifier()
+
+        elif 'extra_trees_classifier' in self.model_to_fit:
+            # enable
+            self.clf =  ExtraTreesClassifier()
+
+        elif 'random_tree_embedding' in self.model_to_fit:
+            # I think this is dimensionality reduction...
+            # self.clf = RandomTreesEmbedding()
+            pass
+
+        elif 'bagging_classifier' in self.model_to_fit:
+            # enable
+            self.clf = BaggingClassifier()
+
+        #elif 'voting_classifier_default' in self.model_to_fit:
+        #    # enable
+        #    self.clf = sklearn.ensemble.VotingClassifier()
 
         #print "self.X has NaN's here: ", np.where(np.isnan(self.X))
         #print "self.X has Inf's here: ", np.where(np.isinf(self.X))
@@ -1065,10 +1107,16 @@ def get_lin_mod_coef_dict(clf, X_train_columns, X_train_dtypes, sanity_check_num
     #print '----------------------'
     #print "len(clf.coef_)", len(clf.coef_), "len(X_train_columns)", len(X_train_columns)
 
+    is_linear = True
     if 'logistic' in model_type:
         model_coefs = clf.coef_[0]
     else:
-        model_coefs = clf.coef_
+        try:
+            model_coefs = clf.coef_
+        except:
+            sanity_check_number_coefs = False
+            is_linear = False
+            model_coefs = []
 
     if sanity_check_number_coefs:
         if len(model_coefs) != (len(X_train_columns)):  # there is no plus one b/c the intercept is stored in clf.intercept_
@@ -1078,9 +1126,12 @@ def get_lin_mod_coef_dict(clf, X_train_columns, X_train_dtypes, sanity_check_num
                 print model_coefs  # [counter]
                 print len(model_coefs)
 
-    for coef, feat in zip(model_coefs, X_train_columns):
-        coef_dict[feat] = coef
-    coef_dict['intercept'] = float(clf.intercept_)
+    if is_linear:
+        for coef, feat in zip(model_coefs, X_train_columns):
+            coef_dict[feat] = coef
+        coef_dict['intercept'] = float(clf.intercept_)
+    else:
+        coef_dict['nonsense_placeholder_value'] = 0
 
     #print "COEFS_HERE"
     #for coef, feature in coef_dict.iteritems():

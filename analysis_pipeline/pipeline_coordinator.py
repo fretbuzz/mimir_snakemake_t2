@@ -200,6 +200,7 @@ class multi_experiment_pipeline(object):
                 rate_to_list_time_gran_to_mod_zscore_df_training = manager.dict()
                 rate_to_list_time_gran_to_mod_zscore_df_testing = manager.dict()
                 rate_to_starts_of_testing, rate_to_cilium_allowed_svc_comm = manager.dict(), manager.dict()
+                rate_to_time_gran_to_cilium_alerts = manager.dict()
 
                 jobs = []
                 for rate_counter in range(0, len(self.avg_exfil_per_min)):
@@ -227,7 +228,8 @@ class multi_experiment_pipeline(object):
                             rate_to_list_time_gran_to_feature_dataframe,
                             rate_to_list_time_gran_to_mod_zscore_df_training,
                             rate_to_list_time_gran_to_mod_zscore_df_testing,
-                            rate_to_starts_of_testing, rate_to_cilium_allowed_svc_comm)
+                            rate_to_starts_of_testing, rate_to_cilium_allowed_svc_comm,
+                            rate_to_time_gran_to_cilium_alerts)
                     p = multiprocessing.Process(
                         target=inject_comm_graphs_at_single_exfil_rate,
                         args=args)
@@ -270,7 +272,8 @@ class multi_experiment_pipeline(object):
                                                                      self.avg_exfil_per_min[rate_counter],
                                                                      self.avg_pkt_size[rate_counter],
                                                                      self.exfil_per_min_variance[rate_counter],
-                                                                     self.pkt_size_variance[rate_counter] )
+                                                                     self.pkt_size_variance[rate_counter],
+                                                                     rate_to_time_gran_to_cilium_alerts[cur_avg_exfil_per_min])
 
                         self.rate_to_persvc_model[cur_avg_exfil_per_min] = persvc_ensemble_model_cur
                         self.rate_to_type_of_model_to_time_gran_to_predicted_test[cur_avg_exfil_per_min] = \
@@ -285,7 +288,7 @@ class multi_experiment_pipeline(object):
             if not self.pretrained_min_pipeline:
 
                 # TODO: put new ensemble model here (it'll call a new member function...)
-                persvc_ensemble_model = self.train_persvc_ensemble_model()
+                persvc_ensemble_model = self.train_persvc_ensemble_model(rate_to_time_gran_to_cilium_alerts)
                 with open(self.where_to_save_persvc_ensemble_model, 'w') as f:
                     pickle.dump(persvc_ensemble_model, f)
 
@@ -474,7 +477,7 @@ class multi_experiment_pipeline(object):
         self.rate_to_time_gran_to_predicted_test[cur_exfil_rate] = stats_pipelines.time_gran_to_predicted_test
 
 
-    def train_persvc_ensemble_model(self):
+    def train_persvc_ensemble_model(self, rate_to_time_gran_to_cilium_alerts):
         print "starting train_persvc_ensemble_model"
 
 
@@ -655,7 +658,8 @@ def inject_comm_graphs_at_single_exfil_rate(rate_counter, avg_exfil_per_min, exf
                                             rate_to_list_time_gran_to_feature_dataframe,
                                             rate_to_list_time_gran_to_mod_zscore_df_training,
                                             rate_to_list_time_gran_to_mod_zscore_df_testing,
-                                            rate_to_starts_of_testing, rate_to_cilium_allowed_svc_comm):
+                                            rate_to_starts_of_testing, rate_to_cilium_allowed_svc_comm,
+                                            rate_to_time_gran_to_cilium_alerts):
     ## okay, how about we make this a new function??
     prefix_for_inject_params = 'avg_exfil_' + str(avg_exfil_per_min[rate_counter]) + ':' + str(
         exfil_per_min_variance[rate_counter]) + '_'  # +  '_avg_pkt_' + str(self.avg_pkt_size[rate_counter]) + ':' + str(
@@ -696,6 +700,7 @@ def inject_comm_graphs_at_single_exfil_rate(rate_counter, avg_exfil_per_min, exf
     rate_to_list_time_gran_to_mod_zscore_df_testing[exfil_rate] = out_q.get()
     rate_to_starts_of_testing[exfil_rate] = out_q.get()
     rate_to_cilium_allowed_svc_comm[exfil_rate] = out_q.get()
+    rate_to_time_gran_to_cilium_alerts[exfil_rate] = out_q.get()
     rate_to_cur_base_output_name[exfil_rate] = cur_base_output_name
 
     #print "rate_to_list_time_gran_to_mod_zscore_df_at_end", rate_to_list_time_gran_to_mod_zscore_df
@@ -717,6 +722,7 @@ def pipeline_one_exfil_rate(rate_counter, base_output_name, function_list, exps_
     list_time_gran_to_mod_zscore_df_testing = []
     list_time_gran_to_zscore_dataframe = []
     list_time_gran_to_feature_dataframe = []
+    list_to_time_gran_to_cilium_alerts = []
     starts_of_testing = []
 
     cilium_allowed_svc_comm = None
@@ -759,6 +765,7 @@ def pipeline_one_exfil_rate(rate_counter, base_output_name, function_list, exps_
             time_gran_to_cilium_alerts = experiment_object.calc_cilium_performance(avg_exfil_per_min[rate_counter],
                     exfil_per_min_variance[rate_counter], avg_pkt_size[rate_counter], pkt_size_variance[rate_counter],
                     pretrained_svcpair_model)
+            list_to_time_gran_to_cilium_alerts.append(time_gran_to_cilium_alerts)
             # okay, so now I probably need to do something with these alerts...
             # and then actually do something with all of this stuff...
             #print 'at rate', avg_exfil_per_min[rate_counter], "cilium_performance", time_gran_to_cilium_alerts
@@ -789,6 +796,7 @@ def pipeline_one_exfil_rate(rate_counter, base_output_name, function_list, exps_
     out_q.put(list_time_gran_to_mod_zscore_df_testing)
     out_q.put(starts_of_testing)
     out_q.put(cilium_allowed_svc_comm)
+    out_q.put(list_to_time_gran_to_cilium_alerts)
 
 
 def determine_and_assign_exfil_paths(calc_vals, skip_model_part, function_list, goal_train_test_split,

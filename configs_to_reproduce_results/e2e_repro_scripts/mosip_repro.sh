@@ -24,6 +24,23 @@ then
   # note: this is all untested and will certainly fail...
   git clone https://github.com/mosip/mosip-infra || true
   # TODO: replace the vars (in ansible var file)...
+  # use this as a basis: sed -i ?? mosip-infra/deployment/sandbox/playbooks-properties/all-playbooks.properties
+  sed -i "s/mosip.kernel.sms.gateway=<ToBeReplaced>/mosip.kernel.sms.gateway=nonsenseValue/" mosip-infra/deployment/sandbox/playbooks-properties/all-playbooks.properties
+  sed -i "s/mosip.kernel.sms.api=<ToBeReplaced>/mosip.kernel.sms.api=nonsenseValue/" mosip-infra/deployment/sandbox/playbooks-properties/all-playbooks.properties
+  sed -i "s/mosip.kernel.sms.username=<ToBeReplaced>/mosip.kernel.sms.username=nonsenseValue/" mosip-infra/deployment/sandbox/playbooks-properties/all-playbooks.properties
+  sed -i "s/mosip.kernel.sms.password=<ToBeReplaced>/mosip.kernel.sms.password=nonsenseValue/" mosip-infra/deployment/sandbox/playbooks-properties/all-playbooks.properties
+  sed -i "s/mosip.kernel.sms.sender=<ToBeReplaced>/mosip.kernel.sms.sender=nonsenseValue/" mosip-infra/deployment/sandbox/playbooks-properties/all-playbooks.properties
+
+  hostIp=$(curl ifconfig.me)
+  # TODO: also replace the values related to the mail server... try using a fake mail server, like here:
+  # https://serverfault.com/questions/207619/how-to-setup-a-fake-smtp-server-to-catch-all-mails
+
+  sudo python -m smtpd -n -c DebuggingServer localhost:25 &
+  sed -i "s/spring.mail.username=<ToBeReplaced>/spring.mail.username=nonsenseValue/" mosip-infra/deployment/sandbox/playbooks-properties/all-playbooks.properties
+  sed -i "s/spring.mail.password=<ToBeReplaced>/spring.mail.password=nonsenseValue/" mosip-infra/deployment/sandbox/playbooks-properties/all-playbooks.properties
+  sed -i "s/spring.mail.host=<ToBeReplaced>/spring.mail.host=127.0.0.1" mosip-infra/deployment/sandbox/playbooks-properties/all-playbooks.properties
+  sed -i "s/spring.mail.port=<ToBeReplaced>/spring.mail.port=25" mosip-infra/deployment/sandbox/playbooks-properties/all-playbooks.properties
+
   cd mosip-infra/deployment/sandbox/
   sudo sh install-mosip-kernel.sh
   sleep 360
