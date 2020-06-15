@@ -21,4 +21,6 @@ then
   # this should be applicable to everyone...
   bash ../configs_to_reproduce_results/kubernetes_setup_script.sh | tee kubernetes_setup.log;
 
-  sudo python -u run_experiment.py --no_exfil --prepare_app --config_file ../configs_to_reproduce_results/Data_Collection/Sockshop/Scale/sockshop_four_60_exp_small_scale.json | tee sockshop_four_60_exp_small_scale.log;\
+  sudo python -u run_experiment.py --no_exfil --prepare_app --config_file ../configs_to_reproduce_results/Data_Collection/Sockshop/Scale/sockshop_four_60_exp_small_scale.json | tee sockshop_four_60_exp_small_scale.log;
+
+fi
