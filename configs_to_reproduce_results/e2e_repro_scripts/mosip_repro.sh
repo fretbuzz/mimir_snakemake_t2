@@ -22,7 +22,7 @@ then
 
   # use this method for deployment https://github.com/mosip/mosip-infra/tree/master/deployment/sandbox
   # note: this is all untested and will certainly fail...
-  git clone https://github.com/mosip/mosip-infra || true
+  git clone https://github.com/mosip/mosip-infra.git || true
   # TODO: replace the vars (in ansible var file)...
   # use this as a basis: sed -i ?? mosip-infra/deployment/sandbox/playbooks-properties/all-playbooks.properties
   sed -i "s/mosip.kernel.sms.gateway=<ToBeReplaced>/mosip.kernel.sms.gateway=nonsenseValue/" mosip-infra/deployment/sandbox/playbooks-properties/all-playbooks.properties
@@ -38,11 +38,14 @@ then
   sudo python -m smtpd -n -c DebuggingServer localhost:25 &
   sed -i "s/spring.mail.username=<ToBeReplaced>/spring.mail.username=nonsenseValue/" mosip-infra/deployment/sandbox/playbooks-properties/all-playbooks.properties
   sed -i "s/spring.mail.password=<ToBeReplaced>/spring.mail.password=nonsenseValue/" mosip-infra/deployment/sandbox/playbooks-properties/all-playbooks.properties
-  sed -i "s/spring.mail.host=<ToBeReplaced>/spring.mail.host=127.0.0.1" mosip-infra/deployment/sandbox/playbooks-properties/all-playbooks.properties
-  sed -i "s/spring.mail.port=<ToBeReplaced>/spring.mail.port=25" mosip-infra/deployment/sandbox/playbooks-properties/all-playbooks.properties
+  sed -i "s/spring.mail.host=<ToBeReplaced>/spring.mail.host=127.0.0.1/" mosip-infra/deployment/sandbox/playbooks-properties/all-playbooks.properties
+  sed -i "s/spring.mail.port=<ToBeReplaced>/spring.mail.port=25/" mosip-infra/deployment/sandbox/playbooks-properties/all-playbooks.properties
 
   cd mosip-infra/deployment/sandbox/
-  sudo sh install-mosip-kernel.sh
+  sudo apt-get update
+  sed -i 's/mosip-sandbox-kernel-launcher.yml/mosip-sandbox-kernel-launcher.yml -vvv/'  install-mosip-kernel.sh
+
+  sudo sh install-mosip-kernel.sh | tee install-mosip-kernel-logs.log
   sleep 360
   echo "about to start running pre-registration module..."
   sudo sh install-mosip-pre-reg.sh
