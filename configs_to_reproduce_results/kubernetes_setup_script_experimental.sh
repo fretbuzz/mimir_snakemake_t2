@@ -44,14 +44,6 @@ then
   # and make sure to enable certain addons
   sudo minikube addons enable heapster
   sudo minikube addons enable metrics-server
-
-  curl -L https://istio.io/downloadIstio | sh -
-  sudo istio-1.6.2/bin/istioctl install --set profile=demo
-  sudo kubectl label namespace default istio-injection=enabled
-  git clone https://github.com/microservices-demo/microservices-demo.git
-  kubectl create -f ./sockshop_setup/sock-shop-ns.yaml
-  sudo kubectl label namespace sock-shop istio-injection=enabled
-
 else
   echo ". ../configs_to_reproduce_results/install_k3s.sh"
   . ../configs_to_reproduce_results/install_k3s.sh
