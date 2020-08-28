@@ -174,7 +174,7 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
         print out
         if prepare_app_p:
             prepare_app(app_name, setup_params,  spec_port, spec_ip, config_params["Deployment"], exfil_paths,
-                        class_to_installer, exfil_path_class_to_image)
+                        class_to_installer, exfil_path_class_to_image, use_k3s_cluster)
         ip,port = get_ip_and_port(app_name)
         print "ip,port",ip,port
 
@@ -228,14 +228,15 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
                                                               number_reps_workload_pattern))
 
         # step (4) setup testing infrastructure (i.e. tcpdump)
-        for network_id, network_namespace in network_ids_to_namespaces.iteritems():
-            current_network = client.networks.get(network_id)
-            current_network_name = current_network.name
-            interfaces = ['any']  # in kubernetes this is easy
-            filename = experiment_name + '_' + current_network_name + '_'
-            for interface in interfaces:
-                thread.start_new_thread(start_tcpdump, (interface, network_namespace, str(int(experiment_length)),
-                                                    filename + interface + '.pcap', orchestrator, sentinal_file_loc))
+        if not use_k3s_cluster:
+            for network_id, network_namespace in network_ids_to_namespaces.iteritems():
+                current_network = client.networks.get(network_id)
+                current_network_name = current_network.name
+                interfaces = ['any']  # in kubernetes this is easy
+                filename = experiment_name + '_' + current_network_name + '_'
+                for interface in interfaces:
+                    thread.start_new_thread(start_tcpdump, (interface, network_namespace, str(int(experiment_length)),
+                                                        filename + interface + '.pcap', orchestrator, sentinal_file_loc))
 
         # step (6) start data exfiltration at the relevant time
         if exfil_p:
@@ -400,7 +401,7 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
     filename = experiment_name + '_' + 'bridge' + '_' # note: will need to redo this if I want to go
                                                       # back to using Docker Swarm at some point
     pcap_filename = filename + 'any' + '.pcap'
-    if not post_process_only:
+    if not post_process_only and not use_k3s_cluster:
         recover_pcap(orchestrator, pcap_filename)
         print "pcap recovered!"
 
@@ -569,7 +570,7 @@ def start_det_exfil_originator(exfil_paths, exfil_counter, originator_class, sel
         print "that exfiltration method was not recognized!"
 
 def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_config, exfil_paths, class_to_installer,
-                exfil_path_class_to_image):
+                exfil_path_class_to_image, use_k3s_cluster):
 
     if app_name == "sockshop":
         #sockshop_setup.scale_sockshop.main(deployment_config['deployment_scaling'], deployment_config['autoscale_p'])
@@ -634,6 +635,7 @@ def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_co
         wordpress_setup.scale_wordpress.scale_wordpress(autoscale_p, cpu_percent_cuttoff, deployment_scaling)
 
         time.sleep(420) # note: may need to increase this...
+
         if spec_port or spec_ip:
             ip,port=spec_port, spec_ip
         else:
@@ -648,12 +650,13 @@ def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_co
     elif app_name == "hipsterStore":
         # TODO: make sure this part works with k3s...
         # clone the github repo b/c we're going to use their load generator
-        heapstr_str = ["minikube", "addons", "enable", "heapster"]
-        out = subprocess.check_output(heapstr_str)
-        print "heapstr_str_response ", out
-        metrics_server_str= ["minikube", "addons", "enable", "metrics-server"]
-        out = subprocess.check_output(metrics_server_str)
-        print "metrics_server_str_response ", out
+        if not use_k3s_cluster:
+            heapstr_str = ["minikube", "addons", "enable", "heapster"]
+            out = subprocess.check_output(heapstr_str)
+            print "heapstr_str_response ", out
+            metrics_server_str= ["minikube", "addons", "enable", "metrics-server"]
+            out = subprocess.check_output(metrics_server_str)
+            print "metrics_server_str_response ", out
 
         wordpress_setup.kubernetes_setup_functions.wait_until_pods_done("kube-system")
         out = subprocess.check_output(['bash', 'hipsterStore_setup/deploy_hipsterStore.sh'])
@@ -1768,12 +1771,6 @@ def setup_directories(exp_name):
     os.makedirs('./experimental_data/'+exp_name+'/alerts')
     os.makedirs('./experimental_data/'+exp_name+'/debug')
     print "Just setup directories!"
-
-def get_ip():
-    # TODO: make sure works with k3s...
-    out = subprocess.check_output(['minikube', 'ip'])
-    return out.rstrip().lstrip()
-
 
 def get_ip_and_port(app_name):
     # TODO: make sure works with k3s...
