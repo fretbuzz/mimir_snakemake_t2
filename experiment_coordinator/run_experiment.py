@@ -31,6 +31,8 @@ import fcntl
 from pwn import process
 #from tabulate import tabulate
 
+set_ip, set_port = None, None
+
 #Locust contemporary client count.  Calculated from the function f(x) = 1/25*(-1/2*sin(pi*x/12) + 1.1), 
 #   where x goes from 0 to 23 and x represents the hour of the day
 CLIENT_RATIO_NORMAL = [0.0440, 0.0388, 0.0340, 0.0299, 0.0267, 0.0247, 0.0240, 0.0247, 0.0267, 0.0299, 0.0340,
@@ -176,7 +178,7 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
         if prepare_app_p:
             prepare_app(app_name, setup_params,  spec_port, spec_ip, config_params["Deployment"], exfil_paths,
                         class_to_installer, exfil_path_class_to_image, use_k3s_cluster)
-        ip,port = get_ip_and_port(app_name)
+        ip,port = get_ip_and_port(app_name, use_k3s_cluster)
         print "ip,port",ip,port
 
         # determine the network namespaces
@@ -588,7 +590,7 @@ def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_co
             print "spec_port", spec_port, "spec_ip", spec_ip
             ip,port=spec_port, spec_ip
         else:
-            ip, port = get_ip_and_port(app_name)
+            ip, port = get_ip_and_port(app_name, use_k3s_cluster)
 
         print setup_config_params["number_background_locusts"], setup_config_params["background_locust_spawn_rate"], setup_config_params["number_customer_records"]
         print type(setup_config_params["number_background_locusts"]), type(setup_config_params["background_locust_spawn_rate"]), type(setup_config_params["number_customer_records"])
@@ -641,7 +643,7 @@ def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_co
         if spec_port or spec_ip:
             ip,port=spec_port, spec_ip
         else:
-            ip, port = get_ip_and_port(app_name)
+            ip, port = get_ip_and_port(app_name, use_k3s_cluster)
 
         print "scaling wordpress complete..."
         #try:
@@ -1774,27 +1776,31 @@ def setup_directories(exp_name):
     os.makedirs('./experimental_data/'+exp_name+'/debug')
     print "Just setup directories!"
 
-def get_ip_and_port(app_name):
+def get_ip_and_port(app_name, use_k3s_cluster):
     # TODO: make sure works with k3s...
 
-    print "get_ip_and_port", app_name
-    out = None
-    if app_name == 'sockshop':
-        out = subprocess.check_output(['minikube', 'service', 'front-end',  '--url', '--namespace=sock-shop', "--wait", "120"])
-    elif app_name == 'wordpress':
-        # step 1: get the appropriate ip / port (like above -- need for next step)
-        out = subprocess.check_output(['minikube', 'service', 'wwwppp-wordpress',  '--url', "--wait", "120"])
-    elif app_name == 'hipsterStore':
-        out = subprocess.check_output(['minikube', 'service', 'frontend-external', '--url', "--wait", "120"])
-    elif app_name == 'robot-shop':
-        out = subprocess.check_output(["minikube", "service", "web", "--url", "--namespace=robot-shop", "--wait" ,"120"])
-
+    if use_k3s_cluster:
+        global set_ip, set_port
+        return set_ip, set_port
     else:
-        pass
-    print "out",out
-    minikube_ip, front_facing_port = out.split(' ')[-1].split('/')[-1].rstrip().split(':')
-    print "minikube_ip", minikube_ip, "front_facing_port", front_facing_port
-    return minikube_ip, front_facing_port
+        print "get_ip_and_port", app_name
+        out = None
+        if app_name == 'sockshop':
+            out = subprocess.check_output(['minikube', 'service', 'front-end',  '--url', '--namespace=sock-shop', "--wait", "120"])
+        elif app_name == 'wordpress':
+            # step 1: get the appropriate ip / port (like above -- need for next step)
+            out = subprocess.check_output(['minikube', 'service', 'wwwppp-wordpress',  '--url', "--wait", "120"])
+        elif app_name == 'hipsterStore':
+            out = subprocess.check_output(['minikube', 'service', 'frontend-external', '--url', "--wait", "120"])
+        elif app_name == 'robot-shop':
+            out = subprocess.check_output(["minikube", "service", "web", "--url", "--namespace=robot-shop", "--wait" ,"120"])
+
+        else:
+            pass
+        print "out",out
+        minikube_ip, front_facing_port = out.split(' ')[-1].split('/')[-1].rstrip().split(':')
+        print "minikube_ip", minikube_ip, "front_facing_port", front_facing_port
+        return minikube_ip, front_facing_port
 
 def cluster_creation_logger(log_file_loc, end_sentinal_file_loc, start_sentinal_file_loc, exp_name):
     time_behind = 0.0 # records how much time the system is behind where it should be
@@ -1963,8 +1969,15 @@ if __name__=="__main__":
     # address there as the response address, in this case it seems to default to the below
     # value, but that might change at somepoints
     parser.add_argument('--localhostip',dest="localhostip", default="192.168.99.1")
+    parser.add_argument('--localport',dest="localport", default="80")
 
     args = parser.parse_args()
+
+    if args.localhostip != "192.168.99.1" and args.localport != "80":
+        global set_ip, set_port
+        set_ip = args.localhostip
+        set_port = args.localport
+
     print args.exp_name, args.config_file, args.prepare_app_p, args.port_number, args.vm_ip, args.localhostip, args.exfil_p
 
     print os.getcwd()
