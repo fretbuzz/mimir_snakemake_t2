@@ -581,7 +581,7 @@ def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_co
         # modify images appropriately
         install_exfil_dependencies(exfil_paths, orchestrator, class_to_installer, exfil_path_class_to_image)
 
-        sockshop_setup.scale_sockshop.scale_sockshop(deployment_config['deployment_scaling'], deployment_config['autoscale_p'])
+        sockshop_setup.scale_sockshop.scale_sockshop(deployment_config['deployment_scaling'], deployment_config['autoscale_p'], use_k3s_cluster)
 
         time.sleep(480) # note: may need to increase this...
         if spec_port or spec_ip:

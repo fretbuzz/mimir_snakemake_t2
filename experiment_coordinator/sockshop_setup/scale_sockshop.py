@@ -25,7 +25,7 @@ def deploy_sockshop(deployment_scaling, autoscale_p, use_k3_cluster):
     time.sleep(60)
     wait_until_pods_done("sock-shop")
 
-def scale_sockshop(deployment_scaling, autoscale_p):
+def scale_sockshop(deployment_scaling, autoscale_p, use_k3_cluster):
     orders_containers = deployment_scaling['orders']['max']
     queue_master_containers = deployment_scaling['queue-master']['max']
     shipping_containers = deployment_scaling['shipping']['max']
@@ -50,7 +50,7 @@ def scale_sockshop(deployment_scaling, autoscale_p):
     wait_until_pods_done("sock-shop")
     time.sleep(240)
 
-    if autoscale_p:
+    if autoscale_p and not use_k3_cluster:
         out = subprocess.check_output(["minikube", "addons", "enable", "heapster"])
         print out
         out = subprocess.check_output(["minikube", "addons", "enable", "metrics-server"])
