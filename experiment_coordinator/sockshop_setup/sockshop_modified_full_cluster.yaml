@@ -547,11 +547,11 @@ spec:
         image: weaveworksdemos/queue-master:0.3.1
         resources:
           limits: # I'm increasing the below values compared to default b/c it queue-master always gets overwhelmed.
-            cpu: 600m
-            memory: 1400Mi
+            cpu: 900m
+            memory: 2000Mi
           requests:
-            cpu: 300m
-            memory: 900Mi
+            cpu: 500m
+            memory: 1200Mi
         ports:
         - containerPort: 80
         livenessProbe:
