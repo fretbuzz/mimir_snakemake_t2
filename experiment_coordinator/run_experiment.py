@@ -576,7 +576,7 @@ def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_co
 
     if app_name == "sockshop":
         #sockshop_setup.scale_sockshop.main(deployment_config['deployment_scaling'], deployment_config['autoscale_p'])
-        sockshop_setup.scale_sockshop.deploy_sockshop(deployment_config['deployment_scaling'], deployment_config['autoscale_p'])
+        sockshop_setup.scale_sockshop.deploy_sockshop(deployment_config['deployment_scaling'], deployment_config['autoscale_p'], use_k3s_cluster)
 
         # modify images appropriately
         install_exfil_dependencies(exfil_paths, orchestrator, class_to_installer, exfil_path_class_to_image)

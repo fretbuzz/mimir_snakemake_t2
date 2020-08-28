@@ -9,13 +9,17 @@ def main(deployment_scaling, autoscale_p):
     deploy_sockshop(deployment_scaling, autoscale_p)
     scale_sockshop(deployment_scaling, autoscale_p)
 
-def deploy_sockshop(deployment_scaling, autoscale_p):
+def deploy_sockshop(deployment_scaling, autoscale_p, use_k3_cluster):
 
     wait_until_pods_done("kube-system")
     time.sleep(60)
     try:
-        out = subprocess.check_output(["kubectl", "create", "-f", "./sockshop_setup/sock-shop-ns.yaml", "-f",
-                                   "./sockshop_setup/sockshop_modified.yaml"])
+        if use_k3_cluster:
+            out = subprocess.check_output(["kubectl", "create", "-f", "./sockshop_setup/sock-shop-ns.yaml", "-f",
+                                       "./sockshop_setup/sockshop_modified.yaml"])
+        else:
+            out = subprocess.check_output(["kubectl", "create", "-f", "./sockshop_setup/sock-shop-ns.yaml", "-f",
+                                       "./sockshop_setup/sockshop_modified_full_cluster.yaml"])
     except:
         pass
     time.sleep(60)
