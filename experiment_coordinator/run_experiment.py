@@ -168,9 +168,10 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
         except:
             setup_params = {}
 
-        pod_config_cmds = ['bash', './exp_support_scripts/kubernetes_pod_config.sh', pod_config_file,
-                           node_config_file, deploy_config_file, docker_cont_config_file]
-        out = subprocess.check_output( pod_config_cmds + ['--clear_files'])
+        if not use_k3s_cluster:
+            pod_config_cmds = ['bash', './exp_support_scripts/kubernetes_pod_config.sh', pod_config_file,
+                               node_config_file, deploy_config_file, docker_cont_config_file]
+            out = subprocess.check_output( pod_config_cmds + ['--clear_files'])
         print out
         if prepare_app_p:
             prepare_app(app_name, setup_params,  spec_port, spec_ip, config_params["Deployment"], exfil_paths,
@@ -204,8 +205,9 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
         out = subprocess.check_output(['pwd'])
         print out
 
-        out = subprocess.check_output(['bash', './exp_support_scripts/docker_network_configs.sh', container_id_file, container_config_file])
-        print out
+        if not use_k3s_cluster:
+            out = subprocess.check_output(['bash', './exp_support_scripts/docker_network_configs.sh', container_id_file, container_config_file])
+            print out
 
         if orchestrator == 'kubernetes':
             # need some info about services, b/c they are not in the docker network configs
@@ -2003,11 +2005,14 @@ if __name__=="__main__":
                                exp_name, args.exfil_p)
         path_to_docker_machine_tls_certs = config_params["path_to_docker_machine_tls_certs"]
 
-    print "path_to_docker_machine_tls_certs", path_to_docker_machine_tls_certs
-    os.environ['DOCKER_CERT_PATH'] = path_to_docker_machine_tls_certs
-    client =docker.from_env()
-
-    exfil_p = args.exfil_p
+    if not args.use_k3s_cluster:
+        print "path_to_docker_machine_tls_certs", path_to_docker_machine_tls_certs
+        os.environ['DOCKER_CERT_PATH'] = path_to_docker_machine_tls_certs
+        client =docker.from_env()
+        exfil_p = args.exfil_p
+    else:
+        client=None
+        exfil_p = False
 
     main(exp_name, args.config_file, args.prepare_app_p, None, None, args.localhostip, exfil_p, args.post_process_only,
          args.use_k3s_cluster)
