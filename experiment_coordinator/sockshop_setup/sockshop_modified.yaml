@@ -1,4 +1,4 @@
-apiVersion: apps/v1 
+apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: carts-db
@@ -7,9 +7,6 @@ metadata:
   namespace: sock-shop
 spec:
   replicas: 1
-  selector:
-    matchLabels:
-      name: carts-db
   template:
     metadata:
       labels:
@@ -29,7 +26,7 @@ spec:
               - CHOWN
               - SETGID
               - SETUID
-          readOnlyRootFilesystem: false 
+          readOnlyRootFilesystem: false
         volumeMounts:
         - mountPath: /tmp
           name: tmp-volume
@@ -55,7 +52,7 @@ spec:
   selector:
     name: carts-db
 ---
-apiVersion: apps/v1
+apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: carts
@@ -64,9 +61,6 @@ metadata:
   namespace: sock-shop
 spec:
   replicas: 1
-  selector:
-    matchLabels:
-      name: carts
   template:
     metadata:
       labels:
@@ -135,7 +129,7 @@ spec:
   selector:
     name: carts
 ---
-apiVersion: apps/v1
+apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: catalogue-db
@@ -144,9 +138,6 @@ metadata:
   namespace: sock-shop
 spec:
   replicas: 1
-  selector:
-    matchLabels:
-      name: catalogue-db
   template:
     metadata:
       labels:
@@ -181,7 +172,7 @@ spec:
   selector:
     name: catalogue-db
 ---
-apiVersion: apps/v1
+apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: catalogue
@@ -190,9 +181,6 @@ metadata:
   namespace: sock-shop
 spec:
   replicas: 1
-  selector:
-    matchLabels:
-      name: catalogue
   template:
     metadata:
       labels:
@@ -252,16 +240,13 @@ spec:
   selector:
     name: catalogue
 ---
-apiVersion: apps/v1
+apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: front-end
   namespace: sock-shop
 spec:
   replicas: 1
-  selector:
-    matchLabels:
-      name: front-end
   template:
     metadata:
       labels:
@@ -320,7 +305,7 @@ spec:
   selector:
     name: front-end
 ---
-apiVersion: apps/v1
+apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: orders-db
@@ -329,9 +314,6 @@ metadata:
   namespace: sock-shop
 spec:
   replicas: 1
-  selector:
-    matchLabels:
-      name: orders-db
   template:
     metadata:
       labels:
@@ -377,7 +359,7 @@ spec:
   selector:
     name: orders-db
 ---
-apiVersion: apps/v1
+apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: orders
@@ -386,9 +368,6 @@ metadata:
   namespace: sock-shop
 spec:
   replicas: 1
-  selector:
-    matchLabels:
-      name: orders
   template:
     metadata:
       labels:
@@ -457,7 +436,7 @@ spec:
   selector:
     name: orders
 ---
-apiVersion: apps/v1
+apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: payment
@@ -466,9 +445,6 @@ metadata:
   namespace: sock-shop
 spec:
   replicas: 1
-  selector:
-    matchLabels:
-      name: payment
   template:
     metadata:
       labels:
@@ -525,7 +501,7 @@ spec:
   selector:
     name: payment
 ---
-apiVersion: apps/v1
+apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: queue-master
@@ -534,9 +510,6 @@ metadata:
   namespace: sock-shop
 spec:
   replicas: 1
-  selector:
-    matchLabels:
-      name: queue-master
   template:
     metadata:
       labels:
@@ -585,7 +558,7 @@ spec:
   selector:
     name: queue-master
 ---
-apiVersion: apps/v1
+apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: rabbitmq
@@ -594,9 +567,6 @@ metadata:
   namespace: sock-shop
 spec:
   replicas: 1
-  selector:
-    matchLabels:
-      name: rabbitmq
   template:
     metadata:
       labels:
@@ -650,7 +620,7 @@ spec:
   selector:
     name: rabbitmq
 ---
-apiVersion: apps/v1
+apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: session-db
@@ -659,9 +629,6 @@ metadata:
   namespace: sock-shop
 spec:
   replicas: 1
-  selector:
-    matchLabels:
-      name: session-db
   template:
     metadata:
       labels:
@@ -702,7 +669,7 @@ spec:
   selector:
     name: session-db
 ---
-apiVersion: apps/v1
+apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: shipping
@@ -711,9 +678,6 @@ metadata:
   namespace: sock-shop
 spec:
   replicas: 1
-  selector:
-    matchLabels:
-      name: shipping
   template:
     metadata:
       labels:
@@ -782,7 +746,7 @@ spec:
   selector:
     name: shipping
 ---
-apiVersion: apps/v1
+apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: user-db
@@ -791,9 +755,6 @@ metadata:
   namespace: sock-shop
 spec:
   replicas: 1
-  selector:
-    matchLabels:
-      name: user-db
   template:
     metadata:
       labels:
@@ -839,7 +800,7 @@ spec:
   selector:
     name: user-db
 ---
-apiVersion: apps/v1
+apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: user
@@ -848,9 +809,6 @@ metadata:
   namespace: sock-shop
 spec:
   replicas: 1
-  selector:
-    matchLabels:
-      name: user
   template:
     metadata:
       labels:
