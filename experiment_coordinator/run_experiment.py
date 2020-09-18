@@ -600,6 +600,7 @@ def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_co
         prepare_cmds = ["locust", "-f", "./sockshop_setup/pop_db.py", request_url, "--no-web", "-c",
                         str(setup_config_params["number_background_locusts"]), "-r", str(setup_config_params["background_locust_spawn_rate"]),
              "-t", "10min"]
+        print("Current_directory", os.getcwd())
         print prepare_cmds
         try:
             out = subprocess.check_output(prepare_cmds)
