@@ -6,7 +6,6 @@ import random
 import string
 import cPickle as pickle
 
-
 users = []
 
 def gen_random():
@@ -54,10 +53,11 @@ class PopulateDatabase(TaskSet):
         #userID = self.client.post("/register", json=registerObject).text
         # tested to here! first part is working!
         #''' Let's test only the above part for now
-        print("userID: ", userID()
+        print("userID: ", userID())
         # then login
         #login(username, password)
         base64string = base64.encodestring('%s:%s' % (username, password)).replace('\n', '')
+        ## base64.encodestring(('%s:%s' % (username,password)).encode()).replace('\n'.encode(), ''.encode())
         self.client.get("/login", headers={"Authorization":"Basic %s" % base64string})
         # then register a credit card
         cc_num =  get_random_num(16)
