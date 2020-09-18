@@ -53,7 +53,7 @@ class PopulateDatabase(TaskSet):
         #userID = self.client.post("/register", json=registerObject).text
         # tested to here! first part is working!
         #''' Let's test only the above part for now
-        print("userID: ", userID())
+        print("userID: ", userID)
         # then login
         #login(username, password)
         base64string = base64.encodestring('%s:%s' % (username, password)).replace('\n', '')
