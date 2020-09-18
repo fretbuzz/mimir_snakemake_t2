@@ -175,6 +175,8 @@ def main(experiment_name, config_file, prepare_app_p, spec_port, spec_ip, localh
                                node_config_file, deploy_config_file, docker_cont_config_file]
             out = subprocess.check_output( pod_config_cmds + ['--clear_files'])
             print out
+        else:
+            pod_config_cmds = ['ls']
         if prepare_app_p:
             prepare_app(app_name, setup_params,  spec_port, spec_ip, config_params["Deployment"], exfil_paths,
                         class_to_installer, exfil_path_class_to_image, use_k3s_cluster)
