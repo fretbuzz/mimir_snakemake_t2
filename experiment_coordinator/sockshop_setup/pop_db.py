@@ -35,7 +35,7 @@ class PopulateDatabase(TaskSet):
     # first register a user than register a credit card for that user (after login)
     @task
     def populate_data(self):
-        print "about to populate this database!"
+        print("about to populate this database!")
         # first register
         username = gen_random()
         #print "username: ", username
@@ -49,12 +49,12 @@ class PopulateDatabase(TaskSet):
         #print "email: ", email
         # now create the object that we will pass for registration
         registerObject = {"username": username, "password": password, firstname: "HowdyG", "lastName": lastname,"email":email}
-        print registerObject
+        print(registerObject)
         userID = self.client.post("/register", json = registerObject).text
         #userID = self.client.post("/register", json=registerObject).text
         # tested to here! first part is working!
         #''' Let's test only the above part for now
-        print "userID: ", userID
+        print("userID: ", userID()
         # then login
         #login(username, password)
         base64string = base64.encodestring('%s:%s' % (username, password)).replace('\n', '')
@@ -64,20 +64,20 @@ class PopulateDatabase(TaskSet):
         expir_date = "11/2020" # let's give everything the same expir_date b/c why not?
         ccv = get_random_num(3)
         creditCardObject = {"longNum": "string", "expires": "string", "ccv": "string", "userID": userID}
-        print creditCardObject
+        print(creditCardObject)
         cc_req = self.client.post("/cards", json=creditCardObject)
-        print cc_req
+        print(cc_req)
  
         # in order to buy stuff, also need to have an address on file
         # in the interests of simplicity, I am simply going to use the same address for everyone
         # NOTE: this was one of the address records that came already-present in the sock shop
         addressObject = {"street":"Whitelees Road","number":"246","country":"United Kingdom","city":"Glasgow","postcode":"G67 3DL","id":userID}
         cAddr = self.client.post("/addresses", json=addressObject)
-        print "Response from posting address: ", cAddr.text, " done"
+        print("Response from posting address: ", cAddr.text, " done")
 
         users.append(username)
         pickle.dump( users, open( "users.pickle", "wb" ) )
 
 class loadDB(HttpLocust):
-    print "Can I see this??" # yes, yes I can
+    print("Can I see this??") # yes, yes I can
     task_set = PopulateDatabase
