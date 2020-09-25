@@ -1,10 +1,11 @@
-sudo chmod 600 tempkey.pem  
-sudo chmod 600 tempkey.pub 
+# do this in the ssh part part?
+sudo chmod 600 ~/.ssh/tempkey.pem
+sudo chmod 600 ~/.ssh/tempkey.pub
 eval `ssh-agent`
 ssh-add ~/.ssh/tempkey.pem # TODO: automate using your password here
+cd ~/kubespray
 
 # Run the kubespray ansible playbook
-cd ~/kubespray
 ansible-playbook -i inventory/mycluster/hosts.yml  --become --become-user=root cluster.yml
 
 # Copy kubeconfig to the home directory

@@ -598,6 +598,7 @@ def prepare_app(app_name, setup_config_params, spec_port, spec_ip, deployment_co
         print type(setup_config_params["number_background_locusts"]), type(setup_config_params["background_locust_spawn_rate"]), type(setup_config_params["number_customer_records"])
         print "ip", ip, "port", port
         request_url = "--host=http://" + ip + ":"+ str(port)
+        request_url = "-H=" + ip + ":"+ str(port)
         print request_url
         prepare_cmds = ["locust", "-f", "./sockshop_setup/pop_db.py", request_url, "--no-web", "-c",
                         str(setup_config_params["number_background_locusts"]), "-r", str(setup_config_params["background_locust_spawn_rate"]),
@@ -758,8 +759,13 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
         try:
             if app_name == "sockshop":
                 print "sockshop!"
+                '''
                 locust_cmds = ["locust", "-f", "./sockshop_setup/background_traffic.py",
-                                         "--host=http://"+ip+ ":" +str(port), "--no-web", "-c",
+                         "--hoste=http://"+ip+ ":" +str(port), "--no-web", "-c",
+                        client_count, "-r", str(spawn_rate), '--csv=' + locust_info_file,
+                '''
+                locust_cmds = ["locust", "-f", "./sockshop_setup/background_traffic.py",
+                                         "-H=http://"+ip+ ":" +str(port), "--no-web", "-c",
                                         client_count, "-r", str(spawn_rate), '--csv=' + locust_info_file,
                                "-t", str(int(timestep) - 1) + 's']
                 print "locust_cmds", locust_cmds
@@ -768,7 +774,11 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
                 #print proc.stdout
             # for use w/ seastore:
             elif app_name == "atsea_store":
-                seastore_cmds = ["locust", "-f", "./load_generators/seashop_background.py", "--host=https://"+ip+ ":" +str(port),
+                '''
+                                seastore_cmds = ["locust", "-f", "./load_generators/seashop_background.py", "--host=https://"+ip+ ":" +str(port),
+                            "--no-web", "-c",  client_count, "-r", spawn_rate, '--csv=' + locust_info_file]
+                '''
+                seastore_cmds = ["locust", "-f", "./load_generators/seashop_background.py", "-H=https://"+ip+ ":" +str(port),
                             "--no-web", "-c",  client_count, "-r", spawn_rate, '--csv=' + locust_info_file]
                 #print "seastore!", seastore_cmds
                 proc = subprocess.Popen(seastore_cmds,
@@ -777,7 +787,12 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
             #                        "--no-web", "-c", client_count, "-r", spawn_rate],
             #                        stdout=devnull, stderr=devnull, preexec_fn=os.setsid)
             elif app_name == "wordpress":
-                wordpress_cmds = ["locust", "-f", "./wordpress_setup/wordpress_background.py", "--host=https://"+ip+ ":" +str(port),
+                '''
+                                wordpress_cmds = ["locust", "-f", "./wordpress_setup/wordpress_background.py", "--host=https://"+ip+ ":" +str(port),
+                                  "--no-web", "-c", str(client_count), "-r", str(spawn_rate),
+                                  "--csv=" + locust_info_file, "-t", str(int(timestep) - 1) + 's']
+                '''
+                wordpress_cmds = ["locust", "-f", "./wordpress_setup/wordpress_background.py", "-H=https://"+ip+ ":" +str(port),
                                   "--no-web", "-c", str(client_count), "-r", str(spawn_rate),
                                   "--csv=" + locust_info_file, "-t", str(int(timestep) - 1) + 's']
                 print "wordpress_cmds", wordpress_cmds
@@ -785,8 +800,14 @@ def generate_background_traffic(run_time, max_clients, traffic_type, spawn_rate,
             elif app_name == "hipsterStore":
                 #hipsterStore_cmds = ["locust", "-f", "./microservices-demo/src/loadgenerator/locustfile.py", "--host=http://"+ip+ ":" +str(port),
                 #                  "--no-web", "-c", str(client_count), "-r", str(spawn_rate), "--csv=" + locust_info_file]
-                hipsterStore_cmds = ["locust", "-f", "./hipsterStore_setup/background_traffic.py",
+                '''
+                                hipsterStore_cmds = ["locust", "-f", "./hipsterStore_setup/background_traffic.py",
                                      "--host=http://" + ip + ":" + str(port),
+                                     "--no-web", "-c", str(client_count), "-r", str(spawn_rate),
+                                     "--csv=" + locust_info_file, "-t", str(int(timestep) - 1) + 's']
+                '''
+                hipsterStore_cmds = ["locust", "-f", "./hipsterStore_setup/background_traffic.py",
+                                     "-H=http://" + ip + ":" + str(port),
                                      "--no-web", "-c", str(client_count), "-r", str(spawn_rate),
                                      "--csv=" + locust_info_file, "-t", str(int(timestep) - 1) + 's']
                 print "hipsterStore_cmds", hipsterStore_cmds
